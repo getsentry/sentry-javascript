@@ -5,7 +5,6 @@ import type {
   RequestHookInfo,
   ResponseHookInfo,
   Span,
-  SpanAttributes,
   StartSpanOptions,
 } from '@sentry/core/browser';
 import {
@@ -345,7 +344,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     // For pageloads (and manual navigation spans without a URL) we fall back to the current location.
     const urlObject = parseStringToURLObject(url || getLocationHref());
 
-    const attributes: SpanAttributes = {
+    const attributes = {
       ...(urlObject?.pathname && { [URL_PATH]: urlObject.pathname }),
       ...(urlObject && !isURLObjectRelative(urlObject) && { [URL_FULL]: filterCollectedUrl(urlObject.href) }),
       ...finalStartSpanOptions.attributes,

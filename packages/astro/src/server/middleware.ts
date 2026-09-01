@@ -108,7 +108,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
     // if there is an active span, we just want to enhance it with routing data etc.
-    if (rootSpan && spanToJSON(rootSpan).attributes[SENTRY_OP] === 'http.server') {
+    if (rootSpan && spanToJSON(rootSpan).attributes[SENTRY_OP] === HTTP_SERVER) {
       return enhanceHttpServerSpan(ctx, next, rootSpan);
     }
 
@@ -253,7 +253,7 @@ async function instrumentRequestStartHttpServerSpan(
           const res = await startSpan(
             {
               attributes: {
-                [SENTRY_OP]: 'http.server',
+                [SENTRY_OP]: HTTP_SERVER,
                 ...attributes,
               },
               name,
