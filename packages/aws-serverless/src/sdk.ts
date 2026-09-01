@@ -110,6 +110,7 @@ function setupTimeoutWarning(context: Context, options: WrapperOptions): NodeJS.
     return setTimeout(() => {
       withScope(scope => {
         scope.setTag('timeout', humanReadableTimeout);
+        scope.setAttribute('timeout', humanReadableTimeout);
         captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
       });
     }, timeoutWarningDelay);

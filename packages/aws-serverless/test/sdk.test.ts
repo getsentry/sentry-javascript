@@ -12,6 +12,7 @@ const mockInit = vi.fn();
 
 const mockScope = {
   setTag: vi.fn(),
+  setAttribute: vi.fn(),
   setContext: vi.fn(),
   addEventProcessor: vi.fn(),
   setTransactionName: vi.fn(),
@@ -121,6 +122,7 @@ describe('AWSLambda', () => {
       expect(mockWithScope).toBeCalledTimes(2);
       expect(mockCaptureMessage).toBeCalled();
       expect(mockScope.setTag).toBeCalledWith('timeout', '1s');
+      expect(mockScope.setAttribute).toBeCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning disabled', async () => {
@@ -137,6 +139,7 @@ describe('AWSLambda', () => {
       expect(mockWithScope).toBeCalledTimes(1);
       expect(mockCaptureMessage).not.toBeCalled();
       expect(mockScope.setTag).not.toBeCalledWith('timeout', '1s');
+      expect(mockScope.setAttribute).not.toBeCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning with configured timeoutWarningLimit', async () => {
@@ -146,7 +149,7 @@ describe('AWSLambda', () => {
        * If it would not work as expected, we'd exceed `setTimeout` used and never capture the warning.
        */
 
-      expect.assertions(2);
+      expect.assertions(3);
 
       const handler: Handler = (_event, _context, callback) => {
         setTimeout(() => {
@@ -167,6 +170,7 @@ describe('AWSLambda', () => {
 
       expect(mockCaptureMessage).toBeCalled();
       expect(mockScope.setTag).toBeCalledWith('timeout', '1m40s');
+      expect(mockScope.setAttribute).toBeCalledWith('timeout', '1m40s');
     });
 
     test('captureAllSettledReasons disabled (default)', async () => {
@@ -527,6 +531,7 @@ describe('AWSLambda', () => {
       expect(mockWithScope).toBeCalledTimes(2);
       expect(mockCaptureMessage).toBeCalled();
       expect(mockScope.setTag).toBeCalledWith('timeout', '1s');
+      expect(mockScope.setAttribute).toBeCalledWith('timeout', '1s');
     });
 
     test('marks streaming handler captured errors as unhandled', async () => {

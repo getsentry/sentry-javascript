@@ -6,6 +6,7 @@ import { init as reactRouterInit } from '../../src/client';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
 const setTag = vi.spyOn(SentryCore, 'setTag');
+const setAttribute = vi.spyOn(SentryCore, 'setAttribute');
 const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
 describe('React Router client SDK', () => {
@@ -48,6 +49,11 @@ describe('React Router client SDK', () => {
     it('sets the runtime tag to browser', () => {
       reactRouterInit({});
       expect(setTag).toHaveBeenCalledWith('runtime', 'browser');
+    });
+
+    it('sets the runtime attribute to browser', () => {
+      reactRouterInit({});
+      expect(setAttribute).toHaveBeenCalledWith('runtime', 'browser');
     });
 
     it('warns if BrowserTracing integration is present', () => {

@@ -1,7 +1,7 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, consoleSandbox, setTag } from '@sentry/core';
+import { applySdkMetadata, consoleSandbox, setAttribute, setTag } from '@sentry/core';
 
 const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -30,6 +30,7 @@ export function init(options: BrowserOptions): Client | undefined {
   const client = browserInit(options);
 
   setTag('runtime', 'browser');
+  setAttribute('runtime', 'browser');
 
   return client;
 }

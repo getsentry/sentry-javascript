@@ -672,9 +672,11 @@ export function captureToolError(span: Span, data: VercelAiChannelMessage, error
     scope.setContext('trace', spanToTraceContext(span));
     if (toolName) {
       scope.setTag('vercel.ai.tool.name', toolName);
+      scope.setAttribute('vercel.ai.tool.name', toolName);
     }
     if (toolCallId) {
       scope.setTag('vercel.ai.tool.callId', toolCallId);
+      scope.setAttribute('vercel.ai.tool.callId', toolCallId);
     }
     scope.setLevel('error');
     captureException(
