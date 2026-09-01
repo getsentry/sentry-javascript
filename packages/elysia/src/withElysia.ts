@@ -172,9 +172,10 @@ function instrumentLifecyclePhase(
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
             ...routeAttribute,
-            // These spans are named after the route, so the handler name has no
-            // other place to go. Anonymous handlers have no name to record.
-            ...(isStreamedRequestHandlerSpan && child.name ? { [CODE_FUNCTION_NAME]: child.name } : {}),
+            // Streamed request handler spans are named after the route, so the
+            // handler name has no other place to go. Anonymous handlers have no
+            // name to record.
+            ...(isRequestHandlerSpan && child.name ? { [CODE_FUNCTION_NAME]: child.name } : {}),
           },
         });
 

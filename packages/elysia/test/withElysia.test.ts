@@ -284,27 +284,24 @@ describe('withElysia', () => {
       expect(startedSpans[0]?.attributes).not.toHaveProperty('http.route');
     });
 
-    it('records the handler name on the child span it renamed', () => {
+    it('records the handler name on the handler child span in both trace lifecycles', () => {
       // @ts-expect-error - mock app
       withElysia(mockApp);
       runHandlePhase(['getUser']);
 
+      traceLifecycle = 'static';
+      // @ts-expect-error - mock app
+      withElysia(createMockApp());
+      runHandlePhase(['getUser']);
+
       expect(startedSpans[1]?.attributes).toMatchObject({ 'code.function.name': 'getUser' });
+      expect(startedSpans[3]?.attributes).toMatchObject({ 'code.function.name': 'getUser' });
     });
 
     it('records no handler name for an anonymous handler', () => {
       // @ts-expect-error - mock app
       withElysia(mockApp);
       runHandlePhase(['']);
-
-      expect(startedSpans[1]?.attributes).not.toHaveProperty('code.function.name');
-    });
-
-    it('records no handler name in static mode, where the span name still carries it', () => {
-      traceLifecycle = 'static';
-      // @ts-expect-error - mock app
-      withElysia(mockApp);
-      runHandlePhase(['getUser']);
 
       expect(startedSpans[1]?.attributes).not.toHaveProperty('code.function.name');
     });
