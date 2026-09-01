@@ -513,10 +513,20 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   }
 }
 
+const CLIENTS_WITH_VERCEL_AI_PROCESSORS = new WeakSet<Client>();
+
 /**
  * Add event processors to the given client to process Vercel AI spans.
+ *
+ * Idempotent: both the integration and the Next.js SDK register these, and duplicate hooks would
+ * process every span twice.
  */
 export function addVercelAiProcessors(client: Client): void {
+  if (CLIENTS_WITH_VERCEL_AI_PROCESSORS.has(client)) {
+    return;
+  }
+  CLIENTS_WITH_VERCEL_AI_PROCESSORS.add(client);
+
   client.on('spanStart', onVercelAiSpanStart);
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));

@@ -4,6 +4,7 @@
 import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
 import type { EventProcessor } from '@sentry/core';
 import {
+  addVercelAiProcessors,
   applySdkMetadata,
   debug,
   getClient,
@@ -209,6 +210,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
   applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
   const client = nodeInit(opts);
+
+  // Next.js bundles `ai`, so the integration can neither patch the module nor detect it via `Modules`
+  // (which only sees the app's own `package.json`, missing workspace and transitive deps). Register
+  // the processors here instead — after init, so an explicitly constructed `vercelAIIntegration()`
+  // can't override the default back to the broken behavior.
+  if (client?.getIntegrationByName('VercelAI')) {
+    addVercelAiProcessors(client);
+  }
 
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
