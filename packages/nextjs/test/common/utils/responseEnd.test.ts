@@ -13,13 +13,9 @@ vi.mock('@sentry/core', async () => {
   };
 });
 
-vi.mock('@sentry/core/server', async () => {
-  const actual = await vi.importActual('@sentry/core/server');
-  return {
-    ...actual,
-    vercelWaitUntil: vi.fn(),
-  };
-});
+vi.mock('@sentry/server-utils', () => ({
+  vercelWaitUntil: vi.fn(),
+}));
 
 describe('responseEnd utils', () => {
   beforeEach(() => {
@@ -49,12 +45,12 @@ describe('responseEnd utils', () => {
       expect(cfWaitUntilMock).toHaveBeenCalledTimes(1);
 
       // Should not call vercelWaitUntil when Cloudflare is available
-      const { vercelWaitUntil } = await import('@sentry/core/server');
+      const { vercelWaitUntil } = await import('@sentry/server-utils');
       expect(vercelWaitUntil).not.toHaveBeenCalled();
     });
 
     it('should use vercelWaitUntil when Cloudflare context is not available', async () => {
-      const { vercelWaitUntil } = await import('@sentry/core/server');
+      const { vercelWaitUntil } = await import('@sentry/server-utils');
       const testTask = Promise.resolve('test');
 
       waitUntil(testTask);
@@ -87,12 +83,12 @@ describe('responseEnd utils', () => {
       expect(cfWaitUntilMock).toHaveBeenCalledTimes(1);
 
       // Should not use Vercel
-      const { vercelWaitUntil } = await import('@sentry/core/server');
+      const { vercelWaitUntil } = await import('@sentry/server-utils');
       expect(vercelWaitUntil).not.toHaveBeenCalled();
     });
 
     it('should handle errors gracefully when waitUntil is called with a rejected promise', async () => {
-      const { vercelWaitUntil } = await import('@sentry/core/server');
+      const { vercelWaitUntil } = await import('@sentry/server-utils');
       const testTask = Promise.reject(new Error('test error'));
 
       // Should not throw synchronously

@@ -1,6 +1,6 @@
 import type { Span } from '@sentry/core';
 import { debug, fill, flush, GLOBAL_OBJ, setHttpStatus } from '@sentry/core';
-import { vercelWaitUntil } from '@sentry/core/server';
+import { vercelWaitUntil } from '@sentry/server-utils';
 import type { ServerResponse } from 'http';
 import { DEBUG_BUILD } from '../debug-build';
 import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';

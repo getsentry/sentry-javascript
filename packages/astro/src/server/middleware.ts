@@ -25,7 +25,7 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless } from '@sentry/server-utils';
 import {
   captureException,
   continueTrace,

@@ -34,7 +34,8 @@ import {
   withIsolationScope,
   filterCollectedUrl,
 } from '@sentry/core';
-import { isNodeEnv, loadModule } from '@sentry/core/server';
+import { isNodeEnv } from '@sentry/core/server';
+import { loadModule } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';

@@ -120,4 +120,4 @@ export {
   withStreamedSpan,
   featureFlagsIntegration,
 } from '@sentry/core';
-export { trpcMiddleware } from '@sentry/core/server';
+export { trpcMiddleware } from '@sentry/server-utils';

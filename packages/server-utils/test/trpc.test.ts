@@ -1,11 +1,8 @@
+import { type Client, setCurrentClient, type Span } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { type Client, setCurrentClient, type Span } from '../../src';
-import { trpcMiddleware } from '../../src/server';
-import * as currentScopes from '../../src/currentScopes';
-import * as exports from '../../src/exports';
-import * as tracing from '../../src/tracing/trace';
-import { resolveDataCollectionOptions } from '../../src/utils/data-collection/resolveDataCollectionOptions';
-import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { trpcMiddleware } from '../src/trpc';
+import { getDefaultTestClientOptions, TestClient } from './mocks/client';
 
 describe('trpcMiddleware', () => {
   let client: Client;
@@ -15,9 +12,7 @@ describe('trpcMiddleware', () => {
       normalizeDepth: 3,
       dataCollection: { httpBodies: [] },
     }),
-    getDataCollectionOptions: vi
-      .fn()
-      .mockReturnValue(resolveDataCollectionOptions({ dataCollection: { httpBodies: [] } })),
+    getDataCollectionOptions: vi.fn().mockReturnValue({ httpBodies: [] }),
     captureException: vi.fn(),
   } as unknown as Client;
 
@@ -41,10 +36,10 @@ describe('trpcMiddleware', () => {
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
-    vi.spyOn(currentScopes, 'getClient').mockReturnValue(mockClient);
-    vi.spyOn(tracing, 'startSpanManual').mockImplementation((name, callback) => callback(mockSpan, () => {}));
-    vi.spyOn(currentScopes, 'withIsolationScope').mockImplementation(withIsolationScope);
-    vi.spyOn(exports, 'captureException').mockImplementation(() => 'mock-event-id');
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue(mockClient);
+    vi.spyOn(SentryCore, 'startSpanManual').mockImplementation((name, callback) => callback(mockSpan, () => {}));
+    vi.spyOn(SentryCore, 'withIsolationScope').mockImplementation(withIsolationScope);
+    vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'mock-event-id');
   });
 
   test('creates span with correct attributes', async () => {
@@ -57,7 +52,7 @@ describe('trpcMiddleware', () => {
       next,
     });
 
-    expect(tracing.startSpanManual).toHaveBeenCalledWith(
+    expect(SentryCore.startSpanManual).toHaveBeenCalledWith(
       {
         name: 'trpc/test.procedure',
         attributes: {
@@ -81,7 +76,7 @@ describe('trpcMiddleware', () => {
 
     await middleware({ path: 'test.procedure', type: 'query', next });
 
-    expect(tracing.startSpanManual).toHaveBeenCalledWith(
+    expect(SentryCore.startSpanManual).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
           'sentry.segment.name.source': 'route',
@@ -102,7 +97,7 @@ describe('trpcMiddleware', () => {
       next,
     });
 
-    expect(exports.captureException).toHaveBeenCalledWith(error, {
+    expect(SentryCore.captureException).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'auto.rpc.trpc.middleware' },
     });
   });
@@ -139,7 +134,7 @@ describe('trpcMiddleware', () => {
       }),
     ).rejects.toThrow(error);
 
-    expect(exports.captureException).toHaveBeenCalledWith(error, {
+    expect(SentryCore.captureException).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'auto.rpc.trpc.middleware' },
     });
   });
@@ -154,7 +149,7 @@ describe('trpcMiddleware', () => {
       next,
     });
 
-    expect(tracing.startSpanManual).toHaveBeenCalledWith(
+    expect(SentryCore.startSpanManual).toHaveBeenCalledWith(
       expect.objectContaining({
         forceTransaction: true,
       }),

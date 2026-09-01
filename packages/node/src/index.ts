@@ -154,7 +154,8 @@ export {
   featureFlagsIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { wrapMcpServerWithSentry } from '@sentry/core/server';
+export { trpcMiddleware } from '@sentry/server-utils';
 
 export type {
   Breadcrumb,

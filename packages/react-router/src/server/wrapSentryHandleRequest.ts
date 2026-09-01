@@ -6,7 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   updateSpanName,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless } from '@sentry/server-utils';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 import { isInstrumentationApiUsed } from './serverGlobals';
 

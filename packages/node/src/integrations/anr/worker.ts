@@ -13,7 +13,7 @@ import {
   updateSession,
   uuid4,
 } from '@sentry/core';
-import { callFrameToStackFrame, watchdogTimer } from '@sentry/core/server';
+import { callFrameToStackFrame, watchdogTimer } from '@sentry/server-utils';
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';
 import type { WorkerStartData } from './common';

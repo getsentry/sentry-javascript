@@ -9,7 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless } from '@sentry/server-utils';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import type { TraceContext } from 'unstorage/tracing';
 

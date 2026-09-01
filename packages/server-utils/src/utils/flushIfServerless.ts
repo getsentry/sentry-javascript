@@ -1,7 +1,5 @@
-import { flush } from '../exports';
-import { debug } from './debug-logger';
+import { debug, flush, GLOBAL_OBJ } from '@sentry/core';
 import { vercelWaitUntil } from './vercelWaitUntil';
-import { GLOBAL_OBJ } from './worldwide';
 
 type MinimalCloudflareContext = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
