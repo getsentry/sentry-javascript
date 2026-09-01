@@ -213,6 +213,40 @@ describe('getSqlQuerySummary', () => {
     });
   });
 
+  describe('quoted and schema-qualified table names', () => {
+    it.each([
+      ['SELECT * FROM "public"."User"', 'SELECT "public"."User"'],
+      ['DELETE FROM "public"."User"', 'DELETE "public"."User"'],
+      ['INSERT INTO "public"."User" (name) VALUES (?)', 'INSERT "public"."User"'],
+      ['UPDATE "public"."User" SET name = ?', 'UPDATE "public"."User"'],
+      ['CREATE TABLE "public"."User" (id INTEGER)', 'CREATE TABLE "public"."User"'],
+      ['SELECT * FROM public.User', 'SELECT public.User'],
+      ['SELECT * FROM `mydb`.`users`', 'SELECT `mydb`.`users`'],
+      ['SELECT * FROM "catalog"."public"."User"', 'SELECT "catalog"."public"."User"'],
+      ['SELECT * FROM "public".User', 'SELECT "public".User'],
+      ['SELECT * FROM public."User"', 'SELECT public."User"'],
+    ])('keeps the whole qualified name: %j => %j', (input, expected) => {
+      expect(getSqlQuerySummary(input)).toBe(expected);
+    });
+
+    it('keeps schema-qualified JOIN targets distinguishable', () => {
+      expect(getSqlQuerySummary('SELECT * FROM "public"."A" JOIN "public"."B" ON "A".id = "B"."a_id"')).toBe(
+        'SELECT "public"."A" "public"."B"',
+      );
+    });
+
+    it.each([
+      ['SELECT * FROM "my table"', 'SELECT "my table"'],
+      ['INSERT INTO "my table" (id) VALUES (?)', 'INSERT "my table"'],
+      ['UPDATE "my table" SET id = ?', 'UPDATE "my table"'],
+      ['DELETE FROM "my table"', 'DELETE "my table"'],
+      ['CREATE TABLE "my table" (id INTEGER)', 'CREATE TABLE "my table"'],
+      ['SELECT * FROM "my schema"."my table"', 'SELECT "my schema"."my table"'],
+    ])('does not split identifiers containing spaces: %j => %j', (input, expected) => {
+      expect(getSqlQuerySummary(input)).toBe(expected);
+    });
+  });
+
   describe('truncation', () => {
     it('truncates at 255 characters on a word boundary', () => {
       const longTable = 'a'.repeat(300);
