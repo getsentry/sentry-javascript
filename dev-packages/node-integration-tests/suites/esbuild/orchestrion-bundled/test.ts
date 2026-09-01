@@ -7,7 +7,7 @@ import type { Plugin } from 'esbuild';
 import { afterAll, describe, expect, test } from 'vitest';
 
 // `@sentry/node` installs its diagnostics-channel instrumentation through a runtime module hook
-// that ships in `@sentry/server-utils` and only works from `node_modules`. Bundling that package
+// that ships in `@sentry/server-runtime-injection` and only works from `node_modules`. Bundling that package
 // strips its vendored code transformer, so the SDK warns that auto-instrumentation is off.
 //
 // Using the Sentry bundler plugin is the supported alternative: instrumentation is injected at
@@ -114,17 +114,17 @@ describe('esbuild + orchestrion build-time instrumentation', () => {
     // Nothing instrumented `dataloader`, so the user has to be told, and the warning names the
     // module that was lost.
     const warning = sentryWarnings(stderr).join('\n');
-    expect(warning).toContain('@sentry/server-utils');
+    expect(warning).toContain('@sentry/server-runtime-injection');
     expect(warning).toContain('dataloader');
     // One broken transformer breaks every module, so the fix is stated exactly once.
     expect(sentryWarnings(stderr)).toHaveLength(1);
   });
 
-  // The counterpart to the warning: it tells the user to keep `@sentry/server-utils` external, so
+  // The counterpart to the warning: it tells the user to keep `@sentry/server-runtime-injection` external, so
   // that remedy has to actually work. External, the package loads from `node_modules` with its
   // vendored transformer intact, instruments the (also external) `dataloader`, and stays quiet.
-  test('instruments the dependency and stays quiet when `@sentry/server-utils` is kept external', async () => {
-    const outfile = join(OUT_DIR, 'external-server-utils', 'app.mjs');
+  test('instruments the dependency and stays quiet when `@sentry/server-runtime-injection` is kept external', async () => {
+    const outfile = join(OUT_DIR, 'external-server-runtime-injection', 'app.mjs');
 
     await build({
       entryPoints: [join(__dirname, 'app-external-dep.mjs')],
@@ -132,7 +132,7 @@ describe('esbuild + orchestrion build-time instrumentation', () => {
       platform: 'node',
       format: 'esm',
       bundle: true,
-      external: ['dataloader', '@sentry/server-utils'],
+      external: ['dataloader', '@sentry/server-runtime-injection'],
       logLevel: 'silent',
     });
 
