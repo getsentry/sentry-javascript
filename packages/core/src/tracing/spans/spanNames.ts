@@ -22,6 +22,12 @@ export const NAVIGATION_SPAN_NAME_FALLBACK = 'Navigation';
 export const DB_SPAN_NAME_FALLBACK = 'Database operation';
 
 /**
+ * Fallback name for cache spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#cache-cache-operations
+ */
+export const CACHE_SPAN_NAME_FALLBACK = 'Cache operation';
+
+/**
  * Fallback name for gen_ai agent spans when no better-suited span name is available.
  * @see https://getsentry.github.io/sentry-conventions/names/#gen_ai-agent
  */

@@ -1,4 +1,5 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { CACHE_KEY, CACHE_OPERATION, SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { setCurrentClient } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyRedisCacheAttributes,
@@ -9,6 +10,13 @@ import {
   SET_COMMANDS,
   shouldConsiderForCache,
 } from '../../../src/integrations/redis/redis-cache';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+
+function setUpClient(traceLifecycle: 'stream' | 'static'): void {
+  const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle, tracesSampleRate: 1 }));
+  setCurrentClient(client);
+  client.init();
+}
 
 describe('redis cache', () => {
   describe('applyRedisCacheAttributes', () => {
@@ -80,6 +88,41 @@ describe('redis cache', () => {
         );
 
         expect(mockSpan.updateName).toHaveBeenCalledWith('cache:key1, cache:ke...');
+      });
+    });
+
+    describe('span names', () => {
+      afterEach(() => {
+        setCurrentClient(undefined as never);
+      });
+
+      it.each([
+        { cmd: 'get', op: 'cache.get', operation: 'get' },
+        { cmd: 'set', op: 'cache.put', operation: 'put' },
+        { cmd: 'del', op: 'cache.remove', operation: 'remove' },
+      ])('names a streamed $op span after the cache operation', ({ cmd, op, operation }) => {
+        setUpClient('stream');
+
+        applyRedisCacheAttributes(mockSpan, cmd, ['cache:user-42'], 'value', { cachePrefixes: ['cache:'] });
+
+        expect(mockSpan.updateName).toHaveBeenCalledWith(op);
+        // The key is high cardinality, so it only lives on the attribute.
+        expect(mockSpan.setAttributes).toHaveBeenCalledWith(
+          expect.objectContaining({
+            [SENTRY_OP]: op,
+            [CACHE_OPERATION]: operation,
+            [CACHE_KEY]: ['cache:user-42'],
+          }),
+        );
+      });
+
+      it('keeps the cache key as the span name when span streaming is off', () => {
+        setUpClient('static');
+
+        applyRedisCacheAttributes(mockSpan, 'get', ['cache:user-42'], 'value', { cachePrefixes: ['cache:'] });
+
+        expect(mockSpan.updateName).toHaveBeenCalledWith('cache:user-42');
+        expect(mockSpan.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ [CACHE_OPERATION]: 'get' }));
       });
     });
   });

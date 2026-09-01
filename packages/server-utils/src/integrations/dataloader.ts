@@ -1,10 +1,19 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { CACHE_KEY, DB_OPERATION_NAME, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  CACHE_KEY,
+  CACHE_OPERATION,
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  SENTRY_KIND,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, StartSpanOptions } from '@sentry/core';
 import {
   debug,
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   startSpan,
@@ -38,6 +47,14 @@ const OPERATION_SPAN_OPS = {
   clear: CACHE_REMOVE,
   clearAll: CACHE_REMOVE,
 } as const satisfies Record<Operation, string>;
+
+// The `cache.operation` value each cache op carries. Cache span names are `cache.{{cache.operation}}`,
+// which makes them identical to the op itself.
+const CACHE_OPERATION_NAMES = {
+  [CACHE_GET]: 'get',
+  [CACHE_PUT]: 'put',
+  [CACHE_REMOVE]: 'remove',
+} as const;
 
 // The link shape shared between a `load` span and the `batch` span it triggers.
 type DataLoaderSpanLink = { context: ReturnType<Span['spanContext']> };
@@ -88,17 +105,29 @@ function makeSpanOptions(
   operation: Operation,
   keyArg?: unknown,
 ): StartSpanOptions {
+  const cacheOperation = OPERATION_SPAN_OPS[operation];
+  const client = getClient();
+
   return {
-    name: getSpanName(loader, operation),
+    // With span streaming, span names have to be low cardinality, so the loader name is dropped from
+    // the name and reported on `db.collection.name` instead.
+    name:
+      client && hasSpanStreamingEnabled(client)
+        ? `cache.${CACHE_OPERATION_NAMES[cacheOperation]}`
+        : getSpanName(loader, operation),
     onlyIfParent: true,
     attributes: {
-      [SENTRY_OP]: OPERATION_SPAN_OPS[operation],
+      [SENTRY_OP]: cacheOperation,
+      [CACHE_OPERATION]: CACHE_OPERATION_NAMES[cacheOperation],
       // Every direct operation (`load`/`loadMany`/`prime`/`clear`/`clearAll`) is a client call, matching
       // the vendored OTel instrumentation. The `batch` runs off a deferred tick with no obvious network
       // peer, so it gets no kind.
       [SENTRY_KIND]: operation === 'batch' ? undefined : 'client',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [DB_OPERATION_NAME]: operation,
+      // A loader batches and caches one entity type, so it is the closest thing dataloader has to a
+      // collection. Unnamed loaders report nothing.
+      [DB_COLLECTION_NAME]: loader?.name ?? undefined,
       [CACHE_KEY]: getCacheKey(keyArg),
     },
   };

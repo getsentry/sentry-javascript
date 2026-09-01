@@ -1,4 +1,4 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
   isObjectLike,
@@ -12,6 +12,8 @@ import {
   type SpanAttributes,
   startSpan,
   type StartSpanOptions,
+  getClient,
+  hasSpanStreamingEnabled,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import type { Driver, Storage } from 'unstorage';
@@ -73,6 +75,14 @@ const METHOD_SPAN_OPS = {
   removeItem: CACHE_REMOVE,
   clear: CACHE_REMOVE,
 } as const satisfies Partial<Record<DriverMethod, string>>;
+
+// The `cache.operation` value each cache op carries. Cache span names are `cache.{{cache.operation}}`,
+// which makes them identical to the op itself.
+const CACHE_OPERATION_NAMES = {
+  [CACHE_GET]: 'get',
+  [CACHE_PUT]: 'put',
+  [CACHE_REMOVE]: 'remove',
+} as const;
 
 /**
  * Creates the Nitro storage plugin setup by instrumenting all relevant storage drivers.
@@ -232,9 +242,12 @@ function createSpanStartOptions(
   args: unknown[],
 ): StartSpanOptions {
   const keys = getCacheKeys(args?.[0], mountBase);
+  const cacheOperation = METHOD_SPAN_OPS[methodName as keyof typeof METHOD_SPAN_OPS];
+  const cacheOperationName = CACHE_OPERATION_NAMES[cacheOperation];
 
   const attributes: SpanAttributes = {
-    [SENTRY_OP]: METHOD_SPAN_OPS[methodName as keyof typeof METHOD_SPAN_OPS],
+    [SENTRY_OP]: cacheOperation,
+    [CACHE_OPERATION]: cacheOperationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: keys.length > 1 ? keys : keys[0],
     'db.operation.name': methodName,
@@ -242,8 +255,10 @@ function createSpanStartOptions(
     'db.system.name': driver.name ?? 'unknown',
   };
 
+  const client = getClient();
   return {
-    name: keys.join(', '),
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the cache keys.
+    name: client && hasSpanStreamingEnabled(client) ? `cache.${cacheOperationName}` : keys.join(', '),
     attributes,
   };
 }
