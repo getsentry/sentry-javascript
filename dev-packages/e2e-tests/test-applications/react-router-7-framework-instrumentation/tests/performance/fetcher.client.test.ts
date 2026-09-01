@@ -1,77 +1,85 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 // As of React Router 7.15+, HydratedRouter invokes the client `fetch` hook in Framework Mode.
-// A fetcher submission produces a `function` transaction (origin
+// A fetcher submission produces a `function` span (origin
 // `auto.function.react_router.instrumentation_api`, `code.function.name` `fetcher`) that nests the
 // client action/loader spans and the `http.client` spans for the underlying `.data` requests.
 // See: https://github.com/remix-run/react-router/discussions/13749
+
+/** Every span below `rootSpan`, following `parent_span_id` down the tree. */
+function descendantsOf(spans: SerializedStreamedSpan[], rootSpan: SerializedStreamedSpan): SerializedStreamedSpan[] {
+  const descendants: SerializedStreamedSpan[] = [];
+  const parentIds = new Set([rootSpan.span_id]);
+
+  // Streamed spans arrive parents-last, so keep sweeping until no new descendant is found.
+  let foundNew = true;
+  while (foundNew) {
+    foundNew = false;
+    for (const span of spans) {
+      if (span.parent_span_id && parentIds.has(span.parent_span_id) && !parentIds.has(span.span_id)) {
+        parentIds.add(span.span_id);
+        descendants.push(span);
+        foundNew = true;
+      }
+    }
+  }
+
+  return descendants;
+}
 
 test.describe('client - instrumentation API fetcher', () => {
   test('should instrument fetcher with instrumentation API origin', async ({ page }) => {
     // Wait for the client pageload to finish so HydratedRouter is hydrated and the fetcher
     // submission goes through the instrumented client `fetch` path (not a full-document POST).
-    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return (
-        transactionEvent.transaction === '/performance/fetcher-test' &&
-        transactionEvent.contexts?.trace?.op === 'pageload'
-      );
+    const pageloadSpanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === '/performance/fetcher-test' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
-    const fetcherTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.contexts?.trace?.data?.['code.function.name'] === 'fetcher';
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      const fetcherSpan = spans.find(span => span.attributes['code.function.name']?.value === 'fetcher');
+      return !!fetcherSpan && descendantsOf(spans, fetcherSpan).some(span => getSpanOp(span) === 'http.client');
     });
 
     await page.goto(`/performance/fetcher-test`);
-    await pageloadTxPromise;
+    await pageloadSpanPromise;
 
     await page.locator('#fetcher-submit').click();
 
-    const fetcherTx = await fetcherTxPromise;
+    const spans = await spansPromise;
+    const fetcherSpan = spans.find(span => span.attributes['code.function.name']?.value === 'fetcher')!;
 
-    expect(fetcherTx.contexts?.trace?.origin).toBe('auto.function.react_router.instrumentation_api');
+    expect(fetcherSpan.attributes['sentry.origin']?.value).toBe('auto.function.react_router.instrumentation_api');
 
-    // The fetcher transaction nests the client action span and the http.client span(s) for the
-    // underlying `.data` request(s) - i.e. the OTel/browser fetch span is parented by the fetcher
-    // span, not emitted standalone.
-    const spans = fetcherTx.spans ?? [];
-    expect(spans.some(span => span.data?.['code.function.name'] === 'clientAction')).toBe(true);
-    expect(spans.map(span => span.op)).toContain('http.client');
+    // The fetcher span nests the client action span and the http.client span(s) for the underlying
+    // `.data` request(s) - i.e. the browser fetch span is parented by the fetcher span, not emitted
+    // standalone.
+    const childSpans = descendantsOf(spans, fetcherSpan);
+    expect(childSpans.some(span => span.attributes['code.function.name']?.value === 'clientAction')).toBe(true);
+    expect(childSpans.map(span => getSpanOp(span))).toContain('http.client');
   });
 
-  test('should still send server action transaction when fetcher submits', async ({ page }) => {
-    const serverPageloadPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return (
-        transactionEvent.transaction === 'GET /performance/fetcher-test' &&
-        transactionEvent.contexts?.trace?.op === 'http.server'
-      );
+  test('should still send server action span when fetcher submits', async ({ page }) => {
+    const serverPageloadPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === 'GET /performance/fetcher-test' && getSpanOp(span) === 'http.server' && span.is_segment;
     });
 
     await page.goto(`/performance/fetcher-test`);
     await serverPageloadPromise;
 
     // Fetcher submit triggers a server action
-    const serverActionPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return (
-        transactionEvent.transaction === 'POST /performance/fetcher-test' &&
-        transactionEvent.contexts?.trace?.op === 'http.server'
-      );
+    const serverActionPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === 'POST /performance/fetcher-test' && getSpanOp(span) === 'http.server' && span.is_segment;
     });
 
     await page.locator('#fetcher-submit').click();
 
-    const serverAction = await serverActionPromise;
+    const serverActionSpan = await serverActionPromise;
 
-    expect(serverAction).toMatchObject({
-      transaction: 'POST /performance/fetcher-test',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.react_router.instrumentation_api',
-        },
-      },
-    });
+    expect(serverActionSpan.name).toBe('POST /performance/fetcher-test');
+    expect(serverActionSpan.attributes['sentry.origin']?.value).toBe('auto.http.react_router.instrumentation_api');
 
     // Verify fetcher result is displayed
     await expect(page.locator('#fetcher-result')).toHaveText('Fetcher result: test-value');

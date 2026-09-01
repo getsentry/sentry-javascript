@@ -1,66 +1,46 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('client - navigation performance', () => {
-  test('should update navigation transaction for dynamic routes', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return (
-        transactionEvent.transaction === '/performance/with/:param' &&
-        transactionEvent.contexts?.trace?.op === 'navigation'
-      );
+  test('should update navigation span for dynamic routes', async ({ page }) => {
+    const navigationSpanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === '/performance/with/:param' && getSpanOp(span) === 'navigation' && span.is_segment;
     });
 
-    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    const pageloadSpanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === '/performance' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
     await page.goto(`/performance`); // pageload
-    await pageloadTxPromise;
+    await pageloadSpanPromise;
     await page.getByRole('link', { name: 'With Param Page' }).click(); // navigation
 
-    const transaction = await txPromise;
+    const span = await navigationSpanPromise;
 
-    expect(transaction).toMatchObject({
-      contexts: {
-        trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
-          data: {
-            'sentry.origin': 'auto.navigation.react_router',
-            'sentry.op': 'navigation',
-            'sentry.segment.name.source': 'route',
-            'url.template': '/performance/with/:param',
-            'url.path': '/performance/with/sentry',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
-          },
-          op: 'navigation',
-          origin: 'auto.navigation.react_router',
-        },
-      },
-      spans: expect.any(Array),
+    expect(span).toMatchObject({
+      span_id: expect.any(String),
+      trace_id: expect.any(String),
       start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      transaction: '/performance/with/:param',
-      type: 'transaction',
-      transaction_info: { source: 'route' },
-      platform: 'javascript',
-      request: {
-        url: expect.stringContaining('/performance/with/sentry'),
-        headers: expect.any(Object),
+      end_timestamp: expect.any(Number),
+      is_segment: true,
+      status: 'ok',
+    });
+
+    expect(span.attributes).toMatchObject({
+      'sentry.origin': { value: 'auto.navigation.react_router', type: 'string' },
+      'sentry.op': { value: 'navigation', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'sentry.environment': { value: 'qa', type: 'string' },
+      'sentry.sdk.name': { value: 'sentry.javascript.react-router', type: 'string' },
+      'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+      'sentry.sdk.integrations': { value: expect.arrayContaining([expect.any(String)]), type: 'array' },
+      'url.template': { value: '/performance/with/:param', type: 'string' },
+      'url.path': { value: '/performance/with/sentry', type: 'string' },
+      'url.full': {
+        value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
+        type: 'string',
       },
-      event_id: expect.any(String),
-      environment: 'qa',
-      sdk: {
-        integrations: expect.arrayContaining([expect.any(String)]),
-        name: 'sentry.javascript.react-router',
-        version: expect.any(String),
-        packages: [
-          { name: 'npm:@sentry/react-router', version: expect.any(String) },
-          { name: 'npm:@sentry/browser', version: expect.any(String) },
-        ],
-      },
-      tags: { runtime: 'browser' },
     });
   });
 });

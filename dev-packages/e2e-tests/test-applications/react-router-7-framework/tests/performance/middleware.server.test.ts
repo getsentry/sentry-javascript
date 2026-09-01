@@ -1,38 +1,33 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('server - middleware', () => {
-  test('should send middleware transaction on pageload', async ({ page }) => {
-    const serverTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/with-middleware';
+  test('should send middleware span on pageload', async ({ page }) => {
+    const serverSpansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return (
+        spans.some(span => span.name === 'GET /performance/with-middleware' && span.is_segment) &&
+        spans.some(span => span.name === 'authMiddleware')
+      );
     });
 
-    const pageloadTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance/with-middleware';
-    });
-
-    const customMiddlewareTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'authMiddleware';
+    const pageloadSpanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === '/performance/with-middleware' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
     await page.goto(`/performance/with-middleware`);
 
-    const serverTx = await serverTxPromise;
-    const pageloadTx = await pageloadTxPromise;
-    const customMiddlewareTx = await customMiddlewareTxPromise;
+    const serverSpans = await serverSpansPromise;
+    const pageloadSpan = await pageloadSpanPromise;
 
-    const traceIds = {
-      server: serverTx?.contexts?.trace?.trace_id,
-      pageload: pageloadTx?.contexts?.trace?.trace_id,
-      customMiddleware: customMiddlewareTx?.contexts?.trace?.trace_id,
-    };
+    const serverSpan = serverSpans.find(span => span.name === 'GET /performance/with-middleware' && span.is_segment)!;
+    const customMiddlewareSpan = serverSpans.find(span => span.name === 'authMiddleware')!;
 
-    expect(pageloadTx).toBeDefined();
-    expect(customMiddlewareTx).toBeDefined();
+    expect(pageloadSpan).toBeDefined();
+    expect(customMiddlewareSpan).toBeDefined();
 
-    // Assert that all transactions belong to the same trace
-    expect(traceIds.server).toBe(traceIds.pageload);
-    expect(traceIds.server).toBe(traceIds.customMiddleware);
+    // Assert that all spans belong to the same trace
+    expect(serverSpan.trace_id).toBe(pageloadSpan.trace_id);
+    expect(serverSpan.trace_id).toBe(customMiddlewareSpan.trace_id);
   });
 });

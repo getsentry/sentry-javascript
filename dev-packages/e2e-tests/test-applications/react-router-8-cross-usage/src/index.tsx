@@ -18,7 +18,6 @@ import Index from './pages/Index';
 const replay = Sentry.replayIntegration();
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [

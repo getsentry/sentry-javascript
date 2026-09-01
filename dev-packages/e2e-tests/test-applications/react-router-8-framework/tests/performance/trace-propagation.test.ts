@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('Trace propagation', () => {
@@ -18,24 +18,28 @@ test.describe('Trace propagation', () => {
   });
 
   test('should have trace connection', async ({ page }) => {
-    const serverTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /{*splat}';
+    // The `handler` child span arrives in the same envelope as its server segment, so collect until
+    // the segment shows up rather than snapshotting a single envelope.
+    const serverSpansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => getSpanOp(span) === 'http.server' && span.is_segment);
     });
 
-    const clientTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/';
+    const clientSpanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === '/' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
     await page.goto(`/`);
-    const serverTx = await serverTxPromise;
-    const clientTx = await clientTxPromise;
+    const serverSpans = await serverSpansPromise;
+    const clientSpan = await clientSpanPromise;
 
-    expect(clientTx.contexts?.trace?.trace_id).toEqual(serverTx.contexts?.trace?.trace_id);
+    const serverSegmentSpan = serverSpans.find(span => getSpanOp(span) === 'http.server' && span.is_segment)!;
 
-    const requestHandlerSpan = serverTx.spans?.find(span => span.op === 'handler');
+    expect(clientSpan.trace_id).toEqual(serverSegmentSpan.trace_id);
+
+    const requestHandlerSpan = serverSpans.find(span => getSpanOp(span) === 'handler');
 
     expect(requestHandlerSpan).toBeDefined();
-    expect(clientTx.contexts?.trace?.parent_span_id).toBe(requestHandlerSpan?.span_id);
+    expect(clientSpan.parent_span_id).toBe(requestHandlerSpan?.span_id);
   });
 
   test('should not have trace connection for prerendered pages', async ({ page }) => {

@@ -1,111 +1,104 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('server - instrumentation API middleware', () => {
   test('should instrument server middleware with instrumentation API origin', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/with-middleware';
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => span.name === 'GET /performance/with-middleware' && span.is_segment);
     });
 
     await page.goto(`/performance/with-middleware`);
 
-    const transaction = await txPromise;
+    const spans = await spansPromise;
 
     // Verify the middleware route content is rendered
     await expect(page.locator('#middleware-route-title')).toBeVisible();
     await expect(page.locator('#middleware-route-content')).toHaveText('This route has middleware');
 
-    expect(transaction).toMatchObject({
-      contexts: {
-        trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
-          data: {
-            'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react_router.instrumentation_api',
-            'sentry.segment.name.source': 'route',
-          },
-          op: 'http.server',
-          origin: 'auto.http.react_router.instrumentation_api',
-        },
-      },
-      spans: expect.any(Array),
-      transaction: 'GET /performance/with-middleware',
-      type: 'transaction',
-      transaction_info: { source: 'route' },
+    const segmentSpan = spans.find(span => span.name === 'GET /performance/with-middleware' && span.is_segment)!;
+
+    expect(segmentSpan).toMatchObject({
+      span_id: expect.any(String),
+      trace_id: expect.any(String),
+      is_segment: true,
     });
 
-    // Find the middleware span
-    const middlewareSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'middleware');
+    expect(getSpanOp(segmentSpan)).toBe('http.server');
+    expect(segmentSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'http.server', type: 'string' },
+      'sentry.origin': { value: 'auto.http.react_router.instrumentation_api', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+    });
+
+    const middlewareSpan = spans.find(span => span.attributes['code.function.name']?.value === 'middleware');
 
     expect(middlewareSpan).toBeDefined();
     expect(middlewareSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
-      data: expect.objectContaining({
-        'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'middleware',
-        'code.function.name': 'middleware',
-        'react_router.route.id': 'routes/performance/with-middleware',
-        'http.route': '/performance/with-middleware',
-        'react_router.middleware.index': 0,
-      }),
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      op: 'middleware',
-      origin: 'auto.function.react_router.instrumentation_api',
+      end_timestamp: expect.any(Number),
     });
 
-    // Middleware name is available via OTEL patching of createRequestHandler
-    expect(middlewareSpan!.data?.['react_router.middleware.name']).toBe('authMiddleware');
-    expect(middlewareSpan!.description).toBe('middleware authMiddleware');
+    expect(middlewareSpan!.attributes).toMatchObject({
+      'sentry.origin': { value: 'auto.function.react_router.instrumentation_api', type: 'string' },
+      'sentry.op': { value: 'middleware', type: 'string' },
+      'code.function.name': { value: 'middleware', type: 'string' },
+      'react_router.route.id': { value: 'routes/performance/with-middleware', type: 'string' },
+      'http.route': { value: '/performance/with-middleware', type: 'string' },
+      'react_router.middleware.index': { value: 0, type: 'integer' },
+    });
+
+    // Middleware name is available via the instrumentation API patching of createRequestHandler
+    expect(middlewareSpan!.attributes['react_router.middleware.name']?.value).toBe('authMiddleware');
+    expect(middlewareSpan!.name).toBe('middleware authMiddleware');
   });
 
   test('should have middleware span run before loader span', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/with-middleware';
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => span.name === 'GET /performance/with-middleware' && span.is_segment);
     });
 
     await page.goto(`/performance/with-middleware`);
 
-    const transaction = await txPromise;
+    const spans = await spansPromise;
 
-    const middlewareSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'middleware');
-
-    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
+    const middlewareSpan = spans.find(span => span.attributes['code.function.name']?.value === 'middleware');
+    const loaderSpan = spans.find(span => span.attributes['code.function.name']?.value === 'loader');
 
     expect(middlewareSpan).toBeDefined();
     expect(loaderSpan).toBeDefined();
 
     // Middleware should start before loader
-    expect(middlewareSpan!.start_timestamp).toBeLessThanOrEqual(loaderSpan!.start_timestamp!);
+    expect(middlewareSpan!.start_timestamp).toBeLessThanOrEqual(loaderSpan!.start_timestamp);
   });
 
   test('should track multiple middlewares with correct indices', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/multi-middleware';
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => span.name === 'GET /performance/multi-middleware' && span.is_segment);
     });
 
     await page.goto(`/performance/multi-middleware`);
 
-    const transaction = await txPromise;
+    const spans = await spansPromise;
 
     await expect(page.locator('#multi-middleware-title')).toBeVisible();
     await expect(page.locator('#multi-middleware-content')).toHaveText('This route has 3 middlewares');
 
-    const middlewareSpans = transaction?.spans?.filter(span => span.data?.['code.function.name'] === 'middleware');
+    const middlewareSpans = spans.filter(span => span.attributes['code.function.name']?.value === 'middleware');
 
     expect(middlewareSpans).toHaveLength(3);
 
-    const sortedSpans = [...middlewareSpans!].sort(
-      (a: any, b: any) =>
-        (a.data?.['react_router.middleware.index'] ?? 0) - (b.data?.['react_router.middleware.index'] ?? 0),
+    const sortedSpans = [...middlewareSpans].sort(
+      (a, b) =>
+        Number(a.attributes['react_router.middleware.index']?.value ?? 0) -
+        Number(b.attributes['react_router.middleware.index']?.value ?? 0),
     );
 
-    expect(sortedSpans.map((s: any) => s.data?.['react_router.middleware.index'])).toEqual([0, 1, 2]);
-    expect(sortedSpans.map((s: any) => s.data?.['react_router.middleware.name'])).toEqual([
+    expect(sortedSpans.map(span => span.attributes['react_router.middleware.index']?.value)).toEqual([0, 1, 2]);
+    expect(sortedSpans.map(span => span.attributes['react_router.middleware.name']?.value)).toEqual([
       'multiAuthMiddleware',
       'multiLoggingMiddleware',
       'multiValidationMiddleware',

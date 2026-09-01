@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 // Known React Router limitation: route.lazy hooks only work in Data Mode (createBrowserRouter).
@@ -8,96 +8,83 @@ import { APP_NAME } from '../constants';
 // Using test.fail() to auto-detect when React Router fixes this upstream.
 test.describe('server - instrumentation API lazy loading', () => {
   test.fail('should instrument lazy route loading with instrumentation API origin', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/lazy-route';
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => span.name === 'GET /performance/lazy-route' && span.is_segment);
     });
 
     await page.goto(`/performance/lazy-route`);
 
-    const transaction = await txPromise;
+    const spans = await spansPromise;
 
     // Verify the lazy route content is rendered
     await expect(page.locator('#lazy-route-title')).toBeVisible();
     await expect(page.locator('#lazy-route-content')).toHaveText('This route was lazily loaded');
 
-    expect(transaction).toMatchObject({
-      contexts: {
-        trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
-          data: {
-            'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react_router.instrumentation_api',
-            'sentry.segment.name.source': 'route',
-          },
-          op: 'http.server',
-          origin: 'auto.http.react_router.instrumentation_api',
-        },
-      },
-      spans: expect.any(Array),
-      transaction: 'GET /performance/lazy-route',
-      type: 'transaction',
-      transaction_info: { source: 'route' },
+    const segmentSpan = spans.find(span => span.name === 'GET /performance/lazy-route' && span.is_segment)!;
+
+    expect(segmentSpan.span_id).toEqual(expect.any(String));
+    expect(segmentSpan.trace_id).toEqual(expect.any(String));
+    expect(getSpanOp(segmentSpan)).toBe('http.server');
+    expect(segmentSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'http.server', type: 'string' },
+      'sentry.origin': { value: 'auto.http.react_router.instrumentation_api', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
     });
 
-    // Find the lazy span
-    const lazySpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'lazy');
+    const lazySpan = spans.find(span => span.attributes['code.function.name']?.value === 'lazy');
 
     expect(lazySpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
-      data: {
-        'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function',
-        'code.function.name': 'lazy',
-      },
-      description: 'Lazy Route Load',
+      name: 'Lazy Route Load',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      op: 'function',
-      origin: 'auto.function.react_router.instrumentation_api',
+      end_timestamp: expect.any(Number),
+    });
+
+    expect(lazySpan!.attributes).toMatchObject({
+      'sentry.origin': { value: 'auto.function.react_router.instrumentation_api', type: 'string' },
+      'sentry.op': { value: 'function', type: 'string' },
+      'code.function.name': { value: 'lazy', type: 'string' },
     });
   });
 
   test('should include loader span after lazy loading completes', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/lazy-route';
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => span.name === 'GET /performance/lazy-route' && span.is_segment);
     });
 
     await page.goto(`/performance/lazy-route`);
 
-    const transaction = await txPromise;
+    const spans = await spansPromise;
 
     // Find the loader span that runs after lazy loading
-    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
+    const loaderSpan = spans.find(span => span.attributes['code.function.name']?.value === 'loader');
 
     expect(loaderSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
-      data: {
-        'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function',
-        'code.function.name': 'loader',
-      },
-      description: '/performance/lazy-route',
-      op: 'function',
-      origin: 'auto.function.react_router.instrumentation_api',
+      name: '/performance/lazy-route',
+    });
+
+    expect(loaderSpan!.attributes).toMatchObject({
+      'sentry.origin': { value: 'auto.function.react_router.instrumentation_api', type: 'string' },
+      'sentry.op': { value: 'function', type: 'string' },
+      'code.function.name': { value: 'loader', type: 'string' },
     });
   });
 
   test.fail('should have correct span ordering: lazy before loader', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/lazy-route';
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => span.name === 'GET /performance/lazy-route' && span.is_segment);
     });
 
     await page.goto(`/performance/lazy-route`);
 
-    const transaction = await txPromise;
+    const spans = await spansPromise;
 
-    const lazySpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'lazy');
-
-    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
+    const lazySpan = spans.find(span => span.attributes['code.function.name']?.value === 'lazy');
+    const loaderSpan = spans.find(span => span.attributes['code.function.name']?.value === 'loader');
 
     expect(lazySpan).toBeDefined();
     expect(loaderSpan).toBeDefined();

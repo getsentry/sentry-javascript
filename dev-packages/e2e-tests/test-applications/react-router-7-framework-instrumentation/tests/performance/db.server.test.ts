@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 // Orchestrion injects `diagnostics_channel` publishers at build time, so these spans only exist in the
@@ -11,106 +11,89 @@ test.describe('server - orchestrion build-time db instrumentation', () => {
   test.skip(isDev, 'orchestrion only injects into the bundled server build, not the dev server');
 
   test('instruments ioredis automatically via orchestrion', async ({ page }) => {
-    const transactionEventPromise = waitForTransaction(APP_NAME, transactionEvent => {
-      return (
-        transactionEvent.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.transaction === 'GET /performance/db-ioredis'
-      );
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => span.name === 'GET /performance/db-ioredis' && span.is_segment);
     });
 
     await page.goto('/performance/db-ioredis');
 
-    const transactionEvent = await transactionEventPromise;
-    const spans = transactionEvent.spans || [];
+    const spans = await spansPromise;
+    const segmentSpan = spans.find(span => span.name === 'GET /performance/db-ioredis' && span.is_segment)!;
 
-    // The server transaction must come from the native instrumentation API (not the legacy handler),
+    // The server segment must come from the native instrumentation API (not the legacy handler),
     // proving the orchestrion-injected db spans share context with the React Router server span.
-    expect(transactionEvent.contexts?.trace?.origin).toBe('auto.http.react_router.instrumentation_api');
+    expect(getSpanOp(segmentSpan)).toBe('http.server');
+    expect(segmentSpan.attributes['sentry.origin']?.value).toBe('auto.http.react_router.instrumentation_api');
 
-    expect(spans).toContainEqual(
+    const childSpans = spans.filter(span => !span.is_segment);
+
+    expect(childSpans).toContainEqual(
       expect.objectContaining({
-        op: 'db.query',
-        origin: 'auto.db.redis',
-        description: 'set test-key [1 other arguments]',
+        name: 'set test-key [1 other arguments]',
         status: 'ok',
-        data: expect.objectContaining({
-          'db.system.name': 'redis',
-          'db.operation.name': 'set',
-          'db.query.text': 'set test-key [1 other arguments]',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'db.query', type: 'string' },
+          'sentry.origin': { value: 'auto.db.redis', type: 'string' },
+          'db.system.name': { value: 'redis', type: 'string' },
+          'db.operation.name': { value: 'set', type: 'string' },
+          'db.query.text': { value: 'set test-key [1 other arguments]', type: 'string' },
         }),
       }),
     );
-    expect(spans).toContainEqual(
+    expect(childSpans).toContainEqual(
       expect.objectContaining({
-        op: 'db.query',
-        origin: 'auto.db.redis',
-        description: 'get test-key',
+        name: 'get test-key',
         status: 'ok',
-        data: expect.objectContaining({
-          'db.system.name': 'redis',
-          'db.operation.name': 'get',
-          'db.query.text': 'get test-key',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'db.query', type: 'string' },
+          'sentry.origin': { value: 'auto.db.redis', type: 'string' },
+          'db.system.name': { value: 'redis', type: 'string' },
+          'db.operation.name': { value: 'get', type: 'string' },
+          'db.query.text': { value: 'get test-key', type: 'string' },
         }),
       }),
     );
 
     // Each command maps to exactly one span (no offline-queue duplicate).
-    const setSpans = spans.filter(span => span.description === 'set test-key [1 other arguments]');
+    const setSpans = spans.filter(span => span.name === 'set test-key [1 other arguments]');
     expect(setSpans).toHaveLength(1);
 
-    // Every db span nests under the native instrumentation-API http.server transaction.
-    const rootSpanId = transactionEvent.contexts?.trace?.span_id;
-    const spanIds = new Set([rootSpanId, ...spans.map(span => span.span_id)]);
-    const dbSpans = spans.filter(span => span.origin === 'auto.db.redis');
+    // Every db span nests under the native instrumentation-API http.server segment.
+    const spanIds = new Set(spans.filter(span => span.trace_id === segmentSpan.trace_id).map(span => span.span_id));
+    const dbSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.db.redis');
     expect(dbSpans.every(span => typeof span.parent_span_id === 'string' && spanIds.has(span.parent_span_id))).toBe(
       true,
     );
   });
 
+  // Under span streaming the mysql span name is the query summary, so both queries below are named
+  // `SELECT`. `db.query.text` is what tells them apart.
   test('instruments mysql automatically via orchestrion', async ({ page }) => {
-    const transactionEventPromise = waitForTransaction(APP_NAME, transactionEvent => {
-      return (
-        transactionEvent.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.transaction === 'GET /performance/db-mysql'
-      );
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => span.name === 'GET /performance/db-mysql' && span.is_segment);
     });
 
     await page.goto('/performance/db-mysql');
 
-    const transactionEvent = await transactionEventPromise;
-    const spans = transactionEvent.spans || [];
+    const spans = await spansPromise;
 
-    expect(spans).toContainEqual(
-      expect.objectContaining({
-        op: 'db',
-        origin: 'auto.db.mysql',
-        description: 'SELECT 1 + 1 AS solution',
-        status: 'ok',
-        data: expect.objectContaining({
-          'db.system.name': 'mysql',
-          'db.query.text': 'SELECT 1 + 1 AS solution',
-          'db.user': 'root',
-          'db.connection_string': expect.any(String),
-          'server.address': expect.any(String),
-          'server.port': 3306,
+    for (const queryText of ['SELECT 1 + 1 AS solution', 'SELECT NOW()']) {
+      expect(spans).toContainEqual(
+        expect.objectContaining({
+          name: 'SELECT',
+          status: 'ok',
+          attributes: expect.objectContaining({
+            'sentry.op': { value: 'db', type: 'string' },
+            'sentry.origin': { value: 'auto.db.mysql', type: 'string' },
+            'db.system.name': { value: 'mysql', type: 'string' },
+            'db.query.text': { value: queryText, type: 'string' },
+            'db.user': { value: 'root', type: 'string' },
+            'db.connection_string': { value: expect.any(String), type: 'string' },
+            'server.address': { value: expect.any(String), type: 'string' },
+            'server.port': { value: 3306, type: 'integer' },
+          }),
         }),
-      }),
-    );
-    expect(spans).toContainEqual(
-      expect.objectContaining({
-        op: 'db',
-        origin: 'auto.db.mysql',
-        description: 'SELECT NOW()',
-        status: 'ok',
-        data: expect.objectContaining({
-          'db.system.name': 'mysql',
-          'db.query.text': 'SELECT NOW()',
-          'db.user': 'root',
-          'db.connection_string': expect.any(String),
-          'server.address': expect.any(String),
-          'server.port': 3306,
-        }),
-      }),
-    );
+      );
+    }
   });
 });

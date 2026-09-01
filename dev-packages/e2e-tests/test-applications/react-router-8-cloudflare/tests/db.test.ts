@@ -1,43 +1,52 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
+// Under span streaming the mysql span name is the query summary, so both queries here are named
+// `SELECT`. `db.query.text` is what tells them apart.
 test('a real mysql query emits a db span with orchestrion-channel attributes', async ({ request }) => {
-  const transactionPromise = waitForTransaction('react-router-8-cloudflare', transactionEvent => {
+  const spansPromise = collectStreamedSpans('react-router-8-cloudflare', spans => {
     return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      (transactionEvent.spans?.some(span => span.op === 'db') ?? false)
+      spans.some(span => getSpanOp(span) === 'http.server' && span.is_segment) &&
+      spans.some(span => getSpanOp(span) === 'db')
     );
   });
 
   const res = await request.get('/performance/db-mysql');
   expect(res.status()).toBe(200);
 
-  const transactionEvent = await transactionPromise;
-  const dbSpans = transactionEvent.spans!.filter(span => span.op === 'db');
+  const spans = await spansPromise;
+  const dbSpans = spans.filter(span => getSpanOp(span) === 'db');
 
-  const firstQuery = dbSpans.find(span => span.description === 'SELECT 1 + 1 AS solution');
+  const firstQuery = dbSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT 1 + 1 AS solution');
   expect(firstQuery).toBeDefined();
-  expect(firstQuery!.data?.['sentry.origin']).toBe('auto.db.mysql');
-  expect(firstQuery!.data?.['db.system.name']).toBe('mysql');
-  expect(firstQuery!.data?.['db.query.text']).toBe('SELECT 1 + 1 AS solution');
-  expect(firstQuery!.data?.['server.address']).toBe('127.0.0.1');
-  expect(firstQuery!.data?.['server.port']).toBe(3306);
-  expect(firstQuery!.data?.['db.user']).toBe('root');
+  expect(firstQuery!.name).toBe('SELECT');
+  expect(firstQuery!.attributes['sentry.origin']?.value).toBe('auto.db.mysql');
+  expect(firstQuery!.attributes['db.system.name']?.value).toBe('mysql');
+  expect(firstQuery!.attributes['server.address']?.value).toBe('127.0.0.1');
+  expect(firstQuery!.attributes['server.port']?.value).toBe(3306);
+  expect(firstQuery!.attributes['db.user']?.value).toBe('root');
 });
 
-test('a nested query lands on the same transaction (async context restored)', async ({ request }) => {
-  const transactionPromise = waitForTransaction('react-router-8-cloudflare', transactionEvent => {
+test('a nested query lands on the same segment (async context restored)', async ({ request }) => {
+  const spansPromise = collectStreamedSpans('react-router-8-cloudflare', spans => {
     return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      (transactionEvent.spans?.filter(span => span.op === 'db').length ?? 0) >= 2
+      spans.some(span => getSpanOp(span) === 'http.server' && span.is_segment) &&
+      spans.filter(span => getSpanOp(span) === 'db').length >= 2
     );
   });
 
   const res = await request.get('/performance/db-mysql');
   expect(res.status()).toBe(200);
 
-  const transactionEvent = await transactionPromise;
-  const descriptions = transactionEvent.spans!.filter(span => span.op === 'db').map(span => span.description);
-  expect(descriptions).toContain('SELECT 1 + 1 AS solution');
-  expect(descriptions).toContain('SELECT NOW()');
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => getSpanOp(span) === 'http.server' && span.is_segment)!;
+  const dbSpans = spans.filter(span => getSpanOp(span) === 'db');
+
+  const queryTexts = dbSpans.map(span => span.attributes['db.query.text']?.value);
+  expect(queryTexts).toContain('SELECT 1 + 1 AS solution');
+  expect(queryTexts).toContain('SELECT NOW()');
+
+  for (const dbSpan of dbSpans) {
+    expect(dbSpan.trace_id).toBe(segmentSpan.trace_id);
+  }
 });

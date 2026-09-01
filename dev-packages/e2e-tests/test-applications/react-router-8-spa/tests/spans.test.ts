@@ -1,74 +1,56 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-6', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span with a parameterized URL', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('react-router-8-spa', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/`);
 
-  const rootSpan = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter_v6',
-        data: {
-          'sentry.segment.name.source': 'route',
-          'url.template': '/',
-          'url.path': '/',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-        },
-      },
-    },
-    transaction: '/',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(span.name).toBe('/');
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.react.reactrouter', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.template': { value: '/', type: 'string' },
+    'url.path': { value: '/', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/$/), type: 'string' },
   });
 });
 
-test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
+test('sends a navigation span with a parameterized URL', async ({ page }) => {
   page.on('console', msg => console.log(msg.text()));
-  const pageloadTxnPromise = waitForTransaction('react-router-6', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  const pageloadSpanPromise = waitForStreamedSpan('react-router-8-spa', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationTxnPromise = waitForTransaction('react-router-6', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  const navigationSpanPromise = waitForStreamedSpan('react-router-8-spa', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
   await page.goto(`/`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
   const linkElement = page.locator('id=navigation');
 
-  const [_, navigationTxn] = await Promise.all([linkElement.click(), navigationTxnPromise]);
+  const [_, navigationSpan] = await Promise.all([linkElement.click(), navigationSpanPromise]);
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouter_v6',
-        data: {
-          'sentry.segment.name.source': 'route',
-          'url.template': '/user/:id',
-          'url.path': '/user/5',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
-        },
-      },
-    },
-    transaction: '/user/:id',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(navigationSpan.name).toBe('/user/:id');
+  expect(navigationSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'sentry.origin': { value: 'auto.navigation.react.reactrouter', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.template': { value: '/user/:id', type: 'string' },
+    'url.path': { value: '/user/5', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/), type: 'string' },
   });
 });
 
 test('sends an INP span', async ({ page }) => {
-  const inpSpanPromise = waitForStreamedSpan('react-router-6', span => {
+  const inpSpanPromise = waitForStreamedSpan('react-router-8-spa', span => {
     return getSpanOp(span) === 'ui.interaction.click';
   });
 

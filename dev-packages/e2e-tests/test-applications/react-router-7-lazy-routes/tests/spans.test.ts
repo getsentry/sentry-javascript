@@ -1,12 +1,28 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  getSpanOp,
+  waitForStreamedSpan,
+  waitForStreamedSpans,
+} from '@sentry-internal/test-utils';
 
-test('Creates a pageload transaction with parameterized route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+// Streamed `http.client` names are only `<METHOD> <domain>`, so the request URL has to come from
+// the `url.full` attribute.
+function hasUrlPart(span: SerializedStreamedSpan, part: string): boolean {
+  const urlFull = span.attributes['url.full']?.value;
+  return typeof urlFull === 'string' && urlFull.includes(part);
+}
+
+/** All spans of the trace `segmentSpan` belongs to, minus the segment span itself. */
+function childSpansOf(spans: SerializedStreamedSpan[], segmentSpan: SerializedStreamedSpan): SerializedStreamedSpan[] {
+  return spans.filter(span => span.trace_id === segmentSpan.trace_id && !span.is_segment);
+}
+
+test('Creates a pageload span with parameterized route', async ({ page }) => {
+  const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -18,22 +34,20 @@ test('Creates a pageload transaction with parameterized route', async ({ page })
   await expect(lazyRouteContent).toBeVisible();
 
   // Validate the transaction event
-  expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('pageload');
-  expect(event.contexts?.trace?.status).toBe('ok');
+  expect(event.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(event.is_segment).toBe(true);
+  expect(getSpanOp(event)).toBe('pageload');
+  expect(event.status).toBe('ok');
 });
 
-test('Does not create a navigation transaction on initial load to deep lazy route', async ({ page }) => {
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+test('Does not create a navigation span on initial load to deep lazy route', async ({ page }) => {
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -41,7 +55,7 @@ test('Does not create a navigation transaction on initial load to deep lazy rout
 
   const pageloadEvent = await pageloadPromise;
 
-  expect(pageloadEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(pageloadEvent.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
 
   const lazyRouteContent = page.locator('id=innermost-lazy-route');
   await expect(lazyRouteContent).toBeVisible();
@@ -55,12 +69,10 @@ test('Does not create a navigation transaction on initial load to deep lazy rout
   expect(result).toBe('timeout');
 });
 
-test('Creates a navigation transaction inside a lazy route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+test('Creates a navigation span inside a lazy route', async ({ page }) => {
+  const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -80,27 +92,21 @@ test('Creates a navigation transaction inside a lazy route', async ({ page }) =>
   await expect(lazyRouteContent).toBeVisible();
 
   // Validate the transaction event
-  expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('navigation');
-  expect(event.contexts?.trace?.status).toBe('ok');
+  expect(event.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(event.is_segment).toBe(true);
+  expect(getSpanOp(event)).toBe('navigation');
+  expect(event.status).toBe('ok');
 });
 
-test('Creates navigation transactions between two different lazy routes', async ({ page }) => {
+test('Creates navigation spans between two different lazy routes', async ({ page }) => {
   // Set up transaction listeners for both navigations
-  const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/another-lazy/sub/:id/:subId'
-    );
+  const firstTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/another-lazy/sub/:id/:subId';
   });
 
-  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const secondTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -118,9 +124,9 @@ test('Creates navigation transactions between two different lazy routes', async 
   await expect(anotherLazyContent).toBeVisible();
 
   // Validate the first transaction event
-  expect(firstEvent.transaction).toBe('/another-lazy/sub/:id/:subId');
-  expect(firstEvent.type).toBe('transaction');
-  expect(firstEvent.contexts?.trace?.op).toBe('navigation');
+  expect(firstEvent.name).toBe('/another-lazy/sub/:id/:subId');
+  expect(firstEvent.is_segment).toBe(true);
+  expect(getSpanOp(firstEvent)).toBe('navigation');
 
   // Now navigate from the first lazy route to the second lazy route
   // Click the navigation link from within the first lazy route to the second lazy route
@@ -135,12 +141,12 @@ test('Creates navigation transactions between two different lazy routes', async 
   await expect(innerLazyContent).toBeVisible();
 
   // Validate the second transaction event
-  expect(secondEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-  expect(secondEvent.type).toBe('transaction');
-  expect(secondEvent.contexts?.trace?.op).toBe('navigation');
+  expect(secondEvent.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(secondEvent.is_segment).toBe(true);
+  expect(getSpanOp(secondEvent)).toBe('navigation');
 });
 
-test('Creates navigation transactions from inner lazy route to another lazy route with history navigation', async ({
+test('Creates navigation spans from inner lazy route to another lazy route with history navigation', async ({
   page,
 }) => {
   await page.goto('/');
@@ -150,11 +156,9 @@ test('Creates navigation transactions from inner lazy route to another lazy rout
   await expect(navigationToInner).toBeVisible();
 
   // First, navigate to the inner lazy route
-  const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const firstTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -167,21 +171,17 @@ test('Creates navigation transactions from inner lazy route to another lazy rout
   await expect(innerLazyContent).toBeVisible();
 
   // Validate the first transaction event
-  expect(firstEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-  expect(firstEvent.type).toBe('transaction');
-  expect(firstEvent.contexts?.trace?.op).toBe('navigation');
+  expect(firstEvent.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(firstEvent.is_segment).toBe(true);
+  expect(getSpanOp(firstEvent)).toBe('navigation');
 
   // Click the navigation link from within the inner lazy route to another lazy route
   const navigationToAnotherFromInner = page.locator('id=navigate-to-another-from-inner');
   await expect(navigationToAnotherFromInner).toBeVisible();
 
   // Now navigate from the inner lazy route to another lazy route
-  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/another-lazy/sub/:id/:subId'
-    );
+  const secondTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/another-lazy/sub/:id/:subId';
   });
 
   await navigationToAnotherFromInner.click();
@@ -193,16 +193,14 @@ test('Creates navigation transactions from inner lazy route to another lazy rout
   await expect(anotherLazyContent).toBeVisible();
 
   // Validate the second transaction event
-  expect(secondEvent.transaction).toBe('/another-lazy/sub/:id/:subId');
-  expect(secondEvent.type).toBe('transaction');
-  expect(secondEvent.contexts?.trace?.op).toBe('navigation');
+  expect(secondEvent.name).toBe('/another-lazy/sub/:id/:subId');
+  expect(secondEvent.is_segment).toBe(true);
+  expect(getSpanOp(secondEvent)).toBe('navigation');
 
   // Go back to the previous page to ensure history navigation works as expected
-  const goBackTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const goBackTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -211,17 +209,13 @@ test('Creates navigation transactions from inner lazy route to another lazy rout
   const goBackEvent = await goBackTransactionPromise;
 
   // Validate the second go back transaction event
-  expect(goBackEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-  expect(goBackEvent.type).toBe('transaction');
-  expect(goBackEvent.contexts?.trace?.op).toBe('navigation');
+  expect(goBackEvent.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(goBackEvent.is_segment).toBe(true);
+  expect(getSpanOp(goBackEvent)).toBe('navigation');
 
   // Navigate to the upper route
-  const goUpperRouteTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId'
-    );
+  const goUpperRouteTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId';
   });
 
   const navigationToUpper = page.locator('id=navigate-to-upper');
@@ -231,18 +225,18 @@ test('Creates navigation transactions from inner lazy route to another lazy rout
   const goUpperRouteEvent = await goUpperRouteTransactionPromise;
 
   // Validate the go upper route transaction event
-  expect(goUpperRouteEvent.transaction).toBe('/lazy/inner/:id/:anotherId');
-  expect(goUpperRouteEvent.type).toBe('transaction');
-  expect(goUpperRouteEvent.contexts?.trace?.op).toBe('navigation');
+  expect(goUpperRouteEvent.name).toBe('/lazy/inner/:id/:anotherId');
+  expect(goUpperRouteEvent.is_segment).toBe(true);
+  expect(getSpanOp(goUpperRouteEvent)).toBe('navigation');
 });
 
-test('Does not send any duplicate navigation transaction names browsing between different routes', async ({ page }) => {
+test('Does not send any duplicate navigation span names browsing between different routes', async ({ page }) => {
   const transactionNamesList: string[] = [];
 
   // Monitor and add all transaction names sent to Sentry for the navigations
-  const allTransactionsPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    if (transactionEvent?.transaction) {
-      transactionNamesList.push(transactionEvent.transaction);
+  const allTransactionsPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.is_segment) {
+      transactionNamesList.push(span.name);
     }
 
     if (transactionNamesList.length >= 5) {
@@ -297,29 +291,21 @@ test('Does not send any duplicate navigation transaction names browsing between 
   ]);
 });
 
-test('Does not create premature navigation transaction during long-running lazy route pageload', async ({ page }) => {
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction.includes('long-running')
-    );
+test('Does not create premature navigation span during long-running lazy route pageload', async ({ page }) => {
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.includes('long-running');
   });
 
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/long-running/slow/:id'
-    );
+  const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/long-running/slow/:id';
   });
 
   await page.goto('/long-running/slow/12345');
 
   const pageloadEvent = await pageloadPromise;
 
-  expect(pageloadEvent.transaction).toBe('/long-running/slow/:id');
-  expect(pageloadEvent.contexts?.trace?.op).toBe('pageload');
+  expect(pageloadEvent.name).toBe('/long-running/slow/:id');
+  expect(getSpanOp(pageloadEvent)).toBe('pageload');
 
   const slowLoadingContent = page.locator('id=slow-loading-content');
   await expect(slowLoadingContent).toBeVisible({ timeout: 5000 });
@@ -340,20 +326,12 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
   await expect(navigationToLongRunning).toBeVisible();
 
   // Set up transaction listeners for both navigations
-  const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/long-running/slow/:id'
-    );
+  const firstNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/long-running/slow/:id';
   });
 
-  const backNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/'
-    );
+  const backNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/';
   });
 
   await navigationToLongRunning.click();
@@ -363,8 +341,8 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
 
   const firstNavigationEvent = await firstNavigationPromise;
 
-  expect(firstNavigationEvent.transaction).toBe('/long-running/slow/:id');
-  expect(firstNavigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(firstNavigationEvent.name).toBe('/long-running/slow/:id');
+  expect(getSpanOp(firstNavigationEvent)).toBe('navigation');
 
   // Now navigate back using browser back button (POP event)
   // This should create a navigation transaction since pageload is complete
@@ -377,18 +355,16 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
   const backNavigationEvent = await backNavigationPromise;
 
   // Validate that the back navigation (POP) was properly tracked
-  expect(backNavigationEvent.transaction).toBe('/');
-  expect(backNavigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(backNavigationEvent.name).toBe('/');
+  expect(getSpanOp(backNavigationEvent)).toBe('navigation');
 });
 
-test('Updates pageload transaction name correctly when span is cancelled early (document.hidden simulation)', async ({
+test('Updates pageload span name correctly when span is cancelled early (document.hidden simulation)', async ({
   page,
 }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -420,29 +396,27 @@ test('Updates pageload transaction name correctly when span is cancelled early (
 
   // Validate that the transaction event has the correct parameterized route name
   // even though the span was cancelled early due to document.hidden
-  expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('pageload');
+  expect(event.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(event.is_segment).toBe(true);
+  expect(getSpanOp(event)).toBe('pageload');
 
   // Check if the span was indeed cancelled (should have idle_span_finish_reason attribute)
-  const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
+  const idleSpanFinishReason = event.attributes['sentry.idle_span_finish_reason']?.value;
   if (idleSpanFinishReason) {
     // If the span was cancelled due to visibility change, verify it still got the right name
     expect(['externalFinish', 'cancelled']).toContain(idleSpanFinishReason);
   }
 });
 
-test('Updates navigation transaction name correctly when span is cancelled early (document.hidden simulation)', async ({
+test('Updates navigation span name correctly when span is cancelled early (document.hidden simulation)', async ({
   page,
 }) => {
   // First go to home page
   await page.goto('/');
 
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -484,13 +458,13 @@ test('Updates navigation transaction name correctly when span is cancelled early
 
   // Validate that the transaction event has the correct parameterized route name
   // even though the span was cancelled early due to document.hidden
-  expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('navigation');
+  expect(event.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(event.is_segment).toBe(true);
+  expect(getSpanOp(event)).toBe('navigation');
 
   // Check if the span was indeed cancelled (should have cancellation_reason attribute or idle_span_finish_reason)
-  const cancellationReason = event.contexts?.trace?.data?.['sentry.cancellation_reason'];
-  const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
+  const cancellationReason = event.attributes['sentry.cancellation_reason']?.value;
+  const idleSpanFinishReason = event.attributes['sentry.idle_span_finish_reason']?.value;
 
   // Verify that the span was cancelled due to document.hidden
   if (cancellationReason) {
@@ -502,33 +476,27 @@ test('Updates navigation transaction name correctly when span is cancelled early
   }
 });
 
-test('Creates separate transactions for rapid consecutive navigations', async ({ page }) => {
+test('Creates separate spans for rapid consecutive navigations', async ({ page }) => {
   await page.goto('/');
 
   // Set up transaction listeners
-  const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const firstTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
-  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/another-lazy/sub/:id/:subId'
-    );
+  const secondTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/another-lazy/sub/:id/:subId';
   });
 
   // Third navigation promise - using counter to match second occurrence of same route
   let innerRouteMatchCount = 0;
-  const thirdTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const thirdTransactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     if (
-      transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+      span.is_segment &&
+      getSpanOp(span) === 'navigation' &&
+      span.name === '/lazy/inner/:id/:anotherId/:someAnotherId'
     ) {
       innerRouteMatchCount++;
       return innerRouteMatchCount === 2; // Match the second occurrence
@@ -553,25 +521,25 @@ test('Creates separate transactions for rapid consecutive navigations', async ({
   const thirdEvent = await thirdTransactionPromise;
 
   // Verify transactions
-  expect(firstEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-  expect(firstEvent.contexts?.trace?.op).toBe('navigation');
-  const firstTraceId = firstEvent.contexts?.trace?.trace_id;
-  const firstSpanId = firstEvent.contexts?.trace?.span_id;
+  expect(firstEvent.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(getSpanOp(firstEvent)).toBe('navigation');
+  const firstTraceId = firstEvent.trace_id;
+  const firstSpanId = firstEvent.span_id;
 
-  expect(secondEvent.transaction).toBe('/another-lazy/sub/:id/:subId');
-  expect(secondEvent.contexts?.trace?.op).toBe('navigation');
-  expect(secondEvent.contexts?.trace?.status).toBe('ok');
+  expect(secondEvent.name).toBe('/another-lazy/sub/:id/:subId');
+  expect(getSpanOp(secondEvent)).toBe('navigation');
+  expect(secondEvent.status).toBe('ok');
 
-  const secondTraceId = secondEvent.contexts?.trace?.trace_id;
-  const secondSpanId = secondEvent.contexts?.trace?.span_id;
+  const secondTraceId = secondEvent.trace_id;
+  const secondSpanId = secondEvent.span_id;
 
   // Verify third transaction
-  expect(thirdEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
-  expect(thirdEvent.contexts?.trace?.op).toBe('navigation');
-  expect(thirdEvent.contexts?.trace?.status).toBe('ok');
+  expect(thirdEvent.name).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(getSpanOp(thirdEvent)).toBe('navigation');
+  expect(thirdEvent.status).toBe('ok');
 
-  const thirdTraceId = thirdEvent.contexts?.trace?.trace_id;
-  const thirdSpanId = thirdEvent.contexts?.trace?.span_id;
+  const thirdTraceId = thirdEvent.trace_id;
+  const thirdSpanId = thirdEvent.span_id;
 
   // Verify each navigation created a separate transaction with unique trace and span IDs
   expect(firstTraceId).toBeDefined();
@@ -589,13 +557,9 @@ test('Creates separate transactions for rapid consecutive navigations', async ({
   expect(firstSpanId).not.toBe(thirdSpanId);
 });
 
-test('Creates pageload transaction with parameterized route for delayed lazy route', async ({ page }) => {
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/delayed-lazy/:id'
-    );
+test('Creates pageload span with parameterized route for delayed lazy route', async ({ page }) => {
+  const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/delayed-lazy/:id';
   });
 
   await page.goto('/delayed-lazy/123');
@@ -607,20 +571,16 @@ test('Creates pageload transaction with parameterized route for delayed lazy rou
   await expect(page.locator('id=delayed-lazy-id')).toHaveText('ID: 123');
   await expect(page.locator('id=delayed-lazy-path')).toHaveText('/delayed-lazy/123');
 
-  expect(pageloadEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(pageloadEvent.contexts?.trace?.op).toBe('pageload');
-  expect(pageloadEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(pageloadEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(pageloadEvent)).toBe('pageload');
+  expect(pageloadEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Creates navigation transaction with parameterized route for delayed lazy route', async ({ page }) => {
+test('Creates navigation span with parameterized route for delayed lazy route', async ({ page }) => {
   await page.goto('/');
 
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/delayed-lazy/:id'
-    );
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
   });
 
   const navigationLink = page.locator('id=navigation-to-delayed-lazy');
@@ -634,22 +594,18 @@ test('Creates navigation transaction with parameterized route for delayed lazy r
   await expect(page.locator('id=delayed-lazy-id')).toHaveText('ID: 123');
   await expect(page.locator('id=delayed-lazy-path')).toHaveText('/delayed-lazy/123');
 
-  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(navigationEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(navigationEvent)).toBe('navigation');
+  expect(navigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Creates navigation transaction when navigating with query parameters from home to route', async ({ page }) => {
+test('Creates navigation span when navigating with query parameters from home to route', async ({ page }) => {
   await page.goto('/');
 
   // Navigate from / to /delayed-lazy/123?source=homepage
   // This should create a navigation transaction with the parameterized route name
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/delayed-lazy/:id'
-    );
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
   });
 
   const navigationLink = page.locator('id=navigation-to-delayed-lazy-with-query');
@@ -667,13 +623,13 @@ test('Creates navigation transaction when navigating with query parameters from 
 
   // Verify the navigation transaction has the correct parameterized route name
   // Query parameters don't affect the transaction name (still /delayed-lazy/:id)
-  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
-  expect(navigationEvent.contexts?.trace?.status).toBe('ok');
+  expect(navigationEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(navigationEvent)).toBe('navigation');
+  expect(navigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(navigationEvent.status).toBe('ok');
 });
 
-test('Creates separate navigation transaction when changing only query parameters on same route', async ({ page }) => {
+test('Creates separate navigation span when changing only query parameters on same route', async ({ page }) => {
   await page.goto('/delayed-lazy/123');
 
   // Wait for the page to fully load
@@ -682,12 +638,8 @@ test('Creates separate navigation transaction when changing only query parameter
 
   // Navigate from /delayed-lazy/123 to /delayed-lazy/123?view=detailed
   // This is a query-only change on the same route
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/delayed-lazy/:id'
-    );
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
   });
 
   const queryLink = page.locator('id=link-to-query-view-detailed');
@@ -701,25 +653,21 @@ test('Creates separate navigation transaction when changing only query parameter
   await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: detailed');
 
   // Query-only navigation should create a navigation transaction
-  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
-  expect(navigationEvent.contexts?.trace?.status).toBe('ok');
+  expect(navigationEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(navigationEvent)).toBe('navigation');
+  expect(navigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(navigationEvent.status).toBe('ok');
 });
 
-test('Creates separate navigation transactions for multiple query parameter changes', async ({ page }) => {
+test('Creates separate navigation spans for multiple query parameter changes', async ({ page }) => {
   await page.goto('/delayed-lazy/123');
 
   const delayedReady = page.locator('id=delayed-lazy-ready');
   await expect(delayedReady).toBeVisible();
 
   // First query change: /delayed-lazy/123 -> /delayed-lazy/123?view=detailed
-  const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/delayed-lazy/:id'
-    );
+  const firstNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
   });
 
   const firstQueryLink = page.locator('id=link-to-query-view-detailed');
@@ -727,17 +675,17 @@ test('Creates separate navigation transactions for multiple query parameter chan
   await firstQueryLink.click();
 
   const firstNavigationEvent = await firstNavigationPromise;
-  const firstTraceId = firstNavigationEvent.contexts?.trace?.trace_id;
+  const firstTraceId = firstNavigationEvent.trace_id;
 
   await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: detailed');
 
   // Second query change: /delayed-lazy/123?view=detailed -> /delayed-lazy/123?view=list
-  const secondNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const secondNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/delayed-lazy/:id' &&
-      transactionEvent.contexts?.trace?.trace_id !== firstTraceId
+      span.is_segment &&
+      getSpanOp(span) === 'navigation' &&
+      span.name === '/delayed-lazy/:id' &&
+      span.trace_id !== firstTraceId
     );
   });
 
@@ -746,15 +694,15 @@ test('Creates separate navigation transactions for multiple query parameter chan
   await secondQueryLink.click();
 
   const secondNavigationEvent = await secondNavigationPromise;
-  const secondTraceId = secondNavigationEvent.contexts?.trace?.trace_id;
+  const secondTraceId = secondNavigationEvent.trace_id;
 
   await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: list');
 
   // Both navigations should have created separate transactions
-  expect(firstNavigationEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(firstNavigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(secondNavigationEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(secondNavigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(firstNavigationEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(firstNavigationEvent)).toBe('navigation');
+  expect(secondNavigationEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(secondNavigationEvent)).toBe('navigation');
 
   // Trace IDs should be different (separate transactions)
   expect(firstTraceId).toBeDefined();
@@ -762,7 +710,7 @@ test('Creates separate navigation transactions for multiple query parameter chan
   expect(firstTraceId).not.toBe(secondTraceId);
 });
 
-test('Creates navigation transaction when changing only hash on same route', async ({ page }) => {
+test('Creates navigation span when changing only hash on same route', async ({ page }) => {
   await page.goto('/delayed-lazy/123');
 
   const delayedReady = page.locator('id=delayed-lazy-ready');
@@ -770,12 +718,8 @@ test('Creates navigation transaction when changing only hash on same route', asy
 
   // Navigate from /delayed-lazy/123 to /delayed-lazy/123#section1
   // This is a hash-only change on the same route
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/delayed-lazy/:id'
-    );
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
   });
 
   const hashLink = page.locator('id=link-to-hash-section1');
@@ -788,25 +732,21 @@ test('Creates navigation transaction when changing only hash on same route', asy
   await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#section1');
 
   // Hash-only navigation should create a navigation transaction
-  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
-  expect(navigationEvent.contexts?.trace?.status).toBe('ok');
+  expect(navigationEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(navigationEvent)).toBe('navigation');
+  expect(navigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(navigationEvent.status).toBe('ok');
 });
 
-test('Creates separate navigation transactions for multiple hash changes', async ({ page }) => {
+test('Creates separate navigation spans for multiple hash changes', async ({ page }) => {
   await page.goto('/delayed-lazy/123');
 
   const delayedReady = page.locator('id=delayed-lazy-ready');
   await expect(delayedReady).toBeVisible();
 
   // First hash change: /delayed-lazy/123 -> /delayed-lazy/123#section1
-  const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/delayed-lazy/:id'
-    );
+  const firstNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
   });
 
   const firstHashLink = page.locator('id=link-to-hash-section1');
@@ -814,17 +754,17 @@ test('Creates separate navigation transactions for multiple hash changes', async
   await firstHashLink.click();
 
   const firstNavigationEvent = await firstNavigationPromise;
-  const firstTraceId = firstNavigationEvent.contexts?.trace?.trace_id;
+  const firstTraceId = firstNavigationEvent.trace_id;
 
   await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#section1');
 
   // Second hash change: /delayed-lazy/123#section1 -> /delayed-lazy/123#section2
-  const secondNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const secondNavigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
     return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/delayed-lazy/:id' &&
-      transactionEvent.contexts?.trace?.trace_id !== firstTraceId
+      span.is_segment &&
+      getSpanOp(span) === 'navigation' &&
+      span.name === '/delayed-lazy/:id' &&
+      span.trace_id !== firstTraceId
     );
   });
 
@@ -833,15 +773,15 @@ test('Creates separate navigation transactions for multiple hash changes', async
   await secondHashLink.click();
 
   const secondNavigationEvent = await secondNavigationPromise;
-  const secondTraceId = secondNavigationEvent.contexts?.trace?.trace_id;
+  const secondTraceId = secondNavigationEvent.trace_id;
 
   await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#section2');
 
   // Both navigations should have created separate transactions
-  expect(firstNavigationEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(firstNavigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(secondNavigationEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(secondNavigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(firstNavigationEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(firstNavigationEvent)).toBe('navigation');
+  expect(secondNavigationEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(secondNavigationEvent)).toBe('navigation');
 
   // Trace IDs should be different (separate transactions)
   expect(firstTraceId).toBeDefined();
@@ -849,7 +789,7 @@ test('Creates separate navigation transactions for multiple hash changes', async
   expect(firstTraceId).not.toBe(secondTraceId);
 });
 
-test('Creates navigation transaction when changing both query and hash on same route', async ({ page }) => {
+test('Creates navigation span when changing both query and hash on same route', async ({ page }) => {
   await page.goto('/delayed-lazy/123?view=list');
 
   const delayedReady = page.locator('id=delayed-lazy-ready');
@@ -858,12 +798,8 @@ test('Creates navigation transaction when changing both query and hash on same r
 
   // Navigate from /delayed-lazy/123?view=list to /delayed-lazy/123?view=grid#results
   // This changes both query and hash
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/delayed-lazy/:id'
-    );
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/delayed-lazy/:id';
   });
 
   const queryAndHashLink = page.locator('id=link-to-query-and-hash');
@@ -878,25 +814,21 @@ test('Creates navigation transaction when changing both query and hash on same r
   await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: grid');
 
   // Combined query + hash navigation should create a navigation transaction
-  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
-  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
-  expect(navigationEvent.contexts?.trace?.status).toBe('ok');
+  expect(navigationEvent.name).toBe('/delayed-lazy/:id');
+  expect(getSpanOp(navigationEvent)).toBe('navigation');
+  expect(navigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(navigationEvent.status).toBe('ok');
 });
 
-test('Creates navigation transaction with correct name for slow lazy route', async ({ page }) => {
+test('Creates navigation span with correct name for slow lazy route', async ({ page }) => {
   // This test verifies that navigating to a slow lazy route (with top-level await)
   // creates a correctly named navigation transaction.
   // The route uses handle.lazyChildren with a 500ms delay.
 
   await page.goto('/');
 
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/slow-fetch/:id'
-    );
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/slow-fetch/:id';
   });
 
   // Navigate to slow-fetch route (500ms delay)
@@ -912,21 +844,21 @@ test('Creates navigation transaction with correct name for slow lazy route', asy
   await expect(page.locator('id=slow-fetch-id')).toHaveText('ID: 123');
 
   // Verify the transaction has the correct parameterized route name
-  expect(navigationEvent.transaction).toBe('/slow-fetch/:id');
-  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(navigationEvent.name).toBe('/slow-fetch/:id');
+  expect(getSpanOp(navigationEvent)).toBe('navigation');
+  expect(navigationEvent.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Rapid navigation does not corrupt transaction names when lazy handlers resolve late', async ({ page }) => {
+test('Rapid navigation does not corrupt span names when lazy handlers resolve late', async ({ page }) => {
   await page.goto('/');
 
   const allTransactions: Array<{ name: string; op: string }> = [];
 
-  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op) {
+  const collectorPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.is_segment && getSpanOp(span)) {
       allTransactions.push({
-        name: transactionEvent.transaction,
-        op: transactionEvent.contexts.trace.op,
+        name: span.name,
+        op: getSpanOp(span) ?? '',
       });
     }
     return allTransactions.length >= 2;
@@ -969,59 +901,49 @@ test('Rapid navigation does not corrupt transaction names when lazy handlers res
   expect(hasValidRouteName).toBe(true);
 });
 
-test('Correctly names pageload transaction for slow lazy route with fetch', async ({ page }) => {
+test('Correctly names pageload span for slow lazy route with fetch', async ({ page }) => {
   // This test verifies that a slow lazy route (with top-level await and fetch)
-  // creates a correctly named pageload transaction
+  // creates a correctly named pageload span
 
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/slow-fetch/:id'
-    );
+  const spansPromise = collectStreamedSpans('react-router-7-lazy-routes', spans => {
+    return spans.some(span => getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/slow-fetch/:id');
   });
 
   await page.goto('/slow-fetch/123');
 
-  const pageloadEvent = await pageloadPromise;
+  const spans = await spansPromise;
+  const pageloadSpan = spans.find(span => getSpanOp(span) === 'pageload' && span.is_segment)!;
 
   // Wait for the component to render (after the 500ms delay)
   const slowFetchContent = page.locator('id=slow-fetch-content');
   await expect(slowFetchContent).toBeVisible({ timeout: 5000 });
   await expect(page.locator('id=slow-fetch-id')).toHaveText('ID: 123');
 
-  // Verify the transaction has the correct parameterized route name
-  expect(pageloadEvent.transaction).toBe('/slow-fetch/:id');
-  expect(pageloadEvent.contexts?.trace?.op).toBe('pageload');
-  expect(pageloadEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  // Verify the span has the correct parameterized route name
+  expect(pageloadSpan.name).toBe('/slow-fetch/:id');
+  expect(getSpanOp(pageloadSpan)).toBe('pageload');
+  expect(pageloadSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
 
-  // Verify the transaction contains a fetch span
-  const spans = pageloadEvent.spans || [];
-  const fetchSpan = spans.find(
-    (span: { op?: string; description?: string }) =>
-      span.op === 'http.client' && span.description?.includes('/api/slow-data'),
-  );
+  // Verify the trace contains a fetch span. Streamed http.client names are only `<METHOD> <domain>`,
+  // so the request URL comes from `url.full`.
+  const fetchSpan = spans.find(span => getSpanOp(span) === 'http.client' && hasUrlPart(span, '/api/slow-data'));
 
   // The fetch span should exist (even if the fetch failed, the span is created)
   expect(fetchSpan).toBeDefined();
 });
 
-test('Three-route rapid navigation preserves distinct transaction names', async ({ page }) => {
+test('Three-route rapid navigation preserves distinct span names', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const navigationCollector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    if (transactionEvent.contexts?.trace?.op === 'navigation') {
-      navigationTransactions.push({ name: transactionEvent.transaction || '' });
+  const navigationCollector = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (getSpanOp(span) === 'navigation') {
+      navigationTransactions.push({ name: span.name });
     }
     return false;
   });
 
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/delayed-lazy/:id'
-    );
+  const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/delayed-lazy/:id';
   });
 
   // Pageload to delayed-lazy route
@@ -1057,12 +979,12 @@ test('Three-route rapid navigation preserves distinct transaction names', async 
   expect(corruptedToRoot.length).toBe(0);
 });
 
-test('Zero-wait rapid navigation does not corrupt transaction names', async ({ page }) => {
+test('Zero-wait rapid navigation does not corrupt span names', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    if (transactionEvent.contexts?.trace?.op === 'navigation') {
-      navigationTransactions.push({ name: transactionEvent.transaction || '' });
+  const collector = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (getSpanOp(span) === 'navigation') {
+      navigationTransactions.push({ name: span.name });
     }
     return false;
   });
@@ -1095,11 +1017,11 @@ test('Zero-wait rapid navigation does not corrupt transaction names', async ({ p
 test('Browser back during lazy handler resolution does not corrupt', async ({ page }) => {
   const allTransactions: Array<{ name: string; op: string }> = [];
 
-  const collector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op) {
+  const collector = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.is_segment && getSpanOp(span)) {
       allTransactions.push({
-        name: transactionEvent.transaction,
-        op: transactionEvent.contexts.trace.op,
+        name: span.name,
+        op: getSpanOp(span) ?? '',
       });
     }
     return false;
@@ -1132,9 +1054,9 @@ test('Browser back during lazy handler resolution does not corrupt', async ({ pa
 test('Multiple overlapping lazy handlers do not corrupt each other', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    if (transactionEvent.contexts?.trace?.op === 'navigation') {
-      navigationTransactions.push({ name: transactionEvent.transaction || '' });
+  const collector = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (getSpanOp(span) === 'navigation') {
+      navigationTransactions.push({ name: span.name });
     }
     return false;
   });
@@ -1176,12 +1098,12 @@ test('Multiple overlapping lazy handlers do not corrupt each other', async ({ pa
   }
 });
 
-test('Query/hash navigation does not corrupt transaction name', async ({ page }) => {
+test('Query/hash navigation does not corrupt span name', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation') {
-      navigationTransactions.push({ name: transactionEvent.transaction });
+  const collectorPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.is_segment && getSpanOp(span) === 'navigation') {
+      navigationTransactions.push({ name: span.name });
     }
     return navigationTransactions.length >= 1;
   });
@@ -1233,12 +1155,8 @@ test('Query/hash navigation does not corrupt transaction name', async ({ page })
 test('Slow lazy route pageload with early span end still gets parameterized route name (regression)', async ({
   page,
 }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      (transactionEvent.transaction?.startsWith('/slow-fetch') ?? false)
-    );
+  const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name.startsWith('/slow-fetch');
   });
 
   // idleTimeout=300 ends span before 500ms lazy route loads, timeout=1000 waits for lazy routes
@@ -1246,33 +1164,29 @@ test('Slow lazy route pageload with early span end still gets parameterized rout
 
   const event = await transactionPromise;
 
-  expect(event.transaction).toBe('/slow-fetch/:id');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('pageload');
-  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(event.name).toBe('/slow-fetch/:id');
+  expect(event.is_segment).toBe(true);
+  expect(getSpanOp(event)).toBe('pageload');
+  expect(event.attributes['sentry.segment.name.source']?.value).toBe('route');
 
-  const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
+  const idleSpanFinishReason = event.attributes['sentry.idle_span_finish_reason']?.value;
   expect(['idleTimeout', 'externalFinish']).toContain(idleSpanFinishReason);
 });
 
 // Regression: Wildcard route names should be upgraded to parameterized routes when lazy routes load
 test('Wildcard route pageload gets upgraded to parameterized route name (regression)', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
-    );
+  const transactionPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name.startsWith('/wildcard-lazy');
   });
 
   await page.goto('/wildcard-lazy/456?idleTimeout=300&timeout=1000');
 
   const event = await transactionPromise;
 
-  expect(event.transaction).toBe('/wildcard-lazy/:id');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('pageload');
-  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(event.name).toBe('/wildcard-lazy/:id');
+  expect(event.is_segment).toBe(true);
+  expect(getSpanOp(event)).toBe('pageload');
+  expect(event.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 // Regression: Navigation to slow lazy route should get parameterized name even if span ends early.
@@ -1286,12 +1200,8 @@ test('Slow lazy route navigation with early span end still gets parameterized ro
   // Wait for pageload to complete
   await page.waitForTimeout(500);
 
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
-    );
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.startsWith('/wildcard-lazy');
   });
 
   // Navigate to wildcard-lazy route (500ms delay in module via top-level await)
@@ -1303,10 +1213,10 @@ test('Slow lazy route navigation with early span end still gets parameterized ro
   const event = await navigationPromise;
 
   // The navigation transaction should have the parameterized route name
-  expect(event.transaction).toBe('/wildcard-lazy/:id');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('navigation');
-  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(event.name).toBe('/wildcard-lazy/:id');
+  expect(event.is_segment).toBe(true);
+  expect(getSpanOp(event)).toBe('navigation');
+  expect(event.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test('Captured navigation context is used instead of stale window.location during rapid navigation', async ({
@@ -1318,11 +1228,11 @@ test('Captured navigation context is used instead of stale window.location durin
 
   const allNavigationTransactions: Array<{ name: string; traceId: string }> = [];
 
-  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation') {
+  const collectorPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (span.is_segment && getSpanOp(span) === 'navigation') {
       allNavigationTransactions.push({
-        name: transactionEvent.transaction,
-        traceId: transactionEvent.contexts.trace.trace_id || '',
+        name: span.name,
+        traceId: span.trace_id || '',
       });
     }
     return allNavigationTransactions.length >= 2;
@@ -1365,21 +1275,14 @@ test('Captured navigation context is used instead of stale window.location durin
 test('Second navigation span is not corrupted by first slow lazy handler completing late', async ({ page }) => {
   // Validates fix for race condition where slow lazy handler would update the wrong span.
   // Navigate to slow route (which fetches /api/slow-data), then quickly to fast route.
-  // Without fix: second transaction gets wrong name and/or contains leaked spans.
+  // Without fix: the second segment gets the wrong name and/or contains leaked spans.
 
   await page.goto('/');
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allNavigationTransactions: Array<{ name: string; traceId: string; spans: any[] }> = [];
+  const streamedSpans: SerializedStreamedSpan[] = [];
 
-  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation') {
-      allNavigationTransactions.push({
-        name: transactionEvent.transaction,
-        traceId: transactionEvent.contexts.trace.trace_id || '',
-        spans: transactionEvent.spans || [],
-      });
-    }
+  const collectorPromise = waitForStreamedSpans('react-router-7-lazy-routes', spans => {
+    streamedSpans.push(...spans);
     return false;
   });
 
@@ -1396,7 +1299,7 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
 
   await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
 
-  // Wait for slow-fetch lazy handler to complete and transactions to be sent
+  // Wait for slow-fetch lazy handler to complete and spans to be sent
   await page.waitForTimeout(2000);
 
   await Promise.race([
@@ -1404,31 +1307,27 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
     new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 3000)),
   ]).catch(() => {});
 
-  expect(allNavigationTransactions.length).toBeGreaterThanOrEqual(1);
+  const navigationSegmentSpans = streamedSpans.filter(span => getSpanOp(span) === 'navigation' && span.is_segment);
+  expect(navigationSegmentSpans.length).toBeGreaterThanOrEqual(1);
 
-  // /another-lazy transaction must have correct name, not "/slow-fetch/:id"
-  const anotherLazyTransaction = allNavigationTransactions.find(t => t.name.startsWith('/another-lazy/sub'));
-  expect(anotherLazyTransaction).toBeDefined();
+  // /another-lazy segment must have the correct name, not "/slow-fetch/:id"
+  const anotherLazySegment = navigationSegmentSpans.find(span => span.name.startsWith('/another-lazy/sub'));
+  expect(anotherLazySegment).toBeDefined();
 
-  // Key assertion 2: /another-lazy transaction must NOT contain spans from /slow-fetch route
-  // The /api/slow-data fetch is triggered by the slow-fetch route's lazy loading
-  if (anotherLazyTransaction) {
-    const leakedSpans = anotherLazyTransaction.spans.filter(
-      span => span.description?.includes('slow-data') || span.data?.['url.full'].includes('slow-data'),
-    );
+  // Key assertion 2: the /another-lazy trace must NOT contain spans from the /slow-fetch route.
+  // The /api/slow-data fetch is triggered by the slow-fetch route's lazy loading.
+  if (anotherLazySegment) {
+    const leakedSpans = childSpansOf(streamedSpans, anotherLazySegment).filter(span => hasUrlPart(span, 'slow-data'));
     expect(leakedSpans.length).toBe(0);
   }
 
-  // Key assertion 3: If slow-fetch transaction exists, verify it has the correct name
+  // Key assertion 3: If a slow-fetch segment exists, verify it has the correct name
   // (not corrupted to /another-lazy)
-  const slowFetchTransaction = allNavigationTransactions.find(t => t.name.includes('slow-fetch'));
-  if (slowFetchTransaction) {
-    expect(slowFetchTransaction.name).toMatch(/\/slow-fetch/);
-    // Verify slow-fetch transaction doesn't contain spans that belong to /another-lazy
-    const wrongSpans = slowFetchTransaction.spans.filter(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (span: any) => span.description?.includes('another-lazy') || span.data?.['url.full'].includes('another-lazy'),
-    );
+  const slowFetchSegment = navigationSegmentSpans.find(span => span.name.includes('slow-fetch'));
+  if (slowFetchSegment) {
+    expect(slowFetchSegment.name).toMatch(/\/slow-fetch/);
+    // Verify the slow-fetch trace doesn't contain spans that belong to /another-lazy
+    const wrongSpans = childSpansOf(streamedSpans, slowFetchSegment).filter(span => hasUrlPart(span, 'another-lazy'));
     expect(wrongSpans.length).toBe(0);
   }
 });
@@ -1441,12 +1340,8 @@ test('Route manifest provides correct name when navigation span ends before lazy
   // Wait for pageload to complete
   await page.waitForTimeout(200);
 
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
-    );
+  const navigationPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name.startsWith('/wildcard-lazy');
   });
 
   // Navigate to wildcard-lazy route (500ms delay in module via top-level await)
@@ -1457,20 +1352,16 @@ test('Route manifest provides correct name when navigation span ends before lazy
   const event = await navigationPromise;
 
   // Should have parameterized name from manifest, not wildcard (/wildcard-lazy/*)
-  expect(event.transaction).toBe('/wildcard-lazy/:id');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('navigation');
-  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(event.name).toBe('/wildcard-lazy/:id');
+  expect(event.is_segment).toBe(true);
+  expect(getSpanOp(event)).toBe('navigation');
+  expect(event.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test('Route manifest provides correct name when pageload span ends before lazy route resolves', async ({ page }) => {
   // Short idle timeout (50ms) ensures span ends before lazy route (500ms) resolves
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
-    );
+  const pageloadPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name.startsWith('/wildcard-lazy');
   });
 
   await page.goto('/wildcard-lazy/123?idleTimeout=50&timeout=0');
@@ -1478,151 +1369,124 @@ test('Route manifest provides correct name when pageload span ends before lazy r
   const event = await pageloadPromise;
 
   // Should have parameterized name from manifest, not wildcard (/wildcard-lazy/*)
-  expect(event.transaction).toBe('/wildcard-lazy/:id');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('pageload');
-  expect(event.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(event.name).toBe('/wildcard-lazy/:id');
+  expect(event.is_segment).toBe(true);
+  expect(getSpanOp(event)).toBe('pageload');
+  expect(event.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('GQL fetch span is attributed to the correct navigation transaction when navigating from index to lazy GQL page', async ({
+test('GQL fetch span is attributed to the correct navigation segment when navigating from index to lazy GQL page', async ({
   page,
 }) => {
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/'
-    );
-  });
-
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy-gql-a/fetch'
-    );
+  const pageloadSpansPromise = collectStreamedSpans('react-router-7-lazy-routes', spans => {
+    return spans.some(span => getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/');
   });
 
   await page.goto('/');
-  const pageloadEvent = await pageloadPromise;
+  const pageloadSpans = await pageloadSpansPromise;
+  const pageloadSegment = pageloadSpans.find(span => getSpanOp(span) === 'pageload' && span.is_segment)!;
 
   // Pageload should NOT contain any /api/graphql spans (neither UserAQuery nor UserBQuery)
-  const pageloadSpans = pageloadEvent.spans || [];
-  const pageloadGqlSpans = pageloadSpans.filter(
-    (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' &&
-      (span.description?.includes('/api/graphql') || span.data?.['url.full'].includes('/api/graphql')),
+  const pageloadGqlSpans = childSpansOf(pageloadSpans, pageloadSegment).filter(
+    span => getSpanOp(span) === 'http.client' && hasUrlPart(span, '/api/graphql'),
   );
   expect(pageloadGqlSpans.length).toBe(0);
+
+  const navigationSpansPromise = collectStreamedSpans('react-router-7-lazy-routes', spans => {
+    return spans.some(span => getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy-gql-a/fetch');
+  });
 
   // Navigate to lazy GQL page A
   const gqlLink = page.locator('id=navigation-to-gql-a');
   await expect(gqlLink).toBeVisible();
   await gqlLink.click();
 
-  const navigationEvent = await navigationPromise;
+  const navigationSpans = await navigationSpansPromise;
+  const navigationSegment = navigationSpans.find(
+    span => getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy-gql-a/fetch',
+  )!;
 
   // Verify the lazy GQL page rendered
   await expect(page.locator('id=gql-page-a')).toBeVisible();
 
-  // Verify the navigation transaction has the correct name
-  expect(navigationEvent.transaction).toBe('/lazy-gql-a/fetch');
-  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
+  // Verify the navigation segment has the correct name
+  expect(navigationSegment.name).toBe('/lazy-gql-a/fetch');
+  expect(getSpanOp(navigationSegment)).toBe('navigation');
 
-  // Verify the UserAQuery GQL fetch span is inside this navigation transaction
-  const navSpans = navigationEvent.spans || [];
-  const userASpans = navSpans.filter(
-    (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' &&
-      (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
-  );
+  // Verify the UserAQuery GQL fetch span is inside this navigation segment's trace
+  const navChildSpans = childSpansOf(navigationSpans, navigationSegment);
+  const userASpans = navChildSpans.filter(span => getSpanOp(span) === 'http.client' && hasUrlPart(span, 'UserAQuery'));
   expect(userASpans.length).toBe(1);
 
-  // Verify NO UserBQuery spans leaked into this transaction
-  const userBSpans = navSpans.filter(
-    (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' &&
-      (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
-  );
+  // Verify NO UserBQuery spans leaked into this trace
+  const userBSpans = navChildSpans.filter(span => getSpanOp(span) === 'http.client' && hasUrlPart(span, 'UserBQuery'));
   expect(userBSpans.length).toBe(0);
 });
 
-test('GQL fetch spans are attributed to correct navigation transactions when navigating between two lazy GQL pages', async ({
+test('GQL fetch spans are attributed to correct navigation segments when navigating between two lazy GQL pages', async ({
   page,
 }) => {
   await page.goto('/');
   await page.waitForTimeout(500);
 
   // Navigate to GQL page A
-  const firstNavPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy-gql-a/fetch'
-    );
+  const firstNavSpansPromise = collectStreamedSpans('react-router-7-lazy-routes', spans => {
+    return spans.some(span => getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy-gql-a/fetch');
   });
 
   const gqlALink = page.locator('id=navigation-to-gql-a');
   await expect(gqlALink).toBeVisible();
   await gqlALink.click();
 
-  const firstNavEvent = await firstNavPromise;
+  const firstNavSpans = await firstNavSpansPromise;
+  const firstNavSegment = firstNavSpans.find(
+    span => getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy-gql-a/fetch',
+  )!;
   await expect(page.locator('id=gql-page-a')).toBeVisible();
 
   // First navigation should have exactly the UserAQuery span
-  const firstNavSpans = firstNavEvent.spans || [];
-  const firstUserASpans = firstNavSpans.filter(
-    (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' &&
-      (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
+  const firstNavChildSpans = childSpansOf(firstNavSpans, firstNavSegment);
+  const firstUserASpans = firstNavChildSpans.filter(
+    span => getSpanOp(span) === 'http.client' && hasUrlPart(span, 'UserAQuery'),
   );
   expect(firstUserASpans.length).toBe(1);
 
   // First navigation must NOT contain UserBQuery spans
-  const firstUserBSpans = firstNavSpans.filter(
-    (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' &&
-      (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
+  const firstUserBSpans = firstNavChildSpans.filter(
+    span => getSpanOp(span) === 'http.client' && hasUrlPart(span, 'UserBQuery'),
   );
   expect(firstUserBSpans.length).toBe(0);
 
   // Now navigate from GQL page A to GQL page B
-  const secondNavPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy-gql-b/fetch'
-    );
+  const secondNavSpansPromise = collectStreamedSpans('react-router-7-lazy-routes', spans => {
+    return spans.some(span => getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy-gql-b/fetch');
   });
 
   const gqlBLink = page.locator('id=navigate-to-gql-b');
   await expect(gqlBLink).toBeVisible();
   await gqlBLink.click();
 
-  const secondNavEvent = await secondNavPromise;
+  const secondNavSpans = await secondNavSpansPromise;
+  const secondNavSegment = secondNavSpans.find(
+    span => getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy-gql-b/fetch',
+  )!;
   await expect(page.locator('id=gql-page-b')).toBeVisible();
 
   // Second navigation should have exactly the UserBQuery span
-  const secondNavSpans = secondNavEvent.spans || [];
-  const secondUserBSpans = secondNavSpans.filter(
-    (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' &&
-      (span.description?.includes('UserBQuery') || span.data?.['url.full'].includes('UserBQuery')),
+  const secondNavChildSpans = childSpansOf(secondNavSpans, secondNavSegment);
+  const secondUserBSpans = secondNavChildSpans.filter(
+    span => getSpanOp(span) === 'http.client' && hasUrlPart(span, 'UserBQuery'),
   );
   expect(secondUserBSpans.length).toBe(1);
 
   // Second navigation must NOT contain UserAQuery spans (no leaking from first nav)
-  const secondUserASpans = secondNavSpans.filter(
-    (span: { op?: string; description?: string; data?: { url?: string } }) =>
-      span.op === 'http.client' &&
-      (span.description?.includes('UserAQuery') || span.data?.['url.full'].includes('UserAQuery')),
+  const secondUserASpans = secondNavChildSpans.filter(
+    span => getSpanOp(span) === 'http.client' && hasUrlPart(span, 'UserAQuery'),
   );
   expect(secondUserASpans.length).toBe(0);
 
-  // Verify the two transactions have different trace IDs
-  const firstTraceId = firstNavEvent.contexts?.trace?.trace_id;
-  const secondTraceId = secondNavEvent.contexts?.trace?.trace_id;
-  expect(firstTraceId).toBeDefined();
-  expect(secondTraceId).toBeDefined();
-  expect(firstTraceId).not.toBe(secondTraceId);
+  // Verify the two segments have different trace IDs
+  expect(firstNavSegment.trace_id).toBeDefined();
+  expect(secondNavSegment.trace_id).toBeDefined();
+  expect(firstNavSegment.trace_id).not.toBe(secondNavSegment.trace_id);
 });

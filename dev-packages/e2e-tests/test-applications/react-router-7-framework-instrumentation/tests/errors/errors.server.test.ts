@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('server - instrumentation API error capture', () => {
@@ -8,15 +8,15 @@ test.describe('server - instrumentation API error capture', () => {
       return errorEvent.exception?.values?.[0]?.value === 'Loader error for testing';
     });
 
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/error-loader';
+    const spanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === 'GET /performance/error-loader' && span.is_segment;
     });
 
     await page.goto(`/performance/error-loader`).catch(() => {
       // Expected to fail due to loader error
     });
 
-    const [error, transaction] = await Promise.all([errorPromise, txPromise]);
+    const [error, span] = await Promise.all([errorPromise, spanPromise]);
 
     // Verify the error was captured with correct mechanism and transaction name
     expect(error).toMatchObject({
@@ -36,58 +36,51 @@ test.describe('server - instrumentation API error capture', () => {
     });
 
     // Verify the transaction was also created with correct attributes
-    expect(transaction).toMatchObject({
-      transaction: 'GET /performance/error-loader',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.react_router.instrumentation_api',
-        },
-      },
-    });
+    expect(span.name).toBe('GET /performance/error-loader');
+    expect(getSpanOp(span)).toBe('http.server');
+    expect(span.attributes['sentry.origin']?.value).toBe('auto.http.react_router.instrumentation_api');
   });
 
-  test('should include loader span in transaction even when loader throws', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/error-loader';
+  test('should include loader span in the segment even when loader throws', async ({ page }) => {
+    const spansPromise = collectStreamedSpans(APP_NAME, spans => {
+      return spans.some(span => span.name === 'GET /performance/error-loader' && span.is_segment);
     });
 
     await page.goto(`/performance/error-loader`).catch(() => {
       // Expected to fail due to loader error
     });
 
-    const transaction = await txPromise;
+    const spans = await spansPromise;
 
     // Find the loader span
-    const loaderSpan = transaction?.spans?.find(span => span.data?.['code.function.name'] === 'loader');
+    const loaderSpan = spans.find(span => span.attributes['code.function.name']?.value === 'loader');
 
-    expect(loaderSpan).toMatchObject({
-      data: {
-        'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function',
-        'code.function.name': 'loader',
-      },
-      op: 'function',
+    expect(loaderSpan).toBeDefined();
+    expect(getSpanOp(loaderSpan!)).toBe('function');
+    expect(loaderSpan!.attributes).toMatchObject({
+      'sentry.origin': { value: 'auto.function.react_router.instrumentation_api', type: 'string' },
+      'sentry.op': { value: 'function', type: 'string' },
+      'code.function.name': { value: 'loader', type: 'string' },
     });
   });
 
-  test('error and transaction should share the same trace', async ({ page }) => {
+  test('error and segment span should share the same trace', async ({ page }) => {
     const errorPromise = waitForError(APP_NAME, async errorEvent => {
       return errorEvent.exception?.values?.[0]?.value === 'Loader error for testing';
     });
 
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/error-loader';
+    const spanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === 'GET /performance/error-loader' && span.is_segment;
     });
 
     await page.goto(`/performance/error-loader`).catch(() => {
       // Expected to fail due to loader error
     });
 
-    const [error, transaction] = await Promise.all([errorPromise, txPromise]);
+    const [error, span] = await Promise.all([errorPromise, spanPromise]);
 
-    // Error and transaction should have the same trace_id
-    expect(error.contexts?.trace?.trace_id).toBe(transaction.contexts?.trace?.trace_id);
+    // Error and segment span should have the same trace_id
+    expect(error.contexts?.trace?.trace_id).toBe(span.trace_id);
   });
 
   // Skipped in dev: the action error is sometimes captured via the client instrumentation path
@@ -101,14 +94,14 @@ test.describe('server - instrumentation API error capture', () => {
       return errorEvent.exception?.values?.[0]?.value === 'Action error for testing';
     });
 
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'POST /performance/error-action';
+    const spanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === 'POST /performance/error-action' && span.is_segment;
     });
 
     await page.goto(`/performance/error-action`);
     await page.getByRole('button', { name: 'Trigger Error' }).click();
 
-    const [error, transaction] = await Promise.all([errorPromise, txPromise]);
+    const [error, span] = await Promise.all([errorPromise, spanPromise]);
 
     expect(error).toMatchObject({
       exception: {
@@ -126,15 +119,9 @@ test.describe('server - instrumentation API error capture', () => {
       transaction: 'POST /performance/error-action',
     });
 
-    expect(transaction).toMatchObject({
-      transaction: 'POST /performance/error-action',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.react_router.instrumentation_api',
-        },
-      },
-    });
+    expect(span.name).toBe('POST /performance/error-action');
+    expect(getSpanOp(span)).toBe('http.server');
+    expect(span.attributes['sentry.origin']?.value).toBe('auto.http.react_router.instrumentation_api');
   });
 
   test('should capture middleware errors with instrumentation API mechanism', async ({ page }) => {
@@ -142,15 +129,15 @@ test.describe('server - instrumentation API error capture', () => {
       return errorEvent.exception?.values?.[0]?.value === 'Middleware error for testing';
     });
 
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/error-middleware';
+    const spanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === 'GET /performance/error-middleware' && span.is_segment;
     });
 
     await page.goto(`/performance/error-middleware`).catch(() => {
       // Expected to fail due to middleware error
     });
 
-    const [error, transaction] = await Promise.all([errorPromise, txPromise]);
+    const [error, span] = await Promise.all([errorPromise, spanPromise]);
 
     expect(error).toMatchObject({
       exception: {
@@ -168,14 +155,8 @@ test.describe('server - instrumentation API error capture', () => {
       transaction: 'GET /performance/error-middleware',
     });
 
-    expect(transaction).toMatchObject({
-      transaction: 'GET /performance/error-middleware',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.react_router.instrumentation_api',
-        },
-      },
-    });
+    expect(span.name).toBe('GET /performance/error-middleware');
+    expect(getSpanOp(span)).toBe('http.server');
+    expect(span.attributes['sentry.origin']?.value).toBe('auto.http.react_router.instrumentation_api');
   });
 });
