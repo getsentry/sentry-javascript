@@ -69,9 +69,7 @@ export function patchWasmResponseBodyReaders(): void {
     return;
   }
 
-  const proto = Response.prototype as unknown as Record<string, unknown>;
-
-  fill(proto, 'arrayBuffer', (original: (this: Response) => Promise<ArrayBuffer>) => {
+  fill(Response.prototype, 'arrayBuffer', (original: (this: Response) => Promise<ArrayBuffer>) => {
     return function arrayBuffer(this: Response): Promise<ArrayBuffer> {
       const bufferPromise: Promise<ArrayBuffer> = original.call(this);
       return bufferPromise.then((buffer: ArrayBuffer) => {
@@ -81,7 +79,7 @@ export function patchWasmResponseBodyReaders(): void {
     };
   });
 
-  fill(proto, 'bytes', (original: (this: Response) => Promise<Uint8Array>) => {
+  fill(Response.prototype, 'bytes', (original: (this: Response) => Promise<Uint8Array>) => {
     return function bytes(this: Response): Promise<Uint8Array> {
       const bytesPromise: Promise<Uint8Array> = original.call(this);
       return bytesPromise.then((bytes: Uint8Array) => {
