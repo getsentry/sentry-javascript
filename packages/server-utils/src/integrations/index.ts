@@ -13,6 +13,7 @@ import { mongooseIntegration } from './mongoose';
 import { lruMemoizerIntegration } from './lru-memoizer';
 import { langChainIntegration } from './langchain';
 import { langGraphIntegration } from './langgraph';
+import { mastraIntegration } from './mastra';
 import { vercelAIIntegration } from './vercel-ai';
 import { openAIIntegration } from './openai';
 import { anthropicAIIntegration } from './anthropic';
@@ -47,6 +48,7 @@ export function getTracingIntegrations(): Integration[] {
     // LangChain must come first to disable AI provider integrations before they instrument
     langChainIntegration(),
     langGraphIntegration(),
+    mastraIntegration(),
     vercelAIIntegration(),
     openAIIntegration(),
     anthropicAIIntegration(),
