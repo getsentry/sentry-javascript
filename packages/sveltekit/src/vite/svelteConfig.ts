@@ -18,8 +18,8 @@ export type SvelteConfigFileContents = {
  * The sveltekit plugins import the config in the same way.
  * See: https://github.com/sveltejs/kit/blob/master/packages/kit/src/core/config/index.js#L63
  *
- * Only a fallback these days: as of SvelteKit 3 there is no `svelte.config.js` anymore, and the
- * config is read from the SvelteKit Vite plugin instead (see `kitConfig.ts`).
+ * Only a fallback now - the config is read from the SvelteKit Vite plugin instead, and SvelteKit 3
+ * removed this file entirely (see `kitConfig.ts`).
  */
 export async function loadSvelteConfig(): Promise<SvelteConfigFileContents> {
   // This can only be .js (see https://github.com/sveltejs/kit/pull/4031#issuecomment-1049475388)

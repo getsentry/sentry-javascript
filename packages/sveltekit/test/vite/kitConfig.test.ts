@@ -17,10 +17,7 @@ function kitPlugin(options: unknown): Plugin {
   return { name: 'vite-plugin-sveltekit-setup', api: { options } } as Plugin;
 }
 
-/**
- * SvelteKit resolves the paths in its config against the cwd before exposing them on `api.options`,
- * so the fixtures have to be absolute to match what the SDK actually gets handed.
- */
+/** SvelteKit resolves config paths against the cwd before exposing them, so fixtures must be absolute. */
 function fromCwd(...segments: string[]): string {
   return path.join(process.cwd(), ...segments);
 }
@@ -185,12 +182,8 @@ describe('isNativeServerTracingEnabled', () => {
 
 describe('resolution through a real Vite config resolution', () => {
   // The unit tests above invoke the hooks by hand, so they'd still pass if the ordering invariant
-  // broke. This lets Vite drive the hooks instead.
-  //
-  // `sveltekit()` is an async factory in both SvelteKit majors, so the plugins array Vite hands to
-  // `config` hooks holds an unresolved promise where the SvelteKit plugin will be - the config is
-  // only findable in `configResolved`. Awaiting it from a `config` hook therefore hangs the build,
-  // so this mirrors the real shape: an async factory, with source map upload enabled so the
+  // broke. This lets Vite drive them instead, against the real shape: an async `sveltekit()`
+  // factory (which hides the plugin from `config` hooks), and source map upload enabled so the
   // plugins that consume the config are actually registered.
   function sveltekitLike(options: unknown): Promise<Plugin[]> {
     return Promise.resolve([{ name: 'vite-plugin-sveltekit-setup', api: { options } } as Plugin]);

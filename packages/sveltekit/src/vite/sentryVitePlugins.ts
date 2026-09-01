@@ -38,10 +38,9 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const getAdapter = (): Promise<SupportedSvelteKitAdapters> =>
     (adapterPromise ??= (async () => options.adapter || detectAdapter(await getKitConfig(), options.debug))());
 
-  // Resolving this has a side effect: for the Node adapter we have to invoke `adapter.adapt()` to
-  // learn the output directory, and `@sveltejs/adapter-node` v6 wipes that directory when it runs.
-  // So it must happen once, and early (while the build output doesn't exist yet) - never lazily
-  // from a late hook like `closeBundle`, which runs *after* SvelteKit invoked the adapter.
+  // Side effect: for the Node adapter we invoke `adapter.adapt()` to learn the output directory,
+  // and `@sveltejs/adapter-node` v6 wipes that directory when it runs. So this must happen once,
+  // before the build writes anything - never from a late hook like `closeBundle`.
   let adapterOutputDirPromise: Promise<string> | undefined;
   const getAdapterOutputDirOnce = (): Promise<string> =>
     (adapterOutputDirPromise ??= (async () => getAdapterOutputDir(await getKitConfig(), await getAdapter()))());
@@ -51,8 +50,8 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     ...options,
   };
 
-  // The config resolver has to come first so that its `config` hook runs before any plugin
-  // below awaits the resolved SvelteKit config.
+  // First so the config settles as early as possible. The plugins below read it in `configResolved`,
+  // which Vite runs concurrently, so their order relative to the resolver doesn't matter.
   const sentryPlugins: Plugin[] = [kitConfigResolver.plugin, makeBrowserTracingVariantResolverPlugin()];
 
   if (mergedOptions.autoInstrument) {
@@ -219,7 +218,7 @@ export function generateVitePluginOptions(
       autoUploadSourceMaps: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       autoInstrument: _filtered2,
-      // Consumed by the kit config resolver, not by the Vite plugin
+      // Consumed by `sentrySvelteKit()` for adapter detection, not by the Vite plugin
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       adapter: _filtered3,
       sentryUrl,

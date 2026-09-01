@@ -225,7 +225,6 @@ describe('makeAutoInstrumentationPlugin()', () => {
     // The location of the tracing flag differs by SvelteKit version:
     // - SvelteKit 3 (>= 3.0.0-next.8): `tracing.server`
     // - SvelteKit 2.31+ and early Kit 3 prereleases: `experimental.tracing.server`
-    // (the `kit` nesting of SvelteKit 2 configs is flattened away by the kit config resolver)
     function kitConfigWithTracing(serverTracing: boolean, location: 'tracing' | 'experimental'): ResolvedKitConfig {
       const tracing = { tracing: { server: serverTracing } };
       return location === 'tracing' ? tracing : { experimental: tracing };

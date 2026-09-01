@@ -37,10 +37,7 @@ export type ResolvedKitConfig = {
   };
 };
 
-/**
- * The SvelteKit Vite plugin exposes the resolved SvelteKit config on its plugin `api`.
- * This is the case in SvelteKit 2 and 3 alike.
- */
+/** The plugin that carries the resolved SvelteKit config on its `api`, in SvelteKit 2 and 3 alike. */
 const SVELTEKIT_SETUP_PLUGIN_NAME = 'vite-plugin-sveltekit-setup';
 
 type KitPluginApi = {
@@ -49,12 +46,12 @@ type KitPluginApi = {
 
 export type KitConfigResolver = {
   /**
-   * Add this to the Vite plugins before the plugins that call {@link KitConfigResolver.get}.
+   * Register this before the plugins that call {@link KitConfigResolver.get}.
    *
    * Never `await` {@link KitConfigResolver.get} from a `config` hook: `sveltekit()` is an async
-   * factory in both SvelteKit majors, so the plugins array Vite passes to `config` still holds an
-   * unresolved promise in its place and the SvelteKit config can only be found in `configResolved`.
-   * Awaiting it earlier blocks the `config` phase that would resolve it, and the build hangs.
+   * factory in both majors, so the plugin array Vite passes to `config` still holds an unresolved
+   * promise where the SvelteKit plugin will be - it's only findable in `configResolved`. Awaiting
+   * from `config` blocks the very phase that would resolve it, and the build hangs.
    */
   plugin: Plugin;
   get: () => Promise<ResolvedKitConfig>;
@@ -64,14 +61,11 @@ export type KitConfigResolver = {
  * Creates a Vite plugin that resolves the SvelteKit config once, plus a getter for other plugins
  * to await it.
  *
- * We read the config from the `sveltekit()` Vite plugin's `api.options` instead of importing
- * `svelte.config.js`: SvelteKit 3 removed that file entirely, and SvelteKit 2.66+ lets users move
- * their config into `vite.config.js` as well.
- *
- * Loading `svelte.config.js` stays as the fallback, and isn't just an edge case: SvelteKit only
- * exposes `api.options` from 2.62 on, so every older 2.x app still resolves through the file, as
- * do setups where the SvelteKit plugin isn't registered at all (or is added by a plugin factory we
- * can't see in time).
+ * The config comes from the `sveltekit()` Vite plugin's `api.options` rather than from
+ * `svelte.config.js`: SvelteKit 3 removed that file, and 2.66+ lets users move their config into
+ * `vite.config.js`. Loading `svelte.config.js` stays as the fallback, and isn't just an edge case:
+ * `api.options` only exists from 2.62 on, so every older 2.x app still resolves through the file,
+ * as do setups where the SvelteKit plugin isn't registered at all.
  *
  * Not `@sveltejs/load-config`: it re-resolves the `vite.config.js` we're being constructed by, so
  * it ends up waiting on itself and hangs - and it reads this same `api.options` to begin with.
@@ -92,8 +86,8 @@ export function createKitConfigResolver(): KitConfigResolver {
 
   const plugin: Plugin = {
     name: 'sentry-sveltekit-kit-config-resolver',
-    // Vite runs `configResolved` hooks concurrently, so the plugins below can await `get()` from
-    // theirs no matter how they're ordered. `pre` only buys us the `config` hook running first.
+    // Vite runs `configResolved` hooks concurrently, so plugin order doesn't gate `get()`.
+    // `pre` only matters for the `config` hook below.
     enforce: 'pre',
 
     config: config => {
@@ -150,15 +144,12 @@ export function findKitConfigInPlugins(plugins: unknown): ResolvedKitConfig | un
 }
 
 /**
- * Flattens a SvelteKit 2 config (`{ kit: { ... } }`) to the SvelteKit 3 shape (`{ ... }`) and
- * brings its paths into the shape the rest of the SDK expects.
+ * Flattens a SvelteKit 2 config (`{ kit: { ... } }`) to the SvelteKit 3 shape (`{ ... }`) and makes
+ * the paths we read relative and `/`-separated.
  *
- * SvelteKit resolves `outDir` and `files.hooks.*` to absolute, platform-separated paths before it
- * exposes them on `api.options`, whereas `svelte.config.js` holds whatever the user wrote (usually
- * nothing, so we'd fall back to a cwd-relative default). Everything downstream needs that relative,
- * `/`-separated form: the hooks file regexp is matched against Vite module ids, the injected output
- * dir is matched against runtime stack frames on a machine that isn't the build machine, and the
- * source map deletion globs are relative to the project root.
+ * SvelteKit resolves `outDir` and `files.hooks.*` against the cwd before exposing them on
+ * `api.options`, but everything downstream matches them as relative paths: the hooks file regexp
+ * against Vite module ids, the injected output dir against stack frames from another machine.
  *
  * Exported only for testing.
  */

@@ -125,16 +125,16 @@ export async function makeCustomSentryVitePlugins(
     },
   };
 
-  // Whether the user set `build.sourcemap` themselves. Has to be read in `config`, before our own
-  // source map settings plugin sets it - but note that nothing here may *await* the SvelteKit
+  // Whether `build.sourcemap` is already set when this `config` hook runs. Read here rather than in
+  // `configResolved`, where it is always set - but note that nothing here may *await* the SvelteKit
   // config from a `config` hook, see the note in `kitConfig.ts`.
-  let userSpecifiedSourcemapSetting = false;
+  let sourcemapSettingAlreadySet = false;
 
   const filesToDeleteAfterUploadConfigPlugin: Plugin = {
     name: 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     apply: 'build', // only apply this plugin at build time
     config: (config: UserConfig) => {
-      userSpecifiedSourcemapSetting = typeof config.build?.sourcemap !== 'undefined';
+      sourcemapSettingAlreadySet = typeof config.build?.sourcemap !== 'undefined';
       return config;
     },
     configResolved: async () => {
@@ -144,7 +144,7 @@ export async function makeCustomSentryVitePlugins(
 
       const originalFilesToDeleteAfterUpload = options?.sourcemaps?.filesToDeleteAfterUpload;
 
-      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && !userSpecifiedSourcemapSetting) {
+      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && !sourcemapSettingAlreadySet) {
         // Including all hidden (`.*`) directories by default so that folders like .vercel,
         // .netlify, etc are also cleaned up. Additionally, we include the adapter output
         // dir which could be a non-hidden directory, like `build` for the Node adapter.

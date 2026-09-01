@@ -75,9 +75,8 @@ export function makeGlobalValuesInjectionPlugin(options: GlobalValuesInjectionOp
   return {
     name: 'sentry-sveltekit-global-values-injection-plugin',
 
-    // Resolve eagerly rather than on the first `transform`: see the note on the adapter output dir
-    // in `sentrySvelteKit()`. Awaited so a failure surfaces as a config error instead of an
-    // unhandled rejection.
+    // Eagerly, not on the first `transform`: see the note on the adapter output dir in
+    // `sentrySvelteKit()`. Awaited so a failure surfaces as a config error, not a stray rejection.
     configResolved: async () => {
       await getInjectionValues();
     },

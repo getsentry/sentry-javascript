@@ -32,18 +32,14 @@ function getGlobalValuesPlugin(plugins: Plugin[]): Plugin {
   return plugins.find(plugin => plugin.name === 'sentry-sveltekit-global-values-injection-plugin')!;
 }
 
-/**
- * SvelteKit resolves the paths in its config against the cwd before exposing them on `api.options`,
- * so the fixtures have to be absolute to match what the SDK actually gets handed.
- */
+/** SvelteKit resolves config paths against the cwd before exposing them, so fixtures must be absolute. */
 function fromCwd(...segments: string[]): string {
   return path.join(process.cwd(), ...segments);
 }
 
 describe('global values injection plugin', () => {
-  // The whole chain: the SvelteKit Vite plugin's `api.options` -> kit config resolver ->
-  // adapter detection -> adapter output dir + hooks file. Before SvelteKit 3 this came from
-  // `svelte.config.js`, which no longer exists there.
+  // Exercises the whole chain: the SvelteKit Vite plugin's `api.options` -> kit config resolver ->
+  // adapter detection -> adapter output dir + hooks file.
   async function getPluginsForKitConfig(kitConfigOptions: unknown): Promise<Plugin[]> {
     const plugins = await sentrySvelteKit({ autoUploadSourceMaps: true, autoInstrument: false });
 
@@ -124,10 +120,9 @@ describe('global values injection plugin', () => {
 });
 
 describe('adapter output dir resolution', () => {
-  // Resolving the output directory for the Node adapter means calling `adapter.adapt()`, and
-  // `@sveltejs/adapter-node` v6 wipes the output directory when it runs. So it has to happen
-  // once, at config time - if it were deferred to e.g. the source maps plugin's `closeBundle`,
-  // it would delete the app SvelteKit just built.
+  // Resolving the Node adapter's output dir calls `adapter.adapt()`, and `@sveltejs/adapter-node`
+  // v6 wipes that dir when it runs - so once, at config time. Deferred to `closeBundle`, it would
+  // delete the app SvelteKit just built.
   it('resolves once, before the build, even when `filesToDeleteAfterUpload` is user-specified', async () => {
     const adapt = vi.fn((builder: { writeClient: (dest: string) => void }) => {
       builder.writeClient('custom-build/client');
