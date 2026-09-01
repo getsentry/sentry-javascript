@@ -759,8 +759,8 @@ describe('constructWebpackConfigFunction()', () => {
       const externals = finalWebpackConfig.externals as ((data: { request?: string }) => Promise<string | undefined>)[];
 
       expect(Array.isArray(externals)).toBe(true);
-      await expect(externals[0]({ request: '@sentry/server-utils/orchestrion/register' })).resolves.toBe(
-        'commonjs @sentry/nextjs/orchestrion-runtime/orchestrion/register',
+      await expect(externals[0]({ request: '@sentry/server-runtime-injection/register' })).resolves.toBe(
+        'commonjs @sentry/nextjs/orchestrion-runtime/register',
       );
       await expect(externals[0]({ request: 'some-other-package' })).resolves.toBeUndefined();
     });

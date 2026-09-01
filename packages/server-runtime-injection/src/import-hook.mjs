@@ -8,11 +8,11 @@
 // and the `init()` path can never drift apart. This file is just the
 // side-effecting wrapper that invokes it.
 //
-// This file is shipped as-is to `build/orchestrion/import-hook.mjs`. Keep it a
+// This file is shipped as-is to `build/import-hook.mjs`. Keep it a
 // single self-contained `.mjs` file with no relative-path imports — `--import`
 // resolves it (and the bare specifier below) via Node's module resolution
 // against the installed package.
 
-import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-runtime-injection/register';
 
 registerDiagnosticsChannelInjection();

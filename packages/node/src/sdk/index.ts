@@ -17,7 +17,7 @@ import {
 } from '@sentry/core';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
-import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-runtime-injection/register';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';

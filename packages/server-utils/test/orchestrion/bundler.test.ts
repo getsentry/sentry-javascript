@@ -5,6 +5,7 @@ import type { NormalizedInputOptions, PluginContext } from 'rollup';
 import type { ResolvedConfig } from 'vite';
 import type { Compiler } from 'webpack';
 import { describe, expect, it, vi } from 'vitest';
+import { sentryOrchestrionPlugin as bunPlugin } from '../../src/orchestrion/bundler/bun';
 import { sentryOrchestrionPlugin as esbuildPlugin } from '../../src/orchestrion/bundler/esbuild';
 import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
 import { sentryOrchestrionPlugin as rollupPlugin } from '../../src/orchestrion/bundler/rollup';
@@ -24,6 +25,9 @@ vi.mock('@apm-js-collab/code-transformer-bundler-plugins/vite', () => ({
 }));
 vi.mock('@apm-js-collab/code-transformer-bundler-plugins/webpack', () => ({
   default: () => ({ apply: vi.fn() }),
+}));
+vi.mock('@apm-js-collab/code-transformer-bundler-plugins/bun', () => ({
+  default: () => ({ name: 'code-transformer', setup: vi.fn() }),
 }));
 
 describe('sentryOrchestrionPlugin (rollup)', () => {
@@ -253,6 +257,59 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   });
 });
 
+describe('sentryOrchestrionPlugin (bun)', () => {
+  type BunConfig = { banner?: string; external?: string[]; packages?: 'bundle' | 'external' };
+
+  function runSetup(config: BunConfig, options?: Parameters<typeof bunPlugin>[0]): BunConfig {
+    const build = { config };
+    bunPlugin(options).setup(build);
+    return build.config;
+  }
+
+  it('strips instrumented modules from external so they get bundled and transformed', () => {
+    const config = runSetup({ external: ['mysql', 'some-other-package'] });
+
+    expect(config.external).toEqual(['some-other-package']);
+  });
+
+  it('strips custom instrumentations passed via options from external', () => {
+    const config = runSetup(
+      { external: ['my-custom-lib', 'some-other-package'] },
+      {
+        instrumentations: [
+          {
+            channelName: 'x',
+            module: { name: 'my-custom-lib', versionRange: '*', filePath: 'index.js' },
+            functionQuery: { expressionName: 'x', kind: 'Sync' },
+          },
+        ],
+      },
+    );
+
+    expect(config.external).toEqual(['some-other-package']);
+  });
+
+  it('warns and names custom instrumentations for a blanket external strategy', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    runSetup(
+      { packages: 'external' },
+      {
+        instrumentations: [
+          {
+            channelName: 'x',
+            module: { name: 'my-custom-lib', versionRange: '*', filePath: 'index.js' },
+            functionQuery: { expressionName: 'x', kind: 'Sync' },
+          },
+        ],
+      },
+    );
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('my-custom-lib'));
+    warn.mockRestore();
+  });
+});
+
 describe('buildTimeInstrumentation: false', () => {
   const disabled = { buildTimeInstrumentation: false };
 
@@ -292,18 +349,23 @@ describe('buildTimeInstrumentation: false', () => {
     expect(() => sentryOrchestrionWebpackPlugin(disabled).apply(compiler)).not.toThrow();
     expect(tap).not.toHaveBeenCalled();
   });
+
+  it('returns an inert bun plugin that neither banners nor force-bundles', () => {
+    const build = { config: { banner: '', external: ['*'] } };
+    const plugin = bunPlugin(disabled);
+
+    expect(plugin.name).toBe('sentry-orchestrion-disabled');
+    expect(plugin.setup(build)).toBeUndefined();
+    expect(build.config.banner).toBe('');
+    expect(build.config.external).toEqual(['*']);
+  });
 });
 
 describe('resolveOrchestrionRuntimeRequest', () => {
   it.each([
     // Self-references — resolve through this package's own exports map to the CJS build.
-    '@sentry/server-utils/orchestrion/register',
     '@sentry/server-utils/orchestrion/config',
-    // Dependencies of this package, including subpaths only reachable from its location.
-    '@apm-js-collab/tracing-hooks',
-    '@apm-js-collab/tracing-hooks/hook.mjs',
-    '@apm-js-collab/tracing-hooks/hook-sync.mjs',
-    '@apm-js-collab/tracing-hooks/lib/diagnostics.js',
+    // Dependencies of this package, resolvable only from its location.
     '@apm-js-collab/code-transformer',
   ])('resolves %s to an existing absolute path', request => {
     const resolved = resolveOrchestrionRuntimeRequest(request);
@@ -314,7 +376,7 @@ describe('resolveOrchestrionRuntimeRequest', () => {
   });
 
   it('resolves self-references with require conditions, so the paths are loadable via require()', () => {
-    expect(resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion/register')).toMatch(/[/\\]cjs[/\\]/);
+    expect(resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion/config')).toMatch(/[/\\]cjs[/\\]/);
   });
 
   it('returns undefined for unresolvable requests', () => {
@@ -340,6 +402,18 @@ describe('orchestrionTransformOptions', () => {
 
     expect(opts.customTransforms?.myTransform).toBe(userTransform);
     expect(opts.customTransforms?.tracingChannelImport).not.toBe(clashing);
+  });
+
+  it('injects the marker banner by default', () => {
+    expect(orchestrionTransformOptions({}).injectDiagnostics).toBeTypeOf('function');
+  });
+
+  it('omits injectDiagnostics when opted out (Bun injects the banner natively instead)', () => {
+    const opts = orchestrionTransformOptions({}, { injectDiagnostics: false });
+
+    expect(opts.injectDiagnostics).toBeUndefined();
+    // The other options still come through the shared assembly point.
+    expect(typeof opts.customTransforms?.tracingChannelImport).toBe('function');
   });
 
   describe('marker banner', () => {

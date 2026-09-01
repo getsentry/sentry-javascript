@@ -1,4 +1,4 @@
-import { resolveOrchestrionRuntimeRequest } from '@sentry/server-utils/orchestrion/webpack';
+import { createRequire } from 'node:module';
 
 /**
  * Instrumented packages verified (via e2e) to bundle correctly, removed from Sentry's own
@@ -9,17 +9,38 @@ import { resolveOrchestrionRuntimeRequest } from '@sentry/server-utils/orchestri
 export const BUNDLE_SAFE_INSTRUMENTED_PACKAGES = ['ioredis'];
 
 /**
- * `@sentry/server-utils` (where `register.ts` and the bundled orchestrion runtime ship) must stay
- * external: `register.ts` passes its own `__filename`/`import.meta.url` as the `parentURL` for
- * `Module.register('@sentry/server-utils/orchestrion/hook.mjs', …)`, so that self-reference only
+ * `@sentry/server-runtime-injection` (where `register.ts` and the bundled orchestrion runtime ship)
+ * must stay external: `register.ts` passes its own `__filename`/`import.meta.url` as the `parentURL`
+ * for `Module.register('@sentry/server-runtime-injection/hook', …)`, so that self-reference only
  * resolves while the code still lives at its real `node_modules` location. Bundled into an app
  * server chunk instead, the specifier would have to resolve from the chunk's output location,
  * which fails under isolated installs (pnpm) where the package is a transitive dependency.
  *
- * (The `@apm-js-collab/*` packages no longer appear here: they are bundled into
- * `@sentry/server-utils`' build, so no import of them exists at runtime.)
+ * `@sentry/server-utils` (the barrel + bundler plugins) is NOT here — it is meant to be bundled; the
+ * build-time snippet's `@sentry/server-utils` import is handled separately by the code-transform.
  */
-export const ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES = ['@sentry/server-utils'];
+export const ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES = ['@sentry/server-runtime-injection'];
+
+// `require` anchored at THIS package (`@sentry/nextjs`), which depends on
+// `@sentry/server-runtime-injection` — so the resolvability check below works even under isolated
+// installs (pnpm), where a resolver anchored at `@sentry/server-utils` could not see it.
+let nextjsRequire: NodeJS.Require;
+/*! rollup-include-cjs-only */
+nextjsRequire = createRequire(__filename);
+/*! rollup-include-cjs-only-end */
+/*! rollup-include-esm-only */
+nextjsRequire = createRequire(import.meta.url);
+/*! rollup-include-esm-only-end */
+
+/** Whether `request` resolves as a `require`-able module (skips ESM-only subpaths like `/hook`). */
+function isRequireResolvable(request: string): boolean {
+  try {
+    nextjsRequire.resolve(request);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** Remove the given packages from a `serverExternalPackages` list. */
 export function filterInstrumentedExternals(externals: string[], packagesToBundle: string[]): string[] {
@@ -28,7 +49,7 @@ export function filterInstrumentedExternals(externals: string[], packagesToBundl
 }
 
 /**
- * Where the generated forwarders live — one CJS one-liner per `@sentry/server-utils` entrypoint
+ * Where the generated forwarders live — one CJS one-liner per `@sentry/server-runtime-injection` entrypoint
  * (see `scripts/buildRollup.ts`). Forwarding through `@sentry/nextjs`, always a direct dependency,
  * is what makes the emitted specifier both resolvable from `.next/server/**` and relocation-safe.
  */
@@ -67,7 +88,7 @@ export async function externalizeOrchestrionRuntimePackages({
   }
 
   // Not `require`-able (ESM-only subpath, or a typo): webpack reports it better than we can.
-  if (!resolveOrchestrionRuntimeRequest(request)) {
+  if (!isRequireResolvable(request)) {
     return undefined;
   }
 

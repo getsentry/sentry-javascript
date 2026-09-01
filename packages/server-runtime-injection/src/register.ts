@@ -1,7 +1,7 @@
 import { consoleSandbox, debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
 import * as Module from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { SENTRY_INSTRUMENTATIONS } from '../config';
+import { SENTRY_INSTRUMENTATIONS } from '@sentry/server-utils/orchestrion/config';
 import type { register } from 'node:module';
 import ModulePatch from '@apm-js-collab/tracing-hooks';
 import { initialize, load, resolve, createDiagnosticsPort } from '@apm-js-collab/tracing-hooks/hook-sync.mjs';
@@ -45,7 +45,7 @@ let warnedTransformerUnavailable = false;
  * Warn that the vendored code transformer could not run, so `moduleName` loaded uninstrumented.
  *
  * This package ships the transformer (meriyah/astring/source-map) inline and is meant to run from
- * `node_modules`. A bundler that inlines and tree-shakes `@sentry/server-utils` strips it, so every
+ * `node_modules`. A bundler that inlines and tree-shakes `@sentry/server-runtime-injection` strips it, so every
  * transform throws `TypeError: parse is not a function` — swallowed inside the loader, once per
  * module, visible only with `debug: true`.
  *
@@ -62,8 +62,8 @@ function warnTransformerUnavailable(moduleName: string): void {
   warnedTransformerUnavailable = true;
 
   warnRuntimeUnavailable(
-    `\`@sentry/server-utils\` was bundled into your application, so ${moduleName} and any other ` +
-      'instrumented dependency load uninstrumented. Keep `@sentry/server-utils` external in your ' +
+    `\`@sentry/server-runtime-injection\` was bundled into your application, so ${moduleName} and any other ` +
+      'instrumented dependency load uninstrumented. Keep `@sentry/server-runtime-injection` external in your ' +
       'server bundle, or use the Sentry bundler plugin for build-time instrumentation.',
   );
 }
@@ -138,10 +138,11 @@ export function registerDiagnosticsChannelInjection(): void {
       parentURL = import.meta.url;
       /*! rollup-include-esm-only-end */
 
-      // Our own bundled copy of the tracing-hooks async hooks (see
-      // `src/orchestrion/runtime/hook.mjs`) — the dependency itself is bundled into this package's
-      // build and no longer resolvable as a bare specifier at runtime.
-      mod.register('@sentry/server-utils/orchestrion/hook', {
+      // Our own bundled copy of the tracing-hooks async hooks (see `src/hook.mjs`) — the dependency
+      // itself is bundled into this package's build and no longer resolvable as a bare specifier at
+      // runtime. This self-referential specifier only resolves while this package lives at its real
+      // `node_modules` location, which is why it must stay external (never bundled into an app).
+      mod.register('@sentry/server-runtime-injection/hook', {
         parentURL,
         data: { instrumentations: SENTRY_INSTRUMENTATIONS, diagnosticsPort },
         transferList: [diagnosticsPort],

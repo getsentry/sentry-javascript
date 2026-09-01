@@ -1,23 +1,28 @@
 import { builtinModules } from 'node:module';
 import commonjs from '@rollup/plugin-commonjs';
 import license from 'rollup-plugin-license';
+import { defineConfig } from 'rollup';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
-// The orchestrion build-time bundler-plugin chain (`@apm-js-collab/code-transformer-bundler-plugins`
-// → `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
-// build instead of installed as runtime dependencies. (The runtime injection chain lives in
-// `@sentry/server-runtime-injection`.) Everything here is plain JS, and bundling removes a class of
-// downstream breakage:
+// The orchestrion runtime dependency chain (`@apm-js-collab/tracing-hooks` →
+// `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
+// build instead of installed as runtime dependencies. Everything in the chain is plain JS, and
+// bundling removes two whole classes of downstream breakage:
 //
-// Tracer/runtime exports-map mismatches: meriyah 6.1's `module-sync`-first exports map is
+// 1. `require(esm)`: the chain's only sync entry (`hook-sync.mjs`) is ESM-only, so an installed
+//    dependency forces our CJS build through Node's `require(esm)` bridge — unavailable on the AWS
+//    Lambda runtime (`--no-experimental-require-module`) and broken on `Module.register()` loader
+//    threads on Node 22.15–24.12 (`The resolveSync() method is not implemented`). Compiled into our
+//    own dual build, the CJS variant is genuine CJS.
+// 2. Tracer/runtime exports-map mismatches: meriyah 6.1's `module-sync`-first exports map is
 //    resolved differently by build-time tracers (`@vercel/nft`, nf3, Nitro externals) than by the
 //    runtime CJS loader, producing pruned server bundles that crash with `MODULE_NOT_FOUND`
 //    (https://github.com/vercel/nft/issues/603, https://github.com/nitrojs/nitro/issues/4456).
 //    Bundled, there is no runtime package resolution left to get wrong.
 //
-// `@apm-js-collab/code-transformer-bundler-plugins` (build-time only) is bundled as well so the
-// build-time and runtime transforms always ship the same `code-transformer` version, and so this
-// package has no `@apm-js-collab/*` install footprint at all.
+// `@sentry/*` deps (including `@sentry/server-utils`, from which `register.ts` imports
+// `SENTRY_INSTRUMENTATIONS`) stay external — the base config keeps them out of the bundle, so they
+// resolve from `node_modules` at runtime.
 //
 // `requireReturnsDefault: 'auto'`: node-resolve prefers a dependency's ESM build even for CJS
 // `require()`s inside the vendored graph. Default-export-only ESM (e.g. esquery) must then resolve
@@ -49,22 +54,17 @@ const debugNodeAlias = {
 };
 
 // Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
-// repo root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
-// prefix to keep the `build/cjs/index.js` layout the `exports` map points at. And npm never packs
-// `node_modules` directories, so the vendored dependencies must not be emitted under that name.
+// repo root, so `preserveModules` names our own files `packages/server-runtime-injection/src/...` —
+// strip that prefix to keep the `build/cjs/register.js` layout the `exports` map points at. And npm
+// never packs `node_modules` directories, so the vendored dependencies must not be emitted under
+// that name.
 const sanitizedFileNames = info =>
-  `${info.name.replace(/^packages\/server-utils\/src\//, '').replace(/node_modules/g, 'vendored')}.js`;
+  `${info.name.replace(/^packages\/server-runtime-injection\/src\//, '').replace(/node_modules/g, 'vendored')}.js`;
 
 // The vendored dependencies (see above) are third-party code redistributed inside this package's
 // published `build/`, so their licenses require us to carry each one's copyright/permission notice
 // (and, for Apache-2.0 deps like `@apm-js-collab/*`, the upstream NOTICE). Rollup strips per-file
-// banners, so instead we aggregate them into a single `build/THIRD-PARTY-LICENSES.txt`. The default
-// template emits each dependency's license text AND its NOTICE text, which covers the MIT/ISC/BSD
-// notice requirement and the Apache-2.0 §4(d) NOTICE requirement. Only bundled (non-external)
-// packages are collected — our own `@sentry/*` deps stay external and are excluded.
-//
-// Both the CJS and ESM build variants run this and bundle the same dependency set, so each writes
-// the same file; the last write wins and the content is identical.
+// banners, so instead we aggregate them into a single `build/THIRD-PARTY-LICENSES.txt`.
 const thirdPartyLicensePlugin = license({
   thirdParty: {
     includePrivate: false,
@@ -74,41 +74,40 @@ const thirdPartyLicensePlugin = license({
   },
 });
 
+const orchestrionRuntimeHooks = [
+  // The side-effecting `--import` entry SDKs reference via a `--import` flag. We pass it through
+  // rollup only to copy it to `build/import-hook.mjs` at the path the package.json `exports` map
+  // expects; `external: /.*/` keeps every import (`@sentry/server-runtime-injection/register`) a
+  // runtime resolution against the installed package.
+  defineConfig({
+    input: 'src/import-hook.mjs',
+    external: /.*/,
+    output: { format: 'esm', file: 'build/import-hook.mjs' },
+  }),
+];
+
 export default [
+  ...orchestrionRuntimeHooks,
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      // `src/orchestrion/config/index.ts` and the `src/orchestrion/bundler/*.ts`
-      // plugins are loaded via dedicated subpath exports (`.../orchestrion/config`,
-      // `.../orchestrion/vite`, etc.) — none are reachable from `src/index.ts`, so
-      // we list them as separate entrypoints to guarantee they end up in build/esm
-      // and build/cjs.
-      entrypoints: [
-        'src/index.ts',
-        'src/index.no-diagnostic-channels.ts',
-        'src/orchestrion/config/index.ts',
-        'src/orchestrion/bundler/vite.ts',
-        'src/orchestrion/bundler/rollup.ts',
-        'src/orchestrion/bundler/webpack.ts',
-        'src/orchestrion/bundler/webpack-loader.ts',
-        'src/orchestrion/bundler/esbuild.ts',
-        'src/orchestrion/bundler/bun.ts',
-      ],
+      // `register.ts` backs `./register` (the Node SDK `require`s it synchronously from
+      // `Sentry.init()`); `hook.mjs` backs `./hook` (the async `Module.register()` target, loaded on
+      // Node's ESM loader thread, which cannot resolve bare specifiers into the vendored chunks — but
+      // relative imports work, so it shares the ESM build's vendored chunks). `./hook` only maps its
+      // `import` condition, so the `build/cjs` copy is unused.
+      entrypoints: ['src/register.ts', 'src/hook.mjs'],
       packageSpecificConfig: {
         plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],
         output: {
-          // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
-          // set preserveModules to true because we don't want to bundle everything into one file.
           preserveModules: true,
           entryFileNames: sanitizedFileNames,
-          // The repo default `interop: 'esModule'` dereferences `.default` on default imports of
-          // externals. The commonjs-converted vendored dependencies import Node builtins that way
-          // (e.g. `require('path')` → default import of `path`), and builtins have no `.default` in
-          // CJS — so builtins need `'default'` interop (the module itself is the default export).
+          // The commonjs-converted vendored dependencies import Node builtins as default imports
+          // (`require('path')` → default import of `path`), and builtins have no `.default` in CJS —
+          // so builtins need `'default'` interop (the module itself is the default export).
           interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
-          // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which
-          // Deno rejects outright and vite-node (Node 26) misresolves as a relative path. Emit them
-          // `node:`-prefixed.
+          // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which Deno
+          // rejects and vite-node (Node 26) misresolves as a relative path. Emit them `node:`-prefixed.
           paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
         },
       },

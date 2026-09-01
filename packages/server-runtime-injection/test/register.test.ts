@@ -36,7 +36,7 @@ vi.mock('@sentry/core', async importOriginal => {
 });
 
 import { GLOBAL_OBJ } from '@sentry/core';
-import { registerDiagnosticsChannelInjection } from '../../src/orchestrion/runtime/register';
+import { registerDiagnosticsChannelInjection } from '../src/register';
 
 type DiagnosticsCallback = (event: { moduleName: string; error?: unknown }) => void;
 
