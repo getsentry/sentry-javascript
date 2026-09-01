@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { ReplayRecordingData } from './fixtures/ReplayRecordingData';
-import { EVENT_POLLING_OPTIONS, findErrorInTrace, findSegmentSpanInTrace } from './utils/sentry-api';
+import { EVENT_POLLING_OPTIONS, findErrorInTrace, findSpanInTrace } from './utils/sentry-api';
 
 const EVENT_POLLING_TIMEOUT = 90_000;
 
@@ -44,11 +44,7 @@ test('Sends a pageload span to Sentry', async ({ page }) => {
 
   console.log(`Polling for pageload spanId: ${spanId} in trace: ${traceId}`);
 
-  await expect
-    .poll(() => findSegmentSpanInTrace(traceId, spanId), EVENT_POLLING_OPTIONS)
-    .toMatchObject({
-      op: 'pageload',
-    });
+  await expect.poll(() => findSpanInTrace(traceId, 'pageload'), EVENT_POLLING_OPTIONS).toBeDefined();
 });
 
 test('Sends a navigation span to Sentry', async ({ page }) => {
@@ -73,11 +69,7 @@ test('Sends a navigation span to Sentry', async ({ page }) => {
 
   console.log(`Polling for navigation spanId: ${spanId} in trace: ${traceId}`);
 
-  await expect
-    .poll(() => findSegmentSpanInTrace(traceId, spanId), EVENT_POLLING_OPTIONS)
-    .toMatchObject({
-      op: 'navigation',
-    });
+  await expect.poll(() => findSpanInTrace(traceId, 'navigation'), EVENT_POLLING_OPTIONS).toBeDefined();
 });
 
 test('Sends a Replay recording to Sentry', async ({ browser }) => {

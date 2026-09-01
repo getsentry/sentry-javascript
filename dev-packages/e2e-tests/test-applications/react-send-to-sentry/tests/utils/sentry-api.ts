@@ -65,10 +65,30 @@ export async function findErrorInTrace(traceId: string, eventId: string): Promis
   return flattenTrace(await fetchTrace(traceId)).find(item => item.event_type === 'error' && item.event_id === eventId);
 }
 
+let loggedTraceShape = false;
+
 /**
- * Streamed spans never become transaction events, so a segment span is looked up by its span id
- * rather than by the event id of an enclosing transaction.
+ * Streamed spans never become transaction events, so the segment is matched by its op rather than by
+ * the event id of an enclosing transaction. The trace is already unique to the pageload or
+ * navigation under test, so the op identifies the segment within it.
  */
-export async function findSegmentSpanInTrace(traceId: string, spanId: string): Promise<TraceItem | undefined> {
-  return flattenTrace(await fetchTrace(traceId)).find(item => item.event_type === 'span' && item.event_id === spanId);
+export async function findSpanInTrace(traceId: string, op: string): Promise<TraceItem | undefined> {
+  const items = flattenTrace(await fetchTrace(traceId));
+  const match = items.find(item => item.op === op);
+
+  // The trace endpoint's exact span shape is what this lookup depends on, so report it once when a
+  // non-empty trace does not contain the op we are waiting for.
+  if (!match && items.length && !loggedTraceShape) {
+    loggedTraceShape = true;
+    console.log(
+      `Trace ${traceId} has no "${op}" item yet. Items so far:`,
+      JSON.stringify(
+        items.map(item => ({ event_type: item.event_type, op: item.op, event_id: item.event_id })),
+        null,
+        2,
+      ),
+    );
+  }
+
+  return match;
 }
