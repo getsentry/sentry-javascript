@@ -3,6 +3,7 @@ import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-in
 
 test.describe('distributed tracing', () => {
   const PARAM = 's0me-param';
+  const API_PATH = `/api/user/${PARAM}`;
 
   test('capture a distributed pageload trace', async ({ page }) => {
     const clientSpanPromise = waitForStreamedSpan('nuxt-3', span => {
@@ -67,7 +68,9 @@ test.describe('distributed tracing', () => {
     const clientSpansPromise = collectStreamedSpans('nuxt-3', spans => {
       return (
         spans.some(span => span.name === '/test-param/user/:userId()' && span.is_segment) &&
-        spans.some(span => span.name === `GET /api/user/${PARAM}` && getSpanOp(span) === 'http.client')
+        spans.some(
+          span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes(API_PATH),
+        )
       );
     });
     const ssrSpanPromise = waitForStreamedSpan('nuxt-3', span => {
@@ -87,7 +90,9 @@ test.describe('distributed tracing', () => {
     ]);
 
     const pageloadSpan = clientSpans.find(span => span.name === '/test-param/user/:userId()' && span.is_segment);
-    const httpClientSpan = clientSpans.find(span => span.name === `GET /api/user/${PARAM}`);
+    const httpClientSpan = clientSpans.find(
+      span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes(API_PATH),
+    );
 
     expect(pageloadSpan).toMatchObject({
       name: '/test-param/user/:userId()',
@@ -101,14 +106,16 @@ test.describe('distributed tracing', () => {
 
     expect(httpClientSpan).toBeDefined();
     expect(httpClientSpan).toMatchObject({
-      name: `GET /api/user/${PARAM}`, // fixme: parametrize
+      // A relative fetch has no domain of its own, so it resolves against the page origin.
+      name: 'GET localhost',
       parent_span_id: pageloadSpan?.span_id, // pageload span is parent
       attributes: expect.objectContaining({
         type: { type: 'string', value: 'fetch' },
         'sentry.op': { type: 'string', value: 'http.client' },
         'sentry.origin': { type: 'string', value: 'auto.http.browser' },
         'http.request.method': { type: 'string', value: 'GET' },
-        'url.full': { type: 'string', value: expect.stringContaining(`/api/user/${PARAM}`) },
+        'url.full': { type: 'string', value: expect.stringContaining(API_PATH) },
+        'url.domain': { type: 'string', value: 'localhost' },
       }),
     });
 
