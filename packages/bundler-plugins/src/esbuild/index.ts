@@ -8,7 +8,6 @@ import {
   CodeInjection,
   addDebugIdToEmittedArtifacts,
   isJsFile,
-  warnAboutInlineSourceMaps,
 } from '../core';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
@@ -300,19 +299,16 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
               // skipped with `disable-upload`. esbuild has no hook to modify outputs before they are
               // written, so the emitted artifacts get stamped on disk instead.
               const outputDir = initialOptions.absWorkingDir ?? process.cwd();
-              const bundles = buildArtifacts.filter(isJsFile);
-              const results = await Promise.all(
-                bundles.map(bundle =>
-                  addDebugIdToEmittedArtifacts(
-                    path.resolve(outputDir, bundle),
-                    logger,
-                    options.sourcemaps?.resolveSourceMap,
+              await Promise.all(
+                buildArtifacts
+                  .filter(isJsFile)
+                  .map(bundle =>
+                    addDebugIdToEmittedArtifacts(
+                      path.resolve(outputDir, bundle),
+                      logger,
+                      options.sourcemaps?.resolveSourceMap,
+                    ),
                   ),
-                ),
-              );
-              warnAboutInlineSourceMaps(
-                bundles.filter((_, index) => results[index] === 'inline-source-map'),
-                logger,
               );
             }
           }

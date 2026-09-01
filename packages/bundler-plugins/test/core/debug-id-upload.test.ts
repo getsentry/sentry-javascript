@@ -6,7 +6,6 @@ import {
   addDebugIdToEmittedArtifacts,
   prepareBundleForDebugIdUpload,
   stampDebugId,
-  warnAboutInlineSourceMaps,
 } from '../../src/core/debug-id-upload';
 import type { RewriteSourcesHook } from '../../src/core/types';
 import type { Logger } from '../../src/core';
@@ -121,11 +120,10 @@ describe('stampDebugId', () => {
   const inlineBundleSource = `"use strict";\n${debugIdSnippet(debugId)}\n//# sourceMappingURL=data:application/json;base64,${inlineMap}`;
 
   it('stamps the debug ID from the bundle into the source map and appends the spec comment to the bundle', () => {
-    const result = stampDebugId(bundleSource, sourceMapSource);
+    const stamped = stampDebugId(bundleSource, sourceMapSource);
 
-    expect(result.kind).toBe('stamped');
-    expect(result).toMatchObject({ bundleSource: `${bundleSource}\n//# debugId=${debugId}` });
-    expect(JSON.parse((result as { sourceMapSource: string }).sourceMapSource)).toEqual({
+    expect(stamped?.bundleSource).toBe(`${bundleSource}\n//# debugId=${debugId}`);
+    expect(JSON.parse(stamped!.sourceMapSource!)).toEqual({
       version: 3,
       sources: ['a.ts'],
       mappings: 'AAAA',
@@ -135,37 +133,35 @@ describe('stampDebugId', () => {
   });
 
   it('replaces an existing spec comment instead of adding a second one', () => {
-    const result = stampDebugId(`${bundleSource}\n//# debugId=00000000-0000-0000-0000-000000000000`, sourceMapSource);
+    const stamped = stampDebugId(`${bundleSource}\n//# debugId=00000000-0000-0000-0000-000000000000`, sourceMapSource);
 
-    expect(result).toMatchObject({ kind: 'stamped', bundleSource: `${bundleSource}\n//# debugId=${debugId}` });
+    expect(stamped?.bundleSource).toBe(`${bundleSource}\n//# debugId=${debugId}`);
   });
 
   it('stamps only the bundle when the source map is inlined', () => {
-    const result = stampDebugId(inlineBundleSource, undefined);
-
-    expect(result).toEqual({
-      kind: 'inline-source-map',
+    expect(stampDebugId(inlineBundleSource, undefined)).toEqual({
       bundleSource: `${inlineBundleSource}\n//# debugId=${debugId}`,
+      sourceMapSource: undefined,
     });
   });
 
-  it('skips a bundle without a separate or inlined source map', () => {
-    expect(stampDebugId(`"use strict";\n${debugIdSnippet(debugId)}`, undefined)).toEqual({ kind: 'skipped' });
+  it('returns undefined for a bundle without a separate or inlined source map', () => {
+    expect(stampDebugId(`"use strict";\n${debugIdSnippet(debugId)}`, undefined)).toBeUndefined();
   });
 
-  it('skips a bundle that carries no debug ID', () => {
-    expect(stampDebugId('console.log(1);', sourceMapSource)).toEqual({ kind: 'skipped' });
-    expect(stampDebugId('console.log(1);\n//# sourceMappingURL=data:application/json;base64,e30=', undefined)).toEqual({
-      kind: 'skipped',
-    });
+  it('returns undefined for a bundle that carries no debug ID', () => {
+    expect(stampDebugId('console.log(1);', sourceMapSource)).toBeUndefined();
+    expect(
+      stampDebugId('console.log(1);\n//# sourceMappingURL=data:application/json;base64,e30=', undefined),
+    ).toBeUndefined();
   });
 
-  it('skips when the source map is not valid JSON', () => {
-    expect(stampDebugId(bundleSource, '{not json')).toEqual({ kind: 'skipped' });
+  it('returns undefined when the source map is not valid JSON', () => {
+    expect(stampDebugId(bundleSource, '{not json')).toBeUndefined();
   });
 
-  it('skips when the source map is not an object', () => {
-    expect(stampDebugId(bundleSource, '"a string"')).toEqual({ kind: 'skipped' });
+  it('returns undefined when the source map is not an object', () => {
+    expect(stampDebugId(bundleSource, '"a string"')).toBeUndefined();
   });
 });
 
@@ -188,9 +184,8 @@ describe('addDebugIdToEmittedArtifacts', () => {
     fs.writeFileSync(bundlePath, bundleSource);
     fs.writeFileSync(mapPath, JSON.stringify({ version: 3, sources: ['a.ts'], mappings: 'AAAA' }));
 
-    const result = await addDebugIdToEmittedArtifacts(bundlePath, makeLogger(), undefined);
+    await addDebugIdToEmittedArtifacts(bundlePath, makeLogger(), undefined);
 
-    expect(result).toBe('stamped');
     expect(fs.readFileSync(bundlePath, 'utf8')).toBe(`${bundleSource}\n//# debugId=${debugId}`);
     expect(JSON.parse(fs.readFileSync(mapPath, 'utf8'))).toMatchObject({ debug_id: debugId, debugId: debugId });
   });
@@ -202,14 +197,13 @@ describe('addDebugIdToEmittedArtifacts', () => {
     fs.writeFileSync(bundlePath, bundleSource);
     const logger = makeLogger();
 
-    const result = await addDebugIdToEmittedArtifacts(bundlePath, logger, undefined);
+    await addDebugIdToEmittedArtifacts(bundlePath, logger, undefined);
 
-    expect(result).toBe('skipped');
     expect(fs.readFileSync(bundlePath, 'utf8')).toBe(bundleSource);
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  it('stamps the bundle and reports it when the source map is inlined', async () => {
+  it('stamps the bundle when the source map is inlined', async () => {
     const debugId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
     const bundlePath = path.join(tmpDir, 'bundle.js');
     const inlineMap = Buffer.from(JSON.stringify({ version: 3, sources: ['a.ts'], mappings: 'AAAA' })).toString(
@@ -218,9 +212,8 @@ describe('addDebugIdToEmittedArtifacts', () => {
     const bundleSource = `"use strict";\n${debugIdSnippet(debugId)}\n//# sourceMappingURL=data:application/json;base64,${inlineMap}`;
     fs.writeFileSync(bundlePath, bundleSource);
 
-    const result = await addDebugIdToEmittedArtifacts(bundlePath, makeLogger(), undefined);
+    await addDebugIdToEmittedArtifacts(bundlePath, makeLogger(), undefined);
 
-    expect(result).toBe('inline-source-map');
     expect(fs.readFileSync(bundlePath, 'utf8')).toBe(`${bundleSource}\n//# debugId=${debugId}`);
   });
 
@@ -232,29 +225,8 @@ describe('addDebugIdToEmittedArtifacts', () => {
     const bundleSource = `"use strict";\n//# sourceMappingURL=data:application/json;base64,${inlineMap}`;
     fs.writeFileSync(bundlePath, bundleSource);
 
-    const result = await addDebugIdToEmittedArtifacts(bundlePath, makeLogger(), undefined);
+    await addDebugIdToEmittedArtifacts(bundlePath, makeLogger(), undefined);
 
-    expect(result).toBe('skipped');
     expect(fs.readFileSync(bundlePath, 'utf8')).toBe(bundleSource);
-  });
-});
-
-describe('warnAboutInlineSourceMaps', () => {
-  it('does not warn when no bundle inlines its source map', () => {
-    const logger = makeLogger();
-
-    warnAboutInlineSourceMaps([], logger);
-
-    expect(logger.warn).not.toHaveBeenCalled();
-  });
-
-  it('warns once, listing the affected bundles', () => {
-    const logger = makeLogger();
-
-    warnAboutInlineSourceMaps(['a.js', 'b.js'], logger);
-
-    expect(logger.warn).toHaveBeenCalledTimes(1);
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('2 bundle(s) inline their source map'));
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('a.js, b.js'));
   });
 });

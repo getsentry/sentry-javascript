@@ -151,5 +151,4 @@ export {
   createDebugIdUploadFunction,
   addDebugIdToEmittedArtifacts,
   stampDebugId,
-  warnAboutInlineSourceMaps,
 } from './debug-id-upload';

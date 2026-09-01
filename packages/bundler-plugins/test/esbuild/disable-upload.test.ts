@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as esbuild from 'esbuild';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sentryEsbuildPlugin } from '../../src/esbuild';
 
 const DEBUG_ID_MARKER = /sentry-dbid-([0-9a-f-]{36})/;
@@ -63,10 +63,8 @@ describe('sourcemaps.disable: "disable-upload"', () => {
     expect(bundle).not.toContain('//# debugId=');
   });
 
-  it('stamps the bundle and warns when the source map is inlined into the bundle', async () => {
+  it('stamps the bundle when the source map is inlined into the bundle', async () => {
     const outDir = path.join(tmpDir, 'dist');
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
     await esbuild.build({
       entryPoints: [entry],
       bundle: true,
@@ -81,8 +79,5 @@ describe('sourcemaps.disable: "disable-upload"', () => {
 
     expect(debugId).toBeDefined();
     expect(bundle).toContain(`//# debugId=${debugId}`);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('1 bundle(s) inline their source map'));
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('entry.js'));
-    warn.mockRestore();
   });
 });

@@ -125,10 +125,11 @@ function setDebugIdOnSourceMap(map: Record<string, unknown>, debugId: string): v
   map['debugId'] = debugId;
 }
 
-export type DebugIdStampResult =
-  | { kind: 'stamped'; bundleSource: string; sourceMapSource: string }
-  | { kind: 'inline-source-map'; bundleSource: string }
-  | { kind: 'skipped' };
+export type StampedArtifacts = {
+  bundleSource: string;
+  /** `undefined` when the bundle has no separate source map (i.e. the map is inlined). */
+  sourceMapSource: string | undefined;
+};
 
 function parseSourceMap(sourceMapSource: string): Record<string, unknown> | undefined {
   let map: unknown;
@@ -151,50 +152,37 @@ function parseSourceMap(sourceMapSource: string): Record<string, unknown> | unde
  * Callers must apply the result inside the bundler's asset pipeline (or, for bundlers without one,
  * before the build resolves) so that integrity hashes computed by later build steps include it.
  *
- * Pass `sourceMapSource: undefined` when the bundle has no separate source map. An inlined map can't
- * carry a `debug_id` field, but the bundle still gets the comment (`kind: 'inline-source-map'`).
- * Bundles without a debug ID, without any source map, or with an unparseable map are skipped.
+ * Pass `sourceMapSource: undefined` when the bundle has no separate source map. A bundle with an
+ * inlined map still gets the comment, which is all the CLI and Symbolicator read the debug ID from.
+ *
+ * @returns the stamped artifacts, or `undefined` for bundles without a debug ID, without any source
+ * map, or with an unparseable map.
  */
-export function stampDebugId(bundleSource: string, sourceMapSource: string | undefined): DebugIdStampResult {
+export function stampDebugId(bundleSource: string, sourceMapSource: string | undefined): StampedArtifacts | undefined {
   const debugId = determineDebugIdFromBundleSource(bundleSource);
   if (debugId === undefined) {
-    return { kind: 'skipped' };
+    return undefined;
   }
 
   if (sourceMapSource === undefined) {
     if (!bundleHasInlineSourceMap(bundleSource)) {
-      return { kind: 'skipped' };
+      return undefined;
     }
 
-    return { kind: 'inline-source-map', bundleSource: addDebugIdToBundleSource(bundleSource, debugId) };
+    return { bundleSource: addDebugIdToBundleSource(bundleSource, debugId), sourceMapSource: undefined };
   }
 
   const map = parseSourceMap(sourceMapSource);
   if (!map) {
-    return { kind: 'skipped' };
+    return undefined;
   }
 
   setDebugIdOnSourceMap(map, debugId);
 
   return {
-    kind: 'stamped',
     bundleSource: addDebugIdToBundleSource(bundleSource, debugId),
     sourceMapSource: JSON.stringify(map),
   };
-}
-
-/**
- * Warns about bundles whose source map is inlined into the bundle. The bundle itself still gets a
- * `//# debugId=` comment, but the inlined map can't carry a matching `debug_id` field.
- */
-export function warnAboutInlineSourceMaps(bundleFileNames: string[], logger: Logger): void {
-  if (bundleFileNames.length === 0) {
-    return;
-  }
-
-  logger.warn(
-    `${bundleFileNames.length} bundle(s) inline their source map, so the map itself can't carry a debug ID. Emit source maps as separate files to make sure a later manual upload can be matched: ${bundleFileNames.join(', ')}`,
-  );
 }
 
 /**
@@ -206,13 +194,13 @@ export async function addDebugIdToEmittedArtifacts(
   bundleFilePath: string,
   logger: Logger,
   resolveSourceMapHook: ResolveSourceMapHook | undefined,
-): Promise<DebugIdStampResult['kind']> {
+): Promise<void> {
   let bundleSource: string;
   try {
     bundleSource = await fs.promises.readFile(bundleFilePath, 'utf8');
   } catch (e) {
     logger.error(`Could not read bundle to stamp debug ID: ${bundleFilePath}`, e);
-    return 'skipped';
+    return;
   }
 
   const sourceMapPath = await determineSourceMapPathFromBundle(
@@ -228,29 +216,26 @@ export async function addDebugIdToEmittedArtifacts(
       sourceMapSource = await fs.promises.readFile(sourceMapPath, 'utf8');
     } catch (e) {
       logger.error(`Could not read source map to stamp debug ID: ${sourceMapPath}`, e);
-      return 'skipped';
+      return;
     }
   }
 
-  const result = stampDebugId(bundleSource, sourceMapSource);
-  if (result.kind === 'skipped') {
+  const stamped = stampDebugId(bundleSource, sourceMapSource);
+  if (!stamped) {
     logger.debug(`Could not stamp debug ID (no debug ID in bundle, no source map, or invalid source map): ${bundleFilePath}`);
-    return 'skipped';
+    return;
   }
 
-  const writes = [fs.promises.writeFile(bundleFilePath, result.bundleSource, 'utf8')];
-  if (result.kind === 'stamped' && sourceMapPath) {
-    writes.push(fs.promises.writeFile(sourceMapPath, result.sourceMapSource, 'utf8'));
+  const writes = [fs.promises.writeFile(bundleFilePath, stamped.bundleSource, 'utf8')];
+  if (sourceMapPath && stamped.sourceMapSource !== undefined) {
+    writes.push(fs.promises.writeFile(sourceMapPath, stamped.sourceMapSource, 'utf8'));
   }
 
   try {
     await Promise.all(writes);
   } catch (e) {
     logger.error(`Could not write debug ID into build artifacts: ${bundleFilePath}`, e);
-    return 'skipped';
   }
-
-  return result.kind;
 }
 
 /**

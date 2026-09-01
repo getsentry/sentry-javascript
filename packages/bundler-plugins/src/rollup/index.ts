@@ -13,6 +13,7 @@ import {
   createComponentNameAnnotateHooks,
   replaceBooleanFlagsInCode,
   CodeInjection,
+  stampDebugId,
 } from '../core';
 import type {
   ComponentAnnotationTransformMeta,
@@ -22,12 +23,18 @@ import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
-import { createDebugIdStampingHook } from './debug-id-stamping';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
 // because `rollup` is an optional dependency.
 type TransformResult = { code: string; map?: SourceMap | string | { mappings: string } | null } | null | undefined;
+
+// The subset of Rollup's `OutputBundle` the stamping hook reads.
+type OutputBundle = Record<
+  string,
+  | { type: 'chunk'; fileName: string; code: string; sourcemapFileName?: string | null }
+  | { type: 'asset'; fileName: string; source: string | Uint8Array }
+>;
 
 type ViteModule = {
   parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;
@@ -285,6 +292,36 @@ export function _rollupPluginInternal(
     };
   }
 
+  /**
+   * Stamps debug IDs into the emitted chunks and source maps.
+   *
+   * `disable-upload` skips the upload routine (which stamps debug IDs into temp copies), so the emitted
+   * artifacts get stamped here instead. Not in `renderChunk`: minifiers running after it would strip the
+   * comment. Rollup computes `[hash]` file names before this hook, so only plugins that hash the final
+   * assets afterwards (e.g. subresource integrity) see the stamped content.
+   */
+  function generateBundle(_outputOptions: unknown, bundle: OutputBundle): void {
+    for (const output of Object.values(bundle)) {
+      if (output.type !== 'chunk' || !isJsFile(output.fileName)) {
+        continue;
+      }
+
+      const sourceMapAsset = bundle[output.sourcemapFileName ?? `${output.fileName}.map`];
+      const sourceMapSource =
+        sourceMapAsset?.type === 'asset' && typeof sourceMapAsset.source === 'string' ? sourceMapAsset.source : undefined;
+
+      const stamped = stampDebugId(output.code, sourceMapSource);
+      if (!stamped) {
+        continue;
+      }
+
+      output.code = stamped.bundleSource;
+      if (stamped.sourceMapSource !== undefined && sourceMapAsset?.type === 'asset') {
+        sourceMapAsset.source = stamped.sourceMapSource;
+      }
+    }
+  }
+
   async function writeBundle(
     outputOptions: { dir?: string; file?: string },
     bundle: { [fileName: string]: unknown },
@@ -332,7 +369,7 @@ export function _rollupPluginInternal(
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     renderChunk,
-    ...(options.sourcemaps?.disable === 'disable-upload' ? { generateBundle: createDebugIdStampingHook(logger) } : {}),
+    ...(options.sourcemaps?.disable === 'disable-upload' ? { generateBundle } : {}),
     writeBundle,
   };
 }

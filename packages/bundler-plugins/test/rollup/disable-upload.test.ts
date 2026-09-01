@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { rollup } from 'rollup';
 import { rolldown } from 'rolldown';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sentryRollupPlugin } from '../../src/rollup';
 import { sentryVitePlugin } from '../../src/vite';
 
@@ -83,10 +83,8 @@ describe('sourcemaps.disable: "disable-upload"', () => {
     expect(plugin).not.toHaveProperty('generateBundle');
   });
 
-  it('stamps the chunk and warns when the source map is inlined into the chunk', async () => {
+  it('stamps the chunk when the source map is inlined into the chunk', async () => {
     const outDir = path.join(tmpDir, 'dist');
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
     const build = await rollup({
       input: entry,
       plugins: [sentryRollupPlugin({ telemetry: false, sourcemaps: { disable: 'disable-upload' } })],
@@ -98,8 +96,5 @@ describe('sourcemaps.disable: "disable-upload"', () => {
 
     expect(debugId).toBeDefined();
     expect(chunk).toContain(`//# debugId=${debugId}`);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('1 bundle(s) inline their source map'));
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('entry.js'));
-    warn.mockRestore();
   });
 });

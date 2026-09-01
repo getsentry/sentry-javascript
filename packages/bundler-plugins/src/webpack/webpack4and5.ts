@@ -1,4 +1,4 @@
-import type { Logger, Options } from '../core/index';
+import type { Options } from '../core/index';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -10,7 +10,6 @@ import {
   createDebugIdUploadFunction,
   isJsFile,
   stampDebugId,
-  warnAboutInlineSourceMaps,
 } from '../core/index';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -143,9 +142,7 @@ function getWebpackMajorVersion(): string | undefined {
  * Runs after source maps have been generated, so the JS asset no longer needs to carry
  * source map information and can be replaced with a plain `RawSource`.
  */
-function addDebugIdsToAssets(compilation: WebpackCompilation, RawSource: WebpackRawSource, logger: Logger): void {
-  const inlineSourceMapBundles: string[] = [];
-
+function addDebugIdsToAssets(compilation: WebpackCompilation, RawSource: WebpackRawSource): void {
   for (const asset of compilation.getAssets()) {
     if (!isJsFile(asset.name)) {
       continue;
@@ -156,20 +153,16 @@ function addDebugIdsToAssets(compilation: WebpackCompilation, RawSource: Webpack
     const sourceMapName = typeof relatedSourceMap === 'string' ? relatedSourceMap : `${asset.name}.map`;
     const sourceMapAsset = compilation.getAsset(sourceMapName);
 
-    const result = stampDebugId(bundleSource, sourceMapAsset?.source.source().toString());
-    if (result.kind === 'skipped') {
+    const stamped = stampDebugId(bundleSource, sourceMapAsset?.source.source().toString());
+    if (!stamped) {
       continue;
     }
 
-    compilation.updateAsset(asset.name, new RawSource(result.bundleSource));
-    if (result.kind === 'inline-source-map') {
-      inlineSourceMapBundles.push(asset.name);
-    } else {
-      compilation.updateAsset(sourceMapName, new RawSource(result.sourceMapSource));
+    compilation.updateAsset(asset.name, new RawSource(stamped.bundleSource));
+    if (stamped.sourceMapSource !== undefined) {
+      compilation.updateAsset(sourceMapName, new RawSource(stamped.sourceMapSource));
     }
   }
-
-  warnAboutInlineSourceMaps(inlineSourceMapBundles, logger);
 }
 
 /**
@@ -296,7 +289,7 @@ export function sentryWebpackPluginFactory({
           } else {
             compiler.hooks.thisCompilation.tap('sentry-webpack-plugin', compilation => {
               compilation.hooks.processAssets.tap({ name: 'sentry-webpack-plugin', stage }, () => {
-                addDebugIdsToAssets(compilation, RawSource, logger);
+                addDebugIdsToAssets(compilation, RawSource);
               });
             });
           }
