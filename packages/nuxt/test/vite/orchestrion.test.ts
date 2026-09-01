@@ -3,11 +3,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 const mockSentryOrchestrionPlugin = vi.fn(() => ({ name: 'sentry-orchestrion-plugin' }));
 
-function createMockNuxt(options: { _prepare?: boolean } = {}) {
+function createMockNuxt(options: { _prepare?: boolean; dev?: boolean } = {}) {
   const hooks: Record<string, Array<(...args: any[]) => void | Promise<void>>> = {};
 
   return {
-    options: { _prepare: options._prepare ?? false },
+    options: { _prepare: options._prepare ?? false, dev: options.dev ?? false },
     hook: (name: string, callback: (...args: any[]) => void | Promise<void>) => {
       hooks[name] = hooks[name] || [];
       hooks[name].push(callback);
@@ -112,6 +112,19 @@ describe('setupOrchestrion', () => {
     setupOrchestrion(mockNuxt as unknown as Nuxt, true, false);
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
+    expect(mockSentryOrchestrionPlugin).not.toHaveBeenCalled();
+    expect(nitroConfig).toEqual({});
+  });
+
+  it('does not change Nitro configuration in dev mode', async () => {
+    const { setupOrchestrion } = await import('../../src/vite/orchestrion');
+    const mockNuxt = createMockNuxt({ dev: true });
+    const nitroConfig = {};
+
+    setupOrchestrion(mockNuxt as unknown as Nuxt, true);
+    await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+    // Nothing to transform in dev, and inlining the CommonJS drivers there breaks them.
     expect(mockSentryOrchestrionPlugin).not.toHaveBeenCalled();
     expect(nitroConfig).toEqual({});
   });

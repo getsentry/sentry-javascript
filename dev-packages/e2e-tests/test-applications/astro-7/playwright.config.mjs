@@ -6,8 +6,9 @@ if (!testEnv) {
   throw new Error('No test env defined');
 }
 
+// `astro dev` ignores PORT, so the port goes on the command.
 const config = getPlaywrightConfig({
-  startCommand: 'pnpm start',
+  startCommand: testEnv === 'development' ? 'pnpm dev --port 3030' : 'pnpm start',
 });
 
 export default {
