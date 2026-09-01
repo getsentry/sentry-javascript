@@ -373,6 +373,28 @@ const FB_MOBILE_BROWSER_EVENT: Event = {
   },
 };
 
+const FB_MOBILE_BROWSER_POST_MESSAGE_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'Error invoking postMessage: Java exception was raised during method invocation',
+      },
+    ],
+  },
+};
+
+const FB_MOBILE_BROWSER_JAVA_OBJECT_GONE_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'Error invoking postMessage: Java object is gone',
+      },
+    ],
+  },
+};
+
 const MALFORMED_EVENT: Event = {
   exception: {
     values: [
@@ -498,6 +520,16 @@ describe.each([
     it('uses default filters (FB Mobile Browser)', () => {
       const eventProcessor = createEventFiltersEventProcessor(integrationFn);
       expect(eventProcessor(FB_MOBILE_BROWSER_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (FB Mobile Browser, wrapped in postMessage error)', () => {
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn);
+      expect(eventProcessor(FB_MOBILE_BROWSER_POST_MESSAGE_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (FB Mobile Browser, Java object is gone)', () => {
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn);
+      expect(eventProcessor(FB_MOBILE_BROWSER_JAVA_OBJECT_GONE_EVENT, {})).toBe(null);
     });
 
     it("uses default filters (undefined is not an object (evaluating 'a.L'))", () => {
