@@ -179,14 +179,24 @@ describe('sentryOrchestrionWebpackPlugin', () => {
 });
 
 describe('sentryOrchestrionPlugin (vite)', () => {
-  function runConfigResolved(ssrExternal: string[] | true | undefined): ReturnType<typeof vi.fn> {
+  function runConfigResolved(
+    ssrExternal: string[] | true | undefined,
+    command: 'build' | 'serve' = 'build',
+  ): ReturnType<typeof vi.fn> {
     const warn = vi.fn();
     const plugin = vitePlugin();
     (plugin.configResolved as (config: unknown) => void)({
+      command,
       ssr: { external: ssrExternal },
       logger: { warn },
     } as unknown as ResolvedConfig);
     return warn;
+  }
+
+  function runConfig(command: 'build' | 'serve'): { ssr: { noExternal: string[] } } | null {
+    const plugin = vitePlugin();
+    const config = plugin.config as (config: unknown, env: unknown) => { ssr: { noExternal: string[] } } | null;
+    return config.call(plugin, {}, { command, mode: 'production' });
   }
 
   it('warns when instrumented modules are listed in ssr.external', () => {
@@ -204,14 +214,22 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   });
 
   it('force-bundles the orchestrion helper package alongside instrumented modules', () => {
-    const plugin = vitePlugin();
-    const config = (plugin.config as () => { ssr: { noExternal: string[] } })();
+    const config = runConfig('build');
 
     // Left external, Vite 5's CommonJS interop turns the snippet's `require`
     // into a default import of the named-exports-only ESM entry — a link-time
     // crash at server startup.
-    expect(config.ssr.noExternal).toContain('@sentry/server-utils');
-    expect(config.ssr.noExternal).toContain('mysql');
+    expect(config?.ssr.noExternal).toContain('@sentry/server-utils');
+    expect(config?.ssr.noExternal).toContain('mysql');
+  });
+
+  it('does not force-bundle instrumented modules on the dev server', () => {
+    // Inlined in dev, the CommonJS drivers throw `exports is not defined` on import.
+    expect(runConfig('serve')).toBeNull();
+  });
+
+  it('does not warn about externalized instrumented modules on the dev server', () => {
+    expect(runConfigResolved(['mysql', 'lodash'], 'serve')).not.toHaveBeenCalled();
   });
 
   it('gates the transform on the ssr flag (Vite 5 ignores applyToEnvironment)', () => {
