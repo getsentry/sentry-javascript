@@ -13,5 +13,14 @@ export {
 
 export { startIdleSpan } from './tracing/idleSpan';
 
+export {
+  createCachedRouteProvider,
+  createUrlRouteProvider,
+  getRouteProvider,
+  resolveCurrentRoute,
+  resolveRoute,
+  setRouteProvider,
+} from './routing';
+export type { CachedRouteProvider, RouteProvider } from './routing';
 export type { XhrBreadcrumbData, XhrBreadcrumbHint } from './types/breadcrumb';
 export type { BrowserClientReplayOptions } from './types/browseroptions';

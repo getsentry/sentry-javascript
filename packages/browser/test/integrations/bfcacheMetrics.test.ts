@@ -1,8 +1,52 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { debug } from '@sentry/core/browser';
-import { _collectNotRestoredReasons, _resolveMaxReasons } from '../../src/integrations/bfcacheMetrics';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { debug, getCurrentScope, setCurrentClient, setRouteProvider } from '@sentry/core/browser';
+import { BrowserClient } from '../../src/client';
+import { _collectNotRestoredReasons, _getSegmentName, _resolveMaxReasons } from '../../src/integrations/bfcacheMetrics';
+import { WINDOW } from '../../src/helpers';
+import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 describe('bfcacheMetricsIntegration', () => {
+  describe('_getSegmentName', () => {
+    beforeEach(() => {
+      getCurrentScope().setTransactionName(undefined);
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      setCurrentClient(client);
+      client.init();
+    });
+
+    afterEach(() => {
+      delete (WINDOW as { location?: unknown }).location;
+      getCurrentScope().setTransactionName(undefined);
+      getCurrentScope().setClient(undefined);
+    });
+
+    it('prefers the parameterized route from a registered provider', () => {
+      getCurrentScope().setTransactionName('/users/42');
+      setRouteProvider({ resolveRoute: () => '/users/:id', resolveCurrentRoute: () => '/users/:id' });
+
+      expect(_getSegmentName()).toBe('/users/:id');
+    });
+
+    it('falls back to the scope when no provider is registered', () => {
+      getCurrentScope().setTransactionName('/users/:id');
+
+      expect(_getSegmentName()).toBe('/users/:id');
+    });
+
+    it('falls back to the scope when the provider matches no route', () => {
+      getCurrentScope().setTransactionName('/users/:id');
+      setRouteProvider({ resolveRoute: () => undefined, resolveCurrentRoute: () => undefined });
+
+      expect(_getSegmentName()).toBe('/users/:id');
+    });
+
+    it('falls back to the raw pathname when nothing else knows the route', () => {
+      (WINDOW as { location?: unknown }).location = { pathname: '/users/42' };
+
+      expect(_getSegmentName()).toBe('/users/42');
+    });
+  });
+
   describe('_resolveMaxReasons', () => {
     afterEach(() => {
       vi.restoreAllMocks();
