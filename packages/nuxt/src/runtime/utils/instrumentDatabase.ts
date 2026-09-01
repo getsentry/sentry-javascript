@@ -3,16 +3,20 @@ import { DB_QUERY } from '@sentry/conventions/op';
 import {
   addBreadcrumb,
   captureException,
+  DB_SPAN_NAME_FALLBACK,
   debug,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   type Span,
   SPAN_STATUS_ERROR,
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery, flushIfServerless } from '@sentry/core/server';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
+import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
@@ -70,7 +74,7 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   }
 
   const metadata: DatabaseSpanData = {
-    'db.system.name': config?.connector ?? db.dialect,
+    [DB_SYSTEM_NAME]: config?.connector ?? db.dialect,
     ...getDatabaseSpanData(config),
   };
 
@@ -87,7 +91,8 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   // https://github.com/unjs/db0/blob/main/src/database.ts#L64
   db.sql = new Proxy(db.sql, {
     apply(target, thisArg, args: Parameters<typeof db.sql>) {
-      const query = args[0]?.[0] ?? '';
+      const [strings, ...values] = args;
+      const query = strings ? buildSqlTemplateQuery(strings, values) : '';
       const opts = createStartSpanOptions(query, metadata);
 
       return startSpan(
@@ -107,6 +112,29 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   });
 
   db.__sentry_instrumented__ = true;
+}
+
+/**
+ * Rebuilds the parameterized statement that db0 hands to the connector from the `.sql` template
+ * tag's arguments. Mirrors db0's own template handling: interpolated values become `?` placeholders,
+ * except values wrapped in `{}`, which db0 inlines into the statement (e.g. table names).
+ *
+ * @see https://github.com/unjs/db0/blob/main/src/template.ts
+ */
+function buildSqlTemplateQuery(strings: TemplateStringsArray, values: unknown[]): string {
+  let query = strings[0] || '';
+
+  for (let i = 1; i < strings.length; i++) {
+    const chunk = strings[i] ?? '';
+
+    if (query.endsWith('{') && chunk.startsWith('}')) {
+      query = `${query.slice(0, -1)}${values[i - 1]}${chunk.slice(1)}`;
+    } else {
+      query += `?${chunk}`;
+    }
+  }
+
+  return query.trim();
 }
 
 /**
@@ -221,10 +249,19 @@ function createBreadcrumb(query: string): void {
  * Creates a start span options object.
  */
 function createStartSpanOptions(query: string, data: DatabaseSpanData): StartSpanOptions {
+  const querySummary = query ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(query)) : undefined;
+
+  const client = getClient();
+  const name =
+    client && hasSpanStreamingEnabled(client)
+      ? querySummary || (data[DB_NAMESPACE] as string | undefined) || DB_SPAN_NAME_FALLBACK
+      : query;
+
   return {
-    name: query,
+    name,
     attributes: {
-      'db.query.text': query,
+      [DB_QUERY_TEXT]: query,
+      [DB_QUERY_SUMMARY]: querySummary,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
       [SENTRY_OP]: DB_QUERY,
       ...data,
