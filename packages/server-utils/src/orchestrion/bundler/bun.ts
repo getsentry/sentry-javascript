@@ -1,5 +1,5 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/bun';
-import { INSTRUMENTED_MODULE_NAMES, withoutInstrumentedExternals } from '../config';
+import { instrumentedModuleNames, withoutInstrumentedExternals } from '../config';
 import { ORCHESTRION_BUNDLER_MARKER_BANNER } from './moduleInjectedTransform';
 import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
@@ -48,6 +48,10 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): UnknownPlu
     setup: (build: BunPluginBuilder) => void;
   };
 
+  // Custom `instrumentations` must be bundled too, otherwise those packages can stay externalized
+  // and their transform never runs, so fold them into the names we un-externalize and warn about.
+  const moduleNames = instrumentedModuleNames(options.instrumentations);
+
   return {
     name: 'sentry-orchestrion',
     setup(build: BunPluginBuilder): void {
@@ -64,7 +68,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): UnknownPlu
         // `node_modules` at runtime and never passes through the transform's `onLoad`, so its
         // diagnostics_channel calls would be silently never injected. Bun has no runtime fallback
         // here, so bundling is the only injection path.
-        build.config.external = withoutInstrumentedExternals(build.config.external);
+        build.config.external = withoutInstrumentedExternals(build.config.external, moduleNames);
 
         // A blanket externalization strategy like `packages: 'external'` or `'*'` in `external`
         // externalizes instrumented packages too, and `withoutInstrumentedExternals` only strips
@@ -84,7 +88,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): UnknownPlu
           console.warn(
             `[Sentry] This Bun build externalizes all dependencies (${blanketExternal}), so Sentry ` +
               'cannot instrument bundled libraries. Instrumentation will be missing for any of ' +
-              `these packages your app uses: ${INSTRUMENTED_MODULE_NAMES.join(', ')}. To instrument them, ` +
+              `these packages your app uses: ${moduleNames.join(', ')}. To instrument them, ` +
               'externalize only the specific packages you need external instead of all of them.',
           );
         }

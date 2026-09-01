@@ -257,6 +257,59 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   });
 });
 
+describe('sentryOrchestrionPlugin (bun)', () => {
+  type BunConfig = { banner?: string; external?: string[]; packages?: 'bundle' | 'external' };
+
+  function runSetup(config: BunConfig, options?: Parameters<typeof bunPlugin>[0]): BunConfig {
+    const build = { config };
+    bunPlugin(options).setup(build);
+    return build.config;
+  }
+
+  it('strips instrumented modules from external so they get bundled and transformed', () => {
+    const config = runSetup({ external: ['mysql', 'some-other-package'] });
+
+    expect(config.external).toEqual(['some-other-package']);
+  });
+
+  it('strips custom instrumentations passed via options from external', () => {
+    const config = runSetup(
+      { external: ['my-custom-lib', 'some-other-package'] },
+      {
+        instrumentations: [
+          {
+            channelName: 'x',
+            module: { name: 'my-custom-lib', versionRange: '*', filePath: 'index.js' },
+            functionQuery: { expressionName: 'x', kind: 'Sync' },
+          },
+        ],
+      },
+    );
+
+    expect(config.external).toEqual(['some-other-package']);
+  });
+
+  it('warns and names custom instrumentations for a blanket external strategy', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    runSetup(
+      { packages: 'external' },
+      {
+        instrumentations: [
+          {
+            channelName: 'x',
+            module: { name: 'my-custom-lib', versionRange: '*', filePath: 'index.js' },
+            functionQuery: { expressionName: 'x', kind: 'Sync' },
+          },
+        ],
+      },
+    );
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('my-custom-lib'));
+    warn.mockRestore();
+  });
+});
+
 describe('buildTimeInstrumentation: false', () => {
   const disabled = { buildTimeInstrumentation: false };
 
