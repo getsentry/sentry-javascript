@@ -327,6 +327,7 @@ export {
   stripDataUrlContent,
   getUrlQuery,
   getUrlFragment,
+  getUrlDomain,
 } from './utils/url';
 export {
   eventFromMessage,
