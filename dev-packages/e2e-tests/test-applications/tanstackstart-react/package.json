@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build && cp instrument.server.mjs .output/server",
+    "dev": "vite dev",
     "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
@@ -14,7 +15,7 @@
     "test:build:tunnel-custom": "pnpm install && E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm build",
     "test:build:tunnel-object": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest && pnpm install && pnpm build",
-    "test:assert:proxy": "pnpm test",
+    "test:assert:proxy": "pnpm test && TEST_ENV=development pnpm playwright test db-drivers",
     "test:assert": "pnpm test:assert:proxy",
     "test:assert:tunnel-generated": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
     "test:assert:tunnel-streamed": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 E2E_TEST_STREAMED_SPANS=1 pnpm test",

@@ -6,9 +6,9 @@ const usesManagedTunnelRoute =
 
 test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
 
-// `sentryTanstackStart()` auto-wires the orchestrion build-time transform, which injects
-// `diagnostics_channel` publishers into these drivers as Vite bundles the server. That only
-// happens in the production build, which is what the e2e app runs.
+// Same spans in both runs, from two injectors: the orchestrion build-time transform that
+// `sentryTanstackStart()` auto-wires into the server bundle, and the runtime hook in `vite dev`,
+// where the drivers stay external on Node's own loader.
 test('Instruments ioredis automatically', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
