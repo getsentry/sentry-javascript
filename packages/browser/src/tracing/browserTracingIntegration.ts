@@ -331,20 +331,12 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   let _pageloadSpan: Span | undefined;
 
   /** Create routing idle transaction. */
-  function _createRouteSpan(
-    client: Client,
-    startSpanOptions: StartSpanOptions,
-    defaultOp: string,
-    makeActive = true,
-    url?: string,
-  ): void {
-    // `beforeStartSpan` is a public hook that receives - and may override - the deprecated `op` option,
-    // so it stays part of the options handed to it and is only folded into `sentry.op` afterwards.
-    // TODO(v12): Drop `op` once `StartSpanOptions.op` is removed.
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true, url?: string): void {
+    const originalOp = startSpanOptions.attributes?.[SENTRY_OP];
+    // backfill top-level `op` option
     // oxlint-disable-next-line typescript/no-deprecated
-    const optionsWithOp: StartSpanOptions = { op: defaultOp, ...startSpanOptions };
-    // oxlint-disable-next-line typescript/no-deprecated
-    const isPageloadSpan = optionsWithOp.op === 'pageload';
+    const optionsWithOp: StartSpanOptions = { op: originalOp, ...startSpanOptions };
+    const isPageloadSpan = originalOp === PAGELOAD;
 
     const initialSpanName = optionsWithOp.name;
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan ? beforeStartSpan(optionsWithOp) : optionsWithOp;
@@ -359,9 +351,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       ...finalStartSpanOptions.attributes,
     };
 
-    // Mirrors the precedence `startSpan` applies: an explicit `sentry.op` attribute wins over `op`.
     // oxlint-disable-next-line typescript/no-deprecated
-    attributes[SENTRY_OP] ??= finalStartSpanOptions.op;
+    if (finalStartSpanOptions.op !== originalOp) {
+      // oxlint-disable-next-line typescript/no-deprecated
+      attributes[SENTRY_OP] = finalStartSpanOptions.op;
+    }
 
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
@@ -500,8 +494,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           _createRouteSpan(
             client,
             {
-              op: NAVIGATION_REDIRECT,
               ...startSpanOptions,
+              attributes: { [SENTRY_OP]: NAVIGATION_REDIRECT, ...startSpanOptions.attributes },
             },
             false,
             navigationOptions.url,
@@ -532,12 +526,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         _createRouteSpan(
           client,
           {
-            op: NAVIGATION,
             ...startSpanOptions,
+            attributes: { [SENTRY_OP]: NAVIGATION, ...startSpanOptions.attributes },
             // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
             parentSpan: null,
           },
-          'navigation',
           true,
           navigationOptions?.url,
         );
@@ -571,8 +564,8 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         });
 
         _createRouteSpan(client, {
-          op: PAGELOAD,
           ...startSpanOptions,
+          attributes: { [SENTRY_OP]: PAGELOAD, ...startSpanOptions.attributes },
         });
       });
 
