@@ -1,8 +1,7 @@
+import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { _reconstructQuery, instrumentPostgresJsSql } from '../../../src/integrations/postgresjs';
-import { sanitizeSqlQuery } from '../../../src/utils/sql';
-import * as tracing from '../../../src/tracing/trace';
-import * as spanUtils from '../../../src/utils/spanUtils';
+import { _reconstructQuery, instrumentPostgresJsSql } from '../../src/integrations/postgresjs';
+import { sanitizeSqlQuery } from '../../src/utils/sql';
 
 describe('PostgresJs portable instrumentation', () => {
   describe('_reconstructQuery', () => {
@@ -196,7 +195,7 @@ describe('PostgresJs portable instrumentation', () => {
     describe('span creation', () => {
       beforeEach(() => {
         // By default, mock getActiveSpan to return undefined (no parent)
-        vi.spyOn(spanUtils, 'getActiveSpan').mockReturnValue(undefined);
+        vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue(undefined);
       });
 
       afterEach(() => {
@@ -245,7 +244,7 @@ describe('PostgresJs portable instrumentation', () => {
       it('only creates one span even when handle() is called multiple times', async () => {
         const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
         const startSpanManualSpy = vi
-          .spyOn(tracing, 'startSpanManual')
+          .spyOn(SentryCore, 'startSpanManual')
           .mockImplementation((_opts, callback) => callback(mockSpan as any, () => {}));
 
         const originalHandle = vi.fn().mockResolvedValue([]);

@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { getSqlQuerySummary } from '../../../src/utils/sql';
+import { getSqlQuerySummary } from '../../src/utils/sql';
 
 describe('getSqlQuerySummary', () => {
   describe('joins', () => {

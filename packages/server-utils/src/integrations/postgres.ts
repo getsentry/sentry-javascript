@@ -22,7 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { pgModuleNames } from '../orchestrion/config/pg';
@@ -182,9 +182,7 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
   const client = getClient();
   // The statement is sanitized before it is summarized, so that a string literal containing
   // `from`/`join` can't leak a value into the summary.
-  const querySummary = queryConfig?.text
-    ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(queryConfig.text))
-    : undefined;
+  const querySummary = queryConfig?.text ? getSqlQuerySummary(sanitizeSqlQuery(queryConfig.text)) : undefined;
 
   const name =
     client && hasSpanStreamingEnabled(client)
