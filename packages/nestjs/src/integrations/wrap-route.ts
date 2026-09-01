@@ -1,7 +1,14 @@
 import { HTTP_REQUEST_METHOD, HTTP_ROUTE, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
 import { FUNCTION, HANDLER } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, filterCollectedUrl } from '@sentry/core';
+import {
+  getClient,
+  hasSpanStreamingEnabled,
+  REQUEST_HANDLER_SPAN_NAME_FALLBACK,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startSpan,
+  filterCollectedUrl,
+} from '@sentry/core';
 import type { AnyFn } from './helpers';
 import { copyReflectMetadata, HTTP_ORIGIN, isWrapped, markWrapped } from './helpers';
 import { AttributeNames, NestType } from './enums';
@@ -61,7 +68,17 @@ export function wrapRouteHandler(callback: AnyFn, moduleVersion?: string): AnyFn
     [AttributeNames.VERSION]: moduleVersion || undefined,
   };
   const wrapped = function (this: unknown, ...args: unknown[]): unknown {
-    return startSpan({ name: spanName, attributes }, () => callback.apply(this, args));
+    const client = getClient();
+    // With span streaming, span names have to be low cardinality. This wrapper
+    // sees only the controller method, not the request, so it has no route to
+    // name the span after and takes the static fallback. The enclosing
+    // request-context span carries `http.route`, and the callback name stays on
+    // the `nestjs.callback` attribute.
+    const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
+
+    return startSpan({ name: isStreamedSpan ? REQUEST_HANDLER_SPAN_NAME_FALLBACK : spanName, attributes }, () =>
+      callback.apply(this, args),
+    );
   };
   if (callback.name) {
     Object.defineProperty(wrapped, 'name', { value: callback.name });

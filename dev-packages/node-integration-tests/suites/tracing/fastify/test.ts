@@ -57,6 +57,32 @@ describe('fastify v5 auto-instrumentation', () => {
       await runner.completed();
     });
 
+    test('names request handler spans after their route when span streaming is enabled', async () => {
+      const runner = createRunner()
+        .withEnv({ STREAMED: 'true' })
+        .expect({
+          span: container => {
+            const handlerSpans = container.items.filter(item => item.attributes['sentry.op']?.value === 'handler');
+
+            // The request span and the route handler span.
+            expect(handlerSpans).toHaveLength(2);
+            for (const span of handlerSpans) {
+              expect(span.name).toBe('/test-transaction');
+              // The name has to stay in step with the attribute it comes from.
+              expect(span.attributes['http.route']?.value).toBe('/test-transaction');
+            }
+
+            // Spans of other ops keep their names.
+            expect(container.items.find(item => item.name === 'preHandler - routePreHandler')).toBeDefined();
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/test-transaction');
+
+      await runner.completed();
+    });
+
     test('captures errors thrown in route handlers', async () => {
       const runner = createRunner()
         .ignore('transaction')

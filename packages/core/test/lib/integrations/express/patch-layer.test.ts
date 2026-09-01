@@ -649,6 +649,79 @@ describe('patchLayer', () => {
     ]);
   });
 
+  it('names request handler spans after their route when span streaming is enabled', () => {
+    spanStreamingEnabled = true;
+    const options: ExpressPatchLayerOptions = {};
+    const req = Object.assign(new EventEmitter(), {
+      originalUrl: '/a/b/c',
+    }) as unknown as ExpressRequest;
+
+    const layer = {
+      name: 'handle',
+      handle: vi.fn(),
+    } as unknown as ExpressLayer;
+
+    const res = Object.assign(new EventEmitter(), {}) as unknown as ExpressResponse;
+
+    storeLayer(req, '/a');
+    storeLayer(req, '/b');
+
+    patchLayer(() => options, layer, '/c');
+    layer.handle(req, res);
+
+    checkSpans([
+      {
+        status: { code: 0, message: 'OK' },
+        data: {
+          'express.name': '/a/b/c',
+          'express.type': 'request_handler',
+          'http.route': '/a/b/c',
+          'sentry.op': 'handler',
+          'sentry.origin': 'auto.http.express',
+        },
+        description: '/a/b/c',
+      },
+    ]);
+    res.emit('finish');
+    checkSpans([]);
+  });
+
+  it('falls back to a static request handler span name when the route is unknown', () => {
+    spanStreamingEnabled = true;
+    const options: ExpressPatchLayerOptions = {};
+    const req = Object.assign(new EventEmitter(), {
+      originalUrl: '/abcdef',
+    }) as unknown as ExpressRequest;
+
+    const layer = {
+      name: 'handle',
+      handle: vi.fn(),
+    } as unknown as ExpressLayer;
+
+    const res = Object.assign(new EventEmitter(), {}) as unknown as ExpressResponse;
+
+    storeLayer(req, '/a');
+    storeLayer(req, '/b');
+
+    patchLayer(() => options, layer, '/c');
+    layer.handle(req, res);
+
+    checkSpans([
+      {
+        status: { code: 0, message: 'OK' },
+        data: {
+          'express.name': '/a/b/c',
+          'express.type': 'request_handler',
+          'sentry.op': 'handler',
+          'sentry.origin': 'auto.http.express',
+        },
+        description: 'Request handler',
+      },
+    ]);
+    res.emit('finish');
+    checkSpans([]);
+  });
+
   it('handles case when route does not match url', () => {
     const onRouteResolved = vi.fn();
     const options: ExpressPatchLayerOptions = { onRouteResolved };

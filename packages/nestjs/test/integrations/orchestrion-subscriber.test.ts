@@ -269,7 +269,9 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
     wrappedCallback.call(instance);
 
     expect(handlerSpanJson).toBeDefined();
-    expect(handlerSpanJson!.name).toBe('getCats');
+    // With span streaming, the span name is low cardinality and the callback name
+    // only stays on the `nestjs.callback` attribute.
+    expect(handlerSpanJson!.name).toBe('Request handler');
     expect(handlerSpanJson!.attributes['sentry.op']).toBe('handler');
     expect(handlerSpanJson!.attributes['sentry.origin']).toBe('auto.http.nestjs');
     expect(handlerSpanJson!.attributes).toMatchObject({
@@ -278,6 +280,25 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
       'nestjs.callback': 'getCats',
       'nestjs.version': '10.4.1',
     });
+  });
+
+  it('names the request_handler span after the callback in static mode', () => {
+    installTestAsyncContextStrategy();
+    initTestClient('static');
+    subscribeToNestChannels();
+
+    class CatsController {}
+    const instance = new CatsController();
+    let handlerSpanJson: ReturnType<typeof spanToJSON> | undefined;
+    function getCats(): string {
+      handlerSpanJson = spanToJSON(getActiveSpan()!);
+      return 'cats';
+    }
+
+    const { wrappedCallback } = driveCreate(instance, getCats, '10.4.1', () => () => undefined);
+    wrappedCallback.call(instance);
+
+    expect(handlerSpanJson!.name).toBe('getCats');
   });
 
   it('nests the request_handler span under the request_context span', () => {

@@ -40,11 +40,21 @@ describe('getRouteMetadata', () => {
     expect(getRouteMetadata(route).name).toBe('/users/{id}');
   });
 
-  it('keeps the plugin span name when span streaming is enabled', () => {
+  it('drops the method from the plugin span name when span streaming is enabled', () => {
     const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
     setCurrentClient(client);
 
-    expect(getRouteMetadata(route, 'my-plugin').name).toBe('GET /users/{id}');
+    expect(getRouteMetadata(route, 'my-plugin').name).toBe('/users/{id}');
+  });
+
+  it('falls back to a static span name when the route has no path', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
+    setCurrentClient(client);
+
+    const pathlessRoute = { path: '', method: 'get' } as any;
+
+    expect(getRouteMetadata(pathlessRoute).name).toBe('Router');
+    expect(getRouteMetadata(pathlessRoute, 'my-plugin').name).toBe('Request handler');
   });
 });
 

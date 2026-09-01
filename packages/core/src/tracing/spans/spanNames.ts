@@ -77,6 +77,6 @@ export const ROUTER_SPAN_NAME_FALLBACK = 'Router';
 
 /**
  * Fallback name for request handler spans when no better-suited span name is available.
- * @see https://getsentry.github.io/sentry-conventions/names/#resource-resources
+ * @see https://getsentry.github.io/sentry-conventions/names/#web_server-request-handler
  */
-export const REQUEST_HANDLER_SPAN_NAME_FALLBACK = 'Request Handler';
+export const REQUEST_HANDLER_SPAN_NAME_FALLBACK = 'Request handler';
