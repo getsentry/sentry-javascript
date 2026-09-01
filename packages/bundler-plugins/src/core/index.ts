@@ -147,8 +147,4 @@ export {
   generateModuleMetadataInjectorCode,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
-export {
-  createDebugIdUploadFunction,
-  addDebugIdToEmittedArtifacts,
-  stampDebugId,
-} from './debug-id-upload';
+export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId } from './debug-id-upload';

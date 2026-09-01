@@ -308,7 +308,9 @@ export function _rollupPluginInternal(
 
       const sourceMapAsset = bundle[output.sourcemapFileName ?? `${output.fileName}.map`];
       const sourceMapSource =
-        sourceMapAsset?.type === 'asset' && typeof sourceMapAsset.source === 'string' ? sourceMapAsset.source : undefined;
+        sourceMapAsset?.type === 'asset' && typeof sourceMapAsset.source === 'string'
+          ? sourceMapAsset.source
+          : undefined;
 
       const stamped = stampDebugId(output.code, sourceMapSource);
       if (!stamped) {

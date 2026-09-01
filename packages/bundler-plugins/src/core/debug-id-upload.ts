@@ -222,7 +222,9 @@ export async function addDebugIdToEmittedArtifacts(
 
   const stamped = stampDebugId(bundleSource, sourceMapSource);
   if (!stamped) {
-    logger.debug(`Could not stamp debug ID (no debug ID in bundle, no source map, or invalid source map): ${bundleFilePath}`);
+    logger.debug(
+      `Could not stamp debug ID (no debug ID in bundle, no source map, or invalid source map): ${bundleFilePath}`,
+    );
     return;
   }
 
