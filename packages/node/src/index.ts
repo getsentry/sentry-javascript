@@ -8,6 +8,7 @@ export {
   anthropicAIIntegration,
   dataloaderIntegration,
   expressIntegration,
+  type ExpressIntegrationOptions,
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
