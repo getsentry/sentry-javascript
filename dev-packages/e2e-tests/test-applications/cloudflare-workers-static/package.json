@@ -1,5 +1,5 @@
 {
-  "name": "cloudflare-workers-streaming",
+  "name": "cloudflare-workers-static",
   "version": "0.0.0",
   "private": true,
   "scripts": {

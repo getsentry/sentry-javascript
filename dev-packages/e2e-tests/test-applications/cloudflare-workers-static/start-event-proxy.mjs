@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'cloudflare-workers-streaming',
+  proxyServerName: 'cloudflare-workers-static',
 });
