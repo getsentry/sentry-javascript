@@ -39,6 +39,32 @@ export interface StartSpanOptions {
    * If set to true, this span will be forced to be treated as a transaction in the Sentry UI, if possible and applicable.
    * Note that it is up to the SDK to decide how exactly the span will be sent, which may change in future SDK versions.
    * It is not guaranteed that a span started with this flag set to `true` will be sent as a transaction.
+   *
+   * @deprecated This option will be removed in the next major version of the SDK. There is no longer a concrete use
+   * case for it: all spans are indexed and searchable in Sentry, so a span no longer needs to be a transaction to be
+   * queried, filtered or aggregated on. In most cases, simply drop the option. The span is still sent, just as a child
+   * of its parent span, if a parent span is active.
+   * If you do need the span to be a segment (root) span, follow the examples below:.
+   *
+   * @example Making a span a root span:
+   * ```js
+   * Sentry.withActiveSpan(null, () => {
+   *   Sentry.startSpan({ name: 'span-that-should-be-a-root' }, () => {
+   *     // ...
+   *   });
+   * });
+   * ```
+   *
+   * @example Keeping the root span attached to a specific trace:
+   * ```js
+   * Sentry.continueTrace({ sentryTrace, baggage }, () =>
+   *   Sentry.withActiveSpan(null, () =>
+   *     Sentry.startSpan({ name: 'span-that-should-be-a-root' }, () => {
+   *       // ...
+   *     }),
+   *   ),
+   * );
+   * ```
    */
   forceTransaction?: boolean;
 
