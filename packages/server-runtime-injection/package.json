@@ -85,7 +85,8 @@
         "outputs": [
           "{projectRoot}/build/esm",
           "{projectRoot}/build/cjs",
-          "{projectRoot}/build/import-hook.mjs"
+          "{projectRoot}/build/import-hook.mjs",
+          "{projectRoot}/build/THIRD-PARTY-LICENSES.txt"
         ]
       }
     }

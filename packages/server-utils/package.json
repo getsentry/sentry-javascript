@@ -128,7 +128,8 @@
           "{projectRoot}/build/esm",
           "{projectRoot}/build/cjs",
           "{projectRoot}/build/npm/esm",
-          "{projectRoot}/build/npm/cjs"
+          "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/THIRD-PARTY-LICENSES.txt"
         ]
       }
     }
