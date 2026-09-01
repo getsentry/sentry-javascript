@@ -45,15 +45,17 @@ sentryTest(
       const [requestSpan, streamSpan] = await Promise.all([httpSpanPromise, streamSpanPromise]);
 
       expect(requestSpan).toMatchObject({
-        name: 'GET http://sentry-test-site.example/delayed',
+        name: 'GET sentry-test-site.example',
         status: 'ok',
       });
 
+      // `http.client.stream` follows the same name rules as `http.client`.
       expect(streamSpan).toMatchObject({
-        name: 'GET http://sentry-test-site.example/delayed',
+        name: 'GET sentry-test-site.example',
         attributes: expect.objectContaining({
           'http.request.method': { type: 'string', value: 'GET' },
           'url.full': { type: 'string', value: 'http://sentry-test-site.example/delayed' },
+          'url.domain': { type: 'string', value: 'sentry-test-site.example' },
           type: { type: 'string', value: 'fetch' },
         }),
       });

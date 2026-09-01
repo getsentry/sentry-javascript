@@ -1,6 +1,6 @@
-import type { HandlerDataXhr } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { addXhrInstrumentationHandler, instrumentXHR } from '../../src/instrumentation/xhr';
+import type { HandlerDataXhr } from '../../src/types';
 import { WINDOW } from '../../src/types';
 
 const win = WINDOW as typeof WINDOW & { XMLHttpRequest?: typeof XMLHttpRequest };

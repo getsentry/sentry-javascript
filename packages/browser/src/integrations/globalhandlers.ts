@@ -6,7 +6,6 @@ import {
   debug,
   defineIntegration,
   getClient,
-  getLocationHref,
   isPrimitive,
   isString,
   stripDataUrlContent,
@@ -14,6 +13,7 @@ import {
 } from '@sentry/core/browser';
 import type { BrowserClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
+import { getLocationHref } from '@sentry/browser-utils';
 import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
 

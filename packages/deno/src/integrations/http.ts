@@ -1,14 +1,24 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { errorMonitor } from 'node:events';
 import type { RequestOptions } from 'node:http';
-import type { HttpIncomingMessage, HttpServerResponse, Integration, IntegrationFn, Span } from '@sentry/core';
+import type {
+  Event,
+  HttpClientRequest,
+  HttpIncomingMessage,
+  HttpServerResponse,
+  Integration,
+  IntegrationFn,
+  Span,
+} from '@sentry/core';
 import {
+  DEFAULT_IGNORE_STATUS_CODES,
   defineIntegration,
   getHttpClientSubscriptions,
   getHttpServerSubscriptions,
   getRequestOptions,
   HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
+  processHttpServerTransactionEvent,
 } from '@sentry/core';
 
 const INTEGRATION_NAME = 'DenoHttp' as const;
@@ -92,6 +102,43 @@ export interface DenoHttpIntegrationOptions {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
+   * Do not send transaction events for incoming HTTP requests with the given status codes.
+   * By default, some 3xx and 4xx status codes are dropped (see @default).
+   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
+   *
+   * Applies only to spans this integration creates (`node:http`). `Deno.serve` requests are
+   * covered by `denoServeIntegration`'s own option of the same name. Pass `[]` to keep everything.
+   *
+   * Only takes effect with `traceLifecycle: 'static'`. The default `'stream'` lifecycle does not
+   * produce transaction events, so the filter does not run. Node's `httpIntegration` has the same
+   * limitation.
+   *
+   * @default `[[401, 404], [301, 303], [305, 399]]`
+   */
+  ignoreStatusCodes?: (number | [number, number])[];
+
+  /**
+   * Called after the span for an outgoing request is created.
+   * Use this to add custom attributes to the span.
+   */
+  outgoingRequestHook?: (span: Span, request: HttpClientRequest) => void;
+
+  /**
+   * Called when the response to an outgoing request is received.
+   */
+  outgoingResponseHook?: (span: Span, response: HttpIncomingMessage) => void;
+
+  /**
+   * Called once both the outgoing request and its response are available (after the response
+   * ends). Useful for adding attributes based on both objects.
+   */
+  outgoingRequestApplyCustomAttributes?: (
+    span: Span,
+    request: HttpClientRequest,
+    response: HttpIncomingMessage,
+  ) => void;
+
+  /**
    * A hook that can be used to mutate the span for incoming requests.
    * This is triggered after the span is created, but before it is recorded.
    */
@@ -106,9 +153,15 @@ export interface DenoHttpIntegrationOptions {
 const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
   const breadcrumbs = options.breadcrumbs ?? true;
   const tracePropagation = options.tracePropagation ?? true;
+  const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
   return {
     name: INTEGRATION_NAME,
+    processEvent(event: Event): Event | null {
+      // Gated on this integration's own span origin so it does not filter `Deno.serve`
+      // transactions, which `denoServeIntegration` owns via its own `ignoreStatusCodes`.
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes, 'auto.http.server');
+    },
     setupOnce() {
       const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
         ...options,
@@ -120,6 +173,7 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
         ...options,
         breadcrumbs,
         tracePropagation,
+        applyCustomAttributesOnSpan: options.outgoingRequestApplyCustomAttributes,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests
           ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
           : undefined,
@@ -145,4 +199,8 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
  */
 export const denoHttpIntegration = defineIntegration(_denoHttpIntegration) as (
   options?: DenoHttpIntegrationOptions,
-) => Integration & { name: 'DenoHttp'; setupOnce: () => void };
+) => Integration & {
+  name: 'DenoHttp';
+  setupOnce: () => void;
+  processEvent: (event: Event) => Event | null;
+};

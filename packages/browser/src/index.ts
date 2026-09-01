@@ -36,11 +36,10 @@ export { elementTimingIntegration, getAbsoluteUrl, isBotUserAgent } from '@sentr
 export { normalizeStringifyValue } from './normalizeStringifyValue';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
-export { spanStreamingIntegration } from '@sentry/core/browser';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
 export { userTimingIntegration } from './integrations/usertiming';
-export { bfcacheIntegration } from './integrations/bfcache';
+export { bfcacheMetricsIntegration } from './integrations/bfcacheMetrics';
 export { interactionsIntegration } from './integrations/interactions';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
@@ -73,6 +72,7 @@ export {
   featureFlagsIntegration,
   logger,
   metrics,
+  spanStreamingIntegration,
 } from '@sentry/core/browser';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core/browser';
 export { makeBrowserOfflineTransport } from './transports/offline';

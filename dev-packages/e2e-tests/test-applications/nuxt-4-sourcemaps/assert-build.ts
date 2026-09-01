@@ -56,9 +56,32 @@ assert.ok(
   'Expected requests with the configured auth token',
 );
 
+// Sentry rejects a release that names no project with a 400, and the mock server accepts anything,
+// so assert on the body rather than on the call alone.
+const releaseCreates = requests.filter(r => r.url?.includes('/releases') && r.method === 'POST');
+assert.ok(releaseCreates.length > 0, 'Expected a POST to create the release');
+for (const request of releaseCreates) {
+  const body = request.jsonBody as { version?: string; projects?: string[] } | undefined;
+  assert.equal(
+    body?.version,
+    'test-release',
+    `Expected the release create body to carry the version, got ${JSON.stringify(body)}`,
+  );
+  assert.deepEqual(
+    body?.projects,
+    ['test-project'],
+    `Expected the release create body to name the project, got ${JSON.stringify(body)}`,
+  );
+}
+
 assert.ok(
-  requests.some(r => r.url?.includes('/releases/')),
-  'Expected at least one request to releases endpoint',
+  requests.some(r => r.url?.includes('/releases/') && r.method === 'PUT'),
+  'Expected a PUT to finalize the release',
+);
+
+assert.ok(
+  requests.some(r => r.url?.includes('/chunk-upload/') && r.method === 'GET'),
+  'Expected a GET for the chunk-upload options',
 );
 
 const chunkPosts = getChunkUploadPosts(requests);
@@ -71,7 +94,11 @@ const assembleRequests = getAssembleRequests(requests);
 assert.ok(assembleRequests.length > 0, 'Expected at least one assemble request');
 for (const request of assembleRequests) {
   assert.ok(request.assembleBody?.projects?.includes('test-project'), 'Expected assemble request for test-project');
+  assert.equal(request.assembleBody?.version, 'test-release', 'Expected assemble request to reference the release');
   assert.ok((request.assembleBody?.chunks?.length ?? 0) > 0, 'Expected assemble request to have chunk checksums');
+  for (const chunk of request.assembleBody?.chunks ?? []) {
+    assert.match(chunk, /^[\da-f]{40}$/i, `Expected a SHA-1 chunk checksum, got: ${chunk}`);
+  }
 }
 
 const bundles = getArtifactBundles(requests);

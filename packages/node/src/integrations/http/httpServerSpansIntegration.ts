@@ -1,11 +1,10 @@
 /* eslint-disable max-lines */
 import { errorMonitor } from 'node:events';
 import {
-  SENTRY_SEGMENT_NAME_SOURCE,
-  HTTP_REQUEST_METHOD,
-  HTTP_RESPONSE_STATUS_CODE,
   CLIENT_ADDRESS,
   CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
   NETWORK_PEER_ADDRESS,
@@ -13,10 +12,12 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   NETWORK_TRANSPORT,
-  SERVER_ADDRESS,
-  SERVER_PORT,
   SENTRY_HTTP_PREFETCH,
   SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
@@ -24,6 +25,7 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import type {
   Event,
   HttpIncomingMessage,
@@ -36,11 +38,12 @@ import type {
 } from '@sentry/core';
 import {
   debug,
+  DEFAULT_IGNORE_STATUS_CODES,
+  processHttpServerTransactionEvent,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
@@ -104,12 +107,7 @@ export interface HttpServerSpansIntegrationOptions {
 const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
   const ignoreStaticAssets = options.ignoreStaticAssets ?? true;
   const ignoreIncomingRequests = options.ignoreIncomingRequests;
-  const ignoreStatusCodes = options.ignoreStatusCodes ?? [
-    [401, 404],
-    // 300 and 304 are possibly valid status codes we do not want to filter
-    [301, 303],
-    [305, 399],
-  ];
+  const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
   const { onSpanCreated } = options;
 
@@ -165,7 +163,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
             attributes: {
               // Sentry specific attributes
               [SENTRY_KIND]: 'server',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SENTRY_OP]: HTTP_SERVER,
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
@@ -228,29 +226,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
       });
     },
     processEvent(event) {
-      if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.[HTTP_RESPONSE_STATUS_CODE];
-        if (typeof statusCode === 'number') {
-          // Drop transaction if it has a status code that should be ignored
-          if (shouldFilterStatusCode(statusCode, ignoreStatusCodes)) {
-            DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
-            return null;
-          }
-
-          // Surface the HTTP status as the top-level `response` context. The OTel SDK span
-          // exporter already does this on its path; doing it here covers transactions produced
-          // by the `SentryTracerProvider`, which bypasses that exporter.
-          event.contexts = {
-            ...event.contexts,
-            response: {
-              ...event.contexts?.response,
-              status_code: statusCode,
-            },
-          };
-        }
-      }
-
-      return event;
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes);
     },
     afterAllSetup(client) {
       if (!DEBUG_BUILD) {
@@ -386,18 +362,4 @@ function getIncomingRequestAttributesOnResponse(
   }
 
   return newAttributes;
-}
-
-/**
- * If the given status code should be filtered for the given list of status codes/ranges.
- */
-function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (number | [number, number])[]): boolean {
-  return dropForStatusCodes.some(code => {
-    if (typeof code === 'number') {
-      return code === statusCode;
-    }
-
-    const [min, max] = code;
-    return statusCode >= min && statusCode <= max;
-  });
 }

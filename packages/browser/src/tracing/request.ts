@@ -1,19 +1,11 @@
 /* eslint-disable max-lines */
-import type {
-  Client,
-  HandlerDataXhr,
-  RequestHookInfo,
-  ResponseHookInfo,
-  SentryWrappedXMLHttpRequest,
-  Span,
-  SpanTimeInput,
-} from '@sentry/core/browser';
+import type { Client, RequestHookInfo, ResponseHookInfo, Span, SpanTimeInput } from '@sentry/core/browser';
 import {
   addFetchInstrumentationHandler,
   getActiveSpan,
   getClient,
-  getLocationHref,
   getTraceData,
+  getUrlDomain,
   getUrlFragment,
   getUrlQuery,
   hasSpansEnabled,
@@ -21,7 +13,6 @@ import {
   instrumentFetchRequest,
   matchesTracePropagationTargets,
   parseUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   setHttpStatus,
@@ -32,18 +23,29 @@ import {
   stripUrlQueryAndFragment,
   timestampInSeconds,
 } from '@sentry/core/browser';
-import type { XhrHint } from '@sentry/browser-utils';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, XhrHint } from '@sentry/browser-utils';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '@sentry/core';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
+  getLocationHref,
   parseXhrResponseHeaders,
   resourceTimingToSpanAttributes,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry/browser-utils';
 import type { BrowserClient } from '../client';
+import { WINDOW } from '../helpers';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
-import { HTTP_REQUEST_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_QUERY,
+} from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -152,6 +154,8 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
         propagateTraceparent,
         onRequestSpanEnd,
+        // The generic fetch instrumentation has no page origin to resolve relative URLs against.
+        urlBase: WINDOW.location?.origin,
       });
 
       // We cannot use `window.location` in the generic fetch instrumentation,
@@ -159,7 +163,8 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       // so we extend this in here
       if (createdSpan) {
         const fullUrl = getFullURL(handlerData.fetchData.url);
-        const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+        // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
+        const host = fullUrl ? parseUrl(fullUrl).host?.replace(/^.*@/, '') : undefined;
         const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
         createdSpan.setAttributes({
           [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
@@ -369,18 +374,27 @@ function xhrCallback(
   // With span streaming, we always emit http.client spans, even without a parent span
   const shouldEmitSpan = hasParent || (!!client && hasSpanStreamingEnabled(client));
 
+  // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
+  const host = parsedUrl?.host?.replace(/^.*@/, '');
+  // `getFullURL` already resolved relative URLs against the page origin; only data URLs have no domain.
+  const domain = getUrlDomain(fullUrl || url);
+
+  // With span streaming, span names have to be low cardinality, so only the domain is kept.
+  const streamedName = domain ? `${method} ${domain}` : method;
+
   const span =
     shouldCreateSpanResult && shouldEmitSpan
       ? startInactiveSpan({
-          name: `${method} ${urlForSpanName}`,
+          name: !!client && hasSpanStreamingEnabled(client) ? streamedName : `${method} ${urlForSpanName}`,
           attributes: {
             type: 'xhr',
             // eslint-disable-next-line typescript/no-deprecated
             [HTTP_REQUEST_METHOD]: method,
             [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
-            [SERVER_ADDRESS]: parsedUrl?.host,
+            [SERVER_ADDRESS]: host,
+            [URL_DOMAIN]: domain,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+            [SENTRY_OP]: HTTP_CLIENT,
             [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl?.search)),
             [URL_FRAGMENT]: getUrlFragment(parsedUrl?.hash),
           },

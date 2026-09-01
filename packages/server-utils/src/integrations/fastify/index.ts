@@ -1,5 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, getClient } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
 import { instrumentFastify } from './instrumentation';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
@@ -49,9 +49,6 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
     getShouldHandleError() {
       return _shouldHandleError;
     },
-    setShouldHandleError(shouldHandleError: (error: Error, request: FastifyRequest, reply: FastifyReply) => boolean) {
-      _shouldHandleError = shouldHandleError;
-    },
   } satisfies FastifyIntegration;
 }) satisfies IntegrationFn;
 
@@ -73,14 +70,11 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
 export const fastifyIntegration = defineIntegration(_fastifyIntegration);
 
 /**
- * Update the shouldHandleError callback for the Fastify integration.
+ * No-op kept so existing `setupFastifyErrorHandler(app)` calls keep working.
+ * `fastifyIntegration` captures errors on its own.
  *
- * @deprecated Set `shouldHandleError` on `fastifyIntegration` instead. This method will be removed in a future version.
- * ```
+ * @deprecated Remove this call. To filter errors, set `shouldHandleError` on `fastifyIntegration` instead.
  */
-export function setupFastifyErrorHandler(_fastify: unknown, options?: Partial<FastifyIntegrationOptions>): void {
-  if (options?.shouldHandleError) {
-    const integration = getClient()?.getIntegrationByName(INTEGRATION_NAME) as FastifyIntegration | undefined;
-    integration?.setShouldHandleError(options.shouldHandleError);
-  }
+export function setupFastifyErrorHandler(_fastify: unknown): void {
+  // noop
 }

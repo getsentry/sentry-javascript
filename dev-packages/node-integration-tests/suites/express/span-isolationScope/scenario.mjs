@@ -15,6 +15,4 @@ app.get('/test/isolationScope', (_req, res) => {
   res.send({});
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

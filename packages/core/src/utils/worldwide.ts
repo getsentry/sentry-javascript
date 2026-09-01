@@ -77,6 +77,13 @@ export type InternalGlobal = {
      * `init()` and instantiates them.
      */
     integrations?: Map<string, () => Integration>;
+    /**
+     * Set once `registerDiagnosticsChannelInjection()` has run but could not
+     * install the runtime module hooks — the Node runtime lacks the required
+     * module-hook API, or registration threw. Dedupes the one-time warning and
+     * short-circuits repeat calls.
+     */
+    runtimeUnavailable?: boolean;
   };
 } & Carrier;
 

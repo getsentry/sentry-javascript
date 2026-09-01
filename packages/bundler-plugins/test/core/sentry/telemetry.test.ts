@@ -4,14 +4,14 @@ import { normalizeUserOptions } from '../../../src/core/options-mapping';
 import { allowedToSendTelemetry, setTelemetryDataOnScope } from '../../../src/core/sentry/telemetry';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 
-const { mockCliExecute } = vi.hoisted(() => ({
-  mockCliExecute: vi.fn(),
+const { mockRun } = vi.hoisted(() => ({
+  mockRun: vi.fn(),
 }));
 
-vi.mock('@sentry/cli', () => ({
-  default: class {
-    execute = mockCliExecute;
-  },
+vi.mock('sentry', () => ({
+  createSentrySDK: () => ({
+    run: mockRun,
+  }),
 }));
 
 describe('shouldSendTelemetry', () => {
@@ -20,12 +20,12 @@ describe('shouldSendTelemetry', () => {
   });
 
   it('should return false if CLI returns a URL other than sentry.io', async () => {
-    mockCliExecute.mockImplementation(() => 'Sentry Server: https://selfhostedSentry.io  \nsomeotherstuff\netc');
+    mockRun.mockResolvedValue({ config: { url: 'https://selfhostedSentry.io' } });
     expect(await allowedToSendTelemetry({ release: {} } as NormalizedOptions)).toBe(false);
   });
 
   it('should return true if CLI returns sentry.io as a URL', async () => {
-    mockCliExecute.mockImplementation(() => 'Sentry Server: https://sentry.io  \nsomeotherstuff\netc');
+    mockRun.mockResolvedValue({ config: { url: 'https://sentry.io' } });
     expect(await allowedToSendTelemetry({ release: {} } as NormalizedOptions)).toBe(true);
   });
 });

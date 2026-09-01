@@ -2,6 +2,7 @@ import type { Event, EventProcessor } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { NUXT_DEV_MODE_FLAG } from '../../src/common/devMode';
 import { init } from '../../src/server';
 import { clientSourceMapErrorFilter, lowQualityTransactionsFilter } from '../../src/server/sdk';
 
@@ -124,6 +125,33 @@ describe('Nuxt Server SDK', () => {
         const callArgs = nodeInit.mock.calls[0]?.[0];
         // Should fallback to either 'development' or 'production' depending on the environment
         expect(callArgs?.environment).toBeDefined();
+      });
+
+      it('falls back to the dev environment when preloaded by the generated dev config file', () => {
+        const globalWithFlag = globalThis as { __SENTRY_NUXT_DEV_MODE__?: boolean };
+
+        // The generated file sets this by name, so a rename must break the test rather than the runtime.
+        expect(NUXT_DEV_MODE_FLAG).toBe('__SENTRY_NUXT_DEV_MODE__');
+
+        globalWithFlag.__SENTRY_NUXT_DEV_MODE__ = true;
+
+        try {
+          init({
+            dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          });
+
+          expect(nodeInit).toHaveBeenCalledWith(expect.objectContaining({ environment: 'development' }));
+        } finally {
+          globalWithFlag.__SENTRY_NUXT_DEV_MODE__ = undefined;
+        }
+      });
+
+      it('falls back to the production environment without the dev flag', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        });
+
+        expect(nodeInit).toHaveBeenCalledWith(expect.objectContaining({ environment: 'production' }));
       });
 
       it('prioritizes options.environment over SENTRY_ENVIRONMENT env var', () => {

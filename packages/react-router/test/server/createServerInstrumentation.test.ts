@@ -165,11 +165,10 @@ describe('createSentryServerInstrumentation', () => {
 
     await hooks.request(mockHandleRequest, { request: mockRequest, context: undefined });
 
-    // Should create a new root span with forceTransaction
+    // Should create a new root span
     expect(core.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'GET /api/users',
-        forceTransaction: true,
         attributes: expect.objectContaining({
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.react_router.instrumentation_api',

@@ -100,43 +100,48 @@ describe('fastify v5 auto-instrumentation', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-error-handler.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('shouldHandleError override works', async () => {
-      const runner = createRunner()
-        .ignore('transaction')
-        .expect({
-          event: {
-            exception: {
-              values: [
-                {
-                  type: 'Error',
-                  value: 'This is an exception with id 123',
-                  mechanism: {
-                    type: 'auto.function.fastify',
-                    handled: false,
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-error-handler.mjs',
+    'instrument-error-handler.mjs',
+    (createRunner, test) => {
+      test('shouldHandleError override works', async () => {
+        const runner = createRunner()
+          .ignore('transaction')
+          .expect({
+            event: {
+              exception: {
+                values: [
+                  {
+                    type: 'Error',
+                    value: 'This is an exception with id 123',
+                    mechanism: {
+                      type: 'auto.function.fastify',
+                      handled: false,
+                    },
                   },
+                ],
+              },
+              transaction: 'GET /test-exception/:id',
+              // The error must be parented to the fastify request span (not the root `http.server` span),
+              // so the trace context carries a `parent_span_id`.
+              contexts: {
+                trace: {
+                  trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                  span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                  parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
                 },
-              ],
-            },
-            transaction: 'GET /test-exception/:id',
-            // The error must be parented to the fastify request span (not the root `http.server` span),
-            // so the trace context carries a `parent_span_id`.
-            contexts: {
-              trace: {
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
               },
             },
-          },
-        })
-        .start();
-      await runner.makeRequest('get', '/test-error-not-captured', { expectError: true });
-      await runner.makeRequest('get', '/test-exception/123', { expectError: true });
+          })
+          .start();
+        await runner.makeRequest('get', '/test-error-not-captured', { expectError: true });
+        await runner.makeRequest('get', '/test-exception/123', { expectError: true });
 
-      await runner.completed();
-    });
-  });
+        await runner.completed();
+      });
+    },
+  );
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-no-tracing.mjs', (createRunner, test) => {
     test('captures errors thrown in route handlers without tracing', async () => {

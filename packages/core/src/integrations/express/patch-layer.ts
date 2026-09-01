@@ -27,6 +27,10 @@
  * limitations under the License.
  */
 
+// This module backs the deprecated Express exports (superseded by `expressIntegration()`), so it
+// references the deprecated `ExpressIntegrationOptions` type.
+/* oxlint-disable typescript/no-deprecated */
+
 import {
   HTTP_METHOD,
   HTTP_REQUEST_METHOD,
@@ -34,7 +38,7 @@ import {
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
+import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR, withActiveSpan } from '../../tracing';
@@ -69,11 +73,10 @@ import { getDefaultIsolationScope } from '../../defaultScopes';
 import { getOriginalFunction, markFunctionWrapped } from '../../utils/object';
 import { setSDKProcessingMetadata } from './set-sdk-processing-metadata';
 
-// TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
 const EXPRESS_TYPE_TO_SPAN_OP: Record<string, string> = {
   [ExpressLayerType_MIDDLEWARE]: MIDDLEWARE,
-  [ExpressLayerType_REQUEST_HANDLER]: 'handler',
-  [ExpressLayerType_ROUTER]: 'router',
+  [ExpressLayerType_REQUEST_HANDLER]: HANDLER,
+  [ExpressLayerType_ROUTER]: ROUTER,
 };
 
 export type ExpressPatchLayerOptions = Pick<

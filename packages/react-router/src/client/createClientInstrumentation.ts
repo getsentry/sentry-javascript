@@ -9,7 +9,6 @@ import {
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   SPAN_STATUS_ERROR,
@@ -33,7 +32,7 @@ import {
   URL_FULL,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
-import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
+import { FUNCTION, MIDDLEWARE, NAVIGATION } from '@sentry/conventions/op';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -118,7 +117,7 @@ export function createSentryClientInstrumentation(
               name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname,
               attributes: {
                 [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                [SENTRY_OP]: NAVIGATION,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                 'navigation.type': 'browser.popstate',
               },
@@ -163,7 +162,7 @@ export function createSentryClientInstrumentation(
                   name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : currentPathname,
                   attributes: {
                     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                    [SENTRY_OP]: NAVIGATION,
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                     'navigation.type': navigationType,
                   },
@@ -210,7 +209,7 @@ export function createSentryClientInstrumentation(
                 name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : toPath,
                 attributes: {
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                  [SENTRY_OP]: NAVIGATION,
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                   'navigation.type': 'router.navigate',
                 },

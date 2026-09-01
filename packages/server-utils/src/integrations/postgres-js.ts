@@ -6,7 +6,9 @@ import {
   DB_SYSTEM_NAME,
   ERROR_TYPE,
   SENTRY_KIND,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, PostgresConnectionContext, Span } from '@sentry/core';
 import {
   _INTERNAL_buildPostgresConnectionContext,
@@ -292,8 +294,8 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
       const span = startInactiveSpan({
         name,
-        op: 'db',
         attributes: {
+          [SENTRY_OP]: DB,
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,

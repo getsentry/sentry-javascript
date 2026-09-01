@@ -8,6 +8,7 @@ import {
   URL_PATH,
   URL_QUERY,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
@@ -220,6 +221,7 @@ async function instrumentRequestStartHttpServerSpan(
           // invoke the catch block if next() throws
 
           const attributes: SpanAttributes = {
+            [SENTRY_OP]: HTTP_SERVER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
             [SENTRY_SEGMENT_NAME_SOURCE]: source,
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
@@ -252,7 +254,6 @@ async function instrumentRequestStartHttpServerSpan(
             {
               attributes,
               name,
-              op: 'http.server',
             },
             async span => {
               try {

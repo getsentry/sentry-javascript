@@ -270,7 +270,6 @@ describe('MCP Server Transport Instrumentation', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'tools/call process-file',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: {
           'mcp.method.name': 'tools/call',
@@ -420,7 +419,6 @@ describe('MCP Server Transport Instrumentation', () => {
 
       expect(config).toEqual({
         name: 'tools/call test-tool',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: expect.objectContaining({
           'mcp.method.name': 'tools/call',
@@ -1062,7 +1060,6 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call test-tool',
-          op: 'mcp.server',
         }),
       );
 

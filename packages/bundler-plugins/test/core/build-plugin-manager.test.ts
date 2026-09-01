@@ -5,25 +5,41 @@ import { prepareBundleForDebugIdUpload } from '../../src/core/debug-id-upload';
 import type { MockedFunction } from 'vitest';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 
-const { mockCliExecute, mockCliUploadSourceMaps, mockCliNewDeploy, mockCliConstructor } = vi.hoisted(() => ({
-  mockCliExecute: vi.fn(),
-  mockCliUploadSourceMaps: vi.fn(),
-  mockCliNewDeploy: vi.fn(),
-  mockCliConstructor: vi.fn(),
+const {
+  mockSdkConstructor,
+  mockReleaseCreate,
+  mockReleaseFinalize,
+  mockReleaseSetCommits,
+  mockReleaseDeploy,
+  mockSourcemapUpload,
+  mockSourcemapInject,
+  mockRun,
+} = vi.hoisted(() => ({
+  mockSdkConstructor: vi.fn(),
+  mockReleaseCreate: vi.fn(),
+  mockReleaseFinalize: vi.fn(),
+  mockReleaseSetCommits: vi.fn(),
+  mockReleaseDeploy: vi.fn(),
+  mockSourcemapUpload: vi.fn(),
+  mockSourcemapInject: vi.fn(),
+  mockRun: vi.fn(),
 }));
 
-vi.mock('@sentry/cli', () => ({
-  default: class {
-    constructor(...args: unknown[]) {
-      mockCliConstructor(...args);
-    }
-    execute = mockCliExecute;
-    releases = {
-      uploadSourceMaps: mockCliUploadSourceMaps,
-      new: vi.fn(),
-      finalize: vi.fn(),
-      setCommits: vi.fn(),
-      newDeploy: mockCliNewDeploy,
+vi.mock('sentry', () => ({
+  createSentrySDK: (options: unknown) => {
+    mockSdkConstructor(options);
+    return {
+      release: {
+        create: mockReleaseCreate,
+        finalize: mockReleaseFinalize,
+        'set-commits': mockReleaseSetCommits,
+        deploy: mockReleaseDeploy,
+      },
+      sourcemap: {
+        upload: mockSourcemapUpload,
+        inject: mockSourcemapInject,
+      },
+      run: mockRun,
     };
   },
 }));
@@ -126,7 +142,7 @@ describe('createSentryBuildPluginManager', () => {
     });
 
     it('should have SENTRY_LOG_LEVEL set when CLI operations are performed with debug enabled', async () => {
-      mockCliExecute.mockImplementation(() => {
+      mockSourcemapInject.mockImplementation(() => {
         // Verify the environment variable is set at the time the CLI is called
         expect(process.env['SENTRY_LOG_LEVEL']).toBe('debug');
         return Promise.resolve(undefined);
@@ -151,12 +167,12 @@ describe('createSentryBuildPluginManager', () => {
       // Perform a CLI operation and verify the env var is still set
       await buildPluginManager.injectDebugIds(['/path/to/bundle']);
 
-      expect(mockCliExecute).toHaveBeenCalled();
+      expect(mockSourcemapInject).toHaveBeenCalled();
     });
 
     it('should have SENTRY_LOG_LEVEL set during error scenarios with debug enabled', async () => {
       // Simulate CLI error
-      mockCliExecute.mockImplementation(() => {
+      mockSourcemapInject.mockImplementation(() => {
         // Verify the environment variable is set even when CLI encounters an error
         // This ensures the CLI won't emit the "Add --log-level=debug" warning
         expect(process.env['SENTRY_LOG_LEVEL']).toBe('debug');
@@ -188,7 +204,7 @@ describe('createSentryBuildPluginManager', () => {
 
     it('should NOT have SENTRY_LOG_LEVEL set during error scenarios when debug is disabled', async () => {
       // Simulate CLI error
-      mockCliExecute.mockImplementation(() => {
+      mockSourcemapInject.mockImplementation(() => {
         // Verify the environment variable is NOT set
         // In this case, the CLI WOULD emit the "Add --log-level=debug" warning
         expect(process.env['SENTRY_LOG_LEVEL']).toBeUndefined();
@@ -269,7 +285,7 @@ describe('createSentryBuildPluginManager', () => {
 
   describe('uploadSourcemaps', () => {
     it('uploads in-place when prepareArtifacts is false', async () => {
-      mockCliUploadSourceMaps.mockResolvedValue(undefined);
+      mockSourcemapUpload.mockResolvedValue(undefined);
 
       const manager = createSentryBuildPluginManager(
         {
@@ -284,22 +300,14 @@ describe('createSentryBuildPluginManager', () => {
 
       await manager.uploadSourcemaps(['/unused'], { prepareArtifacts: false });
 
-      expect(mockCliUploadSourceMaps).toHaveBeenCalledTimes(1);
-      expect(mockCliUploadSourceMaps).toHaveBeenCalledWith(
-        'some-release-name',
+      expect(mockSourcemapUpload).toHaveBeenCalledTimes(1);
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          include: expect.arrayContaining([
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            expect.objectContaining({
-              // User-provided assets should be passed directly to CLI (no globbing)
-              paths: ['/app/dist/**/*'],
-              rewrite: true,
-              dist: '1',
-            }),
-          ]),
-          live: 'rejectOnError',
+          // User-provided assets should be passed directly to CLI (no globbing)
+          directory: '/app/dist/**/*',
+          release: 'some-release-name',
+          dist: '1',
         }),
       );
       // Should not glob when prepareArtifacts is false
@@ -308,7 +316,7 @@ describe('createSentryBuildPluginManager', () => {
     });
 
     it('uploads build artifact paths when prepareArtifacts is false and no assets provided', async () => {
-      mockCliUploadSourceMaps.mockResolvedValue(undefined);
+      mockSourcemapUpload.mockResolvedValue(undefined);
 
       const manager = createSentryBuildPluginManager(
         {
@@ -323,23 +331,15 @@ describe('createSentryBuildPluginManager', () => {
 
       await manager.uploadSourcemaps(['.next', 'dist'], { prepareArtifacts: false });
 
-      expect(mockCliUploadSourceMaps).toHaveBeenCalledTimes(1);
-      expect(mockCliUploadSourceMaps).toHaveBeenCalledWith(
-        'some-release-name',
+      // One upload per build artifact directory
+      expect(mockSourcemapUpload).toHaveBeenCalledTimes(2);
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          include: expect.arrayContaining([
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            expect.objectContaining({
-              // Should use buildArtifactPaths directly
-              paths: ['.next', 'dist'],
-              rewrite: true,
-              dist: '1',
-            }),
-          ]),
-          live: 'rejectOnError',
-        }),
+        expect.objectContaining({ directory: '.next', release: 'some-release-name', dist: '1' }),
+      );
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        expect.objectContaining({ directory: 'dist', release: 'some-release-name', dist: '1' }),
       );
       expect(mockGlobFiles).not.toHaveBeenCalled();
       expect(mockPrepareBundleForDebugIdUpload).not.toHaveBeenCalled();
@@ -359,7 +359,7 @@ describe('createSentryBuildPluginManager', () => {
 
       await manager.uploadSourcemaps(['.next'], { prepareArtifacts: false });
 
-      expect(mockCliUploadSourceMaps).not.toHaveBeenCalled();
+      expect(mockSourcemapUpload).not.toHaveBeenCalled();
       expect(mockGlobFiles).not.toHaveBeenCalled();
       expect(mockPrepareBundleForDebugIdUpload).not.toHaveBeenCalled();
     });
@@ -378,13 +378,13 @@ describe('createSentryBuildPluginManager', () => {
 
       await manager.uploadSourcemaps(['.next']);
 
-      expect(mockCliUploadSourceMaps).not.toHaveBeenCalled();
+      expect(mockSourcemapUpload).not.toHaveBeenCalled();
       expect(mockGlobFiles).not.toHaveBeenCalled();
       expect(mockPrepareBundleForDebugIdUpload).not.toHaveBeenCalled();
     });
 
     it('prepares into temp folder and uploads when prepareArtifacts is true (default)', async () => {
-      mockCliUploadSourceMaps.mockResolvedValue(undefined);
+      mockSourcemapUpload.mockResolvedValue(undefined);
 
       mockGlobFiles.mockResolvedValue(['/app/dist/a.js', '/app/dist/a.js.map', '/app/dist/other.txt']);
 
@@ -410,18 +410,22 @@ describe('createSentryBuildPluginManager', () => {
 
       // Should call prepare for each JS chunk discovered by glob
       expect(mockPrepareBundleForDebugIdUpload).toHaveBeenCalled();
-      // Should upload from temp folder
-      expect(mockCliUploadSourceMaps).toHaveBeenCalledWith('some-release-name', {
-        include: [{ paths: ['/tmp/sentry-upload-xyz'], rewrite: false, dist: '1' }],
-        projects: ['p'],
-        live: 'rejectOnError',
+      // Should upload from the temp folder, where debug IDs are already injected
+      expect(mockSourcemapUpload).toHaveBeenCalledWith({
+        directory: '/tmp/sentry-upload-xyz',
+        release: 'some-release-name',
+        dist: '1',
+        ext: undefined,
+        ignore: undefined,
+        ignoreFile: undefined,
+        urlPrefix: undefined,
       });
     });
 
     // Skipping mapless chunks (so the CLI stops warning per stub chunk) must
     // not swallow the signal that source map generation is disabled.
     it('warns and skips upload when none of the matched bundles have a source map', async () => {
-      mockCliUploadSourceMaps.mockResolvedValue(undefined);
+      mockSourcemapUpload.mockResolvedValue(undefined);
 
       // Bundles were found, but preparation produced no artifacts
       mockGlobFiles.mockResolvedValue(['/app/dist/a.js', '/app/dist/b.js']);
@@ -451,15 +455,15 @@ describe('createSentryBuildPluginManager', () => {
       expect(warnSpy).toHaveBeenCalledTimes(1);
       expect(warnSpy.mock.calls[0]?.[0]).toMatch(/source map generation is not enabled/);
       // Nothing to upload, so the CLI upload must be skipped entirely.
-      expect(mockCliUploadSourceMaps).not.toHaveBeenCalled();
+      expect(mockSourcemapUpload).not.toHaveBeenCalled();
 
       vi.restoreAllMocks();
     });
   });
 
   describe('injectDebugIds', () => {
-    it('should call CLI with correct sourcemaps inject command', async () => {
-      mockCliExecute.mockResolvedValue(undefined);
+    it('should call the CLI inject command for each build artifact path', async () => {
+      mockSourcemapInject.mockResolvedValue(undefined);
 
       const buildPluginManager = createSentryBuildPluginManager(
         {
@@ -476,21 +480,20 @@ describe('createSentryBuildPluginManager', () => {
       const buildArtifactPaths = ['/path/to/1', '/path/to/2'];
       await buildPluginManager.injectDebugIds(buildArtifactPaths);
 
-      expect(mockCliExecute).toHaveBeenCalledWith(
-        ['sourcemaps', 'inject', '--ignore', 'node_modules', '/path/to/1', '/path/to/2'],
-        false,
-      );
+      expect(mockSourcemapInject).toHaveBeenCalledTimes(2);
+      expect(mockSourcemapInject).toHaveBeenCalledWith({ directory: '/path/to/1', ignore: 'node_modules' });
+      expect(mockSourcemapInject).toHaveBeenCalledWith({ directory: '/path/to/2', ignore: 'node_modules' });
     });
 
-    it('should pass "rejectOnError" flag when options.debug is true', async () => {
-      mockCliExecute.mockResolvedValue(undefined);
+    it('should forward configured ignore globs to the inject command', async () => {
+      mockSourcemapInject.mockResolvedValue(undefined);
 
       const buildPluginManager = createSentryBuildPluginManager(
         {
           authToken: 'test-token',
           org: 'test-org',
           project: 'test-project',
-          debug: true,
+          sourcemaps: { ignore: ['foo', 'bar'] },
         },
         {
           buildTool: 'webpack',
@@ -498,13 +501,9 @@ describe('createSentryBuildPluginManager', () => {
         },
       );
 
-      const buildArtifactPaths = ['/path/to/bundle'];
-      await buildPluginManager.injectDebugIds(buildArtifactPaths);
+      await buildPluginManager.injectDebugIds(['/path/to/bundle']);
 
-      expect(mockCliExecute).toHaveBeenCalledWith(
-        ['sourcemaps', 'inject', '--ignore', 'node_modules', '/path/to/bundle'],
-        'rejectOnError',
-      );
+      expect(mockSourcemapInject).toHaveBeenCalledWith({ directory: '/path/to/bundle', ignore: 'foo,bar' });
     });
   });
 
@@ -513,7 +512,7 @@ describe('createSentryBuildPluginManager', () => {
       vi.clearAllMocks();
       mockGlobFiles.mockResolvedValue(['/path/to/bundle.js']);
       mockPrepareBundleForDebugIdUpload.mockResolvedValue(undefined);
-      mockCliUploadSourceMaps.mockResolvedValue(undefined);
+      mockSourcemapUpload.mockResolvedValue(undefined);
 
       // Mock fs operations needed for temp folder upload path. `readdir` returns a prepared artifact
       // so the upload path runs (an empty temp folder warns and skips the upload instead).
@@ -527,7 +526,7 @@ describe('createSentryBuildPluginManager', () => {
       vi.restoreAllMocks();
     });
 
-    it('should pass projects array to uploadSourceMaps when multiple projects configured', async () => {
+    it('should create a CLI client per project when multiple projects configured', async () => {
       const buildPluginManager = createSentryBuildPluginManager(
         {
           authToken: 'test-token',
@@ -543,15 +542,13 @@ describe('createSentryBuildPluginManager', () => {
 
       await buildPluginManager.uploadSourcemaps(['/path/to/bundle.js']);
 
-      expect(mockCliUploadSourceMaps).toHaveBeenCalledWith(
-        'test-release',
-        expect.objectContaining({
-          projects: ['proj-a', 'proj-b', 'proj-c'],
-        }),
-      );
+      const uploadProjects = mockSdkConstructor.mock.calls.map(call => (call[0] as { project?: string }).project);
+      expect(uploadProjects).toContain('proj-a');
+      expect(uploadProjects).toContain('proj-b');
+      expect(uploadProjects).toContain('proj-c');
     });
 
-    it('should pass single project as array to uploadSourceMaps', async () => {
+    it('should create a CLI client for a single project', async () => {
       const buildPluginManager = createSentryBuildPluginManager(
         {
           authToken: 'test-token',
@@ -567,15 +564,10 @@ describe('createSentryBuildPluginManager', () => {
 
       await buildPluginManager.uploadSourcemaps(['/path/to/bundle.js']);
 
-      expect(mockCliUploadSourceMaps).toHaveBeenCalledWith(
-        'test-release',
-        expect.objectContaining({
-          projects: ['single-project'],
-        }),
-      );
+      expect(mockSdkConstructor).toHaveBeenCalledWith(expect.objectContaining({ project: 'single-project' }));
     });
 
-    it('should pass projects array in direct upload mode', async () => {
+    it('should create a CLI client per project in direct upload mode', async () => {
       const buildPluginManager = createSentryBuildPluginManager(
         {
           authToken: 'test-token',
@@ -593,12 +585,9 @@ describe('createSentryBuildPluginManager', () => {
         prepareArtifacts: false,
       });
 
-      expect(mockCliUploadSourceMaps).toHaveBeenCalledWith(
-        'test-release',
-        expect.objectContaining({
-          projects: ['proj-a', 'proj-b'],
-        }),
-      );
+      const uploadProjects = mockSdkConstructor.mock.calls.map(call => (call[0] as { project?: string }).project);
+      expect(uploadProjects).toContain('proj-a');
+      expect(uploadProjects).toContain('proj-b');
     });
   });
 
@@ -679,8 +668,8 @@ describe('createSentryBuildPluginManager', () => {
   });
 
   describe('telemetry option', () => {
-    it('should not pass sentry-trace or baggage headers to CLI when telemetry is false', async () => {
-      mockCliExecute.mockResolvedValue(undefined);
+    it('should not pass sentry-trace or baggage headers to the CLI client', async () => {
+      mockSourcemapInject.mockResolvedValue(undefined);
 
       const buildPluginManager = createSentryBuildPluginManager(
         {
@@ -695,21 +684,85 @@ describe('createSentryBuildPluginManager', () => {
         },
       );
 
-      // Trigger a CLI operation so createCliInstance is called
+      // Trigger a CLI operation so a client is created
       await buildPluginManager.injectDebugIds(['/path/to/bundle']);
 
-      // Find the CLI constructor call that was made by createCliInstance (not the one from allowedToSendTelemetry)
-      const cliConstructorCalls = mockCliConstructor.mock.calls;
-      expect(cliConstructorCalls.length).toBeGreaterThan(0);
+      const clientOptionsCalls = mockSdkConstructor.mock.calls;
+      expect(clientOptionsCalls.length).toBeGreaterThan(0);
 
-      // Check that none of the CLI instances were created with sentry-trace or baggage headers
-      for (const call of cliConstructorCalls) {
-        const options = call[1] as { headers?: Record<string, string> };
-        if (options?.headers) {
-          expect(options.headers).not.toHaveProperty('sentry-trace');
-          expect(options.headers).not.toHaveProperty('baggage');
-        }
+      for (const call of clientOptionsCalls) {
+        const options = call[0] as { headers?: Record<string, string> };
+        expect(options.headers).toBeUndefined();
       }
+    });
+  });
+
+  describe('uploadLegacySourcemaps', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      _resetDeployedReleasesForTesting();
+      mockSourcemapUpload.mockResolvedValue(undefined);
+    });
+
+    function createManagerWithLegacyUpload(uploadLegacySourcemaps: unknown) {
+      return createSentryBuildPluginManager(
+        {
+          authToken: 'test-token',
+          org: 'test-org',
+          project: 'test-project',
+          release: {
+            name: 'test-release',
+            uploadLegacySourcemaps: uploadLegacySourcemaps as string,
+          },
+        },
+        { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' },
+      );
+    }
+
+    it('forwards urlPrefix and ignoreFile from an include entry', async () => {
+      const manager = createManagerWithLegacyUpload({
+        paths: ['./dist'],
+        urlPrefix: '~/static/js',
+        ignoreFile: '.sentryignore',
+      });
+
+      await manager.createRelease();
+
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          directory: './dist',
+          urlPrefix: '~/static/js',
+          ignoreFile: '.sentryignore',
+        }),
+      );
+    });
+
+    it('ignores node_modules when neither ignore nor ignoreFile is set', async () => {
+      const manager = createManagerWithLegacyUpload('./dist');
+
+      await manager.createRelease();
+
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
+        expect.objectContaining({ directory: './dist', ignore: 'node_modules' }),
+      );
+    });
+
+    it('does not apply the node_modules default when an ignoreFile is set', async () => {
+      const manager = createManagerWithLegacyUpload({ paths: ['./dist'], ignoreFile: '.sentryignore' });
+
+      await manager.createRelease();
+
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(
+        expect.objectContaining({ directory: './dist', ignore: undefined, ignoreFile: '.sentryignore' }),
+      );
+    });
+
+    it('prefers configured ignore globs over the node_modules default', async () => {
+      const manager = createManagerWithLegacyUpload({ paths: ['./dist'], ignore: ['foo', 'bar'] });
+
+      await manager.createRelease();
+
+      expect(mockSourcemapUpload).toHaveBeenCalledWith(expect.objectContaining({ ignore: 'foo,bar' }));
     });
   });
 
@@ -735,8 +788,10 @@ describe('createSentryBuildPluginManager', () => {
 
       await manager.createRelease();
 
-      expect(mockCliNewDeploy).toHaveBeenCalledTimes(1);
-      expect(mockCliNewDeploy).toHaveBeenCalledWith('test-release', { env: 'production' });
+      expect(mockReleaseDeploy).toHaveBeenCalledTimes(1);
+      expect(mockReleaseDeploy).toHaveBeenCalledWith(
+        expect.objectContaining({ orgVersion: 'test-release', environment: 'production' }),
+      );
     });
 
     it('should not create duplicate deploy records when createRelease is called multiple times on the same instance', async () => {
@@ -757,7 +812,7 @@ describe('createSentryBuildPluginManager', () => {
       await manager.createRelease();
       await manager.createRelease();
 
-      expect(mockCliNewDeploy).toHaveBeenCalledTimes(1);
+      expect(mockReleaseDeploy).toHaveBeenCalledTimes(1);
     });
 
     it('should not create duplicate deploy records across separate plugin instances with the same release name', async () => {
@@ -790,7 +845,7 @@ describe('createSentryBuildPluginManager', () => {
       await managerA.createRelease();
       await managerB.createRelease();
 
-      expect(mockCliNewDeploy).toHaveBeenCalledTimes(1);
+      expect(mockReleaseDeploy).toHaveBeenCalledTimes(1);
     });
 
     it('should allow deploys for different release names', async () => {
@@ -823,9 +878,13 @@ describe('createSentryBuildPluginManager', () => {
       await managerA.createRelease();
       await managerB.createRelease();
 
-      expect(mockCliNewDeploy).toHaveBeenCalledTimes(2);
-      expect(mockCliNewDeploy).toHaveBeenCalledWith('release-1', { env: 'production' });
-      expect(mockCliNewDeploy).toHaveBeenCalledWith('release-2', { env: 'production' });
+      expect(mockReleaseDeploy).toHaveBeenCalledTimes(2);
+      expect(mockReleaseDeploy).toHaveBeenCalledWith(
+        expect.objectContaining({ orgVersion: 'release-1', environment: 'production' }),
+      );
+      expect(mockReleaseDeploy).toHaveBeenCalledWith(
+        expect.objectContaining({ orgVersion: 'release-2', environment: 'production' }),
+      );
     });
 
     it('should not create a deploy when deploy option is not set', async () => {
@@ -841,7 +900,7 @@ describe('createSentryBuildPluginManager', () => {
 
       await manager.createRelease();
 
-      expect(mockCliNewDeploy).not.toHaveBeenCalled();
+      expect(mockReleaseDeploy).not.toHaveBeenCalled();
     });
   });
 });

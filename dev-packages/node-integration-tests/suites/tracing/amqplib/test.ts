@@ -13,7 +13,7 @@ const expectedProducerSpan = (routingKey: string) =>
       'messaging.system': 'rabbitmq',
       'messaging.operation.name': 'send',
       'messaging.operation.type': 'send',
-      'messaging.destination.name': '',
+      'messaging.destination.name': routingKey,
       'messaging.rabbitmq.destination.routing_key': routingKey,
       'network.protocol.name': 'AMQP',
       'network.protocol.version': '0.9.1',
@@ -31,8 +31,8 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   op: 'queue.process',
   data: expect.objectContaining({
     'messaging.system': 'rabbitmq',
-    // The consumer reads the default exchange ('') off the delivered message and the queue name as the routing key.
-    'messaging.destination.name': '',
+    // The delivery carries the default exchange (''), so the routing key is the destination.
+    'messaging.destination.name': 'queue1',
     'messaging.rabbitmq.destination.routing_key': 'queue1',
     'messaging.operation.name': 'process',
     'messaging.operation.type': 'process',
@@ -179,5 +179,36 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
       },
       { additionalDependencies },
     );
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createTestRunner, test) => {
+    test('names streamed spans after the messaging conventions', { timeout: 60_000 }, async () => {
+      await createTestRunner()
+        .ignore('event')
+        .expect({
+          span: container => {
+            // `sendToQueue` publishes to the default exchange, which has no name. Its routing key is the
+            // queue name, so it is the destination rather than per-message data.
+            for (const origin of ['auto.amqplib.publisher', 'auto.amqplib.consumer']) {
+              const span = container.items.find(item => item.attributes['sentry.origin']?.value === origin);
+              expect(span).toBeDefined();
+              expect(span!.attributes['messaging.destination.name']?.value).toBe('queue1');
+              expect(span!.attributes['messaging.rabbitmq.destination.routing_key']?.value).toBe('queue1');
+            }
+
+            const producerSpan = container.items.find(
+              span => span.attributes['sentry.origin']?.value === 'auto.amqplib.publisher',
+            );
+            expect(producerSpan!.name).toBe('send queue1');
+
+            const consumerSpan = container.items.find(
+              span => span.attributes['sentry.origin']?.value === 'auto.amqplib.consumer',
+            );
+            expect(consumerSpan!.name).toBe('process queue1');
+          },
+        })
+        .start()
+        .completed();
+    });
   });
 });

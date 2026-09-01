@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/browser';
 
 Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
-  integrations: [Sentry.bfcacheIntegration()],
+  integrations: [Sentry.bfcacheMetricsIntegration()],
   release: 'e2e-test',
   environment: 'qa',
   tunnel: 'http://localhost:3031',

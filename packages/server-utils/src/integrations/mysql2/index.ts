@@ -1,9 +1,12 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -16,13 +19,16 @@ import { mysql2ModuleNames } from '../../orchestrion/config/mysql2';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import {
   DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
 const ORIGIN = 'auto.db.mysql2';
@@ -78,16 +84,27 @@ function subscribeQueryChannel(channelName: ChannelName): void {
     diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName),
     data => {
       const statement = getQueryText(data.arguments);
+      const connectionAttributes = getConnectionAttributes(data.self?.config);
+      const querySummary = statement
+        ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement, 'mysql'))
+        : undefined;
+
+      const client = getClient();
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
+          : (statement ?? 'mysql2.query');
 
       return startInactiveSpan({
-        name: statement ?? 'mysql2.query',
+        name,
         attributes: {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-          ...getConnectionAttributes(data.self?.config),
           [DB_QUERY_TEXT]: statement || undefined,
+          [DB_QUERY_SUMMARY]: querySummary,
+          ...connectionAttributes,
         },
       });
     },

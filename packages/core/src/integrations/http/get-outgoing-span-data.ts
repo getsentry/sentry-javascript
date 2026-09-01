@@ -1,6 +1,5 @@
 import type { Span, SpanAttributes } from '../../types/span';
 import { getClient } from '../../currentScopes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
@@ -19,12 +18,14 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   NETWORK_TRANSPORT,
+  SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
-  SENTRY_KIND,
   URL_FULL,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 
 /**
  * Build the initial span name and attributes for an outgoing HTTP request.
@@ -48,7 +49,7 @@ export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpa
   return {
     name: spanName,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+      [SENTRY_OP]: HTTP_CLIENT,
       [SENTRY_KIND]: 'client',
       [URL_FULL]: filterCollectedUrl(url),
       // The old `http.target` (path plus query) has no separate replacement here: `url.path`,

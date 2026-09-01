@@ -4,8 +4,9 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, and @mkly. Thank you for your contributions!
+Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, and @mohd-akram. Thank you for your contributions!
 
+- feat(langchain)!: Emit `gen_ai.pipeline.name` instead of `langchain.chain.name` on LangChain chain spans. The attribute is omitted when the chain is unnamed.
 - feat(deno)!: Rename several default integrations to match the other SDKs ([#22404](https://github.com/getsentry/sentry-javascript/pull/22404)). The `deno*Integration` exports are kept as deprecated aliases. If you were relying on the names (for example, to disable them), then note that these have changed:
   - `DenoAmqplib` => `Amqplib`
   - `DenoKoa` => `Koa`
@@ -13,14 +14,14 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
   - `DenoMongoose` => `Mongoose`
   - `DenoMysql` => `Mysql`
   - `DenoPostgres` => `Postgres`
-- **feat(browser): Add `bfcacheIntegration` to track back/forward cache health**
+- **feat(browser): Add `bfcacheMetricsIntegration` to track back/forward cache health**
 
-  The new opt-in `bfcacheIntegration` emits metrics about browser back/forward cache (bfcache) navigations, so you can
+  The new opt-in `bfcacheMetricsIntegration` emits metrics about browser back/forward cache (bfcache) navigations, so you can
   measure how often back-button navigation is instant and what's blocking it.
 
   ```js
   Sentry.init({
-    integrations: [Sentry.bfcacheIntegration()],
+    integrations: [Sentry.bfcacheMetricsIntegration()],
   });
   ```
 
