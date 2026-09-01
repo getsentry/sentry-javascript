@@ -1,3 +1,5 @@
+import { addNonEnumerableProperty, fill } from '@sentry/core';
+
 /**
  * Streaming wasm registration (`instantiateStreaming` / `compileStreaming`) reads the module URL
  * from `Response.url`. Non-streaming paths (`WebAssembly.instantiate` / `compile` with bytes) only
@@ -67,23 +69,21 @@ export function patchWasmResponseBodyReaders(): void {
     return;
   }
 
-  responseProto[PATCHED_SYMBOL] = true;
+  const proto = Response.prototype as unknown as Record<string, unknown>;
 
-  // oxlint-disable-next-line typescript/unbound-method
-  const origArrayBuffer: (this: Response) => Promise<ArrayBuffer> = Response.prototype.arrayBuffer;
-  Response.prototype.arrayBuffer = function arrayBuffer(this: Response): Promise<ArrayBuffer> {
-    const bufferPromise: Promise<ArrayBuffer> = origArrayBuffer.call(this);
-    return bufferPromise.then((buffer: ArrayBuffer) => {
-      tagResponseBuffer(this, buffer);
-      return buffer;
-    });
-  };
+  fill(proto, 'arrayBuffer', (original: (this: Response) => Promise<ArrayBuffer>) => {
+    return function arrayBuffer(this: Response): Promise<ArrayBuffer> {
+      const bufferPromise: Promise<ArrayBuffer> = original.call(this);
+      return bufferPromise.then((buffer: ArrayBuffer) => {
+        tagResponseBuffer(this, buffer);
+        return buffer;
+      });
+    };
+  });
 
-  if ('bytes' in Response.prototype) {
-    // oxlint-disable-next-line typescript/unbound-method
-    const origBytes: (this: Response) => Promise<Uint8Array> = Response.prototype.bytes;
-    Response.prototype.bytes = function bytes(this: Response) {
-      const bytesPromise: Promise<Uint8Array> = origBytes.call(this);
+  fill(proto, 'bytes', (original: (this: Response) => Promise<Uint8Array>) => {
+    return function bytes(this: Response): Promise<Uint8Array> {
+      const bytesPromise: Promise<Uint8Array> = original.call(this);
       return bytesPromise.then((bytes: Uint8Array) => {
         const { buffer } = bytes;
         if (buffer instanceof ArrayBuffer) {
@@ -91,13 +91,15 @@ export function patchWasmResponseBodyReaders(): void {
         }
         return bytes;
       });
-    } as typeof Response.prototype.bytes;
-  }
+    };
+  });
+
+  addNonEnumerableProperty(responseProto, PATCHED_SYMBOL, true);
 }
 
 /** @internal */
 export function _resetResponsePatchForTests(): void {
   if (typeof Response !== 'undefined') {
-    (Response.prototype as MaybePatched)[PATCHED_SYMBOL] = false;
+    addNonEnumerableProperty(Response.prototype, PATCHED_SYMBOL, false);
   }
 }
