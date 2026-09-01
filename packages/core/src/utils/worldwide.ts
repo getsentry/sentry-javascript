@@ -79,9 +79,10 @@ export type InternalGlobal = {
     integrations?: Map<string, () => Integration>;
     /**
      * Set once `registerDiagnosticsChannelInjection()` has run but could not
-     * install the runtime module hooks — the Node runtime lacks the required
-     * module-hook API, or registration threw. Dedupes the one-time warning and
-     * short-circuits repeat calls.
+     * install the runtime module hooks — most commonly because
+     * `@sentry/server-runtime-injection` was bundled into the app (which strips its vendored
+     * code transformer) or the Node runtime lacks the required module-hook API.
+     * Dedupes the one-time warning and short-circuits repeat calls.
      */
     runtimeUnavailable?: boolean;
   };

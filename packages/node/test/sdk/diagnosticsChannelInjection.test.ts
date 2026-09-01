@@ -6,7 +6,7 @@ const { registerDiagnosticsChannelInjection, detectOrchestrionSetup } = vi.hoist
   detectOrchestrionSetup: vi.fn(),
 }));
 
-vi.mock('@sentry/server-utils/orchestrion/register', () => ({
+vi.mock('@sentry/server-runtime-injection/register', () => ({
   registerDiagnosticsChannelInjection,
 }));
 vi.mock('@sentry/server-utils', async importOriginal => {

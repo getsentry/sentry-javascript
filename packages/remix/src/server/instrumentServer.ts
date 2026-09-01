@@ -25,8 +25,6 @@ import {
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
   httpHeadersToSpanAttributes,
-  isNodeEnv,
-  loadModule,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   spanToJSON,
@@ -36,6 +34,7 @@ import {
   withIsolationScope,
   filterCollectedUrl,
 } from '@sentry/core';
+import { isNodeEnv, loadModule } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';

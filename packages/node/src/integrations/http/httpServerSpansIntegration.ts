@@ -26,20 +26,11 @@ import {
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import type {
-  Event,
-  HttpIncomingMessage,
-  HttpServerResponse,
-  Integration,
-  IntegrationFn,
-  Span,
-  SpanAttributes,
-  SpanStatus,
-} from '@sentry/core';
+import type { Event, Integration, IntegrationFn, Span, SpanAttributes, SpanStatus } from '@sentry/core';
+import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
+import { DEFAULT_IGNORE_STATUS_CODES, processHttpServerTransactionEvent } from '@sentry/core/server';
 import {
   debug,
-  DEFAULT_IGNORE_STATUS_CODES,
-  processHttpServerTransactionEvent,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,

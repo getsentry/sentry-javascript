@@ -144,7 +144,6 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
-  trpcMiddleware,
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
@@ -152,10 +151,10 @@ export {
   profiler,
   consoleLoggingIntegration,
   createConsolaReporter,
-  wrapMcpServerWithSentry,
   featureFlagsIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
 
 export type {
   Breadcrumb,

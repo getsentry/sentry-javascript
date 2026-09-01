@@ -6,18 +6,18 @@ import {
   BROWSER_BFCACHE_REASON,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import type { IntegrationFn, SpanAttributes } from '@sentry/core/browser';
-import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core/browser';
+import type { IntegrationFn, SpanAttributes } from '@sentry/core';
+import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
-const INTEGRATION_NAME = 'Bfcache';
+const INTEGRATION_NAME = 'BfcacheMetrics';
 
 type BFCacheOutcome = 'hit' | 'miss';
 
 type BFCacheFrame = 'top' | 'child';
 
-interface BFCacheIntegrationOptions {
+interface BFCacheMetricsIntegrationOptions {
   /**
    * Maximum number of not-restored reasons to emit per miss.
    *
@@ -48,56 +48,58 @@ interface CollectedReason {
 /**
  * Captures bfcache hit/miss counters and Chromium notRestoredReasons when available.
  */
-export const bfcacheIntegration = defineIntegration((options: Partial<BFCacheIntegrationOptions> = {}) => {
-  const maxReasons = _resolveMaxReasons(options.maxReasons);
+export const bfcacheMetricsIntegration = defineIntegration(
+  (options: Partial<BFCacheMetricsIntegrationOptions> = {}) => {
+    const maxReasons = _resolveMaxReasons(options.maxReasons);
 
-  return {
-    name: INTEGRATION_NAME,
+    return {
+      name: INTEGRATION_NAME,
 
-    setupOnce() {
-      if (!WINDOW.addEventListener || !WINDOW.performance?.getEntriesByType) {
-        DEBUG_BUILD && debug.log(`[${INTEGRATION_NAME}] Browser APIs unavailable, skipping instrumentation.`);
-        return;
-      }
-
-      function onPageShow(event: PageTransitionEvent) {
-        const routeName = _getSegmentName();
-        if (event.persisted) {
-          _captureBFCacheNavigation('hit', 0, routeName);
+      setupOnce() {
+        if (!WINDOW.addEventListener || !WINDOW.performance?.getEntriesByType) {
+          DEBUG_BUILD && debug.log(`[${INTEGRATION_NAME}] Browser APIs unavailable, skipping instrumentation.`);
           return;
         }
 
-        const navigationEntry = WINDOW.performance.getEntriesByType('navigation')[0] as
-          | NavigationTimingWithNotRestoredReasons
-          | undefined;
+        function onPageShow(event: PageTransitionEvent) {
+          const routeName = _getSegmentName();
+          if (event.persisted) {
+            _captureBFCacheNavigation('hit', 0, routeName);
+            return;
+          }
 
-        if (navigationEntry?.type !== 'back_forward') {
-          return;
+          const navigationEntry = WINDOW.performance.getEntriesByType('navigation')[0] as
+            | NavigationTimingWithNotRestoredReasons
+            | undefined;
+
+          if (navigationEntry?.type !== 'back_forward') {
+            return;
+          }
+
+          const reasons = _collectNotRestoredReasons(navigationEntry.notRestoredReasons, maxReasons);
+          _captureBFCacheNavigation('miss', reasons.length, routeName);
+
+          // Measures how expensive the fallback reload was when a back/forward navigation missed bfcache.
+          if (typeof navigationEntry.duration === 'number' && navigationEntry.duration > 0) {
+            metrics.distribution('browser.bfcache.reload.duration', navigationEntry.duration, {
+              unit: 'millisecond',
+              attributes: _withOriginAttr({
+                [SENTRY_SEGMENT_NAME]: routeName,
+              }),
+            });
+          }
+
+          reasons.forEach(r => _captureBFCacheReason(r, routeName));
         }
 
-        const reasons = _collectNotRestoredReasons(navigationEntry.notRestoredReasons, maxReasons);
-        _captureBFCacheNavigation('miss', reasons.length, routeName);
-
-        // Measures how expensive the fallback reload was when a back/forward navigation missed bfcache.
-        if (typeof navigationEntry.duration === 'number' && navigationEntry.duration > 0) {
-          metrics.distribution('browser.bfcache.reload.duration', navigationEntry.duration, {
-            unit: 'millisecond',
-            attributes: _withOriginAttr({
-              [SENTRY_SEGMENT_NAME]: routeName,
-            }),
-          });
-        }
-
-        reasons.forEach(r => _captureBFCacheReason(r, routeName));
-      }
-
-      // Listener should stay active because the event can trigger for an initial show before the bfcache entry coming into the second one.
-      // This can be platform-dependent so we need to skip as many events till we get to the one containing the entry.
-      // So we can't have { once } or a cleanup logic here, which is fine because `setupOnce` registers it a single time regardless of how many clients are created.
-      WINDOW.addEventListener('pageshow', onPageShow, true);
-    },
-  };
-}) satisfies IntegrationFn;
+        // Listener should stay active because the event can trigger for an initial show before the bfcache entry coming into the second one.
+        // This can be platform-dependent so we need to skip as many events till we get to the one containing the entry.
+        // So we can't have { once } or a cleanup logic here, which is fine because `setupOnce` registers it a single time regardless of how many clients are created.
+        WINDOW.addEventListener('pageshow', onPageShow, true);
+      },
+    };
+  },
+) satisfies IntegrationFn;
 
 /**
  * Captures a bf navigation as a metric and records the outcome and reason count.

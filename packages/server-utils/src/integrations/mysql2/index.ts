@@ -1,8 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
-  _INTERNAL_getSqlQuerySummary,
-  _INTERNAL_sanitizeSqlQuery,
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
@@ -11,6 +9,7 @@ import {
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
+import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
 import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
 import type { ChannelName } from '../../orchestrion/channels';
 import { CHANNELS } from '../../orchestrion/channels';

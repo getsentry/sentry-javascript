@@ -55,14 +55,14 @@ export class LocalLambdaStack extends Stack {
       const packageLockPath = path.join(lambdaPath, 'package-lock.json');
       const nodeModulesPath = path.join(lambdaPath, 'node_modules');
 
-      // `dir` is the package directory under `packages/`; `name` is the published
-      // npm name (most are `@sentry/<dir>`, but `server-utils` is `@sentry-internal`).
+      // `dir` is the package directory under `packages/`; `name` is the published npm name.
       const packagesToLink: Array<{ dir: string; name: string }> = [
         { dir: 'aws-serverless', name: '@sentry/aws-serverless' },
         { dir: 'node', name: '@sentry/node' },
         { dir: 'core', name: '@sentry/core' },
         { dir: 'opentelemetry', name: '@sentry/opentelemetry' },
         { dir: 'server-utils', name: '@sentry/server-utils' },
+        { dir: 'server-runtime-injection', name: '@sentry/server-runtime-injection' },
         { dir: 'bundler-plugins', name: '@sentry/bundler-plugins' },
       ];
       const dependencies: Record<string, string> = {};

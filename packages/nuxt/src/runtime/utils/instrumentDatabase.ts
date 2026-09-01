@@ -4,13 +4,13 @@ import {
   addBreadcrumb,
   captureException,
   debug,
-  flushIfServerless,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   type Span,
   SPAN_STATUS_ERROR,
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
 

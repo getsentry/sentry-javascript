@@ -1,39 +1,58 @@
-import { registerModule } from './registry';
+export type RegisterModuleCallback = (module: WebAssembly.Module, url: string) => void;
 
 /**
- * Patches the web assembly runtime.
+ * Patches the WebAssembly streaming APIs so that every compiled module gets
+ * registered as a debug image under the URL of the response it was compiled
+ * from.
+ *
+ * @param registerModule callback invoked for every successfully compiled module
  */
-export function patchWebAssembly(): void {
+export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
   if ('instantiateStreaming' in WebAssembly) {
-    const origInstantiateStreaming = WebAssembly.instantiateStreaming;
+    const origInstantiateStreaming = WebAssembly.instantiateStreaming as (
+      response: unknown,
+      ...rest: unknown[]
+    ) => Promise<WebAssembly.WebAssemblyInstantiatedSource>;
     WebAssembly.instantiateStreaming = function instantiateStreaming(
       response: Response | PromiseLike<Response>,
-      importObject: WebAssembly.Imports,
-    ): Promise<WebAssembly.Module> {
+      ...rest: unknown[]
+    ): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
       return Promise.resolve(response).then(response => {
-        return origInstantiateStreaming(response, importObject).then(rv => {
+        return origInstantiateStreaming(response, ...rest).then(rv => {
           if (response.url) {
-            registerModule(rv.module, response.url);
+            registerSafely(registerModule, rv.module, response.url);
           }
           return rv;
         });
       });
-    } as typeof WebAssembly.instantiateStreaming;
+    };
   }
 
   if ('compileStreaming' in WebAssembly) {
-    const origCompileStreaming = WebAssembly.compileStreaming;
+    const origCompileStreaming = WebAssembly.compileStreaming as (
+      source: unknown,
+      ...rest: unknown[]
+    ) => Promise<WebAssembly.Module>;
     WebAssembly.compileStreaming = function compileStreaming(
-      source: Response | Promise<Response>,
+      source: Response | PromiseLike<Response>,
+      ...rest: unknown[]
     ): Promise<WebAssembly.Module> {
       return Promise.resolve(source).then(response => {
-        return origCompileStreaming(response).then(module => {
+        return origCompileStreaming(response, ...rest).then(module => {
           if (response.url) {
-            registerModule(module, response.url);
+            registerSafely(registerModule, module, response.url);
           }
           return module;
         });
       });
-    } as typeof WebAssembly.compileStreaming;
+    };
+  }
+}
+
+function registerSafely(registerModule: RegisterModuleCallback, module: WebAssembly.Module, url: string): void {
+  try {
+    registerModule(module, url);
+  } catch {
+    // a registration failure must never break the user's WebAssembly call
   }
 }

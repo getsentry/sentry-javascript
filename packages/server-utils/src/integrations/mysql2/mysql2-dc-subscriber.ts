@@ -10,15 +10,9 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import {
-  _INTERNAL_getSqlQuerySummary,
-  _INTERNAL_sanitizeSqlQuery,
-  getClient,
-  hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
+import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
 
 // Channel names published by mysql2 >= 3.20.0 (see mysql2 `lib/tracing.js`).
 // Hardcoded so the subscriber does not have to import mysql2 — the channels

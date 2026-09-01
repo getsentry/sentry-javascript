@@ -81,6 +81,7 @@
     "@sentry/node": "10.67.0",
     "@sentry/opentelemetry": "10.67.0",
     "@sentry/react": "10.67.0",
+    "@sentry/server-runtime-injection": "10.67.0",
     "@sentry/server-utils": "10.67.0",
     "@sentry/vercel-edge": "10.67.0",
     "rollup": "^4.60.3",

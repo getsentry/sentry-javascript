@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Client } from '../../../../src/client';
+import * as currentScopes from '../../../../src/currentScopes';
 import {
   getOutgoingRequestSpanData,
   setIncomingResponseSpanData,
@@ -14,6 +16,7 @@ import {
   NETWORK_TRANSPORT,
   SERVER_ADDRESS,
   SERVER_PORT,
+  URL_DOMAIN,
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
@@ -74,6 +77,46 @@ describe('getOutgoingRequestSpanData', () => {
   it('builds the span name from method and URL', () => {
     const result = getOutgoingRequestSpanData(makeMockRequest({ method: 'POST' }));
     expect(result.name).toMatch(/^POST /);
+  });
+
+  describe('with span streaming enabled', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    function mockStreamingClient(): void {
+      vi.spyOn(currentScopes, 'getClient').mockReturnValue({
+        getOptions: () => ({ traceLifecycle: 'stream' }),
+        getDataCollectionOptions: () => ({ urlQueryParams: true }),
+      } as unknown as Client);
+    }
+
+    it('drops the URL path but keeps the domain', () => {
+      mockStreamingClient();
+      const result = getOutgoingRequestSpanData(makeMockRequest({ method: 'post' }));
+      expect(result.name).toBe('POST example.com');
+    });
+
+    it('falls back to `HTTP` when the request has no method', () => {
+      mockStreamingClient();
+      const result = getOutgoingRequestSpanData(makeMockRequest({ method: undefined }));
+      expect(result.name).toBe('HTTP');
+    });
+
+    it('still records the URL on `url.full`', () => {
+      mockStreamingClient();
+      const result = getOutgoingRequestSpanData(makeMockRequest());
+      expect(result.attributes![URL_FULL]).toBe('http://example.com/api/test');
+    });
+
+    // A request with no host leaves the URL relative, and a server runtime has no page origin to
+    // resolve it against, so there is no domain to name the span after.
+    it('falls back to the method alone when the request has no host', () => {
+      mockStreamingClient();
+      const result = getOutgoingRequestSpanData(makeMockRequest({ host: undefined }));
+      expect(result.name).toBe('GET');
+      expect(result.attributes![URL_DOMAIN]).toBeUndefined();
+    });
   });
 
   it('includes URL_FULL, HTTP_REQUEST_METHOD, URL_PATH, and server endpoint attributes', () => {

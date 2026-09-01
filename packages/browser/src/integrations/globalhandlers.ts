@@ -1,4 +1,4 @@
-import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core/browser';
+import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core';
 import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
@@ -10,7 +10,7 @@ import {
   isString,
   stripDataUrlContent,
   UNKNOWN_FUNCTION,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { BrowserClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { getLocationHref } from '@sentry/browser-utils';

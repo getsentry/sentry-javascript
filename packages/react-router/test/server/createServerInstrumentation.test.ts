@@ -1,5 +1,6 @@
 import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
+import * as coreServer from '@sentry/core/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSentryServerInstrumentation,
@@ -13,7 +14,6 @@ vi.mock('@sentry/core', async () => {
     ...actual,
     startSpan: vi.fn(),
     captureException: vi.fn(),
-    flushIfServerless: vi.fn(),
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
     getClient: vi.fn(),
@@ -23,6 +23,10 @@ vi.mock('@sentry/core', async () => {
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
   };
 });
+
+vi.mock('@sentry/core/server', () => ({
+  flushIfServerless: vi.fn(),
+}));
 
 vi.mock('../../src/server/serverBuild', () => ({
   getMiddlewareName: vi.fn(),
@@ -146,7 +150,7 @@ describe('createSentryServerInstrumentation', () => {
       [URL_PATH]: '/test-path',
     });
     expect(mockHandleRequest).toHaveBeenCalled();
-    expect(core.flushIfServerless).toHaveBeenCalled();
+    expect(coreServer.flushIfServerless).toHaveBeenCalled();
   });
 
   it('should create own root span when no active span exists', async () => {
@@ -181,7 +185,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.any(Function),
     );
     expect(mockHandleRequest).toHaveBeenCalled();
-    expect(core.flushIfServerless).toHaveBeenCalled();
+    expect(coreServer.flushIfServerless).toHaveBeenCalled();
   });
 
   it('should capture errors and set span status when root span exists', async () => {
@@ -254,7 +258,7 @@ describe('createSentryServerInstrumentation', () => {
 
     // Handler should still be called even if URL parsing fails
     expect(mockHandleRequest).toHaveBeenCalled();
-    expect(core.flushIfServerless).toHaveBeenCalled();
+    expect(coreServer.flushIfServerless).toHaveBeenCalled();
   });
 
   it('should handle relative URLs by using a dummy base', async () => {

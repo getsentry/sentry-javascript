@@ -1,5 +1,5 @@
-import type { Client, Envelope, IntegrationFn } from '@sentry/core/browser';
-import { debug, defineIntegration, serializeEnvelope } from '@sentry/core/browser';
+import type { Client, Envelope, IntegrationFn } from '@sentry/core';
+import { debug, defineIntegration, serializeEnvelope } from '@sentry/core';
 import { getNativeImplementation } from '@sentry/browser-utils';
 import { UI_INTERACTION_CLICK } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';

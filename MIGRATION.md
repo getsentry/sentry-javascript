@@ -754,6 +754,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 - The Vercel AI token attributes `gen_ai.usage.input_tokens.cached`, `gen_ai.usage.input_tokens.cache_write`, and `gen_ai.usage.output_tokens.reasoning` were renamed to `gen_ai.usage.cache_read.input_tokens`, `gen_ai.usage.cache_creation.input_tokens`, and `gen_ai.usage.reasoning.output_tokens`.
 - The deprecated `gen_ai.tool.type` span attribute is no longer set on tool spans.
 - The `ai.pipeline.name` and `ai.streaming` span attributes on Vercel AI spans were renamed to `gen_ai.pipeline.name` and `gen_ai.response.streaming`.
+- The `langchain.chain.name` span attribute on LangChain chain spans was renamed to `gen_ai.pipeline.name`. The attribute is omitted when the chain is unnamed, rather than writing `unknown_chain`.
 - The `gen_ai.prompt` span attribute is no longer set by the Anthropic integration. The legacy Completions API's `prompt` is now reported as a user message on `gen_ai.input.messages`, like every other request shape.
 
 #### Other attributes
@@ -909,6 +910,7 @@ The following span names were adjusted:
 | `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                                                                                                                      |
 | `navigation`                                                             | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Navigation` if the SDK has none                                                                                                                                                    |
 | `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one (`GET /users/123`)                        | `GET /users/:id` when a route is known, otherwise just the request method (`GET`)                                                                                                                               |
+| `http.client`, `http.client.stream`                                      | The request method and sanitized URL (`GET https://api.example.com/users/123`)                                              | The request method and the domain (`GET api.example.com`), or just the method if there is no domain (`GET`)                                                                                                     |
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL (`/users/123`, `SvelteKit Route Change`)                               | The span's `http.route`, or `Router` if the SDK has none                                                                                                                                                        |
 | `graphql`                                                                | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)                                                                                            |
 | `gen_ai.chat`, `gen_ai.embeddings`, `gen_ai.generate_content`            | `{operation} {model}`, or `{operation} unknown` if the model is missing (`chat unknown`)                                    | `{operation} {model}`, or `{operation}` if the model is missing (`chat`)                                                                                                                                        |
@@ -924,11 +926,15 @@ The following span names were adjusted:
 
 Resolved low-cardinality values are kept in both lifecycles: a known model stays in the name (`chat gpt-4`).
 
-LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain` — update any `ignoreSpans` filters matching the old names. The chain name remains available on `langchain.chain.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
+LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain` — update any `ignoreSpans` filters matching the old names. The chain name remains available on `gen_ai.pipeline.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
 
 Resource spans now also carry a `url.domain` attribute holding that domain. The full URL remains available on `url.full`.
 
 `http.server` requests that resolve to a route are **unchanged** — those names were already low cardinality. Only requests the SDK cannot parameterize are affected.
+
+Outgoing requests never resolve to a route, so **every** `http.client` name changes: the path, query and fragment are dropped and only the domain is kept. The full URL remains available on `url.full`, and outgoing request spans now also carry a `url.domain` attribute holding that domain.
+
+A request with no domain to fall back on — a data URL, or a relative URL that the SDK cannot resolve against a page origin — is named after the method alone.
 
 Some consequences to be aware of:
 
@@ -939,6 +945,8 @@ Because a low-cardinality name cannot say which part of request processing a spa
 For the same reason, `useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`). The operations are still recorded on that span's `sentry.graphql.operation` attribute, as long as the option stays enabled (the default). Disabling it skips both, as before.
 
 Resource URIs are unbounded, so they are no longer part of an `mcp.server` span name. The URI remains available on the `mcp.resource.uri` attribute.
+
+Because the URL path is gone from `http.client` names, `graphqlClientIntegration` no longer appends the operation to the outgoing request span name (`POST https://api.example.com/graphql (query GetUser)` becomes `POST api.example.com`). Outgoing GraphQL request spans now carry the operation on the `graphql.operation.name` and `graphql.operation.type` attributes instead, and it also stays on the request breadcrumb's `graphql.operation` data.
 
 Only the Express, Koa and Hapi integrations resolve a route template for `router` spans. Angular, Ember and SvelteKit have none when the span starts, so their router spans are named `Router`.
 

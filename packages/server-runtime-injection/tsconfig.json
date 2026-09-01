@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*"],
+
+  "compilerOptions": {},
+  // `hook.mjs` and `import-hook.mjs` are hand-written `.mjs` files that self-reference this package's
+  // own subpaths. If tsc picks them up it follows those subpath exports back to emitted `.d.ts`
+  // files and collides with what it wants to emit. Excluding them keeps tsc focused on the `.ts`
+  // sources — rollup copies the `.mjs` files through to `build/` unchanged.
+  "exclude": ["src/**/*.mjs", "src/**/*.cjs"]
+}

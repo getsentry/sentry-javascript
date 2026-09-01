@@ -3,6 +3,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PIPELINE_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -270,7 +271,8 @@ describe('LangChain integration', () => {
             expect(formatPromptSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
             expect(formatPromptSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
             expect(formatPromptSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
-            expect(formatPromptSpan!.attributes['langchain.chain.name'].value).toBe('format_prompt');
+            expect(formatPromptSpan!.attributes[GEN_AI_PIPELINE_NAME].value).toBe('format_prompt');
+            expect(formatPromptSpan!.attributes['langchain.chain.name']).toBeUndefined();
 
             const chatSpan = container.items.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
             expect(chatSpan).toBeDefined();
@@ -281,11 +283,14 @@ describe('LangChain integration', () => {
             expect(parseOutputSpan).toBeDefined();
             expect(parseOutputSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
             expect(parseOutputSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
-            expect(parseOutputSpan!.attributes['langchain.chain.name'].value).toBe('parse_output');
+            expect(parseOutputSpan!.attributes[GEN_AI_PIPELINE_NAME].value).toBe('parse_output');
+            expect(parseOutputSpan!.attributes['langchain.chain.name']).toBeUndefined();
 
             const unknownChainSpan = container.items.find(span => span.name === 'chain unknown_chain');
             expect(unknownChainSpan).toBeDefined();
             expect(unknownChainSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(unknownChainSpan!.attributes[GEN_AI_PIPELINE_NAME]).toBeUndefined();
+            expect(unknownChainSpan!.attributes['langchain.chain.name']).toBeUndefined();
           },
         })
         .start()
@@ -429,11 +434,16 @@ describe('LangChain integration', () => {
             for (const span of chainSpans) {
               expect(span.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
             }
-            expect(chainSpans.map(span => span.attributes['langchain.chain.name']?.value).sort()).toEqual([
-              'format_prompt',
-              'parse_output',
-              'unknown_chain',
-            ]);
+            expect(
+              chainSpans
+                .map(span => span.attributes[GEN_AI_PIPELINE_NAME]?.value)
+                .filter(Boolean)
+                .sort(),
+            ).toEqual(['format_prompt', 'parse_output']);
+            const unnamedChainSpan = chainSpans.find(span => span.name === 'invoke_agent');
+            expect(unnamedChainSpan).toBeDefined();
+            expect(unnamedChainSpan!.attributes[GEN_AI_PIPELINE_NAME]).toBeUndefined();
+            expect(unnamedChainSpan!.attributes['langchain.chain.name']).toBeUndefined();
           },
         })
         .start()

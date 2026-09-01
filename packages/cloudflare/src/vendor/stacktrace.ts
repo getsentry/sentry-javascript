@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: MIT
 
 import type { StackLineParser, StackLineParserFn, StackParser } from '@sentry/core';
-import { basename, createStackParser, nodeStackLineParser } from '@sentry/core';
+import { basename, createStackParser } from '@sentry/core';
+import { nodeStackLineParser } from '@sentry/core/server';
 
 type GetModuleFn = (filename: string | undefined) => string | undefined;
 

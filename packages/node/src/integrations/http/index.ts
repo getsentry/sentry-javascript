@@ -1,7 +1,14 @@
 import type { ClientRequest, RequestOptions } from 'node:http';
 import type { Span } from '@sentry/core';
 import { URL_FULL } from '@sentry/conventions/attributes';
-import { defineIntegration, getRequestUrlFromClientRequest, hasSpansEnabled, stripDataUrlContent } from '@sentry/core';
+import {
+  defineIntegration,
+  getClient,
+  hasSpansEnabled,
+  hasSpanStreamingEnabled,
+  stripDataUrlContent,
+} from '@sentry/core';
+import { getRequestUrlFromClientRequest } from '@sentry/core/server';
 import type { NodeClient } from '../../sdk/client';
 import type { HttpServerIntegrationOptions } from './httpServerIntegration';
 import { httpServerIntegration } from './httpServerIntegration';
@@ -109,7 +116,12 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
           const url = getRequestUrlFromClientRequest(request);
           if (url.startsWith('data:')) {
             const sanitizedUrl = stripDataUrlContent(url);
-            span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
+            // With span streaming the span already carries a low-cardinality name, so it must not be
+            // renamed back to something containing the URL.
+            const client = getClient();
+            if (!client || !hasSpanStreamingEnabled(client)) {
+              span.updateName(`${request.method || 'GET'} ${sanitizedUrl}`);
+            }
             span.setAttributes({
               [URL_FULL]: sanitizedUrl,
             });

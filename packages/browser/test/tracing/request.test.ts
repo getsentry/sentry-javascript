@@ -1,5 +1,6 @@
-import type { Client } from '@sentry/core/browser';
-import * as utils from '@sentry/core/browser';
+import type { Client } from '@sentry/core';
+import * as utils from '@sentry/core';
+import * as coreBrowser from '@sentry/core/browser';
 import * as browserUtils from '@sentry/browser-utils';
 import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
 import type { MockInstance } from 'vitest';
@@ -85,7 +86,7 @@ describe('instrumentOutgoingRequests', () => {
     expect(fetchHandler).toBeDefined();
     expect(requestSpan).toBeDefined();
     const requestSpanJson = utils.spanToJSON(requestSpan!);
-    expect(requestSpanJson.name).toBe('QUERY https://example.com/rest/v1/users');
+    expect(requestSpanJson.name).toBe('QUERY example.com');
     expect(requestSpanJson.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');
   });
 
@@ -122,8 +123,209 @@ describe('instrumentOutgoingRequests', () => {
     expect(xhrHandler).toBeDefined();
     expect(requestSpan).toBeDefined();
     const requestSpanJson = utils.spanToJSON(requestSpan!);
-    expect(requestSpanJson.name).toBe('QUERY https://example.com/rest/v1/users');
+    expect(requestSpanJson.name).toBe('QUERY example.com');
     expect(requestSpanJson.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');
+  });
+
+  it('keeps the sanitized URL in the fetch span name with `traceLifecycle: "static"`', () => {
+    let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
+      fetchHandler = handler;
+    });
+    const tracingClient = new BrowserClient(
+      getDefaultBrowserClientOptions({ tracesSampleRate: 1, traceLifecycle: 'static' }),
+    );
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceXHR: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    fetchHandler?.({
+      fetchData: { method: 'QUERY', url: 'https://example.com/rest/v1/users?select=id' },
+      args: ['https://example.com/rest/v1/users?select=id'],
+      startTimestamp: Date.now(),
+    });
+
+    expect(utils.spanToJSON(requestSpan!).name).toBe('QUERY https://example.com/rest/v1/users');
+  });
+
+  it('keeps the sanitized URL in the XHR span name with `traceLifecycle: "static"`', () => {
+    let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
+      xhrHandler = handler;
+    });
+    const tracingClient = new BrowserClient(
+      getDefaultBrowserClientOptions({ tracesSampleRate: 1, traceLifecycle: 'static' }),
+    );
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceFetch: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    xhrHandler?.({
+      xhr: {
+        [browserUtils.SENTRY_XHR_DATA_KEY]: {
+          method: 'QUERY',
+          url: 'https://example.com/rest/v1/users?select=id',
+          request_headers: {},
+        },
+        setRequestHeader: vi.fn(),
+      },
+      startTimestamp: Date.now(),
+    } as utils.HandlerDataXhr);
+
+    expect(utils.spanToJSON(requestSpan!).name).toBe('QUERY https://example.com/rest/v1/users');
+  });
+
+  it('strips userinfo and the port from the streamed XHR span name and `url.domain`', () => {
+    let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
+      xhrHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceFetch: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    xhrHandler?.({
+      xhr: {
+        [browserUtils.SENTRY_XHR_DATA_KEY]: {
+          method: 'GET',
+          url: 'https://user:pass@example.com:8443/rest/v1/users',
+          request_headers: {},
+        },
+        setRequestHeader: vi.fn(),
+      },
+      startTimestamp: Date.now(),
+    } as utils.HandlerDataXhr);
+
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('GET example.com');
+    expect(requestSpanJson.attributes['url.domain']).toBe('example.com');
+    expect(requestSpanJson.attributes['server.address']).toBe('example.com:8443');
+  });
+
+  it('resolves a relative fetch URL against the page origin for the streamed span name', () => {
+    vi.stubGlobal('location', { origin: 'https://app.example.com' });
+
+    let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
+      fetchHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceXHR: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    fetchHandler?.({
+      fetchData: { method: 'GET', url: '/rest/v1/users?select=id' },
+      args: ['/rest/v1/users?select=id'],
+      startTimestamp: Date.now(),
+    });
+
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('GET app.example.com');
+    expect(requestSpanJson.attributes['url.domain']).toBe('app.example.com');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('resolves a relative XHR URL against the page origin for the streamed span name', () => {
+    vi.stubGlobal('location', { origin: 'https://app.example.com' });
+
+    let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
+      xhrHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceFetch: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    xhrHandler?.({
+      xhr: {
+        [browserUtils.SENTRY_XHR_DATA_KEY]: {
+          method: 'GET',
+          url: '/rest/v1/users?select=id',
+          request_headers: {},
+        },
+        setRequestHeader: vi.fn(),
+      },
+      startTimestamp: Date.now(),
+    } as utils.HandlerDataXhr);
+
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('GET app.example.com');
+    expect(requestSpanJson.attributes['url.domain']).toBe('app.example.com');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('falls back to the request method for a data URL, which has no domain', () => {
+    let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
+    let requestSpan: utils.Span | undefined;
+
+    vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
+      fetchHandler = handler;
+    });
+    const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+    utils.setCurrentClient(tracingClient);
+    utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+    instrumentOutgoingRequests(tracingClient, {
+      traceXHR: false,
+      enableHTTPTimings: false,
+      onRequestSpanStart: span => {
+        requestSpan = span;
+      },
+    });
+    fetchHandler?.({
+      fetchData: { method: 'GET', url: 'data:text/plain,hello' },
+      args: ['data:text/plain,hello'],
+      startTimestamp: Date.now(),
+    });
+
+    const requestSpanJson = utils.spanToJSON(requestSpan!);
+    expect(requestSpanJson.name).toBe('GET');
+    expect(requestSpanJson.attributes['url.domain']).toBeUndefined();
   });
 
   describe('XHR trace header span', () => {
@@ -143,7 +345,7 @@ describe('instrumentOutgoingRequests', () => {
       vi.spyOn(utils, 'getActiveSpan').mockReturnValue(activeSpan);
       vi.spyOn(utils, 'hasSpansEnabled').mockReturnValue(true);
       vi.spyOn(utils, 'hasSpanStreamingEnabled').mockReturnValue(true);
-      vi.spyOn(utils, 'startInactiveSpan').mockReturnValue(ignoredSpan);
+      vi.spyOn(coreBrowser, 'startInactiveSpan').mockReturnValue(ignoredSpan);
       const getTraceDataSpy = vi.spyOn(utils, 'getTraceData').mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       });

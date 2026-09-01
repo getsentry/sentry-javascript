@@ -192,9 +192,9 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 /**
  * Emits the `@sentry/<framework>/import` entry (`build/import-hook.mjs`) as part of the rollup build,
  * used as `node --import @sentry/<framework>/import app.js`. The generated hook imports
- * `@sentry/server-utils/orchestrion/import-hook`, which registers the orchestrion
- * diagnostics-channel injection, so the consuming package must declare `@sentry/server-utils` as a
- * dependency.
+ * `@sentry/server-runtime-injection/import-hook`, which registers the orchestrion
+ * diagnostics-channel injection, so the consuming package must declare
+ * `@sentry/server-runtime-injection` as a dependency.
  *
  * @param {string} outputFolder Build output folder.
  */
@@ -209,7 +209,7 @@ export function makeOrchestrionLoader(outputFolder) {
     );
   }
 
-  const requiredDep = '@sentry/server-utils';
+  const requiredDep = '@sentry/server-runtime-injection';
   const foundRequiredDep =
     Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
       return key === requiredDep;

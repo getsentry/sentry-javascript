@@ -4,8 +4,8 @@ import {
   normalizeStringifyValue as browserNormalizeStringifyValue,
   setContext,
 } from '@sentry/browser';
-import type { Client } from '@sentry/core/browser';
-import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core/browser';
+import type { Client } from '@sentry/core';
+import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core';
 import { version } from 'react';
 import { isSyntheticEvent } from './isSyntheticEvent';
 

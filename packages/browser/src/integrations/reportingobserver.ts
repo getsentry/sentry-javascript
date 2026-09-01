@@ -1,5 +1,5 @@
-import type { Client, IntegrationFn } from '@sentry/core/browser';
-import { captureMessage, defineIntegration, getClient, GLOBAL_OBJ, withScope } from '@sentry/core/browser';
+import type { Client, IntegrationFn } from '@sentry/core';
+import { captureMessage, defineIntegration, getClient, GLOBAL_OBJ, withScope } from '@sentry/core';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 

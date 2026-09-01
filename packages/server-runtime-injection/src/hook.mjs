@@ -6,5 +6,5 @@
 // on-disk ES module graph — the loader thread cannot resolve bare specifiers into the dependency
 // graph this package bundles away, but it can follow relative imports. This shim is therefore an
 // entrypoint of the regular ESM build (sharing the vendored dependency chunks) and exposed via the
-// `@sentry/server-utils/orchestrion/hook` subpath.
+// `@sentry/server-runtime-injection/hook` subpath.
 export * from '@apm-js-collab/tracing-hooks/hook.mjs';
