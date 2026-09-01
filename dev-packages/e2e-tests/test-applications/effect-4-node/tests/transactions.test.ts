@@ -100,3 +100,60 @@ test('Sends transaction for error route', async ({ baseURL }) => {
 
   expect(transactionEvent.transaction).toBe('http.server GET');
 });
+
+test('Sends a root: true span as its own transaction in a new trace', async ({ baseURL }) => {
+  const requestTransactionPromise = waitForTransaction('effect-4-node', transactionEvent => {
+    return !!transactionEvent?.spans?.some(span => span.description === 'root-span-request-marker');
+  });
+  const detachedTransactionPromise = waitForTransaction('effect-4-node', transactionEvent => {
+    return transactionEvent?.transaction === 'detached-root-span';
+  });
+
+  await fetch(`${baseURL}/test-root-span`);
+
+  const [requestTransaction, detachedTransaction] = await Promise.all([
+    requestTransactionPromise,
+    detachedTransactionPromise,
+  ]);
+
+  expect(requestTransaction.transaction).toBe('http.server GET');
+  expect(requestTransaction.spans?.map(span => span.description)).toEqual(['root-span-request-marker']);
+
+  expect(detachedTransaction.contexts?.trace?.parent_span_id).toBeUndefined();
+  expect(detachedTransaction.contexts?.trace?.trace_id).not.toBe(requestTransaction.contexts?.trace?.trace_id);
+});
+
+test('Continues the trace of a Tracer.externalSpan parent', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('effect-4-node', transactionEvent => {
+    return transactionEvent?.transaction === 'continued-span';
+  });
+
+  await fetch(`${baseURL}/test-external-parent`);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent.contexts?.trace).toEqual(
+    expect.objectContaining({
+      trace_id: 'fedcba0987654321fedcba0987654321',
+      parent_span_id: '0987654321fedcba',
+    }),
+  );
+});
+
+test('Continues the trace of an incoming traceparent header', async ({ baseURL }) => {
+  const traceId = '1234567890abcdef1234567890abcdef';
+  const parentSpanId = 'abcdef1234567890';
+
+  const transactionEventPromise = waitForTransaction('effect-4-node', transactionEvent => {
+    return transactionEvent?.contexts?.trace?.trace_id === traceId;
+  });
+
+  await fetch(`${baseURL}/test-success`, { headers: { traceparent: `00-${traceId}-${parentSpanId}-01` } });
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent.transaction).toBe('http.server GET');
+  expect(transactionEvent.contexts?.trace).toEqual(
+    expect.objectContaining({ trace_id: traceId, parent_span_id: parentSpanId }),
+  );
+});

@@ -6,6 +6,7 @@ import * as Cause from 'effect/Cause';
 import * as Layer from 'effect/Layer';
 import * as Logger from 'effect/Logger';
 import * as LogLevel from 'effect/LogLevel';
+import * as Tracer from 'effect/Tracer';
 import { createServer } from 'http';
 
 const SentryLive = Layer.mergeAll(
@@ -39,6 +40,31 @@ const router = HttpRouter.empty.pipe(
         yield* Effect.sleep('50 millis');
         yield* Effect.sleep('25 millis').pipe(Effect.withSpan('nested-span'));
       }).pipe(Effect.withSpan('custom-effect-span', { kind: 'internal' }));
+      return yield* HttpServerResponse.json({ status: 'ok' });
+    }),
+  ),
+
+  HttpRouter.get(
+    '/test-root-span',
+    Effect.gen(function* () {
+      yield* Effect.void.pipe(Effect.withSpan('root-span-request-marker'));
+      yield* Effect.sleep('10 millis').pipe(Effect.withSpan('detached-root-span', { root: true }));
+      return yield* HttpServerResponse.json({ status: 'ok' });
+    }),
+  ),
+
+  HttpRouter.get(
+    '/test-external-parent',
+    Effect.gen(function* () {
+      yield* Effect.sleep('10 millis').pipe(
+        Effect.withSpan('continued-span', {
+          parent: Tracer.externalSpan({
+            traceId: 'fedcba0987654321fedcba0987654321',
+            spanId: '0987654321fedcba',
+            sampled: true,
+          }),
+        }),
+      );
       return yield* HttpServerResponse.json({ status: 'ok' });
     }),
   ),
