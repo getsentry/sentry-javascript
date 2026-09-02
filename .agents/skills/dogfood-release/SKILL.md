@@ -22,10 +22,6 @@ session scratchpad otherwise.
 - `getsentry/sentry-docs`: Next.js site
 - `getsentry/chartcuterie`: Node chart rendering service
 
-This list is the only thing worth hardcoding. Everything else about a repo (its base
-branch, package manager, which `@sentry/*` packages it carries, how each one is ranged,
-how it builds) changes without warning, so read it per run in step 1 instead of assuming.
-
 ## Step 1: survey the repos
 
 Read the current state over the API first, so nothing is cloned for a repo that gets
@@ -46,7 +42,7 @@ for r in sentry gib-potato sentry-changelog sentry-docs chartcuterie; do
 done
 ```
 
-Three things to work out from that, rather than from memory:
+Three things to work out from that:
 
 - **Which deps to bump.** Only the ones already on the SDK version you are moving off.
   Repos also carry `@sentry/*` packages on their own release trains
