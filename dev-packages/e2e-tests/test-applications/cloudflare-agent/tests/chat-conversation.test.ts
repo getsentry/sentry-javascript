@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { callRpc, sendChatMessage } from './agent-socket';
 
 const AGENT_INSTANCE = 'chat-conv-instance';
@@ -11,10 +11,13 @@ const AGENT_INSTANCE = 'chat-conv-instance';
 const UUID_PATTERN = /^[0-9a-f]{32}$/;
 
 test('stamps the conversation id on gen_ai spans created inside a chat turn', async ({ baseURL }) => {
-  const spanPromise = waitForStreamedSpan('cloudflare-agent', span => getSpanOp(span) === 'gen_ai.chat');
-  const transactionPromise = waitForTransaction(
+  // The gen_ai span is streamed before the webSocketMessage segment that owns it, so collect until
+  // the segment of the same trace has arrived; that also proves the span ran inside the chat turn.
+  const spansPromise = collectStreamedSpans(
     'cloudflare-agent',
-    transactionEvent => transactionEvent.transaction === 'webSocketMessage',
+    spans =>
+      spans.some(span => getSpanOp(span) === 'gen_ai.chat') &&
+      spans.some(span => span.is_segment && span.name === 'webSocketMessage'),
   );
 
   await sendChatMessage(baseURL!, {
@@ -23,8 +26,8 @@ test('stamps the conversation id on gen_ai spans created inside a chat turn', as
     prompt: 'What is the capital of France?',
   });
 
-  const [genAiSpan, transaction] = await Promise.all([spanPromise, transactionPromise]);
-  expect(genAiSpan.trace_id).toBe(transaction.contexts?.trace?.trace_id);
+  const spans = await spansPromise;
+  const genAiSpan = spans.find(span => getSpanOp(span) === 'gen_ai.chat')!;
   expect(genAiSpan.attributes['gen_ai.conversation.id']?.value).toMatch(UUID_PATTERN);
 });
 
@@ -48,17 +51,21 @@ test('a conversation id set manually inside onChatMessage wins over the SDK-mint
 // which handler the agent uses for its AI work.
 test('a conversation id set manually inside onRequest wins over the SDK-minted one', async ({ request, baseURL }) => {
   const spanPromise = waitForStreamedSpan('cloudflare-agent', span => getSpanOp(span) === 'gen_ai.chat');
-  const transactionPromise = waitForTransaction(
+  // With span streaming, URL-sourced `http.server` spans are named by method only, so the request
+  // segment is identified by its `url.path` attribute.
+  const requestSpanPromise = waitForStreamedSpan(
     'cloudflare-agent',
-    transactionEvent =>
-      transactionEvent.transaction === 'GET /agents/my-manual-chat-agent/chat-manual-request-instance',
+    span =>
+      getSpanOp(span) === 'http.server' &&
+      span.is_segment &&
+      span.attributes['url.path']?.value === '/agents/my-manual-chat-agent/chat-manual-request-instance',
   );
 
   const response = await request.get(`${baseURL}/agents/my-manual-chat-agent/chat-manual-request-instance`);
   expect(response.ok()).toBe(true);
 
-  const [genAiSpan, transaction] = await Promise.all([spanPromise, transactionPromise]);
-  expect(genAiSpan.trace_id).toBe(transaction.contexts?.trace?.trace_id);
+  const [genAiSpan, requestSpan] = await Promise.all([spanPromise, requestSpanPromise]);
+  expect(genAiSpan.trace_id).toBe(requestSpan.trace_id);
   expect(genAiSpan.attributes['gen_ai.conversation.id']?.value).toBe('conv_manual_e2e');
 });
 
