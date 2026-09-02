@@ -15,6 +15,7 @@ import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import type { RedisCacheOptions } from './redis-cache';
 import { applyRedisCacheAttributes } from './redis-cache';
+import { getRedisQueryNaming } from './redis-span-name';
 import { defaultDbStatementSerializer } from './redis-statement-serializer';
 
 const ORIGIN = 'auto.db.redis';
@@ -76,13 +77,19 @@ export function startIORedisCommandSpan(data: IORedisCommandContext): Span | und
   tracedCommands.add(command);
   const { host, port } = getConnectionOptions(data.self);
   const statement = defaultDbStatementSerializer(command.name, command.args ?? []);
+  const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(command.name, command.args ?? [], {
+    host,
+    port,
+  });
+
   return startInactiveSpan({
-    name: statement,
+    name: streamedName || statement,
     attributes: {
       [SENTRY_KIND]: 'client',
       ...connectionAttributes(host, port),
       [SENTRY_OP]: DB_QUERY,
       [DB_OPERATION_NAME]: command.name,
+      ...namingAttributes,
       [DB_QUERY_TEXT]: statement,
     },
   });

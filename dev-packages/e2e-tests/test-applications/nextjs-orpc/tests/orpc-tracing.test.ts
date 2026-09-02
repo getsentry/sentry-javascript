@@ -1,111 +1,116 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+
+const ORPC_SEGMENT_NAME = 'POST /rpc/[[...rest]]';
 
 test('should trace orpc server component', async ({ page }) => {
-  const pageloadPromise = waitForTransaction('nextjs-orpc', transactionEvent => {
-    return transactionEvent.transaction === '/';
-  });
-
-  const orpcTxPromise = waitForTransaction('nextjs-orpc', transactionEvent => {
-    return transactionEvent.transaction === 'POST /rpc/[[...rest]]';
+  // The server component calls `planet.list` over HTTP while rendering, so the RPC span belongs to
+  // the same trace as the pageload. `collectStreamedSpans` evaluates one trace at a time, so requiring
+  // the pageload and the RPC spans together is what asserts the SSR request propagated its trace.
+  const spansPromise = collectStreamedSpans('nextjs-orpc', spans => {
+    return (
+      spans.some(span => span.name === '/' && getSpanOp(span) === 'pageload' && span.is_segment) &&
+      spans.some(span => span.name === ORPC_SEGMENT_NAME && span.is_segment) &&
+      spans.some(span => span.name === 'ORPC Middleware')
+    );
   });
 
   await page.goto('/');
-  const pageloadTx = await pageloadPromise;
-  const orpcTx = await orpcTxPromise;
+  const orpcSpans = await spansPromise;
 
-  expect(pageloadTx.contexts?.trace).toMatchObject({
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
-    data: {
-      'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-      'sentry.op': 'pageload',
-      'sentry.segment.name.source': 'route',
-    },
-    op: 'pageload',
-    origin: 'auto.pageload.nextjs.app_router_instrumentation',
+  const pageloadSpan = orpcSpans.find(span => span.name === '/' && getSpanOp(span) === 'pageload' && span.is_segment)!;
+  const orpcSpan = orpcSpans.find(span => span.name === ORPC_SEGMENT_NAME && span.is_segment)!;
+
+  expect(pageloadSpan.parent_span_id).toEqual(expect.any(String));
+  expect(pageloadSpan.span_id).toEqual(expect.any(String));
+  expect(pageloadSpan.trace_id).toEqual(expect.any(String));
+  expect(pageloadSpan.attributes).toMatchObject({
+    'sentry.origin': { value: 'auto.pageload.nextjs.app_router_instrumentation', type: 'string' },
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
   });
 
-  expect(orpcTx.contexts?.trace).toMatchObject({
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    trace_id: pageloadTx.contexts?.trace?.trace_id,
-    data: {
-      'sentry.op': 'http.server',
-      'sentry.origin': 'auto',
-      'sentry.segment.name.source': 'route',
-      'sentry.kind': 'server',
-      'http.response.status_code': 200,
-      'next.span_name': 'POST /rpc/[[...rest]]/route',
-      'next.span_type': 'BaseServer.handleRequest',
-      'http.method': 'POST',
-      'http.target': '/rpc/planet/list',
-      'next.rsc': false,
-      'http.route': '/rpc/[[...rest]]',
-      'next.route': '/rpc/[[...rest]]',
-      'http.status_code': 200,
-    },
-    op: 'http.server',
-    origin: 'auto',
+  // `orpcSpan` comes from the same trace as the pageload, so its presence is the trace assertion.
+  expect(orpcSpan.parent_span_id).toEqual(expect.any(String));
+  expect(orpcSpan.span_id).toEqual(expect.any(String));
+  expect(orpcSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.kind': { value: 'server', type: 'string' },
+    'http.response.status_code': { value: 200, type: 'integer' },
+    'next.span_name': { value: 'POST /rpc/[[...rest]]/route', type: 'string' },
+    'next.span_type': { value: 'BaseServer.handleRequest', type: 'string' },
+    'http.method': { value: 'POST', type: 'string' },
+    'http.target': { value: '/rpc/planet/list', type: 'string' },
+    'next.rsc': { value: false, type: 'boolean' },
+    'http.route': { value: '/rpc/[[...rest]]', type: 'string' },
+    'next.route': { value: '/rpc/[[...rest]]', type: 'string' },
+    'http.status_code': { value: 200, type: 'integer' },
   });
 
-  expect(orpcTx.spans?.map(span => span.description)).toContain('ORPC Middleware');
+  expect(orpcSpans.map(span => span.name)).toContain('ORPC Middleware');
 });
 
 test('should trace orpc client component', async ({ page }) => {
-  const navigationPromise = waitForTransaction('nextjs-orpc', transactionEvent => {
-    return transactionEvent.transaction === '/client';
-  });
-
-  const orpcTxPromise = waitForTransaction('nextjs-orpc', transactionEvent => {
+  // Awaiting the navigation and RPC spans separately could pair spans from different traces. One
+  // `collectStreamedSpans` evaluates a single trace at a time, so requiring both together keeps them
+  // on the same trace and makes the `trace_id` assertion below meaningful.
+  const spansPromise = collectStreamedSpans('nextjs-orpc', spans => {
     return (
-      transactionEvent.transaction === 'POST /rpc/[[...rest]]' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === '/rpc/planet/find'
+      spans.some(span => span.name === '/client' && getSpanOp(span) === 'navigation' && span.is_segment) &&
+      spans.some(
+        span =>
+          span.name === ORPC_SEGMENT_NAME &&
+          span.is_segment &&
+          span.attributes['http.target']?.value === '/rpc/planet/find',
+      ) &&
+      spans.some(span => span.name === 'ORPC Middleware')
     );
   });
 
   await page.goto('/');
   await page.waitForTimeout(500);
   await page.getByRole('link', { name: 'Client' }).click();
-  const navigationTx = await navigationPromise;
-  const orpcTx = await orpcTxPromise;
 
-  expect(navigationTx.contexts?.trace).toMatchObject({
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
-    data: {
-      'sentry.op': 'navigation',
-      'sentry.origin': 'auto.navigation.nextjs.app_router_instrumentation',
-      'sentry.segment.name.source': 'route',
-      'sentry.previous_trace': expect.any(String),
-    },
-    op: 'navigation',
-    origin: 'auto.navigation.nextjs.app_router_instrumentation',
+  const orpcSpans = await spansPromise;
+  const navigationSpan = orpcSpans.find(
+    span => span.name === '/client' && getSpanOp(span) === 'navigation' && span.is_segment,
+  )!;
+  const orpcSpan = orpcSpans.find(
+    span =>
+      span.name === ORPC_SEGMENT_NAME &&
+      span.is_segment &&
+      span.attributes['http.target']?.value === '/rpc/planet/find',
+  )!;
+
+  expect(navigationSpan.span_id).toEqual(expect.any(String));
+  expect(navigationSpan.trace_id).toEqual(expect.any(String));
+  expect(navigationSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'sentry.origin': { value: 'auto.navigation.nextjs.app_router_instrumentation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.previous_trace': { value: expect.any(String), type: 'string' },
   });
 
-  expect(orpcTx?.contexts?.trace).toMatchObject({
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    trace_id: navigationTx?.contexts?.trace?.trace_id,
-    data: {
-      'sentry.op': 'http.server',
-      'sentry.origin': 'auto',
-      'sentry.segment.name.source': 'route',
-      'sentry.kind': 'server',
-      'http.response.status_code': 200,
-      'next.span_name': 'POST /rpc/[[...rest]]/route',
-      'next.span_type': 'BaseServer.handleRequest',
-      'http.method': 'POST',
-      'http.target': '/rpc/planet/find',
-      'next.rsc': false,
-      'http.route': '/rpc/[[...rest]]',
-      'next.route': '/rpc/[[...rest]]',
-      'http.status_code': 200,
-    },
-    op: 'http.server',
-    origin: 'auto',
+  expect(orpcSpan.parent_span_id).toEqual(expect.any(String));
+  expect(orpcSpan.span_id).toEqual(expect.any(String));
+  expect(orpcSpan.trace_id).toBe(navigationSpan.trace_id);
+  expect(orpcSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.kind': { value: 'server', type: 'string' },
+    'http.response.status_code': { value: 200, type: 'integer' },
+    'next.span_name': { value: 'POST /rpc/[[...rest]]/route', type: 'string' },
+    'next.span_type': { value: 'BaseServer.handleRequest', type: 'string' },
+    'http.method': { value: 'POST', type: 'string' },
+    'http.target': { value: '/rpc/planet/find', type: 'string' },
+    'next.rsc': { value: false, type: 'boolean' },
+    'http.route': { value: '/rpc/[[...rest]]', type: 'string' },
+    'next.route': { value: '/rpc/[[...rest]]', type: 'string' },
+    'http.status_code': { value: 200, type: 'integer' },
   });
 
-  expect(orpcTx.spans?.map(span => span.description)).toContain('ORPC Middleware');
+  expect(orpcSpans.map(span => span.name)).toContain('ORPC Middleware');
 });
