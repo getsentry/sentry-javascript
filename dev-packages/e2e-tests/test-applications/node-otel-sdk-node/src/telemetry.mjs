@@ -4,9 +4,9 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import * as Sentry from '@sentry/node';
 
-// The user owns OpenTelemetry here: their own SDK, their own instrumentation and their own
-// exporter. Sentry runs alongside it and must neither register a competing tracer provider nor
-// route its own spans through this pipeline.
+// OpenTelemetry owns tracing here: the user's own SDK, their own instrumentation and their own
+// exporter. In production the exporter would point at `Sentry.getOtlpTracesEndpoint(dsn)`; here it
+// points at a local receiver so the test can assert what was exported.
 const sdk = new NodeSDK({
   instrumentations: [new HttpInstrumentation()],
   spanProcessors: [
@@ -17,10 +17,10 @@ const sdk = new NodeSDK({
 sdk.start();
 
 Sentry.init({
-  traceLifecycle: 'static',
-  environment: 'qa', // dynamic sampling bias to keep transactions
+  environment: 'qa',
   dsn: process.env.E2E_TEST_DSN,
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
-  tracesSampleRate: 1,
+  // no tracesSampleRate: OpenTelemetry owns spans, Sentry owns errors and logs
+  integrations: [Sentry.otlpIntegration()],
 });
