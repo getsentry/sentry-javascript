@@ -89,3 +89,7 @@ source = "path:.agents/skills/write-tests"
 [[skills]]
 name = "port-span-names"
 source = "path:.agents/skills/port-span-names"
+
+[[skills]]
+name = "dogfood-release"
+source = "path:.agents/skills/dogfood-release"
