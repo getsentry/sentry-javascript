@@ -82,6 +82,30 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
 
+    test('names request handler spans after their route when span streaming is enabled', async () => {
+      const runner = createRunner()
+        .withEnv({ STREAMED: 'true' })
+        .expect({
+          span: container => {
+            const handlerSpan = container.items.find(item => item.attributes['sentry.op']?.value === 'handler');
+
+            // The route alone, without the `GET ` prefix the static name carries.
+            expect(handlerSpan?.name).toBe('/plugin-route');
+            // The name has to stay in step with the attribute it comes from.
+            expect(handlerSpan?.attributes['http.route']?.value).toBe('/plugin-route');
+            expect(handlerSpan?.attributes['hapi.type']?.value).toBe('plugin');
+
+            // Spans of other ops keep their names.
+            expect(container.items.find(item => item.name === 'ext - onPreResponse')).toBeDefined();
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/plugin-route');
+
+      await runner.completed();
+    });
+
     test('should handle returned plain errors in routes.', async () => {
       const runner = createRunner()
         .expect({

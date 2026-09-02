@@ -1,129 +1,128 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
+
+async function collectDbSpans() {
+  const spans = await collectStreamedSpans('nuxt-3', spans =>
+    spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test'),
+  );
+  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test');
+
+  return spans.filter(span => span.trace_id === rootSpan?.trace_id && getSpanOp(span) === 'db.query');
+}
 
 test.describe('database integration', () => {
   test('captures db.prepare().get() span', async ({ request }) => {
-    const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
-    });
+    const dbSpansPromise = collectDbSpans();
 
     await request.get('/api/db-test?method=prepare-get');
 
-    const transaction = await transactionPromise;
-
-    const dbSpan = transaction.spans?.find(span => span.op === 'db.query' && span.description?.includes('SELECT'));
+    const dbSpan = (await dbSpansPromise).find(span => span.name === 'SELECT users');
 
     expect(dbSpan).toBeDefined();
-    expect(dbSpan?.op).toBe('db.query');
-    expect(dbSpan?.description).toBe('SELECT * FROM users WHERE id = ?');
-    expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(dbSpan?.data?.['db.query.text']).toBe('SELECT * FROM users WHERE id = ?');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(dbSpan?.status).toBe('ok');
+    expect(dbSpan?.attributes).toMatchObject({
+      'db.query.summary': { type: 'string', value: 'SELECT users' },
+      'db.query.text': { type: 'string', value: 'SELECT * FROM users WHERE id = ?' },
+      'db.system.name': { type: 'string', value: 'sqlite' },
+      'db.namespace': { type: 'string', value: 'db.sqlite' },
+      'sentry.op': { type: 'string', value: 'db.query' },
+      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+    });
   });
 
   test('captures db.prepare().all() span', async ({ request }) => {
-    const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
-    });
+    const dbSpansPromise = collectDbSpans();
 
     await request.get('/api/db-test?method=prepare-all');
 
-    const transaction = await transactionPromise;
-
-    const dbSpan = transaction.spans?.find(
-      span => span.op === 'db.query' && span.description?.includes('SELECT * FROM products'),
-    );
+    const dbSpan = (await dbSpansPromise).find(span => span.name === 'SELECT products');
 
     expect(dbSpan).toBeDefined();
-    expect(dbSpan?.op).toBe('db.query');
-    expect(dbSpan?.description).toBe('SELECT * FROM products WHERE price > ?');
-    expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(dbSpan?.data?.['db.query.text']).toBe('SELECT * FROM products WHERE price > ?');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(dbSpan?.attributes).toMatchObject({
+      'db.query.summary': { type: 'string', value: 'SELECT products' },
+      'db.query.text': { type: 'string', value: 'SELECT * FROM products WHERE price > ?' },
+      'db.system.name': { type: 'string', value: 'sqlite' },
+      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+    });
   });
 
   test('captures db.prepare().run() span', async ({ request }) => {
-    const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
-    });
+    const dbSpansPromise = collectDbSpans();
 
     await request.get('/api/db-test?method=prepare-run');
 
-    const transaction = await transactionPromise;
-
-    const dbSpan = transaction.spans?.find(
-      span => span.op === 'db.query' && span.description?.includes('INSERT INTO orders'),
-    );
+    const dbSpan = (await dbSpansPromise).find(span => span.name === 'INSERT orders');
 
     expect(dbSpan).toBeDefined();
-    expect(dbSpan?.op).toBe('db.query');
-    expect(dbSpan?.description).toBe('INSERT INTO orders (customer, amount) VALUES (?, ?)');
-    expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(dbSpan?.data?.['db.query.text']).toBe('INSERT INTO orders (customer, amount) VALUES (?, ?)');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(dbSpan?.attributes).toMatchObject({
+      'db.query.summary': { type: 'string', value: 'INSERT orders' },
+      'db.query.text': { type: 'string', value: 'INSERT INTO orders (customer, amount) VALUES (?, ?)' },
+      'db.system.name': { type: 'string', value: 'sqlite' },
+      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+    });
   });
 
   test('captures db.prepare().bind().all() span', async ({ request }) => {
-    const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
-    });
+    const dbSpansPromise = collectDbSpans();
 
     await request.get('/api/db-test?method=prepare-bind');
 
-    const transaction = await transactionPromise;
-
-    const dbSpan = transaction.spans?.find(
-      span => span.op === 'db.query' && span.description?.includes('SELECT * FROM items'),
-    );
+    const dbSpan = (await dbSpansPromise).find(span => span.name === 'SELECT items');
 
     expect(dbSpan).toBeDefined();
-    expect(dbSpan?.op).toBe('db.query');
-    expect(dbSpan?.description).toBe('SELECT * FROM items WHERE category = ?');
-    expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(dbSpan?.data?.['db.query.text']).toBe('SELECT * FROM items WHERE category = ?');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(dbSpan?.attributes).toMatchObject({
+      'db.query.summary': { type: 'string', value: 'SELECT items' },
+      'db.query.text': { type: 'string', value: 'SELECT * FROM items WHERE category = ?' },
+      'db.system.name': { type: 'string', value: 'sqlite' },
+      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+    });
   });
 
   test('captures db.sql template tag span', async ({ request }) => {
-    const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
-    });
+    const dbSpansPromise = collectDbSpans();
 
     await request.get('/api/db-test?method=sql');
 
-    const transaction = await transactionPromise;
-
-    const dbSpan = transaction.spans?.find(
-      span => span.op === 'db.query' && span.description?.includes('INSERT INTO messages'),
-    );
+    const dbSpan = (await dbSpansPromise).find(span => span.name === 'INSERT messages');
 
     expect(dbSpan).toBeDefined();
-    expect(dbSpan?.op).toBe('db.query');
-    expect(dbSpan?.description).toContain('INSERT INTO messages');
-    expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(dbSpan?.data?.['db.query.text']).toContain('INSERT INTO messages');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(dbSpan?.attributes).toMatchObject({
+      'db.query.summary': { type: 'string', value: 'INSERT messages' },
+      'db.query.text': {
+        type: 'string',
+        value: 'INSERT INTO messages (content, created_at) VALUES (?, ?)',
+      },
+      'db.system.name': { type: 'string', value: 'sqlite' },
+      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+    });
   });
 
   test('captures db.exec() span', async ({ request }) => {
-    const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
-    });
+    const dbSpansPromise = collectDbSpans();
 
     await request.get('/api/db-test?method=exec');
 
-    const transaction = await transactionPromise;
+    const dbSpans = await dbSpansPromise;
+    const insertSpan = dbSpans.find(span => span.name === 'INSERT logs');
 
-    const dbSpan = transaction.spans?.find(
-      span => span.op === 'db.query' && span.description?.includes('INSERT INTO logs'),
-    );
+    expect(insertSpan).toBeDefined();
+    expect(insertSpan?.attributes).toMatchObject({
+      'db.query.summary': { type: 'string', value: 'INSERT logs' },
+      'db.query.text': { type: 'string', value: `INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')` },
+      'db.system.name': { type: 'string', value: 'sqlite' },
+      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+    });
 
-    expect(dbSpan).toBeDefined();
-    expect(dbSpan?.op).toBe('db.query');
-    expect(dbSpan?.description).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
-    expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(dbSpan?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    // DDL statements are summarized as `{operation} {table}` as well, with the statement on the attribute
+    expect(dbSpans.find(span => span.name === 'DROP TABLE logs')?.attributes).toMatchObject({
+      'db.query.text': { type: 'string', value: 'DROP TABLE IF EXISTS logs' },
+    });
+    expect(dbSpans.find(span => span.name === 'CREATE TABLE logs')?.attributes).toMatchObject({
+      'db.query.text': {
+        type: 'string',
+        value: 'CREATE TABLE logs (id INTEGER PRIMARY KEY, message TEXT, level TEXT)',
+      },
+    });
   });
 
   test('captures database error and marks span as failed', async ({ request }) => {
@@ -133,15 +132,13 @@ test.describe('database integration', () => {
       );
     });
 
-    const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
-    });
+    const dbSpansPromise = collectDbSpans();
 
     await request.get('/api/db-test?method=error').catch(() => {
       // Expected to fail
     });
 
-    const [error, transaction] = await Promise.all([errorPromise, transactionPromise]);
+    const [error, dbSpans] = await Promise.all([errorPromise, dbSpansPromise]);
 
     const dbException = error.exception?.values?.find(value => value.mechanism?.type === 'auto.db.nuxt');
 
@@ -152,50 +149,46 @@ test.describe('database integration', () => {
       type: 'auto.db.nuxt',
     });
 
-    const dbSpan = transaction.spans?.find(
-      span => span.op === 'db.query' && span.description?.includes('SELECT * FROM nonexistent_table'),
-    );
+    const dbSpan = dbSpans.find(span => span.name === 'SELECT nonexistent_table');
 
     expect(dbSpan).toBeDefined();
-    expect(dbSpan?.op).toBe('db.query');
-    expect(dbSpan?.description).toBe('SELECT * FROM nonexistent_table WHERE invalid_column = ?');
-    expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(dbSpan?.data?.['db.query.text']).toBe('SELECT * FROM nonexistent_table WHERE invalid_column = ?');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
-    expect(dbSpan?.status).toBe('internal_error');
+    expect(dbSpan?.status).toBe('error');
+    expect(dbSpan?.attributes).toMatchObject({
+      'db.query.summary': { type: 'string', value: 'SELECT nonexistent_table' },
+      'db.query.text': { type: 'string', value: 'SELECT * FROM nonexistent_table WHERE invalid_column = ?' },
+      'db.system.name': { type: 'string', value: 'sqlite' },
+      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+    });
   });
 
   test('captures breadcrumb for db.exec() queries', async ({ request }) => {
-    const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
+    const errorPromise = waitForError('nuxt-3', errorEvent => {
+      return !!errorEvent?.exception?.values?.some(value => value.mechanism?.type === 'auto.db.nuxt');
     });
 
-    await request.get('/api/db-test?method=exec');
+    await request.get('/api/db-test?method=error').catch(() => {
+      // Expected to fail
+    });
 
-    const transaction = await transactionPromise;
+    const error = await errorPromise;
 
-    const dbBreadcrumb = transaction.breadcrumbs?.find(
+    const dbBreadcrumb = error.breadcrumbs?.find(
       breadcrumb => breadcrumb.category === 'query' && breadcrumb.message?.includes('INSERT INTO logs'),
     );
 
     expect(dbBreadcrumb).toBeDefined();
-    expect(dbBreadcrumb?.category).toBe('query');
     expect(dbBreadcrumb?.message).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
     expect(dbBreadcrumb?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
   });
 
   test('multiple database operations in single request create multiple spans', async ({ request }) => {
-    const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/db-test';
-    });
+    const dbSpansPromise = collectDbSpans();
 
     await request.get('/api/db-test?method=prepare-get');
 
-    const transaction = await transactionPromise;
+    const dbSpans = await dbSpansPromise;
 
-    const dbSpans = transaction.spans?.filter(span => span.op === 'db.query');
-
-    expect(dbSpans).toBeDefined();
-    expect(dbSpans!.length).toBeGreaterThanOrEqual(1);
+    expect(dbSpans.length).toBeGreaterThanOrEqual(1);
+    expect(dbSpans.every(span => !span.is_segment)).toBe(true);
   });
 });

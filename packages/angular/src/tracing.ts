@@ -28,11 +28,12 @@ import {
   URL_PATH,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
-import { FUNCTION } from '@sentry/conventions/op';
+import { FUNCTION, ROUTER } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import {
   debug,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
   ROUTER_SPAN_NAME_FALLBACK,
   stripUrlQueryAndFragment,
@@ -123,7 +124,9 @@ export class TraceService implements OnDestroy {
             startBrowserTracingNavigationSpan(
               client,
               {
-                name: strippedUrl,
+                // With span streaming, span names have to be low cardinality. The parameterized route
+                // is only known on `ResolveEnd`, which updates the span name then.
+                name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : strippedUrl,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
@@ -148,8 +151,7 @@ export class TraceService implements OnDestroy {
               // known at `ResolveEnd`, well after this span starts, so there is nothing but the fallback.
               name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : `${navigationEvent.url}`,
               attributes: {
-                // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
-                [SENTRY_OP]: 'router',
+                [SENTRY_OP]: ROUTER,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
                 [URL_FULL]: strippedUrl,
                 ...(navigationEvent.navigationTrigger && {

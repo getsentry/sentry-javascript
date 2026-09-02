@@ -1,6 +1,6 @@
 # browser-bfcache
 
-Exercises `bfcacheIntegration` against a **real** browser back/forward cache, covering hits,
+Exercises `bfcacheMetricsIntegration` against a **real** browser back/forward cache, covering hits,
 misses, and the real `notRestoredReasons` the browser reports (Chromium-only, and this app is
 Chromium). Deliberately bfcache-ineligible pages are produced via `?botch=<case>` (see `src/main.ts`).
 
@@ -22,7 +22,7 @@ permissive than web.dev's list suggests, so the individual `?botch=` cases and t
 the source of truth, not prose here. Some are gated on the browser version where behavior changed.
 
 Reason extraction/classification (top/child/masked frames, nesting, caps) is covered by the unit test
-at `packages/browser/test/integrations/bfcache.test.ts`; this app verifies the real end-to-end
+at `packages/browser/test/integrations/bfcacheMetrics.test.ts`; this app verifies the real end-to-end
 hit/miss + reason path.
 
 If other tests later fit these same constraints, this app can be renamed to something broader.

@@ -2,14 +2,9 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
-// Orchestrion injects `diagnostics_channel` publishers at build time, so these spans only exist in the
-// bundled server build. `react-router dev` serves an unbundled SSR pipeline where the transform never
-// runs, so the assertions are meaningless there — skip them in the dev run.
-const isDev = process.env.TEST_ENV === 'development';
-
-test.describe('server - orchestrion build-time db instrumentation', () => {
-  test.skip(isDev, 'orchestrion only injects into the bundled server build, not the dev server');
-
+// Same spans in both runs, from two injectors: the build-time transform in the server bundle, and
+// the runtime hook in `react-router dev`, where the drivers stay on Node's own loader.
+test.describe('server - orchestrion db instrumentation', () => {
   test('instruments ioredis automatically via orchestrion', async ({ page }) => {
     const transactionEventPromise = waitForTransaction(APP_NAME, transactionEvent => {
       return (

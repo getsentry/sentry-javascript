@@ -5,7 +5,7 @@ import type {
   SendFeedback,
 } from '@sentry/core';
 import { debug } from '@sentry/core';
-import type { JSX, VNode } from 'preact';
+import type { TargetedSubmitEvent, VNode } from 'preact';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
@@ -96,7 +96,7 @@ export function Form({
   );
 
   const handleSubmit = useCallback(
-    async (e: JSX.TargetedSubmitEvent<HTMLFormElement>) => {
+    async (e: TargetedSubmitEvent<HTMLFormElement>) => {
       setIsSubmitting(true);
       try {
         e.preventDefault();
@@ -131,7 +131,7 @@ export function Form({
           onSubmitSuccess(data, eventId);
         } catch (error) {
           DEBUG_BUILD && debug.error(error);
-          const err = error instanceof Error ? error : new Error(String(error));
+          const err = error as Error;
           setError(err.message);
           onSubmitError(err);
         }

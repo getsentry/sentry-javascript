@@ -8,7 +8,11 @@ import {
   SPAN_STATUS_OK,
   winterCGHeadersToDict,
 } from '@sentry/core';
-import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
+import {
+  isNotFoundNavigationError,
+  isPrerenderControlFlowError,
+  isRedirectNavigationError,
+} from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 
@@ -40,31 +44,36 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         error => {
           const span = getActiveSpan();
           const { componentRoute, componentType } = context;
-          let shouldCapture = true;
           isolationScope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
 
-          if (span) {
-            if (isNotFoundNavigationError(error)) {
-              // We don't want to report "not-found"s
-              shouldCapture = false;
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-            } else if (isRedirectNavigationError(error)) {
-              // We don't want to report redirects
-              shouldCapture = false;
-              span.setStatus({ code: SPAN_STATUS_OK });
-            } else {
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            }
+          // Next.js uses thrown errors for control flow. Whether or not we happen to have an active span here
+          // must not decide if we report them, so these checks deliberately run outside of the span handling.
+          if (isNotFoundNavigationError(error)) {
+            // We don't want to report "not-found"s
+            span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+            return;
           }
 
-          if (shouldCapture) {
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.function.nextjs.server_component',
-              },
-            });
+          if (isRedirectNavigationError(error)) {
+            // We don't want to report redirects
+            span?.setStatus({ code: SPAN_STATUS_OK });
+            return;
           }
+
+          if (isPrerenderControlFlowError(error)) {
+            // Next.js aborts prerenders by rejecting the promises it handed out. React discards those rejections,
+            // so they are expected, do not affect the response, and must not be reported.
+            return;
+          }
+
+          span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+
+          captureException(error, {
+            mechanism: {
+              handled: false,
+              type: 'auto.function.nextjs.server_component',
+            },
+          });
         },
         () => {
           waitUntil(flushSafelyWithTimeout());

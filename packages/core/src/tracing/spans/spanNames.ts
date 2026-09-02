@@ -15,7 +15,8 @@ export const PAGELOAD_SPAN_NAME_FALLBACK = 'Pageload';
 export const NAVIGATION_SPAN_NAME_FALLBACK = 'Navigation';
 
 /**
- * Fallback name for db spans when no better-suited span name is available.
+ * db0 exposes no db system we could name the span after, so unsummarizable statements fall back to
+ * this static name.
  * @see https://getsentry.github.io/sentry-conventions/names/#db-queries
  */
 export const DB_SPAN_NAME_FALLBACK = 'Database operation';
@@ -76,6 +77,6 @@ export const ROUTER_SPAN_NAME_FALLBACK = 'Router';
 
 /**
  * Fallback name for request handler spans when no better-suited span name is available.
- * @see https://getsentry.github.io/sentry-conventions/names/#resource-resources
+ * @see https://getsentry.github.io/sentry-conventions/names/#web_server-request-handler
  */
-export const REQUEST_HANDLER_SPAN_NAME_FALLBACK = 'Request Handler';
+export const REQUEST_HANDLER_SPAN_NAME_FALLBACK = 'Request handler';

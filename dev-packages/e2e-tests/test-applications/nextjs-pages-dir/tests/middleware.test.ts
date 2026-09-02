@@ -74,6 +74,7 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
           'http.response.status_code': 200,
           type: 'fetch',
           'url.full': 'http://localhost:3030/',
+          'url.domain': 'localhost',
           'server.address': 'localhost',
           'server.port': 3030,
           'sentry.op': 'http.client',

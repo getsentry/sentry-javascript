@@ -57,6 +57,7 @@
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/react": "10.67.0",
+    "@sentry/server-runtime-injection": "10.67.0",
     "@sentry/server-utils": "10.67.0",
     "@sentry/bundler-plugins": "10.67.0"
   },

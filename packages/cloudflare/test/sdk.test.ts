@@ -312,7 +312,7 @@ describe('getDefaultIntegrations', () => {
 
   test('does not add orchestrion channel integrations when only the bundler marker is set', () => {
     // The plugin's entry banner ran, but no instrumented module has loaded yet.
-    globalThis.__SENTRY_ORCHESTRION__ = { bundler: [] };
+    globalThis.__SENTRY_ORCHESTRION__ = { bundler: new Set() };
 
     const names = getDefaultIntegrations({}).map(i => i.name);
 
@@ -327,7 +327,7 @@ describe('getDefaultIntegrations', () => {
     // keyed by module name (so a package split across files registers once).
     const { mysqlIntegration, postgresIntegration, lruMemoizerIntegration } = await import('@sentry/server-utils');
     globalThis.__SENTRY_ORCHESTRION__ = {
-      bundler: ['mysql', 'pg', 'lru-memoizer'],
+      bundler: new Set(['mysql', 'pg', 'lru-memoizer']),
       integrations: new Map([
         ['mysql', mysqlIntegration],
         ['pg', postgresIntegration],
@@ -350,7 +350,7 @@ describe('getDefaultIntegrations', () => {
     // Mirror `orchestrionModuleInjected` for a driver that first evaluates
     // after init: store the factory on the marker, then emit the event.
     globalThis.__SENTRY_ORCHESTRION__ = {
-      bundler: ['mysql'],
+      bundler: new Set(['mysql']),
       integrations: new Map([['mysql', mysqlIntegration]]),
     };
     client?.emit('orchestrion.module-injected', 'mysql');

@@ -19,6 +19,8 @@ import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getIsolationScope } from '../../../../src/currentScopes';
+import { Scope } from '../../../../src/scope';
+import { spanToJSON } from '../../../../src/utils/spanUtils';
 import { setCurrentClient } from '../../../../src/sdk';
 import { HTTP_ON_SERVER_REQUEST } from '../../../../src/integrations/http/constants';
 import { getHttpServerSubscriptions } from '../../../../src/integrations/http/server-subscription';
@@ -58,7 +60,7 @@ describe('getHttpServerSubscriptions', () => {
 
   async function makeRequest(
     path: string,
-    method: 'GET' | 'HEAD' | 'OPTIONS' = 'GET',
+    method: 'GET' | 'HEAD' | 'OPTIONS' | 'POST' = 'GET',
     extraHeaders: Record<string, string> = {},
   ): Promise<void> {
     const { port } = server.address() as AddressInfo;
@@ -307,5 +309,47 @@ describe('getHttpServerSubscriptions', () => {
     await makeRequest('/now-traced');
     const transaction = await waitForTransaction();
     expect(transaction.transaction).toBe('GET /now-traced');
+  });
+
+  describe('with span streaming enabled', () => {
+    let streamingClient: TestClient;
+
+    beforeEach(() => {
+      streamingClient = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1, traceLifecycle: 'stream' }));
+      setCurrentClient(streamingClient);
+      streamingClient.init();
+      getIsolationScope().setClient(streamingClient);
+    });
+
+    async function startedSpanName(path: string, method: 'GET' | 'POST' = 'GET'): Promise<string> {
+      let spanName: string | undefined;
+      streamingClient.on('spanStart', span => {
+        spanName ??= spanToJSON(span).name;
+      });
+
+      server = http.createServer((_req, res) => res.end('ok'));
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+      instrument(true);
+
+      await makeRequest(path, method);
+      await vi.waitUntil(() => spanName !== undefined, { timeout: 1000, interval: 10 });
+      return spanName!;
+    }
+
+    it('names the span after the request method instead of the URL path', async () => {
+      expect(await startedSpanName('/users/42?foo=bar')).toBe('GET');
+    });
+
+    it('keeps the method distinct per request', async () => {
+      expect(await startedSpanName('/users/42', 'POST')).toBe('POST');
+    });
+
+    it('keeps the raw URL path as the scope transaction name', async () => {
+      const setTransactionName = vi.spyOn(Scope.prototype, 'setTransactionName');
+
+      expect(await startedSpanName('/users/42?foo=bar')).toBe('GET');
+
+      expect(setTransactionName).toHaveBeenCalledWith('GET /users/42');
+    });
   });
 });

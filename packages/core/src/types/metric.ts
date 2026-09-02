@@ -1,4 +1,5 @@
 import type { Attributes, TypedAttributeValue } from '../attributes';
+import type { MetricUnit } from './measurement';
 
 export type MetricType = 'counter' | 'gauge' | 'distribution';
 
@@ -21,7 +22,7 @@ export interface Metric {
   /**
    * The unit of the metric value.
    */
-  unit?: string;
+  unit?: MetricUnit;
 
   /**
    * Arbitrary structured data that stores information about the metric.
@@ -63,7 +64,7 @@ export interface SerializedMetric {
   /**
    * The unit of the metric value.
    */
-  unit?: string;
+  unit?: MetricUnit;
 
   /**
    * The value of the metric.

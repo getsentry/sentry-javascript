@@ -59,6 +59,11 @@ export default defineEventHandler(async event => {
     }
 
     case 'error': {
+      // A successful query runs first so the captured error carries a query breadcrumb: with span
+      // streaming there is no transaction event left to read breadcrumbs off.
+      await db.exec('CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY, message TEXT, level TEXT)');
+      await db.exec(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
+
       const stmt = db.prepare('SELECT * FROM nonexistent_table WHERE invalid_column = ?');
       await stmt.get(1);
       return { success: false, message: 'Should have thrown an error' };

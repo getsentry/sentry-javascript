@@ -64,10 +64,10 @@ export type InternalGlobal = {
     /**
      * Module names recorded as each bundler-transformed module loads (the
      * injected snippet calls `orchestrionModuleInjected`). The bundler plugin's
-     * entry banner ensures `[]` at boot, so a defined array — even empty —
-     * signifies the plugin ran.
+     * entry banner ensures an empty `Set` at boot, so a defined set — even
+     * empty — signifies the plugin ran.
      */
-    bundler?: string[];
+    bundler?: Set<string>;
     /**
      * Channel-subscriber integration factories stored by the snippet the
      * bundler transform splices into each instrumented module, keyed by module
@@ -77,6 +77,14 @@ export type InternalGlobal = {
      * `init()` and instantiates them.
      */
     integrations?: Map<string, () => Integration>;
+    /**
+     * Set once `registerDiagnosticsChannelInjection()` has run but could not
+     * install the runtime module hooks — most commonly because
+     * `@sentry/server-runtime-injection` was bundled into the app (which strips its vendored
+     * code transformer) or the Node runtime lacks the required module-hook API.
+     * Dedupes the one-time warning and short-circuits repeat calls.
+     */
+    runtimeUnavailable?: boolean;
   };
 } & Carrier;
 

@@ -1,8 +1,10 @@
 import type { Span, SpanAttributes } from '../../types/span';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
+import { getClient } from '../../currentScopes';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
+import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
 import { getContentLengthFromHeaders } from '../../utils/request';
-import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
+import { getHttpSpanDetailsFromUrlObject, isURLObjectRelative, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
 import type { StartSpanOptions } from '../../types/startSpanOptions';
@@ -16,12 +18,14 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   NETWORK_TRANSPORT,
+  SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
-  SENTRY_KIND,
   URL_FULL,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 
 /**
  * Build the initial span name and attributes for an outgoing HTTP request.
@@ -29,19 +33,25 @@ import {
  */
 export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpanOptions {
   const url = getRequestUrlFromClientRequest(request);
-  const [name, attributes] = getHttpSpanDetailsFromUrlObject(
-    parseStringToURLObject(url),
-    'client',
-    'auto.http.client',
-    request,
-  );
+  const urlObject = parseStringToURLObject(url);
+  const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'client', 'auto.http.client', request);
 
   const userAgent = request.getHeader('user-agent');
 
+  // With span streaming, span names have to be low cardinality, so only the domain is kept. Outgoing
+  // requests have no route to fall back on, and a URL stays relative only when the request carried no
+  // host to build one from — server runtimes have no page origin to resolve that against, unlike
+  // browsers — so such a request is named after the method alone.
+  const client = getClient();
+  const method = request.method?.toUpperCase();
+  const domain = urlObject && !isURLObjectRelative(urlObject) ? urlObject.hostname : undefined;
+  const streamedName = method ? (domain ? `${method} ${domain}` : method) : HTTP_SPAN_NAME_FALLBACK;
+  const spanName = !!client && hasSpanStreamingEnabled(client) ? streamedName : name;
+
   return {
-    name,
+    name: spanName,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+      [SENTRY_OP]: HTTP_CLIENT,
       [SENTRY_KIND]: 'client',
       [URL_FULL]: filterCollectedUrl(url),
       // The old `http.target` (path plus query) has no separate replacement here: `url.path`,

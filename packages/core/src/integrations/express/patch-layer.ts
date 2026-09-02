@@ -27,17 +27,27 @@
  * limitations under the License.
  */
 
-import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
+// This module backs the deprecated Express exports (superseded by `expressIntegration()`), so it
+// references the deprecated `ExpressIntegrationOptions` type.
+/* oxlint-disable typescript/no-deprecated */
+
+import {
+  HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+} from '@sentry/conventions/attributes';
+import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR, withActiveSpan } from '../../tracing';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
-import { ROUTER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
+import { REQUEST_HANDLER_SPAN_NAME_FALLBACK, ROUTER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { startSpanManual } from '../../tracing/trace';
 import { debug } from '../../utils/debug-logger';
 import type { SpanAttributes } from '../../types/span';
-import { getActiveSpan } from '../../utils/spanUtils';
+import { getActiveSpan, getRootSpan, spanToJSON } from '../../utils/spanUtils';
 import { getStoredLayers, storeLayer } from './request-layer-store';
 import {
   type ExpressRequest,
@@ -63,11 +73,10 @@ import { getDefaultIsolationScope } from '../../defaultScopes';
 import { getOriginalFunction, markFunctionWrapped } from '../../utils/object';
 import { setSDKProcessingMetadata } from './set-sdk-processing-metadata';
 
-// TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
 const EXPRESS_TYPE_TO_SPAN_OP: Record<string, string> = {
   [ExpressLayerType_MIDDLEWARE]: MIDDLEWARE,
-  [ExpressLayerType_REQUEST_HANDLER]: 'handler',
-  [ExpressLayerType_ROUTER]: 'router',
+  [ExpressLayerType_REQUEST_HANDLER]: HANDLER,
+  [ExpressLayerType_ROUTER]: ROUTER,
 };
 
 export type ExpressPatchLayerOptions = Pick<
@@ -142,6 +151,13 @@ export function patchLayer(
       attributes[ATTR_HTTP_ROUTE] = actualMatchedRoute;
     }
 
+    // Propagate the route to the root `http.server` span before the ignore check, so the span is still
+    // named when the layer's own span is ignored. Runs for every layer that matched a route, not just
+    // request handlers: mounted middleware (`app.use('/trpc', ...)`) resolves a route too.
+    if (actualMatchedRoute) {
+      applyRouteToRootSpan(actualMatchedRoute);
+    }
+
     // verify against the config if the layer should be ignored
     if (isLayerIgnored(metadata.attributes[ATTR_EXPRESS_NAME], type, options)) {
       // XXX: the isLayerPathStored guard here is *not* present in the
@@ -168,10 +184,19 @@ export function patchLayer(
     }
 
     const client = getClient();
-    // With span streaming, span names have to be low cardinality, so router spans are named after their route.
-    const isStreamedRouterSpan = type === ExpressLayerType_ROUTER && !!client && hasSpanStreamingEnabled(client);
+    // With span streaming, span names have to be low cardinality, so router
+    // and request handler spans are named after their route. A route that did
+    // not validate against the request URL can describe a different request,
+    // so those spans take the static fallback instead.
+    const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
+    const isStreamedRouterSpan = isStreamedSpan && type === ExpressLayerType_ROUTER;
+    const isStreamedRequestHandlerSpan = isStreamedSpan && type === ExpressLayerType_REQUEST_HANDLER;
 
-    const spanName = isStreamedRouterSpan ? actualMatchedRoute || ROUTER_SPAN_NAME_FALLBACK : name;
+    const spanName = isStreamedRouterSpan
+      ? actualMatchedRoute || ROUTER_SPAN_NAME_FALLBACK
+      : isStreamedRequestHandlerSpan
+        ? actualMatchedRoute || REQUEST_HANDLER_SPAN_NAME_FALLBACK
+        : name;
 
     return startSpanManual({ name: spanName, attributes }, span => {
       let spanHasEnded = false;
@@ -288,4 +313,35 @@ export function patchLayer(
     writable: true,
     value: layerHandlePatched,
   });
+}
+
+/**
+ * Write the resolved route onto the root `http.server` span.
+ *
+ * With span streaming the root span starts out named after the request method only, because no route
+ * is known at that point. Unlike the Node SDK — which goes through `setHttpServerSpanRouteAttribute` —
+ * nothing else on this path renames it, so a routed request would otherwise keep the method-only name.
+ */
+function applyRouteToRootSpan(route: string): void {
+  const client = getClient();
+  if (!client || !hasSpanStreamingEnabled(client)) {
+    return;
+  }
+
+  const activeSpan = getActiveSpan();
+  const rootSpan = activeSpan && getRootSpan(activeSpan);
+  if (!rootSpan) {
+    return;
+  }
+
+  const attributes = spanToJSON(rootSpan).attributes;
+  if (attributes[SENTRY_OP] !== 'http.server') {
+    return;
+  }
+
+  // eslint-disable-next-line typescript/no-deprecated
+  const method = attributes[HTTP_REQUEST_METHOD] || attributes[HTTP_METHOD] || 'GET';
+  rootSpan.updateName(`${method} ${route}`);
+  rootSpan.setAttribute(HTTP_ROUTE, route);
+  rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
 }

@@ -42,8 +42,6 @@ app.get('/test-error', function (req, res) {
   }, 100);
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 app.use(function onError(err, req, res, next) {
   // The error id is attached to `res.sentry` to be returned
   // and optionally displayed to the user for support.

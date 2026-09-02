@@ -22,10 +22,9 @@ import {
   getRootSpan,
   getTraceData,
   hasSpansEnabled,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   httpHeadersToSpanAttributes,
-  isNodeEnv,
-  loadModule,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   spanToJSON,
@@ -35,6 +34,7 @@ import {
   withIsolationScope,
   filterCollectedUrl,
 } from '@sentry/core';
+import { isNodeEnv, loadModule } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';
@@ -48,7 +48,7 @@ import {
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { FUNCTION } from '@sentry/conventions/op';
+import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -186,7 +186,13 @@ function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
     const currentSpanName = spanToJSON(rootSpan).name;
     const newSpanName = currentSpanName?.startsWith(method) ? `${method} ${transactionName}` : transactionName;
 
-    rootSpan.updateName(newSpanName);
+    // Without a matched route `getTransactionName` falls back to the raw pathname, which would undo the
+    // low-cardinality name the span starts with under span streaming.
+    const client = getClient();
+    const isUnparameterizedStreamedSpan = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+    if (!isUnparameterizedStreamedSpan) {
+      rootSpan.updateName(newSpanName);
+    }
     rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
     if (source === 'route') {
       rootSpan.setAttribute(HTTP_ROUTE, transactionName);
@@ -313,6 +319,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
 ): RequestHandler {
   let resolvedBuild: ServerBuild | { build: ServerBuild };
   let name: string;
+  let spanName: string;
   let source: TransactionSource;
 
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
@@ -354,13 +361,20 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
       if (options?.instrumentTracing && resolvedRoutes) {
         [name, source] = getTransactionName(resolvedRoutes, url);
 
+        // The scope's transaction name is what error events are grouped by, so it keeps the URL path.
         isolationScope.setTransactionName(name);
+
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+        spanName =
+          source === 'route' || !client || !hasSpanStreamingEnabled(client)
+            ? name
+            : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
         // Update the span name if we're running inside an existing span
         const parentSpan = getActiveSpan();
         if (parentSpan) {
           const rootSpan = getRootSpan(parentSpan);
-          rootSpan?.updateName(name);
+          rootSpan?.updateName(spanName);
           rootSpan?.setAttributes({
             [SENTRY_SEGMENT_NAME_SOURCE]: source,
             ...(source === 'route' && {
@@ -385,15 +399,15 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
           if (options?.instrumentTracing) {
             const parentSpan = getActiveSpan();
             const rootSpan = parentSpan && getRootSpan(parentSpan);
-            rootSpan?.updateName(name);
+            rootSpan?.updateName(spanName);
             rootSpan?.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
             return startSpan(
               {
-                name,
+                name: spanName,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
                   [SENTRY_SEGMENT_NAME_SOURCE]: source,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  [SENTRY_OP]: HTTP_SERVER,
                   [URL_FULL]: filterCollectedUrl(url.href),
                   [URL_PATH]: url.pathname,
                   method: request.method,

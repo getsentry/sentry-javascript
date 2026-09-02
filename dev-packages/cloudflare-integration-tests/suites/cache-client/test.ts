@@ -193,14 +193,12 @@ it('cacheClient: true - two consecutive invocations get different isolation scop
 });
 
 it('cacheClient: true - streaming response works with shared client', async ({ signal }) => {
-  // A streamed request produces two span envelopes — the DO's own `GET /streaming` and the
-  // outer worker's `GET /cache/streaming` — and their arrival order is not guaranteed. Accept
-  // either, since the point is that spans still reach the transport at all.
+  // A streamed request produces two span envelopes — the DO's own and the outer worker's — and
+  // their arrival order is not guaranteed. Neither resolves a route, so with span streaming both
+  // are named after the request method; the point is that spans still reach the transport at all.
   const streamingSpanExpectation = (envelope: Envelope) => {
     const payload = envelope[1]?.[0]?.[1] as { items?: Array<{ name?: string }> };
-    expect(payload.items?.map(span => span.name)).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^GET \/(cache\/)?streaming$/)]),
-    );
+    expect(payload.items?.map(span => span.name)).toEqual(expect.arrayContaining(['GET']));
   };
 
   const runner = createRunner(__dirname).start(signal);
@@ -314,9 +312,10 @@ it('cacheClient: true - burst DO RPC spans share the worker request trace', asyn
   const started = runner
     .expect((envelope: Envelope) => {
       const payload = envelope[1]?.[0]?.[1] as SpanV2Payload;
-      const root = payload.items?.find(span => span.name === 'GET /burst');
+      const root = payload.items?.find(span => span.attributes?.['sentry.op']?.value === 'http.server');
       expect(root).toBeDefined();
-      expect(root?.attributes?.['sentry.op']?.value).toBe('http.server');
+      // `/burst` resolves no route, so with span streaming the name is the request method.
+      expect(root?.name).toBe('GET');
       workerTraceId = root?.trace_id;
     })
     .unordered()

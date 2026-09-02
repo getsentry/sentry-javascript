@@ -33,6 +33,36 @@ describe('withSentry', () => {
     vi.clearAllMocks();
   });
 
+  describe('with span streaming enabled', () => {
+    async function segmentSpanNameFor(url: string): Promise<string | undefined> {
+      let spanName: string | undefined;
+
+      await wrapRequestHandler(
+        {
+          options: { ...MOCK_OPTIONS, traceLifecycle: 'stream', tracesSampleRate: 1 },
+          request: new Request(url),
+          context: createMockExecutionContext(),
+        },
+        () => {
+          // Read the name while the request is in flight: the gate applies at span start.
+          const activeSpan = SentryCore.getActiveSpan();
+          spanName = activeSpan ? SentryCore.spanToJSON(SentryCore.getRootSpan(activeSpan)).name : undefined;
+          return new Response('test');
+        },
+      );
+
+      return spanName;
+    }
+
+    test('names a span without a resolvable route after the request method', async () => {
+      expect(await segmentSpanNameFor('https://example.com/users/42')).toBe('GET');
+    });
+
+    test('keeps the root path, which is already low cardinality', async () => {
+      expect(await segmentSpanNameFor('https://example.com/')).toBe('GET /');
+    });
+  });
+
   test('passes through the response from the handler', async () => {
     const response = new Response('test');
     const result = await wrapRequestHandler(

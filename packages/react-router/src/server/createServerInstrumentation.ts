@@ -7,20 +7,22 @@ import {
   URL_FULL,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
+import { FUNCTION, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   debug,
-  flushIfServerless,
   getActiveSpan,
+  getClient,
   getCurrentScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
   filterCollectedUrl,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import type { ServerInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
@@ -67,10 +69,18 @@ export function createSentryServerInstrumentation(
           const activeSpan = getActiveSpan();
           const existingRootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
+          const client = getClient();
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL
+          // path. `updateRootSpanWithRoute` renames the span once React Router matches a route.
+          const unparameterizedName =
+            client && hasSpanStreamingEnabled(client)
+              ? info.request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
+              : `${info.request.method} ${pathname}`;
+
           if (existingRootSpan) {
-            updateSpanName(existingRootSpan, `${info.request.method} ${pathname}`);
+            updateSpanName(existingRootSpan, unparameterizedName);
             existingRootSpan.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SENTRY_OP]: HTTP_SERVER,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [URL_FULL]: filterCollectedUrl(info.request.url),
@@ -92,10 +102,9 @@ export function createSentryServerInstrumentation(
           } else {
             await startSpan(
               {
-                name: `${info.request.method} ${pathname}`,
-                forceTransaction: true,
+                name: unparameterizedName,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  [SENTRY_OP]: HTTP_SERVER,
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [HTTP_REQUEST_METHOD]: info.request.method,
@@ -273,7 +282,14 @@ function updateRootSpanWithRoute(method: string, pattern: string | undefined, ur
   const routeName = hasPattern ? normalizeRoutePath(pattern) || urlPath : urlPath;
 
   const transactionName = `${method} ${routeName}`;
-  updateSpanName(rootSpan, transactionName);
+
+  const client = getClient();
+  // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+  const isUnparameterizedStreamedSpan = !hasPattern && !!client && hasSpanStreamingEnabled(client);
+  updateSpanName(
+    rootSpan,
+    isUnparameterizedStreamedSpan ? method.toUpperCase() || HTTP_SPAN_NAME_FALLBACK : transactionName,
+  );
   rootSpan.setAttributes({
     [HTTP_ROUTE]: routeName,
     [SENTRY_SEGMENT_NAME_SOURCE]: hasPattern ? 'route' : 'url',

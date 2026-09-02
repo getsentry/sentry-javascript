@@ -1,11 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction, waitForError } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
+
+async function collectRequestSpans() {
+  const spans = await collectStreamedSpans('nuxt-3', spans =>
+    spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test'),
+  );
+  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test');
+
+  return spans.filter(span => span.trace_id === rootSpan?.trace_id);
+}
 
 test.describe('Server Middleware Instrumentation', () => {
   test('should create separate spans for each server middleware', async ({ request }) => {
-    const serverTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;
-    });
+    const spansPromise = collectRequestSpans();
 
     // Make request to the API endpoint that will trigger all server middleware
     const response = await request.get('/api/middleware-test');
@@ -14,22 +21,23 @@ test.describe('Server Middleware Instrumentation', () => {
     const responseData = await response.json();
     expect(responseData.message).toBe('Server middleware test endpoint');
 
-    const serverTxnEvent = await serverTxnEventPromise;
+    const spans = await spansPromise;
 
     // Verify that we have spans for each middleware
-    const middlewareSpans = serverTxnEvent.spans?.filter(span => span.op === 'middleware') || [];
+    const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware');
 
     // 3 simple + 3 hooks (onRequest+handler+onBeforeResponse) + 5 array hooks (2 onRequest + 1 handler + 2 onBeforeResponse)
     expect(middlewareSpans).toHaveLength(11);
 
     // Check for specific middleware spans
-    const firstMiddlewareSpan = middlewareSpans.find(span => span.data?.['nuxt.middleware.name'] === '01.first');
-    const secondMiddlewareSpan = middlewareSpans.find(span => span.data?.['nuxt.middleware.name'] === '02.second');
-    const authMiddlewareSpan = middlewareSpans.find(span => span.data?.['nuxt.middleware.name'] === '03.auth');
-    const hooksOnRequestSpan = middlewareSpans.find(span => span.data?.['nuxt.middleware.name'] === '04.hooks');
-    const arrayHooksHandlerSpan = middlewareSpans.find(
-      span => span.data?.['nuxt.middleware.name'] === '05.array-hooks',
-    );
+    const findSpanByName = (name: string) =>
+      middlewareSpans.find(span => span.attributes['nuxt.middleware.name']?.value === name);
+
+    const firstMiddlewareSpan = findSpanByName('01.first');
+    const secondMiddlewareSpan = findSpanByName('02.second');
+    const authMiddlewareSpan = findSpanByName('03.auth');
+    const hooksOnRequestSpan = findSpanByName('04.hooks');
+    const arrayHooksHandlerSpan = findSpanByName('05.array-hooks');
 
     expect(firstMiddlewareSpan).toBeDefined();
     expect(secondMiddlewareSpan).toBeDefined();
@@ -41,12 +49,12 @@ test.describe('Server Middleware Instrumentation', () => {
     [firstMiddlewareSpan, secondMiddlewareSpan, authMiddlewareSpan].forEach(span => {
       expect(span).toEqual(
         expect.objectContaining({
-          op: 'middleware',
-          data: expect.objectContaining({
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nuxt',
-            'http.request.method': 'GET',
-            'http.route': '/api/middleware-test',
+          is_segment: false,
+          attributes: expect.objectContaining({
+            'sentry.op': { type: 'string', value: 'middleware' },
+            'sentry.origin': { type: 'string', value: 'auto.middleware.nuxt' },
+            'http.request.method': { type: 'string', value: 'GET' },
+            'http.route': { type: 'string', value: '/api/middleware-test' },
           }),
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -68,25 +76,24 @@ test.describe('Server Middleware Instrumentation', () => {
   });
 
   test('middleware spans should have proper parent-child relationship', async ({ request }) => {
-    const serverTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;
-    });
+    const spansPromise = collectRequestSpans();
 
     await request.get('/api/middleware-test');
-    const serverTxnEvent = await serverTxnEventPromise;
+    const spans = await spansPromise;
 
-    const middlewareSpans = serverTxnEvent.spans?.filter(span => span.op === 'middleware') || [];
+    const segmentSpan = spans.find(
+      span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test',
+    );
+    const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware');
 
-    // All middleware spans should be children of the main transaction
+    // All middleware spans should be children of the request's segment span
     middlewareSpans.forEach(span => {
-      expect(span.parent_span_id).toBe(serverTxnEvent.contexts?.trace?.span_id);
+      expect(span.parent_span_id).toBe(segmentSpan?.span_id);
     });
   });
 
   test('should capture errors thrown in middleware and associate them with the span', async ({ request }) => {
-    const serverTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;
-    });
+    const spansPromise = collectRequestSpans();
 
     const errorEventPromise = waitForError('nuxt-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Auth middleware error';
@@ -98,19 +105,19 @@ test.describe('Server Middleware Instrumentation', () => {
     // The request should fail due to the middleware error
     expect(response.status()).toBe(500);
 
-    const [serverTxnEvent, errorEvent] = await Promise.all([serverTxnEventPromise, errorEventPromise]);
+    const [spans, errorEvent] = await Promise.all([spansPromise, errorEventPromise]);
 
     // Find the auth middleware span
-    const authMiddlewareSpan = serverTxnEvent.spans?.find(
-      span => span.op === 'middleware' && span.data?.['nuxt.middleware.name'] === '03.auth',
+    const authMiddlewareSpan = spans.find(
+      span => getSpanOp(span) === 'middleware' && span.attributes['nuxt.middleware.name']?.value === '03.auth',
     );
 
     expect(authMiddlewareSpan).toBeDefined();
 
     // Verify the span has error status
-    expect(authMiddlewareSpan?.status).toBe('internal_error');
+    expect(authMiddlewareSpan?.status).toBe('error');
 
-    // Verify the error event is associated with the correct transaction
+    // Verify the error event is associated with the correct request
     expect(errorEvent.transaction).toContain('GET /api/middleware-test');
 
     const exception = errorEvent.exception?.values?.[0];
@@ -131,115 +138,118 @@ test.describe('Server Middleware Instrumentation', () => {
   });
 
   test('should create spans for onRequest and onBeforeResponse hooks', async ({ request }) => {
-    const serverTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;
-    });
+    const spansPromise = collectRequestSpans();
 
     // Make request to trigger middleware with hooks
     const response = await request.get('/api/middleware-test');
     expect(response.status()).toBe(200);
 
-    const serverTxnEvent = await serverTxnEventPromise;
-    const middlewareSpans = serverTxnEvent.spans?.filter(span => span.op === 'middleware') || [];
+    const spans = await spansPromise;
+    const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware');
 
     // Find spans for the hooks middleware
-    const hooksSpans = middlewareSpans.filter(span => span.data?.['nuxt.middleware.name'] === '04.hooks');
+    const hooksSpans = middlewareSpans.filter(span => span.attributes['nuxt.middleware.name']?.value === '04.hooks');
 
     // Should have spans for onRequest, handler, and onBeforeResponse
     expect(hooksSpans).toHaveLength(3);
 
     // Find specific hook spans
-    const onRequestSpan = hooksSpans.find(span => span.data?.['nuxt.middleware.hook.name'] === 'onRequest');
-    const handlerSpan = hooksSpans.find(span => span.data?.['nuxt.middleware.hook.name'] === 'handler');
-    const onBeforeResponseSpan = hooksSpans.find(
-      span => span.data?.['nuxt.middleware.hook.name'] === 'onBeforeResponse',
-    );
+    const findSpanByHook = (hook: string) =>
+      hooksSpans.find(span => span.attributes['nuxt.middleware.hook.name']?.value === hook);
+
+    const onRequestSpan = findSpanByHook('onRequest');
+    const handlerSpan = findSpanByHook('handler');
+    const onBeforeResponseSpan = findSpanByHook('onBeforeResponse');
 
     expect(onRequestSpan).toBeDefined();
     expect(handlerSpan).toBeDefined();
     expect(onBeforeResponseSpan).toBeDefined();
 
     // Verify span names include hook types
-    expect(onRequestSpan?.description).toBe('04.hooks.onRequest');
-    expect(handlerSpan?.description).toBe('04.hooks');
-    expect(onBeforeResponseSpan?.description).toBe('04.hooks.onBeforeResponse');
+    expect(onRequestSpan?.name).toBe('04.hooks.onRequest');
+    expect(handlerSpan?.name).toBe('04.hooks');
+    expect(onBeforeResponseSpan?.name).toBe('04.hooks.onBeforeResponse');
 
     // Verify all spans have correct middleware name (without hook suffix)
     [onRequestSpan, handlerSpan, onBeforeResponseSpan].forEach(span => {
-      expect(span?.data?.['nuxt.middleware.name']).toBe('04.hooks');
+      expect(span?.attributes['nuxt.middleware.name']?.value).toBe('04.hooks');
     });
 
     // Verify hook-specific attributes
-    expect(onRequestSpan?.data?.['nuxt.middleware.hook.name']).toBe('onRequest');
-    expect(handlerSpan?.data?.['nuxt.middleware.hook.name']).toBe('handler');
-    expect(onBeforeResponseSpan?.data?.['nuxt.middleware.hook.name']).toBe('onBeforeResponse');
+    expect(onRequestSpan?.attributes['nuxt.middleware.hook.name']?.value).toBe('onRequest');
+    expect(handlerSpan?.attributes['nuxt.middleware.hook.name']?.value).toBe('handler');
+    expect(onBeforeResponseSpan?.attributes['nuxt.middleware.hook.name']?.value).toBe('onBeforeResponse');
 
     // Verify no index attributes for single hooks
-    expect(onRequestSpan?.data).not.toHaveProperty('nuxt.middleware.hook.index');
-    expect(handlerSpan?.data).not.toHaveProperty('nuxt.middleware.hook.index');
-    expect(onBeforeResponseSpan?.data).not.toHaveProperty('nuxt.middleware.hook.index');
+    expect(onRequestSpan?.attributes['nuxt.middleware.hook.index']).toBeUndefined();
+    expect(handlerSpan?.attributes['nuxt.middleware.hook.index']).toBeUndefined();
+    expect(onBeforeResponseSpan?.attributes['nuxt.middleware.hook.index']).toBeUndefined();
   });
 
   test('should create spans with index attributes for array hooks', async ({ request }) => {
-    const serverTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;
-    });
+    const spansPromise = collectRequestSpans();
 
     // Make request to trigger middleware with array hooks
     const response = await request.get('/api/middleware-test');
     expect(response.status()).toBe(200);
 
-    const serverTxnEvent = await serverTxnEventPromise;
-    const middlewareSpans = serverTxnEvent.spans?.filter(span => span.op === 'middleware') || [];
+    const spans = await spansPromise;
+    const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware');
 
     // Find spans for the array hooks middleware
-    const arrayHooksSpans = middlewareSpans.filter(span => span.data?.['nuxt.middleware.name'] === '05.array-hooks');
+    const arrayHooksSpans = middlewareSpans.filter(
+      span => span.attributes['nuxt.middleware.name']?.value === '05.array-hooks',
+    );
 
     // Should have spans for 2 onRequest + 1 handler + 2 onBeforeResponse = 5 spans
     expect(arrayHooksSpans).toHaveLength(5);
 
     // Find onRequest array spans
-    const onRequestSpans = arrayHooksSpans.filter(span => span.data?.['nuxt.middleware.hook.name'] === 'onRequest');
+    const onRequestSpans = arrayHooksSpans.filter(
+      span => span.attributes['nuxt.middleware.hook.name']?.value === 'onRequest',
+    );
     expect(onRequestSpans).toHaveLength(2);
 
     // Find onBeforeResponse array spans
     const onBeforeResponseSpans = arrayHooksSpans.filter(
-      span => span.data?.['nuxt.middleware.hook.name'] === 'onBeforeResponse',
+      span => span.attributes['nuxt.middleware.hook.name']?.value === 'onBeforeResponse',
     );
     expect(onBeforeResponseSpans).toHaveLength(2);
 
     // Find handler span
-    const handlerSpan = arrayHooksSpans.find(span => span.data?.['nuxt.middleware.hook.name'] === 'handler');
+    const handlerSpan = arrayHooksSpans.find(span => span.attributes['nuxt.middleware.hook.name']?.value === 'handler');
     expect(handlerSpan).toBeDefined();
 
     // Verify index attributes for onRequest array
-    const onRequest0Span = onRequestSpans.find(span => span.data?.['nuxt.middleware.hook.index'] === 0);
-    const onRequest1Span = onRequestSpans.find(span => span.data?.['nuxt.middleware.hook.index'] === 1);
+    const onRequest0Span = onRequestSpans.find(span => span.attributes['nuxt.middleware.hook.index']?.value === 0);
+    const onRequest1Span = onRequestSpans.find(span => span.attributes['nuxt.middleware.hook.index']?.value === 1);
 
     expect(onRequest0Span).toBeDefined();
     expect(onRequest1Span).toBeDefined();
 
     // Verify index attributes for onBeforeResponse array
-    const onBeforeResponse0Span = onBeforeResponseSpans.find(span => span.data?.['nuxt.middleware.hook.index'] === 0);
-    const onBeforeResponse1Span = onBeforeResponseSpans.find(span => span.data?.['nuxt.middleware.hook.index'] === 1);
+    const onBeforeResponse0Span = onBeforeResponseSpans.find(
+      span => span.attributes['nuxt.middleware.hook.index']?.value === 0,
+    );
+    const onBeforeResponse1Span = onBeforeResponseSpans.find(
+      span => span.attributes['nuxt.middleware.hook.index']?.value === 1,
+    );
 
     expect(onBeforeResponse0Span).toBeDefined();
     expect(onBeforeResponse1Span).toBeDefined();
 
     // Verify span names for array handlers
-    expect(onRequest0Span?.description).toBe('05.array-hooks.onRequest');
-    expect(onRequest1Span?.description).toBe('05.array-hooks.onRequest');
-    expect(onBeforeResponse0Span?.description).toBe('05.array-hooks.onBeforeResponse');
-    expect(onBeforeResponse1Span?.description).toBe('05.array-hooks.onBeforeResponse');
+    expect(onRequest0Span?.name).toBe('05.array-hooks.onRequest');
+    expect(onRequest1Span?.name).toBe('05.array-hooks.onRequest');
+    expect(onBeforeResponse0Span?.name).toBe('05.array-hooks.onBeforeResponse');
+    expect(onBeforeResponse1Span?.name).toBe('05.array-hooks.onBeforeResponse');
 
     // Verify handler has no index
-    expect(handlerSpan?.data).not.toHaveProperty('nuxt.middleware.hook.index');
+    expect(handlerSpan?.attributes['nuxt.middleware.hook.index']).toBeUndefined();
   });
 
   test('should handle errors in onRequest hooks', async ({ request }) => {
-    const serverTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;
-    });
+    const spansPromise = collectRequestSpans();
 
     const errorEventPromise = waitForError('nuxt-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'OnRequest hook error';
@@ -249,25 +259,23 @@ test.describe('Server Middleware Instrumentation', () => {
     const response = await request.get('/api/middleware-test?throwOnRequestError=true');
     expect(response.status()).toBe(500);
 
-    const [serverTxnEvent, errorEvent] = await Promise.all([serverTxnEventPromise, errorEventPromise]);
+    const [spans, errorEvent] = await Promise.all([spansPromise, errorEventPromise]);
 
     // Find the onRequest span that should have error status
-    const onRequestSpan = serverTxnEvent.spans?.find(
+    const onRequestSpan = spans.find(
       span =>
-        span.op === 'middleware' &&
-        span.data?.['nuxt.middleware.name'] === '04.hooks' &&
-        span.data?.['nuxt.middleware.hook.name'] === 'onRequest',
+        getSpanOp(span) === 'middleware' &&
+        span.attributes['nuxt.middleware.name']?.value === '04.hooks' &&
+        span.attributes['nuxt.middleware.hook.name']?.value === 'onRequest',
     );
 
     expect(onRequestSpan).toBeDefined();
-    expect(onRequestSpan?.status).toBe('internal_error');
+    expect(onRequestSpan?.status).toBe('error');
     expect(errorEvent.exception?.values?.[0]?.value).toBe('OnRequest hook error');
   });
 
   test('should handle errors in onBeforeResponse hooks', async ({ request }) => {
-    const serverTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;
-    });
+    const spansPromise = collectRequestSpans();
 
     const errorEventPromise = waitForError('nuxt-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'OnBeforeResponse hook error';
@@ -277,25 +285,23 @@ test.describe('Server Middleware Instrumentation', () => {
     const response = await request.get('/api/middleware-test?throwOnBeforeResponseError=true');
     expect(response.status()).toBe(500);
 
-    const [serverTxnEvent, errorEvent] = await Promise.all([serverTxnEventPromise, errorEventPromise]);
+    const [spans, errorEvent] = await Promise.all([spansPromise, errorEventPromise]);
 
     // Find the onBeforeResponse span that should have error status
-    const onBeforeResponseSpan = serverTxnEvent.spans?.find(
+    const onBeforeResponseSpan = spans.find(
       span =>
-        span.op === 'middleware' &&
-        span.data?.['nuxt.middleware.name'] === '04.hooks' &&
-        span.data?.['nuxt.middleware.hook.name'] === 'onBeforeResponse',
+        getSpanOp(span) === 'middleware' &&
+        span.attributes['nuxt.middleware.name']?.value === '04.hooks' &&
+        span.attributes['nuxt.middleware.hook.name']?.value === 'onBeforeResponse',
     );
 
     expect(onBeforeResponseSpan).toBeDefined();
-    expect(onBeforeResponseSpan?.status).toBe('internal_error');
+    expect(onBeforeResponseSpan?.status).toBe('error');
     expect(errorEvent.exception?.values?.[0]?.value).toBe('OnBeforeResponse hook error');
   });
 
   test('should handle errors in array hooks with proper index attribution', async ({ request }) => {
-    const serverTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;
-    });
+    const spansPromise = collectRequestSpans();
 
     const errorEventPromise = waitForError('nuxt-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'OnRequest[1] hook error';
@@ -305,31 +311,28 @@ test.describe('Server Middleware Instrumentation', () => {
     const response = await request.get('/api/middleware-test?throwOnRequest1Error=true');
     expect(response.status()).toBe(500);
 
-    const [serverTxnEvent, errorEvent] = await Promise.all([serverTxnEventPromise, errorEventPromise]);
+    const [spans, errorEvent] = await Promise.all([spansPromise, errorEventPromise]);
+
+    const findArrayHookSpan = (index: number) =>
+      spans.find(
+        span =>
+          getSpanOp(span) === 'middleware' &&
+          span.attributes['nuxt.middleware.name']?.value === '05.array-hooks' &&
+          span.attributes['nuxt.middleware.hook.name']?.value === 'onRequest' &&
+          span.attributes['nuxt.middleware.hook.index']?.value === index,
+      );
 
     // Find the second onRequest span that should have error status
-    const onRequest1Span = serverTxnEvent.spans?.find(
-      span =>
-        span.op === 'middleware' &&
-        span.data?.['nuxt.middleware.name'] === '05.array-hooks' &&
-        span.data?.['nuxt.middleware.hook.name'] === 'onRequest' &&
-        span.data?.['nuxt.middleware.hook.index'] === 1,
-    );
+    const onRequest1Span = findArrayHookSpan(1);
 
     expect(onRequest1Span).toBeDefined();
-    expect(onRequest1Span?.status).toBe('internal_error');
+    expect(onRequest1Span?.status).toBe('error');
     expect(errorEvent.exception?.values?.[0]?.value).toBe('OnRequest[1] hook error');
 
     // Verify the first onRequest handler still executed successfully
-    const onRequest0Span = serverTxnEvent.spans?.find(
-      span =>
-        span.op === 'middleware' &&
-        span.data?.['nuxt.middleware.name'] === '05.array-hooks' &&
-        span.data?.['nuxt.middleware.hook.name'] === 'onRequest' &&
-        span.data?.['nuxt.middleware.hook.index'] === 0,
-    );
+    const onRequest0Span = findArrayHookSpan(0);
 
     expect(onRequest0Span).toBeDefined();
-    expect(onRequest0Span?.status).not.toBe('internal_error');
+    expect(onRequest0Span?.status).toBe('ok');
   });
 });

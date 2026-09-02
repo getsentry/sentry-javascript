@@ -113,8 +113,8 @@ describe('browserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledTimes(1);
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledWith(fakeClient, {
       name: '/',
-      op: 'pageload',
       attributes: {
+        'sentry.op': 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
@@ -217,8 +217,8 @@ describe('browserTracingIntegration', () => {
       fakeClient,
       {
         name: '/users/[id]',
-        op: 'navigation',
         attributes: {
+          'sentry.op': 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/users/[id]',
@@ -282,6 +282,40 @@ describe('browserTracingIntegration', () => {
     );
   });
 
+  it('falls back to a low cardinality navigation span name when span streaming is enabled', async () => {
+    const streamingClient = {
+      ...fakeClient,
+      addIntegration: () => {},
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    };
+
+    const integration = browserTracingIntegration({
+      instrumentPageLoad: false,
+    });
+    // @ts-expect-error - the fakeClient doesn't satisfy Client but that's fine
+    integration.afterAllSetup(streamingClient);
+    await vi.dynamicImportSettled();
+
+    // TODO(v11): switch to `navigating` from `$app/state`
+    // @ts-expect-error - navigating is a writable but the types say it's just readable
+    // eslint-disable-next-line typescript/no-deprecated
+    navigating.set({
+      from: { route: {}, url: { pathname: '/users' } },
+      to: { route: {}, url: { pathname: '/users/7762', href: 'https://sentry-test.io/users/7762' } },
+      type: 'link',
+    });
+
+    // The destination URL stays on the span options, only the name is low cardinality.
+    expect(startBrowserTracingNavigationSpanSpy).toHaveBeenCalledWith(
+      streamingClient,
+      expect.objectContaining({
+        name: 'Navigation',
+        attributes: expect.objectContaining({ [SENTRY_SEGMENT_NAME_SOURCE]: 'url' }),
+      }),
+      { url: 'https://sentry-test.io/users/7762' },
+    );
+  });
+
   describe('handling same origin and destination navigations', () => {
     it("doesn't start a navigation span if the raw navigation origin and destination are equal", async () => {
       const integration = browserTracingIntegration({
@@ -327,8 +361,8 @@ describe('browserTracingIntegration', () => {
         fakeClient,
         {
           name: '/users/[id]',
-          op: 'navigation',
           attributes: {
+            'sentry.op': 'navigation',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
             [URL_TEMPLATE]: '/users/[id]',

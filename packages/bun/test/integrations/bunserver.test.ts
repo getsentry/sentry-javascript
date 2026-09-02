@@ -59,6 +59,7 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       {
         attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
           'sentry.segment.name.source': 'url',
@@ -74,8 +75,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.host': expect.any(String),
           'http.request.header.user_agent': expect.stringContaining('Bun'),
         }),
-        op: 'http.server',
-        name: 'GET /users',
+        name: 'GET',
       },
       expect.any(Function),
     );
@@ -103,6 +103,7 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       {
         attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'POST',
           'sentry.segment.name.source': 'url',
@@ -118,8 +119,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.host': expect.any(String),
           'http.request.header.user_agent': expect.stringContaining('Bun'),
         }),
-        op: 'http.server',
-        name: 'POST /',
+        name: 'POST',
       },
       expect.any(Function),
     );
@@ -145,10 +145,10 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'http.request.method': 'QUERY',
         }),
-        op: 'http.server',
-        name: 'QUERY /search',
+        name: 'QUERY',
       }),
       expect.any(Function),
     );
@@ -222,6 +222,7 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'POST',
           'sentry.segment.name.source': 'url',
@@ -242,8 +243,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.baggage': expect.any(String),
           'http.request.header.sentry_trace': expect.any(String),
         }),
-        op: 'http.server',
-        name: 'POST /api/test',
+        name: 'POST',
       }),
       expect.any(Function),
     );
@@ -299,6 +299,7 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
           'sentry.segment.name.source': 'route',
@@ -310,7 +311,6 @@ describe('Bun Serve Integration', () => {
           'url.scheme': 'http:',
           'url.domain': 'localhost',
         }),
-        op: 'http.server',
         name: 'GET /users/:id',
       }),
       expect.any(Function),
@@ -338,6 +338,7 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
           'sentry.segment.name.source': 'route',
@@ -348,7 +349,6 @@ describe('Bun Serve Integration', () => {
           'url.scheme': 'http:',
           'url.domain': 'localhost',
         }),
-        op: 'http.server',
         name: 'GET /api/*',
       }),
       expect.any(Function),
@@ -403,12 +403,12 @@ describe('Bun Serve Integration', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'GET',
             'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
-          op: 'http.server',
           name: 'GET /api/posts',
         }),
         expect.any(Function),
@@ -440,12 +440,12 @@ describe('Bun Serve Integration', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'POST',
             'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
-          op: 'http.server',
           name: 'POST /api/posts',
         }),
         expect.any(Function),
@@ -472,12 +472,12 @@ describe('Bun Serve Integration', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'PUT',
             'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
-          op: 'http.server',
           name: 'PUT /api/posts',
         }),
         expect.any(Function),
@@ -504,12 +504,12 @@ describe('Bun Serve Integration', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'DELETE',
             'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
-          op: 'http.server',
           name: 'DELETE /api/posts',
         }),
         expect.any(Function),

@@ -8,6 +8,7 @@ import {
   SENTRY_KIND,
   HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
+import { RPC } from '@sentry/conventions/op';
 import { CHANNELS } from '../../orchestrion/channels';
 import { awsSdkModuleNames } from '../../orchestrion/config/aws-sdk';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -107,7 +108,7 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
         name: requestMetadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`,
         // `rpc` matches what the exporter infers from `rpc.service` for the OTel aws-sdk spans;
         // service extensions override it where inference yields a different op (DynamoDB: `db`).
-        op: requestMetadata.spanOp || 'rpc',
+        op: requestMetadata.spanOp || RPC,
         attributes: {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AWS_SDK_ORIGIN,

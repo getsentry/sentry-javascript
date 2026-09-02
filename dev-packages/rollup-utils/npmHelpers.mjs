@@ -29,6 +29,38 @@ const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), '.
 
 const ignoreSideEffects = /[\\/]debug-build\.ts$/;
 
+const repoRoot = path.resolve(__dirname, '../..');
+const sideEffectsCache = new Map();
+
+/**
+ * Whether an external package declares `"sideEffects": false` in its `package.json`.
+ * Unknown packages are treated as having side effects.
+ */
+function isSideEffectFreePackage(packageName) {
+  const cached = sideEffectsCache.get(packageName);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let sideEffectFree = false;
+  try {
+    const json = JSON.parse(
+      fs.readFileSync(path.resolve(repoRoot, 'node_modules', packageName, 'package.json'), { encoding: 'utf8' }),
+    );
+    sideEffectFree = json.sideEffects === false;
+  } catch {
+    // Not resolvable from the repo root - assume side effects.
+  }
+
+  sideEffectsCache.set(packageName, sideEffectFree);
+  return sideEffectFree;
+}
+
+function getPackageName(id) {
+  const segments = id.split('/');
+  return id.startsWith('@') ? segments.slice(0, 2).join('/') : segments[0];
+}
+
 export function makeBaseNPMConfig(options = {}) {
   const {
     entrypoints = ['src/index.ts'],
@@ -109,9 +141,11 @@ export function makeBaseNPMConfig(options = {}) {
           return false;
         }
 
-        // @sentry/conventions only exports constants (sideEffects: false),
-        // so Rollup shouldn't emit bare side-effect imports for it.
-        if (external && id.startsWith('@sentry/conventions')) {
+        // Rollup keeps a bare `import '<pkg>'` alive whenever it tree-shakes away every
+        // binding of an external it believes has side effects. For a package that declares
+        // `"sideEffects": false` that import contradicts its own manifest, and bundlers such
+        // as esbuild warn about it (`ignored-bare-import`).
+        if (external && isSideEffectFreePackage(getPackageName(id))) {
           return false;
         }
 
@@ -192,9 +226,9 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 /**
  * Emits the `@sentry/<framework>/import` entry (`build/import-hook.mjs`) as part of the rollup build,
  * used as `node --import @sentry/<framework>/import app.js`. The generated hook imports
- * `@sentry/server-utils/orchestrion/import-hook`, which registers the orchestrion
- * diagnostics-channel injection, so the consuming package must declare `@sentry/server-utils` as a
- * dependency.
+ * `@sentry/server-runtime-injection/import-hook`, which registers the orchestrion
+ * diagnostics-channel injection, so the consuming package must declare
+ * `@sentry/server-runtime-injection` as a dependency.
  *
  * @param {string} outputFolder Build output folder.
  */
@@ -209,7 +243,7 @@ export function makeOrchestrionLoader(outputFolder) {
     );
   }
 
-  const requiredDep = '@sentry/server-utils';
+  const requiredDep = '@sentry/server-runtime-injection';
   const foundRequiredDep =
     Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
       return key === requiredDep;

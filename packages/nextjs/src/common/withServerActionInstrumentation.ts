@@ -15,7 +15,11 @@ import {
 } from '@sentry/core';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import { DEBUG_BUILD } from './debug-build';
-import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
+import {
+  isNotFoundNavigationError,
+  isPrerenderControlFlowError,
+  isRedirectNavigationError,
+} from './nextNavigationErrorUtils';
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
@@ -114,6 +118,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
           return await startSpan(
             {
               name: `serverAction/${serverActionName}`,
+              // oxlint-disable-next-line typescript/no-deprecated
               forceTransaction: true,
               attributes: {
                 [SENTRY_KIND]: 'server',
@@ -132,6 +137,12 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
                   // Redirects are normal Next.js control flow, not errors. Mark the span as OK and end it
                   // early so the surrounding `startSpan` error handler doesn't override the status to
                   // `internal_error`
+                  span.setStatus({ code: SPAN_STATUS_OK });
+                  span.end();
+                } else if (isPrerenderControlFlowError(error)) {
+                  // Next.js only throws these from a prerender scope and server actions run in a request
+                  // scope, so this is not reachable today. It is here because `unstable_rethrow` defines
+                  // the contract for anything catching user land errors, without carving out actions.
                   span.setStatus({ code: SPAN_STATUS_OK });
                   span.end();
                 } else {

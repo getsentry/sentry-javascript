@@ -12,4 +12,4 @@
  *
  * @module
  */
-import '@sentry/server-utils/orchestrion/import-hook';
+import '@sentry/server-runtime-injection/import-hook';

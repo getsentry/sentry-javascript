@@ -1,4 +1,5 @@
-import { captureException, isNodeEnv } from '@sentry/core';
+import { captureException } from '@sentry/core';
+import { isNodeEnv } from '@sentry/core/server';
 import { isResponse } from '../utils/vendor/response';
 
 /**

@@ -2,11 +2,13 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
+  getClient,
   getSpanStatusFromHttpCode,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   startInactiveSpan,
@@ -25,7 +27,7 @@ import {
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
-import { FUNCTION } from '@sentry/conventions/op';
+import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 import { remixChannels } from '@sentry/server-utils/orchestrion/config';
 import type { FormDataCapture } from '../../utils/formData';
 import { applyFormDataAttributes } from '../../utils/formData';
@@ -142,12 +144,22 @@ function subscribeRequestHandler(): void {
       const method = requestAttributes[HTTP_REQUEST_METHOD];
       const path = requestAttributes[URL_PATH];
       const hasUrlName = typeof method === 'string' && typeof path === 'string';
+      const client = getClient();
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+      // The route is applied later, once Remix has matched it.
+      const isStreamed = !!client && hasSpanStreamingEnabled(client);
       return startInactiveSpan({
-        name: hasUrlName ? `${method} ${path}` : 'remix.request',
+        name: isStreamed
+          ? typeof method === 'string'
+            ? method
+            : HTTP_SPAN_NAME_FALLBACK
+          : hasUrlName
+            ? `${method} ${path}`
+            : 'remix.request',
         attributes: {
           [SENTRY_KIND]: 'server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SENTRY_OP]: HTTP_SERVER,
           ...(hasUrlName && { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' }),
           [CODE_FUNCTION_NAME]: 'requestHandler',
           ...requestAttributes,

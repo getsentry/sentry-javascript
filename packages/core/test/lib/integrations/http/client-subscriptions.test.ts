@@ -81,7 +81,7 @@ describe('getHttpClientSubscriptions', () => {
     });
 
     it('does not propagate trace headers when suppressTracing is active', () => {
-      const subscriptions = getHttpClientSubscriptions({ breadcrumbs: false, spans: false, propagateTrace: true });
+      const subscriptions = getHttpClientSubscriptions({ breadcrumbs: false, spans: false, tracePropagation: true });
       const handler = subscriptions[HTTP_ON_CLIENT_REQUEST];
 
       withScope(scope => {

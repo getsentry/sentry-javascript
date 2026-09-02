@@ -128,7 +128,7 @@ describe('browserTracingReactRouterV5', () => {
     });
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/about',
+      name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
@@ -141,7 +141,7 @@ describe('browserTracingReactRouterV5', () => {
     });
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/features',
+      name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
@@ -200,7 +200,7 @@ describe('browserTracingReactRouterV5', () => {
 
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/users/123',
+      name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
@@ -237,7 +237,7 @@ describe('browserTracingReactRouterV5', () => {
 
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/users/123',
+      name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
@@ -282,7 +282,7 @@ describe('browserTracingReactRouterV5', () => {
 
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/organizations/1234/v1/758',
+      name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
@@ -305,7 +305,7 @@ describe('browserTracingReactRouterV5', () => {
 
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/organizations/543',
+      name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',

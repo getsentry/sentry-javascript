@@ -5,9 +5,11 @@ import {
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 
@@ -42,6 +44,7 @@ export function startMongooseLegacySpan({
   parentSpan,
 }: StartMongooseLegacySpanOptions): Span {
   const attributes: SpanAttributes = {
+    [SENTRY_OP]: DB,
     [SENTRY_KIND]: 'client',
     [DB_COLLECTION_NAME]: collection?.name,
     [DB_NAMESPACE]: collection?.conn?.name,
@@ -56,7 +59,6 @@ export function startMongooseLegacySpan({
   return startInactiveSpan({
     name: `mongoose.${modelName}.${operation}`,
     // Set this explicitly, for platforms lacking `inferDbSpanData`
-    op: 'db',
     attributes,
     parentSpan,
   });

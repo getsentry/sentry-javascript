@@ -1,13 +1,14 @@
 import {
-  SENTRY_SEGMENT_NAME_SOURCE,
   HTTP_METHOD,
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
   HTTP_TARGET,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
   URL_PATH,
 } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, stripUrlQueryAndFragment } from '@sentry/core';
+import { HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
+import { stripUrlQueryAndFragment } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../common/span-attributes-with-logic-attached';
 import { backfillHttpResponseStatusCode } from '../common/utils/backfillHttpResponseStatusCode';
@@ -37,8 +38,8 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
     return;
   }
 
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
-  span.setOp('http.server');
+  attributes[SENTRY_OP] = HTTP_SERVER;
+  span.setOp(HTTP_SERVER);
 
   backfillHttpResponseStatusCode(attributes);
 

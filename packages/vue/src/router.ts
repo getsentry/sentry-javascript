@@ -7,6 +7,7 @@ import {
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
+import { NAVIGATION } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   getActiveSpan,
@@ -14,6 +15,7 @@ import {
   getCurrentScope,
   getRootSpan,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
@@ -139,12 +141,18 @@ export function instrumentVueRouter(
     }
 
     if (options.instrumentNavigation && !activePageLoadSpan) {
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      // A route name (`custom`) or matched route path (`route`) is low cardinality, a raw path is not.
+      const client = getClient();
+      const isUnparameterizedStreamedNavigation =
+        transactionSource === 'url' && !!client && hasSpanStreamingEnabled(client);
+
       startNavigationSpanFn(
         {
-          name: spanName,
-          op: 'navigation',
+          name: isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : spanName,
           attributes: {
             ...attributes,
+            [SENTRY_OP]: NAVIGATION,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
             [SENTRY_SEGMENT_NAME_SOURCE]: transactionSource,
           },

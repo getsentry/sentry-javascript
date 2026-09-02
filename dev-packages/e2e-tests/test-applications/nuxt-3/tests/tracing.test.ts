@@ -1,22 +1,23 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.describe('distributed tracing', () => {
   const PARAM = 's0me-param';
+  const API_PATH = `/api/user/${PARAM}`;
 
   test('capture a distributed pageload trace', async ({ page }) => {
-    const clientTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction === '/test-param/:param()';
+    const clientSpanPromise = waitForStreamedSpan('nuxt-3', span => {
+      return getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
-    const serverTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction.includes('GET /test-param/');
+    const serverSpanPromise = waitForStreamedSpan('nuxt-3', span => {
+      return span.is_segment && span.name.includes('GET /test-param/');
     });
 
-    const [_, clientTxnEvent, serverTxnEvent] = await Promise.all([
+    const [_, clientSpan, serverSpan] = await Promise.all([
       page.goto(`/test-param/${PARAM}`),
-      clientTxnEventPromise,
-      serverTxnEventPromise,
+      clientSpanPromise,
+      serverSpanPromise,
       expect(page.getByText(`Param: ${PARAM}`)).toBeVisible(),
     ]);
 
@@ -24,7 +25,7 @@ test.describe('distributed tracing', () => {
 
     // URL-encoded for parametrized 'GET /test-param/s0me-param' -> `GET /test-param/:param`
     expect(baggageMetaTagContent).toContain(`sentry-transaction=GET%20%2Ftest-param%2F%3Aparam`);
-    expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverTxnEvent.contexts?.trace?.trace_id}`);
+    expect(baggageMetaTagContent).toContain(`sentry-trace_id=${serverSpan.trace_id}`);
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
     expect(baggageMetaTagContent).toContain('sentry-sample_rate=1');
 
@@ -33,125 +34,115 @@ test.describe('distributed tracing', () => {
 
     expect(metaSampled).toBe('1');
 
-    expect(clientTxnEvent).toMatchObject({
-      transaction: '/test-param/:param()',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'pageload',
-          origin: 'auto.pageload.vue',
-          trace_id: metaTraceId,
-          parent_span_id: metaParentSpanId,
-        },
-      },
+    expect(clientSpan).toMatchObject({
+      name: '/test-param/:param()',
+      is_segment: true,
+      trace_id: metaTraceId,
+      parent_span_id: metaParentSpanId,
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'pageload' },
+        'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
+        'sentry.segment.name.source': { type: 'string', value: 'route' },
+      }),
     });
 
-    expect(serverTxnEvent).toMatchObject({
-      transaction: `GET /test-param/:param()`, // parametrized
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.http_server',
-        },
-      },
+    expect(serverSpan).toMatchObject({
+      name: 'GET /test-param/:param()', // parametrized
+      is_segment: true,
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'http.server' },
+        'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+        'sentry.segment.name.source': { type: 'string', value: 'route' },
+      }),
     });
 
     // connected trace
-    expect(clientTxnEvent.contexts?.trace?.trace_id).toBeDefined();
-    expect(clientTxnEvent.contexts?.trace?.parent_span_id).toBeDefined();
-
-    expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(serverTxnEvent.contexts?.trace?.trace_id);
-    expect(clientTxnEvent.contexts?.trace?.parent_span_id).toBe(serverTxnEvent.contexts?.trace?.span_id);
-    expect(serverTxnEvent.contexts?.trace?.trace_id).toBe(metaTraceId);
+    expect(clientSpan.trace_id).toBe(serverSpan.trace_id);
+    expect(clientSpan.parent_span_id).toBe(serverSpan.span_id);
+    expect(serverSpan.trace_id).toBe(metaTraceId);
   });
 
   test('capture a distributed trace from a client-side API request with parametrized routes', async ({ page }) => {
-    const clientTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction === '/test-param/user/:userId()';
+    // The `http.client` span ends after the pageload segment, so it can be flushed in a later
+    // envelope. Accumulate until both spans have arrived.
+    const clientSpansPromise = collectStreamedSpans('nuxt-3', spans => {
+      return (
+        spans.some(span => span.name === '/test-param/user/:userId()' && span.is_segment) &&
+        spans.some(
+          span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes(API_PATH),
+        )
+      );
     });
-    const ssrTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /test-param/user') ?? false;
+    const ssrSpanPromise = waitForStreamedSpan('nuxt-3', span => {
+      return span.is_segment && span.name.includes('GET /test-param/user');
     });
-    const serverReqTxnEventPromise = waitForTransaction('nuxt-3', txnEvent => {
-      return txnEvent.transaction?.includes('GET /api/user/') ?? false;
+    const serverReqSpanPromise = waitForStreamedSpan('nuxt-3', span => {
+      return span.is_segment && span.name.includes('GET /api/user/');
     });
 
     // Navigate to the page which will trigger an API call from the client-side
     await page.goto(`/test-param/user/${PARAM}`);
 
-    const [clientTxnEvent, ssrTxnEvent, serverReqTxnEvent] = await Promise.all([
-      clientTxnEventPromise,
-      ssrTxnEventPromise,
-      serverReqTxnEventPromise,
+    const [clientSpans, ssrSpan, serverReqSpan] = await Promise.all([
+      clientSpansPromise,
+      ssrSpanPromise,
+      serverReqSpanPromise,
     ]);
 
-    const httpClientSpan = clientTxnEvent?.spans?.find(span => span.description === `GET /api/user/${PARAM}`);
-
-    expect(clientTxnEvent).toEqual(
-      expect.objectContaining({
-        type: 'transaction',
-        transaction: '/test-param/user/:userId()', // parametrized route
-        transaction_info: { source: 'route' },
-        contexts: expect.objectContaining({
-          trace: expect.objectContaining({
-            op: 'pageload',
-            origin: 'auto.pageload.vue',
-          }),
-        }),
-      }),
+    const pageloadSpan = clientSpans.find(span => span.name === '/test-param/user/:userId()' && span.is_segment);
+    const httpClientSpan = clientSpans.find(
+      span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes(API_PATH),
     );
+
+    expect(pageloadSpan).toMatchObject({
+      name: '/test-param/user/:userId()',
+      is_segment: true,
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'pageload' },
+        'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
+        'sentry.segment.name.source': { type: 'string', value: 'route' },
+      }),
+    });
 
     expect(httpClientSpan).toBeDefined();
-    expect(httpClientSpan).toEqual(
-      expect.objectContaining({
-        description: `GET /api/user/${PARAM}`, // fixme: parametrize
-        parent_span_id: clientTxnEvent.contexts?.trace?.span_id, // pageload span is parent
-        data: expect.objectContaining({
-          'url.full': expect.stringContaining(`/api/user/${PARAM}`),
-          type: 'fetch',
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.browser',
-          'http.request.method': 'GET',
-        }),
+    expect(httpClientSpan).toMatchObject({
+      // A relative fetch has no domain of its own, so it resolves against the page origin.
+      name: 'GET localhost',
+      parent_span_id: pageloadSpan?.span_id, // pageload span is parent
+      attributes: expect.objectContaining({
+        type: { type: 'string', value: 'fetch' },
+        'sentry.op': { type: 'string', value: 'http.client' },
+        'sentry.origin': { type: 'string', value: 'auto.http.browser' },
+        'http.request.method': { type: 'string', value: 'GET' },
+        'url.full': { type: 'string', value: expect.stringContaining(API_PATH) },
+        'url.domain': { type: 'string', value: 'localhost' },
       }),
-    );
+    });
 
-    expect(ssrTxnEvent).toEqual(
-      expect.objectContaining({
-        type: 'transaction',
-        transaction: `GET /test-param/user/:userId()`, // parametrized route
-        transaction_info: { source: 'route' },
-        contexts: expect.objectContaining({
-          trace: expect.objectContaining({
-            op: 'http.server',
-            origin: 'auto.http.http_server',
-          }),
-        }),
+    expect(ssrSpan).toMatchObject({
+      name: 'GET /test-param/user/:userId()', // parametrized route
+      is_segment: true,
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'http.server' },
+        'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+        'sentry.segment.name.source': { type: 'string', value: 'route' },
       }),
-    );
+    });
 
-    expect(serverReqTxnEvent).toEqual(
-      expect.objectContaining({
-        type: 'transaction',
-        transaction: `GET /api/user/:userId`, // parametrized route
-        transaction_info: { source: 'route' },
-        contexts: expect.objectContaining({
-          trace: expect.objectContaining({
-            op: 'http.server',
-            origin: 'auto.http.http_server',
-            parent_span_id: httpClientSpan?.span_id, // http.client span is parent
-          }),
-        }),
+    expect(serverReqSpan).toMatchObject({
+      name: 'GET /api/user/:userId', // parametrized route
+      is_segment: true,
+      parent_span_id: httpClientSpan?.span_id, // http.client span is parent
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'http.server' },
+        'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
       }),
-    );
+    });
 
-    // All 3 transactions and the http.client span should share the same trace_id
-    expect(clientTxnEvent.contexts?.trace?.trace_id).toBeDefined();
-    expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(httpClientSpan?.trace_id);
-    expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(ssrTxnEvent.contexts?.trace?.trace_id);
-    expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(serverReqTxnEvent.contexts?.trace?.trace_id);
+    // All 3 root spans and the http.client span should share the same trace_id
+    expect(pageloadSpan?.trace_id).toBeDefined();
+    expect(pageloadSpan?.trace_id).toBe(httpClientSpan?.trace_id);
+    expect(pageloadSpan?.trace_id).toBe(ssrSpan.trace_id);
+    expect(pageloadSpan?.trace_id).toBe(serverReqSpan.trace_id);
   });
 });

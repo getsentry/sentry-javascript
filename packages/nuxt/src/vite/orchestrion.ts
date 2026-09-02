@@ -26,6 +26,12 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
       return;
     }
 
+    // `nuxt dev` has no bundle to transform, and inlining the CommonJS drivers into Nitro's dev
+    // server breaks them (`ioredis` throws `(0, lodash_1.defaults) is not a function`).
+    if (nuxt.options?.dev) {
+      return;
+    }
+
     // On Cloudflare (workerd) the SDK is initialized through `sentryCloudflareNitroPlugin` (no
     // server config file), so the transform must still run there — detected via the Nitro preset.
     // Nitro normalizes preset names, so match any `cloudflare*` spelling.

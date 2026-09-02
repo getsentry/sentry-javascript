@@ -25,6 +25,7 @@ import {
   DB_OPERATION_NAME,
   DB_SYSTEM_NAME,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { DB_SYSTEM_VALUE_DYNAMODB } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
@@ -150,7 +151,7 @@ export class DynamodbServiceExtension implements ServiceExtension {
     return {
       spanAttributes,
       // Matches what the exporter infers from the db system for the OTel DynamoDB spans.
-      spanOp: 'db',
+      spanOp: DB,
     };
   }
 

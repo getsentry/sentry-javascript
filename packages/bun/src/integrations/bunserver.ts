@@ -6,7 +6,9 @@ import {
   getClient,
   getUrlFragment,
   getUrlQuery,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
@@ -19,6 +21,7 @@ import {
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
 import {
+  SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_DOMAIN,
   URL_FRAGMENT,
@@ -28,6 +31,7 @@ import {
   URL_QUERY,
   URL_SCHEME,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
@@ -244,9 +248,12 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       () =>
         startSpan(
           {
-            attributes,
-            op: 'http.server',
-            name: `${request.method} ${routeName}`,
+            attributes: { ...attributes, [SENTRY_OP]: HTTP_SERVER },
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+            name:
+              attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !client || !hasSpanStreamingEnabled(client)
+                ? `${request.method} ${routeName}`
+                : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
           },
           async span => {
             try {

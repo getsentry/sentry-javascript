@@ -14,12 +14,13 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   isObjectLike,
+  REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
+import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import type {
   HapiRequest,
   LifecycleMethod,
@@ -122,15 +123,14 @@ export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanM
   }
 
   const client = getClient();
-  // With span streaming, span names have to be low cardinality, so router spans are named after their
-  // route alone, without the method prefix.
-  const isStreamedRouterSpan = !pluginName && !!client && hasSpanStreamingEnabled(client);
+  // With span streaming, span names have to be low cardinality, so router and request
+  // handler spans are named after their route alone, without the method prefix.
+  const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
+  const fallbackName = pluginName ? REQUEST_HANDLER_SPAN_NAME_FALLBACK : ROUTER_SPAN_NAME_FALLBACK;
 
   return {
     attributes,
-    name: isStreamedRouterSpan
-      ? route.path || ROUTER_SPAN_NAME_FALLBACK
-      : `${route.method.toUpperCase()} ${route.path}`,
+    name: isStreamedSpan ? route.path || fallbackName : `${route.method.toUpperCase()} ${route.path}`,
   };
 };
 
@@ -164,10 +164,9 @@ export const getExtMetadata = (
   };
 };
 
-// TODO(conventions): Replace `'handler'` and `'router'` with their span op constants once they are released in `@sentry/conventions`.
 const HAPI_TYPE_TO_SPAN_OP: Record<string, string> = {
-  [HapiLayerType.PLUGIN]: 'handler',
-  [HapiLayerType.ROUTER]: 'router',
+  [HapiLayerType.PLUGIN]: HANDLER,
+  [HapiLayerType.ROUTER]: ROUTER,
   [HapiLayerType.EXT]: MIDDLEWARE,
 };
 

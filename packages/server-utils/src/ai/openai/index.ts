@@ -1,6 +1,8 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import { DEBUG_BUILD } from '../../debug-build';
 import {
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
@@ -143,9 +145,14 @@ function instrumentMethod<T extends unknown[], R>(
 
     const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
+    const client = getClient();
 
     const spanConfig = {
-      name: `${operationName} ${model}`,
+      // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+      name:
+        model !== 'unknown' || !(client && hasSpanStreamingEnabled(client))
+          ? `${operationName} ${model}`
+          : operationName,
       op: getGenAiSpanOp(operationName),
       attributes: requestAttributes as Record<string, SpanAttributeValue>,
     };

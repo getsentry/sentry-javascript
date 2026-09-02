@@ -1,14 +1,15 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { context, trace } from '@opentelemetry/api';
 import type { ClientRequest, IncomingMessage } from 'node:http';
-import type { HttpClientRequest, HttpIncomingMessage, HttpInstrumentationOptions, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { isTracingSuppressed } from '@sentry/core';
+import type { HttpClientRequest, HttpIncomingMessage, HttpInstrumentationOptions } from '@sentry/core/server';
 import {
   getHttpClientSubscriptions,
-  patchHttpModuleClient,
   getRequestOptions,
-  isTracingSuppressed,
-} from '@sentry/core';
-import { HTTP_ON_CLIENT_REQUEST } from '@sentry/core';
+  HTTP_ON_CLIENT_REQUEST,
+  patchHttpModuleClient,
+} from '@sentry/core/server';
 import { NODE_VERSION } from '../../nodeVersion';
 import { errorMonitor } from 'node:events';
 import * as http from 'node:http';
@@ -38,7 +39,7 @@ export interface OutgoingHttpRequestInstrumentationOptions {
    *
    * @default `true`
    */
-  propagateTrace?: boolean;
+  tracePropagation?: boolean;
 
   /**
    * Do not instrument outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -76,7 +77,7 @@ export function instrumentHttpOutgoingRequests(
   const patchOptions = {
     applyCustomAttributesOnSpan,
     ...options,
-    propagateTrace: options.propagateTrace ?? true,
+    tracePropagation: options.tracePropagation ?? true,
     spans: options.spans ?? true,
     ignoreOutgoingRequests(url, request) {
       return isTracingSuppressed() || !!options.ignoreOutgoingRequests?.(url, getRequestOptions(request));

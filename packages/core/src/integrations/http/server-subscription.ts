@@ -37,7 +37,9 @@ import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace, startSpanManual } from '../../tracing/trace';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
+import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanStatus } from '../../types/spanStatus';
 import {
@@ -54,9 +56,10 @@ import {
   NETWORK_TRANSPORT,
   SENTRY_HTTP_PREFETCH,
   SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SERVER_ADDRESS,
   SERVER_PORT,
-  SENTRY_SEGMENT_NAME_SOURCE,
   URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
@@ -64,6 +67,7 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
 
 // Tree-shakable guard to remove all code related to tracing
@@ -295,7 +299,11 @@ function buildServerSpanWrap(
       const urlObj = parseStringToURLObject(fullUrl);
       const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
       const method = (request.method || 'GET').toUpperCase();
-      const name = `${method} ${httpTargetWithoutQueryFragment}`;
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+      // Route instrumentations rename the span to `${method} ${route}` once a route is known.
+      const name = hasSpanStreamingEnabled(client)
+        ? request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
+        : `${method} ${httpTargetWithoutQueryFragment}`;
       const headers = request.headers;
       const userAgent = headers['user-agent'];
       const ips = headers['x-forwarded-for'];
@@ -315,7 +323,7 @@ function buildServerSpanWrap(
           name,
           attributes: {
             // Sentry-specific attributes
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+            [SENTRY_OP]: HTTP_SERVER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',

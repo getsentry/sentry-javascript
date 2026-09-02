@@ -8,14 +8,16 @@ import {
   URL_PATH,
   URL_QUERY,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  flushIfServerless,
   getIsolationScope,
   getRootSpan,
   getUrlFragment,
   getUrlQuery,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   objectify,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
@@ -23,6 +25,7 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import {
   captureException,
   continueTrace,
@@ -218,6 +221,7 @@ async function instrumentRequestStartHttpServerSpan(
           // invoke the catch block if next() throws
 
           const attributes: SpanAttributes = {
+            [SENTRY_OP]: HTTP_SERVER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
             [SENTRY_SEGMENT_NAME_SOURCE]: source,
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
@@ -235,15 +239,21 @@ async function instrumentRequestStartHttpServerSpan(
           attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(ctx.url.search));
           attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
 
-          const name = `${method} ${parametrizedRoute || ctx.url.pathname}`;
+          const transactionName = `${method} ${parametrizedRoute || ctx.url.pathname}`;
 
-          isolationScope.setTransactionName(name);
+          // The scope's transaction name is what error events are grouped by, so it keeps the URL path.
+          isolationScope.setTransactionName(transactionName);
+
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+          const name =
+            parametrizedRoute || !hasSpanStreamingEnabled(client)
+              ? transactionName
+              : method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
           const res = await startSpan(
             {
               attributes,
               name,
-              op: 'http.server',
             },
             async span => {
               try {

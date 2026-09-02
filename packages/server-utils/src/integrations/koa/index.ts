@@ -15,7 +15,7 @@ import {
 } from '@sentry/core';
 // oxlint-disable-next-line typescript/no-deprecated
 import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_NAME, KOA_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
+import { MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
 import { koaModuleNames } from '../../orchestrion/config/koa';
@@ -213,8 +213,7 @@ function patchLayer(
         name,
         attributes: {
           ...metadata.attributes,
-          // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
-          [SENTRY_OP]: layerType === LAYER_TYPE.MIDDLEWARE ? MIDDLEWARE : 'router',
+          [SENTRY_OP]: layerType === LAYER_TYPE.MIDDLEWARE ? MIDDLEWARE : ROUTER,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         },
       },

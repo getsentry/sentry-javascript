@@ -17,7 +17,7 @@ import {
 } from '@sentry/core';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
-import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-runtime-injection/register';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
@@ -40,6 +40,10 @@ import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
+
+// Treeshakable guard to remove all code related to runtime diagnostics-channel injection. Set to
+// `false` at build time by the Sentry bundler plugins' `bundleSizeOptimizations.excludeChannelInjection`.
+declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 
 /**
  * Get the base default integrations shared by all Node SDK default-integration sets.
@@ -155,11 +159,14 @@ function _init(
   };
 
   // Install the channel-based (orchestrion diagnostics-channel) instrumentation hooks by default,
-  // independent of tracing — the channel integrations also capture errors, not just spans. Opt out
-  // with `enableRuntimeChannelInjection: false`. Install as early as possible, before the app imports
-  // its instrumented modules.
-  const useChannelInjection = options.enableRuntimeChannelInjection !== false;
-  if (useChannelInjection) {
+  // independent of tracing — the channel integrations also capture errors, not just spans. Opt out at
+  // runtime with `enableRuntimeChannelInjection: false`, or at build time via the bundler plugins'
+  // `bundleSizeOptimizations.excludeChannelInjection` (which tree-shakes this whole block away).
+  // Install as early as possible, before the app imports its instrumented modules.
+  if (
+    (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
+    options.enableRuntimeChannelInjection !== false
+  ) {
     registerDiagnosticsChannelInjection();
   }
 

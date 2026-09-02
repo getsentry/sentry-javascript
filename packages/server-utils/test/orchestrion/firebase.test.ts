@@ -43,8 +43,8 @@ describe('startFirestoreSpan', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'addDoc cities',
-        op: 'db.query',
         attributes: expect.objectContaining({
+          'sentry.op': 'db.query',
           'sentry.origin': 'auto.firebase.firestore',
           'db.operation.name': 'addDoc',
           'db.collection.name': 'cities',
@@ -63,7 +63,10 @@ describe('startFirestoreSpan', () => {
     startFirestoreSpan('getDocs', makeReference('cities', 'collection'));
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'getDocs cities', op: 'db.query' }),
+      expect.objectContaining({
+        name: 'getDocs cities',
+        attributes: expect.objectContaining({ 'sentry.op': 'db.query' }),
+      }),
     );
   });
 });

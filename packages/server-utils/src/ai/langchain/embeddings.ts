@@ -1,13 +1,20 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, stringify } from '@sentry/core';
+import {
+  getClient,
+  hasSpanStreamingEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startSpan,
+  stringify,
+} from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import {
-  GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
 } from '../core/gen-ai-attributes';
@@ -39,7 +46,7 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
 
   const attributes: Record<string, unknown> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
+    [SENTRY_OP]: GEN_AI_EMBEDDINGS,
     [GEN_AI_OPERATION_NAME]: 'embeddings',
     [GEN_AI_REQUEST_MODEL]: embeddingsInstance.model ?? 'unknown',
   };
@@ -65,18 +72,22 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
   instance: unknown,
   input: unknown,
   options: LangChainOptions = {},
-): { name: string; op: string; attributes: Record<string, SpanAttributeValue> } {
+): { name: string; attributes: Record<string, SpanAttributeValue> } {
   const { recordInputs } = resolveAIRecordingOptions(options);
   const attributes = extractEmbeddingAttributes(instance);
   const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+  const client = getClient();
 
   if (recordInputs && input != null) {
     attributes[GEN_AI_EMBEDDINGS_INPUT] = stringify(input, String);
   }
 
   return {
-    name: `embeddings ${modelName}`,
-    op: GEN_AI_EMBEDDINGS_OPERATION_ATTRIBUTE,
+    // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+    name:
+      (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+        ? `embeddings ${modelName}`
+        : 'embeddings',
     attributes: attributes as Record<string, SpanAttributeValue>,
   };
 }

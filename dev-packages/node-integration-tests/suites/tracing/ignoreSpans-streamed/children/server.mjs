@@ -46,6 +46,4 @@ app.get('/test/express', (_req, res) => {
   });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);
