@@ -6,6 +6,14 @@ import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { safeCallback } from '../utils/safeCallback';
 
+interface SamplingDecision {
+  sampled: boolean;
+  sampleRate?: number;
+  localSampleRateWasApplied?: boolean;
+  /** Set when the span was dropped for a reason other than the sampling decision itself. */
+  dropReason?: 'callback_error';
+}
+
 /**
  * Makes a sampling decision for the given options.
  *
@@ -16,15 +24,17 @@ export function sampleSpan(
   options: Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler'>,
   samplingContext: SamplingContext,
   sampleRand: number,
-): [sampled: boolean, sampleRate?: number, localSampleRateWasApplied?: boolean] {
+): SamplingDecision {
   // nothing to do if span recording is not enabled
   if (!hasSpansEnabled(options)) {
-    return [false];
+    return { sampled: false };
   }
 
   const resolved = resolveSampleRate(options, samplingContext);
   if (!resolved) {
-    return [false];
+    // `hasSpansEnabled` guarantees either `tracesSampleRate` or `tracesSampler` is set, so the only way to end up
+    // without a sample rate is a throwing `tracesSampler` with nothing to fall back to.
+    return { sampled: false, dropReason: 'callback_error' };
   }
   const [sampleRate, localSampleRateWasApplied] = resolved;
 
@@ -39,7 +49,7 @@ export function sampleSpan(
           sampleRate,
         )} of type ${JSON.stringify(typeof sampleRate)}.`,
       );
-    return [false];
+    return { sampled: false };
   }
 
   // if the function returned 0 (or false), or if `tracesSampleRate` is 0, it's a sign the transaction should be dropped
@@ -52,7 +62,7 @@ export function sampleSpan(
             : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
         }`,
       );
-    return [false, parsedSampleRate, localSampleRateWasApplied];
+    return { sampled: false, sampleRate: parsedSampleRate, localSampleRateWasApplied };
   }
 
   // We always compare the sample rand for the current execution context against the chosen sample rate.
@@ -69,7 +79,7 @@ export function sampleSpan(
       );
   }
 
-  return [shouldSample, parsedSampleRate, localSampleRateWasApplied];
+  return { sampled: shouldSample, sampleRate: parsedSampleRate, localSampleRateWasApplied };
 }
 
 /**
