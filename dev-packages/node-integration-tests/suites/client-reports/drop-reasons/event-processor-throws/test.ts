@@ -14,7 +14,7 @@ test('records a client report and no extra error event when an event processor t
           {
             category: 'error',
             quantity: 1,
-            reason: 'event_processor',
+            reason: 'callback_error',
           },
         ],
       },
@@ -32,7 +32,7 @@ test('records a client report and no extra error event when an async event proce
           {
             category: 'error',
             quantity: 1,
-            reason: 'event_processor',
+            reason: 'callback_error',
           },
         ],
       },

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { notifyEventProcessors } from '../../src/eventProcessors';
+import { CALLBACK_ERROR } from '../../src/utils/safeCallback';
 import type { EventProcessor } from '../../src/types/eventprocessor';
 import * as debugLoggerModule from '../../src/utils/debug-logger';
 
@@ -24,7 +25,7 @@ describe('notifyEventProcessors', () => {
     expect(later).not.toHaveBeenCalled();
   });
 
-  it('drops the event when a processor throws synchronously', async () => {
+  it('rejects with `CALLBACK_ERROR` when a processor throws synchronously', async () => {
     const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
     const error = new Error('boom');
     const throwing: EventProcessor = () => {
@@ -33,21 +34,21 @@ describe('notifyEventProcessors', () => {
     throwing.id = 'Throwing';
     const later = vi.fn(event => event);
 
-    const result = await notifyEventProcessors([throwing, later], { message: 'hello' }, {});
+    await expect(notifyEventProcessors([throwing, later], { message: 'hello' }, {})).rejects.toBe(CALLBACK_ERROR);
 
-    expect(result).toBeNull();
     expect(later).not.toHaveBeenCalled();
     expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "Throwing" threw an error, dropping event:', error);
   });
 
-  it('drops the event when a processor rejects', async () => {
+  it('rejects with `CALLBACK_ERROR` when a processor rejects', async () => {
     const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
     const error = new Error('boom');
     const later = vi.fn(event => event);
 
-    const result = await notifyEventProcessors([() => Promise.reject(error), later], { message: 'hello' }, {});
+    await expect(notifyEventProcessors([() => Promise.reject(error), later], { message: 'hello' }, {})).rejects.toBe(
+      CALLBACK_ERROR,
+    );
 
-    expect(result).toBeNull();
     expect(later).not.toHaveBeenCalled();
     expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "?" threw an error, dropping event:', error);
   });

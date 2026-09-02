@@ -50,7 +50,7 @@ import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
-import { safeCallback } from './utils/safeCallback';
+import { CALLBACK_ERROR, safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
@@ -1522,6 +1522,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
     const dataCategory = getDataCategoryByType(event.type);
 
+    const recordDroppedEvent = (reason: EventDropReason): void => {
+      this.recordDroppedEvent(reason, dataCategory);
+      if (isTransaction) {
+        // the transaction itself counts as one span, plus all the child spans that are added
+        this.recordDroppedEvent(reason, 'span', 1 + (event.spans || []).length);
+      }
+    };
+
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
         if (prepared === null) {
@@ -1539,13 +1547,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          this.recordDroppedEvent('before_send', dataCategory);
-          if (isTransaction) {
-            const spans = event.spans || [];
-            // the transaction itself counts as one span, plus all the child spans that are added
-            const spanCount = 1 + spans.length;
-            this.recordDroppedEvent('before_send', 'span', spanCount);
-          }
+          recordDroppedEvent('before_send');
           throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
@@ -1587,6 +1589,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         return processedEvent;
       })
       .then(null, reason => {
+        if (reason === CALLBACK_ERROR) {
+          recordDroppedEvent('callback_error');
+          throw _makeDoNotSendEventError('A user callback threw an error, will not send event.');
+        }
+
         if (_isDoNotSendEventError(reason) || _isInternalError(reason)) {
           throw reason;
         }
@@ -1702,17 +1709,13 @@ function _validateBeforeSendResult(
 ): PromiseLike<Event | null> | Event | null {
   const invalidValueError = `${beforeSendLabel} must return \`null\` or a valid event.`;
   if (isThenable(beforeSendResult)) {
-    return beforeSendResult.then(
-      event => {
-        if (!isPlainObject(event) && event !== null) {
-          throw _makeInternalError(invalidValueError);
-        }
-        return event;
-      },
-      e => {
-        throw _makeInternalError(`${beforeSendLabel} rejected with ${e}`);
-      },
-    );
+    // A rejection can only be `CALLBACK_ERROR` here, as `safeCallback` already handled the user callback rejecting
+    return beforeSendResult.then(event => {
+      if (!isPlainObject(event) && event !== null) {
+        throw _makeInternalError(invalidValueError);
+      }
+      return event;
+    });
   } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
     throw _makeInternalError(invalidValueError);
   }
@@ -1743,7 +1746,9 @@ function processBeforeSend(
     return safeCallback(
       DEBUG_BUILD ? 'The `beforeSend` callback threw an error, dropping the event:' : '',
       () => beforeSend(errorEvent, hint),
-      () => null,
+      () => {
+        throw CALLBACK_ERROR;
+      },
     );
   }
 
@@ -1818,7 +1823,9 @@ function processBeforeSend(
       return safeCallback(
         DEBUG_BUILD ? 'The `beforeSendTransaction` callback threw an error, dropping the event:' : '',
         () => beforeSendTransaction(processedEvent as TransactionEvent, hint),
-        () => null,
+        () => {
+          throw CALLBACK_ERROR;
+        },
       );
     }
   }

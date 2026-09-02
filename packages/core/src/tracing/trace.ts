@@ -495,8 +495,8 @@ function _startRootSpan(
   const currentPropagationContext = scope.getPropagationContext();
   const _isTracingSuppressed = isTracingSuppressed(scope);
 
-  const [sampled, sampleRate, localSampleRateWasApplied] = _isTracingSuppressed
-    ? [false]
+  const { sampled, sampleRate, localSampleRateWasApplied, dropReason } = _isTracingSuppressed
+    ? { sampled: false }
     : sampleSpan(
         options,
         {
@@ -522,7 +522,7 @@ function _startRootSpan(
 
   if (!sampled && client && !_isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-    client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
+    client.recordDroppedEvent(dropReason || 'sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
 
   setCapturedScopesOnSpan(rootSpan, scope, isolationScope);

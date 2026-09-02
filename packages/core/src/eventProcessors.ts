@@ -3,11 +3,12 @@ import type { Event, EventHint } from './types/event';
 import type { EventProcessor } from './types/eventprocessor';
 import { debug } from './utils/debug-logger';
 import { isThenable } from './utils/is';
-import { safeCallback } from './utils/safeCallback';
+import { CALLBACK_ERROR, safeCallback } from './utils/safeCallback';
 import { rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
 
 /**
  * Process an array of event processors, returning the processed event (or `null` if the event was dropped).
+ * Rejects with `CALLBACK_ERROR` if a processor throws.
  */
 export function notifyEventProcessors(
   processors: EventProcessor[],
@@ -40,7 +41,9 @@ function _notifyEventProcessors(
   const result = safeCallback(
     DEBUG_BUILD ? `${processorName} threw an error, dropping event:` : '',
     () => processor({ ...event }, hint),
-    () => null,
+    () => {
+      throw CALLBACK_ERROR;
+    },
   );
 
   DEBUG_BUILD && result === null && debug.log(`${processorName} dropped event`);
