@@ -922,7 +922,7 @@ describe('same-worker RPC binding floor', () => {
     expect(result.code).not.toContain('rpcTracePropagationBindings');
   });
 
-  it('drops a binding whose class is re-exported from another module', () => {
+  it('keeps a binding whose class is re-exported from another module', () => {
     const code = ['export { MyDO } from "./myDo";', 'export default { fetch() {} };'].join('\n');
 
     const result = transform(code, {
@@ -931,8 +931,10 @@ describe('same-worker RPC binding floor', () => {
       sameWorkerBindings: [{ bindingName: 'MY_DO', className: 'MyDO' }],
     })!;
 
-    expect(result.code).toContain('const __SENTRY_OPTIONS__ = () => undefined;');
-    expect(result.code).not.toContain('rpcTracePropagationBindings');
+    expect(result.code).toContain('rpcTracePropagationBindings: ["MY_DO",');
+    expect(result.code).toContain(
+      '__SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, __SENTRY_OPTIONS__, __SENTRY_REEXPORT_MyDO__)',
+    );
   });
 
   it('leaves the output untouched when there are no same-worker bindings', () => {

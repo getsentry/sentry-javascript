@@ -315,8 +315,9 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       expect(result.code).toBe(
         [
           "import * as __SENTRY__ from '@sentry/cloudflare';",
+          'const __SENTRY_OPTIONS__ = (env) => { const opts = (() => undefined)(env); return { ...opts, rpcTracePropagationBindings: ["MY_AGENT", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
           "import { MyAgent } from './agent';",
-          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentAgentWithSentry, () => undefined, MyAgent);',
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentAgentWithSentry, __SENTRY_OPTIONS__, MyAgent);',
           'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
         ].join('\n'),
       );
@@ -332,8 +333,9 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       expect(result.code).toBe(
         [
           "import * as __SENTRY__ from '@sentry/cloudflare';",
+          'const __SENTRY_OPTIONS__ = (env) => { const opts = (() => undefined)(env); return { ...opts, rpcTracePropagationBindings: ["MY_AGENT", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
           "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './agent';",
-          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentAgentWithSentry, () => undefined, __SENTRY_REEXPORT_MyAgent__);',
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentAgentWithSentry, __SENTRY_OPTIONS__, __SENTRY_REEXPORT_MyAgent__);',
           'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
         ].join('\n'),
       );
@@ -352,8 +354,9 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       expect(result.code).toBe(
         [
           "import * as __SENTRY__ from '@sentry/cloudflare';",
+          'const __SENTRY_OPTIONS__ = (env) => { const opts = (() => undefined)(env); return { ...opts, rpcTracePropagationBindings: ["MY_AGENT", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
           "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './do';",
-          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, () => undefined, __SENTRY_REEXPORT_MyAgent__);',
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, __SENTRY_OPTIONS__, __SENTRY_REEXPORT_MyAgent__);',
           'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
         ].join('\n'),
       );

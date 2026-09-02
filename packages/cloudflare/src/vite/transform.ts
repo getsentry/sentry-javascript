@@ -237,6 +237,12 @@ interface TransformState {
    * wrapped with. `wrappedClasses` counts both.
    */
   autoWrapped: Set<ExportName>;
+  /**
+   * Top-level bindings already assigned an `instrument*WithSentry(...)` result
+   * (`const MyDO = instrumentDurableObjectWithSentry(...)`). Exporting one by
+   * specifier must report it as wrapped rather than wrap it a second time.
+   */
+  manuallyWrappedLocals: Set<string>;
 }
 
 /**
@@ -263,12 +269,6 @@ function buildMergedOptionsDeclaration(
     `const opts = (${optionsFn})(env); ` +
     `return { ...opts, rpcTracePropagationBindings: [${names}, ...(opts?.rpcTracePropagationBindings ?? [])] }; };\n`
   );
-  /**
-   * Top-level bindings already assigned an `instrument*WithSentry(...)` result
-   * (`const MyDO = instrumentDurableObjectWithSentry(...)`). Exporting one by
-   * specifier must report it as wrapped rather than wrap it a second time.
-   */
-  manuallyWrappedLocals: Set<string>;
 }
 
 /**
@@ -538,7 +538,7 @@ function wrapCrossModuleSpecifier(
   // The class may already be hand-wrapped in its own module, which this transform cannot see. The
   // emitted guard returns such a class as-is instead of nesting a second wrapper around it.
   prelude.push(
-    `const ${wrappedName} = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.${WRAPPER_METHODS[kind]}, ${ctx.optionsFn}, ${target});`,
+    `const ${wrappedName} = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.${WRAPPER_METHODS[kind]}, ${state.optionsFn}, ${target});`,
   );
   state.wrappedClasses.add(exportedName);
   state.autoWrapped.add(exportedName);
