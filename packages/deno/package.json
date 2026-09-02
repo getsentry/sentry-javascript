@@ -69,7 +69,7 @@
       },
       "build:types": {
         "outputs": [
-          "{projectRoot}/build-types"
+          "{projectRoot}/build/esm/**/*.d.ts"
         ]
       }
     }

@@ -88,5 +88,18 @@
   },
   "astro": {
     "external": true
+  },
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/cjs",
+          "{projectRoot}/build/npm/esm",
+          "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/import-hook.mjs"
+        ]
+      }
+    }
   }
 }
