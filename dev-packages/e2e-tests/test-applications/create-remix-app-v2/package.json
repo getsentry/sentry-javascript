@@ -9,9 +9,7 @@
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm playwright test",
-    "test:build:orchestrion": "INJECT_ORCHESTRION=true pnpm test:build",
-    "test:assert:orchestrion": "INJECT_ORCHESTRION=true pnpm test:assert && INJECT_ORCHESTRION=true TEST_ENV=development pnpm playwright test db"
+    "test:assert": "pnpm playwright test && TEST_ENV=development pnpm playwright test db"
   },
   "dependencies": {
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
@@ -42,15 +40,6 @@
   },
   "resolutions": {
     "@types/react": "18.2.22"
-  },
-  "sentryTest": {
-    "variants": [
-      {
-        "build-command": "pnpm test:build:orchestrion",
-        "assert-command": "pnpm test:assert:orchestrion",
-        "label": "create-remix-app-v2 (orchestrion)"
-      }
-    ]
   },
   "volta": {
     "extends": "../../package.json"
