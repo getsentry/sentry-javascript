@@ -23,7 +23,7 @@ import type {
   WebpackEntryProperty,
   WebpackPluginInstance,
 } from './types';
-import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
+import { loadOrchestrionBundler } from './loadOrchestrionBundler';
 import { getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
 
@@ -434,7 +434,9 @@ export function constructWebpackConfigFunction({
 
     // Orchestrion code-transform loader — Node server runtime only, never the edge compilation
     if (runtime === 'server' && userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
-      newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as unknown as WebpackPluginInstance);
+      newConfig.plugins.push(
+        loadOrchestrionBundler().sentryOrchestrionWebpackPlugin() as unknown as WebpackPluginInstance,
+      );
       prependOrchestrionRuntimeExternals(newConfig);
     }
 

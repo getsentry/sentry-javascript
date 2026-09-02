@@ -1,10 +1,6 @@
 import { debug } from '@sentry/core';
 import * as path from 'path';
-import {
-  getOrchestrionLoaderPath,
-  getSentryInstrumentations,
-  serializeInstrumentations,
-} from '@sentry/server-utils/orchestrion/webpack';
+import { loadOrchestrionBundler } from '../loadOrchestrionBundler';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type {
@@ -137,6 +133,8 @@ function maybeAddOrchestrionRule(
   ) {
     return rules;
   }
+
+  const { getOrchestrionLoaderPath, getSentryInstrumentations, serializeInstrumentations } = loadOrchestrionBundler();
 
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',

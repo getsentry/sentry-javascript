@@ -3,6 +3,7 @@ import '../mocks';
 import * as core from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
 import * as getBuildPluginOptionsModule from '../../../src/config/getBuildPluginOptions';
+import type * as loadOrchestrionBundlerModule from '../../../src/config/loadOrchestrionBundler';
 import * as util from '../../../src/config/util';
 import {
   CLIENT_SDK_CONFIG_FILE,
@@ -16,12 +17,18 @@ import {
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
 
-// Only the plugin factory is stubbed — `resolveOrchestrionRuntimeRequest` must stay real because
-// the externals handler under test uses it.
-vi.mock('@sentry/server-utils/orchestrion/webpack', async importOriginal => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  sentryOrchestrionWebpackPlugin: () => ({ _name: 'sentry-orchestrion-webpack-plugin' }),
-}));
+// Stub only the plugin factory. The externals handler under test needs the real
+// `resolveOrchestrionRuntimeRequest`. The bundler module loads via native `require`, which
+// `vi.mock` cannot intercept, so the stub goes on the loader.
+vi.mock('../../../src/config/loadOrchestrionBundler', async importOriginal => {
+  const original = await importOriginal<typeof loadOrchestrionBundlerModule>();
+  return {
+    loadOrchestrionBundler: () => ({
+      ...original.loadOrchestrionBundler(),
+      sentryOrchestrionWebpackPlugin: () => ({ _name: 'sentry-orchestrion-webpack-plugin' }),
+    }),
+  };
+});
 
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {
