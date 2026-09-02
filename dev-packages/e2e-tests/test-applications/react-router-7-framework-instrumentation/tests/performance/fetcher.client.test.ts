@@ -9,10 +9,16 @@ import { APP_NAME } from '../constants';
 // client action/loader spans and the `http.client` spans for the underlying `.data` requests.
 // See: https://github.com/remix-run/react-router/discussions/13749
 
-/** Every span below `rootSpan`, following `parent_span_id` down the tree. */
-function descendantsOf(spans: SerializedStreamedSpan[], rootSpan: SerializedStreamedSpan): SerializedStreamedSpan[] {
+/**
+ * Every span below `parentSpan`, following `parent_span_id` down the tree. Transitive, so a span
+ * nested two levels under `parentSpan` is included too.
+ */
+function getDescendantSpansOf(
+  spans: SerializedStreamedSpan[],
+  parentSpan: SerializedStreamedSpan,
+): SerializedStreamedSpan[] {
   const descendants: SerializedStreamedSpan[] = [];
-  const parentIds = new Set([rootSpan.span_id]);
+  const parentIds = new Set([parentSpan.span_id]);
 
   // Streamed spans arrive parents-last, so keep sweeping until no new descendant is found.
   let foundNew = true;
@@ -40,7 +46,7 @@ test.describe('client - instrumentation API fetcher', () => {
 
     const spansPromise = collectStreamedSpans(APP_NAME, spans => {
       const fetcherSpan = spans.find(span => span.attributes['code.function.name']?.value === 'fetcher');
-      return !!fetcherSpan && descendantsOf(spans, fetcherSpan).some(span => getSpanOp(span) === 'http.client');
+      return !!fetcherSpan && getDescendantSpansOf(spans, fetcherSpan).some(span => getSpanOp(span) === 'http.client');
     });
 
     await page.goto(`/performance/fetcher-test`);
@@ -56,9 +62,9 @@ test.describe('client - instrumentation API fetcher', () => {
     // The fetcher span nests the client action span and the http.client span(s) for the underlying
     // `.data` request(s) - i.e. the browser fetch span is parented by the fetcher span, not emitted
     // standalone.
-    const childSpans = descendantsOf(spans, fetcherSpan);
-    expect(childSpans.some(span => span.attributes['code.function.name']?.value === 'clientAction')).toBe(true);
-    expect(childSpans.map(span => getSpanOp(span))).toContain('http.client');
+    const descendantSpans = getDescendantSpansOf(spans, fetcherSpan);
+    expect(descendantSpans.some(span => span.attributes['code.function.name']?.value === 'clientAction')).toBe(true);
+    expect(descendantSpans.map(span => getSpanOp(span))).toContain('http.client');
   });
 
   test('should still send server action span when fetcher submits', async ({ page }) => {
