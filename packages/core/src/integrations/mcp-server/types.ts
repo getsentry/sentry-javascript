@@ -176,6 +176,7 @@ export type RequestId = string | number;
 export type RequestSpanMapValue = {
   span: Span;
   method: string;
+  capturePolicy: ResolvedMcpOptions;
   startTime: number;
 };
 

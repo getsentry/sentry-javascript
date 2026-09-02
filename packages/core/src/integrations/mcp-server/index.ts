@@ -1,8 +1,7 @@
-import { getClient } from '../../currentScopes';
 import { fill } from '../../utils/object';
 import { wrapAllMCPHandlers, wrapExistingHandlers } from './handlers';
 import { wrapTransportError, wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
-import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions } from './types';
+import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport } from './types';
 import { validateMcpServerInstance } from './validation';
 
 /**
@@ -60,13 +59,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
   }
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
-  const client = getClient();
-  const genAI = client?.getDataCollectionOptions().genAI;
-
-  const resolvedOptions: ResolvedMcpOptions = {
-    recordInputs: options?.recordInputs ?? genAI?.inputs ?? false,
-    recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? false,
-  };
+  const captureOptions: McpServerWrapperOptions = { ...options };
 
   fill(serverInstance, 'connect', originalConnect => {
     return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
@@ -76,8 +69,8 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
         ...restArgs,
       );
 
-      wrapTransportOnMessage(transport, resolvedOptions);
-      wrapTransportSend(transport, resolvedOptions);
+      wrapTransportOnMessage(transport, captureOptions);
+      wrapTransportSend(transport, captureOptions);
       wrapTransportOnClose(transport);
       wrapTransportError(transport);
 

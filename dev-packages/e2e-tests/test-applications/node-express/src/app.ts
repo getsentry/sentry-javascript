@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/node';
+// Keep the dedicated MCP server evaluation ahead of initialization without loading Express before its instrumentation.
+import './mcpCapturePolicyServer';
 
 declare global {
   namespace globalThis {
