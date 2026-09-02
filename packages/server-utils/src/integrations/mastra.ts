@@ -15,6 +15,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { mastraModuleNames } from '../orchestrion/config/mastra';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+import { safeChannelCallback } from '../tracing-channel';
 
 export interface MastraOptions extends MastraExporterOptions {
   /**
@@ -59,12 +60,10 @@ const _mastraIntegration = ((options: MastraOptions = {}) => {
 
 function instrumentMastra(options: MastraOptions): void {
   diagnosticsChannel.tracingChannel<ConstructorChannelContext>(CHANNELS.MASTRA_CONSTRUCTOR).end.subscribe(message => {
-    try {
+    safeChannelCallback(() => {
       const { self } = message as ConstructorChannelContext;
       attachExporter(self, options);
-    } catch (error) {
-      DEBUG_BUILD && debug.error('[instrumentation:mastra] failed to register the Sentry exporter', error);
-    }
+    });
   });
 }
 
@@ -159,8 +158,15 @@ function warnAboutCommunityExporter(): void {
   });
 }
 
+// `createRequire` treats its argument as a filename and resolves from `dirname(that)`.
+// Passing cwd itself would look in cwd's parent, so this dummy file (never loaded) keeps
+// resolution rooted at the app directory.
+function cwdRequireParent(): string {
+  return join(process.cwd(), 'noop.js');
+}
+
 function appRequire(): ReturnType<typeof createRequire> {
-  return createRequire(join(process.cwd(), 'noop.js'));
+  return createRequire(cwdRequireParent());
 }
 
 /**
@@ -205,7 +211,7 @@ function loadMastraObservability(): Record<string, unknown> {
   } catch {
     // cwd is not the app, or `@mastra/core` is ESM-only and not in the CJS resolver.
   }
-  parents.add(join(process.cwd(), 'noop.js'));
+  parents.add(cwdRequireParent());
 
   for (const parent of parents) {
     const observability = tryRequireObservability(parent);

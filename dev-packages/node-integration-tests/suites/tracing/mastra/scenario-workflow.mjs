@@ -41,7 +41,6 @@ async function run() {
   });
 
   await mastra.observability.shutdown();
-  await Sentry.flush(2000);
 }
 
 run();
