@@ -14,9 +14,21 @@ function hasUrlPart(span: SerializedStreamedSpan, part: string): boolean {
   return typeof urlFull === 'string' && urlFull.includes(part);
 }
 
-/** All spans of the trace `segmentSpan` belongs to, minus the segment span itself. */
-function childSpansOf(spans: SerializedStreamedSpan[], segmentSpan: SerializedStreamedSpan): SerializedStreamedSpan[] {
+/**
+ * Child spans of `segmentSpan`'s trace, picked out of a collection that spans several traces.
+ * `collectStreamedSpans` already scopes its result to one trace, so this is only for the spans
+ * gathered by the cross-trace collector below.
+ */
+function childSpansInTraceOf(
+  spans: SerializedStreamedSpan[],
+  segmentSpan: SerializedStreamedSpan,
+): SerializedStreamedSpan[] {
   return spans.filter(span => span.trace_id === segmentSpan.trace_id && !span.is_segment);
+}
+
+/** Non-segment spans of a single-trace collection. */
+function childSpans(spans: SerializedStreamedSpan[]): SerializedStreamedSpan[] {
+  return spans.filter(span => !span.is_segment);
 }
 
 test('Creates a pageload span with parameterized route', async ({ page }) => {
@@ -1317,7 +1329,9 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
   // Key assertion 2: the /another-lazy trace must NOT contain spans from the /slow-fetch route.
   // The /api/slow-data fetch is triggered by the slow-fetch route's lazy loading.
   if (anotherLazySegment) {
-    const leakedSpans = childSpansOf(streamedSpans, anotherLazySegment).filter(span => hasUrlPart(span, 'slow-data'));
+    const leakedSpans = childSpansInTraceOf(streamedSpans, anotherLazySegment).filter(span =>
+      hasUrlPart(span, 'slow-data'),
+    );
     expect(leakedSpans.length).toBe(0);
   }
 
@@ -1327,7 +1341,9 @@ test('Second navigation span is not corrupted by first slow lazy handler complet
   if (slowFetchSegment) {
     expect(slowFetchSegment.name).toMatch(/\/slow-fetch/);
     // Verify the slow-fetch trace doesn't contain spans that belong to /another-lazy
-    const wrongSpans = childSpansOf(streamedSpans, slowFetchSegment).filter(span => hasUrlPart(span, 'another-lazy'));
+    const wrongSpans = childSpansInTraceOf(streamedSpans, slowFetchSegment).filter(span =>
+      hasUrlPart(span, 'another-lazy'),
+    );
     expect(wrongSpans.length).toBe(0);
   }
 });
@@ -1384,10 +1400,9 @@ test('GQL fetch span is attributed to the correct navigation segment when naviga
 
   await page.goto('/');
   const pageloadSpans = await pageloadSpansPromise;
-  const pageloadSegment = pageloadSpans.find(span => getSpanOp(span) === 'pageload' && span.is_segment)!;
 
   // Pageload should NOT contain any /api/graphql spans (neither UserAQuery nor UserBQuery)
-  const pageloadGqlSpans = childSpansOf(pageloadSpans, pageloadSegment).filter(
+  const pageloadGqlSpans = childSpans(pageloadSpans).filter(
     span => getSpanOp(span) === 'http.client' && hasUrlPart(span, '/api/graphql'),
   );
   expect(pageloadGqlSpans.length).toBe(0);
@@ -1414,7 +1429,7 @@ test('GQL fetch span is attributed to the correct navigation segment when naviga
   expect(getSpanOp(navigationSegment)).toBe('navigation');
 
   // Verify the UserAQuery GQL fetch span is inside this navigation segment's trace
-  const navChildSpans = childSpansOf(navigationSpans, navigationSegment);
+  const navChildSpans = childSpans(navigationSpans);
   const userASpans = navChildSpans.filter(span => getSpanOp(span) === 'http.client' && hasUrlPart(span, 'UserAQuery'));
   expect(userASpans.length).toBe(1);
 
@@ -1445,7 +1460,7 @@ test('GQL fetch spans are attributed to correct navigation segments when navigat
   await expect(page.locator('id=gql-page-a')).toBeVisible();
 
   // First navigation should have exactly the UserAQuery span
-  const firstNavChildSpans = childSpansOf(firstNavSpans, firstNavSegment);
+  const firstNavChildSpans = childSpans(firstNavSpans);
   const firstUserASpans = firstNavChildSpans.filter(
     span => getSpanOp(span) === 'http.client' && hasUrlPart(span, 'UserAQuery'),
   );
@@ -1473,7 +1488,7 @@ test('GQL fetch spans are attributed to correct navigation segments when navigat
   await expect(page.locator('id=gql-page-b')).toBeVisible();
 
   // Second navigation should have exactly the UserBQuery span
-  const secondNavChildSpans = childSpansOf(secondNavSpans, secondNavSegment);
+  const secondNavChildSpans = childSpans(secondNavSpans);
   const secondUserBSpans = secondNavChildSpans.filter(
     span => getSpanOp(span) === 'http.client' && hasUrlPart(span, 'UserBQuery'),
   );
