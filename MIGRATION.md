@@ -1011,43 +1011,44 @@ Sentry.init({
 });
 ```
 
-#### Browser spans
-
-Resource spans now also carry a `url.domain` attribute holding the domain their name is built from. The full URL remains available on `url.full`.
-
 #### HTTP spans
 
 `http.server` requests that resolve to a route are **unchanged**, because those names were already low cardinality. Only requests the SDK cannot parameterize are affected.
 
-Outgoing requests never resolve to a route, so **every** `http.client` name changes: the path, query and fragment are dropped and only the domain is kept. The full URL remains available on `url.full`, and outgoing request spans now also carry a `url.domain` attribute. A request with no domain to fall back on, such as a data URL or a relative URL that the SDK cannot resolve against a page origin, is named after the method alone.
+Outgoing requests never resolve to a route, so **every** `http.client` name changes: the path, query and fragment are dropped and only the domain is kept. The full URL remains available on `url.full`, and outgoing request spans now also carry a `url.domain` attribute. A request with no domain to fall back on, such as a data URL or a relative URL that the SDK cannot resolve against a page origin, is named after the HTTP method alone.
 
 #### Routing and request handler spans
 
 Only the Express, Koa and Hapi integrations resolve a route template for `router` spans.
 
-The Express, Fastify, Hapi and Elysia integrations resolve a route template for `handler` spans. NestJS has none when the span starts, so its request handler spans are named `Request handler`. The handler function name is no longer part of these span names. It stays on an attribute: `nestjs.callback` for NestJS, and `code.function.name` for Elysia, which now sets it on its handler spans. Elysia request handler spans also carry `http.route` now.
+The Express, Fastify, Hapi and Elysia integrations resolve a route template for `handler` spans.
+
+NestJS has no route template when the span starts, so its request handler spans are named `Request handler`.
+
+The handler function name stays on an attribute: `nestjs.callback` for NestJS, and `code.function.name` for Elysia, which now sets it on its handler spans. Elysia request handler spans also carry `http.route` now.
 
 #### GraphQL spans
 
-The graphql operation name and the resolver field path are supplied by the client, so they are no longer part of a span name. They remain available on the `graphql.operation.name` and `graphql.field.path` attributes.
+The graphql operation name and the resolver field path are no longer part of a span name. They remain available on the `graphql.operation.name` and `graphql.field.path` attributes.
+Every graphql span now carries a `graphql.processing.type` attribute (`parse`, `validate`, `execute` or `resolve`).
 
-Because a low-cardinality name cannot say which part of request processing a span covers, every graphql span now carries a `graphql.processing.type` attribute (`parse`, `validate`, `execute` or `resolve`). Use it to tell parse, validate and resolve spans apart.
-
-For the same reason, `useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`). The operations are still recorded on that span's `sentry.graphql.operation` attribute, as long as the option stays enabled (the default). Disabling it skips both, as before.
+`useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`).
+The operations are still recorded on that span's `sentry.graphql.operation` attribute, as long as the option stays enabled (the default). Disabling it skips both, as before.
 
 Because the URL path is gone from `http.client` names, `graphqlClientIntegration` no longer appends the operation to the outgoing request span name (`POST https://api.example.com/graphql (query GetUser)` becomes `POST api.example.com`). Outgoing GraphQL request spans now carry the operation on the `graphql.operation.name` and `graphql.operation.type` attributes instead, and it also stays on the request breadcrumb's `graphql.operation` data.
 
 #### AI spans
 
-LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain`. The chain name remains available on `gen_ai.pipeline.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
+LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain`.
+The chain name remains available on `gen_ai.pipeline.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
 
 #### MCP spans
 
-Resource URIs are unbounded, so they are no longer part of an `mcp.server` span name. The URI remains available on the `mcp.resource.uri` attribute.
+URIs are no longer part of an `mcp.server` span name. The URI remains available on the `mcp.resource.uri` attribute.
 
 #### Messaging spans
 
-Messaging span names now read `<operation type> <destination>` in every integration. The amqplib, kafkajs and NestJS BullMQ integrations used their own word order or verb, so their names change: `my-queue process` became `process my-queue`, amqplib's `publish` became `send`, and the kafkajs batch span's `poll` became `receive`. Cloudflare Queues and the kafkajs producer already matched the conventions. The operation name an integration reports upstream stays on `messaging.operation.name`.
+Messaging span names now read `<operation type> <destination>` in every integration. The amqplib, kafkajs and NestJS BullMQ span names change: `my-queue process` became `process my-queue`, amqplib's `publish` became `send`, and the kafkajs batch span's `poll` became `receive`. The operation name is recorded on the `messaging.operation.name` attribute.
 
 An amqplib span's destination is the exchange it uses, or the routing key when it uses the default exchange. RabbitMQ binds every queue to the default exchange under a key equal to the queue's own name, so `sendToQueue` spans are named after their queue (`send my-queue`) instead of dropping the destination. `messaging.destination.name` reports the same value, and the routing key remains on `messaging.rabbitmq.destination.routing_key` in full.
 
@@ -1057,11 +1058,11 @@ Because a name built from an operation type has to be able to say which operatio
 
 #### Cache spans
 
-Cache keys are unbounded, so they are no longer part of a cache span name. They remain available on the `cache.key` attribute, and every cache span now also carries a `cache.operation` attribute (`get`, `put`, `remove`), which is the value the name is built from. This affects the redis/ioredis cache spans (`cachePrefixes`), the Nuxt and Nitro storage spans, and the dataloader spans.
+Cache keys are no longer part of a cache span name. They remain available on the `cache.key` attribute, and every cache span now also carries a `cache.operation` attribute (`get`, `put`, `remove`), which is the value the name is built from. This affects the redis/ioredis cache spans (with `cachePrefixes` set on the redis integration), the Nuxt and Nitro storage spans, and the dataloader spans.
 
 A Redis command whose key matches `cachePrefixes` now starts as a `cache.*` span instead of being converted from a `db.query` span at response time. `ignoreSpans` is evaluated at span start, so filters can match these spans by their cache op and name. A failed cache command reports as a cache span too, where it previously stayed a `db.query` span.
 
-A dataloader span no longer carries the loader's `name` either (`dataloader.load usersLoader` becomes `cache.get`), because the cache conventions have no slot for it in the name. It is reported on the `db.collection.name` attribute instead, because a loader batches one entity type, which makes it the closest thing dataloader has to a collection. Unnamed loaders do not set it.
+A dataloader span no longer carries the loader's `name` either (`dataloader.load usersLoader` becomes `cache.get`). The loader `name` is reported on the `db.collection.name` attribute instead.
 
 #### Database spans
 
@@ -1069,15 +1070,11 @@ The `pg`, `postgres.js`, `mysql`, `mysql2`, `knex`, `tedious`, Prisma, Nitro `db
 
 Supabase query spans drop the builder call from the name (`select(...) from(users)` becomes `select users`); the query modifiers stay on the `db.query` attribute. Supabase auth spans are named after the method they call (`auth signInWithPassword` becomes `auth.signInWithPassword`, `auth (admin) createUser` becomes `auth.admin.createUser`). An auth call has neither a table nor a namespace to build a name from.
 
-A mongoose span's name is built from `db.collection.name`, so it holds the collection (`blogposts`) rather than the model (`BlogPost`). The related [`db.system.name` change](#messaging-and-database-attributes) from `mongoose` to `mongodb` applies here too.
+A mongoose span's name is built from `db.collection.name`, so it holds the collection (`blogposts`) rather than previously the model (`BlogPost`). The related [`db.system.name` change](#messaging-and-database-attributes) from `mongoose` to `mongodb` applies here too.
 
-Redis has no statement to summarize and no collection to pair a command with, so redis and ioredis `db.query` spans are named after the operation and the connection instead of the command that was sent. The command and its arguments remain available on `db.query.text`, redacted as before. `MULTI`/`PIPELINE` batch spans are unchanged, because they were already named after their operation, which they now also report on `db.operation.name`.
+Redis has no statement to summarize so redis and ioredis `db.query` spans are named after the operation and the connection instead of the command that was sent. The command and its arguments remain available on `db.query.text`.
 
-`FCALL` and `FCALL_RO` call a redis function, which the conventions model as a stored procedure, so those spans are named after the function and report it on a new `db.stored_procedure.name` attribute. node-redis and ioredis redact arguments before publishing them, so a redacted function name is left off both the name and the attribute.
-
-Relatedly: node-redis clients now always report the connection they use. v4 wrote its `localhost:6379` defaults back into `client.options` and v5 does not, so identically configured clients reported `server.address`/`server.port` on v4 but neither on v5. The SDK now fills in the same defaults node-redis itself publishes, and a client connected over a unix socket reports its path as `server.address` and no port.
-
-Connect and pool spans are not queries, so they keep their names: `pg.connect`, `pg-pool.connect`, `mysql2.connect`, `redis-connect` and `generic-pool.acquire` are unchanged.
+Connect and pool spans keep their names: `pg.connect`, `pg-pool.connect`, `mysql2.connect`, `redis-connect` and `generic-pool.acquire` remain unchanged.
 
 ### AI integrations no longer trace non-inference operations
 
