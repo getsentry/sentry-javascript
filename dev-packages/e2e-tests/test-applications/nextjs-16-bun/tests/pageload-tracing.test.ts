@@ -1,26 +1,21 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('App router transactions should be attached to the pageload request span', async ({ page }) => {
-  const serverTransactionPromise = waitForTransaction('nextjs-16-bun', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /pageload-tracing';
+test('App router spans should be attached to the pageload request span', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan('nextjs-16-bun', span => {
+    return span.name === 'GET /pageload-tracing' && span.is_segment;
   });
 
-  const pageloadTransactionPromise = waitForTransaction('nextjs-16-bun', async transactionEvent => {
-    return transactionEvent?.transaction === '/pageload-tracing';
+  const pageloadSpanPromise = waitForStreamedSpan('nextjs-16-bun', span => {
+    return span.name === '/pageload-tracing' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/pageload-tracing`);
 
-  const [serverTransaction, pageloadTransaction] = await Promise.all([
-    serverTransactionPromise,
-    pageloadTransactionPromise,
-  ]);
+  const [serverSpan, pageloadSpan] = await Promise.all([serverSpanPromise, pageloadSpanPromise]);
 
-  const pageloadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
-
-  expect(pageloadTraceId).toBeTruthy();
-  expect(serverTransaction.contexts?.trace?.trace_id).toBe(pageloadTraceId);
+  expect(pageloadSpan.trace_id).toBeTruthy();
+  expect(serverSpan.trace_id).toBe(pageloadSpan.trace_id);
 });
 
 // Bun runtime does not populate HTTP request headers as span attributes

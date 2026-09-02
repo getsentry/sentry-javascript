@@ -388,7 +388,7 @@ Sentry.init({
   beforeSendSpan: span => {
     if (span.attributes['sentry.op'] === 'db.query') {
       span.name = scrub(span.name);
-      span.attributes['db.statement'] = scrub(span.attributes['db.statement']);
+      span.attributes['db.query.text'] = scrub(span.attributes['db.query.text']);
     }
     return span;
   },

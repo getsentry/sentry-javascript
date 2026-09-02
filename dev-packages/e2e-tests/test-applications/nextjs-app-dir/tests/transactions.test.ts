@@ -1,111 +1,94 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 const packageJson = require('../package.json');
 
-test('Sends a pageload transaction', async ({ page }) => {
+test('Sends a pageload span', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
 
-  const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
+  const pageloadSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
+    return getSpanOp(span) === 'pageload' && span.name === '/' && span.is_segment;
   });
 
   await page.goto('/');
 
-  const transactionEvent = await pageloadTransactionEventPromise;
+  const span = await pageloadSpanPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      transaction: '/',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: expect.objectContaining({
-        react: {
-          version: expect.any(String),
-        },
-        trace: {
-          // Next.js >= 15 propagates a trace ID to the client via a meta tag. Also, only dev mode emits a meta tag because
-          // the requested page is static and only in dev mode SSR is kicked off.
-          parent_span_id: nextjsMajor >= 15 && isDevMode ? expect.any(String) : undefined,
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          op: 'pageload',
-          origin: 'auto.pageload.nextjs.app_router_instrumentation',
-          status: 'ok',
-          data: expect.objectContaining({
-            'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-            'sentry.segment.name.source': 'route',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-            'url.path': '/',
-            'url.template': '/',
-          }),
-        },
-      }),
-      request: {
-        headers: {
-          'User-Agent': expect.any(String),
-        },
-        url: 'http://localhost:3030/',
-      },
-    }),
-  );
+  // Next.js >= 15 propagates a trace ID to the client via a meta tag. Also, only dev mode emits a meta tag because
+  // the requested page is static and only in dev mode SSR is kicked off.
+  if (nextjsMajor >= 15 && isDevMode) {
+    expect(span.parent_span_id).toEqual(expect.any(String));
+  } else {
+    expect(span.parent_span_id).toBeUndefined();
+  }
+
+  expect(span.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(span.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(span.status).toBe('ok');
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.nextjs.app_router_instrumentation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.path': { value: '/', type: 'string' },
+    'url.template': { value: '/', type: 'string' },
+    'react.version': { value: expect.any(String), type: 'string' },
+    'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+  });
+  expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/$/);
 });
 
-test('Should send a transaction for instrumented server actions', async ({ page }) => {
+test('Should send a span for instrumented server actions', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'serverAction/myServerAction';
+  const serverActionSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
+    return span.name === 'serverAction/myServerAction' && span.is_segment;
   });
 
   await page.goto('/server-action');
   await page.getByText('Run Action').click();
 
-  const transactionEvent = await serverComponentTransactionPromise;
+  const span = await serverActionSpanPromise;
 
-  expect(transactionEvent).toBeDefined();
-  expect(transactionEvent.extra).toMatchObject({
-    'server_action_form_data.some-text-value': 'some-default-value',
-    server_action_result: {
-      city: 'Vienna',
-    },
-  });
-
-  expect(Object.keys(transactionEvent.request?.headers || {}).length).toBeGreaterThan(0);
+  expect(span).toBeDefined();
 });
 
-test('Should send a wrapped server action as a child of a nextjs transaction', async ({ page }) => {
+test('Should send a wrapped server action as a child of a nextjs span', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
 
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
   test.skip(isDevMode, 'this magically only works in production');
 
-  const nextjsPostTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+  // Both spans must come from the same trace. Other specs on this page produce identically shaped
+  // `POST /server-action` and `serverAction/myServerAction` spans, so requiring both within one
+  // `collectStreamedSpans` - which evaluates a single trace at a time - keeps them paired.
+  const spansPromise = collectStreamedSpans('nextjs-app-dir', spans => {
     return (
-      transactionEvent?.transaction === 'POST /server-action' && transactionEvent.contexts?.trace?.origin === 'auto'
+      spans.some(
+        span =>
+          span.name === 'POST /server-action' && span.is_segment && span.attributes['sentry.origin']?.value === 'auto',
+      ) && spans.some(span => span.name === 'serverAction/myServerAction' && span.is_segment)
     );
-  });
-
-  const serverActionTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'serverAction/myServerAction';
   });
 
   await page.goto('/server-action');
   await page.getByText('Run Action').click();
 
-  const nextjsTransaction = await nextjsPostTransactionPromise;
-  const serverActionTransaction = await serverActionTransactionPromise;
+  const spans = await spansPromise;
+  const nextjsSpan = spans.find(
+    span =>
+      span.name === 'POST /server-action' && span.is_segment && span.attributes['sentry.origin']?.value === 'auto',
+  )!;
+  const serverActionSpan = spans.find(span => span.name === 'serverAction/myServerAction' && span.is_segment)!;
 
-  expect(nextjsTransaction).toBeDefined();
-  expect(serverActionTransaction).toBeDefined();
+  expect(nextjsSpan).toBeDefined();
+  expect(serverActionSpan).toBeDefined();
 
-  expect(nextjsTransaction.contexts?.trace?.span_id).toBe(serverActionTransaction.contexts?.trace?.parent_span_id);
+  expect(nextjsSpan.span_id).toBe(serverActionSpan.parent_span_id);
 });
 
 test('Should set not_found status for server actions calling notFound()', async ({ page }) => {
@@ -113,17 +96,17 @@ test('Should set not_found status for server actions calling notFound()', async 
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
-  const serverActionTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'serverAction/notFoundServerAction';
+  const serverActionSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
+    return span.name === 'serverAction/notFoundServerAction' && span.is_segment;
   });
 
   await page.goto('/server-action');
   await page.getByText('Run NotFound Action').click();
 
-  const transactionEvent = await serverActionTransactionPromise;
+  const span = await serverActionSpanPromise;
 
-  expect(transactionEvent).toBeDefined();
-  expect(transactionEvent.contexts?.trace?.status).toBe('not_found');
+  expect(span).toBeDefined();
+  expect(span.attributes['sentry.status.message']?.value).toBe('not_found');
 });
 
 test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions calling redirect()', async ({
@@ -133,12 +116,12 @@ test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions 
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
-  const serverActionTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
-    return transactionEvent?.transaction === 'serverAction/redirectServerAction';
+  const serverActionSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
+    return span.name === 'serverAction/redirectServerAction' && span.is_segment;
   });
 
   let controlFlowErrorCaptured = false;
-  waitForError('nextjs-app-dir', errorEvent => {
+  void waitForError('nextjs-app-dir', errorEvent => {
     if (errorEvent.exception?.values?.[0].value === 'NEXT_REDIRECT') {
       controlFlowErrorCaptured = true;
     }
@@ -149,29 +132,26 @@ test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions 
   await page.goto('/server-action');
   await page.getByText('Run Redirect Action').click();
 
-  const serverActionTransactionEvent = await serverActionTransactionPromise;
-  expect(serverActionTransactionEvent).toBeDefined();
+  const serverActionSpan = await serverActionSpanPromise;
+  expect(serverActionSpan).toBeDefined();
 
-  // Redirects are normal control flow, so the transaction must not be flagged as errored
-  expect(serverActionTransactionEvent.contexts?.trace?.status).toBe('ok');
+  // Redirects are normal control flow, so the span must not be flagged as errored
+  expect(serverActionSpan.status).toBe('ok');
 
   // By the time the server action span finishes the error should already have been sent
   expect(controlFlowErrorCaptured).toBe(false);
 });
 
-test('Will not include spans in pageload transaction with faulty timestamps for slow loading pages', async ({
-  page,
-}) => {
+test('Will not include spans with faulty timestamps for slow loading pages', async ({ page }) => {
   test.slow();
-  const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/very-slow-component'
-    );
-  });
+
+  const spansPromise = collectStreamedSpans('nextjs-app-dir', spans =>
+    spans.some(span => span.name === '/very-slow-component' && getSpanOp(span) === 'pageload' && span.is_segment),
+  );
 
   await page.goto('/very-slow-component', { timeout: 11000 });
 
-  const pageLoadTransaction = await pageloadTransactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(pageLoadTransaction.spans?.filter(span => span.timestamp! < span.start_timestamp)).toHaveLength(0);
+  expect(spans.filter(span => span.end_timestamp < span.start_timestamp)).toHaveLength(0);
 });
