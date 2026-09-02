@@ -26,6 +26,15 @@ execSync('yarn build:dev:filter @sentry/core', { cwd: repoRoot, stdio: 'inherit'
 console.log('Packing @sentry/core...');
 execSync('yarn build:tarball', { cwd: coreDir, stdio: 'inherit' });
 
+// `@sentry/bundler-plugins` externalizes `@sentry/server-utils` (it `require`s it at build time), so
+// the fixtures need the local tarball to match the local `@sentry/core` build above — otherwise pnpm
+// pulls a mismatched published version from the registry.
+const serverUtilsDir = join(repoRoot, 'packages', 'server-utils');
+console.log('Building @sentry/server-utils and its workspace dependencies...');
+execSync('yarn build:dev:filter @sentry/server-utils', { cwd: repoRoot, stdio: 'inherit' });
+console.log('Packing @sentry/server-utils...');
+execSync('yarn build:tarball', { cwd: serverUtilsDir, stdio: 'inherit' });
+
 console.log('Building @sentry/bundler-plugins and its workspace dependencies...');
 execSync('yarn build:dev:filter @sentry/bundler-plugins', { cwd: repoRoot, stdio: 'inherit' });
 console.log('Packing @sentry/bundler-plugins...');
