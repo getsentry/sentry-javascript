@@ -11,7 +11,7 @@ let nonStreamingPatched = false;
  *
  * @param registerModule callback invoked for every successfully compiled module
  */
-export function patchStreamingWebAssembly(registerModule: RegisterModuleCallback): void {
+function patchStreamingWebAssembly(registerModule: RegisterModuleCallback): void {
   if ('instantiateStreaming' in WebAssembly) {
     const origInstantiateStreaming = WebAssembly.instantiateStreaming as (
       response: unknown,
@@ -61,14 +61,25 @@ function registerSafely(registerModule: RegisterModuleCallback, module: WebAssem
   }
 }
 
+/**
+ * Registers a module compiled from bytes under the URL those bytes were fetched from, when known.
+ * Runs inside the caller's promise chain, so nothing in here may throw.
+ */
 function registerFromBufferSource(
   registerModule: RegisterModuleCallback,
-  module: WebAssembly.Module,
-  source: BufferSource,
+  compiled: WebAssembly.Module | WebAssembly.WebAssemblyInstantiatedSource | WebAssembly.Instance,
+  source: unknown,
 ): void {
-  const url = getWasmSourceUrl(source);
-  if (url) {
-    registerSafely(registerModule, module, url);
+  try {
+    // `instantiate(module)` resolves to a bare Instance, which carries nothing new to register
+    const module =
+      compiled instanceof WebAssembly.Module ? compiled : 'module' in compiled ? compiled.module : undefined;
+    const url = getWasmSourceUrl(source);
+    if (module && url) {
+      registerModule(module, url);
+    }
+  } catch {
+    // a registration failure must never break the user's WebAssembly call
   }
 }
 
@@ -87,14 +98,10 @@ function patchNonStreamingWebAssembly(registerModule: RegisterModuleCallback): v
   const origInstantiate = WebAssembly.instantiate as unknown as (
     source: unknown,
     ...rest: unknown[]
-  ) => Promise<WebAssembly.WebAssemblyInstantiatedSource>;
-  WebAssembly.instantiate = function instantiate(source: BufferSource | WebAssembly.Module, ...rest: unknown[]) {
-    if (source instanceof WebAssembly.Module) {
-      return origInstantiate(source, ...rest);
-    }
-
+  ) => Promise<WebAssembly.WebAssemblyInstantiatedSource | WebAssembly.Instance>;
+  WebAssembly.instantiate = function instantiate(source: unknown, ...rest: unknown[]) {
     return origInstantiate(source, ...rest).then(result => {
-      registerFromBufferSource(registerModule, result.module, source);
+      registerFromBufferSource(registerModule, result, source);
       return result;
     });
   } as typeof WebAssembly.instantiate;
@@ -110,11 +117,22 @@ function patchNonStreamingWebAssembly(registerModule: RegisterModuleCallback): v
 
 /**
  * Patches the web assembly runtime.
+ *
+ * Every patch is guarded on its own: a missing or frozen global must neither throw out of
+ * `Sentry.init()` / `registerWebWorkerWasm()` nor keep the remaining patches from installing.
  */
 export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
-  patchWasmResponseBodyReaders();
-  patchNonStreamingWebAssembly(registerModule);
-  patchStreamingWebAssembly(registerModule);
+  tryPatch(() => patchWasmResponseBodyReaders());
+  tryPatch(() => patchNonStreamingWebAssembly(registerModule));
+  tryPatch(() => patchStreamingWebAssembly(registerModule));
+}
+
+function tryPatch(patch: () => void): void {
+  try {
+    patch();
+  } catch {
+    // see patchWebAssembly()
+  }
 }
 
 /** @internal */

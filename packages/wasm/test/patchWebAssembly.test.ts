@@ -153,6 +153,25 @@ describe('patchWebAssembly() non-streaming registration', () => {
 
     expect(IMAGES).toHaveLength(0);
   });
+
+  it('resolves instantiate(module) to a bare instance and registers nothing', async () => {
+    const module = await WebAssembly.compile(await fetchWasmBytes());
+    IMAGES.length = 0;
+
+    await expect(WebAssembly.instantiate(module, WASM_IMPORTS)).resolves.toBeInstanceOf(WebAssembly.Instance);
+    expect(IMAGES).toHaveLength(0);
+  });
+
+  it('does not reject the body read when tagging throws', async () => {
+    const response = new Response(new Uint8Array(8));
+    Object.defineProperty(response, 'url', {
+      get: () => {
+        throw new Error('url accessor');
+      },
+    });
+
+    await expect(response.arrayBuffer()).resolves.toBeInstanceOf(ArrayBuffer);
+  });
 });
 
 describe('patchWebAssembly() non-streaming argument forwarding', () => {

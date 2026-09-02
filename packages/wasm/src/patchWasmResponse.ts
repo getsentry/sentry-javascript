@@ -1,9 +1,9 @@
-import { addNonEnumerableProperty, fill } from '@sentry/core';
+import { fill } from '@sentry/core';
 
 /**
  * Streaming wasm registration (`instantiateStreaming` / `compileStreaming`) reads the module URL
  * from `Response.url`. Non-streaming paths (`WebAssembly.instantiate` / `compile` with bytes) only
- * receive a buffer — no URL — so registration would otherwise be skipped.
+ * receive a buffer, no URL, so registration would otherwise be skipped.
  *
  * This module patches `Response.prototype.arrayBuffer` and `bytes` so that when wasm is fetched
  * and then loaded from bytes, we can map the resulting `ArrayBuffer` back to the fetch URL via
@@ -11,14 +11,12 @@ import { addNonEnumerableProperty, fill } from '@sentry/core';
  */
 const wasmSourceUrls = new WeakMap<ArrayBuffer, string>();
 
-const PATCHED_SYMBOL = Symbol.for('__sentryWasmPatched');
-
-type MaybePatched = { [PATCHED_SYMBOL]?: boolean };
+let responseReadersPatched = false;
 
 /**
  * Resolves a wasm source buffer back to its fetch URL, when known.
  */
-export function getWasmSourceUrl(source: BufferSource): string | undefined {
+export function getWasmSourceUrl(source: unknown): string | undefined {
   const buffer = toArrayBuffer(source);
   if (!buffer) {
     return undefined;
@@ -27,7 +25,7 @@ export function getWasmSourceUrl(source: BufferSource): string | undefined {
   return wasmSourceUrls.get(buffer);
 }
 
-function toArrayBuffer(source: BufferSource): ArrayBuffer | undefined {
+function toArrayBuffer(source: unknown): ArrayBuffer | undefined {
   if (source instanceof ArrayBuffer) {
     return source;
   }
@@ -50,9 +48,18 @@ function looksLikeWasmResponse(response: Response): boolean {
   return Boolean(url && /\.wasm(?:\?|#|$)/i.test(url));
 }
 
-function tagResponseBuffer(response: Response, buffer: ArrayBuffer): void {
-  if (looksLikeWasmResponse(response) && response.url) {
-    wasmSourceUrls.set(buffer, response.url);
+/**
+ * Runs inside the caller's `arrayBuffer()` / `bytes()` promise chain, so it must never throw:
+ * a failure here would reject a body read that has nothing to do with wasm.
+ */
+function tagResponseSource(response: Response, source: unknown): void {
+  try {
+    const buffer = toArrayBuffer(source);
+    if (buffer && response.url && looksLikeWasmResponse(response)) {
+      wasmSourceUrls.set(buffer, response.url);
+    }
+  } catch {
+    // see above
   }
 }
 
@@ -60,20 +67,17 @@ function tagResponseBuffer(response: Response, buffer: ArrayBuffer): void {
  * Patches Response body readers so wasm bytes remember their fetch URL.
  */
 export function patchWasmResponseBodyReaders(): void {
-  if (typeof Response === 'undefined') {
+  if (responseReadersPatched || typeof Response === 'undefined') {
     return;
   }
 
-  const responseProto = Response.prototype as MaybePatched;
-  if (responseProto[PATCHED_SYMBOL]) {
-    return;
-  }
+  responseReadersPatched = true;
 
   fill(Response.prototype, 'arrayBuffer', (original: (this: Response) => Promise<ArrayBuffer>) => {
     return function arrayBuffer(this: Response): Promise<ArrayBuffer> {
       const bufferPromise: Promise<ArrayBuffer> = original.call(this);
-      return bufferPromise.then((buffer: ArrayBuffer) => {
-        tagResponseBuffer(this, buffer);
+      return bufferPromise.then(buffer => {
+        tagResponseSource(this, buffer);
         return buffer;
       });
     };
@@ -82,22 +86,15 @@ export function patchWasmResponseBodyReaders(): void {
   fill(Response.prototype, 'bytes', (original: (this: Response) => Promise<Uint8Array>) => {
     return function bytes(this: Response): Promise<Uint8Array> {
       const bytesPromise: Promise<Uint8Array> = original.call(this);
-      return bytesPromise.then((bytes: Uint8Array) => {
-        const { buffer } = bytes;
-        if (buffer instanceof ArrayBuffer) {
-          tagResponseBuffer(this, buffer);
-        }
+      return bytesPromise.then(bytes => {
+        tagResponseSource(this, bytes);
         return bytes;
       });
     };
   });
-
-  addNonEnumerableProperty(responseProto, PATCHED_SYMBOL, true);
 }
 
 /** @internal */
 export function _resetResponsePatchForTests(): void {
-  if (typeof Response !== 'undefined') {
-    addNonEnumerableProperty(Response.prototype, PATCHED_SYMBOL, false);
-  }
+  responseReadersPatched = false;
 }
