@@ -22,21 +22,25 @@ function getExportedSpans(data: string): OtlpSpan[] {
 }
 
 test('exports the spans of the user OpenTelemetry setup to their own collector', async ({ baseURL }) => {
-  // The http span only ends once the response is out, so wait until both it and the span started
-  // inside the handler have been exported.
+  let traceId: string | undefined;
+
+  // Every test in this app exports into the same proxy, and the http span only ends once the
+  // response is out, so wait for this request's own trace to be complete. Waiting on the span names
+  // alone matches a batch that another test filled, whose spans are on a different trace.
   const otelExportPromise = waitForPlainRequest('node-otel-sdk-node-otel', data => {
-    const spans = getExportedSpans(data);
-    return spans.some(span => span.name === 'telemetry-handler') && spans.some(span => span.name === 'GET');
+    const names = getExportedSpans(data)
+      .filter(span => span.traceId === traceId)
+      .map(span => span.name);
+    return names.includes('telemetry-handler') && names.includes('GET');
   });
 
   const response = await fetch(`${baseURL}/test-telemetry/234`);
-  const { traceId } = (await response.json()) as { traceId: string };
+  ({ traceId } = (await response.json()) as { traceId: string });
 
-  const exportedSpans = getExportedSpans(await otelExportPromise);
+  const exportedSpans = getExportedSpans(await otelExportPromise).filter(span => span.traceId === traceId);
 
   // The user's own http instrumentation keeps working and stays on the same trace as their spans.
-  expect(exportedSpans).toContainEqual(expect.objectContaining({ name: 'telemetry-handler', traceId }));
-  expect(exportedSpans).toContainEqual(expect.objectContaining({ name: 'GET', traceId }));
+  expect(exportedSpans.map(span => span.name)).toEqual(expect.arrayContaining(['telemetry-handler', 'GET']));
 });
 
 test('sends no spans to Sentry', async ({ baseURL }) => {
