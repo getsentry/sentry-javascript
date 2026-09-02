@@ -9,10 +9,11 @@ import {
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { DB_QUERY, DB } from '@sentry/conventions/op';
+import type { SpanAttributes } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import type { RedisCacheOptions } from './redis-cache';
-import { applyRedisCacheAttributes } from './redis-cache';
+import { applyCacheResponseAttributes, getRedisCacheAttributes } from './redis-cache';
 
 // Channel names published by node-redis >= 5.12.0 and ioredis >= 5.11.0.
 // Hardcoded so the subscriber does not have to import either library — the
@@ -141,23 +142,25 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
       // spaces to mirror the format the libraries themselves intend.
       const args = getCommandArgs(data);
       const statement = args.length ? `${data.command} ${args.join(' ')}` : data.command;
+      const attributes: SpanAttributes = {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: DB_QUERY,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+        [DB_OPERATION_NAME]: data.command,
+        [DB_QUERY_TEXT]: statement,
+        ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
+        ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
+      };
+      const cacheProperties = getRedisCacheAttributes(data.command, args, attributes, cacheOptions);
       return startInactiveSpan({
-        name: `redis-${data.command}`,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: DB_QUERY,
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
-          [DB_OPERATION_NAME]: data.command,
-          [DB_QUERY_TEXT]: statement,
-          ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
-          ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
-        },
+        name: cacheProperties?.name ?? `redis-${data.command}`,
+        attributes: { ...attributes, ...cacheProperties?.attributes },
       });
     },
     {
       beforeSpanEnd(span, data) {
         if ('error' in data) return;
-        applyRedisCacheAttributes(span, data.command, getCommandArgs(data), data.result, cacheOptions);
+        applyCacheResponseAttributes(span, data.result);
       },
     },
   );

@@ -21,7 +21,7 @@ describe('startIORedisCommandSpan', () => {
   });
 
   it('builds a db query span with Sentry convention attributes', () => {
-    startIORedisCommandSpan(ctx({ name: 'set', args: ['test-key', 'test-value'] }));
+    startIORedisCommandSpan(ctx({ name: 'set', args: ['test-key', 'test-value'] }), {});
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -39,23 +39,42 @@ describe('startIORedisCommandSpan', () => {
     );
   });
 
+  it('starts the span as a cache span when the key matches a cache prefix', () => {
+    startIORedisCommandSpan(ctx({ name: 'get', args: ['ioredis-cache:test-key'] }), {
+      cachePrefixes: ['ioredis-cache:'],
+    });
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'ioredis-cache:test-key',
+        attributes: expect.objectContaining({
+          'sentry.op': 'cache.get',
+          'cache.operation': 'get',
+          'cache.key': ['ioredis-cache:test-key'],
+          'network.peer.address': 'localhost',
+          'network.peer.port': 6379,
+        }),
+      }),
+    );
+  });
+
   it('emits a single span when the same command is re-sent from the offline queue', () => {
     const command = { name: 'set', args: ['test-key', 'test-value'] };
 
-    expect(startIORedisCommandSpan(ctx(command))).toBeDefined();
-    expect(startIORedisCommandSpan(ctx(command))).toBeUndefined();
+    expect(startIORedisCommandSpan(ctx(command), {})).toBeDefined();
+    expect(startIORedisCommandSpan(ctx(command), {})).toBeUndefined();
     expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
   });
 
   it('spans distinct command objects with the same statement', () => {
-    startIORedisCommandSpan(ctx({ name: 'get', args: ['k'] }));
-    startIORedisCommandSpan(ctx({ name: 'get', args: ['k'] }));
+    startIORedisCommandSpan(ctx({ name: 'get', args: ['k'] }), {});
+    startIORedisCommandSpan(ctx({ name: 'get', args: ['k'] }), {});
 
     expect(startInactiveSpanSpy).toHaveBeenCalledTimes(2);
   });
 
   it('skips payloads without a command object', () => {
-    expect(startIORedisCommandSpan({ arguments: [], self: { options: CONNECTION } })).toBeUndefined();
+    expect(startIORedisCommandSpan({ arguments: [], self: { options: CONNECTION } }, {})).toBeUndefined();
     expect(startInactiveSpanSpy).not.toHaveBeenCalled();
   });
 });
