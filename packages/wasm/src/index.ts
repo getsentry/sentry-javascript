@@ -109,9 +109,11 @@ export function patchFrames(
       match = frame.filename.match(PARSER_REGEX) as null | [string, string, string];
     }
 
+    // `<url>:wasm-function[N]:0xADDR` — address is still in filename (JS parser did not split it).
+    // `<url>` is usually the fetch URL (`http://…/app.wasm`); Chrome may instead use `wasm://wasm/<file>-<hash>`.
     if (match) {
-      const index = getImage(match[1]);
-      const workerImageIndex = getWorkerImage(match[1]);
+      let index = getImage(match[1]);
+      let workerImageIndex = getWorkerImage(match[1]);
       frame.instruction_addr = match[2];
       frame.filename = match[1];
       frame.platform = 'native';
@@ -123,12 +125,42 @@ export function patchFrames(
         };
       }
 
+      // Exact `code_file` miss: `match[1]` is `wasm://wasm/…`, not the registered http URL.
+      if (index < 0 && workerImageIndex < 0) {
+        const unique = uniqueImageForSyntheticFilename(match[1]);
+        if (unique) {
+          frame.filename = unique.codeFile;
+          if (unique.worker) {
+            workerImageIndex = unique.index;
+          } else {
+            index = unique.index;
+          }
+        }
+      }
+
       if (index >= 0) {
         frame.addr_mode = `rel:${existingImagesOffset + index}`;
         hasAtLeastOneWasmFrameWithImage = true;
       } else if (workerImageIndex >= 0) {
         const mainThreadImagesCount = getImages().length;
         frame.addr_mode = `rel:${existingImagesOffset + mainThreadImagesCount + workerImageIndex}`;
+        hasAtLeastOneWasmFrameWithImage = true;
+      }
+    } else {
+      // Bare `wasm://wasm/<file>-<hash>` — JS parser already set `instruction_addr`.
+      const unique = uniqueImageForSyntheticFilename(frame.filename);
+      if (unique && frame.instruction_addr) {
+        frame.filename = unique.codeFile;
+        frame.platform = 'native';
+        if (applicationKey) {
+          frame.module_metadata = {
+            ...frame.module_metadata,
+            [`${BUNDLER_PLUGIN_APP_KEY_PREFIX}${applicationKey}`]: true,
+          };
+        }
+        frame.addr_mode = unique.worker
+          ? `rel:${existingImagesOffset + getImages().length + unique.index}`
+          : `rel:${existingImagesOffset + unique.index}`;
         hasAtLeastOneWasmFrameWithImage = true;
       }
     }
@@ -145,6 +177,38 @@ function getWorkerImage(url: string): number {
   return workerImages.findIndex(image => {
     return image.type === 'wasm' && image.code_file === url;
   });
+}
+
+function fileBasename(url: string): string | undefined {
+  try {
+    return new URL(url).pathname.split('/').pop() || undefined;
+  } catch {
+    return url.split('/').pop();
+  }
+}
+
+/** Chrome may label buffer-compiled modules `wasm://wasm/<filename>-<hash>` (window and workers). */
+function uniqueImageForSyntheticFilename(
+  filename: string,
+): { index: number; worker: boolean; codeFile: string } | undefined {
+  const body = filename.match(/^wasm:\/\/wasm\/(.+)$/i)?.[1];
+  if (!body) {
+    return undefined;
+  }
+  const basename = body.replace(/-[0-9a-fA-F]{6,16}$/, '');
+  const hits: Array<{ index: number; worker: boolean; codeFile: string }> = [];
+  const consider = (images: Array<DebugImage>, worker: boolean): void => {
+    images.forEach((image, index) => {
+      if (image.type === 'wasm' && typeof image.code_file === 'string' && fileBasename(image.code_file) === basename) {
+        hits.push({ index, worker, codeFile: image.code_file });
+      }
+    });
+  };
+  consider(getImages(), false);
+  consider(WINDOW._sentryWasmImages || [], true);
+  // Page + worker often register the same URL; that is one module, not two.
+  const codeFiles = new Set(hits.map(hit => hit.codeFile));
+  return codeFiles.size === 1 ? hits[0] : undefined;
 }
 
 /**
