@@ -22,3 +22,14 @@ test('records a client report and no error event when tracesSampler throws', asy
     .start()
     .completed();
 });
+
+test('sends the span when tracesSampler throws but tracesSampleRate is 1', async () => {
+  await createRunner(__dirname, 'scenario-fallback.ts')
+    .expect({
+      transaction: {
+        transaction: 'sampled via tracesSampleRate fallback',
+      },
+    })
+    .start()
+    .completed();
+});
