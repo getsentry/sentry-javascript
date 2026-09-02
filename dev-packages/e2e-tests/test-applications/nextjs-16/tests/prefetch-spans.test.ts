@@ -1,24 +1,27 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test('Prefetch client spans should have a http.request.prefetch attribute', async ({ page }) => {
   test.skip(isDevMode, "Prefetch requests don't have the prefetch header in dev mode");
 
-  const pageloadTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === '/prefetching';
-  });
+  // The prefetch span is a child of the pageload segment span, which ends last.
+  const spansPromise = collectStreamedSpans('nextjs-16', spans =>
+    spans.some(span => span.name === '/prefetching' && span.is_segment),
+  );
 
   await page.goto(`/prefetching`);
 
   // Make it more likely that nextjs prefetches
   await page.hover('#prefetch-link');
 
-  expect((await pageloadTransactionPromise).spans).toContainEqual(
+  const spans = await spansPromise;
+
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      op: 'http.client',
-      data: expect.objectContaining({
-        'http.request.prefetch': true,
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'http.client', type: 'string' },
+        'http.request.prefetch': { value: true, type: 'boolean' },
       }),
     }),
   );
