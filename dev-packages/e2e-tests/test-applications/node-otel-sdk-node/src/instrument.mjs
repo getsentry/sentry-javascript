@@ -28,5 +28,5 @@ Sentry.init({
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   // no tracesSampleRate: OpenTelemetry owns spans, Sentry owns errors and logs
-  integrations: [Sentry.otlpIntegration()],
+  integrations: [Sentry.openTelemetryIntegration()],
 });

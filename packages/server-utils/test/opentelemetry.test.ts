@@ -3,7 +3,7 @@ import { context, INVALID_SPAN_CONTEXT, ROOT_CONTEXT, trace, TraceFlags } from '
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Envelope } from '@sentry/core';
 import { getCurrentScope, getMainCarrier, registerExternalPropagationContext, setCurrentClient } from '@sentry/core';
-import { getOtlpTracesEndpoint, otlpIntegration } from '../src/otlp';
+import { getOtlpTracesEndpoint, openTelemetryIntegration } from '../src/opentelemetry';
 import { getDefaultTestClientOptions, TestClient } from './mocks/client';
 
 const DSN = 'https://public@dsn.ingest.sentry.io/1337';
@@ -61,9 +61,9 @@ function withActiveOtelSpan<T>(callback: () => T): T {
   return context.with(trace.setSpan(context.active(), otelSpan), callback);
 }
 
-function setupClientWithOtlpIntegration(): TestClient {
+function setupClientWithOpenTelemetryIntegration(): TestClient {
   const client = new TestClient(
-    getDefaultTestClientOptions({ dsn: DSN, integrations: [otlpIntegration()], stackParser: () => [] }),
+    getDefaultTestClientOptions({ dsn: DSN, integrations: [openTelemetryIntegration()], stackParser: () => [] }),
   );
   setCurrentClient(client);
   client.init();
@@ -76,7 +76,7 @@ function setupClientCapturingEnvelopes(): { client: TestClient; envelopes: Envel
   const client = new TestClient(
     getDefaultTestClientOptions({
       dsn: DSN,
-      integrations: [otlpIntegration()],
+      integrations: [openTelemetryIntegration()],
       stackParser: () => [],
       enableSend: true,
     }),
@@ -87,7 +87,7 @@ function setupClientCapturingEnvelopes(): { client: TestClient; envelopes: Envel
   return { client, envelopes };
 }
 
-describe('otlpIntegration', () => {
+describe('openTelemetryIntegration', () => {
   beforeEach(() => {
     getMainCarrier().__SENTRY__ = undefined;
     context.setGlobalContextManager(new SyncContextManager());
@@ -99,7 +99,7 @@ describe('otlpIntegration', () => {
   });
 
   it('links captured errors to the active OpenTelemetry span', async () => {
-    const client = setupClientWithOtlpIntegration();
+    const client = setupClientWithOpenTelemetryIntegration();
 
     withActiveOtelSpan(() => {
       client.captureException(new Error('boom'));
@@ -140,7 +140,7 @@ describe('otlpIntegration', () => {
   });
 
   it('ignores an active span with an invalid span context', async () => {
-    const client = setupClientWithOtlpIntegration();
+    const client = setupClientWithOpenTelemetryIntegration();
     getCurrentScope().setPropagationContext({ traceId: 'cccccccccccccccccccccccccccccccc', sampleRand: 0.5 });
 
     // OpenTelemetry hands out a span wrapping `INVALID_SPAN_CONTEXT` when tracing is suppressed, or
@@ -154,7 +154,7 @@ describe('otlpIntegration', () => {
   });
 
   it('falls back to the Sentry propagation context when no OpenTelemetry span is active', async () => {
-    const client = setupClientWithOtlpIntegration();
+    const client = setupClientWithOpenTelemetryIntegration();
     getCurrentScope().setPropagationContext({ traceId: 'cccccccccccccccccccccccccccccccc', sampleRand: 0.5 });
 
     client.captureException(new Error('boom'));

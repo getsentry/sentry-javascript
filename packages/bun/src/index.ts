@@ -139,7 +139,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   processSessionIntegration,
   hapiIntegration,

@@ -119,7 +119,7 @@ Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no ex
 
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
-Turn Sentry tracing off, run your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`. Leave `enableOpenTelemetrySetup` unset or set it to `false`:
+Turn Sentry tracing off, run your own OpenTelemetry setup, and add the Sentry `openTelemetryIntegration()`. Leave `enableOpenTelemetrySetup` unset or set it to `false`:
 
 ```js
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -136,13 +136,13 @@ provider.register();
 Sentry.init({
   dsn: '__DSN__',
   // no tracesSampleRate: OpenTelemetry owns spans, Sentry owns errors and logs
-  integrations: [Sentry.otlpIntegration()],
+  integrations: [Sentry.openTelemetryIntegration()],
 });
 ```
 
 `enableOpenTelemetrySetup` already defaults to `false` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `true`, so you have to set it to `false` explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
 
-Spans are completely managed by your OpenTelemetry setup and the two pipelines stay separate: Sentry sends no spans, and no Sentry span is exported to your OpenTelemetry pipeline. Sentry captures errors and logs, and the Sentry `otlpIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
+Spans are completely managed by your OpenTelemetry setup and the two pipelines stay separate: Sentry sends no spans, and no Sentry span is exported to your OpenTelemetry pipeline. Sentry captures errors and logs, and the Sentry `openTelemetryIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
 
 Sentry does not touch your pipeline: no exporter, no span processor, no tracer provider, and outgoing trace propagation is left to your propagator. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces) for the details, including what changed if you used the v10 integration.
 
@@ -158,13 +158,13 @@ In v10, running your own OpenTelemetry setup meant registering Sentry's own comp
 
 #### Connecting Sentry to your OpenTelemetry traces
 
-`Sentry.otlpIntegration()` attaches everything Sentry sends that carries trace information (errors, logs, metrics and crons) to the OpenTelemetry span that is active when it happens. It takes no options, and is available from every server-side SDK, so there is nothing extra to install or import. See [setup 3](#3-your-own-opentelemetry-sentry-linked-to-it) above for a complete example.
+`Sentry.openTelemetryIntegration()` attaches everything Sentry sends that carries trace information (errors, logs, metrics and crons) to the OpenTelemetry span that is active when it happens. It takes no options, and is available from every server-side SDK, so there is nothing extra to install or import. See [setup 3](#3-your-own-opentelemetry-sentry-linked-to-it) above for a complete example.
 
 It does not set up a span exporter, span processor, or tracer provider. You keep full ownership of your OpenTelemetry pipeline, and outgoing request propagation is left to your OpenTelemetry propagator. To send your spans to Sentry, point your own exporter at the URL and auth headers that `Sentry.getOtlpTracesEndpoint()` derives from your DSN.
 
 An active Sentry span still takes precedence, so this only changes what happens when Sentry has no span of its own, which is the usual setup when OpenTelemetry owns tracing.
 
-If you used the v10 integration from `@sentry/node-core/light/otlp`, three things changed: it moved to the main export of every server SDK, it [no longer sets up an exporter for you and lost its options](#3-removed-apis), and it [reports itself as `Otlp` rather than `OtlpIntegration`](#otlpintegration-integration-renamed-to-otlp). Configure your own exporter as shown in setup 3, pointing it at your collector's URL if you route through one.
+If you used the v10 integration from `@sentry/node-core/light/otlp`, three things changed: it moved to the main export of every server SDK, it [no longer sets up an exporter for you and lost its options](#3-removed-apis), and it [was renamed to `openTelemetryIntegration()`](#otlpintegration-renamed-to-opentelemetryintegration). Configure your own exporter as shown in setup 3, pointing it at your collector's URL if you route through one.
 
 ### `sendDefaultPii` is replaced by `dataCollection`
 
@@ -1334,8 +1334,8 @@ The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction 
 - (Express) The `shouldHandleError` option was removed from `setupExpressErrorHandler` and `expressErrorHandler`, along with the `ExpressHandlerOptions` type. Configure it on `expressIntegration()` instead. See [Express: errors are captured automatically](#express-errors-are-captured-automatically).
 - (Express) `ExpressIntegrationOptions` is no longer exported from `@sentry/core`. Import it from `@sentry/node` instead — that version is the one `expressIntegration()` accepts, and it carries `shouldHandleError`.
 - (Fastify) The deprecated `instrumentFastify` and `handleFastifyError` exports were removed. `fastifyIntegration` now instruments Fastify (v3.21–v5) and captures errors on its own, so neither export is needed. See [Fastify: `setupFastifyErrorHandler` is deprecated](#fastify-setupfastifyerrorhandler-is-deprecated).
-- The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
-- The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
+- The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `openTelemetryIntegration` is now exported directly from every server-side SDK, so `Sentry.openTelemetryIntegration()` needs no extra import or install.
+- The `setupOtlpTracesExporter` and `collectorUrl` options were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
 - The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated` instead. `httpServerSpansIntegration` only covers incoming requests; the outgoing hooks (`outgoingRequestHook`, `outgoingResponseHook`, `outgoingRequestApplyCustomAttributes`) are on `httpIntegration`.
 
 #### `httpIntegration` options were consolidated
@@ -1930,11 +1930,27 @@ Sentry.denoHttpIntegration({
 });
 ```
 
-### `OtlpIntegration` integration renamed to `Otlp`
+### `otlpIntegration` renamed to `openTelemetryIntegration`
 
 Affected SDKs: Server-side SDKs (`@sentry/node` and all dependents).
 
-The OTLP integration reports itself as `Otlp` rather than `OtlpIntegration`, matching every other integration in the SDKs, none of which carry an `Integration` suffix in their name. The `otlpIntegration()` export itself is unchanged. This only matters if you reference the integration by name:
+The old name was misleading: the integration sends nothing over OTLP. It sets up no exporter, no span processor and no tracer provider, and only connects what Sentry sends to your OpenTelemetry traces.
+
+```js
+// before
+Sentry.init({
+  integrations: [Sentry.otlpIntegration()],
+});
+
+// after
+Sentry.init({
+  integrations: [Sentry.openTelemetryIntegration()],
+});
+```
+
+`getOtlpTracesEndpoint()` keeps its name. That helper really is about OTLP: it derives the URL and auth headers of Sentry's OTLP traces endpoint from your DSN.
+
+The integration also reports itself as `OpenTelemetry` rather than `OtlpIntegration`, which matters if you reference it by name:
 
 ```js
 // before
@@ -1944,7 +1960,7 @@ Sentry.init({
 
 // after
 Sentry.init({
-  integrations: integrations => integrations.filter(integration => integration.name !== 'Otlp'),
+  integrations: integrations => integrations.filter(integration => integration.name !== 'OpenTelemetry'),
 });
 ```
 

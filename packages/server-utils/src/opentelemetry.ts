@@ -2,9 +2,9 @@ import { isSpanContextValid, trace } from '@opentelemetry/api';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, dsnFromString, SENTRY_API_VERSION, registerExternalPropagationContext } from '@sentry/core';
 
-const INTEGRATION_NAME = 'Otlp' as const;
+const INTEGRATION_NAME = 'OpenTelemetry' as const;
 
-const _otlpIntegration = (() => {
+const _openTelemetryIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
 
@@ -44,7 +44,7 @@ const _otlpIntegration = (() => {
  * This does not export any spans. Configure your own span exporter and point it at Sentry using
  * {@link getOtlpTracesEndpoint}.
  */
-export const otlpIntegration = defineIntegration(_otlpIntegration);
+export const openTelemetryIntegration = defineIntegration(_openTelemetryIntegration);
 
 /**
  * Builds the URL and auth headers for Sentry's OTLP traces endpoint, to configure an
@@ -69,7 +69,7 @@ export const otlpIntegration = defineIntegration(_otlpIntegration);
  *
  * Sentry.init({
  *   dsn: '__DSN__',
- *   integrations: [Sentry.otlpIntegration()],
+ *   integrations: [Sentry.openTelemetryIntegration()],
  * });
  * ```
  */
