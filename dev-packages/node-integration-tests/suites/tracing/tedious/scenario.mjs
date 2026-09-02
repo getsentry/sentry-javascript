@@ -46,6 +46,14 @@ function query(connection, sql, method = 'execSql') {
   });
 }
 
+function queryWithParameter(connection, sql, name, type, value) {
+  return new Promise((resolve, reject) => {
+    const request = new Request(sql, err => (err ? reject(err) : resolve()));
+    request.addParameter(name, type, value);
+    connection.execSql(request);
+  });
+}
+
 function callProcedure(connection) {
   return new Promise((resolve, reject) => {
     const request = new Request(PROCEDURE_NAME, err => (err ? reject(err) : resolve()));
@@ -118,6 +126,16 @@ async function run() {
       `if object_id('[dbo].[${BULK_TABLE}]') is null CREATE TABLE [dbo].[${BULK_TABLE}] (c1 int, c2 varchar(30))`,
     );
     await bulkLoad(connection);
+
+    // Reads against real tables: the single- and multi-table shapes a query summary has to resolve.
+    await query(connection, `SELECT c1, c2 FROM ${PREPARED_TABLE}`);
+    await query(connection, `SELECT p.c1 FROM ${PREPARED_TABLE} p INNER JOIN [dbo].[${BULK_TABLE}] b ON p.c1 = b.c1`);
+
+    // An inlined literal, the same filter parameterized, and a string literal containing `from` — the
+    // last one is why the statement is sanitized before it is summarized.
+    await query(connection, `SELECT c1, c2 FROM ${PREPARED_TABLE} WHERE c1 = 42`);
+    await queryWithParameter(connection, `SELECT c1, c2 FROM ${PREPARED_TABLE} WHERE c1 = @c1`, 'c1', TYPES.Int, 1);
+    await query(connection, `SELECT c1, c2 FROM [dbo].[${BULK_TABLE}] WHERE c2 = 'hello from acme'`);
   });
 
   connection.close();
