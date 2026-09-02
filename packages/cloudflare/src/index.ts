@@ -120,7 +120,7 @@ export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
 export { spotlightIntegration } from './integrations/spotlight';
 export {
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
   instrumentOpenAiClient,

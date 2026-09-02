@@ -103,7 +103,7 @@ export {
 } from '@sentry/core';
 export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
 export {
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
