@@ -8,7 +8,7 @@ import {
   isJSRPC,
   isQueue,
   isR2Bucket,
-  isRateLimit,
+  // isRateLimit,
 } from '../../utils/isBinding';
 import { instrumentD1 } from './instrumentD1';
 import { appendRpcMeta } from '../../utils/rpcMeta';
@@ -17,7 +17,7 @@ import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instr
 import { instrumentFetcher } from './instrumentFetcher';
 import { instrumentQueueProducer } from './instrumentQueueProducer';
 import { instrumentR2Bucket } from './instrumentR2';
-import { instrumentRateLimit } from './instrumentRateLimit';
+// import { instrumentRateLimit } from './instrumentRateLimit';
 
 function isProxyable(item: unknown): item is object {
   return isObjectLike(item) || typeof item === 'function';
@@ -34,7 +34,7 @@ const instrumentedBindings = new WeakMap<object, unknown>();
  * - Service bindings / JSRPC proxies
  * - Queue producers (via `send` + `sendBatch` duck-typing)
  * - R2 Buckets (via `head` + `put` + `createMultipartUpload` duck-typing)
- * - Rate limiters (via `limit` duck-typing)
+ * - Rate limiters (via `limit` duck-typing), currently disabled
  * - Workers AI (via `run` + `gateway` + `toMarkdown` duck-typing)
  *
  * @param env - The Cloudflare env object to instrument
@@ -81,12 +81,15 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
         return instrumented;
       }
 
-      if (isRateLimit(item)) {
-        const bindingName = typeof prop === 'string' ? prop : String(prop);
-        const instrumented = instrumentRateLimit(item, bindingName);
-        instrumentedBindings.set(item, instrumented);
-        return instrumented;
-      }
+      // Rate limiter spans are removed for now, for two reasons:
+      // 1. The `rpc` op is wrong, a rate limiter call is not an RPC.
+      // 2. The span is low quality, 0ms and without any useful attributes.
+      // if (isRateLimit(item)) {
+      //   const bindingName = typeof prop === 'string' ? prop : String(prop);
+      //   const instrumented = instrumentRateLimit(item, bindingName);
+      //   instrumentedBindings.set(item, instrumented);
+      //   return instrumented;
+      // }
 
       if (isAiBinding(item)) {
         const instrumented = instrumentWorkersAiClient(item);

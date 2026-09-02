@@ -247,7 +247,8 @@ describe('instrumentEnv', () => {
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace, true);
   });
 
-  it('wraps RateLimit bindings in a proxy and forwards calls', async () => {
+  // Rate limiter instrumentation is disabled in instrumentEnv, see the comment there.
+  it.skip('wraps RateLimit bindings in a proxy and forwards calls', async () => {
     const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
     const limit = vi.fn().mockResolvedValue({ success: true });
     const rateLimiter = { limit };
@@ -267,7 +268,7 @@ describe('instrumentEnv', () => {
     );
   });
 
-  it('caches the wrapped RateLimit binding across repeated access', () => {
+  it.skip('caches the wrapped RateLimit binding across repeated access', () => {
     const rateLimiter = { limit: vi.fn() };
     const env = { MY_RATE_LIMITER: rateLimiter };
     const instrumented = instrumentEnv(env);

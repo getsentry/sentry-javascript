@@ -18,7 +18,8 @@ function findRateLimitSpans(envelope: Envelope): Array<Record<string, unknown>> 
   );
 }
 
-it('instruments an allowed rate limiter call automatically via env', async ({ signal }) => {
+// Rate limiter instrumentation is disabled in instrumentEnv, see the comment there.
+it.skip('instruments an allowed rate limiter call automatically via env', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
@@ -50,7 +51,7 @@ it('instruments an allowed rate limiter call automatically via env', async ({ si
   await runner.completed();
 });
 
-it('instruments a rate-limited call automatically via env', async ({ signal }) => {
+it.skip('instruments a rate-limited call automatically via env', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
