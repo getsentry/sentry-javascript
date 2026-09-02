@@ -14,6 +14,7 @@ export {
   collectStreamedSpans,
   getSpanOp,
 } from './event-proxy-server';
+export type { SerializedStreamedSpan } from '@sentry/core';
 
 export {
   findAbsolutePathImports,
