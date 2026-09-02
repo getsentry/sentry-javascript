@@ -108,7 +108,8 @@
           "{projectRoot}/build/npm/cjs",
           "{projectRoot}/build/npm/run-lambda-handler.mjs",
           "{projectRoot}/build/npm/run-lambda-handler.mjs.map",
-          "{projectRoot}/build/lambda-extension"
+          "{projectRoot}/build/lambda-extension",
+          "{projectRoot}/build/import-hook.mjs"
         ],
         "cache": true
       },

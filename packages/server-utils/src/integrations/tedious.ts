@@ -7,12 +7,15 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
 import {
   DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
@@ -25,6 +28,7 @@ import { DB } from '@sentry/conventions/op';
 import { CHANNELS } from '../orchestrion/channels';
 import { tediousModuleNames } from '../orchestrion/config/tedious';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
 
 // NOTE: this uses the same name as the OTel integration by design. When orchestrion injection is active,
 // `_init` swaps the OTel `Tedious` integration out of the defaults and appends this one (matched by name).
@@ -128,6 +132,8 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const databaseName = connection[currentDatabaseSymbol];
     const sql = extractSql(request);
+    const querySummary =
+      sql && operation !== 'callProcedure' ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql)) : undefined;
 
     const attributes: SpanAttributes = {
       [SENTRY_OP]: DB,
@@ -138,13 +144,19 @@ function subscribeQuery(channelName: string, operation: string): void {
       // `>=4` uses the `authentication` object; older versions expose `userName` directly.
       [DB_USER]: connection.config?.userName ?? connection.config?.authentication?.options?.userName,
       [DB_QUERY_TEXT]: sql,
+      [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_DB_SQL_TABLE]: request.table,
       [SERVER_ADDRESS]: connection.config?.server,
       [SERVER_PORT]: connection.config?.options?.port,
     };
 
+    const client = getClient();
+
     const span = startInactiveSpan({
-      name: sql || getSpanName(operation, databaseName, sql, request.table),
+      name:
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || getLowCardinalitySecondarySpanName(operation, databaseName, sql, request.table)
+          : sql || getSecondarySpanName(operation, databaseName, request.table),
       attributes,
     });
 
@@ -196,23 +208,29 @@ function extractSql(request: TediousRequest): string | undefined {
 }
 
 /**
- * The span name is a low-cardinality label for the operation; the SDK's db-span inference later renames
- * the span description off `db.query.text` when present. Mirrors the vendored OTel `getSpanName`.
+ * Get a secondary span name for static trace lifecycle (not strictly adhering to sentry-convention span names)
  */
-function getSpanName(
+function getSecondarySpanName(operation: string, db: string | undefined, bulkLoadTable: string | undefined): string {
+  if (operation === 'execBulkLoad' && bulkLoadTable && db) {
+    return `${operation} ${bulkLoadTable} ${db}`;
+  }
+  // Avoid `sql` in the general case because of its high cardinality.
+  return db ? `${operation} ${db}` : operation;
+}
+
+function getLowCardinalitySecondarySpanName(
   operation: string,
   db: string | undefined,
   sql: string | undefined,
   bulkLoadTable: string | undefined,
 ): string {
-  if (operation === 'execBulkLoad' && bulkLoadTable && db) {
-    return `${operation} ${bulkLoadTable} ${db}`;
+  if (operation === 'execBulkLoad' && bulkLoadTable) {
+    return `${operation} ${bulkLoadTable}`;
   }
-  if (operation === 'callProcedure') {
-    // `sql` refers to the procedure name for `callProcedure`.
-    return db ? `${operation} ${sql} ${db}` : `${operation} ${sql}`;
+  if (operation === 'callProcedure' && sql) {
+    // `sql` refers to the procedure name for `callProcedure`, so it is low-cardinality in this case.
+    return `${operation} ${sql}`;
   }
-  // Avoid `sql` in the general case because of its high cardinality.
   return db ? `${operation} ${db}` : operation;
 }
 

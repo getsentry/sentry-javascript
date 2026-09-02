@@ -64,15 +64,18 @@ describe('sentrySvelteKit()', () => {
     const plugins = await getSentrySvelteKitPlugins();
 
     expect(plugins).toBeInstanceOf(Array);
-    // 1 browser-tracing variant resolver + 1 auto instrument plugin + 1 orchestrion plugin
-    // + 1 global values injection plugin + 1 modified main plugin + 3 custom plugins
-    expect(plugins).toHaveLength(8);
+    // 1 kit config resolver + 1 browser-tracing variant resolver + 1 auto instrument plugin
+    // + 1 orchestrion plugin + 1 global values injection plugin + 1 modified main plugin
+    // + 3 custom plugins
+    expect(plugins).toHaveLength(9);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
     const plugins = await getSentrySvelteKitPlugins();
     const pluginNames = plugins.map(plugin => plugin.name);
     expect(pluginNames).toEqual([
+      // kit config resolver (must come first so later plugins can await the resolved config):
+      'sentry-sveltekit-kit-config-resolver',
       // browser-tracing variant resolver:
       'sentry-sveltekit-browser-tracing-variant',
       // auto instrument plugin:
@@ -92,7 +95,7 @@ describe('sentrySvelteKit()', () => {
 
   it("doesn't return the sentry source maps plugins if autoUploadSourcemaps is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    expect(plugins).toHaveLength(3); // browser-tracing variant resolver + auto instrument + orchestrion
+    expect(plugins).toHaveLength(4); // kit config resolver + browser-tracing variant resolver + auto instrument + orchestrion
   });
 
   it("doesn't return the sentry source maps plugins if `NODE_ENV` is development", async () => {
@@ -100,9 +103,9 @@ describe('sentrySvelteKit()', () => {
 
     process.env.NODE_ENV = 'development';
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: true, autoInstrument: true });
-    const instrumentPlugin = plugins[1];
+    const instrumentPlugin = plugins[2];
 
-    expect(plugins).toHaveLength(4); // browser-tracing variant resolver + auto instrument + orchestrion + global values injection
+    expect(plugins).toHaveLength(5); // kit config resolver + browser-tracing variant resolver + auto instrument + orchestrion + global values injection
     expect(instrumentPlugin?.name).toEqual('sentry-auto-instrumentation');
 
     process.env.NODE_ENV = previousEnv;
@@ -111,7 +114,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(7); // browser-tracing variant resolver + orchestrion + global values injection + 1 modified main plugin + 3 custom plugins
+    expect(plugins).toHaveLength(8); // kit config resolver + browser-tracing variant resolver + orchestrion + global values injection + 1 modified main plugin + 3 custom plugins
     expect(pluginNames).not.toContain('sentry-auto-instrumentation');
   });
 
@@ -161,9 +164,8 @@ describe('sentrySvelteKit()', () => {
           ignore: ['bar/*.js'],
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
-        adapter: 'vercel',
       },
-      {},
+      { getAdapterOutputDir: expect.any(Function) },
     );
   });
 
@@ -208,9 +210,8 @@ describe('sentrySvelteKit()', () => {
         headers: {
           'X-My-Header': 'foo',
         },
-        adapter: 'vercel',
       },
-      {},
+      { getAdapterOutputDir: expect.any(Function) },
     );
   });
 
@@ -225,14 +226,14 @@ describe('sentrySvelteKit()', () => {
       // just to ignore the source maps plugin:
       autoUploadSourceMaps: false,
     });
-    const plugin = plugins[1]!;
+    const plugin = plugins[2]!;
 
     expect(plugin.name).toEqual('sentry-auto-instrumentation');
     expect(makePluginSpy).toHaveBeenCalledWith({
       debug: true,
       load: true,
       serverLoad: false,
-      onlyInstrumentClient: false,
+      getKitConfig: expect.any(Function),
     });
   });
 });
@@ -326,7 +327,7 @@ describe('generateVitePluginOptions', () => {
     process.env.NODE_ENV = originalEnv;
   });
 
-  it('handles adapter and debug options correctly', () => {
+  it("handles the debug option and doesn't forward the adapter", () => {
     const originalEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
 
@@ -338,11 +339,11 @@ describe('generateVitePluginOptions', () => {
       org: 'org',
       project: 'project',
     };
+    // The adapter is resolved through the kit config resolver, not forwarded to the Vite plugin
     const expected: CustomSentryVitePluginOptions = {
       authToken: 'token',
       org: 'org',
       project: 'project',
-      adapter: 'vercel',
       debug: true,
     };
     const result = generateVitePluginOptions(options);
@@ -451,7 +452,6 @@ describe('generateVitePluginOptions', () => {
         name: 'root-1.0.0',
         inject: false,
       },
-      adapter: undefined,
       debug: false,
     });
   });

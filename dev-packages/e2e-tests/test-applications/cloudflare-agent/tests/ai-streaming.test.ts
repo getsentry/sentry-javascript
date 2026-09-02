@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import type { SerializedStreamedSpan } from '@sentry/core';
 
 // Drives Workers AI through the real Cloudflare Agents SDK + Vercel AI SDK + `workers-ai-provider`
@@ -26,32 +26,41 @@ function assertGenAiStreamingSpan(span: SerializedStreamedSpan): void {
   expect(span.attributes['gen_ai.conversation.id']?.value).toMatch(/^[0-9a-f]{32}$/);
 }
 
+// With span streaming, URL-sourced `http.server` spans are named by method only, so the request
+// segments below are identified by their `url.path` attribute.
+
 test('captures Workers AI streaming output when driven via an Agent', async ({ request, baseURL }) => {
   const spanPromise = waitForStreamedSpan('cloudflare-agent', span => getSpanOp(span) === 'gen_ai.chat');
-  const transactionPromise = waitForTransaction(
+  const requestSpanPromise = waitForStreamedSpan(
     'cloudflare-agent',
-    transactionEvent => transactionEvent.transaction === 'GET /agents/my-agent/test',
+    span =>
+      getSpanOp(span) === 'http.server' &&
+      span.is_segment &&
+      span.attributes['url.path']?.value === '/agents/my-agent/test',
   );
 
   const response = await request.get(`${baseURL}/agents/my-agent/test`);
   expect(response.ok()).toBe(true);
 
-  const [span, transaction] = await Promise.all([spanPromise, transactionPromise]);
-  expect(span.trace_id).toBe(transaction.contexts?.trace?.trace_id);
+  const [span, requestSpan] = await Promise.all([spanPromise, requestSpanPromise]);
+  expect(span.trace_id).toBe(requestSpan.trace_id);
   assertGenAiStreamingSpan(span);
 });
 
 test('captures Workers AI streaming output when driven via an AIChatAgent', async ({ request, baseURL }) => {
   const spanPromise = waitForStreamedSpan('cloudflare-agent', span => getSpanOp(span) === 'gen_ai.chat');
-  const transactionPromise = waitForTransaction(
+  const requestSpanPromise = waitForStreamedSpan(
     'cloudflare-agent',
-    transactionEvent => transactionEvent.transaction === 'GET /agents/my-chat-agent/test',
+    span =>
+      getSpanOp(span) === 'http.server' &&
+      span.is_segment &&
+      span.attributes['url.path']?.value === '/agents/my-chat-agent/test',
   );
 
   const response = await request.get(`${baseURL}/agents/my-chat-agent/test`);
   expect(response.ok()).toBe(true);
 
-  const [span, transaction] = await Promise.all([spanPromise, transactionPromise]);
-  expect(span.trace_id).toBe(transaction.contexts?.trace?.trace_id);
+  const [span, requestSpan] = await Promise.all([spanPromise, requestSpanPromise]);
+  expect(span.trace_id).toBe(requestSpan.trace_id);
   assertGenAiStreamingSpan(span);
 });
