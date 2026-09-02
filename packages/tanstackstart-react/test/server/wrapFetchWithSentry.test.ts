@@ -28,9 +28,13 @@ vi.mock('@sentry/core', async importOriginal => {
   };
 });
 
-vi.mock('@sentry/server-utils', () => ({
-  flushIfServerless: (...args: unknown[]) => flushIfServerlessSpy(...args),
-}));
+vi.mock('@sentry/server-utils', async importOriginal => {
+  const original = await importOriginal();
+  return {
+    ...original,
+    flushIfServerless: (...args: unknown[]) => flushIfServerlessSpy(...args),
+  };
+});
 
 // Import after mocks are set up
 const { wrapFetchWithSentry } = await import('../../src/server/wrapFetchWithSentry');
