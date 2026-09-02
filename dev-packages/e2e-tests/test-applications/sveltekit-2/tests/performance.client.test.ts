@@ -1,148 +1,82 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
 test.describe('client-specific performance events', () => {
   test('multiple navigations have distinct traces', async ({ page }) => {
-    const navigationTxn1EventPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return txnEvent?.transaction === '/nav1' && txnEvent.contexts?.trace?.op === 'navigation';
+    const navigationSpan1Promise = waitForStreamedSpan('sveltekit-2', span => {
+      return span.name === '/nav1' && getSpanOp(span) === 'navigation' && span.is_segment;
     });
 
-    const navigationTxn2EventPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return txnEvent?.transaction === '/' && txnEvent.contexts?.trace?.op === 'navigation';
+    const navigationSpan2Promise = waitForStreamedSpan('sveltekit-2', span => {
+      return span.name === '/' && getSpanOp(span) === 'navigation' && span.is_segment;
     });
 
-    const navigationTxn3EventPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return txnEvent?.transaction === '/nav2' && txnEvent.contexts?.trace?.op === 'navigation';
+    const navigationSpan3Promise = waitForStreamedSpan('sveltekit-2', span => {
+      return span.name === '/nav2' && getSpanOp(span) === 'navigation' && span.is_segment;
     });
 
     await waitForInitialPageload(page);
 
-    const [navigationTxn1Event] = await Promise.all([navigationTxn1EventPromise, page.getByText('Nav 1').click()]);
-    const [navigationTxn2Event] = await Promise.all([navigationTxn2EventPromise, page.goBack()]);
-    const [navigationTxn3Event] = await Promise.all([navigationTxn3EventPromise, page.getByText('Nav 2').click()]);
+    const [navigationSpan1] = await Promise.all([navigationSpan1Promise, page.getByText('Nav 1').click()]);
+    const [navigationSpan2] = await Promise.all([navigationSpan2Promise, page.goBack()]);
+    const [navigationSpan3] = await Promise.all([navigationSpan3Promise, page.getByText('Nav 2').click()]);
 
-    expect(navigationTxn1Event).toMatchObject({
-      transaction: '/nav1',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'navigation',
-          origin: 'auto.navigation.sveltekit',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'url.path': '/nav1',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/nav1$/),
-            'url.template': '/nav1',
-          },
+    const expectNavigationSpan = (span: typeof navigationSpan1, route: string) => {
+      expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
+      expect(span.attributes).toMatchObject({
+        'sentry.op': { value: 'navigation', type: 'string' },
+        'sentry.origin': { value: 'auto.navigation.sveltekit', type: 'string' },
+        'sentry.segment.name.source': { value: 'route', type: 'string' },
+        'url.path': { value: route, type: 'string' },
+        'url.full': {
+          value: expect.stringMatching(new RegExp(`^https?:\\/\\/localhost:\\d+${route}$`)),
+          type: 'string',
         },
-      },
-    });
+        'url.template': { value: route, type: 'string' },
+      });
+    };
 
-    expect(navigationTxn2Event).toMatchObject({
-      transaction: '/',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'navigation',
-          origin: 'auto.navigation.sveltekit',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'url.path': '/',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-            'url.template': '/',
-          },
-        },
-      },
-    });
-
-    expect(navigationTxn3Event).toMatchObject({
-      transaction: '/nav2',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'navigation',
-          origin: 'auto.navigation.sveltekit',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'url.path': '/nav2',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/nav2$/),
-            'url.template': '/nav2',
-          },
-        },
-      },
-    });
+    expectNavigationSpan(navigationSpan1, '/nav1');
+    expectNavigationSpan(navigationSpan2, '/');
+    expectNavigationSpan(navigationSpan3, '/nav2');
 
     // traces should NOT be connected
-    expect(navigationTxn1Event.contexts?.trace?.trace_id).not.toBe(navigationTxn2Event.contexts?.trace?.trace_id);
-    expect(navigationTxn2Event.contexts?.trace?.trace_id).not.toBe(navigationTxn3Event.contexts?.trace?.trace_id);
-    expect(navigationTxn1Event.contexts?.trace?.trace_id).not.toBe(navigationTxn3Event.contexts?.trace?.trace_id);
+    expect(navigationSpan1.trace_id).not.toBe(navigationSpan2.trace_id);
+    expect(navigationSpan2.trace_id).not.toBe(navigationSpan3.trace_id);
+    expect(navigationSpan1.trace_id).not.toBe(navigationSpan3.trace_id);
   });
 
   test('records manually added component tracking spans', async ({ page }) => {
-    const componentTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return txnEvent?.transaction === '/components';
-    });
+    const componentTraceSpansPromise = collectStreamedSpans('sveltekit-2', spansOfTrace =>
+      spansOfTrace.some(span => span.name === '/components' && span.is_segment),
+    );
 
     await waitForInitialPageload(page);
 
     await page.getByText('Component Tracking').click();
 
-    const componentTxnEvent = await componentTxnEventPromise;
+    const componentTraceSpans = await componentTraceSpansPromise;
 
-    expect(componentTxnEvent.spans).toEqual(
+    const componentSpan = (op: 'ui.mount' | 'ui.update', name: string) =>
+      expect.objectContaining({
+        name,
+        attributes: expect.objectContaining({
+          'sentry.op': { value: op, type: 'string' },
+          'sentry.origin': { value: 'auto.ui.svelte', type: 'string' },
+        }),
+      });
+
+    expect(componentTraceSpans).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.mount', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<components/+page>',
-          op: 'ui.mount',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.mount', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<Component1>',
-          op: 'ui.mount',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.mount', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<Component2>',
-          op: 'ui.mount',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.mount', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<Component3>',
-          op: 'ui.mount',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.update', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<components/+page>',
-          op: 'ui.update',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.update', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<Component1>',
-          op: 'ui.update',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.update', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<Component2>',
-          op: 'ui.update',
-          origin: 'auto.ui.svelte',
-        }),
-        expect.objectContaining({
-          data: { 'sentry.op': 'ui.update', 'sentry.origin': 'auto.ui.svelte' },
-          description: '<Component3>',
-          op: 'ui.update',
-          origin: 'auto.ui.svelte',
-        }),
+        componentSpan('ui.mount', '<components/+page>'),
+        componentSpan('ui.mount', '<Component1>'),
+        componentSpan('ui.mount', '<Component2>'),
+        componentSpan('ui.mount', '<Component3>'),
+        componentSpan('ui.update', '<components/+page>'),
+        componentSpan('ui.update', '<Component1>'),
+        componentSpan('ui.update', '<Component2>'),
+        componentSpan('ui.update', '<Component3>'),
       ]),
     );
   });

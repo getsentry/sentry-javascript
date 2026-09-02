@@ -1,69 +1,55 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
 test.describe('performance events', () => {
   test('capture a distributed pageload trace', async ({ page }) => {
-    const clientTxnEventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.transaction === '/users/[id]';
+    const traceSpansPromise = collectStreamedSpans('sveltekit-2-svelte-5', spansOfTrace => {
+      const hasClientSegment = spansOfTrace.some(span => span.name === '/users/[id]' && span.is_segment);
+      const hasServerSegment = spansOfTrace.some(span => span.name === 'GET /users/[id]' && span.is_segment);
+      return hasClientSegment && hasServerSegment;
     });
 
-    const serverTxnEventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.transaction === 'GET /users/[id]';
-    });
-
-    const [_, clientTxnEvent, serverTxnEvent] = await Promise.all([
+    const [_, traceSpans] = await Promise.all([
       page.goto('/users/123xyz'),
-      clientTxnEventPromise,
-      serverTxnEventPromise,
+      traceSpansPromise,
       expect(page.getByText('User id: 123xyz')).toBeVisible(),
     ]);
 
-    expect(clientTxnEvent).toMatchObject({
-      transaction: '/users/[id]',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'pageload',
-          origin: 'auto.pageload.sveltekit',
-          data: {
-            'url.path': '/users/123xyz',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123xyz$/),
-            'url.template': '/users/[id]',
-          },
-        },
-      },
+    const clientSpan = traceSpans.find(span => span.name === '/users/[id]' && span.is_segment)!;
+    const serverSpan = traceSpans.find(span => span.name === 'GET /users/[id]' && span.is_segment)!;
+
+    expect(clientSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'pageload', type: 'string' },
+      'sentry.origin': { value: 'auto.pageload.sveltekit', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'url.path': { value: '/users/123xyz', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123xyz$/), type: 'string' },
+      'url.template': { value: '/users/[id]', type: 'string' },
     });
 
-    expect(serverTxnEvent).toMatchObject({
-      transaction: 'GET /users/[id]',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.sveltekit',
-        },
-      },
+    expect(serverSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'http.server', type: 'string' },
+      'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
     });
 
-    expect(clientTxnEvent.spans?.length).toBeGreaterThan(5);
+    expect(traceSpans.length).toBeGreaterThan(5);
 
     // connected trace
-    expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(serverTxnEvent.contexts?.trace?.trace_id);
+    expect(clientSpan.trace_id).toBe(serverSpan.trace_id);
 
-    // weird but server txn is parent of client txn
-    expect(clientTxnEvent.contexts?.trace?.parent_span_id).toBe(serverTxnEvent.contexts?.trace?.span_id);
+    // weird but server span is parent of client span
+    expect(clientSpan.parent_span_id).toBe(serverSpan.span_id);
   });
 
   test('capture a distributed navigation trace', async ({ page }) => {
-    const clientNavigationTxnEventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.transaction === '/users' && txnEvent.contexts?.trace?.op === 'navigation';
+    const clientNavigationSpanPromise = waitForStreamedSpan('sveltekit-2-svelte-5', span => {
+      return span.name === '/users' && getSpanOp(span) === 'navigation' && span.is_segment;
     });
 
-    const serverTxnEventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.transaction === 'GET /users';
+    const serverSpanPromise = waitForStreamedSpan('sveltekit-2-svelte-5', span => {
+      return span.name === 'GET /users' && span.is_segment;
     });
 
     await waitForInitialPageload(page);
@@ -71,343 +57,221 @@ test.describe('performance events', () => {
     // navigation to page
     const clickPromise = page.getByText('Route with Server Load').click();
 
-    const [clientTxnEvent, serverTxnEvent, _1, _2] = await Promise.all([
-      clientNavigationTxnEventPromise,
-      serverTxnEventPromise,
+    const [clientSpan, serverSpan, _1, _2] = await Promise.all([
+      clientNavigationSpanPromise,
+      serverSpanPromise,
       clickPromise,
       expect(page.getByText('Hi everyone')).toBeVisible(),
     ]);
 
-    expect(clientTxnEvent).toMatchObject({
-      transaction: '/users',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'navigation',
-          origin: 'auto.navigation.sveltekit',
-          data: {
-            'url.path': '/users',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users$/),
-            'url.template': '/users',
-          },
-        },
-      },
+    expect(clientSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'navigation', type: 'string' },
+      'sentry.origin': { value: 'auto.navigation.sveltekit', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'url.path': { value: '/users', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/users$/), type: 'string' },
+      'url.template': { value: '/users', type: 'string' },
     });
 
-    expect(serverTxnEvent).toMatchObject({
-      transaction: 'GET /users',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.sveltekit',
-        },
-      },
+    expect(serverSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'http.server', type: 'string' },
+      'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
     });
 
     // trace is connected
-    expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(serverTxnEvent.contexts?.trace?.trace_id);
+    expect(clientSpan.trace_id).toBe(serverSpan.trace_id);
   });
 
   test('record client-side universal load fetch span and trace', async ({ page }) => {
     await waitForInitialPageload(page);
 
-    const clientNavigationTxnEventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.transaction === '/universal-load-fetch' && txnEvent.contexts?.trace?.op === 'navigation';
-    });
-
-    // this transaction should be created because of the fetch call
+    // the server span should be created because of the fetch call
     // it should also be part of the trace
-    const serverTxnEventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.transaction === 'GET /api/users';
+    const traceSpansPromise = collectStreamedSpans('sveltekit-2-svelte-5', spansOfTrace => {
+      const hasClientSegment = spansOfTrace.some(
+        span => span.name === '/universal-load-fetch' && getSpanOp(span) === 'navigation' && span.is_segment,
+      );
+      const hasServerSegment = spansOfTrace.some(span => span.name === 'GET /api/users' && span.is_segment);
+      return hasClientSegment && hasServerSegment;
     });
 
     // navigation to page
     const clickPromise = page.getByText('Route with fetch in universal load').click();
 
-    const [clientTxnEvent, serverTxnEvent, _1, _2] = await Promise.all([
-      clientNavigationTxnEventPromise,
-      serverTxnEventPromise,
+    const [traceSpans, _1, _2] = await Promise.all([
+      traceSpansPromise,
       clickPromise,
       expect(page.getByText('alice')).toBeVisible(),
     ]);
 
-    expect(clientTxnEvent).toMatchObject({
-      transaction: '/universal-load-fetch',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'navigation',
-          origin: 'auto.navigation.sveltekit',
-          data: {
-            'url.path': '/universal-load-fetch',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/universal-load-fetch$/),
-            'url.template': '/universal-load-fetch',
-          },
-        },
-      },
+    const clientSpan = traceSpans.find(span => span.name === '/universal-load-fetch' && span.is_segment)!;
+    const serverSpan = traceSpans.find(span => span.name === 'GET /api/users' && span.is_segment)!;
+
+    expect(clientSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'navigation', type: 'string' },
+      'sentry.origin': { value: 'auto.navigation.sveltekit', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'url.path': { value: '/universal-load-fetch', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/universal-load-fetch$/), type: 'string' },
+      'url.template': { value: '/universal-load-fetch', type: 'string' },
     });
 
-    expect(serverTxnEvent).toMatchObject({
-      transaction: 'GET /api/users',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'http.server',
-          origin: 'auto.http.sveltekit',
-        },
-      },
+    expect(serverSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'http.server', type: 'string' },
+      'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
     });
 
     // trace is connected
-    expect(clientTxnEvent.contexts?.trace?.trace_id).toBe(serverTxnEvent.contexts?.trace?.trace_id);
+    expect(clientSpan.trace_id).toBe(serverSpan.trace_id);
 
-    const clientFetchSpan = clientTxnEvent.spans?.find(s => s.op === 'http.client');
+    const clientFetchSpan = traceSpans.find(span => getSpanOp(span) === 'http.client');
 
-    expect(clientFetchSpan).toMatchObject({
-      description: expect.stringMatching(/^GET.*\/api\/users/),
-      op: 'http.client',
-      origin: 'auto.http.browser',
-      data: {
-        'url.full': expect.stringContaining('/api/users'),
-        type: 'fetch',
-        'http.request.method': 'GET',
-        'http.response.status_code': 200,
-        'network.protocol.version': '1.1',
-        'network.protocol.name': 'http',
-        'http.request.redirect_start': expect.any(Number),
-        'http.request.fetch_start': expect.any(Number),
-        'http.request.domain_lookup_start': expect.any(Number),
-        'http.request.domain_lookup_end': expect.any(Number),
-        'http.request.connect_start': expect.any(Number),
-        'http.request.secure_connection_start': expect.any(Number),
-        'http.request.connection_end': expect.any(Number),
-        'http.request.request_start': expect.any(Number),
-        'http.request.response_start': expect.any(Number),
-        'http.request.response_end': expect.any(Number),
-      },
+    expect(clientFetchSpan?.name).toBe('GET localhost');
+    expect(clientFetchSpan?.parent_span_id).toBe(clientSpan.span_id);
+    expect(clientFetchSpan?.attributes).toMatchObject({
+      'sentry.op': { value: 'http.client', type: 'string' },
+      'sentry.origin': { value: 'auto.http.browser', type: 'string' },
+      'url.full': { value: expect.stringContaining('/api/users'), type: 'string' },
+      type: { value: 'fetch', type: 'string' },
+      'http.request.method': { value: 'GET', type: 'string' },
+      'http.response.status_code': { value: 200, type: 'integer' },
+      'network.protocol.version': { value: '1.1', type: 'string' },
+      'network.protocol.name': { value: 'http', type: 'string' },
+      'http.request.redirect_start': expect.objectContaining({ value: expect.any(Number) }),
+      'http.request.fetch_start': expect.objectContaining({ value: expect.any(Number) }),
+      'http.request.domain_lookup_start': expect.objectContaining({ value: expect.any(Number) }),
+      'http.request.domain_lookup_end': expect.objectContaining({ value: expect.any(Number) }),
+      'http.request.connect_start': expect.objectContaining({ value: expect.any(Number) }),
+      'http.request.secure_connection_start': expect.objectContaining({ value: expect.any(Number) }),
+      'http.request.connection_end': expect.objectContaining({ value: expect.any(Number) }),
+      'http.request.request_start': expect.objectContaining({ value: expect.any(Number) }),
+      'http.request.response_start': expect.objectContaining({ value: expect.any(Number) }),
+      'http.request.response_end': expect.objectContaining({ value: expect.any(Number) }),
     });
   });
 
-  test('captures a navigation transaction directly after pageload', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'pageload';
+  test('captures a navigation span directly after pageload', async ({ page }) => {
+    const clientPageloadSpanPromise = waitForStreamedSpan('sveltekit-2-svelte-5', span => {
+      return getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
-    const clientNavigationTxnPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'navigation';
-    });
+    const navigationTraceSpansPromise = collectStreamedSpans('sveltekit-2-svelte-5', spansOfTrace =>
+      spansOfTrace.some(span => getSpanOp(span) === 'navigation' && span.is_segment),
+    );
 
     await waitForInitialPageload(page, { route: '/' });
 
     const navigationClickPromise = page.locator('#routeWithParamsLink').click();
 
-    const [pageloadTxnEvent, navigationTxnEvent, _] = await Promise.all([
-      clientPageloadTxnPromise,
-      clientNavigationTxnPromise,
+    const [pageloadSpan, navigationTraceSpans, _] = await Promise.all([
+      clientPageloadSpanPromise,
+      navigationTraceSpansPromise,
       navigationClickPromise,
     ]);
 
-    expect(pageloadTxnEvent).toMatchObject({
-      transaction: '/',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'pageload',
-          origin: 'auto.pageload.sveltekit',
-          data: {
-            'url.path': '/',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-            'url.template': '/',
-          },
-        },
-      },
+    expect(pageloadSpan.name).toBe('/');
+    expect(pageloadSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'pageload', type: 'string' },
+      'sentry.origin': { value: 'auto.pageload.sveltekit', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'url.path': { value: '/', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/$/), type: 'string' },
+      'url.template': { value: '/', type: 'string' },
     });
 
-    expect(navigationTxnEvent).toMatchObject({
-      transaction: '/users/[id]',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'navigation',
-          origin: 'auto.navigation.sveltekit',
-          data: {
-            'sentry.sveltekit.navigation.from': '/',
-            'sentry.sveltekit.navigation.to': '/users/[id]',
-            'sentry.sveltekit.navigation.type': 'link',
-            'url.path': '/users/123abc',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123abc$/),
-            'url.template': '/users/[id]',
-          },
-        },
-      },
+    const navigationSpan = navigationTraceSpans.find(span => getSpanOp(span) === 'navigation' && span.is_segment)!;
+
+    expect(navigationSpan.name).toBe('/users/[id]');
+    expect(navigationSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'navigation', type: 'string' },
+      'sentry.origin': { value: 'auto.navigation.sveltekit', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'sentry.sveltekit.navigation.from': { value: '/', type: 'string' },
+      'sentry.sveltekit.navigation.to': { value: '/users/[id]', type: 'string' },
+      'sentry.sveltekit.navigation.type': { value: 'link', type: 'string' },
+      'url.path': { value: '/users/123abc', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123abc$/), type: 'string' },
+      'url.template': { value: '/users/[id]', type: 'string' },
     });
 
-    const routingSpans = navigationTxnEvent.spans?.filter(s => s.op === 'router');
+    const routingSpans = navigationTraceSpans.filter(span => getSpanOp(span) === 'router');
     expect(routingSpans).toHaveLength(1);
 
-    const routingSpan = routingSpans && routingSpans[0];
-    expect(routingSpan).toMatchObject({
-      op: 'router',
-      description: 'SvelteKit Route Change',
-      data: {
-        'sentry.op': 'router',
-        'sentry.origin': 'auto.ui.sveltekit',
-        'sentry.sveltekit.navigation.from': '/',
-        'sentry.sveltekit.navigation.to': '/users/[id]',
-        'sentry.sveltekit.navigation.type': 'link',
-      },
+    const routingSpan = routingSpans[0]!;
+    expect(routingSpan.name).toBe('Router');
+    expect(routingSpan.parent_span_id).toBe(navigationSpan.span_id);
+    expect(routingSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'router', type: 'string' },
+      'sentry.origin': { value: 'auto.ui.sveltekit', type: 'string' },
+      'sentry.sveltekit.navigation.from': { value: '/', type: 'string' },
+      'sentry.sveltekit.navigation.to': { value: '/users/[id]', type: 'string' },
+      'sentry.sveltekit.navigation.type': { value: 'link', type: 'string' },
     });
   });
 
-  test('captures one navigation transaction per redirect', async ({ page }) => {
-    const clientNavigationRedirect1TxnPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/redirect1';
-    });
+  test('captures one navigation span per redirect', async ({ page }) => {
+    const collectNavigationTrace = (route: string) =>
+      collectStreamedSpans('sveltekit-2-svelte-5', spansOfTrace =>
+        spansOfTrace.some(span => getSpanOp(span) === 'navigation' && span.name === route && span.is_segment),
+      );
 
-    const clientNavigationRedirect2TxnPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/redirect2';
-    });
-
-    const clientNavigationRedirect3TxnPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/users/[id]';
-    });
+    const redirect1TraceSpansPromise = collectNavigationTrace('/redirect1');
+    const redirect2TraceSpansPromise = collectNavigationTrace('/redirect2');
+    const redirect3TraceSpansPromise = collectNavigationTrace('/users/[id]');
 
     await waitForInitialPageload(page, { route: '/' });
 
     const navigationClickPromise = page.locator('#redirectLink').click();
 
-    const [redirect1TxnEvent, redirect2TxnEvent, redirect3TxnEvent, _] = await Promise.all([
-      clientNavigationRedirect1TxnPromise,
-      clientNavigationRedirect2TxnPromise,
-      clientNavigationRedirect3TxnPromise,
+    const [redirect1TraceSpans, redirect2TraceSpans, redirect3TraceSpans, _] = await Promise.all([
+      redirect1TraceSpansPromise,
+      redirect2TraceSpansPromise,
+      redirect3TraceSpansPromise,
       navigationClickPromise,
     ]);
 
-    expect(redirect1TxnEvent).toMatchObject({
-      transaction: '/redirect1',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'navigation',
-          origin: 'auto.navigation.sveltekit',
-          data: {
-            'sentry.origin': 'auto.navigation.sveltekit',
-            'sentry.op': 'navigation',
-            'sentry.segment.name.source': 'route',
-            'sentry.sveltekit.navigation.type': 'link',
-            'sentry.sveltekit.navigation.from': '/',
-            'sentry.sveltekit.navigation.to': '/redirect1',
-            'sentry.sample_rate': 1,
-            'url.path': '/redirect1',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/redirect1$/),
-            'url.template': '/redirect1',
-          },
+    const expectNavigationTrace = (
+      traceSpans: typeof redirect1TraceSpans,
+      { route, path }: { route: string; path: string },
+    ) => {
+      const navigationSpan = traceSpans.find(span => getSpanOp(span) === 'navigation' && span.is_segment)!;
+
+      expect(navigationSpan.name).toBe(route);
+      expect(navigationSpan.attributes).toMatchObject({
+        'sentry.origin': { value: 'auto.navigation.sveltekit', type: 'string' },
+        'sentry.op': { value: 'navigation', type: 'string' },
+        'sentry.segment.name.source': { value: 'route', type: 'string' },
+        'sentry.sveltekit.navigation.type': { value: 'link', type: 'string' },
+        'sentry.sveltekit.navigation.from': { value: '/', type: 'string' },
+        'sentry.sveltekit.navigation.to': { value: route, type: 'string' },
+        'sentry.sample_rate': { value: 1, type: 'integer' },
+        'url.path': { value: path, type: 'string' },
+        'url.full': {
+          value: expect.stringMatching(new RegExp(`^https?:\\/\\/localhost:\\d+${path}$`)),
+          type: 'string',
         },
-      },
-    });
+        'url.template': { value: route, type: 'string' },
+      });
 
-    const redirect1Spans = redirect1TxnEvent.spans?.filter(s => s.op === 'router');
-    expect(redirect1Spans).toHaveLength(1);
+      const routingSpans = traceSpans.filter(span => getSpanOp(span) === 'router');
+      expect(routingSpans).toHaveLength(1);
 
-    const redirect1Span = redirect1Spans && redirect1Spans[0];
-    expect(redirect1Span).toMatchObject({
-      op: 'router',
-      description: 'SvelteKit Route Change',
-      data: {
-        'sentry.op': 'router',
-        'sentry.origin': 'auto.ui.sveltekit',
-        'sentry.sveltekit.navigation.from': '/',
-        'sentry.sveltekit.navigation.to': '/redirect1',
-        'sentry.sveltekit.navigation.type': 'link',
-      },
-    });
+      const routingSpan = routingSpans[0]!;
+      expect(routingSpan.name).toBe('Router');
+      expect(routingSpan.parent_span_id).toBe(navigationSpan.span_id);
+      expect(routingSpan.attributes).toMatchObject({
+        'sentry.op': { value: 'router', type: 'string' },
+        'sentry.origin': { value: 'auto.ui.sveltekit', type: 'string' },
+        'sentry.sveltekit.navigation.from': { value: '/', type: 'string' },
+        'sentry.sveltekit.navigation.to': { value: route, type: 'string' },
+        'sentry.sveltekit.navigation.type': { value: 'link', type: 'string' },
+      });
+    };
 
-    expect(redirect2TxnEvent).toMatchObject({
-      transaction: '/redirect2',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'navigation',
-          origin: 'auto.navigation.sveltekit',
-          data: {
-            'sentry.origin': 'auto.navigation.sveltekit',
-            'sentry.op': 'navigation',
-            'sentry.segment.name.source': 'route',
-            'sentry.sveltekit.navigation.type': 'link',
-            'sentry.sveltekit.navigation.from': '/',
-            'sentry.sveltekit.navigation.to': '/redirect2',
-            'sentry.sample_rate': 1,
-            'url.path': '/redirect2',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/redirect2$/),
-            'url.template': '/redirect2',
-          },
-        },
-      },
-    });
-
-    const redirect2Spans = redirect2TxnEvent.spans?.filter(s => s.op === 'router');
-    expect(redirect2Spans).toHaveLength(1);
-
-    const redirect2Span = redirect2Spans && redirect2Spans[0];
-    expect(redirect2Span).toMatchObject({
-      op: 'router',
-      description: 'SvelteKit Route Change',
-      data: {
-        'sentry.op': 'router',
-        'sentry.origin': 'auto.ui.sveltekit',
-        'sentry.sveltekit.navigation.from': '/',
-        'sentry.sveltekit.navigation.to': '/redirect2',
-        'sentry.sveltekit.navigation.type': 'link',
-      },
-    });
-
-    expect(redirect3TxnEvent).toMatchObject({
-      transaction: '/users/[id]',
-      transaction_info: { source: 'route' },
-      type: 'transaction',
-      contexts: {
-        trace: {
-          op: 'navigation',
-          origin: 'auto.navigation.sveltekit',
-          data: {
-            'sentry.origin': 'auto.navigation.sveltekit',
-            'sentry.op': 'navigation',
-            'sentry.segment.name.source': 'route',
-            'sentry.sveltekit.navigation.type': 'link',
-            'sentry.sveltekit.navigation.from': '/',
-            'sentry.sveltekit.navigation.to': '/users/[id]',
-            'sentry.sample_rate': 1,
-            'url.path': '/users/789',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/789$/),
-            'url.template': '/users/[id]',
-          },
-        },
-      },
-    });
-
-    const redirect3Spans = redirect3TxnEvent.spans?.filter(s => s.op === 'router');
-    expect(redirect3Spans).toHaveLength(1);
-
-    const redirect3Span = redirect3Spans && redirect3Spans[0];
-    expect(redirect3Span).toMatchObject({
-      op: 'router',
-      description: 'SvelteKit Route Change',
-      data: {
-        'sentry.op': 'router',
-        'sentry.origin': 'auto.ui.sveltekit',
-        'sentry.sveltekit.navigation.from': '/',
-        'sentry.sveltekit.navigation.to': '/users/[id]',
-        'sentry.sveltekit.navigation.type': 'link',
-      },
-    });
+    expectNavigationTrace(redirect1TraceSpans, { route: '/redirect1', path: '/redirect1' });
+    expectNavigationTrace(redirect2TraceSpans, { route: '/redirect2', path: '/redirect2' });
+    expectNavigationTrace(redirect3TraceSpans, { route: '/users/[id]', path: '/users/789' });
   });
 });

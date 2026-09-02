@@ -1,35 +1,32 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/sveltekit';
+import { collectStreamedSpans } from '@sentry-internal/test-utils';
+import { getSegmentChildSpans } from './utils';
 
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
-  const serverTxnEventPromise = waitForTransaction('sveltekit-3', txnEvent => {
-    return txnEvent?.transaction === 'GET /server-load-fetch';
-  });
+  const serverTraceSpansPromise = collectStreamedSpans('sveltekit-3', spansOfTrace =>
+    spansOfTrace.some(span => span.name === 'GET /server-load-fetch' && span.is_segment),
+  );
 
   await page.goto('/server-load-fetch');
 
-  const serverTxnEvent = await serverTxnEventPromise;
-  const spans = serverTxnEvent.spans;
+  const serverTraceSpans = await serverTraceSpansPromise;
+  const serverSpan = serverTraceSpans.find(span => span.name === 'GET /server-load-fetch' && span.is_segment)!;
 
-  expect(serverTxnEvent).toMatchObject({
-    transaction: 'GET /server-load-fetch',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
-    contexts: {
-      trace: {
-        op: 'http.server',
-        origin: 'auto.http.sveltekit',
-        data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
-          'http.method': 'GET',
-          'http.route': '/server-load-fetch',
-          'sveltekit.tracing.original_name': 'sveltekit.handle.root',
-        },
-      },
-    },
+  expect(serverSpan.status).toBe('ok');
+  expect(serverSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'http.method': { value: 'GET', type: 'string' },
+    'http.request.method': { value: 'GET', type: 'string' },
+    'http.route': { value: '/server-load-fetch', type: 'string' },
+    'sveltekit.tracing.original_name': { value: 'sveltekit.handle.root', type: 'string' },
+    'url.full': { value: 'https://localhost:3030/server-load-fetch', type: 'string' },
+    'http.request.header.accept': { value: expect.any(String), type: 'string' },
+    'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
   });
+
+  const spans = getSegmentChildSpans(serverTraceSpans, serverSpan);
 
   expect(spans).toHaveLength(6);
 
@@ -37,154 +34,134 @@ test('server pageload request span has nested request span for sub request', asy
     expect.arrayContaining([
       // initial resolve span:
       expect.objectContaining({
-        data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
-          'http.route': '/server-load-fetch',
-        }),
-        op: 'function',
-        description: 'sveltekit.resolve',
-        origin: 'auto.http.sveltekit',
+        name: 'sveltekit.resolve',
         status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+          'http.route': { value: '/server-load-fetch', type: 'string' },
+        }),
       }),
 
       // sequenced handler span:
       expect.objectContaining({
-        data: expect.objectContaining({
-          'sentry.origin': 'auto.function.sveltekit.handle',
-          'sentry.op': 'function',
-        }),
-        description: 'sveltekit.handle.sequenced.sentryRequestHandler',
-        op: 'function',
-        origin: 'auto.function.sveltekit.handle',
+        name: 'sveltekit.handle.sequenced.sentryRequestHandler',
         status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'sentry.origin': { value: 'auto.function.sveltekit.handle', type: 'string' },
+        }),
       }),
 
       // load span where the server load function initiates the sub request:
       expect.objectContaining({
-        data: expect.objectContaining({
-          'http.route': '/server-load-fetch',
-          'sentry.op': 'function',
-          'sentry.origin': 'auto.function.sveltekit.load',
-          'sveltekit.load.environment': 'server',
-          'sveltekit.load.node_id': 'src/routes/server-load-fetch/+page.server.ts',
-          'sveltekit.load.node_type': '+page.server',
-        }),
-        description: 'sveltekit.load',
-        op: 'function',
-        origin: 'auto.function.sveltekit.load',
+        name: 'sveltekit.load',
         status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'sentry.origin': { value: 'auto.function.sveltekit.load', type: 'string' },
+          'http.route': { value: '/server-load-fetch', type: 'string' },
+          'sveltekit.load.environment': { value: 'server', type: 'string' },
+          'sveltekit.load.node_id': { value: 'src/routes/server-load-fetch/+page.server.ts', type: 'string' },
+          'sveltekit.load.node_type': { value: '+page.server', type: 'string' },
+        }),
       }),
 
       // sub request http.server span:
       expect.objectContaining({
-        data: expect.objectContaining({
-          'http.method': 'GET',
-          'http.route': '/api/users',
-          'url.full': 'https://localhost:3030/api/users',
-          'sentry.op': 'http.server',
-          'sentry.origin': 'auto.http.sveltekit',
-          'sveltekit.is_data_request': false,
-          'sveltekit.is_sub_request': true,
-          'sveltekit.tracing.original_name': 'sveltekit.handle.root',
-        }),
-        description: 'GET /api/users',
-        op: 'http.server',
-        origin: 'auto.http.sveltekit',
+        name: 'GET /api/users',
         status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'http.server', type: 'string' },
+          'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+          'http.method': { value: 'GET', type: 'string' },
+          'http.route': { value: '/api/users', type: 'string' },
+          'url.full': { value: 'https://localhost:3030/api/users', type: 'string' },
+          'url.path': { value: '/api/users', type: 'string' },
+          'sveltekit.is_data_request': { value: false, type: 'boolean' },
+          'sveltekit.is_sub_request': { value: true, type: 'boolean' },
+          'sveltekit.tracing.original_name': { value: 'sveltekit.handle.root', type: 'string' },
+        }),
       }),
 
-      // sub requestsequenced handler span:
+      // sub request sequenced handler span:
       expect.objectContaining({
-        data: expect.objectContaining({
-          'sentry.origin': 'auto.function.sveltekit.handle',
-          'sentry.op': 'function',
-        }),
-        description: 'sveltekit.handle.sequenced.sentryRequestHandler',
-        op: 'function',
-        origin: 'auto.function.sveltekit.handle',
+        name: 'sveltekit.handle.sequenced.sentryRequestHandler',
         status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'sentry.origin': { value: 'auto.function.sveltekit.handle', type: 'string' },
+        }),
       }),
 
       // sub request resolve span:
       expect.objectContaining({
-        data: expect.objectContaining({
-          'http.route': '/api/users',
-          'sentry.op': 'function',
-          'sentry.origin': 'auto.http.sveltekit',
-        }),
-        description: 'sveltekit.resolve',
-        op: 'function',
-        origin: 'auto.http.sveltekit',
+        name: 'sveltekit.resolve',
         status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+          'http.route': { value: '/api/users', type: 'string' },
+        }),
       }),
     ]),
   );
-
-  expect(serverTxnEvent.request).toEqual({
-    cookies: {},
-    headers: expect.objectContaining({
-      accept: expect.any(String),
-      'user-agent': expect.any(String),
-    }),
-    method: 'GET',
-    url: 'http://localhost:3030/server-load-fetch',
-  });
 });
 
-// FIXME(sveltekit-3): the `POST /form-action` server transaction never arrives under Kit 3 (no POST
+// FIXME(sveltekit-3): the `POST /form-action` server span never arrives under Kit 3 (no POST
 // root span is created server-side; `handleUnknownRoutes` does not help). The `use:enhance` POST
 // either doesn't reach the traced handle or isn't traced under Kit 3 — needs isolation. Unskip once
-// form-action requests produce a server transaction again.
+// form-action requests produce a server segment span again.
 test.skip('server trace includes form action span', async ({ page }) => {
-  const serverTxnEventPromise = waitForTransaction('sveltekit-3', txnEvent => {
-    return txnEvent?.transaction === 'POST /form-action';
-  });
+  const serverTraceSpansPromise = collectStreamedSpans('sveltekit-3', spansOfTrace =>
+    spansOfTrace.some(span => span.name === 'POST /form-action' && span.is_segment),
+  );
 
   await page.goto('/form-action');
 
   await page.locator('#inputName').fill('H4cktor');
   await page.locator('#buttonSubmit').click();
 
-  const serverTxnEvent = await serverTxnEventPromise;
+  const serverTraceSpans = await serverTraceSpansPromise;
+  const serverSpan = serverTraceSpans.find(span => span.name === 'POST /form-action' && span.is_segment)!;
 
-  expect(serverTxnEvent).toMatchObject({
-    transaction: 'POST /form-action',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
-    contexts: {
-      trace: {
-        op: 'http.server',
-        origin: 'auto.http.sveltekit',
-      },
-    },
+  expect(serverSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
   });
 
-  expect(serverTxnEvent.spans).toHaveLength(3);
+  const spans = getSegmentChildSpans(serverTraceSpans, serverSpan);
 
-  expect(serverTxnEvent.spans).toEqual(
+  expect(spans).toHaveLength(3);
+
+  expect(spans).toEqual(
     expect.arrayContaining([
       // sequenced handler span
       expect.objectContaining({
-        description: 'sveltekit.handle.sequenced.sentryRequestHandler',
-        op: 'function',
-        origin: 'auto.function.sveltekit.handle',
+        name: 'sveltekit.handle.sequenced.sentryRequestHandler',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'sentry.origin': { value: 'auto.function.sveltekit.handle', type: 'string' },
+        }),
       }),
 
       // resolve span
       expect.objectContaining({
-        description: 'sveltekit.resolve',
-        op: 'function',
-        origin: 'auto.http.sveltekit',
+        name: 'sveltekit.resolve',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+        }),
       }),
 
       // form action span
       expect.objectContaining({
-        description: 'sveltekit.form_action',
-        op: 'function',
-        origin: 'auto.function.sveltekit.action',
-        data: expect.objectContaining({
-          'sveltekit.form_action.name': 'default',
+        name: 'sveltekit.form_action',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'sentry.origin': { value: 'auto.function.sveltekit.action', type: 'string' },
+          'sveltekit.form_action.name': { value: 'default', type: 'string' },
         }),
       }),
     ]),
@@ -192,9 +169,9 @@ test.skip('server trace includes form action span', async ({ page }) => {
 });
 
 test('server trace for a `QUERY` server route includes the wrapped route handler span', async ({ request }) => {
-  const serverTxnEventPromise = waitForTransaction('sveltekit-3', txnEvent => {
-    return txnEvent?.transaction === 'QUERY /query-server-route';
-  });
+  const serverTraceSpansPromise = collectStreamedSpans('sveltekit-3', spansOfTrace =>
+    spansOfTrace.some(span => span.name === 'QUERY /query-server-route' && span.is_segment),
+  );
 
   const response = await request.fetch('/query-server-route', {
     method: 'QUERY',
@@ -205,35 +182,25 @@ test('server trace for a `QUERY` server route includes the wrapped route handler
   expect(response.status()).toBe(200);
   expect(await response.json()).toEqual({ term: 'sentry', results: ['alice', 'bob'] });
 
-  const serverTxnEvent = await serverTxnEventPromise;
+  const serverTraceSpans = await serverTraceSpansPromise;
+  const serverSpan = serverTraceSpans.find(span => span.name === 'QUERY /query-server-route' && span.is_segment)!;
 
-  expect(serverTxnEvent).toMatchObject({
-    transaction: 'QUERY /query-server-route',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
-    contexts: {
-      trace: {
-        op: 'http.server',
-        origin: 'auto.http.sveltekit',
-        data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
-          'http.method': 'QUERY',
-          'http.route': '/query-server-route',
-        },
-      },
-    },
+  expect(serverSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'http.method': { value: 'QUERY', type: 'string' },
+    'http.route': { value: '/query-server-route', type: 'string' },
   });
 
-  expect(serverTxnEvent.spans).toEqual(
+  expect(getSegmentChildSpans(serverTraceSpans, serverSpan)).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: 'QUERY /query-server-route',
-        origin: 'auto.function.sveltekit',
-        data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-          'code.function.name': 'QUERY',
-          'http.request.method': 'QUERY',
+        name: 'QUERY /query-server-route',
+        attributes: expect.objectContaining({
+          'sentry.origin': { value: 'auto.function.sveltekit', type: 'string' },
+          'code.function.name': { value: 'QUERY', type: 'string' },
+          'http.request.method': { value: 'QUERY', type: 'string' },
         }),
       }),
     ]),
