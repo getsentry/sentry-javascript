@@ -61,6 +61,12 @@ for (const node of Object.values(graph.nodes)) {
     }
 
     for (const output of outputs) {
+      // Negated outputs only narrow a target's Nx cache ownership to keep parallel targets'
+      // outputs disjoint; they are not files to exclude from the uploaded artifact — those files
+      // are emitted and owned by another target and must still be uploaded via its output.
+      if (output.startsWith('!')) {
+        continue;
+      }
       const rel = output.replace(/\{projectRoot\}/g, root).replace(/\\/g, '/');
       const prefix = `${kind}/${pkg}/`;
       if (!rel.startsWith(prefix)) {

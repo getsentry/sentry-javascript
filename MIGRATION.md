@@ -97,7 +97,7 @@ Sentry.init({
 });
 ```
 
-If a library you depend on emits its own OpenTelemetry spans and you want those in Sentry too, use setup 2.
+Spans are completely managed by the Sentry SDK and there is no OpenTelemetry involved: spans created through `@opentelemetry/api` are ignored. If a library you depend on emits its own OpenTelemetry spans and you want those in Sentry too, use setup 2.
 
 ##### 2. OpenTelemetry-compatible mode, everything goes to Sentry
 
@@ -119,7 +119,7 @@ Spans go to Sentry. This is not a general OpenTelemetry pipeline: there is no ex
 
 ##### 3. Your own OpenTelemetry, Sentry linked to it
 
-Leave `enableOpenTelemetrySetup` unset or set it to `false`, turn Sentry tracing off, use your own OpenTelemetry setup, and add the Sentry `otlpIntegration()`:
+Turn Sentry tracing off, run your own OpenTelemetry setup, and add the Sentry `openTelemetryIntegration()`. Leave `enableOpenTelemetrySetup` unset or set it to `false`:
 
 ```js
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -136,36 +136,21 @@ provider.register();
 Sentry.init({
   dsn: '__DSN__',
   // no tracesSampleRate: OpenTelemetry owns spans, Sentry owns errors and logs
-  integrations: [Sentry.otlpIntegration()],
+  integrations: [Sentry.openTelemetryIntegration()],
 });
 ```
 
 `enableOpenTelemetrySetup` already defaults to `false` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `true`, so you have to set it to `false` explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
 
-OpenTelemetry owns spans end to end. Sentry captures errors and logs, and the Sentry `otlpIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
+Spans are completely managed by your OpenTelemetry setup and the two pipelines stay separate: Sentry sends no spans, and no Sentry span is exported to your OpenTelemetry pipeline. Sentry captures errors and logs, and the Sentry `openTelemetryIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
 
 Sentry does not touch your pipeline: no exporter, no span processor, no tracer provider, and outgoing trace propagation is left to your propagator. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces) for the details, including what changed if you used the v10 integration.
 
-##### Avoiding duplicate spans
+##### Turning Sentry tracing off
 
-Sentry instruments many of the same libraries OpenTelemetry does (Express, Postgres, Redis, Prisma, Kafka and so on), so enabling Sentry tracing on top of your own instrumentation gives you two spans for every operation. Leave `tracesSampleRate` in your `Sentry.init` unset to avoid duplicate spans. With tracing off, Sentry's instrumentation stays installed and keeps isolating requests, but emits no spans.
+This setup only works with Sentry tracing off, so leave `tracesSampleRate` unset. Sentry instruments many of the same libraries OpenTelemetry does (Express, Postgres, Redis, Prisma, Kafka and so on), so leaving tracing on gives you two spans for every operation, in two pipelines that never join up. With tracing off, Sentry's instrumentation stays installed and keeps isolating requests, but emits no spans.
 
-Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `enableOpenTelemetrySetup`.
-
-If you do want Sentry spans alongside your own, keep `tracesSampleRate` set and drop the integrations that overlap. HTTP and fetch are the exception: turn off only their spans, because `httpIntegration` also provides request isolation, request data and session tracking:
-
-```js
-Sentry.init({
-  dsn: '__DSN__',
-  tracesSampleRate: 1.0,
-  integrations: integrations => [
-    // your own OpenTelemetry instrumentation already covers these
-    ...integrations.filter(integration => integration.name !== 'Postgres'),
-    Sentry.httpIntegration({ spans: false }),
-    Sentry.nativeNodeFetchIntegration({ spans: false }),
-  ],
-});
-```
+Note that this changed since v10, where setting `skipOpenTelemetrySetup: true` also turned Sentry's HTTP and fetch spans off by default. Sentry now emits those whenever tracing is enabled, regardless of `enableOpenTelemetrySetup`, so an app that relied on that has to unset `tracesSampleRate`.
 
 ##### Migrating custom OpenTelemetry setups
 
@@ -173,13 +158,13 @@ In v10, running your own OpenTelemetry setup meant registering Sentry's own comp
 
 #### Connecting Sentry to your OpenTelemetry traces
 
-`Sentry.otlpIntegration()` attaches everything Sentry sends that carries trace information (errors, logs, metrics and crons) to the OpenTelemetry span that is active when it happens. It takes no options, and is available from every server-side SDK, so there is nothing extra to install or import. See [setup 3](#3-your-own-opentelemetry-sentry-linked-to-it) above for a complete example.
+`Sentry.openTelemetryIntegration()` attaches everything Sentry sends that carries trace information (errors, logs, metrics and crons) to the OpenTelemetry span that is active when it happens. It takes no options, and is available from every server-side SDK, so there is nothing extra to install or import. See [setup 3](#3-your-own-opentelemetry-sentry-linked-to-it) above for a complete example.
 
 It does not set up a span exporter, span processor, or tracer provider. You keep full ownership of your OpenTelemetry pipeline, and outgoing request propagation is left to your OpenTelemetry propagator. To send your spans to Sentry, point your own exporter at the URL and auth headers that `Sentry.getOtlpTracesEndpoint()` derives from your DSN.
 
 An active Sentry span still takes precedence, so this only changes what happens when Sentry has no span of its own, which is the usual setup when OpenTelemetry owns tracing.
 
-If you used the v10 integration from `@sentry/node-core/light/otlp`, three things changed: it moved to the main export of every server SDK, it [no longer sets up an exporter for you and lost its options](#3-removed-apis), and it [reports itself as `Otlp` rather than `OtlpIntegration`](#otlpintegration-integration-renamed-to-otlp). Configure your own exporter as shown in setup 3, pointing it at your collector's URL if you route through one.
+If you used the v10 integration from `@sentry/node-core/light/otlp`, three things changed: it moved to the main export of every server SDK, it [no longer sets up an exporter for you and lost its options](#3-removed-apis), and it [was renamed to `openTelemetryIntegration()`](#otlpintegration-renamed-to-opentelemetryintegration). Configure your own exporter as shown in setup 3, pointing it at your collector's URL if you route through one.
 
 ### `sendDefaultPii` is replaced by `dataCollection`
 
@@ -333,7 +318,39 @@ This means spans are no longer bound by the 1000-span per transaction limit and 
 
 The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration.
 The `beforeSendTransaction` and `ignoreTransactions` options will **no-op**.
+Scope `tags` and `extra` are no longer applied to spans, since streamed spans only carry attributes.
 If you cannot migrate to span streaming yet, you can opt into the previous transaction-based static model.
+
+#### Scope `tags` and `extra` are not applied to spans
+
+Streamed spans only carry attributes, so scope `tags` and `extra` (set via `Sentry.setTag(s)`, `Sentry.setExtra(s)` or the equivalent scope methods) are no longer applied to spans.
+This affects every span, including the segment span that replaced the transaction.
+
+Tags and extra still apply to errors, so you don't have to remove them.
+Set attributes for everything that should also be searchable on spans (attributes additionally apply to logs and metrics):
+
+```js
+// Before: applied to the transaction
+Sentry.setTag('order_id', order.id);
+Sentry.setTags({ user_tier: user.tier });
+
+// After: applied to spans, logs and metrics
+Sentry.setAttribute('order_id', order.id);
+Sentry.setAttributes({ user_tier: user.tier });
+```
+
+Attributes accept `string`, `number`, `boolean` and arrays of those, so numbers and booleans no longer have to be stringified.
+Just like tags, they can be set on a specific scope:
+
+```js
+// Applied to all spans, logs and metrics of the application
+Sentry.getGlobalScope().setAttributes({ 'app.version': '2.1.0' });
+
+// Applied to a single operation
+Sentry.withScope(scope => {
+  scope.setAttribute('checkout.step', 'payment');
+});
+```
 
 #### `beforeSendSpan` receives the streamed span format
 
@@ -436,7 +453,7 @@ Sentry.init({
 });
 ```
 
-Note that scope `tags` and `extra` are not carried over to streamed spans, since spans only have attributes. Use `Sentry.setAttribute()` / `Sentry.setAttributes()` instead.
+Note that scope `tags` and `extra` [are not carried over to streamed spans](#scope-tags-and-extra-are-not-applied-to-spans). Use `Sentry.setAttribute()` / `Sentry.setAttributes()` instead.
 
 #### Replacing `ignoreTransactions` with `ignoreSpans`
 
@@ -906,25 +923,26 @@ If you [opt out of span streaming](#opting-out-of-span-streaming), span names re
 
 The following span names were adjusted:
 
-| Span op                                                                  | Before                                                                                                                      | After                                                                                                                                                                                                           |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Pageload` if the SDK has none                                                                                                                                                      |
-| `navigation`                                                             | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                 | The parameterized route, or `Navigation` if the SDK has none                                                                                                                                                    |
-| `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one (`GET /users/123`)                        | `GET /users/:id` when a route is known, otherwise just the request method (`GET`)                                                                                                                               |
-| `http.client`, `http.client.stream`                                      | The request method and sanitized URL (`GET https://api.example.com/users/123`)                                              | The request method and the domain (`GET api.example.com`), or just the method if there is no domain (`GET`)                                                                                                     |
-| `router`                                                                 | Framework-specific, sometimes containing the raw URL (`/users/123`, `SvelteKit Route Change`)                               | The span's `http.route`, or `Router` if the SDK has none                                                                                                                                                        |
-| `handler`                                                                | Framework-specific, often carrying the request method (`GET /users/:id`, `route-handler`, `getUser`)                        | The span's `http.route`, or `Request handler` if the SDK has none                                                                                                                                               |
-| `graphql`                                                                | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`) | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)                                                                                            |
-| `gen_ai.chat`, `gen_ai.embeddings`, `gen_ai.generate_content`            | `{operation} {model}`, or `{operation} unknown` if the model is missing (`chat unknown`)                                    | `{operation} {model}`, or `{operation}` if the model is missing (`chat`)                                                                                                                                        |
-| `gen_ai.invoke_agent`                                                    | The LangChain chain name, prefixed with `chain` rather than the operation (`chain format_prompt`)                           | `{operation} {name}`, where the name is the span's `gen_ai.agent.name`, `gen_ai.pipeline.name` or `gen_ai.function_id`, in that order (`invoke_agent format_prompt`), or `{operation}` if the span carries none |
-| `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources (`/assets/app.js`)                                  | The resource domain (`cdn.example.com`), or `Resource` if the SDK has none                                                                                                                                      |
-| `mcp.server`                                                             | The method and its target, including the resource URI (`resources/read file:///docs/api.md`)                                | The method alone for resource methods (`resources/read`). Tool and prompt names are unchanged (`tools/call get-weather`)                                                                                        |
-| `mcp.notification.client_to_server`, `mcp.notification.server_to_client` | The notification method name (`notifications/tools/list_changed`)                                                           | The notification method name, or `MCP notification` if the message carries none                                                                                                                                 |
-| `queue.publish`                                                          | Integration-specific (`publish my-exchange`, `send my-topic`)                                                               | The messaging operation type and the destination (`send my-exchange`), or just the operation type when the destination has no name (`send`)                                                                     |
-| `queue.process`                                                          | Integration-specific, sometimes containing per-message data (`my-queue process`, `order.created.12345 process`)             | The messaging operation type and the destination (`process my-exchange`), or just the operation type when the destination has no name (`process`)                                                               |
-| `queue.receive`                                                          | The kafkajs operation name (`poll my-topic`)                                                                                | The messaging operation type and the destination (`receive my-topic`)                                                                                                                                           |
-| `cache.get`, `cache.put`, `cache.remove`                                 | The cache key(s) (`user:123`), or for dataloader the operation and loader name (`dataloader.load usersLoader`)              | The cache operation (`cache.get`, `cache.put`, `cache.remove`)                                                                                                                                                  |
-| `db` (mongoose)                                                          | `mongoose.<Model>.<operation>` (`mongoose.BlogPost.findOne`)                                                                | The operation and the collection (`findOne blogposts`), the database namespace when there is no collection, or `mongodb` when the SDK has neither                                                               |
+| Span op                                                                  | Before                                                                                                                                                       | After                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                                                  | The parameterized route, or `Pageload` if the SDK has none                                                                                                                                                      |
+| `navigation`                                                             | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                                                  | The parameterized route, or `Navigation` if the SDK has none                                                                                                                                                    |
+| `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one (`GET /users/123`)                                                         | `GET /users/:id` when a route is known, otherwise just the request method (`GET`)                                                                                                                               |
+| `http.client`, `http.client.stream`                                      | The request method and sanitized URL (`GET https://api.example.com/users/123`)                                                                               | The request method and the domain (`GET api.example.com`), or just the method if there is no domain (`GET`)                                                                                                     |
+| `router`                                                                 | Framework-specific, sometimes containing the raw URL (`/users/123`, `SvelteKit Route Change`)                                                                | The span's `http.route`, or `Router` if the SDK has none                                                                                                                                                        |
+| `handler`                                                                | Framework-specific, often carrying the request method (`GET /users/:id`, `route-handler`, `getUser`)                                                         | The span's `http.route`, or `Request handler` if the SDK has none                                                                                                                                               |
+| `graphql`                                                                | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`)                                  | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)                                                                                            |
+| `gen_ai.chat`, `gen_ai.embeddings`, `gen_ai.generate_content`            | `{operation} {model}`, or `{operation} unknown` if the model is missing (`chat unknown`)                                                                     | `{operation} {model}`, or `{operation}` if the model is missing (`chat`)                                                                                                                                        |
+| `gen_ai.invoke_agent`                                                    | The LangChain chain name, prefixed with `chain` rather than the operation (`chain format_prompt`)                                                            | `{operation} {name}`, where the name is the span's `gen_ai.agent.name`, `gen_ai.pipeline.name` or `gen_ai.function_id`, in that order (`invoke_agent format_prompt`), or `{operation}` if the span carries none |
+| `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources (`/assets/app.js`)                                                                   | The resource domain (`cdn.example.com`), or `Resource` if the SDK has none                                                                                                                                      |
+| `mcp.server`                                                             | The method and its target, including the resource URI (`resources/read file:///docs/api.md`)                                                                 | The method alone for resource methods (`resources/read`). Tool and prompt names are unchanged (`tools/call get-weather`)                                                                                        |
+| `mcp.notification.client_to_server`, `mcp.notification.server_to_client` | The notification method name (`notifications/tools/list_changed`)                                                                                            | The notification method name, or `MCP notification` if the message carries none                                                                                                                                 |
+| `queue.publish`                                                          | Integration-specific (`publish my-exchange`, `send my-topic`)                                                                                                | The messaging operation type and the destination (`send my-exchange`), or just the operation type when the destination has no name (`send`)                                                                     |
+| `queue.process`                                                          | Integration-specific, sometimes containing per-message data (`my-queue process`, `order.created.12345 process`)                                              | The messaging operation type and the destination (`process my-exchange`), or just the operation type when the destination has no name (`process`)                                                               |
+| `queue.receive`                                                          | The kafkajs operation name (`poll my-topic`)                                                                                                                 | The messaging operation type and the destination (`receive my-topic`)                                                                                                                                           |
+| `cache.get`, `cache.put`, `cache.remove`                                 | The cache key(s) (`user:123`), or for dataloader the operation and loader name (`dataloader.load usersLoader`)                                               | The cache operation (`cache.get`, `cache.put`, `cache.remove`)                                                                                                                                                  |
+| `db.query` (redis, ioredis)                                              | The serialized command, with its arguments redacted (`set test-key [1 other arguments]`), or `redis-<command>` on the diagnostics-channel path (`redis-SET`) | The operation and the connection (`SET localhost:6379`), the operation and the redis function for `FCALL`/`FCALL_RO` (`fcall my_func`), or `redis` when the SDK knows neither                                   |
+| `db` (mongoose)                                                          | `mongoose.<Model>.<operation>` (`mongoose.BlogPost.findOne`)                                                                                                 | The operation and the collection (`findOne blogposts`), the database namespace when there is no collection, or `mongodb` when the SDK has neither                                                               |
 
 `navigation.redirect` spans are started through the same code path as navigation spans, so they get the same names.
 
@@ -965,6 +983,12 @@ Cache keys are unbounded, so they are no longer part of a cache span name. They 
 A Redis command whose key matches `cachePrefixes` now starts as a `cache.*` span instead of being converted from a `db.query` span at response time. `ignoreSpans` is evaluated at span start, so filters can match these spans by their cache op and name. A failed cache command reports as a cache span too, where it previously stayed a `db.query` span.
 
 A dataloader span no longer carries the loader's `name` either (`dataloader.load usersLoader` becomes `cache.get`), because the cache conventions have no slot for it in the name. It is reported on the `db.collection.name` attribute instead — a loader batches one entity type, so it is the closest thing dataloader has to a collection — and that attribute is set in both trace lifecycles. Unnamed loaders do not set it.
+
+Redis has no SQL statement to summarize and no collection to pair a command with, so redis and ioredis `db.query` spans are named after the operation and the connection instead of the command that was sent. The command and its arguments remain available on `db.query.text`, redacted as before. `MULTI`/`PIPELINE` batch spans are unchanged — they were already named after their operation, which they now also report on `db.operation.name`. `db.namespace` is deliberately not used in the name: for redis it is the numeric database index, which says nothing about what the command did.
+
+`FCALL` and `FCALL_RO` call a redis function, the one redis construct the conventions model as a stored procedure, so those spans are named after the function and report it on a new `db.stored_procedure.name` attribute, set in both trace lifecycles. node-redis and ioredis redact arguments before publishing them on their diagnostics channels, so a redacted function name is left off both the name and the attribute.
+
+Relatedly, and in **both** trace lifecycles: node-redis clients now always report the connection they use. node-redis v4 wrote its `localhost:6379` defaults back into `client.options` and v5 does not, so an identically configured client used to report `server.address`/`server.port` on v4 and neither on v5. The SDK now fills in the same defaults node-redis itself publishes on its diagnostics channel, and a client connected over a unix socket reports its path as `server.address` and no port.
 
 AWS SQS `SendMessage`, `SendMessageBatch` and `ReceiveMessage`, and SNS `Publish`, are messaging spans (e.g. `queue.publish`) rather than `rpc` ones now. Every other command on those clients, such as `DeleteMessage`, stays `rpc`. Their names follow the messaging conventions too, so the operation comes first (`my-queue receive` becomes `receive my-queue`, `my-topic send` becomes `send my-topic`). A streamed SNS `Publish` to a platform endpoint is named `send`, because the endpoint ARN it used to carry ends in a per-device id (`endpoint/GCM/myapp/<uuid> send`). The full ARN remains on `messaging.destination.name`.
 
@@ -1351,8 +1375,8 @@ The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction 
 - (Express) The `shouldHandleError` option was removed from `setupExpressErrorHandler` and `expressErrorHandler`, along with the `ExpressHandlerOptions` type. Configure it on `expressIntegration()` instead. See [Express: errors are captured automatically](#express-errors-are-captured-automatically).
 - (Express) `ExpressIntegrationOptions` is no longer exported from `@sentry/core`. Import it from `@sentry/node` instead — that version is the one `expressIntegration()` accepts, and it carries `shouldHandleError`.
 - (Fastify) The deprecated `instrumentFastify` and `handleFastifyError` exports were removed. `fastifyIntegration` now instruments Fastify (v3.21–v5) and captures errors on its own, so neither export is needed. See [Fastify: `setupFastifyErrorHandler` is deprecated](#fastify-setupfastifyerrorhandler-is-deprecated).
-- The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `otlpIntegration` is now exported directly from every server-side SDK, so `Sentry.otlpIntegration()` needs no extra import or install.
-- The `otlpIntegration` options `setupOtlpTracesExporter` and `collectorUrl` were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
+- The `@sentry/node-core/light/otlp` entry point was removed, along with its optional `@opentelemetry/exporter-trace-otlp-http` peer dependency. `openTelemetryIntegration` is now exported directly from every server-side SDK, so `Sentry.openTelemetryIntegration()` needs no extra import or install.
+- The `setupOtlpTracesExporter` and `collectorUrl` options were removed, and the integration no longer sets up a span exporter, span processor, or tracer provider. Configure your own exporter and point it at `Sentry.getOtlpTracesEndpoint(dsn)`, or at your collector's URL if you route through one. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces).
 - The deprecated `httpServerSpansIntegration` `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` option was removed. Use `onSpanCreated` instead. `httpServerSpansIntegration` only covers incoming requests; the outgoing hooks (`outgoingRequestHook`, `outgoingResponseHook`, `outgoingRequestApplyCustomAttributes`) are on `httpIntegration`.
 
 #### `httpIntegration` options were consolidated
@@ -1947,11 +1971,27 @@ Sentry.denoHttpIntegration({
 });
 ```
 
-### `OtlpIntegration` integration renamed to `Otlp`
+### `otlpIntegration` renamed to `openTelemetryIntegration`
 
 Affected SDKs: Server-side SDKs (`@sentry/node` and all dependents).
 
-The OTLP integration reports itself as `Otlp` rather than `OtlpIntegration`, matching every other integration in the SDKs, none of which carry an `Integration` suffix in their name. The `otlpIntegration()` export itself is unchanged. This only matters if you reference the integration by name:
+The old name was misleading: the integration sends nothing over OTLP. It sets up no exporter, no span processor and no tracer provider, and only connects what Sentry sends to your OpenTelemetry traces.
+
+```js
+// before
+Sentry.init({
+  integrations: [Sentry.otlpIntegration()],
+});
+
+// after
+Sentry.init({
+  integrations: [Sentry.openTelemetryIntegration()],
+});
+```
+
+`getOtlpTracesEndpoint()` keeps its name. That helper really is about OTLP: it derives the URL and auth headers of Sentry's OTLP traces endpoint from your DSN.
+
+The integration also reports itself as `OpenTelemetry` rather than `OtlpIntegration`, which matters if you reference it by name:
 
 ```js
 // before
@@ -1961,7 +2001,7 @@ Sentry.init({
 
 // after
 Sentry.init({
-  integrations: integrations => integrations.filter(integration => integration.name !== 'Otlp'),
+  integrations: integrations => integrations.filter(integration => integration.name !== 'OpenTelemetry'),
 });
 ```
 

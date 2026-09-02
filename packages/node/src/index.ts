@@ -32,7 +32,7 @@ export {
   vercelAIIntegration,
 } from '@sentry/server-utils';
 export {
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
   instrumentOpenAiClient,

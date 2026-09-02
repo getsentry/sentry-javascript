@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { getGlobalValueInjectionCode } from '../../src/vite/injectGlobalValues';
+import * as path from 'path';
+import type { Plugin } from 'vite';
+import { describe, expect, it, vi } from 'vitest';
+import { getGlobalValueInjectionCode, VIRTUAL_GLOBAL_VALUES_FILE } from '../../src/vite/injectGlobalValues';
+import { sentrySvelteKit } from '../../src/vite/sentryVitePlugins';
 
 describe('getGlobalValueInjectionCode', () => {
   it('returns code that injects values into the global object', () => {
@@ -22,5 +25,146 @@ describe('getGlobalValueInjectionCode', () => {
 
   it('returns empty string if no values are passed', () => {
     expect(getGlobalValueInjectionCode({})).toEqual('');
+  });
+});
+
+function getGlobalValuesPlugin(plugins: Plugin[]): Plugin {
+  return plugins.find(plugin => plugin.name === 'sentry-sveltekit-global-values-injection-plugin')!;
+}
+
+/** SvelteKit resolves config paths against the cwd before exposing them, so fixtures must be absolute. */
+function fromCwd(...segments: string[]): string {
+  return path.join(process.cwd(), ...segments);
+}
+
+describe('global values injection plugin', () => {
+  // Exercises the whole chain: the SvelteKit Vite plugin's `api.options` -> kit config resolver ->
+  // adapter detection -> adapter output dir + hooks file.
+  async function getPluginsForKitConfig(kitConfigOptions: unknown): Promise<Plugin[]> {
+    const plugins = await sentrySvelteKit({ autoUploadSourceMaps: true, autoInstrument: false });
+
+    const resolver = plugins.find(plugin => plugin.name === 'sentry-sveltekit-kit-config-resolver')!;
+    // @ts-expect-error this hook exists and is callable
+    resolver.config({
+      plugins: [{ name: 'vite-plugin-sveltekit-setup', api: { options: kitConfigOptions } }],
+    });
+
+    return plugins;
+  }
+
+  const nodeAdapterWithCustomOutDir = {
+    name: '@sveltejs/adapter-node',
+    adapt: (builder: { writeClient: (dest: string) => void }) => {
+      builder.writeClient('custom-build/client');
+    },
+  };
+
+  it("injects the adapter's custom output directory", async () => {
+    const plugins = await getPluginsForKitConfig({ adapter: nodeAdapterWithCustomOutDir });
+
+    // @ts-expect-error this hook exists and is callable
+    const result = await getGlobalValuesPlugin(plugins).load(VIRTUAL_GLOBAL_VALUES_FILE);
+
+    expect(result.code).toContain('globalThis["__sentry_sveltekit_output_dir"] = "custom-build";');
+  });
+
+  it('injects into a custom server hooks file', async () => {
+    const plugins = await getPluginsForKitConfig({
+      adapter: nodeAdapterWithCustomOutDir,
+      files: { hooks: { server: fromCwd('src/my-hooks.server') } },
+    });
+    const plugin = getGlobalValuesPlugin(plugins);
+
+    // @ts-expect-error this hook exists and is callable
+    const customHooksResult = await plugin.transform('const a = 1;', `${fromCwd('src/my-hooks.server')}.ts`);
+    // @ts-expect-error this hook exists and is callable
+    const defaultHooksResult = await plugin.transform('const a = 1;', `${fromCwd('src/hooks.server')}.ts`);
+
+    expect(customHooksResult.code).toContain(VIRTUAL_GLOBAL_VALUES_FILE);
+    expect(defaultHooksResult).toBeNull();
+  });
+
+  // SvelteKit always populates `files.hooks.server` in the config it exposes, and as an absolute
+  // path. Injecting the global values depends on that path still matching the Vite module id.
+  it('injects into the default server hooks file that SvelteKit resolves for us', async () => {
+    const plugins = await getPluginsForKitConfig({
+      adapter: nodeAdapterWithCustomOutDir,
+      files: { hooks: { client: fromCwd('src/hooks.client'), server: fromCwd('src/hooks.server') } },
+    });
+
+    // @ts-expect-error this hook exists and is callable
+    const result = await getGlobalValuesPlugin(plugins).transform('const a = 1;', `${fromCwd('src/hooks.server')}.ts`);
+
+    expect(result.code).toContain(VIRTUAL_GLOBAL_VALUES_FILE);
+  });
+
+  // The injected value is matched against stack frames at runtime, on a machine that generally
+  // isn't the machine that built the app - an absolute build-time path would never match.
+  it('injects a project-relative output directory', async () => {
+    const plugins = await getPluginsForKitConfig({ outDir: fromCwd('.svelte-kit') });
+
+    // @ts-expect-error this hook exists and is callable
+    const result = await getGlobalValuesPlugin(plugins).load(VIRTUAL_GLOBAL_VALUES_FILE);
+
+    expect(result.code).toContain('globalThis["__sentry_sveltekit_output_dir"] = ".svelte-kit/output";');
+  });
+
+  it('falls back to the default output directory if the config has no adapter', async () => {
+    const plugins = await getPluginsForKitConfig({});
+
+    // @ts-expect-error this hook exists and is callable
+    const result = await getGlobalValuesPlugin(plugins).load(VIRTUAL_GLOBAL_VALUES_FILE);
+
+    expect(result.code).toContain('globalThis["__sentry_sveltekit_output_dir"]');
+  });
+});
+
+describe('adapter output dir resolution', () => {
+  // Resolving the Node adapter's output dir calls `adapter.adapt()`, and `@sveltejs/adapter-node`
+  // v6 wipes that dir when it runs - so once, at config time. Deferred to `closeBundle`, it would
+  // delete the app SvelteKit just built.
+  it('resolves once, before the build, even when `filesToDeleteAfterUpload` is user-specified', async () => {
+    const adapt = vi.fn((builder: { writeClient: (dest: string) => void }) => {
+      builder.writeClient('custom-build/client');
+    });
+
+    const plugins = await sentrySvelteKit({
+      autoUploadSourceMaps: true,
+      autoInstrument: false,
+      sourcemaps: { filesToDeleteAfterUpload: ['./custom-build/**/*.map'] },
+    });
+
+    const resolver = plugins.find(plugin => plugin.name === 'sentry-sveltekit-kit-config-resolver')!;
+    // @ts-expect-error this hook exists and is callable
+    resolver.config({
+      plugins: [
+        {
+          name: 'vite-plugin-sveltekit-setup',
+          api: { options: { adapter: { name: '@sveltejs/adapter-node', adapt } } },
+        },
+      ],
+    });
+
+    const filesToDeletePlugin = plugins.find(
+      plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
+    )!;
+    const globalValuesPlugin = getGlobalValuesPlugin(plugins);
+
+    // This takes the branch that leaves `filesToDeleteAfterUpload` untouched - the adapter still
+    // has to be resolved by `configResolved`, not later in `closeBundle`
+    // @ts-expect-error these hooks exist and are callable
+    filesToDeletePlugin.config({ build: { sourcemap: true } });
+    // @ts-expect-error these hooks exist and are callable
+    await filesToDeletePlugin.configResolved();
+
+    expect(adapt).toHaveBeenCalledTimes(1);
+
+    // @ts-expect-error these hooks exist and are callable
+    await globalValuesPlugin.configResolved({});
+    // @ts-expect-error these hooks exist and are callable
+    await globalValuesPlugin.load(VIRTUAL_GLOBAL_VALUES_FILE);
+
+    // Shared across the plugins: the adapter must not be invoked once per consumer
+    expect(adapt).toHaveBeenCalledTimes(1);
   });
 });

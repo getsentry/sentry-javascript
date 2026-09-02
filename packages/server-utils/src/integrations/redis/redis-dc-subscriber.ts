@@ -14,6 +14,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/cor
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import type { RedisCacheOptions } from './redis-cache';
 import { applyCacheResponseAttributes, getRedisCacheAttributes } from './redis-cache';
+import { getRedisQueryNaming } from './redis-span-name';
 
 // Channel names published by node-redis >= 5.12.0 and ioredis >= 5.11.0.
 // Hardcoded so the subscriber does not have to import either library — the
@@ -142,18 +143,23 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
       // spaces to mirror the format the libraries themselves intend.
       const args = getCommandArgs(data);
       const statement = args.length ? `${data.command} ${args.join(' ')}` : data.command;
+      const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(data.command, args, {
+        host: data.serverAddress,
+        port: data.serverPort,
+      });
       const attributes: SpanAttributes = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB_QUERY,
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
         [DB_OPERATION_NAME]: data.command,
+        ...namingAttributes,
         [DB_QUERY_TEXT]: statement,
         ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
         ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
       };
       const cacheProperties = getRedisCacheAttributes(data.command, args, attributes, cacheOptions);
       return startInactiveSpan({
-        name: cacheProperties?.name ?? `redis-${data.command}`,
+        name: cacheProperties?.name ?? streamedName ?? `redis-${data.command}`,
         attributes: { ...attributes, ...cacheProperties?.attributes },
       });
     },
@@ -172,12 +178,14 @@ function setupBatchChannel(
   getOperationName: (data: RedisBatchData) => string,
 ): void {
   bindTracingChannelToSpan(tracingChannel<RedisBatchData>(channelName), data => {
+    const operation = getOperationName(data);
     return startInactiveSpan({
-      name: getOperationName(data),
+      name: operation,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB_QUERY,
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+        [DB_OPERATION_NAME]: operation,
         // should only include batch size greater than 1,
         // or else it isn't properly considered a "batch"
         ...(Number(data.batchSize) > 1 ? { [DB_OPERATION_BATCH_SIZE]: data.batchSize } : {}),
