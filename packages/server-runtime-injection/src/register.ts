@@ -145,12 +145,14 @@ export function registerDiagnosticsChannelInjection(): void {
       // runtime.
       //
       // Registered by path rather than through the `@sentry/server-runtime-injection/hook`
-      // self-reference, because `Module.register` resolves its specifier at RUNTIME: build-time
-      // tracers (`@vercel/nft`) never learn the hook is needed and leave it out of traced output.
-      // `output: 'standalone'`, Docker and Vercel builds then lose channel instrumentation
-      // entirely, and only say so behind `debug: true`. A literal relative path is static, so the
-      // tracer follows it like any other dependency, and it is still computed at runtime from
-      // `__filename`/`import.meta.url`, so nothing absolute is baked into the build.
+      // self-reference, because `Module.register` resolves its specifier at RUNTIME. `@vercel/nft`
+      // does evaluate `Module.register()` calls, but only where it can follow the `node:module`
+      // binding, and in the CJS build rollup routes that through an interop namespace helper
+      // (`const mod = require$$1__namespace`) it cannot see through. The hook then never reaches
+      // traced output, and the CJS build is the one Next.js loads, so `output: 'standalone'`,
+      // Docker and Vercel builds lose channel instrumentation entirely and only say so behind
+      // `debug: true`. A literal relative path is static in either build, and it is still computed
+      // at runtime from `__filename`/`import.meta.url`, so nothing absolute is baked in.
       //
       // Built from `join()` rather than `new URL('./hook.js', import.meta.url)` because webpack
       // reads that second form as an asset reference: it copies the hook next to the app bundle
