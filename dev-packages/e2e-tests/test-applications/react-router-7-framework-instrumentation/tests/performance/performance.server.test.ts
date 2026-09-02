@@ -135,6 +135,12 @@ test.describe('server - instrumentation API performance', () => {
       'Dev server emits extra http.server segments for module requests',
     );
 
+    // Navigate to `/performance/` with the trailing slash: `/performance` is answered with a 301 to
+    // it, and that redirect is a second request with a second `http.server` segment. It should not
+    // be sent at all — `ignoreStatusCodes` covers 301 — but that option is only applied to
+    // transactions, so span streaming emits it. Going straight to the final URL keeps this test
+    // about double-instrumentation instead of failing on the redirect.
+    //
     // A streamed server segment is named after the method alone until a route is matched, so a
     // duplicate shows up as a bare `GET`. Collect the origin and path alongside the name — they are
     // what says which instrumentation emitted the extra segment, and for which request.
@@ -152,7 +158,7 @@ test.describe('server - instrumentation API performance', () => {
       return false;
     });
 
-    await page.goto(`/performance`);
+    await page.goto(`/performance/`);
     // Give any (erroneous) duplicate span time to arrive before asserting.
     await page.waitForTimeout(3000);
 
@@ -160,7 +166,7 @@ test.describe('server - instrumentation API performance', () => {
       {
         name: 'GET /performance',
         origin: 'auto.http.react_router.instrumentation_api',
-        urlPath: expect.stringContaining('/performance'),
+        urlPath: '/performance/',
       },
     ]);
   });
