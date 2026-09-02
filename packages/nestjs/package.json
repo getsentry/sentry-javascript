@@ -95,7 +95,8 @@
         ],
         "outputs": [
           "{projectRoot}/build/types",
-          "{projectRoot}/*.d.ts"
+          "{projectRoot}/*.d.ts",
+          "{projectRoot}/*.d.ts.map"
         ],
         "cache": true
       }
