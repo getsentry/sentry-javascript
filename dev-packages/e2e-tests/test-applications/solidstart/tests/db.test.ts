@@ -1,88 +1,96 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
 test('Instruments ioredis automatically via build-time orchestrion', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('solidstart', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' && !!transactionEvent.transaction?.includes('db-ioredis')
-    );
-  });
+  const spansPromise = collectStreamedSpans(
+    'solidstart',
+    spans =>
+      spans.some(
+        span =>
+          span.is_segment &&
+          getSpanOp(span) === 'http.server' &&
+          String(span.attributes['url.path']?.value ?? '').includes('db-ioredis'),
+      ) && spans.filter(span => getSpanOp(span) === 'db.query').length >= 2,
+  );
 
   await fetch(`${baseURL}/api/db-ioredis`);
 
-  const transactionEvent = await transactionEventPromise;
-  const spans = transactionEvent.spans || [];
+  const spans = await spansPromise;
+  const redisSpans = spans.filter(span => getSpanOp(span) === 'db.query');
 
-  expect(spans).toContainEqual(
+  expect(redisSpans).toHaveLength(2);
+  expect(redisSpans).toContainEqual(
     expect.objectContaining({
-      op: 'db.query',
-      origin: 'auto.db.redis',
-      description: 'set test-key [1 other arguments]',
+      name: 'set test-key [1 other arguments]',
       status: 'ok',
-      data: expect.objectContaining({
-        'db.system.name': 'redis',
-        'db.operation.name': 'set',
-        'db.query.text': 'set test-key [1 other arguments]',
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'db.query' },
+        'sentry.origin': { type: 'string', value: 'auto.db.redis' },
+        'db.system.name': { type: 'string', value: 'redis' },
+        'db.operation.name': { type: 'string', value: 'set' },
+        'db.query.text': { type: 'string', value: 'set test-key [1 other arguments]' },
       }),
     }),
   );
-  expect(spans).toContainEqual(
+  expect(redisSpans).toContainEqual(
     expect.objectContaining({
-      op: 'db.query',
-      origin: 'auto.db.redis',
-      description: 'get test-key',
+      name: 'get test-key',
       status: 'ok',
-      data: expect.objectContaining({
-        'db.system.name': 'redis',
-        'db.operation.name': 'get',
-        'db.query.text': 'get test-key',
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'db.query' },
+        'sentry.origin': { type: 'string', value: 'auto.db.redis' },
+        'db.system.name': { type: 'string', value: 'redis' },
+        'db.operation.name': { type: 'string', value: 'get' },
+        'db.query.text': { type: 'string', value: 'get test-key' },
       }),
     }),
   );
 });
 
 test('Instruments mysql automatically via build-time orchestrion', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('solidstart', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' && !!transactionEvent.transaction?.includes('db-mysql')
-    );
-  });
+  const spansPromise = collectStreamedSpans(
+    'solidstart',
+    spans =>
+      spans.some(
+        span =>
+          span.is_segment &&
+          getSpanOp(span) === 'http.server' &&
+          String(span.attributes['url.path']?.value ?? '').includes('db-mysql'),
+      ) && spans.filter(span => getSpanOp(span) === 'db').length >= 2,
+  );
 
   await fetch(`${baseURL}/api/db-mysql`);
 
-  const transactionEvent = await transactionEventPromise;
-  const spans = transactionEvent.spans || [];
+  const spans = await spansPromise;
+  const mysqlSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.db.mysql');
 
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      op: 'db',
-      origin: 'auto.db.mysql',
-      description: 'SELECT 1 + 1 AS solution',
-      status: 'ok',
-      data: expect.objectContaining({
-        'db.system.name': 'mysql',
-        'db.query.text': 'SELECT 1 + 1 AS solution',
-        'db.user': 'root',
-        'db.connection_string': expect.any(String),
-        'server.address': expect.any(String),
-        'server.port': 3306,
-      }),
-    }),
-  );
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      op: 'db',
-      origin: 'auto.db.mysql',
-      description: 'SELECT NOW()',
-      status: 'ok',
-      data: expect.objectContaining({
-        'db.system.name': 'mysql',
-        'db.query.text': 'SELECT NOW()',
-        'db.user': 'root',
-        'db.connection_string': expect.any(String),
-        'server.address': expect.any(String),
-        'server.port': 3306,
-      }),
-    }),
-  );
+  const firstQuery = mysqlSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT 1 + 1 AS solution');
+  expect(firstQuery).toBeDefined();
+  expect(firstQuery!.name).toBe('SELECT');
+  expect(firstQuery!.status).toBe('ok');
+  expect(firstQuery!.attributes).toMatchObject({
+    'sentry.op': { type: 'string', value: 'db' },
+    'sentry.origin': { type: 'string', value: 'auto.db.mysql' },
+    'db.system.name': { type: 'string', value: 'mysql' },
+    'db.query.text': { type: 'string', value: 'SELECT 1 + 1 AS solution' },
+    'db.user': { type: 'string', value: 'root' },
+    'db.connection_string': { type: 'string', value: expect.any(String) },
+    'server.address': { type: 'string', value: expect.any(String) },
+    'server.port': { type: 'integer', value: 3306 },
+  });
+
+  const secondQuery = mysqlSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT NOW()');
+  expect(secondQuery).toBeDefined();
+  expect(secondQuery!.name).toBe('SELECT');
+  expect(secondQuery!.status).toBe('ok');
+  expect(secondQuery!.attributes).toMatchObject({
+    'sentry.op': { type: 'string', value: 'db' },
+    'sentry.origin': { type: 'string', value: 'auto.db.mysql' },
+    'db.system.name': { type: 'string', value: 'mysql' },
+    'db.query.text': { type: 'string', value: 'SELECT NOW()' },
+    'db.user': { type: 'string', value: 'root' },
+    'db.connection_string': { type: 'string', value: expect.any(String) },
+    'server.address': { type: 'string', value: expect.any(String) },
+    'server.port': { type: 'integer', value: 3306 },
+  });
 });
