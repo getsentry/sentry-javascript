@@ -8,7 +8,7 @@ import {
   spanToStaticSpanJSON,
 } from '@sentry/core';
 import { SentryMastraExporter } from '../../../../src/ai/mastra';
-import type { MastraExportedSpan, MastraTracingEvent } from '../../../../src/ai/mastra/types';
+import type { MastraExportedSpan, MastraSpanType, MastraTracingEvent } from '../../../../src/ai/mastra/types';
 import { OPENAI_INTEGRATION_NAME } from '../../../../src/ai/openai/constants';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
@@ -64,12 +64,15 @@ describe('SentryMastraExporter', () => {
     }
   }
 
-  it('skips OpenAI wrapping on the first tracing event, not at construction', async () => {
+  // Mastra reaches providers through the fetch-based `@ai-sdk/*` packages, never through the
+  // `openai` / `@anthropic-ai/sdk` / `@google/genai` clients those integrations patch. There is no
+  // duplicate span to suppress, so skipping would only drop the app's own direct SDK calls.
+  it('never skips raw provider wrapping', async () => {
     expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
 
     await exporter.exportTracingEvent(started(makeSpan()));
 
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
+    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
   });
 
   it('names agent spans `invoke_agent {name}` and sets the gen_ai op', async () => {
@@ -398,5 +401,57 @@ describe('SentryMastraExporter', () => {
     }
 
     expect(endedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual(['invoke_agent oldest']);
+  });
+
+  it('emits gen_ai.request.stop_sequences as a list, not a JSON string', async () => {
+    const span = makeSpan({
+      id: 'gen-stop',
+      type: 'model_generation',
+      attributes: { model: 'gpt-5', parameters: { stopSequences: ['\n\n', 'END'] } },
+    });
+    await run(started(span), ended(span));
+
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data['gen_ai.request.stop_sequences']).toEqual(['\n\n', 'END']);
+  });
+
+  // Parentless dropped spans used to be stored under a falsy sentinel that `LRUMap.remove` never
+  // deleted, so they filled the map and evicted live mappings, breaking re-parenting.
+  it('does not let ended parentless dropped spans evict a live re-parenting entry', async () => {
+    const agent = makeSpan({ id: 'agent-1', entityName: 'agent' });
+    const openStep = makeSpan({ id: 'step-1', type: 'model_step', parentSpanId: 'agent-1' });
+    await run(started(agent), started(openStep));
+
+    for (let i = 0; i < 1_500; i++) {
+      const orphan = makeSpan({ id: `orphan-${i}`, type: 'model_chunk' });
+      await run(started(orphan), ended(orphan));
+    }
+
+    const tool = makeSpan({ id: 'tool-1', type: 'tool_call', parentSpanId: 'step-1', entityName: 'get_weather' });
+    await run(started(tool), ended(tool), ended(agent));
+
+    const json = endedSpans.map(span => spanToStaticSpanJSON(span));
+    const toolJson = json.find(span => span.description === 'execute_tool get_weather');
+    const agentJson = json.find(span => span.description === 'invoke_agent agent');
+    expect(toolJson).toBeDefined();
+    expect(agentJson).toBeDefined();
+    expect(toolJson!.parent_span_id).toBe(agentJson!.span_id);
+  });
+
+  it('ends the previous Sentry span when a span id starts twice', async () => {
+    await run(started(makeSpan({ id: 'dup', entityName: 'first' })));
+    const second = makeSpan({ id: 'dup', entityName: 'second' });
+    await run(started(second), ended(second));
+
+    expect(endedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual([
+      'invoke_agent first',
+      'invoke_agent second',
+    ]);
+  });
+
+  it('drops span types that only exist on Object.prototype', async () => {
+    const span = makeSpan({ id: 'proto-1', type: 'toString' as MastraSpanType, entityName: 'agent' });
+    await run(started(span), ended(span));
+
+    expect(endedSpans).toHaveLength(0);
   });
 });

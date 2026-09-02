@@ -8,7 +8,6 @@ import { createRunner } from '../../../runner';
 // transform wrapped `MyWorkflow` with `instrumentWorkflowWithSentry`.
 it('auto-instruments a Workflow class', async ({ signal }) => {
   const runner = createRunner(__dirname)
-    .unordered()
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as TransactionEvent;
       expect(transactionEvent.transaction).toBe('step-one');

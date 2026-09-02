@@ -25,6 +25,9 @@ function fakeMastra(): {
   };
 }
 
+// Mastra drives providers through the fetch-based `@ai-sdk/*` packages, not the `openai` /
+// `@anthropic-ai/sdk` / `@google/genai` clients the provider integrations patch, so it must never
+// mark them as skipped — doing so would silently drop the app's own direct SDK calls.
 describe('mastraIntegration provider skip', () => {
   beforeEach(() => {
     _INTERNAL_clearAiProviderSkips();
@@ -39,7 +42,7 @@ describe('mastraIntegration provider skip', () => {
     delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
   });
 
-  it('does not skip raw providers at setup, before any Mastra instance is constructed', () => {
+  it('does not skip raw providers at setup', () => {
     expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
     expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(false);
     expect(_INTERNAL_shouldSkipAiProviderWrapping(GOOGLE_GENAI_INTEGRATION_NAME)).toBe(false);

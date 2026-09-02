@@ -47,7 +47,8 @@ export interface AttributeRecordingOptions {
 export type SpanAttributes = Record<string, SpanAttributeValue | undefined>;
 
 export function isExportedSpanType(spanType: MastraSpanType): boolean {
-  return spanType in SPAN_TYPE_OPS;
+  // `in` would also match inherited keys like `constructor` or `toString`.
+  return Object.prototype.hasOwnProperty.call(SPAN_TYPE_OPS, spanType);
 }
 
 export function getOperation(spanType: MastraSpanType): { op: string; operationName: string } | undefined {
@@ -210,7 +211,7 @@ function addModelAttributes(
   attributes[GEN_AI_REQUEST_PRESENCE_PENALTY] = parameters.presencePenalty;
   attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = parameters.frequencyPenalty;
   attributes[GEN_AI_REQUEST_SEED] = parameters.seed;
-  attributes[GEN_AI_REQUEST_STOP_SEQUENCES] = serialize(parameters.stopSequences);
+  attributes[GEN_AI_REQUEST_STOP_SEQUENCES] = parameters.stopSequences;
 
   Object.assign(attributes, getUsageAttributes(attrs.usage));
 

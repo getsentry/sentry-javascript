@@ -1,6 +1,5 @@
 import type { Span } from '@sentry/core';
 import {
-  _INTERNAL_skipAiProviderWrapping,
   debug,
   flush as sentryFlush,
   getActiveSpan,
@@ -13,11 +12,8 @@ import {
 } from '@sentry/core';
 import { GEN_AI_RESPONSE_MODEL } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from '../anthropic-ai/constants';
 import type { GenAiOptions } from '../core/utils';
 import { resolveAIRecordingOptions } from '../core/utils';
-import { GOOGLE_GENAI_INTEGRATION_NAME } from '../google-genai/constants';
-import { OPENAI_INTEGRATION_NAME } from '../openai/constants';
 import {
   getOperation,
   getSpanAttributes,
@@ -52,13 +48,6 @@ const MAX_PARENT_WALK_DEPTH = 100;
 /** Cap on tracked spans, matching `MAX_TRACKED_PRISMA_SPANS`. Spans that never end would otherwise leak. */
 const MAX_TRACKED_MASTRA_SPANS = 1000;
 
-/** Stored in `_skipped` for a dropped span with no parent, so `get` can distinguish it from absent. */
-const NO_PARENT = '';
-
-// Same list and timing idea as LangChain: skip on the first exported event, not at
-// `new Mastra()`, so a raw provider call before any Mastra run still gets its own span.
-const SKIPPED_PROVIDERS = [OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION_NAME, GOOGLE_GENAI_INTEGRATION_NAME];
-
 /**
  * Mastra `ObservabilityExporter` that turns tracing events into Sentry spans.
  *
@@ -71,7 +60,11 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
   public readonly [MASTRA_EXPORTER_BRAND] = true;
 
   private readonly _spans = new LRUMap<string, TrackedSpan>(MAX_TRACKED_MASTRA_SPANS);
-  /** Dropped span id -> parent id, for re-parenting descendants. */
+  /**
+   * Dropped span id -> parent id, for re-parenting descendants. A dropped span with no parent maps to
+   * its own id: `LRUMap.remove` only deletes truthy values, so an empty-string sentinel would never be
+   * evicted and would eventually fill the map, while a self-reference can never be a real parent id.
+   */
   private readonly _skipped = new LRUMap<string, string>(MAX_TRACKED_MASTRA_SPANS);
   private readonly _options: MastraExporterOptions;
 
@@ -84,8 +77,6 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     if (!getClient()) {
       return;
     }
-
-    _INTERNAL_skipAiProviderWrapping(SKIPPED_PROVIDERS);
 
     try {
       this._handleEvent(event);
@@ -119,7 +110,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     // Unmapped types are recorded so children re-parent onto a surviving ancestor.
     if (!isExportedSpanType(span.type)) {
       if (event.type === 'span_started') {
-        this._skipped.set(span.id, span.parentSpanId ?? NO_PARENT);
+        this._skipped.set(span.id, span.parentSpanId ?? span.id);
       } else if (event.type === 'span_ended') {
         this._skipped.remove(span.id);
       }
@@ -159,15 +150,19 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {} });
   }
 
-  /** End the oldest Sentry span before `LRUMap` drops it without calling `end()`. */
+  /** Track a started span, ending any Sentry span that would otherwise be dropped without `end()`. */
   private _trackSpan(id: string, tracked: TrackedSpan): void {
-    const keys = this._spans.keys();
-    if (!keys.includes(id) && keys.length >= MAX_TRACKED_MASTRA_SPANS) {
-      const oldestId = keys[0];
+    // A duplicate `span_started` would otherwise overwrite the entry and leak its Sentry span.
+    this._spans.remove(id)?.span.end();
+
+    // `LRUMap.set` evicts the oldest entry once the map is full, dropping that span without ending it.
+    if (this._spans.size >= MAX_TRACKED_MASTRA_SPANS) {
+      const oldestId = this._spans.keys()[0];
       if (oldestId !== undefined) {
         this._spans.remove(oldestId)?.span.end();
       }
     }
+
     this._spans.set(id, tracked);
   }
 
@@ -232,7 +227,8 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
         DEBUG_BUILD && debug.warn('[Mastra] gave up walking a parent chain that is too deep or cyclic');
         return undefined;
       }
-      current = parentOfSkipped === NO_PARENT ? undefined : parentOfSkipped;
+      // Self-reference marks a dropped span with no parent; stop and fall back to the active span.
+      current = parentOfSkipped === current ? undefined : parentOfSkipped;
     }
     return undefined;
   }
