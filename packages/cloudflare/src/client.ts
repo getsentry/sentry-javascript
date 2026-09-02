@@ -7,8 +7,8 @@ import {
   debug,
   spanIsSampled,
 } from '@sentry/core';
-import type { ServerRuntimeClientOptions } from '@sentry/server-utils';
-import { ServerRuntimeClient } from '@sentry/server-utils';
+import type { ServerRuntimeClientOptions } from '@sentry/server-utils/no-diagnostic-channels';
+import { ServerRuntimeClient } from '@sentry/server-utils/no-diagnostic-channels';
 import { DEBUG_BUILD } from './debug-build';
 import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';
