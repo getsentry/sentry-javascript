@@ -1,8 +1,11 @@
 import * as dc from 'node:diagnostics_channel';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
+  CACHE_OPERATION_NAMES,
+  getClient,
   GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
@@ -84,11 +87,16 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
     dc.tracingChannel<TraceContext>(`unstorage.${operation}`),
     data => {
       const cacheKeys = keys(data);
+      const cacheOperationName = CACHE_OPERATION_NAMES[OPERATION_SPAN_OPS[operation]];
+      const client = getClient();
 
       return startInactiveSpan({
-        name: cacheKeys.join(', ') || operation,
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the cache keys.
+        name:
+          client && hasSpanStreamingEnabled(client) ? OPERATION_SPAN_OPS[operation] : cacheKeys.join(', ') || operation,
         attributes: {
           [SENTRY_OP]: OPERATION_SPAN_OPS[operation],
+          [CACHE_OPERATION]: cacheOperationName,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_CACHE_KEY]: cacheKeys.length > 1 ? cacheKeys : cacheKeys[0],
           'db.operation.name': operation,
