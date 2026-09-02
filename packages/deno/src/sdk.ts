@@ -1,5 +1,5 @@
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
-import type { ServerRuntimeClientOptions } from '@sentry/core/server';
+import type { ServerRuntimeClientOptions } from '@sentry/server-utils';
 import {
   createStackParser,
   dedupeIntegration,
@@ -13,7 +13,7 @@ import {
 } from '@sentry/core';
 import { getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
-import { nodeStackLineParser } from '@sentry/core/server';
+import { nodeStackLineParser } from '@sentry/server-utils';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';

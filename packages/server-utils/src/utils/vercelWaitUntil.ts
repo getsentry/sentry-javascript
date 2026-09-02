@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ } from './worldwide';
+import { GLOBAL_OBJ } from '@sentry/core';
 
 declare const EdgeRuntime: string | undefined;
 

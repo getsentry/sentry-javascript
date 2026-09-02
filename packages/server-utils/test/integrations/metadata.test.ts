@@ -1,16 +1,16 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   captureException,
   createStackParser,
   createTransport,
+  type Event,
   GLOBAL_OBJ,
   moduleMetadataIntegration,
   parseEnvelope,
   setCurrentClient,
-} from '../../../src';
-import { nodeStackLineParser } from '../../../src/server';
-import type { Event } from '../../../src/types/event';
-import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+} from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { nodeStackLineParser } from '../../src/utils/node-stack-trace';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const stackParser = createStackParser(nodeStackLineParser());
 

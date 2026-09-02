@@ -62,6 +62,7 @@ export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, SENTRY_
 export { Client } from './client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
+export { addUserAgentToTransportHeaders } from './transports/userAgent';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
 export {
@@ -118,6 +119,7 @@ export {
   INTERNAL_setSegmentNameSourceIfSegment,
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
+export { getTraceInfoFromScope } from './utils/trace-info';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
@@ -260,6 +262,7 @@ export {
   createStackParser,
   getFramesFromEvent,
   getFunctionName,
+  normalizeStackTracePath,
   stackParserFromStackParserOptions,
   stripSentryFramesAndReverse,
 } from './utils/stacktrace';

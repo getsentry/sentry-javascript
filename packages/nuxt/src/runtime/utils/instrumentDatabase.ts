@@ -13,8 +13,7 @@ import {
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
+import { flushIfServerless, getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
 import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';

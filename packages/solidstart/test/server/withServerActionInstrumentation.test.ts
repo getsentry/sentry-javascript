@@ -1,6 +1,6 @@
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
-import * as SentryCoreServer from '@sentry/core/server';
+import * as serverUtils from '@sentry/server-utils';
 import * as SentryNode from '@sentry/node';
 import {
   createTransport,
@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { withServerActionInstrumentation } from '../../src/server';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => '');
-const mockFlush = vi.spyOn(SentryCoreServer, 'flushIfServerless').mockImplementation(async () => {});
+const mockFlush = vi.spyOn(serverUtils, 'flushIfServerless').mockImplementation(async () => {});
 const mockGetActiveSpan = vi.spyOn(SentryCore, 'getActiveSpan');
 
 const mockGetRequestEvent = vi.fn();

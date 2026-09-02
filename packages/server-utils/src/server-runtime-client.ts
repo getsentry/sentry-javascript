@@ -1,26 +1,35 @@
-import { createCheckInEnvelope } from './checkin';
-import { Client } from './client';
-import { getIsolationScope } from './currentScopes';
-import { DEBUG_BUILD } from './debug-build';
 import {
+  addUserAgentToTransportHeaders,
+  type BaseTransportOptions,
+  type CheckIn,
+  Client,
+  type ClientOptions,
+  createCheckInEnvelope,
+  debug,
+  type Event,
+  type EventHint,
+  eventFromMessage,
+  eventFromUnknownInput,
+  getIsolationScope,
+  getTraceInfoFromScope,
+  makePromiseBuffer,
+  type MonitorConfig,
+  type ParameterizedString,
+  resolvedSyncPromise,
+  type Scope,
+  type SerializedCheckIn,
+  type SeverityLevel,
   spanStreamingIntegration,
-  INTEGRATION_NAME as SPAN_STREAMING_INTEGRATION_NAME,
-} from './integrations/spanStreaming';
-import type { Scope } from './scope';
-import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
-import { addUserAgentToTransportHeaders } from './transports/userAgent';
-import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types/checkin';
-import type { Event, EventHint } from './types/event';
-import type { ClientOptions } from './types/options';
-import type { ParameterizedString } from './types/parameterize';
-import type { SeverityLevel } from './types/severity';
-import type { BaseTransportOptions, Transport } from './types/transport';
-import { debug } from './utils/debug-logger';
-import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
-import { uuid4 } from './utils/misc';
-import { makePromiseBuffer } from './utils/promisebuffer';
-import { resolvedSyncPromise } from './utils/syncpromise';
-import { _getTraceInfoFromScope } from './utils/trace-info';
+  type Transport,
+  uuid4,
+} from '@sentry/core';
+import { DEBUG_BUILD } from './debug-build';
+
+// The base `Client`'s promise buffer size, mirrored here for the client-level
+// buffer. Kept in sync with `@sentry/core`'s transport default.
+const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
+
+const SPAN_STREAMING_INTEGRATION_NAME = 'SpanStreaming';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -145,7 +154,7 @@ export class ServerRuntimeClient<
       };
     }
 
-    const [dynamicSamplingContext, traceContext] = _getTraceInfoFromScope(this, scope);
+    const [dynamicSamplingContext, traceContext] = getTraceInfoFromScope(this, scope);
     if (traceContext) {
       serializedCheckIn.contexts = {
         trace: traceContext,

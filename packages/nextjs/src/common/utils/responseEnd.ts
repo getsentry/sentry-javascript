@@ -1,6 +1,5 @@
 import type { Span } from '@sentry/core';
 import { debug, fill, flush, GLOBAL_OBJ, setHttpStatus } from '@sentry/core';
-import { vercelWaitUntil } from '@sentry/core/server';
 import type { ServerResponse } from 'http';
 import { DEBUG_BUILD } from '../debug-build';
 import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
@@ -68,6 +67,35 @@ export function waitUntil(task: Promise<unknown>): void {
 
   // otherwise, use vercel's
   vercelWaitUntil(task);
+}
+
+declare const EdgeRuntime: string | undefined;
+
+interface VercelRequestContextGlobal {
+  get?(): { waitUntil?: (task: Promise<unknown>) => void } | undefined;
+}
+
+/**
+ * Delays closing of a Vercel lambda until the provided task resolves.
+ *
+ * Inlined (rather than imported from `@sentry/server-utils`) because `responseEnd` is reachable from
+ * the browser bundle via the pages-router `_error` instrumentation, and every `@sentry/server-utils`
+ * entrypoint transitively pulls in `node:async_hooks`, which the client webpack build cannot resolve.
+ * Vendored from https://www.npmjs.com/package/@vercel/functions
+ */
+function vercelWaitUntil(task: Promise<unknown>): void {
+  // We only flush manually in Vercel Edge runtime; in Node runtime we use `process.on('SIGTERM')`.
+  if (typeof EdgeRuntime !== 'string') {
+    return;
+  }
+
+  const vercelRequestContextGlobal: VercelRequestContextGlobal | undefined =
+    // @ts-expect-error This is not typed
+    GLOBAL_OBJ[Symbol.for('@vercel/request-context')];
+
+  const ctx = vercelRequestContextGlobal?.get?.();
+
+  ctx?.waitUntil?.(task);
 }
 
 type MinimalCloudflareContext = {

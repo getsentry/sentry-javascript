@@ -1,6 +1,6 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core/server';
+import type { ServerRuntimeClientOptions } from '@sentry/server-utils';
 import { _INTERNAL_flushLogsBuffer, SDK_VERSION } from '@sentry/core';
-import { ServerRuntimeClient } from '@sentry/core/server';
+import { ServerRuntimeClient } from '@sentry/server-utils';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import type { DenoClientOptions } from './types';
 

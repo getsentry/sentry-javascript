@@ -1,5 +1,5 @@
 import { addNonEnumerableProperty, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless } from '@sentry/server-utils';
 import { CODE_FUNCTION_NAME, HTTP_REQUEST_METHOD, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { RequestEvent } from '@sveltejs/kit';
