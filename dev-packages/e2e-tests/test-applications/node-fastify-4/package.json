@@ -13,7 +13,7 @@
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@types/node": "^18.19.1",
-    "fastify": "4.29.1",
+    "fastify": "5.12.1",
     "typescript": "5.6.3",
     "ts-node": "10.9.2"
   },
