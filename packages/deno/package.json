@@ -64,7 +64,8 @@
     "targets": {
       "build:transpile": {
         "outputs": [
-          "{projectRoot}/build"
+          "{projectRoot}/build",
+          "!{projectRoot}/build/esm/**/*.d.ts"
         ]
       },
       "build:types": {
