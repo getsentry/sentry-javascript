@@ -371,7 +371,9 @@ export function _rollupPluginInternal(
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     renderChunk,
-    ...(options.sourcemaps?.disable === 'disable-upload' ? { generateBundle } : {}),
+    ...(options.sourcemaps?.disable === 'disable-upload'
+      ? { generateBundle: { order: 'pre' as const, handler: generateBundle } }
+      : {}),
     writeBundle,
   };
 }
