@@ -27,7 +27,9 @@ function getStoredProcedureName(command: string, args: ReadonlyArray<unknown>): 
   return name && name !== '?' ? name : undefined;
 }
 
-// The template needs both halves, so a client configured with only a port has no target.
+// The conventions have no address-only template, so both halves are required: a client
+// configured with only a port has no target, and neither does a unix socket, whose
+// `server.address` is a path with no port to pair it with.
 function getServerTarget({ host, port }: RedisConnection): string | undefined {
   const hasPort = typeof port === 'number' || (typeof port === 'string' && !!port);
   return typeof host === 'string' && host && hasPort ? `${host}:${port}` : undefined;

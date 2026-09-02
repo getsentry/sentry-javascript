@@ -452,7 +452,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       test('should name cache spans after the cache operation when streamed (redis-4)', async () => {
         await createTestRunner()
           .withEnv({ STREAMED: 'true' })
-          // The connect span is streamed in its own envelope, ahead of the command spans.
+          // The connect span opens its own segment. `unordered` keeps this expectation from
+          // depending on which segment the buffer happens to emit first.
           .unordered()
           .expect({ span: { items: EXPECTED_STREAMED_SPANS } })
           .start()
@@ -671,7 +672,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       test('should name cache spans after the cache operation when streamed (redis-5)', async () => {
         await createTestRunner()
           .withEnv({ STREAMED: 'true' })
-          // The connect span is streamed in its own envelope, ahead of the command spans.
+          // The connect span opens its own segment. `unordered` keeps this expectation from
+          // depending on which segment the buffer happens to emit first.
           .unordered()
           .expect({ span: { items: EXPECTED_STREAMED_SPANS } })
           .start()
