@@ -165,6 +165,13 @@ describeWithDockerCompose(
 
       const PEER = { 'network.peer.address': HOST, 'network.peer.port': PORT };
 
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        attributes: Record<string, unknown>,
+      ): unknown => streamedSpan(op, op, { ...PEER, 'cache.operation': op.slice('cache.'.length), ...attributes });
+
       createEsmAndCjsTests(__dirname, 'scenario-redis-5-tracing.mjs', 'instrument.mjs', (createTestRunner, test) => {
         test('creates streamed spans for redis v5 commands via diagnostics_channel', { timeout: 60_000 }, async () => {
           await createTestRunner()
@@ -187,17 +194,15 @@ describeWithDockerCompose(
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET dc-test-key ?',
                   }),
-                  // cache SET: span name updated to the key by the cache hook
-                  streamedSpan('dc-cache:test-key', 'cache.put', {
-                    ...PEER,
+                  // cache SET: turned into a cache span, and renamed by the cache hook
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET dc-cache:test-key ?',
                     'cache.key': ['dc-cache:test-key'],
                     'cache.item_size': 2,
                   }),
                   // cache SET with EX option: redis v5 sends SET key value EX 10 as the command
-                  streamedSpan('dc-cache:test-key-ex', 'cache.put', {
-                    ...PEER,
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET dc-cache:test-key-ex ? ? ?',
                     'cache.key': ['dc-cache:test-key-ex'],
@@ -208,8 +213,7 @@ describeWithDockerCompose(
                     'db.query.text': 'GET dc-test-key',
                   }),
                   // cache GET (hit)
-                  streamedSpan('dc-cache:test-key', 'cache.get', {
-                    ...PEER,
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET dc-cache:test-key',
                     'cache.key': ['dc-cache:test-key'],
@@ -217,8 +221,7 @@ describeWithDockerCompose(
                     'cache.item_size': 10,
                   }),
                   // cache GET (miss)
-                  streamedSpan('dc-cache:unavailable-data', 'cache.get', {
-                    ...PEER,
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET dc-cache:unavailable-data',
                     'cache.key': ['dc-cache:unavailable-data'],

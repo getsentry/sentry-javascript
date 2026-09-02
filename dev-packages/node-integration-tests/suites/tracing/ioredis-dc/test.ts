@@ -157,6 +157,13 @@ describeWithDockerCompose(
 
       const PEER = { 'network.peer.address': HOST, 'network.peer.port': PORT };
 
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        attributes: Record<string, unknown>,
+      ): unknown => streamedSpan(op, op, { ...PEER, 'cache.operation': op.slice('cache.'.length), ...attributes });
+
       createEsmAndCjsTests(__dirname, 'scenario-ioredis-5-11.mjs', 'instrument.mjs', (createTestRunner, test) => {
         test(
           'creates streamed spans for ioredis v5.11 commands via diagnostics_channel',
@@ -185,15 +192,13 @@ describeWithDockerCompose(
                       'db.operation.name': 'set',
                       'db.query.text': 'set dc-test-key ?',
                     }),
-                    streamedSpan('dc-cache:test-key', 'cache.put', {
-                      ...PEER,
+                    cacheSpan('cache.put', {
                       'db.operation.name': 'set',
                       'db.query.text': 'set dc-cache:test-key ?',
                       'cache.key': ['dc-cache:test-key'],
                       'cache.item_size': 2,
                     }),
-                    streamedSpan('dc-cache:test-key-ex', 'cache.put', {
-                      ...PEER,
+                    cacheSpan('cache.put', {
                       'db.operation.name': 'set',
                       'db.query.text': 'set dc-cache:test-key-ex ? ? ?',
                       'cache.key': ['dc-cache:test-key-ex'],
@@ -203,16 +208,14 @@ describeWithDockerCompose(
                       'db.operation.name': 'get',
                       'db.query.text': 'get dc-test-key',
                     }),
-                    streamedSpan('dc-cache:test-key', 'cache.get', {
-                      ...PEER,
+                    cacheSpan('cache.get', {
                       'db.operation.name': 'get',
                       'db.query.text': 'get dc-cache:test-key',
                       'cache.key': ['dc-cache:test-key'],
                       'cache.hit': true,
                       'cache.item_size': 10,
                     }),
-                    streamedSpan('dc-cache:unavailable-data', 'cache.get', {
-                      ...PEER,
+                    cacheSpan('cache.get', {
                       'db.operation.name': 'get',
                       'db.query.text': 'get dc-cache:unavailable-data',
                       'cache.key': ['dc-cache:unavailable-data'],
