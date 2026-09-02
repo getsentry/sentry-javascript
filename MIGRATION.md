@@ -333,7 +333,39 @@ This means spans are no longer bound by the 1000-span per transaction limit and 
 
 The new model comes with some changes to Sentry hooks such as `beforeSendSpan` or options like `ignoreSpans` and requires manual migration.
 The `beforeSendTransaction` and `ignoreTransactions` options will **no-op**.
+Scope `tags` and `extra` are no longer applied to spans, since streamed spans only carry attributes.
 If you cannot migrate to span streaming yet, you can opt into the previous transaction-based static model.
+
+#### Scope `tags` and `extra` are not applied to spans
+
+Streamed spans only carry attributes, so scope `tags` and `extra` (set via `Sentry.setTag(s)`, `Sentry.setExtra(s)` or the equivalent scope methods) are no longer applied to spans.
+This affects every span, including the segment span that replaced the transaction, and the SDK does not warn about it: the data is simply missing from your spans.
+
+Tags and extra still apply to errors, so you don't have to remove them.
+Set attributes for everything that should also be searchable on spans (attributes additionally apply to logs and metrics):
+
+```js
+// Before: applied to the transaction
+Sentry.setTag('order_id', order.id);
+Sentry.setTags({ user_tier: user.tier });
+
+// After: applied to spans, logs and metrics
+Sentry.setAttribute('order_id', order.id);
+Sentry.setAttributes({ user_tier: user.tier });
+```
+
+Attributes accept `string`, `number`, `boolean` and arrays of those, so numbers and booleans no longer have to be stringified.
+Just like tags, they can be set on a specific scope:
+
+```js
+// Applied to all spans, logs and metrics of the application
+Sentry.getGlobalScope().setAttributes({ 'app.version': '2.1.0' });
+
+// Applied to a single operation
+Sentry.withScope(scope => {
+  scope.setAttribute('checkout.step', 'payment');
+});
+```
 
 #### `beforeSendSpan` receives the streamed span format
 
@@ -436,7 +468,7 @@ Sentry.init({
 });
 ```
 
-Note that scope `tags` and `extra` are not carried over to streamed spans, since spans only have attributes. Use `Sentry.setAttribute()` / `Sentry.setAttributes()` instead.
+Note that scope `tags` and `extra` [are not carried over to streamed spans](#scope-tags-and-extra-are-not-applied-to-spans). Use `Sentry.setAttribute()` / `Sentry.setAttributes()` instead.
 
 #### Replacing `ignoreTransactions` with `ignoreSpans`
 
