@@ -22,3 +22,21 @@ test('records a client report and no extra error event when an event processor t
     .start()
     .completed();
 });
+
+test('records a client report and no extra error event when an async event processor rejects', async () => {
+  await createRunner(__dirname, 'scenario-async.ts')
+    .unignore('client_report')
+    .expect({
+      client_report: {
+        discarded_events: [
+          {
+            category: 'error',
+            quantity: 1,
+            reason: 'event_processor',
+          },
+        ],
+      },
+    })
+    .start()
+    .completed();
+});
