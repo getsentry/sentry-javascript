@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('propagates the navigation trace (not the stale pageload trace) for a fetch in a route mount effect', async ({
   page,
@@ -15,22 +15,22 @@ test('propagates the navigation trace (not the stale pageload trace) for a fetch
     });
   });
 
-  const pageloadTxnPromise = waitForTransaction('react-router-6', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  const pageloadSpanPromise = waitForStreamedSpan('react-router-6', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationTxnPromise = waitForTransaction('react-router-6', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/products';
+  const navigationSpanPromise = waitForStreamedSpan('react-router-6', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/products';
   });
 
   await page.goto('/');
-  const pageloadTxn = await pageloadTxnPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
   await page.locator('id=navigation-products').click();
-  const navigationTxn = await navigationTxnPromise;
+  const navigationSpan = await navigationSpanPromise;
 
-  const pageloadTraceId = pageloadTxn.contexts?.trace?.trace_id;
-  const navigationTraceId = navigationTxn.contexts?.trace?.trace_id;
+  const pageloadTraceId = pageloadSpan.trace_id;
+  const navigationTraceId = navigationSpan.trace_id;
   const propagatedTraceId = productsRequestSentryTrace?.split('-')[0];
 
   expect(pageloadTraceId).toBeDefined();
