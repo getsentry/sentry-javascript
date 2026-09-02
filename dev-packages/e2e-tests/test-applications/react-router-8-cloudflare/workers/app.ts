@@ -11,7 +11,6 @@ interface Env {
 // `diagnostics_channel` publishers would fire with nobody subscribed.
 export default Sentry.withSentry(
   (env: Env) => ({
-    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1.0,
