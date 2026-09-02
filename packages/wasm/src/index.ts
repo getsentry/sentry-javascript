@@ -196,19 +196,21 @@ function uniqueImageForSyntheticFilename(
     return undefined;
   }
   const basename = body.replace(/-[0-9a-fA-F]{6,16}$/, '');
-  const hits: Array<{ index: number; worker: boolean; codeFile: string }> = [];
+  const hits: Array<{ index: number; worker: boolean; codeFile: string; debugId: string }> = [];
   const consider = (images: Array<DebugImage>, worker: boolean): void => {
     images.forEach((image, index) => {
       if (image.type === 'wasm' && typeof image.code_file === 'string' && fileBasename(image.code_file) === basename) {
-        hits.push({ index, worker, codeFile: image.code_file });
+        hits.push({ index, worker, codeFile: image.code_file, debugId: image.debug_id });
       }
     });
   };
   consider(getImages(), false);
   consider(WINDOW._sentryWasmImages || [], true);
-  // Page + worker often register the same URL; that is one module, not two.
-  const codeFiles = new Set(hits.map(hit => hit.codeFile));
-  return codeFiles.size === 1 ? hits[0] : undefined;
+  // Same binary may be registered under several URLs (page + worker, CDN vs origin).
+  // Chrome's wasm:// hash is not a debug_id, so different binaries that share a
+  // filename still cannot be told apart.
+  const debugIds = new Set(hits.map(hit => hit.debugId));
+  return debugIds.size === 1 ? hits[0] : undefined;
 }
 
 /**

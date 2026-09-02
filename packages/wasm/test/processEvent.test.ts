@@ -124,6 +124,53 @@ describe('processEvent()', () => {
     expect(event.debug_meta?.images).toHaveLength(2);
   });
 
+  it('attaches a wasm:// image when the same debug_id is registered under two URLs', () => {
+    IMAGES.push(
+      {
+        type: 'wasm',
+        code_id: 'abc123',
+        code_file: 'http://localhost:8001/v1/app.wasm',
+        debug_file: null,
+        debug_id: 'abc12300000000000000000000000000',
+      },
+      {
+        type: 'wasm',
+        code_id: 'abc123',
+        code_file: 'http://cdn.example/app.wasm',
+        debug_file: null,
+        debug_id: 'abc12300000000000000000000000000',
+      },
+    );
+
+    const integration = wasmIntegration();
+    const event = integration.processEvent?.(
+      {
+        exception: {
+          values: [
+            {
+              stacktrace: {
+                frames: [
+                  {
+                    filename: 'wasm://wasm/app.wasm-abc123',
+                    function: 'run',
+                    instruction_addr: '0x10',
+                    in_app: true,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      {},
+      {} as never,
+    ) as Event;
+
+    expect(event.exception?.values?.[0]?.stacktrace?.frames?.[0]?.addr_mode).toBe('rel:0');
+    expect(event.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toBe('http://localhost:8001/v1/app.wasm');
+    expect(event.debug_meta?.images).toHaveLength(2);
+  });
+
   it('does not guess a wasm:// image when two registered modules share the filename', () => {
     IMAGES.push(
       {
