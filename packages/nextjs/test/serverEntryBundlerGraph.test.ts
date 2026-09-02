@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -15,15 +15,18 @@ describe('built CJS server entry', () => {
     const script = `
       globalThis.document = { baseURI: 'http://localhost:3000/' };
       require(${JSON.stringify(serverEntry)});
-      const bundlerModules = Object.keys(require.cache).filter(
+      const toPosix = modulePath => modulePath.split(require('path').sep).join('/');
+      const bundlerModules = Object.keys(require.cache).map(toPosix).filter(
         modulePath => modulePath.includes('code-transformer-bundler-plugins') || modulePath.includes('orchestrion/bundler'),
       );
       if (bundlerModules.length > 0) {
         console.error('Bundler-plugin modules loaded at import time:\\n' + bundlerModules.join('\\n'));
-        process.exit(2);
+        process.exit(1);
       }
     `;
 
-    expect(() => execFileSync(process.execPath, ['-e', script], { stdio: 'pipe' })).not.toThrow();
+    // On failure, stderr carries either the leaked module list or the import crash itself.
+    const result = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8' });
+    expect(result.status, result.stderr).toBe(0);
   });
 });

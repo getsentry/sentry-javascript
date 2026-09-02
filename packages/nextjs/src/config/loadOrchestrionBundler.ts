@@ -3,8 +3,9 @@ import type * as orchestrionBundler from '@sentry/server-utils/orchestrion/webpa
 
 type OrchestrionBundlerModule = typeof orchestrionBundler;
 
-// `createRequire` (never the CJS `require` alias) so bundlers don't emit a "Critical dependency"
-// warning. Resolving from this file's own location keeps it working under pnpm isolated installations.
+// Use `createRequire` (never the CJS `require` alias) so bundlers don't emit a "Critical
+// dependency" warning. Resolving from this file's own location keeps it working under pnpm
+// isolated installations.
 function getNodeRequire(): ReturnType<typeof createRequire> {
   let nodeRequire: ReturnType<typeof createRequire>;
   /*! rollup-include-cjs-only */
@@ -16,17 +17,13 @@ function getNodeRequire(): ReturnType<typeof createRequire> {
   return nodeRequire;
 }
 
-let cachedModule: OrchestrionBundlerModule | undefined;
-
 /**
  * Loads `@sentry/server-utils/orchestrion/webpack` at call time instead of module scope. The
  * runtime server entry re-exports `withSentryConfig`, so a static import would run the bundler
  * plugins' module-scope side effects on every server-side SDK import (issues #23789, #22794).
- * Synchronous because Next.js `webpack` config functions cannot be async.
+ * Synchronous because Next.js `webpack` config functions cannot be async. Node's require cache
+ * already returns the same module on repeated calls, so no memoization is needed.
  */
 export function loadOrchestrionBundler(): OrchestrionBundlerModule {
-  if (!cachedModule) {
-    cachedModule = getNodeRequire()('@sentry/server-utils/orchestrion/webpack') as OrchestrionBundlerModule;
-  }
-  return cachedModule;
+  return getNodeRequire()('@sentry/server-utils/orchestrion/webpack') as OrchestrionBundlerModule;
 }
