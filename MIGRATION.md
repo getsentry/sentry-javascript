@@ -483,11 +483,11 @@ Sentry.init({
 
 #### `ignoreStatusCodes` is deprecated
 
-The `ignoreStatusCodes` option is deprecated on `httpIntegration` and `httpServerSpansIntegration` (Node and the SDKs built on it) as well as on `denoHttpIntegration` and `denoServeIntegration`. It will be removed in v12, without replacement.
+The `ignoreStatusCodes` option is deprecated on `httpIntegration` and `httpServerSpansIntegration` (Node and the SDKs built on it) as well as on `denoHttpIntegration` and `denoServeIntegration`. It will be removed in v12, without a direct replacement.
 
-The filter runs on the finished transaction event, which span streaming no longer produces. Child spans are sent as they end, long before the response status code is known, so a request's spans can no longer be dropped once the status turns out to be uninteresting. The option therefore only has an effect with `traceLifecycle: 'static'`.
+The filter runs on the finished transaction event, which is no longer supported span streaming. Child spans are sent as they end, before the response status code is known, so a request's spans can no longer be dropped once the status turns out to be uninteresting. The option therefore only has an effect with `traceLifecycle: 'static'`.
 
-There is no status-code-based equivalent under span streaming. To keep specific requests out of Sentry, decide before they are instrumented via `ignoreIncomingRequests`, which matches on the incoming request instead of on the response:
+To keep specific requests out of Sentry, decide before they are instrumented: Use `tracesSampler`, or ignore the request via `ignoreIncomingRequests`, which matches on the incoming request instead of on the response:
 
 ```js
 Sentry.init({
