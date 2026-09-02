@@ -97,7 +97,7 @@ Sentry.init({
 });
 ```
 
-Sentry owns spans end to end and there is no OpenTelemetry involved: spans created through `@opentelemetry/api` are ignored. If a library you depend on emits its own OpenTelemetry spans and you want those in Sentry too, use setup 2.
+Spans are completely managed by the Sentry SDK and there is no OpenTelemetry involved: spans created through `@opentelemetry/api` are ignored. If a library you depend on emits its own OpenTelemetry spans and you want those in Sentry too, use setup 2.
 
 ##### 2. OpenTelemetry-compatible mode, everything goes to Sentry
 
@@ -142,7 +142,7 @@ Sentry.init({
 
 `enableOpenTelemetrySetup` already defaults to `false` on most server SDKs, so there is nothing to set. On `@sentry/nextjs` and `@sentry/sveltekit` it defaults to `true`, so you have to set it to `false` explicitly. Otherwise Sentry registers its own tracer provider and you end up in setup 2 rather than this one.
 
-OpenTelemetry owns spans end to end and the two pipelines stay separate: Sentry sends no spans, and no Sentry span is exported to your OpenTelemetry pipeline. Sentry captures errors and logs, and the Sentry `otlpIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
+Spans are completely managed by your OpenTelemetry setup and the two pipelines stay separate: Sentry sends no spans, and no Sentry span is exported to your OpenTelemetry pipeline. Sentry captures errors and logs, and the Sentry `otlpIntegration()` attaches them to the active OpenTelemetry span so all your telemetry is connected in one trace. `getOtlpTracesEndpoint()` turns your DSN into the URL and auth headers for Sentry's OTLP endpoint, so you can point your own exporter at Sentry, at your own collector, or at both.
 
 Sentry does not touch your pipeline: no exporter, no span processor, no tracer provider, and outgoing trace propagation is left to your propagator. See [Connecting Sentry to your OpenTelemetry traces](#connecting-sentry-to-your-opentelemetry-traces) for the details, including what changed if you used the v10 integration.
 
