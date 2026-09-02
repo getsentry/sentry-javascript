@@ -11,10 +11,10 @@ export const BUNDLE_SAFE_INSTRUMENTED_PACKAGES = ['ioredis'];
 /**
  * `@sentry/server-runtime-injection` (where `register.ts` and the bundled orchestrion runtime ship)
  * must stay external: `register.ts` passes its own `__filename`/`import.meta.url` as the `parentURL`
- * for `Module.register('@sentry/server-runtime-injection/hook', …)`, so that self-reference only
- * resolves while the code still lives at its real `node_modules` location. Bundled into an app
- * server chunk instead, the specifier would have to resolve from the chunk's output location,
- * which fails under isolated installs (pnpm) where the package is a transitive dependency.
+ * for `Module.register()` and resolves the ESM loader hook relative to that same location, so both
+ * only work while the code still lives at its real `node_modules` location. Bundled into an app
+ * server chunk instead, they would resolve from the chunk's output location, where neither the hook
+ * nor the vendored transformer it loads exists.
  *
  * `@sentry/server-utils` (the barrel + bundler plugins) is NOT here — it is meant to be bundled; the
  * build-time snippet's `@sentry/server-utils` import is handled separately by the code-transform.

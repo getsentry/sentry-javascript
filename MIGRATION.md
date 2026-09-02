@@ -742,6 +742,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 
 - Legacy messaging (`messaging.*`) span attributes on the AMQP instrumentation were replaced by their current semantic-convention equivalents: `messaging.destination.name`, `messaging.rabbitmq.destination.routing_key`, `messaging.message.id`, `messaging.message.conversation_id`, `messaging.operation.name`, `network.protocol.name`, `network.protocol.version`, and `url.full`. `messaging.destination_kind` is no longer emitted.
 - The database span attributes `db.system`, `db.name`, `db.operation`, `db.statement` and `db.mongodb.collection` were renamed to `db.system.name`, `db.namespace`, `db.operation.name`, `db.query.text` and `db.collection.name`.
+- Mongoose spans report `db.system.name: 'mongodb'` instead of `'mongoose'`. Mongoose is an ODM, not a database system.
 - The Redis and ioredis instrumentations no longer emit `db.connection_string`. The connection is described by `server.address` and `server.port` instead.
 
 #### GenAI attributes
@@ -922,6 +923,7 @@ The following span names were adjusted:
 | `queue.publish`                                                          | Integration-specific (`publish my-exchange`, `send my-topic`)                                                               | The messaging operation type and the destination (`send my-exchange`), or just the operation type when the destination has no name (`send`)                                                                     |
 | `queue.process`                                                          | Integration-specific, sometimes containing per-message data (`my-queue process`, `order.created.12345 process`)             | The messaging operation type and the destination (`process my-exchange`), or just the operation type when the destination has no name (`process`)                                                               |
 | `queue.receive`                                                          | The kafkajs operation name (`poll my-topic`)                                                                                | The messaging operation type and the destination (`receive my-topic`)                                                                                                                                           |
+| `db` (mongoose)                                                          | `mongoose.<Model>.<operation>` (`mongoose.BlogPost.findOne`)                                                                | The operation and the collection (`findOne blogposts`), the database namespace when there is no collection, or `mongodb` when the SDK has neither                                                               |
 
 `navigation.redirect` spans are started through the same code path as navigation spans, so they get the same names.
 
@@ -952,6 +954,8 @@ Because the URL path is gone from `http.client` names, `graphqlClientIntegration
 Only the Express, Koa and Hapi integrations resolve a route template for `router` spans. Angular, Ember and SvelteKit have none when the span starts, so their router spans are named `Router`.
 
 The Express, Fastify, Hapi and Elysia integrations resolve a route template for `handler` spans. NestJS has none when the span starts, so its request handler spans are named `Request handler`. The handler function name is no longer part of these span names. It stays on an attribute: `nestjs.callback` for NestJS, and `code.function.name` for Elysia, which now sets it on its handler spans. Elysia request handler spans also carry `http.route` now. Both attributes are set in both trace lifecycles.
+
+A mongoose span's name is built from `db.collection.name`, so it holds the collection (`blogposts`) rather than the model (`BlogPost`). The related [`db.system.name` change](#messaging-and-database-attributes) from `mongoose` to `mongodb` applies in both trace lifecycles.
 
 Messaging span names now read `<operation type> <destination>` in every integration. The amqplib, kafkajs and NestJS BullMQ integrations used their own word order or verb, so their names change: `my-queue process` became `process my-queue`, amqplib's `publish` became `send`, and the kafkajs batch span's `poll` became `receive`. Cloudflare Queues and the kafkajs producer already matched the conventions, so their names are the same in both trace lifecycles. The operation name an integration reports upstream stays on `messaging.operation.name`.
 

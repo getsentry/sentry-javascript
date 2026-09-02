@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -39,6 +40,23 @@ describe('Mongoose tracing channel Test', () => {
       origin: 'auto.db.mongoose.diagnostic_channel',
     });
 
+  const expectedStreamedSpan = (operation: string, extraAttributes: Record<string, unknown> = {}) =>
+    expect.objectContaining({
+      name: `${operation} blogposts`,
+      is_segment: false,
+      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      attributes: expect.objectContaining({
+        'db.collection.name': { type: 'string', value: 'blogposts' },
+        'db.namespace': { type: 'string', value: 'test' },
+        'db.operation.name': { type: 'string', value: operation },
+        'db.system.name': { type: 'string', value: 'mongodb' },
+        'sentry.op': { type: 'string', value: 'db' },
+        'sentry.origin': { type: 'string', value: 'auto.db.mongoose.diagnostic_channel' },
+        'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+        ...extraAttributes,
+      }),
+    });
+
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Transaction',
     spans: expect.arrayContaining([
@@ -60,6 +78,35 @@ describe('Mongoose tracing channel Test', () => {
     (createTestRunner, test) => {
       test('subscribes to mongoose >= 9.7 diagnostics channels with stable semconv attributes', async () => {
         await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+      });
+
+      test('names channel spans after the operation and collection with span streaming enabled', async () => {
+        await createTestRunner()
+          .withEnv({ STREAMED: 'true' })
+          .expect({
+            span: (container: SerializedStreamedSpanContainer) => {
+              expect(container.items.find(item => item.is_segment)?.name).toBe('Test Transaction');
+
+              expect(container.items).toContainEqual(expectedStreamedSpan('save'));
+              expect(container.items).toContainEqual(
+                expectedStreamedSpan('findOne', { 'db.query.text': { type: 'string', value: '{"title":"?"}' } }),
+              );
+              expect(container.items).toContainEqual(
+                expectedStreamedSpan('aggregate', {
+                  'db.query.text': { type: 'string', value: '[{"$match":{"title":"?"}}]' },
+                }),
+              );
+              expect(container.items).toContainEqual(
+                expectedStreamedSpan('insertMany', { 'db.operation.batch.size': { type: 'integer', value: 2 } }),
+              );
+              expect(container.items).toContainEqual(
+                expectedStreamedSpan('bulkWrite', { 'db.operation.batch.size': { type: 'integer', value: 2 } }),
+              );
+              expect(container.items).toContainEqual(expectedStreamedSpan('find'));
+            },
+          })
+          .start()
+          .completed();
       });
 
       test('does not double-instrument: the legacy IITM mongoose patcher does not fire on 9.7', async () => {
@@ -148,6 +195,20 @@ describe('Mongoose tracing channel Test', () => {
               const aggregateSpan = spans.find(span => span.description === 'mongoose.blogposts.aggregate');
               expect(aggregateSpan).toBeDefined();
               expect(aggregateSpan?.status).toBe('internal_error');
+            },
+          })
+          .start()
+          .completed();
+      });
+
+      test('flags the streamed mongoose channel span as errored when the operation fails', async () => {
+        await createTestRunner()
+          .withEnv({ STREAMED: 'true' })
+          .expect({
+            span: (container: SerializedStreamedSpanContainer) => {
+              const aggregateSpan = container.items.find(item => item.name === 'aggregate blogposts');
+              expect(aggregateSpan).toBeDefined();
+              expect(aggregateSpan?.status).toBe('error');
             },
           })
           .start()
