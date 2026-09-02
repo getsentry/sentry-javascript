@@ -40,12 +40,13 @@ test.describe('Storage Instrumentation', () => {
     expect(setItemSpan).toBeDefined();
     expect(setItemSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.put' },
+      'cache.operation': { type: 'string', value: 'put' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('user:123') },
       'db.operation.name': { type: 'string', value: 'setItem' },
       'db.system.name': { type: 'string', value: expect.any(String) },
     });
-    expect(setItemSpan?.name).toBe(prefixKey('user:123'));
+    expect(setItemSpan?.name).toBe('cache.put');
 
     // Test setItemRaw spans
     expect(findSpansByMethod('setItemRaw').length).toBeGreaterThanOrEqual(1);
@@ -53,6 +54,7 @@ test.describe('Storage Instrumentation', () => {
     expect(setItemRawSpan).toBeDefined();
     expect(setItemRawSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.put' },
+      'cache.operation': { type: 'string', value: 'put' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('raw:data') },
       'db.operation.name': { type: 'string', value: 'setItemRaw' },
@@ -65,6 +67,7 @@ test.describe('Storage Instrumentation', () => {
     expect(hasItemSpan).toBeDefined();
     expect(hasItemSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('user:123') },
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
@@ -78,13 +81,14 @@ test.describe('Storage Instrumentation', () => {
     expect(getItemSpan).toBeDefined();
     expect(getItemSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('user:123') },
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
       'db.operation.name': { type: 'string', value: 'getItem' },
       'db.system.name': { type: 'string', value: expect.any(String) },
     });
-    expect(getItemSpan?.name).toBe(prefixKey('user:123'));
+    expect(getItemSpan?.name).toBe('cache.get');
 
     // Test getItemRaw spans - should have cache hit attribute
     expect(findSpansByMethod('getItemRaw').length).toBeGreaterThanOrEqual(1);
@@ -92,6 +96,7 @@ test.describe('Storage Instrumentation', () => {
     expect(getItemRawSpan).toBeDefined();
     expect(getItemRawSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('raw:data') },
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
@@ -104,6 +109,7 @@ test.describe('Storage Instrumentation', () => {
     expect(getKeysSpans.length).toBeGreaterThanOrEqual(1);
     expect(getKeysSpans[0]?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       'db.operation.name': { type: 'string', value: 'getKeys' },
       'db.system.name': { type: 'string', value: expect.any(String) },
@@ -115,6 +121,7 @@ test.describe('Storage Instrumentation', () => {
     expect(removeItemSpan).toBeDefined();
     expect(removeItemSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.remove' },
+      'cache.operation': { type: 'string', value: 'remove' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('batch:1') },
       'db.operation.name': { type: 'string', value: 'removeItem' },
@@ -126,6 +133,7 @@ test.describe('Storage Instrumentation', () => {
     expect(clearSpans.length).toBeGreaterThanOrEqual(1);
     expect(clearSpans[0]?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.remove' },
+      'cache.operation': { type: 'string', value: 'remove' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       'db.operation.name': { type: 'string', value: 'clear' },
       'db.system.name': { type: 'string', value: expect.any(String) },
