@@ -20,7 +20,7 @@ import {
   withIsolationScope,
   filterCollectedUrl,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless } from '@sentry/server-utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';

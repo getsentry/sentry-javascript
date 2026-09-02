@@ -13,7 +13,7 @@ import { getCombinedScopeData } from '../utils/scopeData';
 import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
-import { _getTraceInfoFromScope } from '../utils/trace-info';
+import { getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
 
 const MAX_METRIC_BUFFER_SIZE = 1000;
@@ -132,7 +132,7 @@ function _buildSerializedMetric(
   scopeAttributes: RawAttributes<Record<string, unknown>>,
 ): SerializedMetric {
   // Get trace context
-  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
+  const [, traceContext] = getTraceInfoFromScope(client, currentScope);
   const span = getActiveSpan(currentScope);
   const traceId = span ? span.spanContext().traceId : traceContext?.trace_id;
   const spanId = span ? span.spanContext().spanId : undefined;

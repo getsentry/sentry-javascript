@@ -2,11 +2,8 @@ import type { Client } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import {
-  wrapGetInitialPropsWithSentry,
-  wrapGetServerSidePropsWithSentry,
-  wrapMiddlewareWithSentry,
-} from '../../src/common';
+import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/common';
+import { wrapMiddlewareWithSentry } from '../../src/common/serverOnlyExports';
 import type { EdgeRouteHandler } from '../../src/edge/types';
 
 const startSpanManualSpy = vi.spyOn(SentryCore, 'startSpanManual');

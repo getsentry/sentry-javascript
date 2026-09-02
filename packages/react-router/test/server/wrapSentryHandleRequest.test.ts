@@ -1,7 +1,7 @@
 import { PassThrough } from 'node:stream';
 import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { getActiveSpan, getRootSpan, getTraceMetaTags, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless } from '@sentry/server-utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
 import { wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
@@ -16,7 +16,7 @@ vi.mock('@sentry/core', () => ({
   GLOBAL_OBJ: globalThis,
 }));
 
-vi.mock('@sentry/core/server', () => ({
+vi.mock('@sentry/server-utils', () => ({
   flushIfServerless: vi.fn(),
 }));
 

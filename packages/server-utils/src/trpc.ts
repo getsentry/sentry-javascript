@@ -7,12 +7,15 @@ import {
   TRPC_PROCEDURE_TYPE,
 } from '@sentry/conventions/attributes';
 import { RPC } from '@sentry/conventions/op';
-import { getClient, withIsolationScope } from './currentScopes';
-import { captureException } from './exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
-import { startSpanManual } from './tracing/trace';
-import { normalize } from './utils/normalize';
-import { setNormalizationDepthOverrideHint } from './utils/normalizationHints';
+import {
+  captureException,
+  getClient,
+  normalize,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  setNormalizationDepthOverrideHint,
+  startSpanManual,
+  withIsolationScope,
+} from '@sentry/core';
 
 interface SentryTrpcMiddlewareOptions {
   /** Whether to include procedure inputs in reported events. Defaults to `false`. */

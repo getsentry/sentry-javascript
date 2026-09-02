@@ -46,6 +46,8 @@ import { HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
+// Server-only wrappers kept out of the shared `common` barrel (and thus the browser bundle).
+export * from '../common/serverOnlyExports';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 export { pinoIntegration } from '../common/pinoIntegrationShim';

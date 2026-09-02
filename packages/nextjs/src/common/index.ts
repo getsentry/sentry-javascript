@@ -4,11 +4,9 @@ export { wrapAppGetInitialPropsWithSentry } from './pages-router-instrumentation
 export { wrapDocumentGetInitialPropsWithSentry } from './pages-router-instrumentation/wrapDocumentGetInitialPropsWithSentry';
 export { wrapErrorGetInitialPropsWithSentry } from './pages-router-instrumentation/wrapErrorGetInitialPropsWithSentry';
 export { wrapGetServerSidePropsWithSentry } from './pages-router-instrumentation/wrapGetServerSidePropsWithSentry';
-export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';
-export { wrapRouteHandlerWithSentry } from './wrapRouteHandlerWithSentry';
 export { wrapApiHandlerWithSentryVercelCrons } from './pages-router-instrumentation/wrapApiHandlerWithSentryVercelCrons';
-export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
 export { wrapPageComponentWithSentry } from './pages-router-instrumentation/wrapPageComponentWithSentry';
-export { wrapGenerationFunctionWithSentry } from './wrapGenerationFunctionWithSentry';
-export { withServerActionInstrumentation } from './withServerActionInstrumentation';
-export { captureRequestError } from './captureRequestError';
+
+// Server-only App-Router wrappers that pull in `./utils/responseEnd` live in `./serverOnlyExports`
+// and are re-exported only from the server and edge entrypoints, keeping them out of the browser
+// bundle. See that file for details.

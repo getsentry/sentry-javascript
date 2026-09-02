@@ -15,7 +15,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { nodeStackLineParser } from '@sentry/core/server';
+import { nodeStackLineParser } from '@sentry/server-utils/no-diagnostic-channels';
 import {
   SentryPropagator,
   SentryTracerProvider,

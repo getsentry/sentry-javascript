@@ -2,7 +2,7 @@
 /* eslint-disable max-lines */
 
 import { debug, escapeStringForRegex, parseSemver } from '@sentry/core';
-import { loadModule } from '@sentry/core/server';
+import { loadModule } from '@sentry/server-utils';
 import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';

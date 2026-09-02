@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { nodeStackLineParser } from '../../../src/server';
+import { nodeStackLineParser } from '../../mocks/nodeStackParser';
 import { clearDebugIdCache, getDebugImagesForResources, getFilenameToDebugIdMap } from '../../../src/utils/debug-ids';
 import { createStackParser } from '../../../src/utils/stacktrace';
 

@@ -22,7 +22,7 @@ import {
   updateSpanName,
   filterCollectedUrl,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless } from '@sentry/server-utils';
 import type { ServerInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';

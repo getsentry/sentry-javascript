@@ -1,56 +1,26 @@
-// This code was originally forked from https://github.com/felixge/node-stack-trace
-// Since then it has been highly modified to fit our needs.
+import type { StackLineParser, StackLineParserFn } from '../../src/types/stacktrace';
+import { normalizeStackTracePath, UNKNOWN_FUNCTION } from '../../src/utils/stacktrace';
 
-// Copyright (c) 2011 Felix Geisendörfer (felix@debuggable.com)//
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions://
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.//
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
+// A node-style stack-line parser used purely as a realistic fixture for core tests
+// (event building, module metadata, debug ids). The production parser lives in
+// `@sentry/server-utils`; core must not depend on it, so this mirrors just enough of
+// its behaviour to exercise the core code under test.
 
-import type { StackLineParser, StackLineParserFn } from '../types/stacktrace';
-import { normalizeStackTracePath, UNKNOWN_FUNCTION } from './stacktrace';
+type GetModuleFn = (filename: string | undefined) => string | undefined;
 
-export type GetModuleFn = (filename: string | undefined) => string | undefined;
-
-/**
- * Does this filename look like it's part of the app code?
- */
-export function filenameIsInApp(filename: string, isNative: boolean = false): boolean {
+function filenameIsInApp(filename: string, isNative: boolean = false): boolean {
   const isInternal =
     isNative ||
     (filename &&
-      // It's not internal if it's an absolute linux path
       !filename.startsWith('/') &&
-      // It's not internal if it's an absolute windows path
       !filename.match(/^[A-Z]:/) &&
-      // It's not internal if the path is starting with a dot
       !filename.startsWith('.') &&
-      // It's not internal if the frame has a protocol. In node, this is usually the case if the file got pre-processed with a bundler like webpack
-      !filename.match(/^[a-zA-Z]([a-zA-Z0-9.\-+])*:\/\//)); // Schema from: https://stackoverflow.com/a/3641782
-
-  // in_app is all that's not an internal Node function or a module within node_modules
-  // note that isNative appears to return true even for node core libraries
-  // see https://github.com/getsentry/raven-node/issues/176
+      !filename.match(/^[a-zA-Z]([a-zA-Z0-9.\-+])*:\/\//));
 
   return !isInternal && filename !== undefined && !filename.includes('node_modules/');
 }
 
-/** Node Stack line parser */
-export function node(getModule?: GetModuleFn): StackLineParserFn {
+function node(getModule?: GetModuleFn): StackLineParserFn {
   const FILENAME_MATCH = /^\s*[-]{4,}$/;
   const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
   const DATA_URI_MATCH = /at (?:async )?(.+?) \(data:(.*?),/;
@@ -136,12 +106,7 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
   };
 }
 
-/**
- * Node.js stack line parser
- *
- * This is in @sentry/core so it can be used from the Electron SDK in the browser for when `nodeIntegration == true`.
- * This allows it to be used without referencing or importing any node specific code which causes bundlers to complain
- */
+/** Node stack line parser for use as a test fixture. */
 export function nodeStackLineParser(getModule?: GetModuleFn): StackLineParser {
   return [90, node(getModule)];
 }

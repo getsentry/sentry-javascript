@@ -1,7 +1,7 @@
 import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
-import type { ServerRuntimeClientOptions } from '@sentry/core/server';
+import type { ServerRuntimeClientOptions } from '@sentry/server-utils';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -10,7 +10,7 @@ import {
   debug,
   SDK_VERSION,
 } from '@sentry/core';
-import { ServerRuntimeClient } from '@sentry/core/server';
+import { ServerRuntimeClient } from '@sentry/server-utils';
 import {
   type AsyncLocalStorageLookup,
   registerPrepareSpanScope,

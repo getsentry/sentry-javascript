@@ -293,4 +293,7 @@ function sdkAlreadyInitialized(): boolean {
 
 export * from '../common';
 
+// Server-only wrappers kept out of the shared `common` barrel (and thus the browser bundle).
+export * from '../common/serverOnlyExports';
+
 export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';

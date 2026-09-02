@@ -1,9 +1,15 @@
+import {
+  applySdkMetadata,
+  createTransport,
+  type Event,
+  type EventHint,
+  type Metric,
+  Scope,
+  SDK_VERSION,
+} from '@sentry/core';
 import { describe, expect, it, test, vi } from 'vitest';
-import { applySdkMetadata, createTransport, Scope } from '../../src';
-import { _INTERNAL_captureMetric, _INTERNAL_getMetricBuffer } from '../../src/metrics/internal';
-import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
-import { ServerRuntimeClient } from '../../src/server-runtime-client';
-import type { Event, EventHint } from '../../src/types/event';
+import type { ServerRuntimeClientOptions } from '../src/server-runtime-client';
+import { ServerRuntimeClient } from '../src/server-runtime-client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -217,7 +223,7 @@ describe('ServerRuntimeClient', () => {
       client = new ServerRuntimeClient(options);
 
       expect(client.getOptions().transportOptions?.headers).toEqual({
-        'user-agent': 'sentry.javascript.core/0.0.0-unknown.0',
+        'user-agent': `sentry.javascript.core/${SDK_VERSION}`,
       });
     });
 
@@ -242,18 +248,13 @@ describe('ServerRuntimeClient', () => {
     it('adds server.address attribute to metrics when serverName is set', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'my-server.example.com' });
       client = new ServerRuntimeClient(options);
-      const scope = new Scope();
-      scope.setClient(client);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      const metric = { type: 'counter', name: 'test.metric', value: 1 } as Metric;
+      client.emit('processMetric', metric);
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
-      expect(metricAttributes).toEqual(
+      expect(metric.attributes).toEqual(
         expect.objectContaining({
-          'server.address': {
-            value: 'my-server.example.com',
-            type: 'string',
-          },
+          'server.address': 'my-server.example.com',
         }),
       );
     });
@@ -261,13 +262,11 @@ describe('ServerRuntimeClient', () => {
     it('does not add server.address attribute when serverName is not set', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
       client = new ServerRuntimeClient(options);
-      const scope = new Scope();
-      scope.setClient(client);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      const metric = { type: 'counter', name: 'test.metric', value: 1 } as Metric;
+      client.emit('processMetric', metric);
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
-      expect(metricAttributes).not.toEqual(
+      expect(metric.attributes ?? {}).not.toEqual(
         expect.objectContaining({
           'server.address': expect.anything(),
         }),
@@ -277,26 +276,18 @@ describe('ServerRuntimeClient', () => {
     it('does not overwrite existing server.address attribute', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'my-server.example.com' });
       client = new ServerRuntimeClient(options);
-      const scope = new Scope();
-      scope.setClient(client);
 
-      _INTERNAL_captureMetric(
-        {
-          type: 'counter',
-          name: 'test.metric',
-          value: 1,
-          attributes: { 'server.address': 'existing-server.example.com' },
-        },
-        { scope },
-      );
+      const metric = {
+        type: 'counter',
+        name: 'test.metric',
+        value: 1,
+        attributes: { 'server.address': 'existing-server.example.com' },
+      } as Metric;
+      client.emit('processMetric', metric);
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
-      expect(metricAttributes).toEqual(
+      expect(metric.attributes).toEqual(
         expect.objectContaining({
-          'server.address': {
-            value: 'existing-server.example.com',
-            type: 'string',
-          },
+          'server.address': 'existing-server.example.com',
         }),
       );
     });
