@@ -684,8 +684,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
     // The blocks above assert the same commands as transactions. With span streaming, span names
     // have to be low cardinality, so `db.query` spans drop the serialized statement from their
     // name — it stays on `db.query.text` — and are named
-    // `{db.operation.name} {server.address}:{server.port}` instead. Cache spans are still named
-    // after the cache key by the cache hook, and batch spans keep their `MULTI`/`PIPELINE` name.
+    // `{db.operation.name} {server.address}:{server.port}` instead. Cache spans are named after
+    // their cache operation, and batch spans keep their `MULTI`/`PIPELINE` name.
     const streamAttribute = (value: unknown): { type: string; value: unknown } => ({
       type: Array.isArray(value) ? 'array' : Number.isInteger(value) ? 'integer' : typeof value,
       value,
@@ -751,6 +751,13 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       const span = (name: string, op: string, attributes: Record<string, unknown>, status?: string): unknown =>
         streamedSpan({ name, op, segmentName, status, attributes: { ...connection, ...attributes } });
 
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        attributes: Record<string, unknown>,
+      ): unknown => span(op, op, { ...peer, 'cache.operation': op.slice('cache.'.length), ...attributes });
+
       createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument-ioredis.mjs', (createTestRunner, test) => {
         test('creates streamed db and cache spans (ioredis)', { timeout: 60_000 }, async () => {
           await createTestRunner()
@@ -764,22 +771,19 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                     'db.operation.name': 'set',
                     'db.query.text': 'set test-key [1 other arguments]',
                   }),
-                  span('ioredis-cache:test-key', 'cache.put', {
-                    ...peer,
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'set',
                     'db.query.text': 'set ioredis-cache:test-key [1 other arguments]',
                     'cache.key': ['ioredis-cache:test-key'],
                     'cache.item_size': 2,
                   }),
-                  span('ioredis-cache:test-key-set-EX', 'cache.put', {
-                    ...peer,
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'set',
                     'db.query.text': 'set ioredis-cache:test-key-set-EX [3 other arguments]',
                     'cache.key': ['ioredis-cache:test-key-set-EX'],
                     'cache.item_size': 2,
                   }),
-                  span('ioredis-cache:test-key-setex', 'cache.put', {
-                    ...peer,
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'setex',
                     'db.query.text': 'setex ioredis-cache:test-key-setex [2 other arguments]',
                     'cache.key': ['ioredis-cache:test-key-setex'],
@@ -789,31 +793,27 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                     'db.operation.name': 'get',
                     'db.query.text': 'get test-key',
                   }),
-                  span('ioredis-cache:test-key', 'cache.get', {
-                    ...peer,
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'get',
                     'db.query.text': 'get ioredis-cache:test-key',
                     'cache.key': ['ioredis-cache:test-key'],
                     'cache.hit': true,
                     'cache.item_size': 10,
                   }),
-                  span('ioredis-cache:unavailable-data', 'cache.get', {
-                    ...peer,
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'get',
                     'db.query.text': 'get ioredis-cache:unavailable-data',
                     'cache.key': ['ioredis-cache:unavailable-data'],
                     'cache.hit': false,
                   }),
-                  span('test-key, ioredis-cache:test-key, ioredis-cache:unavailable-data', 'cache.get', {
-                    ...peer,
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'mget',
                     'db.query.text': 'mget [3 other arguments]',
                     'cache.key': ['test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data'],
                     'cache.hit': true,
                     'cache.item_size': 20,
                   }),
-                  span('ioredis-cache:test-key', 'cache.remove', {
-                    ...peer,
+                  cacheSpan('cache.remove', {
                     'db.operation.name': 'del',
                     'db.query.text': 'del ioredis-cache:test-key',
                     'cache.key': ['ioredis-cache:test-key'],
@@ -837,6 +837,13 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       const span = (name: string, op: string, attributes: Record<string, unknown>, status?: string): unknown =>
         streamedSpan({ name, op, segmentName, status, attributes: { ...connection, ...attributes } });
 
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        attributes: Record<string, unknown>,
+      ): unknown => span(op, op, { ...peer, 'cache.operation': op.slice('cache.'.length), ...attributes });
+
       createEsmAndCjsTests(__dirname, 'scenario-redis-4.mjs', 'instrument-redis-4.mjs', (createTestRunner, test) => {
         test('creates streamed db and cache spans (redis-4)', { timeout: 60_000 }, async () => {
           await createTestRunner()
@@ -855,22 +862,19 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET redis-test-key [1 other arguments]',
                   }),
-                  span('redis-cache:test-key', 'cache.put', {
-                    ...peer,
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET redis-cache:test-key [1 other arguments]',
                     'cache.key': ['redis-cache:test-key'],
                     'cache.item_size': 2,
                   }),
-                  span('redis-cache:test-key-set-EX', 'cache.put', {
-                    ...peer,
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET redis-cache:test-key-set-EX [3 other arguments]',
                     'cache.key': ['redis-cache:test-key-set-EX'],
                     'cache.item_size': 2,
                   }),
-                  span('redis-cache:test-key-setex', 'cache.put', {
-                    ...peer,
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'SETEX',
                     'db.query.text': 'SETEX redis-cache:test-key-setex [2 other arguments]',
                     'cache.key': ['redis-cache:test-key-setex'],
@@ -880,31 +884,27 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET redis-test-key',
                   }),
-                  span('redis-cache:test-key', 'cache.get', {
-                    ...peer,
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET redis-cache:test-key',
                     'cache.key': ['redis-cache:test-key'],
                     'cache.hit': true,
                     'cache.item_size': 10,
                   }),
-                  span('redis-cache:unavailable-data', 'cache.get', {
-                    ...peer,
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET redis-cache:unavailable-data',
                     'cache.key': ['redis-cache:unavailable-data'],
                     'cache.hit': false,
                   }),
-                  span('redis-test-key, redis-cache:test-key, redis-cache:unavailable-data', 'cache.get', {
-                    ...peer,
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'MGET',
                     'db.query.text': 'MGET [3 other arguments]',
                     'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
                     'cache.hit': true,
                     'cache.item_size': 20,
                   }),
-                  span('redis-cache:test-key', 'cache.remove', {
-                    ...peer,
+                  cacheSpan('cache.remove', {
                     'db.operation.name': 'DEL',
                     'db.query.text': 'DEL redis-cache:test-key',
                     'cache.key': ['redis-cache:test-key'],
@@ -931,15 +931,23 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       });
     });
 
-    // node-redis v5 leaves `socket.host` unset when only a port is passed, so there is no
-    // `server.address` to pair the operation with and the span name falls back to
-    // `{db.system.name}`.
+    // node-redis v5 leaves `socket.host` unset when only a port is passed, unlike v4. The
+    // integration fills in the library's own `localhost` default, so both report the same
+    // connection and get the same span name.
     describe('redis-5', () => {
       const segmentName = 'Test Span Redis 5';
-      const connection = { 'server.port': 6383 };
+      const connection = { 'server.address': 'localhost', 'server.port': 6383 };
+      const peer = { 'network.peer.address': 'localhost', 'network.peer.port': 6383 };
 
       const span = (name: string, op: string, attributes: Record<string, unknown>, status?: string): unknown =>
         streamedSpan({ name, op, segmentName, status, attributes: { ...connection, ...attributes } });
+
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        attributes: Record<string, unknown>,
+      ): unknown => span(op, op, { ...peer, 'cache.operation': op.slice('cache.'.length), ...attributes });
 
       createEsmAndCjsTests(__dirname, 'scenario-redis-5.mjs', 'instrument-redis-5.mjs', (createTestRunner, test) => {
         test('creates streamed db and cache spans (redis-5)', { timeout: 60_000 }, async () => {
@@ -953,60 +961,60 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
                 ]);
 
                 expect(childSpans(container)).toEqual([
-                  span('redis', redisSpanOp, {
+                  span('SET localhost:6383', redisSpanOp, {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET redis-5-test-key [1 other arguments]',
                   }),
-                  span('redis-5-cache:test-key', 'cache.put', {
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET redis-5-cache:test-key [1 other arguments]',
                     'cache.key': ['redis-5-cache:test-key'],
                     'cache.item_size': 2,
                   }),
-                  span('redis-5-cache:test-key-set-EX', 'cache.put', {
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET redis-5-cache:test-key-set-EX [3 other arguments]',
                     'cache.key': ['redis-5-cache:test-key-set-EX'],
                     'cache.item_size': 2,
                   }),
-                  span('redis-5-cache:test-key-setex', 'cache.put', {
+                  cacheSpan('cache.put', {
                     'db.operation.name': 'SETEX',
                     'db.query.text': 'SETEX redis-5-cache:test-key-setex [2 other arguments]',
                     'cache.key': ['redis-5-cache:test-key-setex'],
                     'cache.item_size': 2,
                   }),
-                  span('redis', redisSpanOp, {
+                  span('GET localhost:6383', redisSpanOp, {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET redis-5-test-key',
                   }),
-                  span('redis-5-cache:test-key', 'cache.get', {
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET redis-5-cache:test-key',
                     'cache.key': ['redis-5-cache:test-key'],
                     'cache.hit': true,
                     'cache.item_size': 10,
                   }),
-                  span('redis-5-cache:unavailable-data', 'cache.get', {
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'GET',
                     'db.query.text': 'GET redis-5-cache:unavailable-data',
                     'cache.key': ['redis-5-cache:unavailable-data'],
                     'cache.hit': false,
                   }),
-                  span('redis-5-test-key, redis-5-cache:test-key, redis-5-cache:unavailable-data', 'cache.get', {
+                  cacheSpan('cache.get', {
                     'db.operation.name': 'MGET',
                     'db.query.text': 'MGET [3 other arguments]',
                     'cache.key': ['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data'],
                     'cache.hit': true,
                     'cache.item_size': 20,
                   }),
-                  span('redis-5-cache:test-key', 'cache.remove', {
+                  cacheSpan('cache.remove', {
                     'db.operation.name': 'DEL',
                     'db.query.text': 'DEL redis-5-cache:test-key',
                     'cache.key': ['redis-5-cache:test-key'],
                   }),
                   span('MULTI', redisSpanOp, { 'db.operation.name': 'MULTI', 'db.operation.batch.size': 2 }),
                   span(
-                    'redis',
+                    'INCR localhost:6383',
                     redisSpanOp,
                     {
                       'db.operation.name': 'INCR',

@@ -59,7 +59,7 @@ interface LegacyRedisClient {
 }
 
 interface NodeRedisClientOptions {
-  socket?: { host?: string; port?: number };
+  socket?: { host?: string; port?: number; path?: string };
   url?: string;
 }
 
@@ -91,11 +91,19 @@ function stripCommandOptions(args: unknown[]): unknown[] {
   return args;
 }
 
+// Resolves the connection the way node-redis >= 5.12 reports it on its own diagnostics channel: a
+// unix socket reports its path and no port, a TCP client the `localhost:6379` it defaults to.
+// Only v4 writes those defaults back into `client.options`, so reading the options as-is would
+// report a connection for a v4 client and none for the identically configured v5 one.
 function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanAttributes {
+  const socket = options?.socket;
+  const host = socket?.path ?? socket?.host ?? 'localhost';
+  const port = socket?.path != null ? undefined : (socket?.port ?? 6379);
+
   return {
     [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
-    ...(options?.socket?.host != null ? { [SERVER_ADDRESS]: options.socket.host } : {}),
-    ...(options?.socket?.port != null ? { [SERVER_PORT]: options.socket.port } : {}),
+    [SERVER_ADDRESS]: host,
+    ...(port != null ? { [SERVER_PORT]: port } : {}),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
   };
 }
@@ -255,19 +263,16 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
   bindTracingChannelToSpan(channel, data => {
     const commands = data.arguments?.[0];
     const size = Array.isArray(commands) ? commands.length : undefined;
-    const socket = (data.self as NodeRedisClient | undefined)?.options?.socket;
+    const options = (data.self as NodeRedisClient | undefined)?.options;
     const operation = getOperation(data);
     return startInactiveSpan({
       name: operation,
       attributes: {
         [SENTRY_KIND]: 'client',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        ...nodeRedisAttributes(options),
         [SENTRY_OP]: DB_QUERY,
-        [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
         [DB_OPERATION_NAME]: operation,
         ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
-        ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),
-        ...(socket?.port != null ? { [SERVER_PORT]: socket.port } : {}),
       },
     });
   });
