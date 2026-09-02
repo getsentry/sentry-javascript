@@ -1,57 +1,63 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
 test('a real mysql query emits a db span with orchestrion-channel attributes', async ({ baseURL }) => {
-  // Each incoming request gets a Sentry http.server transaction; the mysql
-  // queries run inside it, so their db spans attach to it. The
+  // Each incoming request gets a Sentry http.server segment span; the mysql
+  // queries run inside it, so their db spans share its trace. The
   // `orchestrion:mysql:query` channel was injected into the bundled `mysql`
   // package at build time by `@sentry/cloudflare/vite`, and the Cloudflare SDK
   // subscribes to it once it detects the injection.
-  const transactionPromise = waitForTransaction('cloudflare-orchestrion-mysql', event => {
-    return (
-      event?.contexts?.trace?.op === 'http.server' &&
-      (event.request?.url ?? '').includes('/test-mysql') &&
-      (event.spans?.some(span => span.op === 'db') ?? false)
-    );
-  });
+  const spansPromise = collectStreamedSpans(
+    'cloudflare-orchestrion-mysql',
+    spans =>
+      spans.some(
+        span =>
+          getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === '/test-mysql',
+      ) && spans.some(span => getSpanOp(span) === 'db'),
+  );
 
   const res = await fetch(`${baseURL}/test-mysql`);
   expect(res.status).toBe(200);
   await res.json();
 
-  const transaction = await transactionPromise;
-  const dbSpans = transaction.spans!.filter(span => span.op === 'db');
+  const spans = await spansPromise;
+  const dbSpans = spans.filter(span => getSpanOp(span) === 'db');
 
-  const firstQuery = dbSpans.find(span => span.description === 'SELECT 1 + 1 AS solution');
+  const firstQuery = dbSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT 1 + 1 AS solution');
   expect(firstQuery).toBeDefined();
-  expect(firstQuery!.data?.['sentry.origin']).toBe('auto.db.mysql');
-  expect(firstQuery!.data?.['db.system.name']).toBe('mysql');
-  expect(firstQuery!.data?.['db.query.text']).toBe('SELECT 1 + 1 AS solution');
-  expect(firstQuery!.data?.['server.address']).toBe('127.0.0.1');
-  expect(firstQuery!.data?.['server.port']).toBe(3306);
-  expect(firstQuery!.data?.['db.user']).toBe('root');
+  // With span streaming the span name is the low-cardinality query summary; the statement stays in `db.query.text`.
+  expect(firstQuery!.name).toBe('SELECT');
+  expect(firstQuery!.attributes['sentry.origin']?.value).toBe('auto.db.mysql');
+  expect(firstQuery!.attributes['db.system.name']?.value).toBe('mysql');
+  expect(firstQuery!.attributes['db.query.text']?.value).toBe('SELECT 1 + 1 AS solution');
+  expect(firstQuery!.attributes['server.address']?.value).toBe('127.0.0.1');
+  expect(firstQuery!.attributes['server.port']?.value).toBe(3306);
+  expect(firstQuery!.attributes['db.user']?.value).toBe('root');
 });
 
-test('a nested query lands on the same transaction (async context restored)', async ({ baseURL }) => {
+test('a nested query lands on the same trace (async context restored)', async ({ baseURL }) => {
   // The second query runs inside the first query's callback — i.e. across
-  // mysql's async socket-callback dispatch. Both spans appearing on the SAME
-  // http.server transaction proves the channel subscriber restored the parent
-  // span across that async boundary (otherwise the nested query would start its
-  // own trace and never join this transaction).
-  const transactionPromise = waitForTransaction('cloudflare-orchestrion-mysql', event => {
-    return (
-      event?.contexts?.trace?.op === 'http.server' &&
-      (event.request?.url ?? '').includes('/test-mysql') &&
-      (event.spans?.filter(span => span.op === 'db').length ?? 0) >= 2
-    );
-  });
+  // mysql's async socket-callback dispatch. Both spans sharing the SAME
+  // http.server segment's trace proves the channel subscriber restored the
+  // parent span across that async boundary (otherwise the nested query would
+  // start its own trace and never join this one).
+  const spansPromise = collectStreamedSpans(
+    'cloudflare-orchestrion-mysql',
+    spans =>
+      spans.some(
+        span =>
+          getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === '/test-mysql',
+      ) && spans.filter(span => getSpanOp(span) === 'db').length >= 2,
+  );
 
   const res = await fetch(`${baseURL}/test-mysql`);
   expect(res.status).toBe(200);
   await res.json();
 
-  const transaction = await transactionPromise;
-  const descriptions = transaction.spans!.filter(span => span.op === 'db').map(span => span.description);
-  expect(descriptions).toContain('SELECT 1 + 1 AS solution');
-  expect(descriptions).toContain('SELECT NOW()');
+  const spans = await spansPromise;
+  const queryTexts = spans
+    .filter(span => getSpanOp(span) === 'db')
+    .map(span => span.attributes['db.query.text']?.value);
+  expect(queryTexts).toContain('SELECT 1 + 1 AS solution');
+  expect(queryTexts).toContain('SELECT NOW()');
 });
