@@ -1,9 +1,12 @@
 import { CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
-  isObjectLike,
+  CACHE_OPERATION_NAMES,
   captureException,
   debug,
+  getClient,
+  hasSpanStreamingEnabled,
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -12,8 +15,6 @@ import {
   type SpanAttributes,
   startSpan,
   type StartSpanOptions,
-  getClient,
-  hasSpanStreamingEnabled,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import type { Driver, Storage } from 'unstorage';
@@ -75,14 +76,6 @@ const METHOD_SPAN_OPS = {
   removeItem: CACHE_REMOVE,
   clear: CACHE_REMOVE,
 } as const satisfies Partial<Record<DriverMethod, string>>;
-
-// The `cache.operation` value each cache op carries. Cache span names are `cache.{{cache.operation}}`,
-// which makes them identical to the op itself.
-const CACHE_OPERATION_NAMES = {
-  [CACHE_GET]: 'get',
-  [CACHE_PUT]: 'put',
-  [CACHE_REMOVE]: 'remove',
-} as const;
 
 /**
  * Creates the Nitro storage plugin setup by instrumenting all relevant storage drivers.
@@ -258,7 +251,7 @@ function createSpanStartOptions(
   const client = getClient();
   return {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the cache keys.
-    name: client && hasSpanStreamingEnabled(client) ? `cache.${cacheOperationName}` : keys.join(', '),
+    name: client && hasSpanStreamingEnabled(client) ? cacheOperation : keys.join(', '),
     attributes,
   };
 }

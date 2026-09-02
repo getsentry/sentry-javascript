@@ -10,6 +10,7 @@ import {
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, StartSpanOptions } from '@sentry/core';
 import {
+  CACHE_OPERATION_NAMES,
   debug,
   defineIntegration,
   getClient,
@@ -47,14 +48,6 @@ const OPERATION_SPAN_OPS = {
   clear: CACHE_REMOVE,
   clearAll: CACHE_REMOVE,
 } as const satisfies Record<Operation, string>;
-
-// The `cache.operation` value each cache op carries. Cache span names are `cache.{{cache.operation}}`,
-// which makes them identical to the op itself.
-const CACHE_OPERATION_NAMES = {
-  [CACHE_GET]: 'get',
-  [CACHE_PUT]: 'put',
-  [CACHE_REMOVE]: 'remove',
-} as const;
 
 // The link shape shared between a `load` span and the `batch` span it triggers.
 type DataLoaderSpanLink = { context: ReturnType<Span['spanContext']> };
@@ -111,10 +104,7 @@ function makeSpanOptions(
   return {
     // With span streaming, span names have to be low cardinality, so the loader name is dropped from
     // the name and reported on `db.collection.name` instead.
-    name:
-      client && hasSpanStreamingEnabled(client)
-        ? `cache.${CACHE_OPERATION_NAMES[cacheOperation]}`
-        : getSpanName(loader, operation),
+    name: client && hasSpanStreamingEnabled(client) ? cacheOperation : getSpanName(loader, operation),
     onlyIfParent: true,
     attributes: {
       [SENTRY_OP]: cacheOperation,

@@ -10,6 +10,7 @@ import {
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
+  CACHE_OPERATION_NAMES,
   getClient,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
@@ -32,14 +33,6 @@ export const GET_COMMANDS = ['get', 'mget'];
 export const SET_COMMANDS = ['set', 'setex'];
 export const REMOVE_COMMANDS = ['del', 'unlink'];
 // todo: expire (no matching cache convention op yet)
-
-// The `cache.operation` value each cache op carries. Cache span names are `cache.{{cache.operation}}`,
-// which makes them identical to the op itself.
-const CACHE_OPERATION_NAMES = {
-  [CACHE_GET]: 'get',
-  [CACHE_PUT]: 'put',
-  [CACHE_REMOVE]: 'remove',
-} as const;
 
 /** Options controlling which redis commands are captured as cache spans. */
 export interface RedisCacheOptions {
@@ -212,7 +205,7 @@ export function applyRedisCacheAttributes(
   const client = getClient();
   if (client && hasSpanStreamingEnabled(client)) {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the cache key.
-    span.updateName(`cache.${CACHE_OPERATION_NAMES[cacheOperation]}`);
+    span.updateName(cacheOperation);
     return;
   }
 
