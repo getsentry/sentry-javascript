@@ -130,12 +130,23 @@ describeWithDockerCompose(
       test('drops cache spans matching an ignoreSpans op filter at span start', { timeout: 60_000 }, async () => {
         await createTestRunner()
           .withEnv({ STREAMED: 'true', IGNORE_CACHE_GET: 'true' })
+          .unignore('client_report')
+          // The span container and the client report flush on independent timers, so they can
+          // arrive in either order.
           .unordered()
           .expect({
             span: (container: SerializedStreamedSpanContainer) => {
               const names = container.items.map(item => item.name);
               expect(names).toContain('cache.put');
               expect(names).not.toContain('cache.get');
+            },
+          })
+          .expect({
+            client_report: {
+              discarded_events: [
+                // the two GETs on cache keys plus the failing GET, which is also decided at start
+                { category: 'span', quantity: 3, reason: 'ignored' },
+              ],
             },
           })
           .start()
