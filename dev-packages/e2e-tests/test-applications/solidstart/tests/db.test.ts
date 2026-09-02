@@ -10,13 +10,20 @@ test('Instruments ioredis automatically via build-time orchestrion', async ({ ba
           span.is_segment &&
           getSpanOp(span) === 'http.server' &&
           String(span.attributes['url.path']?.value ?? '').includes('db-ioredis'),
-      ) && spans.filter(span => getSpanOp(span) === 'db.query').length >= 2,
+      ) &&
+      spans.some(span => span.attributes['db.query.text']?.value === 'set test-key [1 other arguments]') &&
+      spans.some(span => span.attributes['db.query.text']?.value === 'get test-key'),
   );
 
   await fetch(`${baseURL}/api/db-ioredis`);
 
   const spans = await spansPromise;
-  const redisSpans = spans.filter(span => getSpanOp(span) === 'db.query');
+  // ioredis also emits handshake commands (SETINFO, INFO) as db.query spans.
+  const redisSpans = spans.filter(
+    span =>
+      getSpanOp(span) === 'db.query' &&
+      (span.attributes['db.operation.name']?.value === 'set' || span.attributes['db.operation.name']?.value === 'get'),
+  );
 
   expect(redisSpans).toHaveLength(2);
   expect(redisSpans).toContainEqual(
