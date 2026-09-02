@@ -339,7 +339,7 @@ If you cannot migrate to span streaming yet, you can opt into the previous trans
 #### Scope `tags` and `extra` are not applied to spans
 
 Streamed spans only carry attributes, so scope `tags` and `extra` (set via `Sentry.setTag(s)`, `Sentry.setExtra(s)` or the equivalent scope methods) are no longer applied to spans.
-This affects every span, including the segment span that replaced the transaction, and the SDK does not warn about it: the data is simply missing from your spans.
+This affects every span, including the segment span that replaced the transaction.
 
 Tags and extra still apply to errors, so you don't have to remove them.
 Set attributes for everything that should also be searchable on spans (attributes additionally apply to logs and metrics):
