@@ -75,7 +75,8 @@ describe('module graph of `wrapRequestHandler`', () => {
       externals.filter(
         specifier =>
           /^@sentry\/node(\/|$)/.test(specifier) ||
-          (/^@sentry\/server-utils(\/|$)/.test(specifier) && specifier !== '@sentry/server-utils/no-diagnostic-channels'),
+          (/^@sentry\/server-utils(\/|$)/.test(specifier) &&
+            specifier !== '@sentry/server-utils/no-diagnostic-channels'),
       ),
     ).toEqual([]);
   });

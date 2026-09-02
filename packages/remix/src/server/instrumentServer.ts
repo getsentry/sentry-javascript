@@ -35,7 +35,10 @@ import {
   filterCollectedUrl,
 } from '@sentry/core';
 import { isNodeEnv } from '@sentry/core/server';
-import { loadModule } from '@sentry/server-utils';
+// `no-diagnostic-channels` (not the full `@sentry/server-utils` barrel): this module is reachable from
+// the `@sentry/remix/cloudflare` entry, which is bundled into edge/browser builds where the full
+// barrel's Node-only integrations would drag `node:` builtins into the bundle.
+import { loadModule } from '@sentry/server-utils/no-diagnostic-channels';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';

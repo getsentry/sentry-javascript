@@ -17,7 +17,7 @@ import {
   type SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/async-context';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';

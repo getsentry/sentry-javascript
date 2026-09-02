@@ -8,7 +8,7 @@ import {
   startSpan,
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/async-context';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { withStaticSpan } from '../src/index';
 import { instrumentCloudflareAgent } from '../src/instrumentations/agents';

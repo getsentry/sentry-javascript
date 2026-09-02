@@ -1,6 +1,6 @@
 import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
 import { RPC } from '@sentry/conventions/op';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/async-context';
 import type { CloudflareOptions } from '../client';
 import { getFinalOptions } from '../options';
 import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from '../types';
