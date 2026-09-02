@@ -1,4 +1,5 @@
 import {
+  CACHE_OPERATION,
   NET_PEER_NAME,
   NET_PEER_PORT,
   NETWORK_PEER_ADDRESS,
@@ -9,6 +10,9 @@ import {
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
+  CACHE_OPERATION_NAMES,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
@@ -139,8 +143,9 @@ export function calculateCacheItemSize(response: unknown): number | undefined {
 
 /**
  * Turns a redis command span into a cache span when its key matches one of the configured
- * `cachePrefixes`: sets the cache op, key, hit/miss and item-size attributes and renames the span
- * to the cache key. A no-op when no `cachePrefixes` are set or the command/key is not cache-relevant.
+ * `cachePrefixes`: sets the cache op, operation, key, hit/miss and item-size attributes and renames
+ * the span to the cache key (or, with span streaming, to the low-cardinality cache operation).
+ * A no-op when no `cachePrefixes` are set or the command/key is not cache-relevant.
  *
  * Runs at command response time against the already-started db span, so it can read connection
  * attributes off the span and derive the item size from the response.
@@ -194,7 +199,15 @@ export function applyRedisCacheAttributes(
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: cacheOperation,
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
+    [CACHE_OPERATION]: CACHE_OPERATION_NAMES[cacheOperation],
   });
+
+  const client = getClient();
+  if (client && hasSpanStreamingEnabled(client)) {
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the cache key.
+    span.updateName(cacheOperation);
+    return;
+  }
 
   // todo: change to string[] once EAP supports it
   const spanDescription = safeKey.join(', ');

@@ -11,7 +11,7 @@
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm playwright test",
     "test:build:orchestrion": "INJECT_ORCHESTRION=true pnpm test:build",
-    "test:assert:orchestrion": "INJECT_ORCHESTRION=true pnpm test:assert"
+    "test:assert:orchestrion": "INJECT_ORCHESTRION=true pnpm test:assert && INJECT_ORCHESTRION=true TEST_ENV=development pnpm playwright test db"
   },
   "dependencies": {
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",

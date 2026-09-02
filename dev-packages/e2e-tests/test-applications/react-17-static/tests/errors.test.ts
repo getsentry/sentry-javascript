@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ page }) => {
-  const errorEventPromise = waitForError('react-17', event => {
+  const errorEventPromise = waitForError('react-17-static', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
@@ -30,18 +30,18 @@ test('Sends correct error event', async ({ page }) => {
 });
 
 test('Sets correct transactionName', async ({ page }) => {
-  const pageloadSpanPromise = waitForStreamedSpan('react-17', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+  const transactionPromise = waitForTransaction('react-17-static', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const errorEventPromise = waitForError('react-17', event => {
+  const errorEventPromise = waitForError('react-17-static', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
   await page.goto('/');
-  const pageloadSpan = await pageloadSpanPromise;
+  const transactionEvent = await transactionPromise;
 
-  // Only capture error once the pageload span was sent
+  // Only capture error once transaction was sent
   const exceptionButton = page.locator('id=exception-button');
   await exceptionButton.click();
 
@@ -53,7 +53,7 @@ test('Sets correct transactionName', async ({ page }) => {
   expect(errorEvent.transaction).toEqual('/');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: pageloadSpan.trace_id,
-    span_id: expect.not.stringContaining(pageloadSpan.span_id),
+    trace_id: transactionEvent.contexts?.trace?.trace_id,
+    span_id: expect.not.stringContaining(transactionEvent.contexts?.trace?.span_id || ''),
   });
 });

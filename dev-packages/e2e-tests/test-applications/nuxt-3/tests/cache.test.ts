@@ -47,6 +47,7 @@ test.describe('Cache Instrumentation', () => {
     if (cacheMissSpan) {
       expect(cacheMissSpan.attributes).toMatchObject({
         'sentry.op': { type: 'string', value: 'cache.get' },
+        'cache.operation': { type: 'string', value: 'get' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: false },
         'db.operation.name': { type: 'string', value: 'getItem' },
@@ -64,6 +65,7 @@ test.describe('Cache Instrumentation', () => {
     if (cacheHitSpan) {
       expect(cacheHitSpan.attributes).toMatchObject({
         'sentry.op': { type: 'string', value: 'cache.get' },
+        'cache.operation': { type: 'string', value: 'get' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
         'db.operation.name': { type: 'string', value: 'getItem' },
@@ -81,6 +83,7 @@ test.describe('Cache Instrumentation', () => {
     if (cacheSetSpan) {
       expect(cacheSetSpan.attributes).toMatchObject({
         'sentry.op': { type: 'string', value: 'cache.put' },
+        'cache.operation': { type: 'string', value: 'put' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         'db.operation.name': { type: 'string', value: 'setItem' },
         'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },

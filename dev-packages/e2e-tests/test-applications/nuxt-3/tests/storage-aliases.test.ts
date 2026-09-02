@@ -38,13 +38,14 @@ test.describe('Storage Instrumentation - Aliases', () => {
     expect(setSpan).toBeDefined();
     expect(setSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.put' },
+      'cache.operation': { type: 'string', value: 'put' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:user') },
       'db.operation.name': { type: 'string', value: 'setItem' },
       'db.collection.name': { type: 'string', value: 'test-storage' },
       'db.system.name': { type: 'string', value: 'memory' },
     });
-    expect(setSpan?.name).toBe(prefixKey('alias:user'));
+    expect(setSpan?.name).toBe('cache.put');
 
     // Test get (alias for getItem)
     expect(findSpansByMethod('getItem').length).toBeGreaterThanOrEqual(1);
@@ -52,6 +53,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
     expect(getSpan).toBeDefined();
     expect(getSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:user') },
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
@@ -59,7 +61,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
       'db.collection.name': { type: 'string', value: 'test-storage' },
       'db.system.name': { type: 'string', value: 'memory' },
     });
-    expect(getSpan?.name).toBe(prefixKey('alias:user'));
+    expect(getSpan?.name).toBe('cache.get');
 
     // Test has (alias for hasItem)
     expect(findSpansByMethod('hasItem').length).toBeGreaterThanOrEqual(1);
@@ -67,6 +69,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
     expect(hasSpan).toBeDefined();
     expect(hasSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:user') },
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
@@ -82,25 +85,27 @@ test.describe('Storage Instrumentation - Aliases', () => {
     expect(delSpan).toBeDefined();
     expect(delSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.remove' },
+      'cache.operation': { type: 'string', value: 'remove' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:temp1') },
       'db.operation.name': { type: 'string', value: 'removeItem' },
       'db.collection.name': { type: 'string', value: 'test-storage' },
       'db.system.name': { type: 'string', value: 'memory' },
     });
-    expect(delSpan?.name).toBe(prefixKey('alias:temp1'));
+    expect(delSpan?.name).toBe('cache.remove');
 
     const removeSpan = findByKey('removeItem', prefixKey('alias:temp2'));
     expect(removeSpan).toBeDefined();
     expect(removeSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.remove' },
+      'cache.operation': { type: 'string', value: 'remove' },
       'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:temp2') },
       'db.operation.name': { type: 'string', value: 'removeItem' },
       'db.collection.name': { type: 'string', value: 'test-storage' },
       'db.system.name': { type: 'string', value: 'memory' },
     });
-    expect(removeSpan?.name).toBe(prefixKey('alias:temp2'));
+    expect(removeSpan?.name).toBe('cache.remove');
 
     // Verify all spans have OK status
     expect(allStorageSpans.length).toBeGreaterThan(0);
