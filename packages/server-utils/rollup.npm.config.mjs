@@ -98,6 +98,7 @@ export default [
       entrypoints: [
         'src/index.ts',
         'src/index.no-diagnostic-channels.ts',
+        'src/index.async-context.ts',
         'src/orchestrion/config/index.ts',
         'src/orchestrion/bundler/vite.ts',
         'src/orchestrion/bundler/rollup.ts',

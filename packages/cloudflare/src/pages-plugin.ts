@@ -1,4 +1,4 @@
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/async-context';
 import type { CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { wrapRequestHandlerWithInit } from './wrapRequestHandlerWithInit';

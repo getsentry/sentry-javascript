@@ -5,7 +5,7 @@ import { getAsyncContextStrategy, getMainCarrier, Scope, SDK_VERSION } from '@se
 import type { SentryTracerProvider } from '@sentry/opentelemetry';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
-import * as SentryServerUtils from '@sentry/server-utils';
+import * as SentryServerUtils from '@sentry/server-utils/async-context';
 import * as os from 'os';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { NodeClient } from '../../src';

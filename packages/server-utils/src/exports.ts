@@ -9,7 +9,6 @@ export { ServerRuntimeClient } from './server-runtime-client';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { ServerRuntimeOptions } from './types/options';
 export { trpcMiddleware } from './trpc';
-export { setAsyncLocalStorageAsyncContextStrategy } from './async-context';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from './opentelemetry';
 export * from './ai';
 export { getSqlQuerySummary, sanitizeSqlQuery } from './utils/sql';
