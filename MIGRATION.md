@@ -1112,6 +1112,12 @@ The experimental opt-in this replaces was removed:
 + sentryCloudflareVitePlugin();
 ```
 
+### Cloudflare: rate limiter bindings no longer emit spans
+
+Affected SDKs: `@sentry/cloudflare`.
+
+Calls to rate limiter bindings (`env.MY_RATE_LIMITER.limit()`) no longer create a span. The removed span had the op `rpc`, the origin `auto.faas.cloudflare.rate_limit`, and the attribute `rpc.service: cloudflare.rate_limit`. Remove any dashboard, alert, or `ignoreSpans` entry that references it.
+
 ### `@sentry/ember` is now a v2 addon with manual setup
 
 Affected SDKs: `@sentry/ember`.
