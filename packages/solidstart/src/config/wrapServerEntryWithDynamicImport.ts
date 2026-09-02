@@ -21,8 +21,15 @@ export function toResolvablePath(source: string): { path: string; wasFileUrl: bo
   if (!source.startsWith('file://')) {
     return { path: source, wasFileUrl: false };
   }
+  if (source === 'file://' || source === 'file:///') {
+    return undefined;
+  }
   try {
-    return { path: fileURLToPath(source), wasFileUrl: true };
+    const filePath = fileURLToPath(source);
+    if (!filePath || filePath === '/' || filePath === '\\') {
+      return undefined;
+    }
+    return { path: filePath, wasFileUrl: true };
   } catch {
     return undefined;
   }

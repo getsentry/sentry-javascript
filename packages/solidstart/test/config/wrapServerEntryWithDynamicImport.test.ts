@@ -24,6 +24,7 @@ describe('toResolvablePath', () => {
 
   it('returns undefined for malformed file:// URLs', () => {
     expect(toResolvablePath('file://')).toBeUndefined();
+    expect(toResolvablePath('file:///')).toBeUndefined();
     expect(toResolvablePath('file://%E0%A4%A')).toBeUndefined();
   });
 });

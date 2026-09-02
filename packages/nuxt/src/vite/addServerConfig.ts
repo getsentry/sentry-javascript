@@ -168,7 +168,7 @@ export function addDynamicImportEntryFileWrapper(
 
   nitro.options.rollupConfig.plugins.push(
     wrapEntryWithDynamicImport({
-      resolvedSentryConfigPath: createResolver(nitro.options.rootDir).resolve(`/${serverConfigFile}`),
+      resolvedSentryConfigPath: createResolver(nitro.options.rootDir).resolve(serverConfigFile),
       experimental_entrypointWrappedFunctions: moduleOptions.experimental_entrypointWrappedFunctions,
     }),
   );
@@ -184,7 +184,7 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
     name: 'rollup-plugin-inject-sentry-server-config',
 
     buildStart() {
-      const configPath = createResolver(nitro.options.rootDir).resolve(`/${serverConfigFile}`);
+      const configPath = createResolver(nitro.options.rootDir).resolve(serverConfigFile);
 
       if (!existsSync(configPath)) {
         if (isDebug) {
@@ -204,7 +204,7 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
     resolveId(source) {
       if (source.startsWith(filePrefix)) {
         const originalFilePath = source.replace(filePrefix, '');
-        const configPath = createResolver(nitro.options.rootDir).resolve(`/${originalFilePath}`);
+        const configPath = createResolver(nitro.options.rootDir).resolve(originalFilePath);
 
         return { id: configPath };
       }
