@@ -28,7 +28,7 @@ test('Instruments ioredis automatically via build-time orchestrion', async ({ ba
   expect(redisSpans).toHaveLength(2);
   expect(redisSpans).toContainEqual(
     expect.objectContaining({
-      name: 'set test-key [1 other arguments]',
+      name: 'set localhost:6379',
       status: 'ok',
       attributes: expect.objectContaining({
         'sentry.op': { type: 'string', value: 'db.query' },
@@ -41,7 +41,7 @@ test('Instruments ioredis automatically via build-time orchestrion', async ({ ba
   );
   expect(redisSpans).toContainEqual(
     expect.objectContaining({
-      name: 'get test-key',
+      name: 'get localhost:6379',
       status: 'ok',
       attributes: expect.objectContaining({
         'sentry.op': { type: 'string', value: 'db.query' },
