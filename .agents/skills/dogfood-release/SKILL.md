@@ -96,9 +96,16 @@ Note in the final report which repos were cloned fresh and which reused a checko
 
 ## Step 4: branch and bump
 
-One branch name across all repos, `ab/bump-sentry-<version-slug>`
-(e.g. `ab/bump-sentry-11-beta-0`). Always branch off a **freshly fetched** base, never off
-whatever the checkout was left on last time.
+One branch name across all repos, `<gh-login>/bump-sentry-<version-slug>`, matching the
+`<user>/<topic>` convention these repos already use. Take the login from `gh`, never
+hardcode a set of initials:
+
+```bash
+BRANCH="$(gh api user --jq .login)/bump-sentry-<slug>"   # e.g. jane/bump-sentry-11-beta-0
+```
+
+Always branch off a **freshly fetched** base, never off whatever the checkout was left on
+last time.
 
 Anchor the version replacement on the **old version string** so only the deps identified in
 step 1 move, and preserve each existing range prefix:
@@ -106,7 +113,7 @@ step 1 move, and preserve each existing range prefix:
 ```bash
 cd "$DIR"                      # resolved in step 3
 git fetch origin $BASE --quiet
-git checkout -B ab/bump-sentry-<slug> origin/$BASE
+git checkout -B "$BRANCH" origin/$BASE
 
 # node, not `sed -i`, whose in-place flag differs between BSD and GNU
 node -e '
