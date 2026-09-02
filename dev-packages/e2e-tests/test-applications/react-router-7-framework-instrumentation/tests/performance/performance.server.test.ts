@@ -135,11 +135,18 @@ test.describe('server - instrumentation API performance', () => {
       'Dev server emits extra http.server segments for module requests',
     );
 
-    const httpServerSpanNames: string[] = [];
+    // A streamed server segment is named after the method alone until a route is matched, so a
+    // duplicate shows up as a bare `GET`. Collect the origin and path alongside the name — they are
+    // what says which instrumentation emitted the extra segment, and for which request.
+    const httpServerSegments: Array<Record<string, unknown>> = [];
     void waitForStreamedSpans(APP_NAME, spans => {
       for (const span of spans) {
         if (getSpanOp(span) === 'http.server' && span.is_segment) {
-          httpServerSpanNames.push(span.name);
+          httpServerSegments.push({
+            name: span.name,
+            origin: span.attributes['sentry.origin']?.value,
+            urlPath: span.attributes['url.path']?.value,
+          });
         }
       }
       return false;
@@ -149,7 +156,13 @@ test.describe('server - instrumentation API performance', () => {
     // Give any (erroneous) duplicate span time to arrive before asserting.
     await page.waitForTimeout(3000);
 
-    expect(httpServerSpanNames).toEqual(['GET /performance']);
+    expect(httpServerSegments).toEqual([
+      {
+        name: 'GET /performance',
+        origin: 'auto.http.react_router.instrumentation_api',
+        urlPath: expect.stringContaining('/performance'),
+      },
+    ]);
   });
 
   test('resolves a real http.route on routes without a loader/action', async ({ page }) => {
