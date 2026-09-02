@@ -1,148 +1,93 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('client - pageload performance', () => {
-  test('should send pageload transaction', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+  test('should send pageload span', async ({ page }) => {
+    const spanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === '/performance' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
     await page.goto(`/performance`);
 
-    const transaction = await txPromise;
+    const span = await spanPromise;
 
-    expect(transaction).toMatchObject({
-      contexts: {
-        trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
-          data: {
-            'sentry.origin': 'auto.pageload.react_router',
-            'sentry.op': 'pageload',
-            'sentry.segment.name.source': 'route',
-            'url.template': '/performance',
-            // react-router-serve 301-redirects the bare index route to a trailing slash
-            'url.path': '/performance/',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/$/),
-          },
-          op: 'pageload',
-          origin: 'auto.pageload.react_router',
-        },
-      },
-      spans: expect.any(Array),
+    expect(span).toMatchObject({
+      span_id: expect.any(String),
+      trace_id: expect.any(String),
       start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      transaction: '/performance',
-      type: 'transaction',
-      transaction_info: { source: 'route' },
-      measurements: expect.any(Object),
-      platform: 'javascript',
-      request: {
-        url: expect.stringContaining('/performance'),
-        headers: expect.any(Object),
-      },
-      event_id: expect.any(String),
-      environment: 'qa',
-      sdk: {
-        integrations: expect.arrayContaining([expect.any(String)]),
-        name: 'sentry.javascript.react-router',
-        version: expect.any(String),
-        packages: [
-          { name: 'npm:@sentry/react-router', version: expect.any(String) },
-          { name: 'npm:@sentry/browser', version: expect.any(String) },
-        ],
-      },
-      tags: { runtime: 'browser' },
+      end_timestamp: expect.any(Number),
+      is_segment: true,
+      status: 'ok',
+    });
+
+    expect(span.attributes).toMatchObject({
+      'sentry.origin': { value: 'auto.pageload.react_router', type: 'string' },
+      'sentry.op': { value: 'pageload', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'sentry.environment': { value: 'qa', type: 'string' },
+      'sentry.sdk.name': { value: 'sentry.javascript.react-router', type: 'string' },
+      'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+      'sentry.sdk.integrations': { value: expect.arrayContaining([expect.any(String)]), type: 'array' },
+      'url.template': { value: '/performance', type: 'string' },
+      // react-router-serve 301-redirects the bare index route to a trailing slash
+      'url.path': { value: '/performance/', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/$/), type: 'string' },
     });
   });
 
-  test('should update pageload transaction for dynamic routes', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return (
-        transactionEvent.transaction === '/performance/with/:param' &&
-        transactionEvent.contexts?.trace?.op === 'pageload'
-      );
+  test('should update pageload span for dynamic routes', async ({ page }) => {
+    const spanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === '/performance/with/:param' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
     await page.goto(`/performance/with/sentry`);
 
-    const transaction = await txPromise;
+    const span = await spanPromise;
 
-    expect(transaction).toMatchObject({
-      contexts: {
-        trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
-          data: {
-            'sentry.origin': 'auto.pageload.react_router',
-            'sentry.op': 'pageload',
-            'sentry.segment.name.source': 'route',
-            'url.template': '/performance/with/:param',
-            'url.path': '/performance/with/sentry',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
-          },
-          op: 'pageload',
-          origin: 'auto.pageload.react_router',
-        },
-      },
-      spans: expect.any(Array),
+    expect(span).toMatchObject({
+      span_id: expect.any(String),
+      trace_id: expect.any(String),
       start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      transaction: '/performance/with/:param',
-      type: 'transaction',
-      transaction_info: { source: 'route' },
-      measurements: expect.any(Object),
-      platform: 'javascript',
-      request: {
-        url: expect.stringContaining('/performance/with/sentry'),
-        headers: expect.any(Object),
+      end_timestamp: expect.any(Number),
+      is_segment: true,
+      status: 'ok',
+    });
+
+    expect(span.attributes).toMatchObject({
+      'sentry.origin': { value: 'auto.pageload.react_router', type: 'string' },
+      'sentry.op': { value: 'pageload', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'sentry.environment': { value: 'qa', type: 'string' },
+      'sentry.sdk.name': { value: 'sentry.javascript.react-router', type: 'string' },
+      'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+      'sentry.sdk.integrations': { value: expect.arrayContaining([expect.any(String)]), type: 'array' },
+      'url.template': { value: '/performance/with/:param', type: 'string' },
+      'url.path': { value: '/performance/with/sentry', type: 'string' },
+      'url.full': {
+        value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/with\/sentry$/),
+        type: 'string',
       },
-      event_id: expect.any(String),
-      environment: 'qa',
-      sdk: {
-        integrations: expect.arrayContaining([expect.any(String)]),
-        name: 'sentry.javascript.react-router',
-        version: expect.any(String),
-        packages: [
-          { name: 'npm:@sentry/react-router', version: expect.any(String) },
-          { name: 'npm:@sentry/browser', version: expect.any(String) },
-        ],
-      },
-      tags: { runtime: 'browser' },
     });
   });
 
-  test('should send pageload transaction for prerendered pages', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return (
-        transactionEvent.transaction === '/performance/static' && transactionEvent.contexts?.trace?.op === 'pageload'
-      );
+  test('should send pageload span for prerendered pages', async ({ page }) => {
+    const spanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === '/performance/static' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
     await page.goto(`/performance/static`);
 
-    const transaction = await txPromise;
+    const span = await spanPromise;
 
-    expect(transaction).toMatchObject({
-      transaction: '/performance/static',
-      contexts: {
-        trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
-          data: {
-            'sentry.origin': 'auto.pageload.react_router',
-            'sentry.op': 'pageload',
-            'sentry.segment.name.source': 'route',
-            'url.template': '/performance/static',
-            // react-router-serve 301-redirects prerendered routes to a trailing slash
-            'url.path': '/performance/static/',
-            'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/static\/$/),
-          },
-          op: 'pageload',
-          origin: 'auto.pageload.react_router',
-        },
-      },
+    expect(span.attributes).toMatchObject({
+      'sentry.origin': { value: 'auto.pageload.react_router', type: 'string' },
+      'sentry.op': { value: 'pageload', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'url.template': { value: '/performance/static', type: 'string' },
+      // react-router-serve 301-redirects prerendered routes to a trailing slash
+      'url.path': { value: '/performance/static/', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/static\/$/), type: 'string' },
     });
   });
 });
