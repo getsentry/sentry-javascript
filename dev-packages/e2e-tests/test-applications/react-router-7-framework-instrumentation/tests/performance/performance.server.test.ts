@@ -135,21 +135,40 @@ test.describe('server - instrumentation API performance', () => {
       'Dev server emits extra http.server segments for module requests',
     );
 
-    const httpServerSpanNames: string[] = [];
+    // Navigate to `/performance/` with the trailing slash: `/performance` is answered with a 301 to
+    // it, and that redirect is a second request with a second `http.server` segment. It should not
+    // be sent at all — `ignoreStatusCodes` covers 301 — but that option is only applied to
+    // transactions, so span streaming emits it. Going straight to the final URL keeps this test
+    // about double-instrumentation instead of failing on the redirect.
+    //
+    // A streamed server segment is named after the method alone until a route is matched, so a
+    // duplicate shows up as a bare `GET`. Collect the origin and path alongside the name — they are
+    // what says which instrumentation emitted the extra segment, and for which request.
+    const httpServerSegments: Array<Record<string, unknown>> = [];
     void waitForStreamedSpans(APP_NAME, spans => {
       for (const span of spans) {
         if (getSpanOp(span) === 'http.server' && span.is_segment) {
-          httpServerSpanNames.push(span.name);
+          httpServerSegments.push({
+            name: span.name,
+            origin: span.attributes['sentry.origin']?.value,
+            urlPath: span.attributes['url.path']?.value,
+          });
         }
       }
       return false;
     });
 
-    await page.goto(`/performance`);
+    await page.goto(`/performance/`);
     // Give any (erroneous) duplicate span time to arrive before asserting.
     await page.waitForTimeout(3000);
 
-    expect(httpServerSpanNames).toEqual(['GET /performance']);
+    expect(httpServerSegments).toEqual([
+      {
+        name: 'GET /performance',
+        origin: 'auto.http.react_router.instrumentation_api',
+        urlPath: '/performance/',
+      },
+    ]);
   });
 
   test('resolves a real http.route on routes without a loader/action', async ({ page }) => {
