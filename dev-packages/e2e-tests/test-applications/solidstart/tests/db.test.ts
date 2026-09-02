@@ -63,7 +63,9 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
           span.is_segment &&
           getSpanOp(span) === 'http.server' &&
           String(span.attributes['url.path']?.value ?? '').includes('db-mysql'),
-      ) && spans.filter(span => getSpanOp(span) === 'db').length >= 2,
+      ) &&
+      spans.some(span => span.attributes['db.query.text']?.value === 'SELECT 1 + 1 AS solution') &&
+      spans.some(span => span.attributes['db.query.text']?.value === 'SELECT NOW()'),
   );
 
   await fetch(`${baseURL}/api/db-mysql`);
