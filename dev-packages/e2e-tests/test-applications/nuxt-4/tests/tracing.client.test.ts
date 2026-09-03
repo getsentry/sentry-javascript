@@ -45,6 +45,49 @@ test('sends a navigation root span with a parameterized URL', async ({ page }) =
   });
 });
 
+test('sends an application render span and a root component span on pageload', async ({ page }) => {
+  const spansPromise = collectStreamedSpans('nuxt-4', spans =>
+    spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),
+  );
+
+  await page.goto(`/client-error`);
+
+  const spans = await spansPromise;
+  const uiSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ui.vue');
+
+  const applicationRenderSpans = uiSpans.filter(span => span.name === 'Application Render');
+  expect(applicationRenderSpans).toHaveLength(1);
+  expect(applicationRenderSpans[0]).toMatchObject({
+    name: 'Application Render',
+    is_segment: false,
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'ui.render' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+    }),
+  });
+
+  const rootComponentSpans = uiSpans.filter(span => span.name === 'Vue <Root>');
+  expect(rootComponentSpans).toHaveLength(1);
+  expect(rootComponentSpans[0]).toMatchObject({
+    name: 'Vue <Root>',
+    is_segment: false,
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'ui.mount' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+    }),
+  });
+});
+
 test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
   const spansPromise = collectStreamedSpans('nuxt-4', spans =>
     spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),
