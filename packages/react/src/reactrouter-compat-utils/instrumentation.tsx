@@ -51,7 +51,6 @@ import {
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
-let _useEffect: UseEffect;
 let _useLocation: UseLocation;
 let _useNavigationType: UseNavigationType;
 let _createRoutesFromChildren: CreateRoutesFromChildren;
@@ -175,7 +174,11 @@ export function shouldSkipNavigation(
 }
 
 export interface ReactRouterOptions {
-  useEffect: UseEffect;
+  /**
+   * @deprecated This is no longer used - the instrumentation relies on React's own effect hook. It is kept
+   * as an optional field for backwards compatibility and can safely be omitted.
+   */
+  useEffect?: UseEffect;
   useLocation: UseLocation;
   useNavigationType: UseNavigationType;
   createRoutesFromChildren: CreateRoutesFromChildren;
@@ -501,7 +504,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   createRouterFunction: CreateRouterFunction<TState, TRouter>,
   version: V6CompatibleVersion,
 ): CreateRouterFunction<TState, TRouter> {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
+  if (!_matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
         `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createRouter\` function because of one or more missing parameters.`,
@@ -569,7 +572,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
   createRouterFunction: CreateRouterFunction<TState, TRouter>,
   version: V6CompatibleVersion,
 ): CreateRouterFunction<TState, TRouter> {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
+  if (!_matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
         `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
@@ -662,7 +665,6 @@ export function createReactRouterV6CompatibleTracingIntegration(
   const integration = browserTracingIntegration({ ...options, instrumentPageLoad: false, instrumentNavigation: false });
 
   const {
-    useEffect,
     useLocation,
     useNavigationType,
     createRoutesFromChildren,
@@ -710,7 +712,6 @@ export function createReactRouterV6CompatibleTracingIntegration(
         _lazyRouteTimeout = configuredMaxWait;
       }
 
-      _useEffect = useEffect;
       _useLocation = useLocation;
       _useNavigationType = useNavigationType;
       _matchRoutes = matchRoutes;
@@ -746,7 +747,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
 }
 
 export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, version: V6CompatibleVersion): UseRoutes {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
+  if (!_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
         'reactRouterV6Instrumentation was unable to wrap `useRoutes` because of one or more missing parameters.',
@@ -1382,10 +1383,10 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
   Routes: R,
   version: V6CompatibleVersion,
 ): R {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_createRoutesFromChildren || !_matchRoutes) {
+  if (!_useLocation || !_useNavigationType || !_createRoutesFromChildren || !_matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(`reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.
-      useEffect: ${_useEffect}. useLocation: ${_useLocation}. useNavigationType: ${_useNavigationType}.
+      useLocation: ${_useLocation}. useNavigationType: ${_useNavigationType}.
       createRoutesFromChildren: ${_createRoutesFromChildren}. matchRoutes: ${_matchRoutes}.`);
 
     return Routes;
