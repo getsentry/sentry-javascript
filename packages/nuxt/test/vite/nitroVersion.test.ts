@@ -55,7 +55,11 @@ describe('getNitroMajorVersion', () => {
 
   it('detects v3 through @nuxt/nitro-server when it depends on nitro (Nuxt 5)', async () => {
     const appDir = createApp('nuxt-5', {
-      nuxt: { name: 'nuxt', version: '5.0.0', dependencies: { '@nuxt/nitro-server': 'npm:@nuxt/nitro-server-nightly' } },
+      nuxt: {
+        name: 'nuxt',
+        version: '5.0.0',
+        dependencies: { '@nuxt/nitro-server': 'npm:@nuxt/nitro-server-nightly' },
+      },
       '@nuxt/nitro-server': {
         name: '@nuxt/nitro-server-nightly',
         version: '5.0.0-nightly',
@@ -78,7 +82,11 @@ describe('getNitroMajorVersion', () => {
 
   it('falls back to v3 when the declared nitro package has no readable version (stub package)', async () => {
     const appDir = createApp('nuxt-5-stub', {
-      nuxt: { name: 'nuxt', version: '5.0.0', dependencies: { '@nuxt/nitro-server': 'npm:@nuxt/nitro-server-nightly' } },
+      nuxt: {
+        name: 'nuxt',
+        version: '5.0.0',
+        dependencies: { '@nuxt/nitro-server': 'npm:@nuxt/nitro-server-nightly' },
+      },
       '@nuxt/nitro-server': {
         name: '@nuxt/nitro-server-nightly',
         version: '5.0.0-nightly',
