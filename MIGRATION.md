@@ -1278,6 +1278,18 @@ The plugin now also applies the build-time instrumentation transform. If you add
 
 ### `@sentry/core` / All SDKs
 
+- `@sentry/core` now exports only isomorphic code. Browser-only exports live on `@sentry/core/browser` and server-only exports on `@sentry/core/server`, and neither subpath re-exports the shared surface any more. This keeps server-only code (HTTP instrumentation, ANR, postgres and sql helpers) out of browser bundles. Most of these APIs are also re-exported by the platform SDKs (`@sentry/node`, `@sentry/browser`, ...), which is unchanged, so this only affects code importing straight from `@sentry/core`. TypeScript reports it as `has no exported member`.
+
+```js
+// before
+import { loadModule, trpcMiddleware } from '@sentry/core';
+import type { BrowserClientReplayOptions } from '@sentry/core';
+
+// after
+import { loadModule, trpcMiddleware } from '@sentry/core/server';
+import type { BrowserClientReplayOptions } from '@sentry/core/browser';
+```
+
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - `Scope.clear()` was removed. To reset scope state, re-initialize the SDK or run your code in a fresh scope via `withScope`/`withIsolationScope`.
 - The deprecated positional `spanOrigin` argument of `instrumentFetchRequest` was removed. Pass an options object (e.g. `{ spanOrigin }`) as the last argument instead.
