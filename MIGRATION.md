@@ -567,6 +567,12 @@ Sentry.init({
 });
 ```
 
+### `DOMException.code` is no longer set as a tag
+
+Affected SDKs: All SDKs running in the browser.
+
+Events created from a `DOMException` no longer carry a `DOMException.code` tag. The `code` property is deprecated and has been replaced by `DOMException.name`, which is already available as the exception type. If you have searches or alert rules keyed on the tag, switch them to `error.type`.
+
 ### `attachStacktrace` defaults to `true`
 
 Affected SDKs: All SDKs.
