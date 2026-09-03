@@ -14,7 +14,7 @@ describe('hapi auto-instrumentation', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'http.route': '/',
-          'http.method': 'GET',
+          'http.request.method': 'GET',
           'hapi.type': 'router',
           'sentry.origin': origin,
           'sentry.op': 'router',
@@ -82,6 +82,30 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
 
+    test('names request handler spans after their route when span streaming is enabled', async () => {
+      const runner = createRunner()
+        .withEnv({ STREAMED: 'true' })
+        .expect({
+          span: container => {
+            const handlerSpan = container.items.find(item => item.attributes['sentry.op']?.value === 'handler');
+
+            // The route alone, without the `GET ` prefix the static name carries.
+            expect(handlerSpan?.name).toBe('/plugin-route');
+            // The name has to stay in step with the attribute it comes from.
+            expect(handlerSpan?.attributes['http.route']?.value).toBe('/plugin-route');
+            expect(handlerSpan?.attributes['hapi.type']?.value).toBe('plugin');
+
+            // Spans of other ops keep their names.
+            expect(container.items.find(item => item.name === 'ext - onPreResponse')).toBeDefined();
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/plugin-route');
+
+      await runner.completed();
+    });
+
     test('should handle returned plain errors in routes.', async () => {
       const runner = createRunner()
         .expect({
@@ -135,4 +159,37 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
   });
+
+  // Regression test: a `setupHapiErrorHandler` call before `server.start()` installs the default
+  // predicate. The integration's own auto-registration (with a custom `shouldHandleError`) fires later,
+  // at `server.start()`, and must still win. The custom predicate drops "Dropped error" (which the
+  // default would capture), so only the "Captured error" sentinel should come through — if the default
+  // predicate were active, "Dropped error" would be captured first and fail this assertion.
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-should-handle-error.mjs',
+    'instrument-should-handle-error.mjs',
+    (createRunner, test) => {
+      test('integration `shouldHandleError` overrides an earlier default-valued `setupHapiErrorHandler`', async () => {
+        const runner = createRunner()
+          .ignore('transaction')
+          .expect({
+            event: {
+              exception: {
+                values: [
+                  {
+                    type: 'Error',
+                    value: 'Captured error',
+                  },
+                ],
+              },
+            },
+          })
+          .start();
+        await runner.makeRequest('get', '/dropped', { expectError: true });
+        await runner.makeRequest('get', '/captured', { expectError: true });
+        await runner.completed();
+      });
+    },
+  );
 });

@@ -84,20 +84,17 @@ export {
   moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentPostgresJsSql,
   zodErrorsIntegration,
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  trpcMiddleware,
   spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
-  wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
   featureFlagsIntegration,
@@ -109,6 +106,7 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
+export { instrumentPostgresJsSql, trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
@@ -116,13 +114,13 @@ export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
-export { getDefaultIntegrations } from './sdk';
+export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
 export { spotlightIntegration } from './integrations/spotlight';
 export {
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
   instrumentOpenAiClient,

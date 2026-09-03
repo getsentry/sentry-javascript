@@ -46,10 +46,9 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
   // The span is started within the surrounding `continueTrace`, so it continues the incoming trace.
   return {
     name: context.functionName,
-    forceTransaction: true,
     attributes: {
       [SENTRY_OP]: FUNCTION_AWS,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.aws_lambda',
       [SENTRY_KIND]: 'server',
       [ATTR_FAAS_EXECUTION]: context.awsRequestId,
       [ATTR_FAAS_ID]: context.invokedFunctionArn,

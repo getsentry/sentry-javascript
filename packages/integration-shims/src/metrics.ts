@@ -1,4 +1,4 @@
-import { consoleSandbox } from '@sentry/core/browser';
+import { consoleSandbox } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 
 /**

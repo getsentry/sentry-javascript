@@ -78,7 +78,6 @@ describe('OpenAI Tool Calls integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates openai tool calls related spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -326,7 +325,6 @@ describe('OpenAI Tool Calls integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates openai tool calls related spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {

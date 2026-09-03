@@ -1,13 +1,12 @@
 import * as SentryCloudflare from '@sentry/cloudflare';
-import { wrapRequestHandler } from '@sentry/cloudflare/request';
-import type * as SentryCloudflareRequest from '@sentry/cloudflare/request';
+import { _INTERNAL_wrapRequestHandler as wrapRequestHandler } from '@sentry/cloudflare';
 import type { Carrier, GLOBAL_OBJ } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { initCloudflareSentryHandle } from '../../src/worker';
 
-vi.mock('@sentry/cloudflare/request', async importOriginal => {
-  const actual = await importOriginal<typeof SentryCloudflareRequest>();
-  return { ...actual, wrapRequestHandler: vi.fn(actual.wrapRequestHandler) };
+vi.mock('@sentry/cloudflare', async importOriginal => {
+  const actual = await importOriginal<typeof SentryCloudflare>();
+  return { ...actual, _INTERNAL_wrapRequestHandler: vi.fn(actual._INTERNAL_wrapRequestHandler) };
 });
 
 const globalWithSentry = globalThis as typeof GLOBAL_OBJ & Carrier;

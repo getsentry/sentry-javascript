@@ -1,7 +1,7 @@
 import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, RawAttributes, Span } from '@sentry/core';
-import { isObjectLike, Scope, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { isObjectLike, Scope, INTERNAL_setSegmentNameSourceIfSegment } from '@sentry/core';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
@@ -111,6 +111,8 @@ export function maybeEnhanceServerComponentSpanName(
     'sentry.nextjs.ssr.function.type': segment === PAGE_SEGMENT ? 'Page' : 'Layout',
     'sentry.nextjs.ssr.function.route': route as string | undefined,
     [SENTRY_OP]: FUNCTION,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
   });
+  // Usually a child of the request root span, in which case this no-ops and the root keeps the name
+  // source it got from `handleOnSpanStart` / `enhanceHandleRequestRootSpan`.
+  INTERNAL_setSegmentNameSourceIfSegment(activeSpan, 'route');
 }

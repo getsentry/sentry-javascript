@@ -56,7 +56,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
     const {
       errorMonitor = 'error',
       spans: createSpans = clientOptions ? hasSpansEnabled(clientOptions) : true,
-      propagateTrace = false,
+      tracePropagation = false,
       breadcrumbs = true,
       http,
       https,
@@ -96,7 +96,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
       if (breadcrumbs) {
         breadcrumbsOnly(request);
       }
-      if (propagateTrace) {
+      if (tracePropagation) {
         injectTracePropagationHeaders(request, propagationDecisionMap);
       }
       return;
@@ -116,7 +116,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
     // Inject trace headers after span creation so sentry-trace contains the
     // outgoing span's ID (not the parent's), enabling downstream services to
     // link to this span.
-    if (propagateTrace) {
+    if (tracePropagation) {
       if (span.isRecording()) {
         withActiveSpan(span, () => {
           injectTracePropagationHeaders(request, propagationDecisionMap);

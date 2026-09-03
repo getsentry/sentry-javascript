@@ -43,7 +43,7 @@ export function injectPropagationContext(
   } else {
     DEBUG_BUILD &&
       debug.warn(
-        '[orchestrion:aws-sdk] cannot set trace propagation on SQS/SNS message due to maximum amount of MessageAttributes',
+        '[instrumentation:aws-sdk] cannot set trace propagation on SQS/SNS message due to maximum amount of MessageAttributes',
       );
   }
   return attributes;

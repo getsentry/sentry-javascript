@@ -13,9 +13,9 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
 
     /******/ })()
     ;",
-      "sentry-cli-mock.json": "["releases","new","CURRENT_SHA"],
-    ["releases","set-commits","CURRENT_SHA","--auto","--ignore-missing"],
-    ["releases","finalize","CURRENT_SHA"],
+      "sentry-cli-mock.json": "["release","create","CURRENT_SHA","--project","fake-project"],
+    ["release","set-commits","CURRENT_SHA","--auto"],
+    ["release","finalize","CURRENT_SHA"],
     ",
     }
   `);

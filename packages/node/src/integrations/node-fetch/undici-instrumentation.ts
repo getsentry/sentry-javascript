@@ -26,12 +26,12 @@ import {
   getSanitizedUrlString,
   getSpanStatusFromHttpCode,
   hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   isTracingSuppressed,
   LRUMap,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stripDataUrlContent,
@@ -50,6 +50,7 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  URL_DOMAIN,
   URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
@@ -57,6 +58,7 @@ import {
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
   NodeFetchOptions,
@@ -217,15 +219,16 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   const requestMethod = getRequestMethod(request.method);
   const attributes: SpanAttributes = {
     [SENTRY_KIND]: 'client',
-    [SENTRY_OP]: 'http.client',
+    [SENTRY_OP]: HTTP_CLIENT,
     [HTTP_REQUEST_METHOD]: requestMethod,
     [ATTR_HTTP_REQUEST_METHOD_ORIGINAL]: request.method,
     [URL_FULL]: filterCollectedUrl(requestUrl.toString()),
+    [URL_DOMAIN]: requestUrl.hostname || undefined,
     [URL_PATH]: requestUrl.pathname,
     [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(requestUrl.search)),
     [URL_FRAGMENT]: getUrlFragment(requestUrl.hash),
     [URL_SCHEME]: urlScheme,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node_fetch',
   };
 
   // Sanitize data URLs to prevent long base64 strings in span attributes
@@ -263,17 +266,21 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   // when an OpenTelemetry SDK tracer provider is set up, so we enforce it here too, which covers
   // SDKs that don't use an OpenTelemetry tracer provider at all.
   const isDataUrl = url.startsWith('data:');
-  if (!isDataUrl) {
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'url';
-  }
-  const spanName =
-    requestMethod === '_OTHER'
-      ? 'HTTP'
-      : isDataUrl
-        ? `${request.method || 'GET'} ${stripDataUrlContent(url)}`
-        : `${requestMethod} ${getSanitizedUrlString(parseUrl(requestUrl.toString()))}`;
-
   const client = getClient();
+
+  let spanName: string;
+  if (requestMethod === '_OTHER') {
+    spanName = HTTP_SPAN_NAME_FALLBACK;
+  } else if (!!client && hasSpanStreamingEnabled(client)) {
+    // With span streaming, span names have to be low cardinality, so the URL path is dropped and only
+    // the domain is kept. Outgoing requests have no route to parameterize, and data URLs have no domain.
+    spanName = requestUrl.hostname ? `${requestMethod} ${requestUrl.hostname}` : requestMethod;
+  } else if (isDataUrl) {
+    spanName = `${request.method || 'GET'} ${stripDataUrlContent(url)}`;
+  } else {
+    spanName = `${requestMethod} ${getSanitizedUrlString(parseUrl(requestUrl.toString()))}`;
+  }
+
   const span = startInactiveSpan({
     name: spanName,
     attributes,

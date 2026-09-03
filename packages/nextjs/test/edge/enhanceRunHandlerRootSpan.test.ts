@@ -1,5 +1,5 @@
-import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
+
 import { describe, expect, it } from 'vitest';
 import { enhanceRunHandlerRootSpan } from '../../src/edge/enhanceRunHandlerRootSpan';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
@@ -34,7 +34,7 @@ describe('enhanceRunHandlerRootSpan', () => {
 
     expect(getName()).toBe('middleware GET');
     expect(getOp()).toBeUndefined();
-    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBeUndefined();
+    expect(span.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBeUndefined();
   });
 
   it('does nothing when the span name is not a pages api route', () => {
@@ -63,7 +63,7 @@ describe('enhanceRunHandlerRootSpan', () => {
 
     expect(getName()).toBe('POST /api/edge-endpoint');
     expect(getOp()).toBe('http.server');
-    expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
+    expect(span.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('route');
   });
 
   it('falls back to GET when no http method attribute is present', () => {

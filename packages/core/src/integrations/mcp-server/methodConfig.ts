@@ -19,6 +19,7 @@ const METHOD_CONFIGS: Record<string, MethodConfig> = {
   'tools/call': {
     targetField: 'name',
     targetAttribute: MCP_TOOL_NAME_ATTRIBUTE,
+    targetIsLowCardinality: true,
     captureArguments: true,
     argumentsField: 'arguments',
   },
@@ -38,6 +39,7 @@ const METHOD_CONFIGS: Record<string, MethodConfig> = {
   'prompts/get': {
     targetField: 'name',
     targetAttribute: MCP_PROMPT_NAME_ATTRIBUTE,
+    targetIsLowCardinality: true,
     captureName: true,
     captureArguments: true,
     argumentsField: 'arguments',
@@ -55,11 +57,12 @@ export function extractTargetInfo(
   params: Record<string, unknown>,
 ): {
   target?: string;
+  targetIsLowCardinality: boolean;
   attributes: Record<string, string>;
 } {
   const config = METHOD_CONFIGS[method];
   if (!config) {
-    return { attributes: {} };
+    return { targetIsLowCardinality: false, attributes: {} };
   }
 
   const target =
@@ -69,6 +72,7 @@ export function extractTargetInfo(
 
   return {
     target,
+    targetIsLowCardinality: !!config.targetIsLowCardinality,
     attributes: target && config.targetAttribute ? { [config.targetAttribute]: target } : {},
   };
 }

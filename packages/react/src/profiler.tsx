@@ -1,8 +1,8 @@
 import { startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { UI_RENDER } from '@sentry/conventions/op';
+import { SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { UI_MOUNT, UI_RENDER, UI_UPDATE } from '@sentry/conventions/op';
 import * as React from 'react';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 
@@ -51,10 +51,9 @@ class Profiler extends React.Component<ProfilerProps> {
       name: `<${name}>`,
       onlyIfParent: true,
       attributes: {
-        // TODO(conventions): Replace `'ui.mount'` with the `ui.mount` span op constant once it is released in `@sentry/conventions`.
-        [SENTRY_OP]: 'ui.mount',
+        [SENTRY_OP]: UI_MOUNT,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        'ui.component_name': name,
+        [UI_COMPONENT_NAME]: name,
       },
     });
   }
@@ -82,10 +81,9 @@ class Profiler extends React.Component<ProfilerProps> {
             onlyIfParent: true,
             startTime: now,
             attributes: {
-              // TODO(conventions): Replace `'ui.update'` with the `ui.update` span op constant once it is released in `@sentry/conventions`.
-              [SENTRY_OP]: 'ui.update',
+              [SENTRY_OP]: UI_UPDATE,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-              'ui.component_name': this.props.name,
+              [UI_COMPONENT_NAME]: this.props.name,
               'ui.react.changed_props': changedProps,
             },
           });
@@ -119,7 +117,7 @@ class Profiler extends React.Component<ProfilerProps> {
           attributes: {
             [SENTRY_OP]: UI_RENDER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            'ui.component_name': name,
+            [UI_COMPONENT_NAME]: name,
           },
         });
         if (renderSpan) {
@@ -198,10 +196,9 @@ function useProfiler(
       name: `<${name}>`,
       onlyIfParent: true,
       attributes: {
-        // TODO(conventions): Replace `'ui.mount'` with the `ui.mount` span op constant once it is released in `@sentry/conventions`.
-        [SENTRY_OP]: 'ui.mount',
+        [SENTRY_OP]: UI_MOUNT,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        'ui.component_name': name,
+        [UI_COMPONENT_NAME]: name,
       },
     });
   });
@@ -223,7 +220,7 @@ function useProfiler(
           attributes: {
             [SENTRY_OP]: UI_RENDER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            'ui.component_name': name,
+            [UI_COMPONENT_NAME]: name,
           },
         });
         if (renderSpan) {

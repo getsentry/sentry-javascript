@@ -1,4 +1,5 @@
 import * as SentryCore from '@sentry/core';
+import * as SentryCoreServer from '@sentry/core/server';
 import type { EventHandler, EventHandlerRequest, H3Event } from 'h3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapMiddlewareHandlerWithSentry } from '../../../src/runtime/hooks/wrapMiddlewareHandler';
@@ -13,6 +14,13 @@ vi.mock('@sentry/core', async importOriginal => {
     getClient: vi.fn(),
     httpHeadersToSpanAttributes: vi.fn(),
     captureException: vi.fn(),
+  };
+});
+
+vi.mock('@sentry/core/server', async importOriginal => {
+  const mod = await importOriginal();
+  return {
+    ...(mod as any),
     flushIfServerless: vi.fn(),
   };
 });
@@ -55,7 +63,7 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
       }),
     });
     (SentryCore.httpHeadersToSpanAttributes as any).mockReturnValue({ 'http.request.header.user_agent': 'test-agent' });
-    (SentryCore.flushIfServerless as any).mockResolvedValue(undefined);
+    (SentryCoreServer.flushIfServerless as any).mockResolvedValue(undefined);
   });
 
   describe('function handler wrapping', () => {

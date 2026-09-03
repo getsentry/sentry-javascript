@@ -1,14 +1,9 @@
 import type { ActivatedRouteSnapshot } from '@angular/router';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SentrySpan,
-  spanToJSON,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SentrySpan, spanToJSON } from '@sentry/core';
 import { describe, it } from 'vitest';
 import { browserTracingIntegration, init, TraceDirective } from '../src/index';
 import { _updateSpanAttributesForParametrizedUrl, getParameterizedRouteFromSnapshot } from '../src/tracing';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { expect } from 'vitest';
 
 describe('browserTracingIntegration', () => {
@@ -78,7 +73,7 @@ describe('Angular Tracing', () => {
       const route = '/users/:id/';
       const url = '/users/123/';
       const span = new SentrySpan({ name: 'initial-span-name' });
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+      span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'url');
 
       _updateSpanAttributesForParametrizedUrl(route, url, span);
 
@@ -86,7 +81,7 @@ describe('Angular Tracing', () => {
         expect.objectContaining({
           attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.undefined.angular',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [URL_TEMPLATE]: route,
             // URL_FULL is resolved against jsdom's http://localhost origin
             [URL_FULL]: expect.stringContaining('/users/123/'),
@@ -103,7 +98,7 @@ describe('Angular Tracing', () => {
       const route = '/users/:id/';
       const url = '/users/123/';
       const span = new SentrySpan({ name: 'initial-span-name' });
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'sample-source');
+      span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'sample-source');
 
       _updateSpanAttributesForParametrizedUrl(route, url, span);
 
@@ -111,7 +106,7 @@ describe('Angular Tracing', () => {
         expect.objectContaining({
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'sample-source',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'sample-source',
           },
           name: 'initial-span-name',
         }),

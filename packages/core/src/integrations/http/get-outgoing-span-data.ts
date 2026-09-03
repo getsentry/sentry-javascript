@@ -1,14 +1,16 @@
 import type { Span, SpanAttributes } from '../../types/span';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../semanticAttributes';
+import { getClient } from '../../currentScopes';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
+import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { filterCollectedUrl } from '../../utils/data-collection/filterCollectedUrl';
-import { getHttpSpanDetailsFromUrlObject, parseStringToURLObject } from '../../utils/url';
+import { getContentLengthFromHeaders } from '../../utils/request';
+import { getHttpSpanDetailsFromUrlObject, isURLObjectRelative, parseStringToURLObject } from '../../utils/url';
 import type { HttpClientRequest, HttpIncomingMessage } from './types';
 import { getRequestUrlFromClientRequest } from './get-request-url';
 import type { StartSpanOptions } from '../../types/startSpanOptions';
 import {
-  HTTP_HOST,
-  HTTP_METHOD,
-  HTTP_TARGET,
+  HTTP_RESPONSE_BODY_SIZE,
+  HTTP_RESPONSE_STATUS_CODE,
   NETWORK_LOCAL_ADDRESS,
   NETWORK_LOCAL_PORT,
   NETWORK_PEER_ADDRESS,
@@ -16,12 +18,14 @@ import {
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   NETWORK_TRANSPORT,
+  SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
-  SENTRY_KIND,
   URL_FULL,
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 
 /**
  * Build the initial span name and attributes for an outgoing HTTP request.
@@ -29,30 +33,31 @@ import {
  */
 export function getOutgoingRequestSpanData(request: HttpClientRequest): StartSpanOptions {
   const url = getRequestUrlFromClientRequest(request);
-  const [name, attributes] = getHttpSpanDetailsFromUrlObject(
-    parseStringToURLObject(url),
-    'client',
-    'auto.http.client',
-    request,
-  );
+  const urlObject = parseStringToURLObject(url);
+  const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'client', 'auto.http.client', request);
 
   const userAgent = request.getHeader('user-agent');
 
+  // With span streaming, span names have to be low cardinality, so only the domain is kept. Outgoing
+  // requests have no route to fall back on, and a URL stays relative only when the request carried no
+  // host to build one from — server runtimes have no page origin to resolve that against, unlike
+  // browsers — so such a request is named after the method alone.
+  const client = getClient();
+  const method = request.method?.toUpperCase();
+  const domain = urlObject && !isURLObjectRelative(urlObject) ? urlObject.hostname : undefined;
+  const streamedName = method ? (domain ? `${method} ${domain}` : method) : HTTP_SPAN_NAME_FALLBACK;
+  const spanName = !!client && hasSpanStreamingEnabled(client) ? streamedName : name;
+
   return {
-    name,
+    name: spanName,
     attributes: {
-      // TODO(v11): Update these to the Sentry semantic attributes for urls.
-      // https://getsentry.github.io/sentry-conventions/attributes/
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+      [SENTRY_OP]: HTTP_CLIENT,
       [SENTRY_KIND]: 'client',
       [URL_FULL]: filterCollectedUrl(url),
-      /* eslint-disable typescript/no-deprecated */
-      [HTTP_METHOD]: request.method,
-      [HTTP_TARGET]: filterCollectedUrl(request.path || '/'),
+      // The old `http.target` (path plus query) has no separate replacement here: `url.path`,
+      // `url.query` and `http.request.method` all come from `attributes` below.
       [SERVER_ADDRESS]: request.host,
       [SERVER_PORT]: typeof request.port === 'number' && !isNaN(request.port) ? request.port : undefined,
-      [HTTP_HOST]: request.getHeader('host') as string | undefined,
-      /* eslint-enable typescript/no-deprecated */
       [USER_AGENT_ORIGINAL]: userAgent || undefined,
       ...attributes,
     },
@@ -68,16 +73,12 @@ export function setIncomingResponseSpanData(response: HttpIncomingMessage, span:
   const transport = httpVersion?.toUpperCase() !== 'QUIC' ? 'tcp' : 'udp';
 
   span.setAttributes({
-    'http.response.status_code': statusCode,
+    [HTTP_RESPONSE_STATUS_CODE]: statusCode,
     [NETWORK_PROTOCOL_NAME]: 'http',
     [NETWORK_PROTOCOL_VERSION]: httpVersion,
-    // TODO(v11): Update these to the Sentry semantic attributes for urls.
-    // https://getsentry.github.io/sentry-conventions/attributes/
-    'http.flavor': httpVersion,
     [NETWORK_TRANSPORT]: transport,
-    'http.status_text': statusMessage?.toUpperCase(),
-    'http.status_code': statusCode,
-    ...getResponseContentLengthAttributes(response),
+    'http.response.status_text': statusMessage?.toUpperCase(),
+    [HTTP_RESPONSE_BODY_SIZE]: getContentLengthFromHeaders(response.headers),
     ...getSocketAttrs(socket),
   });
 }
@@ -91,16 +92,4 @@ function getSocketAttrs(socket: HttpIncomingMessage['socket']): SpanAttributes {
     [NETWORK_PEER_ADDRESS]: remoteAddress,
     [NETWORK_PEER_PORT]: remotePort,
   };
-}
-
-function getResponseContentLengthAttributes(response: HttpIncomingMessage): SpanAttributes {
-  const { headers } = response;
-  const contentLengthHeader = headers['content-length'];
-  const length = contentLengthHeader ? parseInt(String(contentLengthHeader), 10) : -1;
-  const encoding = headers['content-encoding'];
-  return length >= 0
-    ? encoding && encoding !== 'identity'
-      ? { 'http.response_content_length': length }
-      : { 'http.response_content_length_uncompressed': length }
-    : {};
 }

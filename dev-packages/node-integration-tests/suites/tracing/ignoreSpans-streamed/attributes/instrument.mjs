@@ -7,6 +7,6 @@ Sentry.init({
   tracesSampleRate: 1.0,
   transport: loggingTransport,
   traceLifecycle: 'stream',
-  ignoreSpans: [{ attributes: { 'http.method': 'POST' } }],
+  ignoreSpans: [{ attributes: { 'http.request.method': 'POST' } }],
   clientReportFlushInterval: 1_000,
 });

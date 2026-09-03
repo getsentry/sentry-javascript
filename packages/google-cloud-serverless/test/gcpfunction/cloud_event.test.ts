@@ -1,6 +1,6 @@
-import { FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { wrapCloudEventFunction } from '../../src/gcpfunction/cloud_events';
 import type { CloudEventFunction, CloudEventFunctionWithCallback } from '../../src/gcpfunction/general';
@@ -78,7 +78,7 @@ describe('wrapCloudEventFunction', () => {
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'cloud_event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };
@@ -104,7 +104,7 @@ describe('wrapCloudEventFunction', () => {
           attributes: {
             [SENTRY_OP]: FUNCTION_GCP,
             [FAAS_TRIGGER]: 'cloud_event',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
           },
         };
@@ -131,7 +131,7 @@ describe('wrapCloudEventFunction', () => {
           attributes: {
             [SENTRY_OP]: FUNCTION_GCP,
             [FAAS_TRIGGER]: 'cloud_event',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
           },
         };
@@ -169,7 +169,7 @@ describe('wrapCloudEventFunction', () => {
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'cloud_event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };
@@ -207,7 +207,7 @@ describe('wrapCloudEventFunction', () => {
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'cloud_event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };
@@ -230,7 +230,7 @@ describe('wrapCloudEventFunction', () => {
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'cloud_event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };
@@ -267,7 +267,7 @@ describe('wrapCloudEventFunction', () => {
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'cloud_event',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };

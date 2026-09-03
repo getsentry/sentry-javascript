@@ -1,4 +1,5 @@
-import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbData, XhrBreadcrumbData } from '@sentry/core';
+import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbData } from '@sentry/core';
+import type { XhrBreadcrumbData } from '@sentry/core/browser';
 import { getClient } from '@sentry/core';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';

@@ -1,15 +1,21 @@
-import { describe, expect, it } from 'vitest';
-import { getExtMetadata, getRouteMetadata } from '../../src/integrations/hapi-utils';
+import { setCurrentClient } from '@sentry/core';
+import { afterEach, describe, expect, it } from 'vitest';
+import { getExtMetadata, getRouteMetadata } from '../../src/integrations/hapi/hapi-utils';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getRouteMetadata', () => {
   const route = { path: '/users/{id}', method: 'get' } as any;
+
+  afterEach(() => {
+    setCurrentClient(undefined as unknown as TestClient);
+  });
 
   it('describes a directly-registered route as a router layer', () => {
     expect(getRouteMetadata(route)).toEqual({
       name: 'GET /users/{id}',
       attributes: {
         'http.route': '/users/{id}',
-        'http.method': 'get',
+        'http.request.method': 'get',
         'hapi.type': 'router',
       },
     });
@@ -20,11 +26,35 @@ describe('getRouteMetadata', () => {
       name: 'GET /users/{id}',
       attributes: {
         'http.route': '/users/{id}',
-        'http.method': 'get',
+        'http.request.method': 'get',
         'hapi.type': 'plugin',
         'hapi.plugin.name': 'my-plugin',
       },
     });
+  });
+
+  it('drops the method from the router span name when span streaming is enabled', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
+    setCurrentClient(client);
+
+    expect(getRouteMetadata(route).name).toBe('/users/{id}');
+  });
+
+  it('drops the method from the plugin span name when span streaming is enabled', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
+    setCurrentClient(client);
+
+    expect(getRouteMetadata(route, 'my-plugin').name).toBe('/users/{id}');
+  });
+
+  it('falls back to a static span name when the route has no path', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
+    setCurrentClient(client);
+
+    const pathlessRoute = { path: '', method: 'get' } as any;
+
+    expect(getRouteMetadata(pathlessRoute).name).toBe('Router');
+    expect(getRouteMetadata(pathlessRoute, 'my-plugin').name).toBe('Request handler');
   });
 });
 

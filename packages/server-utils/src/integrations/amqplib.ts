@@ -4,22 +4,25 @@ import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   continueTrace,
   defineIntegration,
+  getClient,
   getTraceData,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
 import {
-  MESSAGING_SYSTEM,
-  MESSAGING_MESSAGE_ID,
-  MESSAGING_OPERATION_TYPE,
   MESSAGING_DESTINATION_NAME,
+  MESSAGING_MESSAGE_ID,
+  MESSAGING_OPERATION_NAME,
+  MESSAGING_OPERATION_TYPE,
+  MESSAGING_SYSTEM,
   NETWORK_PROTOCOL_NAME,
   NETWORK_PROTOCOL_VERSION,
   SENTRY_KIND,
   SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
@@ -37,25 +40,9 @@ const INTEGRATION_NAME = 'Amqplib' as const;
 const PUBLISHER_ORIGIN = 'auto.amqplib.publisher';
 const CONSUMER_ORIGIN = 'auto.amqplib.consumer';
 
-// Legacy messaging semantic-conventions, inlined to keep this integration free of `@opentelemetry/*`
-// deps. These mirror what the vendored OTel amqplib instrumentation has always emitted. We keep
-// emitting them alongside the current `@sentry/conventions` attributes for backwards compatibility.
-// TODO(v11): remove these legacy attributes.
-const ATTR_MESSAGING_OPERATION = 'messaging.operation';
-const ATTR_MESSAGING_DESTINATION = 'messaging.destination';
-const ATTR_MESSAGING_DESTINATION_KIND = 'messaging.destination_kind';
-const ATTR_MESSAGING_RABBITMQ_ROUTING_KEY = 'messaging.rabbitmq.routing_key';
-const ATTR_MESSAGING_PROTOCOL = 'messaging.protocol';
-const ATTR_MESSAGING_PROTOCOL_VERSION_LEGACY = 'messaging.protocol_version';
-const ATTR_MESSAGING_URL = 'messaging.url';
-const ATTR_MESSAGING_MESSAGE_ID = 'messaging.message_id';
-const ATTR_MESSAGING_CONVERSATION_ID_LEGACY = 'messaging.conversation_id';
-
-// TODO(v11): replace with the corresponding attribute from `@sentry/conventions` once it is added there.
 const ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY = 'messaging.rabbitmq.destination.routing_key';
 const ATTR_MESSAGING_CONVERSATION_ID = 'messaging.message.conversation_id';
 
-const MESSAGING_DESTINATION_KIND_VALUE_TOPIC = 'topic';
 const MESSAGING_OPERATION_VALUE_PROCESS = 'process';
 const MESSAGING_OPERATION_VALUE_SEND = 'send';
 
@@ -257,7 +244,7 @@ function subscribeDispatch(): void {
 
       ensureChannelState(channel);
       const info = fields?.consumerTag ? channel[CHANNEL_CONSUMER_INFO]?.get(fields.consumerTag) : undefined;
-      const queue = info?.queue ?? msg.fields?.routingKey ?? '<unknown>';
+      const queue = info?.queue ?? msg.fields?.routingKey;
       const noAck = info?.noAck ?? false;
 
       const headers = msg.properties?.headers;
@@ -459,21 +446,23 @@ function startPublishSpan(data: AmqpChannelContext): Span {
   const routingKey = typeof routingKeyArg === 'string' ? routingKeyArg : '';
   let options = data.arguments[3] as PublishOptions | undefined;
 
+  const client = getClient();
+  const destination = resolveDestination(exchange, routingKey);
+  const streamedName = destination
+    ? `${MESSAGING_OPERATION_VALUE_SEND} ${destination}`
+    : MESSAGING_OPERATION_VALUE_SEND;
+
   const span = startInactiveSpan({
-    name: `publish ${normalizeExchange(exchange)}`,
+    name: client && hasSpanStreamingEnabled(client) ? streamedName : `publish ${normalizeExchange(exchange)}`,
     attributes: {
       [SENTRY_OP]: QUEUE_PUBLISH,
       [SENTRY_KIND]: 'producer',
       ...getStoredConnectionAttributes(data.self),
-      [ATTR_MESSAGING_DESTINATION]: exchange, // TODO(v11) remove this attribute
-      [MESSAGING_DESTINATION_NAME]: exchange,
-      [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC, // TODO(v11) remove this attribute
-      [ATTR_MESSAGING_RABBITMQ_ROUTING_KEY]: routingKey, // TODO(v11) remove this attribute
+      [MESSAGING_DESTINATION_NAME]: destination,
       [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: routingKey,
+      [MESSAGING_OPERATION_NAME]: MESSAGING_OPERATION_VALUE_SEND,
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_SEND,
-      [ATTR_MESSAGING_MESSAGE_ID]: options?.messageId as string | undefined, // todo(v11) remove this attribute
       [MESSAGING_MESSAGE_ID]: options?.messageId as string | undefined,
-      [ATTR_MESSAGING_CONVERSATION_ID_LEGACY]: options?.correlationId as string | undefined, // todo(v11) remove this attribute
       [ATTR_MESSAGING_CONVERSATION_ID]: options?.correlationId as string | undefined,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PUBLISHER_ORIGIN,
     },
@@ -496,24 +485,30 @@ function startPublishSpan(data: AmqpChannelContext): Span {
 }
 
 /** Starts an inactive CONSUMER (process) span carrying the amqplib messaging attributes. */
-function startConsumeSpan(queue: string, msg: ConsumeMessage, channel: ChannelLike): Span {
+function startConsumeSpan(queue: string | undefined, msg: ConsumeMessage, channel: ChannelLike): Span {
+  const client = getClient();
+  const destination = resolveDestination(msg.fields?.exchange, msg.fields?.routingKey);
+  const streamedName = destination
+    ? `${MESSAGING_OPERATION_VALUE_PROCESS} ${destination}`
+    : MESSAGING_OPERATION_VALUE_PROCESS;
+
   return startInactiveSpan({
-    name: `${queue} process`,
+    name:
+      client && hasSpanStreamingEnabled(client)
+        ? streamedName
+        : queue
+          ? `${queue} ${MESSAGING_OPERATION_VALUE_PROCESS}`
+          : MESSAGING_OPERATION_VALUE_PROCESS,
     attributes: {
       [SENTRY_OP]: QUEUE_PROCESS,
       [SENTRY_KIND]: 'consumer',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),
-      [ATTR_MESSAGING_DESTINATION]: msg.fields?.exchange, // TODO(v11) remove this attribute
-      [MESSAGING_DESTINATION_NAME]: msg.fields?.exchange,
-      [ATTR_MESSAGING_DESTINATION_KIND]: MESSAGING_DESTINATION_KIND_VALUE_TOPIC, // TODO(v11) remove this attribute
-      [ATTR_MESSAGING_RABBITMQ_ROUTING_KEY]: msg.fields?.routingKey, // TODO(v11) remove this attribute
+      [MESSAGING_DESTINATION_NAME]: destination,
       [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: msg.fields?.routingKey,
-      [ATTR_MESSAGING_OPERATION]: MESSAGING_OPERATION_VALUE_PROCESS, // TODO(v11) remove this attribute
+      [MESSAGING_OPERATION_NAME]: MESSAGING_OPERATION_VALUE_PROCESS,
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_PROCESS,
-      [ATTR_MESSAGING_MESSAGE_ID]: msg.properties?.messageId as string | undefined, // todo(v11) remove this attribute
       [MESSAGING_MESSAGE_ID]: msg.properties?.messageId as string | undefined,
-      [ATTR_MESSAGING_CONVERSATION_ID_LEGACY]: msg.properties?.correlationId as string | undefined, // todo(v11) remove this attribute
       [ATTR_MESSAGING_CONVERSATION_ID]: msg.properties?.correlationId as string | undefined,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: CONSUMER_ORIGIN,
     },
@@ -549,7 +544,6 @@ function getConnectionAttributesFromServer(conn: ConnectionLike): SpanAttributes
 function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
   const attributes: SpanAttributes = {
     // The only protocol supported by the instrumented library.
-    [ATTR_MESSAGING_PROTOCOL_VERSION_LEGACY]: '0.9.1', // TODO(v11): remove this attribute
     [NETWORK_PROTOCOL_VERSION]: '0.9.1',
   };
 
@@ -560,14 +554,12 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
     const hostname = getHostname(connectOptions.hostname);
     const port = getPort(connectOptions.port, protocol);
 
-    attributes[ATTR_MESSAGING_PROTOCOL] = protocol; // TODO(v11) remove this attribute
     attributes[NETWORK_PROTOCOL_NAME] = protocol;
 
     attributes[SERVER_ADDRESS] = hostname;
     attributes[SERVER_PORT] = port;
   } else if (typeof resolvedUrl === 'string') {
     const censoredUrl = censorPassword(resolvedUrl);
-    attributes[ATTR_MESSAGING_URL] = censoredUrl; // todo(v11) remove this attribute
     // oxlint-disable-next-line sdk/no-unfiltered-url-attributes -- AMQP connection URL, not an HTTP request URL
     attributes[URL_FULL] = censoredUrl;
 
@@ -577,7 +569,6 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
       const hostname = getHostname(urlParts.hostname);
       const port = getPort(urlParts.port ? parseInt(urlParts.port, 10) : undefined, protocol);
 
-      attributes[ATTR_MESSAGING_PROTOCOL] = protocol; // TODO(v11) remove this attribute
       attributes[NETWORK_PROTOCOL_NAME] = protocol;
 
       attributes[SERVER_ADDRESS] = hostname;
@@ -587,6 +578,19 @@ function getConnectionAttributesFromUrl(url: unknown): SpanAttributes {
     }
   }
   return attributes;
+}
+
+/**
+ * The default exchange has no name and binds every queue under a key equal to the queue's own name, so
+ * a routing key used with it is the queue name. On a named exchange the routing key is per-message
+ * (`order.created.12345`), so only the exchange is used.
+ *
+ * @see https://www.rabbitmq.com/docs/exchanges#default-exchange
+ * @internal Exported for tests; every scenario publishes through `sendToQueue`.
+ */
+export function resolveDestination(exchange: string | undefined, routingKey: string | undefined): string | undefined {
+  // `undefined` so an absent destination is omitted rather than reported as an empty string.
+  return exchange || routingKey || undefined;
 }
 
 function normalizeExchange(exchangeName: string): string {
@@ -624,10 +628,10 @@ function getHeaderAsString(headers: Record<string, unknown> | undefined, key: st
 }
 
 /**
- * Orchestrion-driven `amqplib` integration.
+ * Diagnostics-channel-based `amqplib` integration.
  *
- * Subscribes to the `orchestrion:amqplib:*` diagnostics_channels that the orchestrion code transform
- * injects into `amqplib`'s channel/connection methods. Requires the orchestrion runtime hook or
+ * Subscribes to the `orchestrion:amqplib:*` diagnostics_channels that Sentry's code transform
+ * injects into `amqplib`'s channel/connection methods. Requires the Sentry runtime hook or
  * bundler plugin to be active.
  */
 export const amqplibIntegration = defineIntegration(_amqplibIntegration);

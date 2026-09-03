@@ -358,6 +358,30 @@ describe('maybeParameterizeRemixRoute', () => {
       // Unmatched patterns should fall back to catch-all
       expect(maybeParameterizeRemixRoute('/some/other/path')).toBe('/:*');
     });
+
+    it('should prefer a longer route over a shorter splat that also matches', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:lang/:*',
+            regex: '^/([^/]+)/(.+)$',
+            paramNames: ['lang', '*'],
+          },
+          {
+            path: '/:lang/guides/:category/:*',
+            regex: '^/([^/]+)/guides/([^/]+)/(.+)$',
+            paramNames: ['lang', 'category', '*'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+
+      expect(maybeParameterizeRemixRoute('/fr/guides/renting/foo')).toBe('/:lang/guides/:category/:*');
+
+      // The splat still wins where nothing narrower matches
+      expect(maybeParameterizeRemixRoute('/fr/anything/else')).toBe('/:lang/:*');
+    });
   });
 
   describe('caching behavior', () => {

@@ -1,29 +1,24 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('Should create a transaction for middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET';
+test('Should create a span for middleware', async ({ request }) => {
+  const middlewareSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
+    return span.name === 'middleware GET' && span.is_segment;
   });
 
   const response = await request.get('/api/endpoint-behind-middleware');
   expect(await response.json()).toStrictEqual({ name: 'John Doe' });
 
-  const middlewareTransaction = await middlewareTransactionPromise;
+  const middlewareSpan = await middlewareSpanPromise;
 
-  expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
-  expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-  expect(middlewareTransaction.transaction_info?.source).toBe('route');
-
-  // Assert that isolation scope works properly
-  expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
-  expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  expect(middlewareSpan.status).toBe('ok');
+  expect(getSpanOp(middlewareSpan)).toBe('middleware');
+  expect(middlewareSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test('Faulty middlewares', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET';
+  const middlewareSpanPromise = waitForStreamedSpan('nextjs-pages-dir', span => {
+    return span.name === 'middleware GET' && span.is_segment;
   });
 
   const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
@@ -34,12 +29,11 @@ test('Faulty middlewares', async ({ request }) => {
     // Noop
   });
 
-  await test.step('should record transactions', async () => {
-    const middlewareTransaction = await middlewareTransactionPromise;
-    expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
-    expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
-    expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-    expect(middlewareTransaction.transaction_info?.source).toBe('route');
+  await test.step('should record spans', async () => {
+    const middlewareSpan = await middlewareSpanPromise;
+    expect(middlewareSpan.status).toBe('error');
+    expect(getSpanOp(middlewareSpan)).toBe('middleware');
+    expect(middlewareSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
   });
 
   await test.step('should record exceptions', async () => {
@@ -52,53 +46,37 @@ test('Faulty middlewares', async ({ request }) => {
   });
 });
 
-test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'middleware GET' &&
-      !!transactionEvent.spans?.find(span => span.op === 'http.client')
-    );
-  });
+test('Should trace outgoing fetch requests inside middleware', async ({ request }) => {
+  // The fetch span is a child of the middleware segment span, which ends last, so accumulate until
+  // the segment arrives.
+  const spansPromise = collectStreamedSpans(
+    'nextjs-pages-dir',
+    spans =>
+      spans.some(span => span.name === 'middleware GET' && span.is_segment) &&
+      spans.some(span => getSpanOp(span) === 'http.client'),
+  );
 
   request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-make-request': '1' } }).catch(() => {
     // Noop
   });
 
-  const middlewareTransaction = await middlewareTransactionPromise;
+  const spans = await spansPromise;
+  const fetchSpan = spans.find(span => getSpanOp(span) === 'http.client')!;
 
-  expect(middlewareTransaction.spans).toEqual(
-    expect.arrayContaining([
-      {
-        data: {
-          'http.method': 'GET',
-          'http.response.status_code': 200,
-          type: 'fetch',
-          'url.full': 'http://localhost:3030/',
-          'server.address': 'localhost',
-          'server.port': 3030,
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.wintercg_fetch',
-        },
-        description: 'GET http://localhost:3030/',
-        op: 'http.client',
-        origin: 'auto.http.wintercg_fetch',
-        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        start_timestamp: expect.any(Number),
-        status: 'ok',
-        timestamp: expect.any(Number),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      },
-    ]),
-  );
-  expect(middlewareTransaction.breadcrumbs).toEqual(
-    expect.arrayContaining([
-      {
-        category: 'fetch',
-        data: { method: 'GET', status_code: 200, url: 'http://localhost:3030/' },
-        timestamp: expect.any(Number),
-        type: 'http',
-      },
-    ]),
-  );
+  // `http.client` span names are low cardinality under span streaming, so the name is the method and
+  // host rather than the full URL. The URL itself is still asserted below via `url.full`.
+  expect(fetchSpan.name).toBe('GET localhost');
+  expect(fetchSpan.status).toBe('ok');
+  expect(fetchSpan.parent_span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(fetchSpan.attributes).toMatchObject({
+    'http.request.method': { value: 'GET', type: 'string' },
+    'http.response.status_code': { value: 200, type: 'integer' },
+    type: { value: 'fetch', type: 'string' },
+    'url.full': { value: 'http://localhost:3030/', type: 'string' },
+    'url.domain': { value: 'localhost', type: 'string' },
+    'server.address': { value: 'localhost', type: 'string' },
+    'server.port': { value: 3030, type: 'integer' },
+    'sentry.op': { value: 'http.client', type: 'string' },
+    'sentry.origin': { value: 'auto.http.wintercg_fetch', type: 'string' },
+  });
 });

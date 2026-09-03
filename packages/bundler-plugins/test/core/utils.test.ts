@@ -6,7 +6,6 @@ import {
   getPackageJson,
   parseMajorVersion,
   replaceBooleanFlagsInCode,
-  serializeIgnoreOptions,
   stringToUUID,
 } from '../../src/core/utils';
 
@@ -267,28 +266,6 @@ describe('generateModuleMetadataInjectorCode', () => {
       },
     });
     expect(generatedCode.code()).toMatchSnapshot();
-  });
-});
-
-describe('serializeIgnoreOptions', () => {
-  it('returns default ignore options when undefined', () => {
-    const result = serializeIgnoreOptions(undefined);
-    expect(result).toEqual(['--ignore', 'node_modules']);
-  });
-
-  it('handles array of ignore patterns', () => {
-    const result = serializeIgnoreOptions(['dist', '**/build/**', '*.log']);
-    expect(result).toEqual(['--ignore', 'dist', '--ignore', '**/build/**', '--ignore', '*.log']);
-  });
-
-  it('handles single string pattern', () => {
-    const result = serializeIgnoreOptions('dist');
-    expect(result).toEqual(['--ignore', 'dist']);
-  });
-
-  it('handles empty array', () => {
-    const result = serializeIgnoreOptions([]);
-    expect(result).toEqual([]);
   });
 });
 

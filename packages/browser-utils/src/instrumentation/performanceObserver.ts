@@ -1,5 +1,5 @@
 import { debug, getFunctionName } from '@sentry/core';
-import { onCLS, onINP, onLCP, onTTFB } from 'web-vitals';
+import { onCLS, onFCP, onINP, onLCP, onTTFB } from 'web-vitals';
 import { DEBUG_BUILD } from '../debug-build';
 
 type InstrumentHandlerTypePerformanceObserver =
@@ -12,7 +12,7 @@ type InstrumentHandlerTypePerformanceObserver =
   // fist-input is still needed for INP
   | 'first-input';
 
-type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'ttfb' | 'inp';
+type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'ttfb' | 'inp' | 'fcp';
 
 // We provide this here manually instead of relying on a global, as this is not available in non-browser environements
 // And we do not want to expose such types
@@ -121,6 +121,7 @@ let _previousCls: Metric | undefined;
 let _previousLcp: Metric | undefined;
 let _previousTtfb: Metric | undefined;
 let _previousInp: Metric | undefined;
+let _previousFcp: Metric | undefined;
 
 /**
  * Add a callback that will be triggered when a CLS metric is available.
@@ -155,6 +156,13 @@ export function addLcpInstrumentationHandler(
  */
 export function addTtfbInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
   return addMetricObserver('ttfb', callback, instrumentTtfb, _previousTtfb);
+}
+
+/**
+ * Add a callback that will be triggered when a FCP metric is available.
+ */
+export function addFcpInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
+  return addMetricObserver('fcp', callback, instrumentFcp, _previousFcp);
 }
 
 export type InstrumentationHandlerCallback = (data: {
@@ -272,6 +280,17 @@ function instrumentTtfb(): StopListening {
         metric,
       });
       _previousTtfb = metric;
+    }),
+  );
+}
+
+function instrumentFcp(): StopListening {
+  return onFCP(
+    withoutBfcache(metric => {
+      triggerHandlers('fcp', {
+        metric,
+      });
+      _previousFcp = metric;
     }),
   );
 }

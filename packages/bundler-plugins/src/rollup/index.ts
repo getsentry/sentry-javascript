@@ -353,4 +353,3 @@ export function sentryRollupPlugin(userOptions: Options = {}): any {
 }
 
 export type { Options as SentryRollupPluginOptions } from '../core';
-export { sentryCliBinaryExists } from '../core';

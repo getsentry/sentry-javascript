@@ -3,6 +3,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   imports: { autoImport: false },
 
+  // FIXME: Remove once component tracking no longer relies on Vue's Options API.
+  // Nuxt 5 disables it by default: https://github.com/nuxt/nuxt/pull/35791
+  vue: { optionsApi: true },
+
   routeRules: {
     '/rendering-modes/client-side-only-page': { ssr: false },
     '/rendering-modes/isr-cached-page': { isr: true },

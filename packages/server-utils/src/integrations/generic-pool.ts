@@ -26,10 +26,10 @@ const _genericPoolIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Orchestrion-driven generic-pool integration. Subscribes to
+ * Diagnostics-channel-based generic-pool integration. Subscribes to
  * `orchestrion:generic-pool:acquire` (injected into `generic-pool/lib/Pool.js`'s
  * `Pool.prototype.acquire`). Creates a `generic-pool.acquire` span for each
- * acquisition. Requires the orchestrion runtime hook or bundler plugin.
+ * acquisition. Requires the Sentry runtime hook or bundler plugin.
  */
 export const genericPoolIntegration = defineIntegration(_genericPoolIntegration);
 

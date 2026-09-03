@@ -1,24 +1,23 @@
-import { registerSpanErrorInstrumentation } from '@sentry/core/browser';
+import { registerSpanErrorInstrumentation } from '@sentry/core';
 import { feedbackIntegrationShim, replayIntegrationShim } from '@sentry-internal/integration-shims';
 
 registerSpanErrorInstrumentation();
 
 export * from './index.bundle.base';
 
-export { logger, consoleLoggingIntegration, metrics } from '@sentry/core/browser';
+export { logger, consoleLoggingIntegration, metrics } from '@sentry/core';
 
 export {
   getActiveSpan,
   getRootSpan,
   getSpanDescendants,
   setMeasurement,
-  startInactiveSpan,
   startNewTrace,
-  startSpan,
-  startSpanManual,
   withActiveSpan,
-} from '@sentry/core/browser';
+  spanStreamingIntegration,
+} from '@sentry/core';
 
+export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/core/browser';
 export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
@@ -29,7 +28,6 @@ export { elementTimingIntegration } from '@sentry/browser-utils';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
-export { spanStreamingIntegration } from '@sentry/core/browser';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
 

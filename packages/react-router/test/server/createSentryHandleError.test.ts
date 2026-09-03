@@ -1,10 +1,14 @@
 import * as core from '@sentry/core';
+import * as coreServer from '@sentry/core/server';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSentryHandleError } from '../../src/server/createSentryHandleError';
 
 vi.mock('@sentry/core', () => ({
   captureException: vi.fn(),
+}));
+
+vi.mock('@sentry/core/server', () => ({
   flushIfServerless: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -15,7 +19,7 @@ const mechanism = {
 
 describe('createSentryHandleError', () => {
   const mockCaptureException = vi.mocked(core.captureException);
-  const mockFlushIfServerless = vi.mocked(core.flushIfServerless);
+  const mockFlushIfServerless = vi.mocked(coreServer.flushIfServerless);
   const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
   const mockError = new Error('Test error');

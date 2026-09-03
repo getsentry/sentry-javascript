@@ -11,7 +11,10 @@
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "playwright test",
-    "clean": "npx rimraf .angular node_modules pnpm-lock.yaml dist"
+    "clean": "npx rimraf .angular node_modules pnpm-lock.yaml dist",
+    "build:streamed": "ng build --configuration production,streamed",
+    "test:build:streamed": "pnpm install && pnpm build:streamed",
+    "test:assert:streamed": "E2E_TEST_TRACE_LIFECYCLE=stream playwright test"
   },
   "private": true,
   "dependencies": {
@@ -47,5 +50,14 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "label": "angular-19 (streamed)",
+        "build-command": "pnpm test:build:streamed",
+        "assert-command": "pnpm test:assert:streamed"
+      }
+    ]
   }
 }

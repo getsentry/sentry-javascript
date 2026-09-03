@@ -167,7 +167,7 @@ test('record client-side universal load fetch span and trace', async ({ page }) 
     data: {
       'url.full': expect.stringContaining('/api/users'),
       type: 'fetch',
-      'http.method': 'GET',
+      'http.request.method': 'GET',
       'http.response.status_code': 200,
       'network.protocol.version': '1.1',
       'network.protocol.name': 'http',
@@ -285,7 +285,7 @@ test('captures one navigation transaction per redirect', async ({ page }) => {
         data: {
           'sentry.origin': 'auto.navigation.sveltekit',
           'sentry.op': 'navigation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.sveltekit.navigation.type': 'link',
           'sentry.sveltekit.navigation.from': '/',
           'sentry.sveltekit.navigation.to': '/redirect1',
@@ -322,7 +322,7 @@ test('captures one navigation transaction per redirect', async ({ page }) => {
         data: {
           'sentry.origin': 'auto.navigation.sveltekit',
           'sentry.op': 'navigation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.sveltekit.navigation.type': 'link',
           'sentry.sveltekit.navigation.from': '/',
           'sentry.sveltekit.navigation.to': '/redirect2',
@@ -359,7 +359,7 @@ test('captures one navigation transaction per redirect', async ({ page }) => {
         data: {
           'sentry.origin': 'auto.navigation.sveltekit',
           'sentry.op': 'navigation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.sveltekit.navigation.type': 'link',
           'sentry.sveltekit.navigation.from': '/',
           'sentry.sveltekit.navigation.to': '/users/[id]',

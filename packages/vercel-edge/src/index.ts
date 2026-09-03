@@ -85,14 +85,12 @@ export {
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  trpcMiddleware,
   spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
-  wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
   featureFlagsIntegration,
@@ -103,8 +101,9 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
 export {
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,

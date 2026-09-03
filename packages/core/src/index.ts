@@ -1,14 +1,539 @@
-export * from './shared-exports';
+/**
+ * Utilites shared between server and browser SDKs.
+ */
+/* eslint-disable max-lines */
 
-// Build-time only: kept off `shared-exports` so it stays out of the `@sentry/core/browser` and
-// `@sentry/core/server` entry points, which no build-time code imports.
-// TODO(v12): Remove together with the warning itself.
+export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
+export type { AsyncContextStrategy, TracingChannelBinding } from './asyncContext/types';
+export type { Carrier } from './carrier';
+export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
+export type { IntegrationIndex } from './integration';
+export * from './tracing';
+export * from './semanticAttributes';
+export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+export * from './tracing/spans/spanNames';
+export type { RawAttributes } from './attributes';
+export { createEventEnvelope, createSessionEnvelope } from './envelope';
+export {
+  captureException,
+  captureEvent,
+  captureMessage,
+  lastEventId,
+  close,
+  flush,
+  setContext,
+  setExtra,
+  setExtras,
+  setTag,
+  setTags,
+  setAttribute,
+  setAttributes,
+  setUser,
+  setConversationId,
+  isInitialized,
+  isEnabled,
+  startSession,
+  endSession,
+  captureSession,
+  addEventProcessor,
+} from './exports';
+export { withMonitor, captureCheckIn } from './monitor';
+export {
+  getCurrentScope,
+  getIsolationScope,
+  getGlobalScope,
+  withScope,
+  withIsolationScope,
+  getClient,
+  getTraceContextFromScope,
+  registerExternalPropagationContext,
+  getExternalPropagationContext,
+  hasExternalPropagationContext,
+} from './currentScopes';
+export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
+export { setAsyncContextStrategy, getAsyncContextStrategy } from './asyncContext';
+export { waitForTracingChannelBinding } from './asyncContext/tracing-channel-binding';
+export { getGlobalSingleton, getMainCarrier } from './carrier';
+export { makeSession, closeSession, updateSession } from './session';
+export { Scope } from './scope';
+export type { CaptureContext, ScopeContext, ScopeData } from './scope';
+export { notifyEventProcessors } from './eventProcessors';
+export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, SENTRY_API_VERSION } from './api';
+export { Client } from './client';
+export { initAndBind, setCurrentClient } from './sdk';
+export { createTransport } from './transports/base';
+export { makeOfflineTransport } from './transports/offline';
+export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
+export {
+  getIntegrationsToSetup,
+  addIntegration,
+  defineIntegration,
+  extendIntegration,
+  installedIntegrations,
+} from './integration';
+export {
+  _INTERNAL_skipAiProviderWrapping,
+  _INTERNAL_shouldSkipAiProviderWrapping,
+  _INTERNAL_clearAiProviderSkips,
+} from './utils/ai/providerSkip';
+export { filterKeyValueData as _INTERNAL_filterKeyValueData } from './utils/data-collection/filterKeyValueData';
+export { filterCookies as _INTERNAL_filterCookies } from './utils/data-collection/filterCookies';
+export { filterQueryParams as _INTERNAL_filterQueryParams } from './utils/data-collection/filterQueryParams';
+export { filterCollectedUrl, filterCollectedUrlQuery } from './utils/data-collection/filterCollectedUrl';
+export { envToBool } from './utils/envToBool';
+export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
+export { prepareEvent } from './utils/prepareEvent';
+export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
+export { createCheckInEnvelope } from './checkin';
+export { hasSpansEnabled } from './utils/hasSpansEnabled';
+export {
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
+  withStreamedSpan,
+} from './tracing/spans/beforeSendSpan';
+export { safeSetSpanJSONAttributes } from './tracing/spans/captureSpan';
+export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
+export { handleCallbackErrors } from './utils/handleCallbackErrors';
+export { parameterize, fmt } from './utils/parameterize';
+export type { HandleTunnelRequestOptions } from './utils/tunnel';
+export { handleTunnelRequest } from './utils/tunnel';
+export { addAutoIpAddressToSession } from './utils/ipAddress';
+export {
+  convertSpanLinksForEnvelope,
+  spanToTraceHeader,
+  spanToStaticSpanJSON,
+  spanToJSON,
+  spanIsSampled,
+  spanIsSentrySpan,
+  spanToTraceContext,
+  getSpanDescendants,
+  getStatusMessage,
+  getRootSpan,
+  INTERNAL_getSegmentSpan,
+  getActiveSpan,
+  addChildSpanToSpan,
+  spanTimeInputToSeconds,
+  updateSpanName,
+  INTERNAL_setSegmentNameSourceIfSegment,
+} from './utils/spanUtils';
+export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
+export { parseSampleRate } from './utils/parseSampleRate';
+export { applySdkMetadata } from './utils/sdkMetadata';
+export { getTraceData } from './utils/traceData';
+export { matchesTracePropagationTargets, shouldPropagateTraceForUrl } from './utils/tracePropagationTargets';
+export { getTraceMetaTags } from './utils/meta';
+export { debounce } from './utils/debounce';
+export { uniq } from './utils/array';
+export { makeWeakRef, derefWeakRef } from './utils/weakRef';
+export type { MaybeWeakRef } from './utils/weakRef';
+export { shouldIgnoreSpan } from './utils/should-ignore-span';
+export {
+  winterCGHeadersToDict,
+  winterCGRequestToRequestData,
+  captureBodyFromWinterCGRequest,
+  httpRequestToRequestData,
+  extractQueryParamsFromUrl,
+  headersToDict,
+  httpHeadersToSpanAttributes,
+  getContentLengthFromHeaders,
+  getMaxBodyByteLength,
+  MAX_BODY_BYTE_LENGTH,
+} from './utils/request';
+export type { MaxRequestBodySize } from './utils/request';
+export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
+export { spanKindToName } from './spanKind';
+export type { SpanKind, SpanKindNumber } from './spanKind';
+export { addBreadcrumb } from './breadcrumbs';
+export { functionToStringIntegration } from './integrations/functiontostring';
+export { eventFiltersIntegration } from './integrations/eventFilters';
+export { linkedErrorsIntegration } from './integrations/linkederrors';
+export { moduleMetadataIntegration } from './integrations/moduleMetadata';
+export { requestDataIntegration } from './integrations/requestdata';
+export { captureConsoleIntegration } from './integrations/captureconsole';
+export { dedupeIntegration } from './integrations/dedupe';
+export { extraErrorDataIntegration } from './integrations/extraerrordata';
+export { rewriteFramesIntegration } from './integrations/rewriteframes';
+export { supabaseIntegration, instrumentSupabaseClient } from './integrations/supabase';
+export { zodErrorsIntegration } from './integrations/zoderrors';
+export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
+export { consoleIntegration } from './integrations/console';
+export type { FeatureFlagsIntegration } from './integrations/featureFlags';
+export { featureFlagsIntegration } from './integrations/featureFlags';
+export { growthbookIntegration } from './integrations/featureFlags';
+export { conversationIdIntegration } from './integrations/conversationId';
+export { spanStreamingIntegration } from './integrations/spanStreaming';
+export { profiler } from './profiling';
+// eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
+// Therefore:
+// eslint-disable-next-line typescript/no-deprecated
+export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } from './fetch';
+export { captureFeedback } from './feedback';
+export type { ReportDialogOptions } from './report-dialog';
+export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
+export * as logger from './logs/public-api';
+export { consoleLoggingIntegration } from './logs/console-integration';
+export {
+  _INTERNAL_captureMetric,
+  _INTERNAL_flushMetricsBuffer,
+  _INTERNAL_captureSerializedMetric,
+} from './metrics/internal';
+export * as metrics from './metrics/public-api';
+export type { MetricOptions } from './metrics/public-api';
+export { createConsolaReporter } from './integrations/consola';
+export { SpanBuffer } from './tracing/spans/spanBuffer';
+export { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
+export type { FeatureFlag } from './utils/featureFlags';
+export {
+  _INTERNAL_copyFlagsFromScopeToEvent,
+  _INTERNAL_insertFlagToScope,
+  _INTERNAL_addFeatureFlagToActiveSpan,
+  _INTERNAL_FLAG_BUFFER_SIZE,
+  _INTERNAL_MAX_FLAGS_PER_SPAN,
+} from './utils/featureFlags';
+export { applyAggregateErrorsToEvent } from './utils/aggregate-errors';
+export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils/breadcrumb-log-level';
+export { dsnFromString, dsnToString, makeDsn } from './utils/dsn';
+// eslint-disable-next-line typescript/no-deprecated
+export { SentryError } from './utils/error';
+export { GLOBAL_OBJ } from './utils/worldwide';
+export type { InternalGlobal } from './utils/worldwide';
+export { addConsoleInstrumentationHandler, addConsoleInstrumentationFilter } from './instrument/console';
+export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './instrument/fetch';
+export { addGlobalErrorInstrumentationHandler } from './instrument/globalError';
+export { addGlobalUnhandledRejectionInstrumentationHandler } from './instrument/globalUnhandledRejection';
+export { addHandler, maybeInstrument, resetInstrumentationHandlers, triggerHandlers } from './instrument/handlers';
+export {
+  isDOMError,
+  isDOMException,
+  // eslint-disable-next-line typescript/no-deprecated
+  isElement,
+  isError,
+  isErrorEvent,
+  isEvent,
+  isInstanceOf,
+  isObjectLike,
+  isParameterizedString,
+  isPlainObject,
+  isPrimitive,
+  isRegExp,
+  isString,
+  // eslint-disable-next-line typescript/no-deprecated
+  isSyntheticEvent,
+  isThenable,
+  // eslint-disable-next-line typescript/no-deprecated
+  isVueViewModel,
+} from './utils/is';
+export { isBrowser } from './utils/isBrowser';
+export { CONSOLE_LEVELS, consoleSandbox, debug, originalConsoleMethods } from './utils/debug-logger';
+export type { SentryDebugLogger } from './utils/debug-logger';
+export {
+  addContextToFrame,
+  addExceptionMechanism,
+  addExceptionTypeValue,
+  checkOrSetAlreadyCaught,
+  isAlreadyCaptured,
+  getEventDescription,
+  parseSemver,
+  uuid4,
+} from './utils/misc';
+export { normalize, normalizeToSize, normalizeUrlToBase, setNormalizeStringifier } from './utils/normalize';
+export { setNormalizationDepthOverrideHint, setSkipNormalizationHint } from './utils/normalizationHints';
+export {
+  addNonEnumerableProperty,
+  convertToPlainObject,
+  // eslint-disable-next-line typescript/no-deprecated
+  dropUndefinedKeys,
+  extractExceptionKeysForMessage,
+  fill,
+  getOriginalFunction,
+  markFunctionWrapped,
+  objectify,
+} from './utils/object';
+export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './utils/path';
+export { makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
+export type { PromiseBuffer } from './utils/promisebuffer';
+export { severityLevelFromString } from './utils/severity';
+export { replaceExports } from './utils/exports';
+export {
+  UNKNOWN_FUNCTION,
+  createStackParser,
+  getFramesFromEvent,
+  getFunctionName,
+  stackParserFromStackParserOptions,
+  stripSentryFramesAndReverse,
+} from './utils/stacktrace';
+export { isMatchingPattern, safeJoin, stringify, snipLine, stringMatchesSomePattern, truncate } from './utils/string';
+export {
+  isNativeFunction,
+  supportsDOMException,
+  supportsErrorEvent,
+  // eslint-disable-next-line typescript/no-deprecated
+  supportsFetch,
+  // eslint-disable-next-line typescript/no-deprecated
+  supportsReferrerPolicy,
+} from './utils/supports';
+export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
+export { browserPerformanceTimeOrigin, dateTimestampInSeconds, timestampInSeconds } from './utils/time';
+export {
+  TRACEPARENT_REGEXP,
+  extractTraceparentData,
+  generateSentryTraceHeader,
+  isContinuingTrace,
+  propagationContextFromHeaders,
+  shouldContinueTrace,
+  generateTraceparentHeader,
+} from './utils/tracing';
+export { getSDKSource, isBrowserBundle } from './utils/env';
+export type { SdkSource } from './utils/env';
+export {
+  addItemToEnvelope,
+  createAttachmentEnvelopeItem,
+  createEnvelope,
+  createEventEnvelopeHeaders,
+  envelopeContainsItemType,
+  envelopeItemTypeToDataCategory,
+  forEachEnvelopeItem,
+  getSdkMetadataForEnvelopeHeader,
+  parseEnvelope,
+  serializeEnvelope,
+} from './utils/envelope';
+export { createClientReportEnvelope } from './utils/clientreport';
+export {
+  DEFAULT_RETRY_AFTER,
+  disabledUntil,
+  isRateLimited,
+  parseRetryAfterHeader,
+  updateRateLimits,
+} from './utils/ratelimit';
+export type { RateLimits } from './utils/ratelimit';
+export {
+  MAX_BAGGAGE_STRING_LENGTH,
+  SENTRY_BAGGAGE_KEY_PREFIX,
+  SENTRY_BAGGAGE_KEY_PREFIX_REGEX,
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
+  parseBaggageHeader,
+  objectToBaggageHeader,
+  mergeBaggageHeaders,
+} from './utils/baggage';
+export {
+  getSanitizedUrlString,
+  parseUrl,
+  stripUrlQueryAndFragment,
+  parseStringToURLObject,
+  getHttpSpanDetailsFromUrlObject,
+  isURLObjectRelative,
+  getSanitizedUrlStringFromUrlObject,
+  stripDataUrlContent,
+  getUrlQuery,
+  getUrlFragment,
+  getUrlDomain,
+} from './utils/url';
+export {
+  eventFromMessage,
+  eventFromUnknownInput,
+  exceptionFromError,
+  parseStackFrames,
+  _enhanceErrorWithSentryInfo as _INTERNAL_enhanceErrorWithSentryInfo,
+} from './utils/eventbuilder';
+export { LRUMap } from './utils/lru';
+export { generateTraceId, generateSpanId } from './utils/propagationContext';
+export { SDK_VERSION } from './utils/version';
+export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
+export { getFilenameToMetadataMap } from './metadata';
+export { escapeStringForRegex } from './vendor/escapeStringForRegex';
+export type { Attachment } from './types/attachment';
+export type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbData, FetchBreadcrumbHint } from './types/breadcrumb';
+export type { ClientReport, Outcome, EventDropReason } from './types/clientreport';
+export type {
+  Context,
+  Contexts,
+  DeviceContext,
+  OsContext,
+  AppContext,
+  CultureContext,
+  TraceContext,
+  CloudResourceContext,
+} from './types/context';
+export type { DataCategory } from './types/datacategory';
+export type { DsnComponents, DsnLike, DsnProtocol } from './types/dsn';
+export type { DebugImage, DebugMeta } from './types/debugMeta';
+export type {
+  AttachmentItem,
+  BaseEnvelopeHeaders,
+  BaseEnvelopeItemHeaders,
+  ClientReportEnvelope,
+  ClientReportItem,
+  DynamicSamplingContext,
+  Envelope,
+  EnvelopeItemType,
+  EnvelopeItem,
+  EventEnvelope,
+  EventEnvelopeHeaders,
+  EventItem,
+  ReplayEnvelope,
+  FeedbackItem,
+  SessionEnvelope,
+  SessionItem,
+  UserFeedbackItem,
+  CheckInItem,
+  CheckInEnvelope,
+  RawSecurityEnvelope,
+  RawSecurityItem,
+  ProfileItem,
+  ProfileChunkEnvelope,
+  ProfileChunkItem,
+  StreamedSpanEnvelope,
+  LogEnvelope,
+  MetricEnvelope,
+} from './types/envelope';
+export type { ExtendedError } from './types/error';
+export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './types/event';
+export type { EventProcessor } from './types/eventprocessor';
+export type { Exception } from './types/exception';
+export type { Extra, Extras } from './types/extra';
+export type { Integration, IntegrationFn } from './types/integration';
+export type { Mechanism } from './types/mechanism';
+export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types/misc';
+export type {
+  CollectBehavior,
+  DataCollection,
+  HttpBodyCollectionTarget,
+  ResolvedDataCollection,
+} from './types/datacollection';
+export type { ClientOptions, CoreOptions as Options } from './types/options';
+export type { Package } from './types/package';
+export type { PolymorphicEvent, PolymorphicRequest } from './types/polymorphics';
+export type {
+  ThreadId,
+  FrameId,
+  StackId,
+  ThreadCpuSample,
+  ThreadCpuStack,
+  ThreadCpuFrame,
+  ThreadCpuProfile,
+  ContinuousThreadCpuProfile,
+  Profile,
+  ProfileChunk,
+} from './types/profiling';
+export type {
+  ReplayEndEvent,
+  ReplayEvent,
+  ReplayRecordingData,
+  ReplayRecordingMode,
+  ReplayStartEvent,
+  ReplayStopReason,
+} from './types/replay';
+export type {
+  FeedbackErrorCode,
+  FeedbackErrorMessages,
+  FeedbackEvent,
+  FeedbackFormData,
+  FeedbackInternalOptions,
+  FeedbackModalIntegration,
+  FeedbackScreenshotIntegration,
+  SendFeedback,
+  SendFeedbackParams,
+  UserFeedback,
+} from './types/feedback';
+export type {
+  QueryParams,
+  RequestEventData,
+  RequestHookInfo,
+  ResponseHookInfo,
+  SanitizedRequestData,
+} from './types/request';
+export type { Runtime } from './types/runtime';
+export type { SdkInfo } from './types/sdkinfo';
+export type { SdkMetadata } from './types/sdkmetadata';
+export type {
+  SessionAggregates,
+  AggregationCounts,
+  Session,
+  SessionContext,
+  SessionStatus,
+  SerializedSession,
+} from './types/session';
+export type { SeverityLevel } from './types/severity';
+export type {
+  Span,
+  SentrySpanArguments,
+  SpanOrigin,
+  SpanAttributeValue,
+  SpanAttributes,
+  SpanTimeInput,
+  SpanJSON,
+  SpanContextData,
+  TraceFlag,
+  SerializedStreamedSpan,
+  SerializedStreamedSpanContainer,
+  StreamedSpanJSON,
+} from './types/span';
+export type { SpanStatus, SpanStatusType } from './types/spanStatus';
+export type { Log, LogSeverityLevel } from './types/log';
+export type { SpanLink } from './types/link';
+export type {
+  Metric,
+  MetricType,
+  SerializedMetric,
+  SerializedMetricContainer,
+  // eslint-disable-next-line typescript/no-deprecated
+  SerializedMetricAttributeValue,
+} from './types/metric';
+export type { TimedEvent } from './types/timedEvent';
+export type { StackFrame } from './types/stackframe';
+export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './types/stacktrace';
+export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './types/tracing';
+export type { StartSpanOptions } from './types/startSpanOptions';
+export type { TraceparentData, TransactionSource } from './types/transaction';
+export type { TracesSamplerSamplingContext, CustomSamplingContext, SamplingContext } from './types/samplingcontext';
+export type {
+  DurationUnit,
+  InformationUnit,
+  FractionUnit,
+  MeasurementUnit,
+  MetricUnit,
+  NoneUnit,
+  Measurements,
+} from './types/measurement';
+export type { Thread } from './types/thread';
+export type {
+  Transport,
+  TransportRequest,
+  TransportMakeRequestResponse,
+  InternalBaseTransportOptions,
+  BaseTransportOptions,
+  TransportRequestExecutor,
+} from './types/transport';
+export type { User } from './types/user';
+export type { WebFetchHeaders, WebFetchRequest } from './types/webfetchapi';
+export type { WrappedFunction } from './types/wrappedfunction';
+export type {
+  HandlerDataFetch,
+  HandlerDataConsole,
+  HandlerDataError,
+  HandlerDataUnhandledRejection,
+  ConsoleLevel,
+} from './types/instrument';
+export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './types/checkin';
+export type { ParameterizedString } from './types/parameterize';
+export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './types/profiling';
+export type { ViewHierarchyData, ViewHierarchyWindow } from './types/view-hierarchy';
+export type { LegacyCSPReport } from './types/csp';
+export type { SerializedLog, SerializedLogContainer } from './types/log';
+export type {
+  BuildTimeOptionsBase,
+  ModuleMetadata,
+  ModuleMetadataCallback,
+  ModuleMetadataCallbackArgs,
+  ReactComponentAnnotationOptions,
+  ResolveSourceMapHook,
+} from './build-time-plugins/buildTimeOptionsBase';
+export type { RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner } from './utils/randomSafeContext';
+export {
+  withRandomSafeContext as _INTERNAL_withRandomSafeContext,
+  safeMathRandom as _INTERNAL_safeMathRandom,
+  safeDateNow as _INTERNAL_safeDateNow,
+} from './utils/randomSafeContext';
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
-export * from './server-exports';
-export * from './browser-exports';
-
-// `server-exports` and `browser-exports` both export these APIs.
-// We need to re-export them here to disambiguate the exports for anyone importing
-// from `@sentry/core`. Server exports win over browser exports.
-export { startSpan, startInactiveSpan, startSpanManual } from './server-exports';
-export { spanStreamingIntegration } from './server-exports';
+export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';

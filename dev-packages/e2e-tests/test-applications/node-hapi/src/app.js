@@ -118,7 +118,6 @@ const init = async () => {
 
 (async () => {
   init();
-  await Sentry.setupHapiErrorHandler(server);
   await server.start();
   console.log('Server running on %s', server.info.uri);
 })();

@@ -5,8 +5,11 @@ import { startIORedisCommandSpan } from '../../../src/integrations/redis/ioredis
 
 const CONNECTION = { host: 'localhost', port: 6379 };
 
-function ctx(command: unknown): { arguments: unknown[]; self: { options: typeof CONNECTION } } {
-  return { arguments: [command], self: { options: CONNECTION } };
+function ctx(
+  command: unknown,
+  connection: { host?: string; port?: number } = CONNECTION,
+): { arguments: unknown[]; self: { options: { host?: string; port?: number } } } {
+  return { arguments: [command], self: { options: connection } };
 }
 
 describe('startIORedisCommandSpan', () => {
@@ -20,23 +23,87 @@ describe('startIORedisCommandSpan', () => {
     vi.restoreAllMocks();
   });
 
-  it('builds a db span with the orchestrion origin and stable db/net attributes', () => {
+  it('builds a db query span with Sentry convention attributes', () => {
     startIORedisCommandSpan(ctx({ name: 'set', args: ['test-key', 'test-value'] }));
 
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'set test-key [1 other arguments]',
-        op: 'db',
         attributes: expect.objectContaining({
+          'sentry.op': 'db.query',
           'db.system.name': 'redis',
-          'db.connection_string': 'redis://localhost:6379',
+          'db.operation.name': 'set',
+          'db.query.text': 'set test-key [1 other arguments]',
           'server.address': 'localhost',
           'server.port': 6379,
-          'db.query.text': 'set test-key [1 other arguments]',
           'sentry.origin': 'auto.db.redis',
         }),
       }),
     );
+  });
+
+  it('names the span from the conventions with span streaming enabled', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    } as unknown as ReturnType<typeof SentryCore.getClient>);
+
+    startIORedisCommandSpan(ctx({ name: 'set', args: ['test-key', 'test-value'] }));
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // `{db.operation.name} {server.address}:{server.port}` — redis has no collection or namespace
+        name: 'set localhost:6379',
+        // the serialized statement, which carries the key, is still reported as an attribute
+        attributes: expect.objectContaining({
+          'db.query.text': 'set test-key [1 other arguments]',
+        }),
+      }),
+    );
+  });
+
+  it('names the span after the redis function it calls with span streaming enabled', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    } as unknown as ReturnType<typeof SentryCore.getClient>);
+
+    startIORedisCommandSpan(ctx({ name: 'fcall', args: ['my_func', '1', 'test-key'] }));
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // `{db.operation.name} {db.stored_procedure.name}` — the conventions rank the stored
+        // procedure ahead of the connection, so it wins over `{server.address}:{server.port}`
+        name: 'fcall my_func',
+        attributes: expect.objectContaining({
+          'db.stored_procedure.name': 'my_func',
+        }),
+      }),
+    );
+  });
+
+  it('leaves the stored procedure unset when the function name was redacted', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    } as unknown as ReturnType<typeof SentryCore.getClient>);
+
+    startIORedisCommandSpan(ctx({ name: 'fcall', args: ['?', '1', 'test-key'] }));
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'fcall localhost:6379',
+        attributes: expect.not.objectContaining({ 'db.stored_procedure.name': expect.anything() }),
+      }),
+    );
+  });
+
+  it('falls back to the db system name when the client has no host', () => {
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+      getOptions: () => ({ traceLifecycle: 'stream' }),
+    } as unknown as ReturnType<typeof SentryCore.getClient>);
+
+    startIORedisCommandSpan(ctx({ name: 'set', args: ['test-key', 'test-value'] }, { port: 6379 }));
+
+    // `{db.system.name}` — the address/port template needs both halves
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ name: 'redis' }));
   });
 
   it('emits a single span when the same command is re-sent from the offline queue', () => {

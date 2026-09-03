@@ -1,49 +1,51 @@
 /* eslint-disable max-lines */
-import type {
-  Client,
-  HandlerDataXhr,
-  RequestHookInfo,
-  ResponseHookInfo,
-  SentryWrappedXMLHttpRequest,
-  Span,
-  SpanTimeInput,
-} from '@sentry/core/browser';
+import type { Client, RequestHookInfo, ResponseHookInfo, Span, SpanTimeInput } from '@sentry/core';
 import {
   addFetchInstrumentationHandler,
   getActiveSpan,
   getClient,
-  getLocationHref,
   getTraceData,
+  getUrlDomain,
   getUrlFragment,
   getUrlQuery,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
   instrumentFetchRequest,
+  matchesTracePropagationTargets,
   parseUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   setHttpStatus,
   spanIsIgnored,
   spanToJSON,
-  startInactiveSpan,
-  stringMatchesSomePattern,
   stripDataUrlContent,
   stripUrlQueryAndFragment,
   timestampInSeconds,
-} from '@sentry/core/browser';
-import type { XhrHint } from '@sentry/browser-utils';
+} from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core/browser';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, XhrHint } from '@sentry/browser-utils';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '@sentry/core';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
+  getLocationHref,
   parseXhrResponseHeaders,
   resourceTimingToSpanAttributes,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry/browser-utils';
 import type { BrowserClient } from '../client';
+import { WINDOW } from '../helpers';
 import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
-import { HTTP_METHOD, SERVER_ADDRESS, URL_FRAGMENT, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_QUERY,
+} from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -65,6 +67,7 @@ export interface RequestInstrumentationOptions {
    *
    * If any of the two match any of the provided values, tracing headers will be attached to the outgoing request.
    * Both, the string values, and the RegExes you provide in the array will match if they partially match the URL or pathname.
+   * Matching is case-insensitive, so `'myApi.com'` and `/^myApi\.com/` both match a request to `https://myapi.com`.
    *
    * Examples:
    * - `tracePropagationTargets: [/^\/api/]` and request to `https://same-origin.com/api/posts`:
@@ -151,6 +154,8 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
         propagateTraceparent,
         onRequestSpanEnd,
+        // The generic fetch instrumentation has no page origin to resolve relative URLs against.
+        urlBase: WINDOW.location?.origin,
       });
 
       // We cannot use `window.location` in the generic fetch instrumentation,
@@ -158,11 +163,12 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       // so we extend this in here
       if (createdSpan) {
         const fullUrl = getFullURL(handlerData.fetchData.url);
-        const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+        // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
+        const host = fullUrl ? parseUrl(fullUrl).host?.replace(/^.*@/, '') : undefined;
         const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
         createdSpan.setAttributes({
           [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
-          'server.address': host,
+          [SERVER_ADDRESS]: host,
         });
 
         if (enableHTTPTimings) {
@@ -281,7 +287,7 @@ export function shouldAttachHeaders(
     if (!tracePropagationTargets) {
       return isRelativeSameOriginRequest;
     } else {
-      return stringMatchesSomePattern(targetUrl, tracePropagationTargets);
+      return matchesTracePropagationTargets(targetUrl, tracePropagationTargets);
     }
   } else {
     let resolvedUrl;
@@ -300,8 +306,8 @@ export function shouldAttachHeaders(
       return isSameOriginRequest;
     } else {
       return (
-        stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
-        (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
+        matchesTracePropagationTargets(resolvedUrl.toString(), tracePropagationTargets) ||
+        (isSameOriginRequest && matchesTracePropagationTargets(resolvedUrl.pathname, tracePropagationTargets))
       );
     }
   }
@@ -368,18 +374,27 @@ function xhrCallback(
   // With span streaming, we always emit http.client spans, even without a parent span
   const shouldEmitSpan = hasParent || (!!client && hasSpanStreamingEnabled(client));
 
+  // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
+  const host = parsedUrl?.host?.replace(/^.*@/, '');
+  // `getFullURL` already resolved relative URLs against the page origin; only data URLs have no domain.
+  const domain = getUrlDomain(fullUrl || url);
+
+  // With span streaming, span names have to be low cardinality, so only the domain is kept.
+  const streamedName = domain ? `${method} ${domain}` : method;
+
   const span =
     shouldCreateSpanResult && shouldEmitSpan
       ? startInactiveSpan({
-          name: `${method} ${urlForSpanName}`,
+          name: !!client && hasSpanStreamingEnabled(client) ? streamedName : `${method} ${urlForSpanName}`,
           attributes: {
             type: 'xhr',
             // eslint-disable-next-line typescript/no-deprecated
-            [HTTP_METHOD]: method,
+            [HTTP_REQUEST_METHOD]: method,
             [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
-            [SERVER_ADDRESS]: parsedUrl?.host,
+            [SERVER_ADDRESS]: host,
+            [URL_DOMAIN]: domain,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+            [SENTRY_OP]: HTTP_CLIENT,
             [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl?.search)),
             [URL_FRAGMENT]: getUrlFragment(parsedUrl?.hash),
           },

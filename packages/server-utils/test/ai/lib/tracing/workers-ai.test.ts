@@ -1,4 +1,5 @@
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
@@ -13,7 +14,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
   spanToStaticSpanJSON,
 } from '@sentry/core';
@@ -68,7 +68,7 @@ describe('instrumentWorkersAiClient', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
       [GEN_AI_OPERATION_NAME]: 'chat',
       [GEN_AI_REQUEST_MODEL]: MODEL,
@@ -157,6 +157,64 @@ describe('instrumentWorkersAiClient', () => {
 
       expect(endedSpans).toHaveLength(1);
       expect(spanToStaticSpanJSON(endedSpans[0]!).data).toEqual(expected);
+    });
+  });
+
+  describe('span names', () => {
+    function setupClient(traceLifecycle: 'static' | 'stream'): Span[] {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          tracesSampleRate: 1,
+          traceLifecycle,
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const endedSpans: Span[] = [];
+      client.on('spanEnd', span => endedSpans.push(span));
+      return endedSpans;
+    }
+
+    it('names the span `{operation} {model}` when a model is present', async () => {
+      const endedSpans = setupClient('stream');
+      const client = { run: vi.fn().mockResolvedValue({ response: 'ok' }) };
+      const instrumented = instrumentWorkersAiClient(client);
+
+      await instrumented.run(MODEL, { prompt: 'Hello' });
+
+      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe(`chat ${MODEL}`);
+    });
+
+    it('keeps `chat unknown` when the model is missing in static mode', async () => {
+      const endedSpans = setupClient('static');
+      const client = { run: vi.fn().mockResolvedValue({ response: 'ok' }) };
+      const instrumented = instrumentWorkersAiClient(client);
+
+      await instrumented.run({ not: 'a-string' }, { prompt: 'Hello' });
+
+      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat unknown');
+    });
+
+    it('treats an empty-string model as missing', async () => {
+      const endedSpans = setupClient('stream');
+      const client = { run: vi.fn().mockResolvedValue({ response: 'ok' }) };
+      const instrumented = instrumentWorkersAiClient(client);
+
+      await instrumented.run('', { prompt: 'Hello' });
+
+      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat');
+    });
+
+    it('falls back to the operation name when the model is missing and span streaming is enabled', async () => {
+      const endedSpans = setupClient('stream');
+      const client = { run: vi.fn().mockResolvedValue({ response: 'ok' }) };
+      const instrumented = instrumentWorkersAiClient(client);
+
+      await instrumented.run({ not: 'a-string' }, { prompt: 'Hello' });
+
+      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat');
     });
   });
 });

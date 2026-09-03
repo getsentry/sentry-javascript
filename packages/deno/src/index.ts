@@ -79,11 +79,10 @@ export {
   rewriteFramesIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentPostgresJsSql,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   startSession,
   captureSession,
@@ -93,7 +92,6 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
-  wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
   withStaticSpan,
@@ -103,6 +101,7 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
+export { instrumentPostgresJsSql, wrapMcpServerWithSentry } from '@sentry/core/server';
 
 export { DenoClient } from './client';
 
@@ -143,7 +142,7 @@ export {
   postgresJsIntegration,
   tediousIntegration,
 } from '@sentry/server-utils';
-export { otlpIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
+export { openTelemetryIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
 // integration above, so its name is the shared name (e.g. `Mysql`), not the old
 // `Deno*` name. See each alias's `@deprecated` note.

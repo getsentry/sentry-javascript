@@ -1,1 +1,1 @@
-export { dedupeIntegration } from '@sentry/core/browser';
+export { dedupeIntegration } from '@sentry/core';

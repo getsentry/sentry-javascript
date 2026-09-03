@@ -35,7 +35,7 @@ Sentry.init({
   dsn,
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
-  integrations: [Sentry.otlpIntegration()],
+  integrations: [Sentry.openTelemetryIntegration()],
 });
 
 interface ExportedTrace {

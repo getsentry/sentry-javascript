@@ -14,5 +14,10 @@
       "service": "cloudflare-worker-workerentrypoint-rpc-sub",
       "entrypoint": "NoPropagationEntrypoint",
     },
+    {
+      "binding": "SUB_WORKER_UNINSTRUMENTED",
+      "service": "cloudflare-worker-workerentrypoint-rpc-sub",
+      "entrypoint": "UninstrumentedEntrypoint",
+    },
   ],
 }

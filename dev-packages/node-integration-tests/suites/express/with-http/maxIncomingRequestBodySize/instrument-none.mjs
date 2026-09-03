@@ -9,8 +9,8 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     Sentry.httpIntegration({
-      maxIncomingRequestBodySize: 'none',
-      ignoreIncomingRequestBody: url => url.includes('/ignore-request-body'),
+      maxRequestBodySize: 'none',
+      ignoreRequestBody: url => url.includes('/ignore-request-body'),
     }),
   ],
 });

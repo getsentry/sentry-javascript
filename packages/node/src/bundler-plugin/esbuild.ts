@@ -1,12 +1,14 @@
 import { sentryEsbuildPlugin as sentryEsbuildBundlerPlugin } from '@sentry/bundler-plugins/esbuild';
 import type { SentryEsbuildPluginOptions as SentryEsbuildPluginOptionsBase } from '@sentry/bundler-plugins/esbuild';
+import type { InstrumentationConfig } from '@sentry/server-utils';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/esbuild';
+import type { EsbuildPlugin } from '@sentry/server-utils/orchestrion/esbuild';
 
 export type SentryEsbuildPluginOptions = SentryEsbuildPluginOptionsBase & {
   /**
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
-  instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionPlugin>[0]>['instrumentations'];
+  instrumentations?: InstrumentationConfig[];
 
   /**
    * Automatic instrumentation of server-side dependencies at build time.
@@ -17,8 +19,6 @@ export type SentryEsbuildPluginOptions = SentryEsbuildPluginOptionsBase & {
    */
   buildTimeInstrumentation?: boolean;
 };
-
-type EsbuildPlugin = ReturnType<typeof sentryOrchestrionPlugin>;
 
 /**
  * esbuild plugin that bundles the Sentry esbuild bundler plugin (source maps,

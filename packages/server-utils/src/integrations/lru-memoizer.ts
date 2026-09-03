@@ -32,9 +32,9 @@ function instrumentLruMemoizer(): void {
 }
 
 /**
- * Orchestrion-driven lru-memoizer integration. Subscribes to
+ * Diagnostics-channel-based lru-memoizer integration. Subscribes to
  * `orchestrion:lru-memoizer:load` (injected into `lru-memoizer/lib/async.js`'s
  * `memoizedFunction`). Creates no spans; only re-runs the memoized callback with the
- * caller's scope. Requires the orchestrion runtime hook or bundler plugin.
+ * caller's scope. Requires the Sentry runtime hook or bundler plugin.
  */
 export const lruMemoizerIntegration = defineIntegration(_lruMemoizerIntegration);

@@ -6,13 +6,16 @@ import {
   DB_OPERATION_NAME,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import {
-  isObjectLike,
   debug,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  getClient,
+  hasSpanStreamingEnabled,
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -121,11 +124,22 @@ function setupChannel(tracingChannel: MongooseTracingChannelFactory, channelName
     const queryText = redactMongoQuery(data.args?.pipeline ?? data.args?.filter);
     const batchSize = getBatchSize(data);
 
+    const client = getClient();
+    const target = collection || data.database;
+    const name =
+      client && hasSpanStreamingEnabled(client)
+        ? target
+          ? `${data.operation} ${target}`
+          : DB_SYSTEM_NAME_VALUE_MONGODB
+        : collection
+          ? `mongoose.${collection}.${data.operation}`
+          : `mongoose.${data.operation}`;
+
     return startInactiveSpan({
-      name: collection ? `mongoose.${collection}.${data.operation}` : `mongoose.${data.operation}`,
+      name,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+        [SENTRY_OP]: DB,
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MONGODB,
         [DB_OPERATION_NAME]: data.operation,
         [DB_COLLECTION_NAME]: collection ?? undefined,

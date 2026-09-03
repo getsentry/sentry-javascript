@@ -53,6 +53,7 @@
     "format": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --write",
     "format:check": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --check",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "test": "vitest run",

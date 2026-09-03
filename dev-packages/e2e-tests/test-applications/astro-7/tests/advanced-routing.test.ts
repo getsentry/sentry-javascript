@@ -36,7 +36,7 @@ test.describe('astro 7 advanced routing (src/fetch.ts)', () => {
       op: 'http.server',
       origin: 'auto.http.astro',
       data: expect.objectContaining({
-        'sentry.source': 'route',
+        'sentry.segment.name.source': 'route',
         'url.full': expect.stringContaining('/user-page/myUsername123'),
       }),
     });

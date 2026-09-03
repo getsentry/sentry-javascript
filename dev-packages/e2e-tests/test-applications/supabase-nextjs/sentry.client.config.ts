@@ -5,7 +5,6 @@
 import * as Sentry from '@sentry/nextjs';
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   environment: 'qa', // dynamic sampling bias to keep transactions
 

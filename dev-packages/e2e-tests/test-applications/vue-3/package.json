@@ -15,6 +15,8 @@
     "test:assert": "pnpm test:print-version && playwright test",
     "test:build-canary": "pnpm install && pnpm test:install-canary && pnpm build",
     "test:build-latest": "pnpm install && pnpm add vue@latest && pnpm build",
+    "test:build-no-options-api": "pnpm install && VUE_OPTIONS_API=false pnpm build",
+    "test:assert-no-options-api": "VUE_OPTIONS_API=false pnpm test:assert",
     "test:install-canary": "pnpm add vue@$(git ls-remote --tags --sort='v:refname' https://github.com/vuejs/core.git | tail -n1 | awk -F'/' '{print $NF}')",
     "test:print-version": "node -p \"'Vue version: ' + require('vue/package.json').version\""
   },
@@ -52,6 +54,11 @@
       {
         "build-command": "pnpm test:build-canary",
         "label": "vue-3 (canary)"
+      },
+      {
+        "build-command": "pnpm test:build-no-options-api",
+        "assert-command": "pnpm test:assert-no-options-api",
+        "label": "vue-3 (no Options API)"
       }
     ]
   }

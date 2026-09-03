@@ -1,7 +1,7 @@
-import { FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
 import type { Integration } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
 import type { HttpFunction, Request, Response } from '../../src/gcpfunction/general';
 import { wrapHttpFunction } from '../../src/gcpfunction/http';
@@ -97,7 +97,7 @@ describe('GCPFunction', () => {
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'http',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
         },
       };
@@ -121,7 +121,7 @@ describe('GCPFunction', () => {
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
           [FAAS_TRIGGER]: 'http',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
         },
       };

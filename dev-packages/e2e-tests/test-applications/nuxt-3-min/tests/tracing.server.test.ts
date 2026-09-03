@@ -15,7 +15,7 @@ test('sends a server action transaction on pageload', async ({ page }) => {
     expect.objectContaining({
       data: expect.objectContaining({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
       }),
     }),
   );

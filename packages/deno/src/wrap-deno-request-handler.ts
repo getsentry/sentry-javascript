@@ -1,4 +1,11 @@
-import { CLIENT_ADDRESS, CLIENT_PORT, NETWORK_PROTOCOL_NAME } from '@sentry/conventions/attributes';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PROTOCOL_NAME,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+} from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Integration, MaxRequestBodySize } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
@@ -6,9 +13,10 @@ import {
   continueTrace,
   getClient,
   getHttpSpanDetailsFromUrlObject,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
@@ -60,7 +68,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     }
 
     const urlObject = parseStringToURLObject(request.url);
-    const [name, attributes] = getHttpSpanDetailsFromUrlObject(
+    const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
       urlObject,
       'server',
       'auto.http.deno',
@@ -68,6 +76,12 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
       undefined,
       client,
     );
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    // A `route` source means the name already is (e.g. the `/` path), so it is kept as-is.
+    const name =
+      attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !hasSpanStreamingEnabled(client)
+        ? rawName
+        : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
     const contentLength = request.headers.get('content-length');
     assignIfSet(attributes, 'http.request.body.size', contentLength && parseInt(contentLength, 10));
@@ -88,7 +102,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     attributes[NETWORK_PROTOCOL_NAME] = 'http';
 
     Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), dataCollection));
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
+    attributes[SENTRY_OP] = HTTP_SERVER;
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
     });

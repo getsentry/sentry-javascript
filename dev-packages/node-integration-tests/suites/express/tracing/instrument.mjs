@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
-  traceLifecycle: 'static',
+  traceLifecycle: process.env.STREAMED === 'true' ? 'stream' : 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   // disable attaching headers to /test/* endpoints
@@ -11,7 +11,7 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     Sentry.httpIntegration({
-      ignoreIncomingRequestBody: url => {
+      ignoreRequestBody: url => {
         if (url.includes('/test-post-ignore-body')) {
           return true;
         }

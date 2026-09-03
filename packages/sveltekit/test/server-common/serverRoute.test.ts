@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   wrapServerRouteWithSentry,
 } from '../../src/server';
 
@@ -40,7 +39,6 @@ describe('wrapServerRouteWithSentry', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
             'code.function.name': 'GET',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             'http.request.method': 'GET',
           },
           name: 'GET /api/users/:id',
@@ -63,7 +61,6 @@ describe('wrapServerRouteWithSentry', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
             'code.function.name': 'GET',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             'http.request.method': 'GET',
           },
           name: 'GET Server Route',

@@ -3,6 +3,7 @@ import {
   getHttpSpanDetailsFromUrlObject,
   getSanitizedUrlString,
   getSanitizedUrlStringFromUrlObject,
+  getUrlDomain,
   getUrlFragment,
   getUrlQuery,
   isURLObjectRelative,
@@ -308,6 +309,20 @@ describe('getUrlQuery', () => {
   });
 });
 
+describe('getUrlDomain', () => {
+  it.each([
+    ['https://somedomain.com/path?a=b#c', undefined, 'somedomain.com'],
+    ['https://user:pass@somedomain.com:8443/path', undefined, 'somedomain.com'],
+    ['/path/to/happiness', undefined, undefined],
+    ['/path/to/happiness', 'https://somedomain.com', 'somedomain.com'],
+    ['https://otherdomain.com/path', 'https://somedomain.com', 'otherdomain.com'],
+    ['data:text/plain,hello', 'https://somedomain.com', undefined],
+    ['', undefined, undefined],
+  ])('resolves %s against %s', (url, base, expected) => {
+    expect(getUrlDomain(url, base)).toBe(expected);
+  });
+});
+
 describe('getUrlFragment', () => {
   it.each([
     ['#section', 'section'],
@@ -427,12 +442,22 @@ describe('getSanitizedUrlStringFromUrlObject', () => {
 });
 
 describe('getHttpSpanDetailsFromUrlObject', () => {
+  it.each([
+    ['no route name', undefined],
+    ['a route name', '/api/users/:id'],
+  ])('does not set a segment name source on client spans with %s', (_, routeName) => {
+    const urlObject = parseStringToURLObject('https://example.com/api/users/1')!;
+    const [, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'client', 'test-origin', undefined, routeName);
+
+    expect(attributes).not.toHaveProperty('sentry.segment.name.source');
+  });
+
   it('handles undefined URL object', () => {
     const [name, attributes] = getHttpSpanDetailsFromUrlObject(undefined, 'server', 'test-origin');
     expect(name).toBe('GET /');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
     });
   });
 
@@ -442,7 +467,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       'url.path': '/api/users',
       'url.full': '/api/users',
     });
@@ -454,7 +479,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       'url.path': '/api/users',
       'url.query': 'q=test',
       'url.fragment': 'section',
@@ -470,7 +495,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('POST /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://example.com/api/users',
       'server.address': 'example.com',
@@ -491,7 +516,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /api/users/:id');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.path': '/api/users',
       'url.full': 'https://example.com/api/users',
       'server.address': 'example.com',
@@ -506,7 +531,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.path': '/',
       'url.full': 'https://example.com/',
       'server.address': 'example.com',
@@ -520,7 +545,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://example.com:8080/api/users',
       'server.address': 'example.com',
@@ -535,7 +560,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('PUT /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://example.com:3000/api/users',
       'server.address': 'example.com',
@@ -557,7 +582,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('PATCH /api/users/:id');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.path': '/api/users/123',
       'url.full': 'https://example.com/api/users/123',
       'server.address': 'example.com',
@@ -579,7 +604,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /api/search');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.path': '/api/search',
       'url.query': 'q=test&page=1',
       'url.full': 'https://example.com/api/search?q=test&page=1',
@@ -601,7 +626,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /api/docs');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.path': '/api/docs',
       'url.fragment': 'section-1',
       'url.full': 'https://example.com/api/docs#section-1',
@@ -617,7 +642,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://user:pass@example.com/api/users',
       'server.address': 'example.com',
@@ -631,7 +656,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://192.168.1.1:8080/api/users',
       'server.address': '192.168.1.1',
@@ -646,7 +671,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /api/users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       'url.path': '/api/users',
       'url.full': 'https://[2001:db8::1]:8080/api/users',
       'server.address': '[2001:db8::1]',
@@ -661,7 +686,7 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
     expect(name).toBe('GET /users');
     expect(attributes).toEqual({
       'sentry.origin': 'test-origin',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
       'url.path': '/users',
       'url.full': 'https://api.example.com/users',
       'server.address': 'api.example.com',

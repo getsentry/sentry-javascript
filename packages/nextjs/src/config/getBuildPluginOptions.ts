@@ -1,6 +1,7 @@
 import type { Options as SentryBuildPluginOptions } from '@sentry/bundler-plugins/core';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getBuildLogger } from './buildLogger';
 import type { SentryBuildOptions } from './types';
 
 const LOGGER_PREFIXES = {
@@ -277,6 +278,8 @@ export function getBuildPluginOptions({
   buildTool: BuildTool;
   useRunAfterProductionCompileHook?: boolean; // Whether the user has opted into using the experimental hook
 }): SentryBuildPluginOptions {
+  const logger = getBuildLogger(sentryBuildOptions.silent);
+
   // We need to convert paths to posix because Glob patterns use `\` to escape
   // glob characters. This clashes with Windows path separators.
   // See: https://www.npmjs.com/package/glob
@@ -298,8 +301,7 @@ export function getBuildPluginOptions({
   const userFilesToDeleteAfterUpload = sentryBuildOptions.sourcemaps?.filesToDeleteAfterUpload;
 
   if (sentryBuildOptions.debug && userFilesToDeleteAfterUpload !== undefined) {
-    // eslint-disable-next-line no-console
-    console.debug(
+    logger.debug(
       '[@sentry/nextjs] Skipping auto-deletion of source maps as user has provided filesToDeleteAfterUpload:',
       userFilesToDeleteAfterUpload,
     );

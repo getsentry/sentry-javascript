@@ -1,27 +1,23 @@
 import { PassThrough } from 'node:stream';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
-import {
-  flushIfServerless,
-  getActiveSpan,
-  getRootSpan,
-  getTraceMetaTags,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { getActiveSpan, getRootSpan, getTraceMetaTags, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
 import { wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
 
 vi.mock('@sentry/core', () => ({
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
   getActiveSpan: vi.fn(),
   getRootSpan: vi.fn(),
   getTraceMetaTags: vi.fn(),
-  flushIfServerless: vi.fn(),
   updateSpanName: vi.fn(),
   getCurrentScope: vi.fn(() => ({ setTransactionName: vi.fn() })),
   GLOBAL_OBJ: globalThis,
+}));
+
+vi.mock('@sentry/core/server', () => ({
+  flushIfServerless: vi.fn(),
 }));
 
 describe('wrapSentryHandleRequest', () => {
@@ -73,7 +69,7 @@ describe('wrapSentryHandleRequest', () => {
 
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [HTTP_ROUTE]: '/some-path',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
     });
   });
@@ -192,7 +188,7 @@ describe('wrapSentryHandleRequest', () => {
     // Should set route attributes without origin (to preserve instrumentation_api origin)
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [HTTP_ROUTE]: '/some-path',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
     });
   });
 });

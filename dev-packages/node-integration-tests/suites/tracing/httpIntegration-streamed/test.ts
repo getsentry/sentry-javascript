@@ -19,7 +19,6 @@ describe('httpIntegration-streamed', () => {
             expect(serverSpan).toBeDefined();
             expect(serverSpan?.is_segment).toBe(true);
             expect(serverSpan?.name).toBe('GET /test');
-            expect(serverSpan?.attributes['sentry.source']).toEqual({ type: 'string', value: 'route' });
             expect(serverSpan?.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
           },
         })

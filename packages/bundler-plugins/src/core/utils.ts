@@ -396,23 +396,6 @@ export function getProjects(project: string | string[] | undefined): string[] | 
 }
 
 /**
- * Inlined functionality from @sentry/cli helper code to add `--ignore` options.
- *
- * Temporary workaround until we expose a function for injecting debug IDs. Currently, we directly call `execute` with CLI args to inject them.
- */
-export function serializeIgnoreOptions(ignoreValue: string | string[] | undefined): string[] {
-  const DEFAULT_IGNORE = ['node_modules'];
-
-  const ignoreOptions: string[] = Array.isArray(ignoreValue)
-    ? ignoreValue
-    : typeof ignoreValue === 'string'
-      ? [ignoreValue]
-      : DEFAULT_IGNORE;
-
-  return ignoreOptions.reduce((acc, value) => acc.concat(['--ignore', String(value)]), [] as string[]);
-}
-
-/**
  * Checks if a chunk contains only import/export statements and no substantial code.
  *
  * In Vite MPA (multi-page application) mode, HTML entry points create "facade" chunks

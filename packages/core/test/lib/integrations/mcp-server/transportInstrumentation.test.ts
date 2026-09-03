@@ -270,7 +270,6 @@ describe('MCP Server Transport Instrumentation', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'tools/call process-file',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: {
           'mcp.method.name': 'tools/call',
@@ -283,7 +282,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.request.argument.path': '"/tmp/data.txt"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       });
     });
@@ -420,7 +419,6 @@ describe('MCP Server Transport Instrumentation', () => {
 
       expect(config).toEqual({
         name: 'tools/call test-tool',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: expect.objectContaining({
           'mcp.method.name': 'tools/call',
@@ -435,7 +433,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.request.argument.input': '"test"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         }),
       });
     });
@@ -884,7 +882,7 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.method.name': 'notifications/tools/list_changed',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
         expect.any(Function),
@@ -1062,7 +1060,6 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call test-tool',
-          op: 'mcp.server',
         }),
       );
 

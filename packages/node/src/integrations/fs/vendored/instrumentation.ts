@@ -15,6 +15,7 @@
  */
 
 import { ERROR_TYPE } from '@sentry/conventions/attributes';
+import { FILE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -33,7 +34,7 @@ import type { FMember, FPMember, FsInstrumentationConfig, GenericFunction } from
 import { indexFs } from './utils';
 
 const SPAN_ORIGIN = 'auto.file.fs';
-const SPAN_OP = 'file';
+const SPAN_OP = FILE;
 
 // The following lists categorize `fs` functions by the shape of their leading path arguments, so we can
 // record meaningful span attributes for them. These are Sentry-specific additions (not part of upstream).

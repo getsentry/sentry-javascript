@@ -1,20 +1,9 @@
 import * as path from 'node:path';
-import type { Client, Event, EventProcessor, Integration } from '@sentry/core';
-import {
-  applySdkMetadata,
-  debug,
-  DEFAULT_ENVIRONMENT,
-  DEV_ENVIRONMENT,
-  flushIfServerless,
-  getGlobalScope,
-} from '@sentry/core';
-import {
-  getDefaultIntegrations as getDefaultNodeIntegrations,
-  httpIntegration,
-  init as initNode,
-  type NodeOptions,
-} from '@sentry/node';
+import type { Client, Event, EventProcessor } from '@sentry/core';
+import { applySdkMetadata, debug, DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT, getGlobalScope } from '@sentry/core';
+import { init as initNode } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { isNuxtDevRuntime } from '../common/devMode';
 import type { SentryNuxtServerOptions } from '../common/types';
 
 /**
@@ -23,18 +12,16 @@ import type { SentryNuxtServerOptions } from '../common/types';
  * @param options Configuration options for the SDK.
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
-  let envFallback: string;
-  /*! rollup-include-cjs-only */
-  envFallback = DEFAULT_ENVIRONMENT;
-  /*! rollup-include-cjs-only-end */
-
+  let isDevBuild = false;
   /*! rollup-include-esm-only */
-  envFallback = import.meta.dev ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT;
+  isDevBuild = !!import.meta.dev;
   /*! rollup-include-esm-only-end */
+
+  // Nitro v3 does not bundle the Sentry server config file, so `import.meta.dev` stays undefined there
+  const envFallback = isDevBuild || isNuxtDevRuntime() ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT;
 
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
-    defaultIntegrations: getNuxtDefaultIntegrations(options),
     ...options,
   };
 
@@ -99,22 +86,6 @@ export function clientSourceMapErrorFilter(options: SentryNuxtServerOptions): Ev
     }) satisfies EventProcessor,
     { id: 'NuxtClientSourceMapErrorFilter' },
   );
-}
-
-function getNuxtDefaultIntegrations(options: NodeOptions): Integration[] {
-  return [
-    ...getDefaultNodeIntegrations(options).filter(integration => integration.name !== 'Http'),
-    // The httpIntegration is added as defaultIntegration, so users can still overwrite it
-    httpIntegration({
-      incomingRequestSpanHook: () => {
-        // Flush eagerly on serverless platforms, where the function may be frozen before the transport
-        // sends, handing the flush to a platform `waitUntil` where one exists so it doesn't block. On a
-        // long-running server this is a no-op, so pending outcomes keep aggregating on the flush interval
-        // instead of shipping one client_report envelope per response.
-        void flushIfServerless();
-      },
-    }),
-  ];
 }
 
 /**

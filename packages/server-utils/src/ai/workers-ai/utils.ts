@@ -16,6 +16,7 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
@@ -27,7 +28,14 @@ import type { WorkersAiInput, WorkersAiOutput } from './types';
  * Determine the gen_ai operation name from the inputs passed to `AI.run`.
  * Workers AI exposes a single `run` method, so we infer the operation from the input shape.
  */
-export function getOperationName(inputs: unknown): string {
+export type WorkersAiOperationName = 'chat' | 'embeddings';
+
+export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, string> = {
+  chat: GEN_AI_CHAT,
+  embeddings: GEN_AI_EMBEDDINGS,
+};
+
+export function getOperationName(inputs: unknown): WorkersAiOperationName {
   if (inputs && typeof inputs === 'object') {
     if ('messages' in inputs || 'prompt' in inputs) {
       return 'chat';

@@ -1,4 +1,5 @@
-import type { ClientOptions, Options, Scope, ServerRuntimeOptions } from '@sentry/core';
+import type { ClientOptions, Options, Scope } from '@sentry/core';
+import type { ServerRuntimeOptions } from '@sentry/core/server';
 import type { NodeTransportOptions } from './transports';
 
 /**
@@ -21,6 +22,18 @@ export interface BaseNodeOptions extends ServerRuntimeOptions {
    * @default false
    */
   enableOpenTelemetrySetup?: boolean;
+
+  /**
+   * Controls whether the SDK installs its runtime diagnostics-channel injection hooks. These hooks
+   * transform supported modules (e.g. Express) at load time so they emit the diagnostics channels
+   * that the channel-based integrations subscribe to.
+   *
+   * Set this to `false` to opt out — for example when the channels are injected at build
+   * time via the bundler plugin, or when the runtime module hooks are unavailable.
+   *
+   * @default true
+   */
+  enableRuntimeChannelInjection?: boolean;
 
   /**
    * Override the runtime name reported in events.

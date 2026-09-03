@@ -1,14 +1,6 @@
 /* eslint-disable max-lines */
-import type {
-  Client,
-  IntegrationFn,
-  RequestHookInfo,
-  ResponseHookInfo,
-  Span,
-  StartSpanOptions,
-} from '@sentry/core/browser';
+import type { Client, IntegrationFn, RequestHookInfo, ResponseHookInfo, Span, StartSpanOptions } from '@sentry/core';
 import {
-  _INTERNAL_ensureBrowserSpanStreaming,
   addNonEnumerableProperty,
   consoleSandbox,
   dateTimestampInSeconds,
@@ -18,10 +10,10 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
-  getLocationHref,
   GLOBAL_OBJ,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -29,18 +21,17 @@ import {
   registerSpanErrorInstrumentation,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanIsSampled,
   spanToJSON,
-  startIdleSpan,
-  startInactiveSpan,
   timestampInSeconds,
   TRACING_DEFAULTS,
   browserPerformanceTimeOrigin,
-} from '@sentry/core/browser';
+} from '@sentry/core';
+import { _INTERNAL_ensureBrowserSpanStreaming, startIdleSpan, startInactiveSpan } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  getLocationHref,
   isBotUserAgent,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
@@ -52,7 +43,8 @@ import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integratio
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { NAVIGATION, NAVIGATION_REDIRECT, PAGELOAD } from '@sentry/conventions/op';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -350,7 +342,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
     if (initialSpanName !== finalStartSpanOptions.name) {
-      attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
+      attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'custom';
     }
 
     finalStartSpanOptions.attributes = attributes;
@@ -484,7 +476,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           _createRouteSpan(
             client,
             {
-              op: 'navigation.redirect',
+              op: NAVIGATION_REDIRECT,
               ...startSpanOptions,
             },
             false,
@@ -516,11 +508,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         _createRouteSpan(
           client,
           {
-            op: 'navigation',
+            op: NAVIGATION,
             ...startSpanOptions,
             // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
             parentSpan: null,
-            forceTransaction: true,
           },
           true,
           navigationOptions?.url,
@@ -555,7 +546,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         });
 
         _createRouteSpan(client, {
-          op: 'pageload',
+          op: PAGELOAD,
           ...startSpanOptions,
         });
       });
@@ -602,7 +593,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             // information available here.
             name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
             },
           });
@@ -633,9 +624,13 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             startBrowserTracingNavigationSpan(
               client,
               {
-                name: parsed?.pathname || WINDOW.location.pathname,
+                // With span streaming, span names have to be low cardinality, and there is no route
+                // information available here.
+                name: hasSpanStreamingEnabled(client)
+                  ? NAVIGATION_SPAN_NAME_FALLBACK
+                  : parsed?.pathname || WINDOW.location.pathname,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
                 },
               },
@@ -714,7 +709,13 @@ export function startBrowserTracingNavigationSpan(
   client.emit('startNavigationSpan', spanOptions, { isRedirect, url });
 
   const scope = getCurrentScope();
-  scope.setTransactionName(spanOptions.name);
+  // `Navigation` is a low-cardinality span name, not a description of the page. The scope's
+  // transaction name is what error events are grouped by, so it keeps the URL instead. `url` is the
+  // destination, while `location` still points at the previous page during a `pushState`.
+  const isFallbackSpanName = spanOptions.name === NAVIGATION_SPAN_NAME_FALLBACK;
+  scope.setTransactionName(
+    isFallbackSpanName ? (url && parseStringToURLObject(url)?.pathname) || WINDOW.location?.pathname : spanOptions.name,
+  );
 
   // We store the normalized request data on the scope, so we get the request data at time of span creation
   // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL

@@ -7,6 +7,6 @@ Sentry.init({
   tracesSampleRate: 1.0,
   transport: loggingTransport,
   traceLifecycle: 'stream',
-  ignoreSpans: [/\/health/],
+  ignoreSpans: [{ attributes: { 'url.path': '/health' } }],
   clientReportFlushInterval: 1_000,
 });

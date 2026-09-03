@@ -77,7 +77,7 @@ function makeMethodDecorator(original: AnyFn, wrapHandler: (handler: AnyFn) => A
  * Wrap the class decorator `@Processor` returns so it patches
  * `target.prototype.process` before delegating.
  */
-function makeProcessorDecorator(original: AnyFn, queueName: string): AnyFn {
+function makeProcessorDecorator(original: AnyFn, queueName: string | undefined): AnyFn {
   return function (this: unknown, ...args: unknown[]): unknown {
     patchProcessorTarget(args[0] as { __SENTRY_INTERNAL__?: boolean; prototype?: { process?: AnyFn } }, queueName);
     return original.apply(this, args);
@@ -121,7 +121,7 @@ export function subscribeToNestChannels(): void {
     return;
   }
 
-  DEBUG_BUILD && debug.log('[orchestrion:nestjs] subscribing to @nestjs channels');
+  DEBUG_BUILD && debug.log('[instrumentation:nestjs] subscribing to @nestjs channels');
 
   // App-creation span: `bindTracingChannelToSpan` opens the span on
   // `start`, makes it the active context for the bootstrap, and ends it

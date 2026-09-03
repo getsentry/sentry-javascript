@@ -1,0 +1,12 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-vite-autoinstrument-durableobject-rpc",
+  // `main` points at the source entry so the auto-instrument transform runs during the build.
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }],
+}

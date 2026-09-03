@@ -9,7 +9,9 @@
     "astro": "astro",
     "start": "node ./dist/server/entry.mjs",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "TEST_ENV=production playwright test"
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test db"
   },
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {

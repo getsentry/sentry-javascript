@@ -1,15 +1,9 @@
 import type { EmailMessage } from '@cloudflare/workers-types';
 import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv } from 'cloudflare:workers';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
-import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
-  withIsolationScope,
-} from '@sentry/core';
+import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
@@ -17,6 +11,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
 
 /**
@@ -31,6 +26,8 @@ function wrapEmailHandler(
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
 
+    setInvocationState(isolationScope, { ctx: context });
+
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
@@ -43,7 +40,7 @@ function wrapEmailHandler(
           [SENTRY_OP]: FUNCTION,
           'faas.trigger': 'email',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.email',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         },
       },
       async () => {

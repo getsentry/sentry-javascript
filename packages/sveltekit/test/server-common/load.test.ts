@@ -1,9 +1,6 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
@@ -172,7 +169,7 @@ describe('wrapLoadWithSentry calls `startSpan`', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           'code.function.name': 'load',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         },
         name: '/users/[id]',
       },
@@ -191,7 +188,7 @@ describe('wrapLoadWithSentry calls `startSpan`', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           'code.function.name': 'load',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         },
         name: '/users/123',
       },
@@ -258,10 +255,10 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
     expect(transaction.contexts?.trace).toEqual({
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
         'code.function.name': 'load',
-        'http.method': 'GET',
+        'http.request.method': 'GET',
         'sentry.sample_rate': 1,
       },
       op: 'function',
@@ -325,7 +322,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
       expect.objectContaining({
         name: '/users/[id]',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         }),
       }),
       expect.any(Function),

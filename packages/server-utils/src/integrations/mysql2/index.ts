@@ -2,12 +2,14 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
+import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
 import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
 import type { ChannelName } from '../../orchestrion/channels';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -16,13 +18,16 @@ import { mysql2ModuleNames } from '../../orchestrion/config/mysql2';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import {
   DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 
 const INTEGRATION_NAME = 'Mysql2' as const;
 const ORIGIN = 'auto.db.mysql2';
@@ -57,7 +62,7 @@ interface Mysql2Connection {
 }
 
 /**
- * Orchestrion-driven mysql2 integration.
+ * Diagnostics-channel-based mysql2 integration.
  *
  * Subscribes to:
  *   - the `orchestrion:mysql2:query`/`:execute` channels the code transform
@@ -65,7 +70,7 @@ interface Mysql2Connection {
  *   - mysql2's native `node:diagnostics_channel` tracing channels
  *     (mysql2 `>= 3.20.0`), which the transform intentionally leaves alone.
  *
- * The two version ranges never overlap, so no query is double-counted. Requires the orchestrion
+ * The two version ranges never overlap, so no query is double-counted. Requires the Sentry
  * runtime hook or bundler plugin to be active.
  */
 function instrumentMysql2Orchestrion(): void {
@@ -78,16 +83,27 @@ function subscribeQueryChannel(channelName: ChannelName): void {
     diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName),
     data => {
       const statement = getQueryText(data.arguments);
+      const connectionAttributes = getConnectionAttributes(data.self?.config);
+      const querySummary = statement
+        ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement, 'mysql'))
+        : undefined;
+
+      const client = getClient();
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
+          : (statement ?? 'mysql2.query');
 
       return startInactiveSpan({
-        name: statement ?? 'mysql2.query',
+        name,
         attributes: {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-          ...getConnectionAttributes(data.self?.config),
           [DB_QUERY_TEXT]: statement || undefined,
+          [DB_QUERY_SUMMARY]: querySummary,
+          ...connectionAttributes,
         },
       });
     },
@@ -151,7 +167,7 @@ const _mysql2Integration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Orchestrion-driven mysql2 integration.
+ * Diagnostics-channel-based mysql2 integration.
  *
  * Adds Sentry tracing instrumentation for the
  * [mysql2](https://www.npmjs.com/package/mysql2) library via diagnostics-channel
@@ -160,7 +176,7 @@ const _mysql2Integration = (() => {
  *
  * Known limitation vs. older OTel integration it replaced: the callback-less
  * streaming form (`connection.query(sql).on('result', ...)`) is not traced.
- * See the `mysql2` orchestrion config for why. The callback and promise forms
+ * See the `mysql2` transform config for why. The callback and promise forms
  * (the common case) are fully instrumented.
  */
 export const mysql2Integration = defineIntegration(_mysql2Integration);

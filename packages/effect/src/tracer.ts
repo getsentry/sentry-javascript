@@ -172,7 +172,7 @@ class SentrySpanWrapper implements SentrySpanLike {
 
 /**
  * The client and the server entry differ only in which `startInactiveSpan` they hand to
- * {@link makeSentryTracer}: the browser one from `@sentry/core/browser`, which installs the span
+ * {@link makeSentryTracer}: the browser one from `@sentry/core`, which installs the span
  * streaming integration on first use, and the plain one from `@sentry/core`, which does not. Nothing
  * else about the tracer is platform-specific.
  */

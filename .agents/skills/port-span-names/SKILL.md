@@ -60,7 +60,7 @@ grep -rn "spanToJSON(.*)\.name" packages/*/src
 
 Classify each write site: does it set a low cardinality value? Low cardinality values are for example:
 
-- a paramterized route (i.e. one without dynamic parameters)
+- a parameterized route (i.e. one without dynamic parameters)
 - an http origin without url path, query or fragment parameters
 - a component name
 - a static string

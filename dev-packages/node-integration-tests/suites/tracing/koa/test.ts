@@ -9,6 +9,16 @@ describe('koa auto-instrumentation', () => {
   const origin = 'auto.http.koa';
 
   const EXPECTED_ERROR_EVENT = {
+    // The error is captured within the request's koa span, so it keeps its trace
+    // linkage (a `parent_span_id`) even though koa emits `error` after the
+    // middleware chain has unwound.
+    contexts: {
+      trace: {
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      },
+    },
     exception: {
       values: [
         {

@@ -1,160 +1,83 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('should create a parameterized transaction when the `app` directory is used', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nextjs-16-bun', async transactionEvent => {
-    return (
-      transactionEvent.transaction === '/parameterized/:one' && transactionEvent.contexts?.trace?.op === 'pageload'
-    );
+test('should create a parameterized pageload span when the `app` directory is used', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('nextjs-16-bun', span => {
+    return span.name === '/parameterized/:one' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/parameterized/cappuccino`);
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction).toMatchObject({
-    contexts: {
-      react: { version: expect.any(String) },
-      trace: {
-        data: {
-          'sentry.op': 'pageload',
-          'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.nextjs.app_router_instrumentation',
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      },
-    },
-    environment: 'qa',
-    request: {
-      headers: expect.any(Object),
-      url: expect.stringMatching(/\/parameterized\/cappuccino$/),
-    },
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    transaction: '/parameterized/:one',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
+  expect(span.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(span.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.nextjs.app_router_instrumentation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.environment': { value: 'qa', type: 'string' },
+    'react.version': { value: expect.any(String), type: 'string' },
   });
 });
 
-test('should create a transaction named after the static route when the `app` directory is used', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nextjs-16-bun', async transactionEvent => {
-    return (
-      transactionEvent.transaction === '/parameterized/static' && transactionEvent.contexts?.trace?.op === 'pageload'
-    );
+test('should create a span named after the static route when the `app` directory is used', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('nextjs-16-bun', span => {
+    return span.name === '/parameterized/static' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/parameterized/static`);
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction).toMatchObject({
-    contexts: {
-      react: { version: expect.any(String) },
-      trace: {
-        data: {
-          'sentry.op': 'pageload',
-          'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
-          'url.template': '/parameterized/static',
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.nextjs.app_router_instrumentation',
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      },
-    },
-    environment: 'qa',
-    request: {
-      headers: expect.any(Object),
-      url: expect.stringMatching(/\/parameterized\/static$/),
-    },
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    transaction: '/parameterized/static',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
+  expect(span.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(span.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.nextjs.app_router_instrumentation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.environment': { value: 'qa', type: 'string' },
+    'react.version': { value: expect.any(String), type: 'string' },
+    'url.template': { value: '/parameterized/static', type: 'string' },
   });
 });
 
-test('should create a partially parameterized transaction when the `app` directory is used', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nextjs-16-bun', async transactionEvent => {
-    return (
-      transactionEvent.transaction === '/parameterized/:one/beep' && transactionEvent.contexts?.trace?.op === 'pageload'
-    );
+test('should create a partially parameterized pageload span when the `app` directory is used', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('nextjs-16-bun', span => {
+    return span.name === '/parameterized/:one/beep' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/parameterized/cappuccino/beep`);
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction).toMatchObject({
-    contexts: {
-      react: { version: expect.any(String) },
-      trace: {
-        data: {
-          'sentry.op': 'pageload',
-          'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.nextjs.app_router_instrumentation',
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      },
-    },
-    environment: 'qa',
-    request: {
-      headers: expect.any(Object),
-      url: expect.stringMatching(/\/parameterized\/cappuccino\/beep$/),
-    },
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    transaction: '/parameterized/:one/beep',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
+  expect(span.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(span.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.nextjs.app_router_instrumentation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.environment': { value: 'qa', type: 'string' },
+    'react.version': { value: expect.any(String), type: 'string' },
   });
 });
 
-test('should create a nested parameterized transaction when the `app` directory is used.', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nextjs-16-bun', async transactionEvent => {
-    return (
-      transactionEvent.transaction === '/parameterized/:one/beep/:two' &&
-      transactionEvent.contexts?.trace?.op === 'pageload'
-    );
+test('should create a nested parameterized pageload span when the `app` directory is used', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('nextjs-16-bun', span => {
+    return span.name === '/parameterized/:one/beep/:two' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/parameterized/cappuccino/beep/espresso`);
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction).toMatchObject({
-    contexts: {
-      react: { version: expect.any(String) },
-      trace: {
-        data: {
-          'sentry.op': 'pageload',
-          'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.source': 'route',
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.nextjs.app_router_instrumentation',
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      },
-    },
-    environment: 'qa',
-    request: {
-      headers: expect.any(Object),
-      url: expect.stringMatching(/\/parameterized\/cappuccino\/beep\/espresso$/),
-    },
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    transaction: '/parameterized/:one/beep/:two',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
+  expect(span.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(span.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.nextjs.app_router_instrumentation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.environment': { value: 'qa', type: 'string' },
+    'react.version': { value: expect.any(String), type: 'string' },
   });
 });

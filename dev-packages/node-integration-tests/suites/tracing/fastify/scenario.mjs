@@ -35,6 +35,12 @@ app.get('/test-outgoing-fetch/:id', async request => {
   return response.json();
 });
 
+// A hook added synchronously before `listen()` must still be instrumented (regression test: the
+// integration has to patch `addHook` synchronously, before user code runs).
+app.addHook('onRequest', (_request, _reply, done) => {
+  done();
+});
+
 const run = async () => {
   await app.listen({ port: 0, host: 'localhost' });
   port = app.server.address().port;

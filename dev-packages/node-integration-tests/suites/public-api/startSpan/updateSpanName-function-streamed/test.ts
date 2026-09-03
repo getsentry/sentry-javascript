@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { afterAll, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
@@ -15,7 +15,7 @@ test('updates the span name and source when calling `updateSpanName` (streamed)'
             name: 'new name',
             is_segment: true,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'custom' },
+              [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'custom' },
             },
           },
         ],

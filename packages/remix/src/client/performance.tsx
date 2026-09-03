@@ -5,17 +5,18 @@ import {
   getCurrentScope,
   getRootSpan,
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  isNodeEnv,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import { isNodeEnv } from '@sentry/core/server';
 import type { BrowserClient, browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
 import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -101,10 +102,10 @@ export function startPageloadSpan(client: Client): void {
   const spanContext: StartSpanOptions = {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     name: source === 'route' || !hasSpanStreamingEnabled(client) ? spanName : PAGELOAD_SPAN_NAME_FALLBACK,
-    op: 'pageload',
     attributes: {
+      [SENTRY_OP]: PAGELOAD,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+      [SENTRY_SEGMENT_NAME_SOURCE]: source,
       ...(source === 'route' && { [URL_TEMPLATE]: spanName }),
     },
   };
@@ -124,11 +125,12 @@ function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType
   const { name, source } = getTransactionNameAndSource(location.pathname, lastMatch.id);
 
   const spanContext: StartSpanOptions = {
-    name,
-    op: 'navigation',
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
     attributes: {
+      [SENTRY_OP]: NAVIGATION,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+      [SENTRY_SEGMENT_NAME_SOURCE]: source,
       ...(source === 'route' && { [URL_TEMPLATE]: name }),
     },
   };
@@ -189,7 +191,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
             const client = getClient();
             const isUnparameterizedStreamedPageload = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
             transaction.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : name);
-            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+            transaction.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
             if (source === 'route') {
               transaction.setAttribute(URL_TEMPLATE, name);
             }

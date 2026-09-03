@@ -6,10 +6,10 @@ import {
   getClient,
   getRootSpan,
   GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
   isThenable,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
 import type { DataRouter } from 'react-router';
@@ -17,12 +17,13 @@ import { DEBUG_BUILD } from '../common/debug-build';
 import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
 import {
   finalizeNavigationSpanFromRouterState,
-  getParameterizedRoute,
   normalizePathname,
   resolveNavigateAbsoluteUrl,
   resolveNavigateArg,
+  updateSpanWithParameterizedRoute,
 } from './utils';
-import { SENTRY_OP, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION } from '@sentry/conventions/op';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -52,18 +53,13 @@ export function instrumentHydratedRouter(): void {
         // Matched against `url.path` rather than the span name: with span streaming, the pageload
         // span is named `Pageload` until a route is resolved, so the name may not hold the pathname.
         const pageloadPath = spanToJSON(pageloadSpan).attributes[URL_PATH];
-        const parameterizePageloadRoute = getParameterizedRoute(router.state);
         if (
           typeof pageloadPath === 'string' &&
           // this event is for the currently active pageload
           normalizePathname(router.state.location.pathname) === normalizePathname(pageloadPath)
         ) {
-          pageloadSpan.updateName(parameterizePageloadRoute);
-          pageloadSpan.setAttributes({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react_router',
-            [URL_TEMPLATE]: parameterizePageloadRoute,
-          });
+          pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.pageload.react_router');
+          updateSpanWithParameterizedRoute(pageloadSpan, router.state);
         }
       }
 
@@ -135,13 +131,12 @@ export function instrumentHydratedRouter(): void {
         if (
           rootSpanAttributes[SENTRY_OP] === 'navigation' &&
           isClientInstrumentationApiUsed() &&
-          rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'route'
+          rootSpanAttributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route'
         ) {
           return;
         }
 
         const rootSpanName = rootSpanJson.name;
-        const parameterizedRoute = getParameterizedRoute(newState);
         const spanPathname = rootSpanAttributes[URL_PATH] as string | undefined;
         const destinationPathname = normalizePathname(newState.location.pathname);
 
@@ -152,11 +147,7 @@ export function instrumentHydratedRouter(): void {
           (destinationPathname === normalizePathname(rootSpanName) ||
             (spanPathname && destinationPathname === normalizePathname(spanPathname)))
         ) {
-          rootSpan.updateName(parameterizedRoute);
-          rootSpan.setAttributes({
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            [URL_TEMPLATE]: parameterizedRoute,
-          });
+          updateSpanWithParameterizedRoute(rootSpan, newState);
         }
       });
       return true;
@@ -190,10 +181,12 @@ function maybeCreateNavigationTransaction(name: string, url: string, source: 'ur
   return startBrowserTracingNavigationSpan(
     client,
     {
-      name,
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      // The route is resolved once the router settles, which updates the span name then.
+      name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: source,
+        [SENTRY_OP]: NAVIGATION,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
         ...(source === 'route' ? { [URL_TEMPLATE]: name } : {}),
       },

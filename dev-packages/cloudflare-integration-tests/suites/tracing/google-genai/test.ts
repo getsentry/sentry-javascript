@@ -5,11 +5,16 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_PRESENCE_PENALTY,
   GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_RESPONSE_TEXT,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -49,7 +54,24 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_PROVIDER_NAME]: { value: 'google_genai', type: 'string' },
           [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gemini-1.5-pro', type: 'string' },
+          // Set once on `chats.create()` and reused for every message the chat sends.
+          [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.8, type: 'double' },
+          [GEN_AI_REQUEST_TOP_P]: { value: 0.9, type: 'double' },
+          [GEN_AI_REQUEST_TOP_K]: { value: 40, type: 'integer' },
+          [GEN_AI_REQUEST_MAX_TOKENS]: { value: 150, type: 'integer' },
+          [GEN_AI_REQUEST_FREQUENCY_PENALTY]: { value: 0.5, type: 'double' },
+          [GEN_AI_REQUEST_PRESENCE_PENALTY]: { value: 0.3, type: 'double' },
+          [GEN_AI_TOOL_DEFINITIONS]: {
+            value:
+              '[{"name":"controlLight","parametersJsonSchema":{"type":"object","properties":{"brightness":{"type":"number"},"colorTemperature":{"type":"string"}},"required":["brightness","colorTemperature"]}}]',
+            type: 'string',
+          },
           // collect LLM input and outputs (default true)
+          [GEN_AI_SYSTEM_INSTRUCTIONS]: {
+            value: '[{"type":"text","content":"You are a friendly robot."}]',
+            type: 'string',
+          },
+          // The create `history` stays off the span; only the message being sent is reported.
           [GEN_AI_INPUT_MESSAGES]: { value: '[{"role":"user","content":"Tell me a joke"}]', type: 'string' },
           [GEN_AI_RESPONSE_TEXT]: { value: 'Hello from Google GenAI!', type: 'string' },
           [GEN_AI_USAGE_INPUT_TOKENS]: { value: 8, type: 'integer' },

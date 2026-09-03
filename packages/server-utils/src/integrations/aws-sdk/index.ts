@@ -5,10 +5,10 @@ import {
   _AWS_REQUEST_ID as AWS_REQUEST_ID,
   AWS_REQUEST_EXTENDED_ID,
   CLOUD_REGION,
-  HTTP_STATUS_CODE,
   SENTRY_KIND,
   HTTP_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
+import { RPC } from '@sentry/conventions/op';
 import { CHANNELS } from '../../orchestrion/channels';
 import { awsSdkModuleNames } from '../../orchestrion/config/aws-sdk';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -56,8 +56,6 @@ function setMetadataAttributes(span: Span, metadata: Record<string, any> | undef
     span.setAttribute(AWS_REQUEST_ID, metadata.requestId);
   }
   if (metadata.httpStatusCode) {
-    // oxlint-disable-next-line typescript/no-deprecated
-    span.setAttribute(HTTP_STATUS_CODE, metadata.httpStatusCode);
     span.setAttribute(HTTP_RESPONSE_STATUS_CODE, metadata.httpStatusCode);
   }
   if (metadata.extendedRequestId) {
@@ -110,7 +108,7 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
         name: requestMetadata.spanName ?? `${normalizedRequest.serviceName}.${normalizedRequest.commandName}`,
         // `rpc` matches what the exporter infers from `rpc.service` for the OTel aws-sdk spans;
         // service extensions override it where inference yields a different op (DynamoDB: `db`).
-        op: requestMetadata.spanOp || 'rpc',
+        op: requestMetadata.spanOp || RPC,
         attributes: {
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AWS_SDK_ORIGIN,
@@ -237,11 +235,11 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
 }
 
 /**
- * Orchestrion-driven aws-sdk (v3) integration.
+ * Diagnostics-channel-based aws-sdk (v3) integration.
  *
  * Subscribes to the `orchestrion:@smithy/smithy-client:send` (and equivalent) diagnostics_channel
- * the orchestrion code transform injects into the AWS SDK's smithy `Client.prototype.send`, emitting
+ * Sentry's code transform injects into the AWS SDK's smithy `Client.prototype.send`, emitting
  * spans identical to the OTel `@opentelemetry/instrumentation-aws-sdk` integration. Requires the
- * orchestrion runtime hook or bundler plugin.
+ * Sentry runtime hook or bundler plugin.
  */
 export const awsIntegration = defineIntegration(_awsIntegration);

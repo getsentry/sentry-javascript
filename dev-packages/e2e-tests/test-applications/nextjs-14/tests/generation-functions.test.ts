@@ -1,27 +1,35 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+
+// The generation-function spans are children of the segment span, which ends last, so accumulate
+// spans until the segment for this request arrives.
+function collectSpansForTarget(httpTarget: string) {
+  return collectStreamedSpans('nextjs-14', spans =>
+    spans.some(span => span.is_segment && span.attributes['http.target']?.value === httpTarget),
+  );
+}
 
 test('Should emit a span for a generateMetadata() function invocation', async ({ page }) => {
   const testTitle = 'should-emit-span';
+  const httpTarget = `/generation-functions?metadataTitle=${testTitle}`;
 
-  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/generation-functions?metadataTitle=${testTitle}`
-    );
-  });
+  const spansPromise = collectSpansForTarget(httpTarget);
 
-  await page.goto(`/generation-functions?metadataTitle=${testTitle}`);
+  await page.goto(httpTarget);
 
-  const transaction = await transactionPromise;
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment && span.attributes['http.target']?.value === httpTarget)!;
 
-  expect(transaction.spans).toContainEqual(
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      description: 'generateMetadata /generation-functions/page',
-      origin: 'auto',
+      name: 'generateMetadata /generation-functions/page',
+      status: 'ok',
+      trace_id: segmentSpan.trace_id,
       parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      status: 'ok',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      attributes: expect.objectContaining({
+        'sentry.origin': { value: 'auto', type: 'string' },
+      }),
     }),
   );
 
@@ -29,16 +37,12 @@ test('Should emit a span for a generateMetadata() function invocation', async ({
   expect(pageTitle).toBe(testTitle);
 });
 
-test('Should send a transaction and an error event for a faulty generateMetadata() function invocation', async ({
-  page,
-}) => {
+test('Should send a span and an error event for a faulty generateMetadata() function invocation', async ({ page }) => {
   const testTitle = 'should-emit-error';
+  const httpTarget = `/generation-functions?metadataTitle=${testTitle}&shouldThrowInGenerateMetadata=1`;
 
-  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.data?.['http.target'] ===
-      `/generation-functions?metadataTitle=${testTitle}&shouldThrowInGenerateMetadata=1`
-    );
+  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
+    return span.is_segment && span.attributes['http.target']?.value === httpTarget;
   });
 
   const errorEventPromise = waitForError('nextjs-14', errorEvent => {
@@ -48,61 +52,57 @@ test('Should send a transaction and an error event for a faulty generateMetadata
     );
   });
 
-  await page.goto(`/generation-functions?metadataTitle=${testTitle}&shouldThrowInGenerateMetadata=1`);
+  await page.goto(httpTarget);
 
   const errorEvent = await errorEventPromise;
-  const transactionEvent = await transactionPromise;
+  expect(await spanPromise).toBeDefined();
 
-  // Assert that isolation scope works properly
+  // Assert that isolation scope works properly. Span v2 carries no scope tags, so this is only
+  // asserted on the error event; the span-side assertions were dropped in the streaming port.
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-  expect(transactionEvent.tags?.['my-isolated-tag']).toBe(true);
-  expect(transactionEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
-test('Should send a transaction event for a generateViewport() function invocation', async ({ page }) => {
+test('Should send a span for a generateViewport() function invocation', async ({ page }) => {
   const testTitle = 'floob';
+  const httpTarget = `/generation-functions?viewportThemeColor=${testTitle}`;
 
-  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.data?.['http.target'] ===
-      `/generation-functions?viewportThemeColor=${testTitle}`
-    );
-  });
+  const spansPromise = collectSpansForTarget(httpTarget);
 
-  await page.goto(`/generation-functions?viewportThemeColor=${testTitle}`);
+  await page.goto(httpTarget);
 
-  expect((await transactionPromise).spans).toContainEqual(
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment && span.attributes['http.target']?.value === httpTarget)!;
+
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      description: 'generateViewport /generation-functions/page',
-      origin: 'auto',
+      name: 'generateViewport /generation-functions/page',
+      status: 'ok',
+      trace_id: segmentSpan.trace_id,
       parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      status: 'ok',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      attributes: expect.objectContaining({
+        'sentry.origin': { value: 'auto', type: 'string' },
+      }),
     }),
   );
 });
 
-test('Should send a transaction and an error event for a faulty generateViewport() function invocation', async ({
-  page,
-}) => {
+test('Should send a span and an error event for a faulty generateViewport() function invocation', async ({ page }) => {
   const testTitle = 'blargh';
+  const httpTarget = `/generation-functions?viewportThemeColor=${testTitle}&shouldThrowInGenerateViewport=1`;
 
-  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.data?.['http.target'] ===
-      `/generation-functions?viewportThemeColor=${testTitle}&shouldThrowInGenerateViewport=1`
-    );
+  const spanPromise = waitForStreamedSpan('nextjs-14', span => {
+    return span.is_segment && span.attributes['http.target']?.value === httpTarget;
   });
 
   const errorEventPromise = waitForError('nextjs-14', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'generateViewport Error';
   });
 
-  await page.goto(`/generation-functions?viewportThemeColor=${testTitle}&shouldThrowInGenerateViewport=1`);
+  await page.goto(httpTarget);
 
-  expect(await transactionPromise).toBeDefined();
+  expect(await spanPromise).toBeDefined();
   expect(await errorEventPromise).toBeDefined();
 
   const errorEvent = await errorEventPromise;

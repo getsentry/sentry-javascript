@@ -5,6 +5,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 import { wrapMcpServerWithSentry } from '@sentry/node';
+import { capturePolicyServer } from './mcpCapturePolicyServer';
 
 // Helper to check if request is an initialize request (compatible with all MCP SDK versions)
 function isInitializeRequest(body: unknown): boolean {
@@ -60,6 +61,26 @@ server.tool('always-error', {}, async () => {
 });
 
 const transports: Record<string, SSEServerTransport> = {};
+const capturePolicyTransports: Record<string, SSEServerTransport> = {};
+
+mcpRouter.get('/capture-policy/sse', async (_, res) => {
+  const transport = new SSEServerTransport('/capture-policy/messages', res);
+  capturePolicyTransports[transport.sessionId] = transport;
+  res.on('close', () => {
+    delete capturePolicyTransports[transport.sessionId];
+  });
+  await capturePolicyServer.connect(transport);
+});
+
+mcpRouter.post('/capture-policy/messages', async (req, res) => {
+  const sessionId = req.query.sessionId;
+  const transport = capturePolicyTransports[sessionId as string];
+  if (transport) {
+    await transport.handlePostMessage(req, res, req.body);
+  } else {
+    res.status(400).send('No transport found for sessionId');
+  }
+});
 
 mcpRouter.get('/sse', async (_, res) => {
   const transport = new SSEServerTransport('/messages', res);

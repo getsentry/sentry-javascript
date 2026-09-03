@@ -1,5 +1,5 @@
-import type { HandlerDataDom } from '@sentry/core';
 import { addHandler, addNonEnumerableProperty, fill, maybeInstrument, triggerHandlers, uuid4 } from '@sentry/core';
+import type { HandlerDataDom } from '../types';
 import { WINDOW } from '../types';
 
 type SentryWrappedTarget = HTMLElement & { _sentryId?: string };

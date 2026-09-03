@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-// These assertions only hold in the orchestrion variant (INJECT_ORCHESTRION=true), which
-// force-bundles + transforms mysql/ioredis and boots the databases via docker-compose.
+// Orchestrion force-bundles + transforms mysql/ioredis at build time, and the databases
+// are booted via docker-compose in the Playwright global setup.
 test.describe('orchestrion DB instrumentation', () => {
-  test.skip(process.env.INJECT_ORCHESTRION !== 'true', 'Only runs in the orchestrion variant');
-
   test('Instruments ioredis automatically via orchestrion', async ({ baseURL }) => {
     const transactionEventPromise = waitForTransaction('create-remix-app-v2', transactionEvent => {
       return (
@@ -21,24 +19,26 @@ test.describe('orchestrion DB instrumentation', () => {
 
     expect(spans).toContainEqual(
       expect.objectContaining({
-        op: 'db',
+        op: 'db.query',
         origin: 'auto.db.redis',
         description: 'set test-key [1 other arguments]',
         status: 'ok',
         data: expect.objectContaining({
           'db.system.name': 'redis',
+          'db.operation.name': 'set',
           'db.query.text': 'set test-key [1 other arguments]',
         }),
       }),
     );
     expect(spans).toContainEqual(
       expect.objectContaining({
-        op: 'db',
+        op: 'db.query',
         origin: 'auto.db.redis',
         description: 'get test-key',
         status: 'ok',
         data: expect.objectContaining({
           'db.system.name': 'redis',
+          'db.operation.name': 'get',
           'db.query.text': 'get test-key',
         }),
       }),

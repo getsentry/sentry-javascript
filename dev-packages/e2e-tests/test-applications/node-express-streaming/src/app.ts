@@ -97,8 +97,6 @@ app.get('/test-local-variables-caught', function (req, res) {
   res.send({ exceptionId, randomVariableToRecord });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 // @ts-ignore
 app.use(function onError(err, req, res, next) {
   // The error id is attached to `res.sentry` to be returned

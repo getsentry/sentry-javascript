@@ -138,10 +138,3 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
 
   return customDefaultIntegrations;
 }
-
-/**
- * Just a passthrough in case this is imported from the client.
- */
-export function withSentryConfig<T>(exportedUserNextConfig: T): T {
-  return exportedUserNextConfig;
-}

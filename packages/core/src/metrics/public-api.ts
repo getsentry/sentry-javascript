@@ -1,4 +1,5 @@
 import type { Scope } from '../scope';
+import type { MetricUnit } from '../types/measurement';
 import type { Metric, MetricType } from '../types/metric';
 import { _INTERNAL_captureMetric } from './internal';
 
@@ -9,7 +10,7 @@ export interface MetricOptions {
   /**
    * The unit of the metric value.
    */
-  unit?: string;
+  unit?: MetricUnit;
 
   /**
    * Arbitrary structured data that stores information about the metric.

@@ -11,11 +11,12 @@ import {
   isThenable,
   isVueViewModel,
 } from '../../../src/utils/is';
-import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../../../src/utils/supports';
+import { supportsDOMException, supportsErrorEvent } from '../../../src/utils/supports';
 import { resolvedSyncPromise } from '../../../src/utils/syncpromise';
 import { testOnlyIfNodeVersionAtLeast } from '../../testutils';
 
-if (supportsDOMError()) {
+// @ts-expect-error See: src/supports.ts for details
+if (typeof DOMError !== 'undefined') {
   describe('isDOMError()', () => {
     test('should work as advertised', () => {
       expect(isDOMError(new Error())).toEqual(false);

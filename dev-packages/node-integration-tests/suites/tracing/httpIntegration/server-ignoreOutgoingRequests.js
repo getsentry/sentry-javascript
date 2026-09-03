@@ -53,8 +53,6 @@ app.get('/testRequest', (_req, response) => {
   });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);
 
 function makeHttpRequest(url) {

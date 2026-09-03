@@ -53,12 +53,35 @@ export default Sentry.withSentry(
       const client = Sentry.instrumentGoogleGenAIClient(new GoogleGenAI({ apiKey: 'mock-api-key' }));
 
       // Test 1: chats.create and sendMessage flow
+      // Every field here is read back off the chat instance for each message the chat sends, so
+      // the create config covers all of them at once.
       const chat = client.chats.create({
         model: 'gemini-1.5-pro',
         config: {
           temperature: 0.8,
           topP: 0.9,
+          topK: 40,
           maxOutputTokens: 150,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.3,
+          systemInstruction: 'You are a friendly robot.',
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'controlLight',
+                  parametersJsonSchema: {
+                    type: 'object',
+                    properties: {
+                      brightness: { type: 'number' },
+                      colorTemperature: { type: 'string' },
+                    },
+                    required: ['brightness', 'colorTemperature'],
+                  },
+                },
+              ],
+            },
+          ],
         },
         history: [
           {

@@ -1,5 +1,6 @@
+import type { HandlerDataDom } from '@sentry/browser-utils';
 import { htmlTreeAsString } from '@sentry/browser-utils';
-import type { Breadcrumb, HandlerDataDom } from '@sentry/core';
+import type { Breadcrumb } from '@sentry/core';
 import { record } from '@sentry/rrweb';
 import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry/rrweb-snapshot';
 import { NodeType } from '@sentry/rrweb-snapshot';

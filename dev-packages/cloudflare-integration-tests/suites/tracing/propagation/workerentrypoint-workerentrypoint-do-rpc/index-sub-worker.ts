@@ -17,7 +17,6 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: true,
   }),
   MyDurableObjectBase,
 );
@@ -42,7 +41,7 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: true,
+    rpcTracePropagationBindings: ['MY_DURABLE_OBJECT'],
   }),
   MySubWorkerEntrypointBase,
 );

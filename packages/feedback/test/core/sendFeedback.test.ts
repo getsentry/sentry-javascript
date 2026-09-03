@@ -33,6 +33,18 @@ describe('sendFeedback', () => {
     patchedDecoder && delete global.window.TextDecoder;
   });
 
+  // `sendFeedback` always signals failure with an `Error`, never a bare string. A `toThrow(text)`
+  // assertion alone also passes for a thrown/rejected string, so assert the shape explicitly too.
+  async function expectRejectsWithError(promise: Promise<unknown>, message: string): Promise<void> {
+    await expect(promise).rejects.toBeInstanceOf(Error);
+    await expect(promise).rejects.toThrow(message);
+  }
+
+  function expectThrowsWithError(fn: () => unknown, message: string): void {
+    expect(fn).toThrow(Error);
+    expect(fn).toThrow(message);
+  }
+
   it('sends feedback with minimal options', async () => {
     mockSdk();
     const mockTransport = vi.spyOn(getClient()!.getTransport()!, 'send');
@@ -269,7 +281,7 @@ describe('sendFeedback', () => {
 
   it('throws when message is empty', () => {
     mockSdk();
-    expect(() => sendFeedback({ message: '' })).toThrow('Unable to submit feedback with empty message');
+    expectThrowsWithError(() => sendFeedback({ message: '' }), 'Unable to submit feedback with empty message');
   });
 
   it('throws when no client is set up', async () => {
@@ -279,7 +291,7 @@ describe('sendFeedback', () => {
     getGlobalScope().setClient(undefined);
     getCurrentScope().setClient(undefined);
     getIsolationScope().setClient(undefined);
-    expect(() => sendFeedback({ message: 'mi' })).toThrow('No client setup, cannot send feedback.');
+    expectThrowsWithError(() => sendFeedback({ message: 'mi' }), 'No client setup, cannot send feedback.');
   });
 
   it('uses provided errorMessages overrides', async () => {
@@ -288,9 +300,10 @@ describe('sendFeedback', () => {
       return Promise.resolve({ statusCode: 403 });
     });
 
-    await expect(
+    await expectRejectsWithError(
       sendFeedback({ message: 'mi' }, { errorMessages: { ERROR_FORBIDDEN: 'custom forbidden text' } }),
-    ).rejects.toMatch('custom forbidden text');
+      'custom forbidden text',
+    );
   });
 
   it('falls back to default messages for codes not in errorMessages', async () => {
@@ -300,9 +313,8 @@ describe('sendFeedback', () => {
     });
 
     // Only override ERROR_FORBIDDEN — a 400 should still use the default generic message.
-    await expect(
+    await expectRejectsWithError(
       sendFeedback({ message: 'mi' }, { errorMessages: { ERROR_FORBIDDEN: 'custom forbidden text' } }),
-    ).rejects.toMatch(
       'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
     );
   });
@@ -313,13 +325,12 @@ describe('sendFeedback', () => {
       return Promise.resolve({ statusCode: 400 });
     });
 
-    await expect(
+    await expectRejectsWithError(
       sendFeedback({
         name: 'doe',
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch(
       'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
     );
   });
@@ -330,13 +341,12 @@ describe('sendFeedback', () => {
       return Promise.resolve({ statusCode: 0 });
     });
 
-    await expect(
+    await expectRejectsWithError(
       sendFeedback({
         name: 'doe',
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch(
       'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
     );
   });
@@ -347,13 +357,12 @@ describe('sendFeedback', () => {
       return Promise.resolve({ statusCode: 403 });
     });
 
-    await expect(
+    await expectRejectsWithError(
       sendFeedback({
         name: 'doe',
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch(
       'Unable to send feedback. This could be because this domain is not in your list of allowed domains.',
     );
   });
@@ -389,7 +398,7 @@ describe('sendFeedback', () => {
 
     vi.advanceTimersByTime(30_000);
 
-    await expect(promise).rejects.toMatch('Unable to determine if Feedback was correctly sent.');
+    await expectRejectsWithError(promise, 'Unable to determine if Feedback was correctly sent.');
 
     vi.useRealTimers();
   });

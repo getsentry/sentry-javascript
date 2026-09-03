@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@cfworker/json-schema": "^4.0.0",
-    "@modelcontextprotocol/node": "2.0.0",
-    "@modelcontextprotocol/server": "2.0.0",
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@types/express": "^4.17.21",
     "@types/node": "^18.19.1",
@@ -22,7 +22,7 @@
     "zod": "^4.2.0"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/client": "^2.0.0",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz"

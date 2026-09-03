@@ -16,7 +16,7 @@ test('sends a pageload root span with a parameterized URL', async ({ page }) => 
     contexts: {
       trace: {
         data: {
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'sentry.origin': 'auto.pageload.vue',
           'sentry.op': 'pageload',
           'params.param': '1234',

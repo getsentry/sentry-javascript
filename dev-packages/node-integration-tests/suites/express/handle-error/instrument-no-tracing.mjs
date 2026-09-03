@@ -6,4 +6,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   transport: loggingTransport,
+  // With tracing off, `expressIntegration()` is not a default integration, so opt in explicitly to
+  // get automatic error capture.
+  integrations: [Sentry.expressIntegration()],
 });

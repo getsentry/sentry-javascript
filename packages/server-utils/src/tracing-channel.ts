@@ -98,7 +98,7 @@ export function safeChannelCallback<T>(fn: () => T): T | undefined {
   try {
     return fn();
   } catch (error) {
-    DEBUG_BUILD && debug.warn('[orchestrion] error handling channel event', error);
+    DEBUG_BUILD && debug.warn('[instrumentation] error handling channel event', error);
     return undefined;
   }
 }

@@ -10,8 +10,8 @@ export default defineConfig({
   integrations: [
     sentry({
       debug: true,
-      sourceMapsUploadOptions: {
-        enabled: false,
+      sourcemaps: {
+        disable: true,
       },
     }),
     spotlightjs(),

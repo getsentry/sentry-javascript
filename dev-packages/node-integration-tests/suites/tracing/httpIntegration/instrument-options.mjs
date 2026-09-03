@@ -10,9 +10,9 @@ Sentry.init({
 
   integrations: [
     Sentry.httpIntegration({
-      incomingRequestSpanHook: (span, req, res) => {
-        span.setAttribute('incomingRequestSpanHook', 'yes');
-        Sentry.setExtra('incomingRequestSpanHookCalled', {
+      onSpanCreated: (span, req, res) => {
+        span.setAttribute('onSpanCreated', 'yes');
+        Sentry.setExtra('onSpanCreatedCalled', {
           reqUrl: req.url,
           reqMethod: req.method,
           resUrl: res.req.url,

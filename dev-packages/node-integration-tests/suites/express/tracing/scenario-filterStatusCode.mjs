@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 
@@ -31,7 +30,5 @@ app.get('/300', (_req, res) => {
 app.get('/399', (_req, res) => {
   res.status(399).send({ response: 'response 399' });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

@@ -18,13 +18,21 @@ describe('orchestrionModuleInjected', () => {
 
   it('records the module name as bundler-injected', () => {
     orchestrionModuleInjected('mysql');
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(['mysql']);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(new Set(['mysql']));
   });
 
   it('deduplicates the recorded module across repeated calls', () => {
     orchestrionModuleInjected('mysql');
     orchestrionModuleInjected('mysql');
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(['mysql']);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(new Set(['mysql']));
+  });
+
+  it('adds to the set the banner already created', () => {
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: new Set(['pg']) };
+
+    orchestrionModuleInjected('mysql');
+
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(new Set(['pg', 'mysql']));
   });
 
   it('stores the factory on the global marker keyed by module name', () => {
@@ -41,7 +49,7 @@ describe('orchestrionModuleInjected', () => {
   it('emits the module-injected event on the current client, after recording', () => {
     const emit = vi.fn(() => {
       // Listeners react by reading the marker, so it must be recorded by now.
-      expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(['mysql']);
+      expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(new Set(['mysql']));
       expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.has('mysql')).toBe(true);
     });
     getCurrentScope().setClient({ emit } as unknown as Client);
@@ -54,7 +62,7 @@ describe('orchestrionModuleInjected', () => {
   it('does not throw when no client is set yet', () => {
     expect(() => orchestrionModuleInjected('mysql', factory('Mysql'))).not.toThrow();
     // still recorded for the next init() to pick up
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(['mysql']);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler).toEqual(new Set(['mysql']));
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.has('mysql')).toBe(true);
   });
 
@@ -69,8 +77,8 @@ describe('orchestrionModuleInjected', () => {
     expect(emit).toHaveBeenCalledWith('orchestrion.module-injected', 'mysql');
   });
 
-  it('leaves a foreign non-array bundler flag untouched but still stores and emits', () => {
-    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: true as unknown as string[] };
+  it('leaves a foreign non-Set bundler flag untouched but still stores and emits', () => {
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: true as unknown as Set<string> };
     const emit = vi.fn();
     getCurrentScope().setClient({ emit } as unknown as Client);
 

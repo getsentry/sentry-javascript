@@ -1,250 +1,183 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span with a parameterized URL', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/posts/456`);
 
-  const rootSpan = await transactionPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.source': 'route',
-          'sentry.origin': 'auto.pageload.solid.tanstack_router',
-          'sentry.op': 'pageload',
-          'url.path.parameter.postId': '456',
-          'url.template': '/posts/$postId',
-          'url.path': '/posts/456',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/456$/),
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.solid.tanstack_router',
-      },
-    },
-    transaction: '/posts/$postId',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(pageloadSpan.name).toBe('/posts/$postId');
+  expect(pageloadSpan.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.solid.tanstack_router', type: 'string' },
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'url.path.parameter.postId': { value: '456', type: 'string' },
+    'url.template': { value: '/posts/$postId', type: 'string' },
+    'url.path': { value: '/posts/456', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/456$/), type: 'string' },
   });
 });
 
-test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a navigation span with a parameterized URL', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationTxnPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.transaction === '/posts/$postId' &&
-      transactionEvent.contexts?.trace?.op === 'navigation'
-    );
+  const navigationSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/posts/$postId';
   });
 
   await page.goto(`/`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
   await page.waitForTimeout(5000);
   await page.locator('#nav-link').click();
 
-  const navigationTxn = await navigationTxnPromise;
+  const navigationSpan = await navigationSpanPromise;
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.source': 'route',
-          'sentry.origin': 'auto.navigation.solid.tanstack_router',
-          'sentry.op': 'navigation',
-          'url.path.parameter.postId': '2',
-          'url.template': '/posts/$postId',
-          'url.path': '/posts/2',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/2$/),
-        },
-        op: 'navigation',
-        origin: 'auto.navigation.solid.tanstack_router',
-      },
-    },
-    transaction: '/posts/$postId',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(navigationSpan.name).toBe('/posts/$postId');
+  expect(navigationSpan.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.origin': { value: 'auto.navigation.solid.tanstack_router', type: 'string' },
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'url.path.parameter.postId': { value: '2', type: 'string' },
+    'url.template': { value: '/posts/$postId', type: 'string' },
+    'url.path': { value: '/posts/2', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/2$/), type: 'string' },
   });
 });
 
-test('sends a pageload transaction named after the resolved route when a redirect is thrown on initial load', async ({
+test('sends a pageload span named after the resolved route when a redirect is thrown on initial load', async ({
   page,
 }) => {
-  const pageloadTxnPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/posts/$postId';
+  const pageloadSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/posts/$postId';
   });
 
   await page.goto(`/redirect`);
 
-  const pageloadTxn = await pageloadTxnPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(pageloadTxn).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.source': 'route',
-          'sentry.origin': 'auto.pageload.solid.tanstack_router',
-          'sentry.op': 'pageload',
-          'url.path.parameter.postId': '1',
-          'url.template': '/posts/$postId',
-          'url.path': '/posts/1',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/1$/),
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.solid.tanstack_router',
-      },
-    },
-    transaction: '/posts/$postId',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(pageloadSpan.name).toBe('/posts/$postId');
+  expect(pageloadSpan.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.solid.tanstack_router', type: 'string' },
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'url.path.parameter.postId': { value: '1', type: 'string' },
+    'url.template': { value: '/posts/$postId', type: 'string' },
+    'url.path': { value: '/posts/1', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/1$/), type: 'string' },
   });
 });
 
-test('sends a navigation transaction when a redirect is thrown in beforeLoad', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a navigation span when a redirect is thrown in beforeLoad', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationTxnPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.transaction === '/posts/$postId' &&
-      transactionEvent.contexts?.trace?.op === 'navigation'
-    );
+  const navigationSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/posts/$postId';
   });
 
   await page.goto(`/`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
   await page.locator('#redirect-link').click();
 
-  const navigationTxn = await navigationTxnPromise;
+  const navigationSpan = await navigationSpanPromise;
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.source': 'route',
-          'sentry.origin': 'auto.navigation.solid.tanstack_router',
-          'sentry.op': 'navigation',
-          'url.path.parameter.postId': '1',
-          'url.template': '/posts/$postId',
-          'url.path': '/posts/1',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/1$/),
-        },
-        op: 'navigation',
-        origin: 'auto.navigation.solid.tanstack_router',
-      },
-    },
-    transaction: '/posts/$postId',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(navigationSpan.name).toBe('/posts/$postId');
+  expect(navigationSpan.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.origin': { value: 'auto.navigation.solid.tanstack_router', type: 'string' },
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'url.path.parameter.postId': { value: '1', type: 'string' },
+    'url.template': { value: '/posts/$postId', type: 'string' },
+    'url.path': { value: '/posts/1', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/1$/), type: 'string' },
   });
 });
 
-test('sends a navigation transaction for a normal navigation that happens after a redirect', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a navigation span for a normal navigation that happens after a redirect', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
-  const redirectTxnPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/posts/$postId';
+  const redirectSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/posts/$postId';
   });
   await page.locator('#redirect-link').click();
-  await redirectTxnPromise;
+  await redirectSpanPromise;
 
-  const navigationTxnPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
+  const navigationSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
     return (
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.contexts?.trace?.data?.['url.path.parameter.postId'] === '2'
+      getSpanOp(span) === 'navigation' && span.is_segment && span.attributes['url.path.parameter.postId']?.value === '2'
     );
   });
 
   await page.locator('#nav-link').click();
 
-  const navigationTxn = await navigationTxnPromise;
+  const navigationSpan = await navigationSpanPromise;
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.source': 'route',
-          'sentry.origin': 'auto.navigation.solid.tanstack_router',
-          'sentry.op': 'navigation',
-          'url.path.parameter.postId': '2',
-          'url.template': '/posts/$postId',
-          'url.path': '/posts/2',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/2$/),
-        },
-        op: 'navigation',
-        origin: 'auto.navigation.solid.tanstack_router',
-      },
-    },
-    transaction: '/posts/$postId',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(navigationSpan.name).toBe('/posts/$postId');
+  expect(navigationSpan.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'sentry.origin': { value: 'auto.navigation.solid.tanstack_router', type: 'string' },
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'url.path.parameter.postId': { value: '2', type: 'string' },
+    'url.template': { value: '/posts/$postId', type: 'string' },
+    'url.path': { value: '/posts/2', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/posts\/2$/), type: 'string' },
   });
 });
 
-test('sends pageload transaction with web vitals measurements', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solid-tanstack-router', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span with web vital attributes and a standalone LCP span', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
+  });
+
+  const lcpSpanPromise = waitForStreamedSpan('solid-tanstack-router', span => {
+    return getSpanOp(span) === 'ui.webvital.lcp';
   });
 
   await page.goto(`/`);
 
-  const transaction = await transactionPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(transaction).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'pageload',
-        origin: 'auto.pageload.solid.tanstack_router',
-        data: {
-          'sentry.source': 'route',
-          'url.template': '/',
-          'url.path': '/',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-        },
-      },
-    },
-    transaction: '/',
-    transaction_info: {
-      source: 'route',
-    },
-    measurements: expect.objectContaining({
-      ttfb: expect.objectContaining({
-        value: expect.any(Number),
-        unit: 'millisecond',
-      }),
-      lcp: expect.objectContaining({
-        value: expect.any(Number),
-        unit: 'millisecond',
-      }),
-      fp: expect.objectContaining({
-        value: expect.any(Number),
-        unit: 'millisecond',
-      }),
-      fcp: expect.objectContaining({
-        value: expect.any(Number),
-        unit: 'millisecond',
-      }),
-    }),
+  // LCP is only reported once the page is hidden or a navigation happens
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+
+  const lcpSpan = await lcpSpanPromise;
+
+  const webVitalNumber = { value: expect.any(Number), type: expect.stringMatching(/^(integer|double)$/) };
+
+  expect(pageloadSpan.name).toBe('/');
+  expect(pageloadSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.solid.tanstack_router', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.template': { value: '/', type: 'string' },
+    'url.path': { value: '/', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/$/), type: 'string' },
+    'browser.web_vital.ttfb.value': webVitalNumber,
+    'browser.web_vital.fp.value': webVitalNumber,
+    'browser.web_vital.fcp.value': webVitalNumber,
+  });
+
+  expect(lcpSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'ui.webvital.lcp', type: 'string' },
+    'sentry.origin': { value: 'auto.http.browser.lcp', type: 'string' },
+    'sentry.pageload.span_id': { value: pageloadSpan.span_id, type: 'string' },
+    'browser.web_vital.lcp.value': webVitalNumber,
   });
 });

@@ -145,9 +145,11 @@ function handleRejection(reason: unknown, mode: UnhandledRejectionMode): void {
       console.error(isObjectLike(reason) && 'stack' in reason ? reason.stack : reason);
     });
   } else if (mode === 'strict') {
-    consoleSandbox(() => {
-      console.warn(rejectionWarning);
-    });
+    if (!(isObjectLike(reason) && 'stack' in reason)) {
+      consoleSandbox(() => {
+        console.warn(rejectionWarning);
+      });
+    }
     logAndExitProcess(reason);
   }
   /* eslint-enable no-console */

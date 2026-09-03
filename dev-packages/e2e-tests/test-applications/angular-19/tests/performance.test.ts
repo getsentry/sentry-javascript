@@ -3,6 +3,10 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 // Cannot use @sentry/angular here due to build stuff
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
+// The `angular-19 (streamed)` variant builds the app with `traceLifecycle: 'stream'`, which emits
+// spans instead of transactions. See `streamed-performance.test.ts` for that variant.
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'stream', 'transactions are not emitted with span streaming');
+
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
@@ -19,7 +23,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
         origin: 'auto.pageload.angular',
         data: {
           'sentry.origin': 'auto.pageload.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/home/',
           'url.path': '/home',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/home$/),
@@ -56,7 +60,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         origin: 'auto.navigation.angular',
         data: {
           'sentry.origin': 'auto.navigation.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id/',
           'url.path': '/users/123',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123$/),
@@ -95,7 +99,7 @@ test('sends a navigation transaction even if the pageload span is still active',
         origin: 'auto.pageload.angular',
         data: {
           'sentry.origin': 'auto.pageload.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/home/',
           'url.path': '/home',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/home$/),
@@ -115,7 +119,7 @@ test('sends a navigation transaction even if the pageload span is still active',
         origin: 'auto.navigation.angular',
         data: {
           'sentry.origin': 'auto.navigation.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id/',
           'url.path': '/users/123',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123$/),
@@ -146,7 +150,7 @@ test('groups redirects within one navigation root span', async ({ page }) => {
         origin: 'auto.navigation.angular',
         data: {
           'sentry.origin': 'auto.navigation.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id/',
           'url.path': '/users/456',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/456$/),
@@ -183,7 +187,7 @@ test.describe('finish routing span', () => {
           origin: 'auto.navigation.angular',
           data: {
             'sentry.origin': 'auto.navigation.angular',
-            'sentry.source': 'url',
+            'sentry.segment.name.source': 'url',
             'url.path': '/cancel',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/cancel$/),
             // url.template is not set because the navigation was cancelled before Angular fully resolved the route
@@ -221,7 +225,7 @@ test.describe('finish routing span', () => {
           origin: 'auto.navigation.angular',
           data: {
             'sentry.origin': 'auto.navigation.angular',
-            'sentry.source': 'url',
+            'sentry.segment.name.source': 'url',
             'url.path': '/non-existent',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/non-existent$/),
             // url.template is not set because the navigation failed before Angular fully resolved the route

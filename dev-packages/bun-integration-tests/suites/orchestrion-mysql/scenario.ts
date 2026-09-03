@@ -56,11 +56,14 @@ try {
   // ignore
 }
 
-const marker = (globalThis as { __SENTRY_ORCHESTRION__?: { runtime?: string[]; bundler?: string[] } })
+const marker = (globalThis as { __SENTRY_ORCHESTRION__?: { runtime?: string[]; bundler?: Set<string> } })
   .__SENTRY_ORCHESTRION__;
+// `bundler` is a `Set`, which `JSON.stringify` renders as `{}`. Spread it into
+// an array so the test can read the recorded module names.
+const reportedMarker = marker ? { ...marker, bundler: marker.bundler ? [...marker.bundler] : undefined } : null;
 
 setTimeout(() => {
   // eslint-disable-next-line no-console
-  console.log(`SCENARIO events=${events.join(',')} statement=${statement} marker=${JSON.stringify(marker ?? null)}`);
+  console.log(`SCENARIO events=${events.join(',')} statement=${statement} marker=${JSON.stringify(reportedMarker)}`);
   process.exit(0);
 }, 200);

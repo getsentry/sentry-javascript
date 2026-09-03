@@ -375,3 +375,22 @@ export function extractQueryParamsFromUrl(url: string): string | undefined {
     return undefined;
   }
 }
+
+/**
+ * Read the `content-length` header as a number, if it holds a valid one.
+ *
+ * `content-length` is the encoded (on-the-wire) body size whether or not a `content-encoding` is
+ * applied, so it maps to `http.request.body.size` / `http.response.body.size`. The decoded body size
+ * cannot be derived from it.
+ */
+export function getContentLengthFromHeaders(
+  headers: Record<string, string | string[] | undefined>,
+): number | undefined {
+  const contentLength = headers['content-length'];
+  if (typeof contentLength !== 'string') {
+    return undefined;
+  }
+
+  const length = parseInt(contentLength, 10);
+  return length >= 0 ? length : undefined;
+}

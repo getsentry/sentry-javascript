@@ -96,11 +96,11 @@ function instrumentKafkajs(): void {
 }
 
 /**
- * Orchestrion-driven kafkajs integration.
+ * Diagnostics-channel-based kafkajs integration.
  *
- * Subscribes to the `orchestrion:kafkajs:*` diagnostics_channels that the orchestrion code transform
+ * Subscribes to the `orchestrion:kafkajs:*` diagnostics_channels that Sentry's code transform
  * injects into `kafkajs`'s `producer/messageProducer.js` (`sendBatch`) and `consumer/index.js` (`run`).
- * Requires the orchestrion runtime hook or bundler plugin to be active.
+ * Requires the Sentry runtime hook or bundler plugin to be active.
  *
  * Known limitation vs. the OTel integration it replaces: the wrapping producer-`transaction` span is
  * not emitted (the transformer can't replace `transaction()`'s return value to patch commit/abort).

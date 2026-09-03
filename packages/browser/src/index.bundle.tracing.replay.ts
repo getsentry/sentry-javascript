@@ -1,4 +1,4 @@
-import { registerSpanErrorInstrumentation } from '@sentry/core/browser';
+import { registerSpanErrorInstrumentation } from '@sentry/core';
 import {
   consoleLoggingIntegrationShim,
   elementTimingIntegrationShim,
@@ -16,14 +16,13 @@ export { consoleLoggingIntegrationShim as consoleLoggingIntegration, loggerShim 
 export {
   getActiveSpan,
   getRootSpan,
-  startSpan,
-  startInactiveSpan,
-  startSpanManual,
   startNewTrace,
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
-} from '@sentry/core/browser';
+  spanStreamingIntegration,
+} from '@sentry/core';
+export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/core/browser';
 
 export {
   browserTracingIntegration,
@@ -35,7 +34,6 @@ export { elementTimingIntegrationShim as elementTimingIntegration };
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
-export { spanStreamingIntegration } from '@sentry/core/browser';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
 

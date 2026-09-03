@@ -388,7 +388,13 @@ describe('Vercel AI integration (v4)', () => {
           }),
         ]),
       );
-      expect(errorEvent!.contexts!.trace!.span_id).toBe(transactionEvent!.contexts!.trace!.span_id);
+      // The error is captured on the Express layer span (a child of the request transaction), so its
+      // `span_id` is one of the transaction's spans rather than the transaction's own (root) span.
+      const transactionSpanIds = [
+        transactionEvent!.contexts!.trace!.span_id,
+        ...(transactionEvent!.spans ?? []).map(span => span.span_id),
+      ];
+      expect(transactionSpanIds).toContain(errorEvent!.contexts!.trace!.span_id);
     });
   });
 

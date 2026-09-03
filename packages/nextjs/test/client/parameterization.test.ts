@@ -643,6 +643,55 @@ describe('maybeParameterizeRoute', () => {
       // Catch-all should be used when no more specific routes match
       expect(maybeParameterizeRoute('/some/random/path')).toBe('/:catchall*');
     });
+
+    it('should prefer a longer route over a shorter catch-all that also matches', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:locale/:notFound*',
+            regex: '^/([^/]+)/(.+)$',
+            paramNames: ['locale', 'notFound'],
+          },
+          {
+            path: '/:locale/guides/:category/:rest*',
+            regex: '^/([^/]+)/guides/([^/]+)/(.+)$',
+            paramNames: ['locale', 'category', 'rest'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      expect(maybeParameterizeRoute('/fr/guides/renting/foo')).toBe('/:locale/guides/:category/:rest*');
+
+      // The catch-all still wins where nothing narrower matches
+      expect(maybeParameterizeRoute('/fr/anything/else')).toBe('/:locale/:notFound*');
+    });
+
+    it('should prefer a route that ends over one that continues into a catch-all', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:locale/:notFound*',
+            regex: '^/([^/]+)/(.+)$',
+            paramNames: ['locale', 'notFound'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale',
+            regex: '^/([^/]+)$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // '/fr' matches '/:locale' directly, and '/:locale/:notFound*' only via the optional prefix
+      expect(maybeParameterizeRoute('/fr')).toBe('/:locale');
+      expect(maybeParameterizeRoute('/')).toBe('/:locale');
+    });
   });
 
   describe('i18n routing with optional prefix', () => {

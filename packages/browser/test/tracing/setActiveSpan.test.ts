@@ -1,4 +1,4 @@
-import { getActiveSpan, SentrySpan } from '@sentry/core/browser';
+import { getActiveSpan, SentrySpan } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { setActiveSpanInBrowser } from '../../src';
 

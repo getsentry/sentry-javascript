@@ -37,6 +37,7 @@ export {
   dedupeIntegration,
   defaultStackParser,
   endSession,
+  // oxlint-disable-next-line typescript/no-deprecated
   expressErrorHandler,
   expressIntegration,
   extraErrorDataIntegration,
@@ -98,7 +99,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   processSessionIntegration,
   childProcessIntegration,
@@ -112,7 +113,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   setContext,
   setConversationId,
   setCurrentClient,
@@ -124,8 +125,11 @@ export {
   setTags,
   setAttribute,
   setAttributes,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   setUser,
   spanToBaggageHeader,

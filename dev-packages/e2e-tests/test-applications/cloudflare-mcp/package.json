@@ -14,7 +14,7 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "agents": "0.20.1",
     "zod": "^4.2.0"

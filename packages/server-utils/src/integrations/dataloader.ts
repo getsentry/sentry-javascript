@@ -1,10 +1,20 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { CACHE_KEY, DB_OPERATION_NAME, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  CACHE_KEY,
+  CACHE_OPERATION,
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  SENTRY_KIND,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, StartSpanOptions } from '@sentry/core';
 import {
+  CACHE_OPERATION_NAMES,
   debug,
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   startSpan,
@@ -88,17 +98,26 @@ function makeSpanOptions(
   operation: Operation,
   keyArg?: unknown,
 ): StartSpanOptions {
+  const cacheOperation = OPERATION_SPAN_OPS[operation];
+  const client = getClient();
+
   return {
-    name: getSpanName(loader, operation),
+    // With span streaming, span names have to be low cardinality, so the loader name is dropped from
+    // the name and reported on `db.collection.name` instead.
+    name: client && hasSpanStreamingEnabled(client) ? cacheOperation : getSpanName(loader, operation),
     onlyIfParent: true,
     attributes: {
-      [SENTRY_OP]: OPERATION_SPAN_OPS[operation],
+      [SENTRY_OP]: cacheOperation,
+      [CACHE_OPERATION]: CACHE_OPERATION_NAMES[cacheOperation],
       // Every direct operation (`load`/`loadMany`/`prime`/`clear`/`clearAll`) is a client call, matching
       // the vendored OTel instrumentation. The `batch` runs off a deferred tick with no obvious network
       // peer, so it gets no kind.
       [SENTRY_KIND]: operation === 'batch' ? undefined : 'client',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [DB_OPERATION_NAME]: operation,
+      // A loader batches and caches one entity type, so it is the closest thing dataloader has to a
+      // collection. Unnamed loaders report nothing.
+      [DB_COLLECTION_NAME]: loader?.name ?? undefined,
       [CACHE_KEY]: getCacheKey(keyArg),
     },
   };
@@ -113,7 +132,7 @@ const _dataloaderIntegration = (() => {
         return;
       }
 
-      DEBUG_BUILD && debug.log('[orchestrion:dataloader] subscribing to dataloader tracing channels');
+      DEBUG_BUILD && debug.log('[instrumentation:dataloader] subscribing to dataloader tracing channels');
 
       waitForTracingChannelBinding(() => {
         subscribeConstruct();
@@ -193,10 +212,10 @@ function startInactiveSpanFor(loader: DataLoaderInstance | undefined, operation:
 }
 
 /**
- * Orchestrion-driven `dataloader` integration.
+ * Diagnostics-channel-based `dataloader` integration.
  *
- * Subscribes to the `orchestrion:dataloader:*` diagnostics_channels that the orchestrion code
- * transform injects into `dataloader`'s constructor and prototype methods. Requires the orchestrion
+ * Subscribes to the `orchestrion:dataloader:*` diagnostics_channels that Sentry's code
+ * transform injects into `dataloader`'s constructor and prototype methods. Requires the Sentry
  * runtime hook or bundler plugin to be active.
  */
 export const dataloaderIntegration = defineIntegration(_dataloaderIntegration);

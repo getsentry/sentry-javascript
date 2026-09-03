@@ -5,7 +5,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
@@ -82,16 +81,6 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
     traceLifecycle !== 'static' && beforeSendSpan && !isStaticBeforeSendSpanCallback(beforeSendSpan)
       ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
       : spanJSON;
-
-  const spanNameSource = processedSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  if (spanJSON.is_segment && spanNameSource) {
-    // Backfill sentry.segment.name.source from sentry.source.
-    // TODO(v11): Remove this backfill once we removed setting SEMANTIC_ATTRIBUTE_SENTRY_SOURCE in favour of
-    // SENTRY_SEGMENT_NAME_SOURCE from @sentry/conventions/attributes only on segment spans.
-    safeSetSpanJSONAttributes(processedSpan, {
-      ['sentry.segment.name.source']: spanNameSource,
-    });
-  }
 
   return {
     ...streamedSpanJsonToSerializedSpan(processedSpan),

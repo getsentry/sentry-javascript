@@ -1,12 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  stringify,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -16,8 +9,9 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
@@ -100,11 +94,10 @@ export function instrumentCompiledGraphInvoke(
       const modelName = llm?.modelName ?? llm?.model;
       return startSpan(
         {
-          op: 'gen_ai.invoke_agent',
           name: 'invoke_agent',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
+            [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
             [GEN_AI_OPERATION_NAME]: 'invoke_agent',
           },
         },
@@ -183,13 +176,9 @@ export function instrumentCompiledGraphInvoke(
 
             return result;
           } catch (error) {
+            // The error is rethrown to the caller (invoke() rejects), so we only mark the span failed
+            // and do not record it.
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.langgraph.error',
-              },
-            });
             throw error;
           }
         },

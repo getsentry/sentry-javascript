@@ -1,5 +1,7 @@
-// This file contains constants for fallback span names to be used, when no
-// better-suited, low-cardinality span name is available.
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
+
+// This file contains constants for low-cardinality span names: fallback names to be used when no
+// better-suited span name is available, as well as the building blocks for derived names.
 // Only relevant when span streaming is enabled.
 
 /**
@@ -76,6 +78,17 @@ export const ROUTER_SPAN_NAME_FALLBACK = 'Router';
 
 /**
  * Fallback name for request handler spans when no better-suited span name is available.
- * @see https://getsentry.github.io/sentry-conventions/names/#resource-resources
+ * @see https://getsentry.github.io/sentry-conventions/names/#web_server-request-handler
  */
-export const REQUEST_HANDLER_SPAN_NAME_FALLBACK = 'Request Handler';
+export const REQUEST_HANDLER_SPAN_NAME_FALLBACK = 'Request handler';
+
+/**
+ * The `cache.operation` attribute value each cache op carries. Cache span names are
+ * `cache.{{cache.operation}}`, so the op constant itself doubles as the low-cardinality span name.
+ * @see https://getsentry.github.io/sentry-conventions/names/#cache
+ */
+export const CACHE_OPERATION_NAMES = {
+  [CACHE_GET]: 'get',
+  [CACHE_PUT]: 'put',
+  [CACHE_REMOVE]: 'remove',
+} as const;

@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -72,7 +71,5 @@ versionedRouter.get('/user', (_req, res) => {
   res.send({ response: 'response versioned' });
 });
 app.use('/test/version/:version', versionedRouter);
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpanManual,
@@ -10,12 +10,15 @@ import {
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
+  GEN_AI_PIPELINE_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
@@ -100,17 +103,22 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         invocationParams,
         metadata,
       );
-      const modelName = attributes[GEN_AI_REQUEST_MODEL];
-      const operationName = attributes[GEN_AI_OPERATION_NAME];
+      const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+      const operationName =
+        typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
+      const client = getClient();
 
       startSpanManual(
         {
-          name: `${operationName} ${modelName}`,
-          op: 'gen_ai.chat',
+          // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+          name:
+            (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+              ? `${operationName} ${modelName}`
+              : operationName,
           attributes: {
             ...getAgentNameFromMetadata(metadata),
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+            [SENTRY_OP]: GEN_AI_CHAT,
           },
         },
         span => {
@@ -145,17 +153,22 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefsJson;
       }
 
-      const modelName = attributes[GEN_AI_REQUEST_MODEL];
-      const operationName = attributes[GEN_AI_OPERATION_NAME];
+      const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+      const operationName =
+        typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
+      const client = getClient();
 
       startSpanManual(
         {
-          name: `${operationName} ${modelName}`,
-          op: 'gen_ai.chat',
+          // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+          name:
+            (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+              ? `${operationName} ${modelName}`
+              : operationName,
           attributes: {
             ...getAgentNameFromMetadata(metadata),
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+            [SENTRY_OP]: GEN_AI_CHAT,
           },
         },
         span => {
@@ -184,19 +197,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // LLM Error Handler - note: handleLLMError with capital LLM
-    handleLLMError(error: Error, runId: string) {
+    handleLLMError(_error: Error, runId: string) {
+      // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
+      // do not record it.
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
-
-      captureException(error, {
-        mechanism: {
-          handled: false,
-          type: `${LANGCHAIN_ORIGIN}.llm_error_handler`,
-        },
-      });
     },
 
     // Chain Start Handler
@@ -217,23 +225,34 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         return;
       }
 
-      const chainName = runName || chain.name || 'unknown_chain';
+      const chainName = runName || chain.name;
       const attributes: Record<string, SpanAttributeValue> = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
-        'langchain.chain.name': chainName,
+        [GEN_AI_OPERATION_NAME]: 'invoke_agent',
       };
+
+      if (chainName) {
+        attributes[GEN_AI_PIPELINE_NAME] = chainName;
+      }
 
       if (recordInputs) {
         attributes['langchain.chain.inputs'] = JSON.stringify(inputs);
       }
 
+      const client = getClient();
+
       startSpanManual(
         {
-          name: `chain ${chainName}`,
-          op: 'gen_ai.invoke_agent',
+          // With span streaming, the name leads with the operation per the agent templates. The
+          // chain name is bounded, so it stays; the `'unknown_chain'` sentinel is dropped instead.
+          name: !(client && hasSpanStreamingEnabled(client))
+            ? `chain ${chainName || 'unknown_chain'}`
+            : chainName
+              ? `invoke_agent ${chainName}`
+              : 'invoke_agent',
           attributes: {
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+            [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
           },
         },
         span => {
@@ -258,19 +277,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Chain Error Handler
-    handleChainError(error: Error, runId: string) {
+    handleChainError(_error: Error, runId: string) {
+      // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
+      // do not record it.
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
-
-      captureException(error, {
-        mechanism: {
-          handled: false,
-          type: `${LANGCHAIN_ORIGIN}.chain_error_handler`,
-        },
-      });
     },
 
     // Tool Start Handler
@@ -305,10 +319,9 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       startSpanManual(
         {
           name: `execute_tool ${toolName}`,
-          op: 'gen_ai.execute_tool',
           attributes: {
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
+            [SENTRY_OP]: GEN_AI_EXECUTE_TOOL,
           },
         },
         span => {
@@ -336,19 +349,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Tool Error Handler
-    handleToolError(error: Error, runId: string) {
+    handleToolError(_error: Error, runId: string) {
+      // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
+      // do not record it.
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         exitSpan(runId);
       }
-
-      captureException(error, {
-        mechanism: {
-          handled: false,
-          type: `${LANGCHAIN_ORIGIN}.tool_error_handler`,
-        },
-      });
     },
 
     // LangChain BaseCallbackHandler required methods

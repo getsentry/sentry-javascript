@@ -9,7 +9,7 @@ describe('streamed outgoing fetch spans', () => {
 
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('infers sentry.op for streamed outgoing fetch spans', async () => {
-      expect.assertions(2);
+      expect.assertions(4);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()
         .get('/api/v0', () => {
@@ -27,6 +27,9 @@ describe('streamed outgoing fetch spans', () => {
             );
 
             expect(httpClientSpan).toBeDefined();
+            // The URL path is high cardinality, so a streamed name keeps only the domain.
+            expect(httpClientSpan?.name).toBe('GET localhost');
+            expect(httpClientSpan?.attributes['url.domain']?.value).toBe('localhost');
           },
         })
         .start()

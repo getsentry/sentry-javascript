@@ -31,6 +31,4 @@ app.get('/test/express', (_req, res) => {
   res.send({ test_data: headers });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

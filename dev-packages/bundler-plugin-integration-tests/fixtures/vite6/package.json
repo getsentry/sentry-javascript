@@ -10,10 +10,8 @@
   "pnpm": {
     "overrides": {
       "@sentry/bundler-plugins": "file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.67.0.tgz",
-      "@sentry/core": "file:../../../../packages/core/sentry-core-10.67.0.tgz"
-    },
-    "patchedDependencies": {
-      "@sentry/cli": "../patches/@sentry__cli.patch"
+      "@sentry/core": "file:../../../../packages/core/sentry-core-10.67.0.tgz",
+      "sentry": "file:../sentry-stub"
     }
   }
 }

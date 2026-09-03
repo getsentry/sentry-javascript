@@ -59,6 +59,7 @@
     "@sentry/conventions": "^0.20.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
+    "@sentry/server-runtime-injection": "10.67.0",
     "@sentry/server-utils": "10.67.0",
     "@types/aws-lambda": "^8.10.161"
   },
@@ -82,6 +83,7 @@
     "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2022 ./build/npm/cjs/*.js && es-check es2022 ./build/npm/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",
@@ -106,7 +108,8 @@
           "{projectRoot}/build/npm/cjs",
           "{projectRoot}/build/npm/run-lambda-handler.mjs",
           "{projectRoot}/build/npm/run-lambda-handler.mjs.map",
-          "{projectRoot}/build/lambda-extension"
+          "{projectRoot}/build/lambda-extension",
+          "{projectRoot}/build/import-hook.mjs"
         ],
         "cache": true
       },

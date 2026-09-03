@@ -491,6 +491,9 @@ describe('instrument file auto-detection', () => {
 
     const code = ['class DurableObject {}', 'export class MyDO extends DurableObject {}'].join('\n');
     const result = await tx(code, entryPath)!;
-    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(__SENTRY_OPTIONS_CALLBACK__,');
+    expect(result.code).toContain(
+      'const __SENTRY_OPTIONS__ = (env) => { const opts = (__SENTRY_OPTIONS_CALLBACK__)(env); return { ...opts, rpcTracePropagationBindings: ["MY_DO", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
+    );
+    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(__SENTRY_OPTIONS__,');
   });
 });

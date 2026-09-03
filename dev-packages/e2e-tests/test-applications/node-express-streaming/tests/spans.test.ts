@@ -18,8 +18,8 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
   expect(getSpanOp(rootSpan!)).toBe('http.server');
   expect(rootSpan!.status).toBe('ok');
   expect(rootSpan!.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(rootSpan!.attributes['sentry.source']?.value).toBe('route');
-  expect(rootSpan!.attributes['sentry.origin']?.value).toBe('auto.http.otel.http');
+  expect(rootSpan!.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(rootSpan!.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
   expect(rootSpan!.attributes['http.response.status_code']?.value).toBe(200);
 
   const childSpans = spans.filter(span => !span.is_segment);
@@ -74,12 +74,18 @@ test('Sends streamed spans for an errored route', async ({ baseURL }) => {
   expect(rootSpan.name).toBe('GET /test-exception/:id');
   expect(getSpanOp(rootSpan)).toBe('http.server');
   expect(rootSpan.status).toBe('error');
-  expect(rootSpan.attributes['http.status_code']?.value).toBe(500);
+  expect(rootSpan.attributes['http.response.status_code']?.value).toBe(500);
 });
 
 test('Outgoing fetch spans are streamed', async ({ baseURL }) => {
   const fetchSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return getSpanOp(span) === 'http.client' && !span.is_segment && span.name.includes('localhost:3030/test-success');
+    // A streamed name keeps only the domain, which every outgoing span here shares, so select on
+    // `url.full` and assert the name below.
+    return (
+      getSpanOp(span) === 'http.client' &&
+      !span.is_segment &&
+      String(span.attributes['url.full']?.value ?? '').includes('localhost:3030/test-success')
+    );
   });
 
   await fetch(`${baseURL}/test-outgoing-fetch`);
@@ -87,6 +93,8 @@ test('Outgoing fetch spans are streamed', async ({ baseURL }) => {
   const fetchSpan = await fetchSpanPromise;
 
   expect(fetchSpan).toBeDefined();
+  expect(fetchSpan.name).toBe('GET localhost');
+  expect(fetchSpan.attributes['url.domain']?.value).toBe('localhost');
   expect(fetchSpan.status).toBe('ok');
 });
 
@@ -96,7 +104,13 @@ test.skip('Outgoing fetch spans include response headers when headersToSpanAttri
   baseURL,
 }) => {
   const fetchSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return getSpanOp(span) === 'http.client' && !span.is_segment && span.name.includes('localhost:3030/test-success');
+    // A streamed name keeps only the domain, which every outgoing span here shares, so select on
+    // `url.full` and assert the name below.
+    return (
+      getSpanOp(span) === 'http.client' &&
+      !span.is_segment &&
+      String(span.attributes['url.full']?.value ?? '').includes('localhost:3030/test-success')
+    );
   });
 
   await fetch(`${baseURL}/test-outgoing-fetch`);
@@ -104,6 +118,7 @@ test.skip('Outgoing fetch spans include response headers when headersToSpanAttri
   const fetchSpan = await fetchSpanPromise;
 
   expect(fetchSpan).toBeDefined();
+  expect(fetchSpan.name).toBe('GET localhost');
   expect(fetchSpan.attributes['http.response.header.content-length']).toBeDefined();
 });
 

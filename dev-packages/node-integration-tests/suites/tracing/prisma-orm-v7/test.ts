@@ -31,16 +31,14 @@ describe('Prisma ORM v7 Tests', () => {
                 });
 
                 const prismaDbQuerySpan = spans.find(
-                  s => s.data?.['sentry.origin'] === 'auto.db.otel.prisma' && s.data?.['db.query.text'],
+                  s => s.data?.['sentry.origin'] === 'auto.db.prisma' && s.data?.['db.query.text'],
                 );
                 expect(prismaDbQuerySpan).toBeDefined();
                 const dbQueryParent = spans.find(s => s.span_id === prismaDbQuerySpan?.parent_span_id);
                 expect(dbQueryParent?.description).toBe('prisma:client:operation');
 
                 // Verify Prisma spans have the correct origin
-                const prismaSpans = spans.filter(
-                  span => span.data && span.data['sentry.origin'] === 'auto.db.otel.prisma',
-                );
+                const prismaSpans = spans.filter(span => span.data && span.data['sentry.origin'] === 'auto.db.prisma');
                 expect(prismaSpans.length).toBeGreaterThanOrEqual(5);
 
                 // Check for key Prisma span descriptions
@@ -78,6 +76,66 @@ describe('Prisma ORM v7 Tests', () => {
             .start()
             .completed();
         });
+      },
+      {
+        additionalDependencies: {
+          '@prisma/adapter-pg': '7.2.0',
+          '@prisma/client': '7.2.0',
+          pg: '^8.11.0',
+          prisma: '7.2.0',
+          typescript: '^5.9.0',
+        },
+        afterSetupCommand: 'prisma generate --schema prisma/schema.prisma && tsc -p prisma/tsconfig.json',
+        copyPaths: ['prisma', 'prisma.config.ts'],
+      },
+    );
+
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument-span-streaming.mjs',
+      (createRunner, test) => {
+        test(
+          'should name db query spans after the query summary with span streaming',
+          { timeout: 75_000 },
+          async () => {
+            await createRunner()
+              // Prisma's engine startup can outlast the span buffer's flush interval, so the query spans
+              // are not guaranteed to be in the first span envelope.
+              .unordered()
+              .expect({
+                span: container => {
+                  // v7 runs the queries through the `pg` adapter, whose own spans are named after the full
+                  // statement by a different integration, so they are filtered out here.
+                  const querySpans = container.items.filter(
+                    item =>
+                      item.attributes['sentry.origin']?.value === 'auto.db.prisma' && item.attributes['db.query.text'],
+                  );
+
+                  // `SELECT "public"` is what the core query-summary helper derives from a schema-qualified,
+                  // quoted table (it stops at the first quoted identifier).
+                  expect(
+                    querySpans.map(span => ({
+                      name: span.name,
+                      summary: span.attributes['db.query.summary']?.value,
+                    })),
+                  ).toEqual([
+                    { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
+                    { name: 'SELECT "public"', summary: 'SELECT "public"' },
+                    { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
+                  ]);
+
+                  // Neither the raw client span name nor the full statement may end up as a span name.
+                  expect(container.items.map(span => span.name)).not.toContain('prisma:client:db_query');
+                  querySpans.forEach(span => {
+                    expect(span.name).not.toBe(span.attributes['db.query.text']?.value);
+                  });
+                },
+              })
+              .start()
+              .completed();
+          },
+        );
       },
       {
         additionalDependencies: {

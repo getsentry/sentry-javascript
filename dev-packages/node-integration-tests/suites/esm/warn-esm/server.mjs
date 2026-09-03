@@ -15,6 +15,4 @@ app.get('/test/success', (req, res) => {
   res.send({ response: 'response 3' });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

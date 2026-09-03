@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { spanToJSON } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
@@ -5,7 +6,6 @@ import {
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
 import type { MemoryHistory } from '@solidjs/router';
@@ -73,7 +73,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
       expect.objectContaining({
         name: 'Pageload',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         }),
@@ -104,7 +104,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
       expect.objectContaining({
         name: 'Pageload',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
         }),
@@ -149,7 +149,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         const span = spanToJSON(navSpan!);
         expect(span.name).toBe(parametrizedRoute);
         expect(span.attributes).toMatchObject({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
         });
@@ -185,7 +185,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
       expect.objectContaining({
         name: '/about',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
         }),

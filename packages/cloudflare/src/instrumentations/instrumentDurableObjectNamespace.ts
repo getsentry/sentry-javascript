@@ -13,8 +13,12 @@ export const STUB_NON_RPC_METHODS = new Set(['fetch', 'connect', 'dup']);
  * - `namespace.idFromName(name)` / `namespace.idFromString(id)` / `namespace.newUniqueId()` with breadcrumbs
  *
  * @param namespace - The DurableObjectNamespace to instrument
+ * @param propagateRpcTrace - Whether RPC method calls on the returned stubs carry trace context
  */
-export function instrumentDurableObjectNamespace(namespace: DurableObjectNamespace): DurableObjectNamespace {
+export function instrumentDurableObjectNamespace(
+  namespace: DurableObjectNamespace,
+  propagateRpcTrace = false,
+): DurableObjectNamespace {
   return new Proxy(namespace, {
     get(target, prop, _receiver) {
       const value = Reflect.get(target, prop) as unknown;
@@ -27,7 +31,7 @@ export function instrumentDurableObjectNamespace(namespace: DurableObjectNamespa
         return function (this: unknown, ...args: unknown[]) {
           const stub = Reflect.apply(value, target, args);
 
-          return instrumentDurableObjectStub(stub);
+          return instrumentDurableObjectStub(stub, propagateRpcTrace);
         };
       }
 
@@ -41,8 +45,9 @@ export function instrumentDurableObjectNamespace(namespace: DurableObjectNamespa
  * and propagate trace context across RPC calls.
  *
  * @param stub - The DurableObjectStub to instrument
+ * @param propagateRpcTrace - Whether RPC method calls carry trace context
  */
-function instrumentDurableObjectStub(stub: DurableObjectStub): DurableObjectStub {
+function instrumentDurableObjectStub(stub: DurableObjectStub, propagateRpcTrace: boolean): DurableObjectStub {
   return new Proxy(stub, {
     get(target, prop) {
       const value = Reflect.get(target, prop);
@@ -51,7 +56,12 @@ function instrumentDurableObjectStub(stub: DurableObjectStub): DurableObjectStub
         return instrumentFetcher((...args) => Reflect.apply(value, target, args));
       }
 
-      if (typeof value === 'function' && typeof prop === 'string' && !STUB_NON_RPC_METHODS.has(prop)) {
+      if (
+        propagateRpcTrace &&
+        typeof value === 'function' &&
+        typeof prop === 'string' &&
+        !STUB_NON_RPC_METHODS.has(prop)
+      ) {
         return (...args: unknown[]) => Reflect.apply(value, target, appendRpcMeta(args));
       }
 

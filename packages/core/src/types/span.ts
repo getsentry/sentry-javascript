@@ -28,7 +28,7 @@ export type SpanAttributeValue =
 export type SpanAttributes = Partial<{
   'sentry.origin': string;
   'sentry.op': string;
-  'sentry.source': TransactionSource;
+  'sentry.segment.name.source': TransactionSource;
   'sentry.sample_rate': number;
   'sentry.kind': SpanKind;
 }> &

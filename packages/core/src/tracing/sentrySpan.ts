@@ -1,13 +1,13 @@
 /* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_PROFILE_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type { Client } from '../client';
 import type { TransactionEvent } from '../types/event';
@@ -35,6 +35,8 @@ import {
   getSpanDescendants,
   getStatusMessage,
   getStreamedSpanLinks,
+  INTERNAL_setSegmentNameSourceIfSegment,
+  spanIsSegment,
   spanTimeInputToSeconds,
   spanToStaticSpanJSON,
   spanToTransactionTraceContext,
@@ -175,6 +177,13 @@ export class SentrySpan implements Span {
       return this;
     }
 
+    // Allow `undefined` so `addChildSpanToSpan` can strip a leaked constructor-time value.
+    if (key === SENTRY_SEGMENT_NAME_SOURCE && value !== undefined && !spanIsSegment(this)) {
+      DEBUG_BUILD &&
+        debug.warn('[Tracing] Ignoring name source on a child span: this attribute is only valid on the root span.');
+      return this;
+    }
+
     if (value === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this._attributes[key];
@@ -225,8 +234,7 @@ export class SentrySpan implements Span {
       return this;
     }
     this._name = name;
-    // Updating the name sets the source to custom
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+    INTERNAL_setSegmentNameSourceIfSegment(this, 'custom');
 
     return this;
   }
@@ -295,7 +303,7 @@ export class SentrySpan implements Span {
       parent_span_id: this._parentSpanId,
       start_timestamp: this._startTime,
       end_timestamp: this._endTime,
-      is_segment: this === getRootSpan(this),
+      is_segment: spanIsSegment(this),
       status: getSimpleStatus(this._status),
       attributes: addStatusMessageAttribute(this._attributes, this._status),
       links: getStreamedSpanLinks(this._links),
@@ -440,7 +448,7 @@ export class SentrySpan implements Span {
       spans.push(spanJSON);
     }
 
-    const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const source = this._attributes[SENTRY_SEGMENT_NAME_SOURCE];
 
     // remove internal root span attributes we don't need to send.
     /* eslint-disable @typescript-eslint/no-dynamic-delete */

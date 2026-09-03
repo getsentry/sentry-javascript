@@ -34,6 +34,4 @@ export const sentryWebpackPlugin: (options?: SentryWebpackPluginOptions) => any 
   DefinePlugin,
 });
 
-export { sentryCliBinaryExists } from '../core';
-
 export type { SentryWebpackPluginOptions };

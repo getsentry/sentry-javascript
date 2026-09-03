@@ -128,7 +128,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
         attributes: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           [URL_TEMPLATE]: '/[user]/posts/[id]',
           user: 'chargome',
           id: '1337',
@@ -152,7 +152,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
         attributes: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           [URL_TEMPLATE]: '/some-page',
         },
       },
@@ -168,7 +168,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
         attributes: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           [URL_TEMPLATE]: '/',
         },
       },
@@ -184,7 +184,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
         attributes: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
         },
       },
     ],
@@ -334,7 +334,7 @@ describe('pagesRouterInstrumentNavigation', () => {
         attributes: {
           'sentry.op': 'navigation',
           'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
-          'sentry.source': expectedTransactionSource,
+          'sentry.segment.name.source': expectedTransactionSource,
           ...(expectedTransactionSource === 'route' ? { [URL_TEMPLATE]: expectedTransactionName } : {}),
         },
       };

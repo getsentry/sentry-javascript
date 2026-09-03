@@ -1,5 +1,6 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry/core/server';
+import { applySdkMetadata } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry/core/server';
 import type { VercelEdgeClientOptions } from './types';
 import { registerPrepareSpanScope, type SentryTracerProvider } from '@sentry/opentelemetry';
 

@@ -17,6 +17,7 @@ import { startInactiveSpan } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
+import type { InteractionType } from './inp';
 import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
 import type { InstrumentationHandlerCallback } from '../instrumentation/performanceObserver';
 import {
@@ -30,6 +31,21 @@ import { listenForWebVitalReportEvents } from './reportEvents';
 import { getBrowserPerformanceAPI, msToSec, supportsWebVital } from '../performance/utils';
 import type { PerformanceEventTiming } from '../instrumentation/performanceObserver';
 import { SENTRY_SEGMENT_NAME, SENTRY_TRANSACTION } from '@sentry/conventions/attributes';
+import {
+  UI_INTERACTION_CLICK,
+  UI_INTERACTION_DRAG,
+  UI_INTERACTION_HOVER,
+  UI_INTERACTION_PRESS,
+  UI_WEBVITAL_CLS,
+  UI_WEBVITAL_LCP,
+} from '@sentry/conventions/op';
+
+const INTERACTION_TYPE_TO_SPAN_OP: Record<InteractionType, string> = {
+  click: UI_INTERACTION_CLICK,
+  hover: UI_INTERACTION_HOVER,
+  drag: UI_INTERACTION_DRAG,
+  press: UI_INTERACTION_PRESS,
+};
 
 // Locally-defined interfaces to avoid leaking bare global type references into the
 // generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
@@ -219,7 +235,7 @@ export function _sendLcpSpan(
 
   _emitWebVitalSpan({
     name,
-    op: 'ui.webvital.lcp',
+    op: UI_WEBVITAL_LCP,
     origin: 'auto.http.browser.lcp',
     metricName: 'lcp',
     value: lcpValue,
@@ -281,7 +297,7 @@ export function _sendClsSpan(
 
   _emitWebVitalSpan({
     name,
-    op: 'ui.webvital.cls',
+    op: UI_WEBVITAL_CLS,
     origin: 'auto.http.browser.cls',
     metricName: 'cls',
     value: clsValue,
@@ -343,6 +359,10 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, st
   const duration = msToSec(inpValue);
   const interactionType = INP_ENTRY_MAP[entry.name];
 
+  if (!interactionType) {
+    return;
+  }
+
   const cachedContext = getCachedInteractionContext(entry.interactionId);
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
@@ -352,7 +372,7 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, st
 
   _emitWebVitalSpan({
     name,
-    op: `ui.interaction.${interactionType}`,
+    op: INTERACTION_TYPE_TO_SPAN_OP[interactionType],
     origin: 'auto.http.browser.inp',
     metricName: 'inp',
     value: inpValue,

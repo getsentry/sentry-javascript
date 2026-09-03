@@ -71,14 +71,14 @@ function injectLambdaPropagationContext(clientContext: string | undefined, span:
     if (encodedClientContext.length > 3583) {
       DEBUG_BUILD &&
         debug.warn(
-          '[orchestrion:aws-sdk] cannot set trace propagation on lambda invoke parameters due to ClientContext length limitations.',
+          '[instrumentation:aws-sdk] cannot set trace propagation on lambda invoke parameters due to ClientContext length limitations.',
         );
       return clientContext;
     }
 
     return encodedClientContext;
   } catch (e) {
-    DEBUG_BUILD && debug.log('[orchestrion:aws-sdk] failed to set trace propagation on lambda ClientContext', e);
+    DEBUG_BUILD && debug.log('[instrumentation:aws-sdk] failed to set trace propagation on lambda ClientContext', e);
     return clientContext;
   }
 }

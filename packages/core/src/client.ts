@@ -974,7 +974,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'stopUIProfiler', callback: () => void): () => void;
 
   /**
-   * A hook that is called when an orchestrion-instrumented module is injected —
+   * A hook that is called when an instrumented module is injected —
    * at runtime by the module hook, or at load of a bundler-transformed module.
    * Channel-based integrations use it to subscribe their diagnostics-channel
    * listeners lazily, only once the module they instrument is actually loaded.
@@ -1262,7 +1262,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'stopUIProfiler'): void;
 
   /**
-   * Emit a hook when an orchestrion-instrumented module is injected (runtime
+   * Emit a hook when an instrumented module is injected (runtime
    * module hook or bundler-transformed module load).
    */
   public emit(hook: 'orchestrion.module-injected', moduleName: string): void;

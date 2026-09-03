@@ -9,7 +9,9 @@
     "start": "vite preview --port 3030",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm run build",
-    "test:assert": "pnpm run test"
+    "test:assert": "pnpm run test",
+    "test:build:streamed": "VITE_TRACE_LIFECYCLE=stream pnpm run test:build",
+    "test:assert:streamed": "E2E_TEST_TRACE_LIFECYCLE=stream pnpm run test"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
@@ -42,5 +44,14 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "label": "ember-strict-resolver (streamed)",
+        "build-command": "pnpm test:build:streamed",
+        "assert-command": "pnpm test:assert:streamed"
+      }
+    ]
   }
 }

@@ -3,7 +3,7 @@ import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers'
 import type { CloudflareOptions } from '../../client';
 import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
-import { wrapRequestHandlerWithInit } from '../../request';
+import { wrapRequestHandlerWithInit } from '../../wrapRequestHandlerWithInit';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { instrumentEnv } from './instrumentEnv';

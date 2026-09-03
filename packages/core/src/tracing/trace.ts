@@ -6,11 +6,8 @@ import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import type { ClientOptions } from '../types/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
@@ -55,6 +52,7 @@ import { SUPPRESS_TRACING_KEY } from './constants';
  */
 export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) => T): T {
   const spanArguments = parseSentrySpanArguments(options);
+  // oxlint-disable-next-line typescript/no-deprecated
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
   // We still need to fork a potentially passed scope, as we set the active span on it
@@ -107,6 +105,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
  */
 export function startSpanManual<T>(options: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
   const spanArguments = parseSentrySpanArguments(options);
+  // oxlint-disable-next-line typescript/no-deprecated
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
   const customForkedScope = customScope?.clone();
@@ -153,6 +152,7 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
  */
 export function startInactiveSpan(options: StartSpanOptions): Span {
   const spanArguments = parseSentrySpanArguments(options);
+  // oxlint-disable-next-line typescript/no-deprecated
   const { forceTransaction, parentSpan: customParentSpan, scope: customScope } = options;
 
   // If `options.scope` is defined, we use this as as a wrapper,
@@ -512,7 +512,7 @@ function _startRootSpan(
   const rootSpan = new SentrySpan({
     ...spanArguments,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]:
         sampleRate !== undefined && localSampleRateWasApplied ? sampleRate : undefined,
       ...finalAttributes,

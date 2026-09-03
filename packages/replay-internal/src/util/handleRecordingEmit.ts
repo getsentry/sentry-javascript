@@ -1,6 +1,7 @@
 import { EventType, IncrementalSource, record } from '@sentry/rrweb';
 import { NodeType } from '@sentry/rrweb-snapshot';
 import { updateClickDetectorForRecordingEvent } from '../coreHandlers/handleClick';
+import { BREADCRUMB_RELEVANT_ATTRIBUTES } from '../coreHandlers/util/getAttributesToRecord';
 import { DEBUG_BUILD } from '../debug-build';
 import { saveSession } from '../session/saveSession';
 import type { RecordingEvent, ReplayContainer, ReplayOptionFrameEvent } from '../types';
@@ -147,17 +148,35 @@ export function syncMirrorAttributesFromMutationEvent(event: RecordingEvent): vo
     const node = record.mirror.getNode(mutation.id);
     const meta = node && record.mirror.getMeta(node);
 
-    if (meta?.type !== NodeType.Element) {
+    if (!node || meta?.type !== NodeType.Element) {
       continue;
     }
 
+    const attributes = { ...meta.attributes };
+    let changed = false;
+
     for (const [attributeName, value] of Object.entries(mutation.attributes)) {
+      // We only need the handful of attributes that can show up in a click breadcrumb.
+      // Anything else (notably `style`) is dead weight here.
+      if (!BREADCRUMB_RELEVANT_ATTRIBUTES.has(attributeName)) {
+        continue;
+      }
+
       if (value === null) {
         // oxlint-disable-next-line typescript/no-dynamic-delete
-        delete meta.attributes[attributeName];
+        delete attributes[attributeName];
       } else {
-        meta.attributes[attributeName] = value;
+        attributes[attributeName] = value;
       }
+      changed = true;
+    }
+
+    if (changed) {
+      // rrweb hands out the very same serialized node object that it emitted in an earlier `adds`
+      // payload, and that event may still be sitting unserialized in the event buffer (this is the
+      // case whenever compression is disabled). Mutating it in place rewrites already recorded
+      // history, so swap in a copy instead of touching the original.
+      record.mirror.add(node, { ...meta, attributes });
     }
   }
 }

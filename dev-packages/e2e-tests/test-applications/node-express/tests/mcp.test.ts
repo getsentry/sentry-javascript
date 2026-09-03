@@ -180,6 +180,49 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 });
 
+test('resolves capture policy when the MCP server is wrapped before Sentry.init', async ({ baseURL }) => {
+  const transport = new SSEClientTransport(new URL(`${baseURL}/capture-policy/sse`));
+  const client = new Client({
+    name: 'capture-policy-client',
+    version: '1.0.0',
+  });
+  await client.connect(transport);
+
+  const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
+    return transactionEvent.transaction === 'tools/call capture-policy';
+  });
+  const privateMessage = 'node-v1-private-capture-policy-message';
+
+  const toolResult = await client.callTool({
+    name: 'capture-policy',
+    arguments: {
+      message: privateMessage,
+    },
+  });
+
+  expect(toolResult).toMatchObject({
+    content: [
+      {
+        text: `Capture policy result: ${privateMessage}`,
+        type: 'text',
+      },
+    ],
+  });
+
+  const toolTransaction = await toolTransactionPromise;
+  const traceData = toolTransaction.contexts?.trace?.data;
+
+  expect(traceData?.['mcp.method.name']).toBe('tools/call');
+  expect(traceData?.['mcp.tool.name']).toBe('capture-policy');
+  expect(traceData?.['mcp.tool.result.content_count']).toBe(1);
+  expect(traceData?.['mcp.tool.result.content_type']).toBe('text');
+  expect(traceData?.['mcp.request.argument.message']).toBeUndefined();
+  expect(traceData?.['mcp.tool.result.content']).toBeUndefined();
+  expect(JSON.stringify(traceData)).not.toContain(privateMessage);
+
+  await client.close();
+});
+
 /**
  * Tests for StreamableHTTPServerTransport (wrapper transport pattern)
  *

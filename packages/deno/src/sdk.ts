@@ -1,4 +1,5 @@
-import type { Client, Integration, Options, ServerRuntimeClientOptions, StackParser } from '@sentry/core';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import {
   createStackParser,
   dedupeIntegration,
@@ -7,37 +8,12 @@ import {
   getIntegrationsToSetup,
   initAndBind,
   linkedErrorsIntegration,
-  nodeStackLineParser,
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import {
-  amqplibIntegration,
-  anthropicAIIntegration,
-  awsIntegration,
-  expressIntegration,
-  firebaseIntegration,
-  genericPoolIntegration,
-  googleGenAIIntegration,
-  graphqlIntegration,
-  hapiIntegration,
-  kafkaIntegration,
-  koaIntegration,
-  langChainIntegration,
-  langGraphIntegration,
-  lruMemoizerIntegration,
-  mongoIntegration,
-  mongooseIntegration,
-  mysqlIntegration,
-  mysql2Integration,
-  openAIIntegration,
-  postgresIntegration,
-  postgresJsIntegration,
-  tediousIntegration,
-  vercelAIIntegration,
-  redisIntegration,
-} from '@sentry/server-utils';
+import { getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
+import { nodeStackLineParser } from '@sentry/core/server';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
@@ -64,39 +40,12 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     denoContextIntegration(),
     denoServeIntegration(),
     denoHttpIntegration(),
-    redisIntegration(),
-    graphqlIntegration(),
-    vercelAIIntegration(),
-    // orchestrion-based instrumentations. We add a deliberate list here rather
-    // than every channel integration: each one needs a Deno test proving it
-    // records spans.
-    //
-    // The orchestrion channels may be injected after (or while) the SDK loads.
-    // If they never load, these are no-ops.
-    amqplibIntegration(),
-    anthropicAIIntegration(),
-    awsIntegration(),
-    expressIntegration(),
-    firebaseIntegration(),
-    genericPoolIntegration(),
-    googleGenAIIntegration(),
-    hapiIntegration(),
-    kafkaIntegration(),
-    koaIntegration(),
-    langChainIntegration(),
-    langGraphIntegration(),
-    lruMemoizerIntegration(),
-    mongoIntegration(),
-    mongooseIntegration(),
-    mysqlIntegration(),
-    mysql2Integration(),
-    openAIIntegration(),
-    postgresIntegration(),
-    postgresJsIntegration(),
-    tediousIntegration(),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
+    // server-utils integrations
+    ...getErrorIntegrations(),
+    ...getTracingIntegrations(),
   ];
 }
 

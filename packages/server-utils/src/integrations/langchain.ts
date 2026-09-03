@@ -89,13 +89,13 @@ function instrumentChatModels(options: LangChainOptions): void {
   }
 }
 
-// Embeddings don't use the callback system. Wrap the method in its own span
+// Embeddings don't use the callback system. Wrap the method in its own span.
+// Embedding errors reject to the caller, so we only open the span (which bindTracingChannelToSpan
+// still marks failed on error) and do not capture them.
 function instrumentEmbeddings(options: LangChainOptions): void {
   for (const channelName of langchainEmbeddingsChannels) {
-    bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName),
-      data => createEmbeddingsSpan(data, options),
-      { captureError: () => ({ mechanism: { handled: false, type: 'auto.ai.langchain' } }) },
+    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName), data =>
+      createEmbeddingsSpan(data, options),
     );
   }
 }
@@ -111,8 +111,8 @@ function createEmbeddingsSpan(data: EmbeddingsChannelContext, options: LangChain
 }
 
 /**
- * Orchestrion-driven LangChain integration. Subscribes to the diagnostics_channels
+ * Diagnostics-channel-based LangChain integration. Subscribes to the diagnostics_channels
  * injected into `@langchain/core`'s `BaseChatModel` (to inject the Sentry callback handler) and into
- * `@langchain/openai`'s embedding methods, so it requires the orchestrion runtime hook or bundler plugin.
+ * `@langchain/openai`'s embedding methods, so it requires the Sentry runtime hook or bundler plugin.
  */
 export const langChainIntegration = defineIntegration(_langChainIntegration);

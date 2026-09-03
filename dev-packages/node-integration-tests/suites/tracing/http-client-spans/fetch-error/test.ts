@@ -16,7 +16,7 @@ describe('outgoing fetch spans - error', () => {
               expect.objectContaining({
                 description: expect.stringMatching(/GET http:\/\/localhost:\d+\//),
                 op: 'http.client',
-                origin: 'auto.http.otel.node_fetch',
+                origin: 'auto.http.node_fetch',
                 status: 'internal_error',
               }),
             ]),

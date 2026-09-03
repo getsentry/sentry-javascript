@@ -7,7 +7,8 @@
 // (it waits for the tracing-channel binding), so a nested db span here proves
 // `DenoClient.init()` installs that strategy on the direct-construction path.
 // Without it, the subscriber never binds and no span is produced.
-import { createStackParser, nodeStackLineParser } from '@sentry/core';
+import { createStackParser } from '@sentry/core';
+import { nodeStackLineParser } from '@sentry/core/server';
 import { DenoClient, getCurrentScope, getDefaultIntegrations, startSpan } from '@sentry/deno';
 import { tracingChannel } from 'node:diagnostics_channel';
 

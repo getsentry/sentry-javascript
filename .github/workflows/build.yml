@@ -1021,7 +1021,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: 9.15.9
+          version: ${{ matrix.test-application == 'nuxt-5' && '11.10.0' || '9.15.9' }}
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
@@ -1160,7 +1160,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: 9.15.9
+          version: ${{ matrix.test-application == 'nuxt-5' && '11.10.0' || '9.15.9' }}
       - name: Set up Node
         uses: actions/setup-node@v6
         with:

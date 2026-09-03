@@ -15,7 +15,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
     expect.objectContaining({
       // No manifest available (legacy app without the Sentry Vite plugin), so source falls back to 'route'
       // and url.template uses the route id instead of a parameterized URL path.
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
       'url.path': '/',
       'url.template': 'routes/_index',
@@ -38,7 +38,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   expect(transactionEvent).toBeDefined();
   expect(transactionEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'sentry.source': 'route',
+      'sentry.segment.name.source': 'route',
       'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
       'url.path': '/user/5',
       'url.template': 'routes/user.$id',

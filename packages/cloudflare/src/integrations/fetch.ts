@@ -15,7 +15,7 @@ import {
   instrumentFetchRequest,
   isSentryRequestUrl,
   LRUMap,
-  stringMatchesSomePattern,
+  shouldPropagateTraceForUrl,
 } from '@sentry/core';
 
 const INTEGRATION_NAME = 'Fetch' as const;
@@ -53,20 +53,7 @@ const _fetchIntegration = ((options: Partial<Options> = {}) => {
       return false;
     }
 
-    const clientOptions = client.getOptions();
-
-    if (clientOptions.tracePropagationTargets === undefined) {
-      return true;
-    }
-
-    const cachedDecision = _headersUrlMap.get(url);
-    if (cachedDecision !== undefined) {
-      return cachedDecision;
-    }
-
-    const decision = stringMatchesSomePattern(url, clientOptions.tracePropagationTargets);
-    _headersUrlMap.set(url, decision);
-    return decision;
+    return shouldPropagateTraceForUrl(url, client.getOptions().tracePropagationTargets, _headersUrlMap);
   }
 
   /** Helper that wraps shouldCreateSpanForRequest option */

@@ -1,6 +1,20 @@
-import { getDebugIdSnippet } from '../../src/core';
+import { createComponentNameAnnotateHooks, getDebugIdSnippet } from '../../src/core';
 import { containsOnlyImports } from '../../src/core/utils';
 import { describe, it, expect } from 'vitest';
+
+describe('createComponentNameAnnotateHooks', () => {
+  it.each([
+    ['.tsx', '/project/src/shared/providers/AppProviders.tsx'],
+    ['.jsx', '/project/src/shared/providers/AppProviders.jsx'],
+  ])('preserves the full file path in the emitted source map (%s)', async (_ext, id) => {
+    const { transform } = createComponentNameAnnotateHooks([], false);
+    const code = 'export function AppProviders() {\n  return <div>hello</div>;\n}\n';
+
+    const result = await transform(code, id);
+
+    expect(result?.map?.sources).toEqual([id]);
+  });
+});
 
 describe('getDebugIdSnippet', () => {
   it('returns the debugId injection snippet for a passed debugId', () => {

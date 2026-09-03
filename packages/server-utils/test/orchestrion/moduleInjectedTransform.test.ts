@@ -3,6 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import * as barrel from '../../src/index';
+import { SENTRY_INSTRUMENTATIONS } from '../../src/orchestrion/config';
 import {
   CHANNEL_INTEGRATION_DEFINITIONS,
   subscriberExportForModule,
@@ -28,17 +30,15 @@ describe('channel integration definitions', () => {
     expect(subscriberExportForModule('not-a-package')).toBeUndefined();
   });
 
-  it('references only real named exports of @sentry/server-utils', async () => {
+  it('references only real named exports of @sentry/server-utils', () => {
     // The injected snippet imports each factory from `@sentry/server-utils`
     // (the `DEFAULT_IMPORT_SPECIFIER`), so the export must exist on that entry.
-    const barrel = await import('../../src/index');
     for (const { exportName } of CHANNEL_INTEGRATION_DEFINITIONS) {
       expect(typeof (barrel as Record<string, unknown>)[exportName]).toBe('function');
     }
   });
 
-  it('covers every instrumented module that has a channel-subscriber integration', async () => {
-    const { SENTRY_INSTRUMENTATIONS } = await import('../../src/orchestrion/config');
+  it('covers every instrumented module that has a channel-subscriber integration', () => {
     const configured = new Set(SENTRY_INSTRUMENTATIONS.map(c => c.module.name));
     const defined = new Set(CHANNEL_INTEGRATION_DEFINITIONS.flatMap(d => d.modules as readonly string[]));
 
@@ -83,6 +83,10 @@ describe('module-injected transform', () => {
     // needed at runtime and the lazy-subscription event matches what channel
     // integrations wait for.
     expect(result!.code).toContain('orchestrionModuleInjected("mysql", mysqlIntegration)');
+    // The result is assigned to a global. `@sentry/server-utils` is `sideEffects: false` and the
+    // helper returns `void`, so a bare call statement is one a bundler can prove droppable.
+    // rollup >= 4.63.0 removes it, leaving the module instrumented but unsubscribed.
+    expect(result!.code).toContain('globalThis.__SENTRY_ORCHESTRION_INJECT__ = orchestrionModuleInjected(');
     // No separate @sentry/core import at the injection site — the helper owns that.
     expect(result!.code).not.toContain('@sentry/core');
     // It imports ONLY the mysql factory — no central dispatch pulling in others.

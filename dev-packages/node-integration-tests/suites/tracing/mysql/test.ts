@@ -263,8 +263,12 @@ describe('mysql auto instrumentation', () => {
               type: 'string',
               value: 'SELECT 1 + 1 AS solution',
             },
+            'db.query.summary': {
+              type: 'string',
+              value: 'SELECT',
+            },
           },
-          name: 'SELECT 1 + 1 AS solution',
+          name: 'SELECT',
           ...COMMON_SPAN_PROPS,
         },
         {
@@ -274,8 +278,12 @@ describe('mysql auto instrumentation', () => {
               type: 'string',
               value: 'SELECT NOW()',
             },
+            'db.query.summary': {
+              type: 'string',
+              value: 'SELECT',
+            },
           },
-          name: 'SELECT NOW()',
+          name: 'SELECT',
           ...COMMON_SPAN_PROPS,
         },
       ]);

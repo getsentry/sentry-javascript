@@ -2,6 +2,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { makeFlushLock } from '../src/flush';
+import { getInvocationState } from '../src/utils/invocationContext';
+import { withInvocationIsolationScope } from '../src/utils/invocationScope';
 
 const TRACE_FLAG_SAMPLED = 0x1;
 
@@ -9,6 +11,8 @@ const MOCK_CLIENT_OPTIONS: CloudflareClientOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   stackParser: () => [],
   integrations: [],
+  // These tests exercise the per-invocation client behavior
+  cacheClient: false,
   transport: () => ({
     send: vi.fn().mockResolvedValue({}),
     flush: vi.fn().mockResolvedValue(true),
@@ -220,6 +224,52 @@ describe('CloudflareClient', () => {
     });
   });
 
+  describe('flush()', () => {
+    it('calls transport flush with the given timeout', async () => {
+      const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
+
+      const privateClient = client as unknown as {
+        _transport: { flush: ReturnType<typeof vi.fn> };
+      };
+
+      await client.flush(3000);
+
+      expect(privateClient._transport.flush).toHaveBeenCalledWith(3000);
+    });
+
+    it('resolves with the transport flush result', async () => {
+      const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
+
+      const result = await client.flush(1000);
+
+      expect(result).toBe(true);
+    });
+
+    it('waits for the flush lock before draining the transport', async () => {
+      let releaseLock!: () => void;
+      const finalize = vi.fn(() => new Promise<void>(resolve => (releaseLock = resolve)));
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        flushLock: { ready: Promise.resolve(), finalize },
+      });
+
+      const privateClient = client as unknown as {
+        _transport: { flush: ReturnType<typeof vi.fn> };
+      };
+
+      const flushPromise = client.flush(1000);
+
+      // The transport must not drain while the lock is pending
+      await Promise.resolve();
+      expect(finalize).toHaveBeenCalled();
+      expect(privateClient._transport.flush).not.toHaveBeenCalled();
+
+      releaseLock();
+      await flushPromise;
+      expect(privateClient._transport.flush).toHaveBeenCalledWith(1000);
+    });
+  });
+
   describe('span lifecycle tracking', () => {
     it('tracks pending spans when spanStart is emitted', () => {
       const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
@@ -331,6 +381,395 @@ describe('CloudflareClient', () => {
       // Emit spanStart after dispose - should not be tracked
       client.emit('spanStart', mockSpan as any);
       expect(privateClient._pendingSpans.has('test-span-id')).toBe(false);
+    });
+
+    it('does not track spans when cacheClient is enabled', async () => {
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        cacheClient: true,
+      });
+
+      const privateClient = client as unknown as {
+        _pendingSpans: Set<string>;
+        _unsubscribeSpanStart: (() => void) | null;
+        _unsubscribeSpanEnd: (() => void) | null;
+      };
+
+      // Span tracking is disabled for cached clients — flush must not wait
+      expect(privateClient._unsubscribeSpanStart).toBeNull();
+      expect(privateClient._unsubscribeSpanEnd).toBeNull();
+
+      const mockSpan = {
+        spanContext: () => ({ spanId: 'test-span-id', traceFlags: TRACE_FLAG_SAMPLED }),
+      };
+      client.emit('spanStart', mockSpan as any);
+
+      expect(privateClient._pendingSpans.size).toBe(0);
+      await expect(client.flush(10)).resolves.toBe(true);
+    });
+  });
+
+  describe('cached client eager envelope delivery', () => {
+    function makeEagerFlushClient(
+      flushMock: ReturnType<typeof vi.fn>,
+      extra: Partial<CloudflareClientOptions> = {},
+    ): CloudflareClient {
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        cacheClient: true,
+        transport: () => ({
+          send: vi.fn().mockResolvedValue({}),
+          flush: flushMock,
+        }),
+        ...extra,
+      });
+      client.init();
+      return client;
+    }
+
+    function reachFlushPoint(): void {
+      const state = getInvocationState();
+      if (state) {
+        state.flushPointReached = true;
+      }
+    }
+
+    it('does not drain the transport for envelopes before the invocation flush point', () => {
+      const flushMock = vi.fn().mockResolvedValue(true);
+      const client = makeEagerFlushClient(flushMock);
+      const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+
+      withInvocationIsolationScope(() => {
+        client.emit('afterEnvelope', {});
+      }, ctx as never);
+
+      expect(flushMock).not.toHaveBeenCalled();
+      expect(ctx.waitUntil).not.toHaveBeenCalled();
+    });
+
+    it('drains the transport for envelopes past the flush point and registers it with the invocation waitUntil', () => {
+      const flushMock = vi.fn().mockResolvedValue(true);
+      const client = makeEagerFlushClient(flushMock);
+      const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+
+      withInvocationIsolationScope(() => {
+        reachFlushPoint();
+        client.emit('afterEnvelope', {});
+      }, ctx as never);
+
+      expect(flushMock).toHaveBeenCalledTimes(1);
+      expect(ctx.waitUntil).toHaveBeenCalledTimes(1);
+      expect(ctx.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+    });
+
+    it('drains the transport for envelopes outside any invocation', () => {
+      const flushMock = vi.fn().mockResolvedValue(true);
+      const client = makeEagerFlushClient(flushMock);
+
+      client.emit('afterEnvelope', {});
+
+      expect(flushMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not register a waitUntil when no context is known', () => {
+      const flushMock = vi.fn().mockResolvedValue(true);
+      const client = makeEagerFlushClient(flushMock);
+
+      expect(() => client.emit('afterEnvelope', {})).not.toThrow();
+      expect(flushMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('registers the drain with the capturing invocation, not the latest one', () => {
+      const flushMock = vi.fn().mockResolvedValue(true);
+      const ctxA = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+      const ctxB = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+      const client = makeEagerFlushClient(flushMock);
+
+      // An envelope captured by invocation A must register its drain on A's
+      // waitUntil, even when invocation B is the one that ran `init()` last.
+      withInvocationIsolationScope(() => {
+        reachFlushPoint();
+        client.emit('afterEnvelope', {});
+      }, ctxA as never);
+      expect(ctxA.waitUntil).toHaveBeenCalledTimes(1);
+      expect(ctxB.waitUntil).not.toHaveBeenCalled();
+
+      withInvocationIsolationScope(() => {
+        reachFlushPoint();
+        client.emit('afterEnvelope', {});
+      }, ctxB as never);
+      expect(ctxB.waitUntil).toHaveBeenCalledTimes(1);
+    });
+
+    it('never lets a failing drain reject the waitUntil registration', async () => {
+      let registered: Promise<unknown> | undefined;
+      const waitUntil = vi.fn((promise: Promise<unknown>) => {
+        registered = promise;
+      });
+      const ctx = { waitUntil, passThroughOnException: vi.fn() };
+      const client = makeEagerFlushClient(vi.fn().mockRejectedValue(new Error('ingest down')));
+
+      withInvocationIsolationScope(() => {
+        reachFlushPoint();
+        client.emit('afterEnvelope', {});
+      }, ctx as never);
+
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+      // The promise handed to the runtime must resolve: a rejected waitUntil
+      // promise would mark the invocation's outcome as an exception.
+      await expect(registered).resolves.toBeUndefined();
+    });
+
+    it('envelopes created by the boundary flush ride its drain; later ones start their own', async () => {
+      const flushMock = vi.fn().mockResolvedValue(true);
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        cacheClient: true,
+        transport: () => ({ send: vi.fn().mockResolvedValue({}), flush: flushMock }),
+      });
+      const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+      let envelopesDuringFlush = 0;
+      // Hooks registered before the client's own (core log/metric drains, the span
+      // buffer, which `init()` sets up) create envelopes on the same `flush` emit.
+      client.on('flush', () => {
+        client.emit('afterEnvelope', {});
+        envelopesDuringFlush = flushMock.mock.calls.length;
+      });
+      client.init();
+
+      await withInvocationIsolationScope(async () => {
+        await client.flush(10);
+        // No eager drain for that envelope: the flush point was not marked yet when it
+        // was created, and the boundary flush's own transport drain follows.
+        expect(envelopesDuringFlush).toBe(0);
+        expect(flushMock).toHaveBeenCalledTimes(1);
+        expect(ctx.waitUntil).not.toHaveBeenCalled();
+
+        client.emit('afterEnvelope', {});
+        expect(flushMock).toHaveBeenCalledTimes(2);
+        expect(ctx.waitUntil).toHaveBeenCalledTimes(1);
+      }, ctx as never);
+    });
+
+    it('does not flush eagerly per envelope when cacheClient is disabled', () => {
+      const flushMock = vi.fn().mockResolvedValue(true);
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        cacheClient: false,
+        transport: () => ({
+          send: vi.fn().mockResolvedValue({}),
+          flush: flushMock,
+        }),
+      });
+      client.init();
+
+      client.emit('afterEnvelope', {});
+      expect(flushMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cached client eager span delivery', () => {
+    function makeCachedClient(): { client: CloudflareClient; flushSpy: ReturnType<typeof vi.fn> } {
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        cacheClient: true,
+        traceLifecycle: 'stream',
+      } as never);
+      client.init();
+      const flushSpy = vi.fn();
+      client.on('flushTraceSpans', flushSpy);
+      return { client, flushSpy };
+    }
+
+    // The handler only reads the span's trace id — it is forwarded to the flushTraceSpans hook.
+    function makeSpan(traceId: string) {
+      return { spanContext: () => ({ traceId }) };
+    }
+
+    const tick = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0));
+    const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+
+    it('does not flush spans ending before the invocation flush point', async () => {
+      const { client, flushSpy } = makeCachedClient();
+
+      await withInvocationIsolationScope(async () => {
+        client.emit('afterSpanEnd', makeSpan('trace-b') as never);
+        await tick();
+      }, ctx as never);
+
+      expect(flushSpy).not.toHaveBeenCalled();
+    });
+
+    it('flushes the trace of a span ending after the invocation flush point', async () => {
+      const { client, flushSpy } = makeCachedClient();
+
+      await withInvocationIsolationScope(async () => {
+        await client.flush(0);
+        client.emit('afterSpanEnd', makeSpan('trace-1') as never);
+        await tick();
+      }, ctx as never);
+
+      expect(flushSpy).toHaveBeenCalledTimes(1);
+      expect(flushSpy).toHaveBeenCalledWith('trace-1');
+    });
+
+    it('does not flush spans of an invocation whose flush point has not been reached', async () => {
+      const { client, flushSpy } = makeCachedClient();
+
+      // Invocation A passes its flush point …
+      await withInvocationIsolationScope(async () => {
+        await client.flush(0);
+      }, ctx as never);
+
+      // … while invocation B is still in flight — its spans keep batching
+      const ctxB = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+      await withInvocationIsolationScope(async () => {
+        client.emit('afterSpanEnd', makeSpan('trace-1') as never);
+        await tick();
+      }, ctxB as never);
+
+      expect(flushSpy).not.toHaveBeenCalled();
+    });
+
+    it('schedules a flush per invocation when concurrent invocations are past their flush point', async () => {
+      const { client, flushSpy } = makeCachedClient();
+
+      const ctxA = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+      const ctxB = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+
+      // Both invocations end a span past their flush point in the same tick — each
+      // must schedule its own flush in its own async context, so the listener
+      // derives the right trace (and waitUntil) per invocation.
+      await Promise.all([
+        withInvocationIsolationScope(async () => {
+          await client.flush(0);
+          client.emit('afterSpanEnd', makeSpan('trace-a') as never);
+        }, ctxA as never),
+        withInvocationIsolationScope(async () => {
+          await client.flush(0);
+          client.emit('afterSpanEnd', makeSpan('trace-b') as never);
+        }, ctxB as never),
+      ]);
+      await tick();
+
+      expect(flushSpy).toHaveBeenCalledTimes(2);
+      expect(flushSpy).toHaveBeenCalledWith('trace-a');
+      expect(flushSpy).toHaveBeenCalledWith('trace-b');
+    });
+
+    it('flushes every trace when one invocation ends spans of several traces in the same turn', async () => {
+      const { client, flushSpy } = makeCachedClient();
+
+      // A single invocation can own more than one trace past its flush point —
+      // e.g. two `startNewTrace` background jobs completing synchronously inside
+      // one `ctx.waitUntil`. Debouncing per invocation instead of per trace would
+      // schedule only the first trace and leave the rest buffered with no later
+      // in-invocation drain.
+      await withInvocationIsolationScope(async () => {
+        await client.flush(0);
+        client.emit('afterSpanEnd', makeSpan('trace-a') as never);
+        client.emit('afterSpanEnd', makeSpan('trace-b') as never);
+        await tick();
+      }, ctx as never);
+
+      expect(flushSpy).toHaveBeenCalledTimes(2);
+      expect(flushSpy).toHaveBeenCalledWith('trace-a');
+      expect(flushSpy).toHaveBeenCalledWith('trace-b');
+    });
+
+    it('flushes each span end of the same trace on its own', async () => {
+      // No per-turn coalescing: draining only the ended span's trace bucket is cheap, and
+      // deferring it bought no measurable CPU in production.
+      const { client, flushSpy } = makeCachedClient();
+
+      await withInvocationIsolationScope(async () => {
+        await client.flush(0);
+        client.emit('afterSpanEnd', makeSpan('trace-a') as never);
+        client.emit('afterSpanEnd', makeSpan('trace-a') as never);
+      }, ctx as never);
+
+      expect(flushSpy).toHaveBeenCalledTimes(2);
+      expect(flushSpy).toHaveBeenCalledWith('trace-a');
+    });
+
+    it("flushes each invocation's trace in its own async context", async () => {
+      const { client } = makeCachedClient();
+      const ctxA = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+      const ctxB = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+      const flushContext = new Map<string, unknown>();
+
+      client.on('flushTraceSpans', traceId => {
+        flushContext.set(String(traceId), getInvocationState()?.ctx);
+      });
+
+      await Promise.all([
+        withInvocationIsolationScope(async () => {
+          await client.flush(0);
+          client.emit('afterSpanEnd', makeSpan('trace-a') as never);
+        }, ctxA as never),
+        withInvocationIsolationScope(async () => {
+          await client.flush(0);
+          client.emit('afterSpanEnd', makeSpan('trace-b') as never);
+        }, ctxB as never),
+      ]);
+      await tick();
+
+      expect(flushContext.get('trace-a')).toBe(ctxA);
+      expect(flushContext.get('trace-b')).toBe(ctxB);
+    });
+
+    it('delivers spans of detached continuations eagerly once the owning invocation flushed', async () => {
+      const { client, flushSpy } = makeCachedClient();
+
+      let releaseDetached!: () => void;
+      const detachedGate = new Promise<void>(resolve => {
+        releaseDetached = resolve;
+      });
+      // A detached continuation is created inside the invocation but settles after it
+      const continuation = withInvocationIsolationScope(async () => {
+        await client.flush(0);
+        return (async () => {
+          await detachedGate;
+          client.emit('afterSpanEnd', makeSpan('trace-1') as never);
+        })();
+      }, ctx as never);
+
+      releaseDetached();
+      await continuation;
+      await tick();
+
+      expect(flushSpy).toHaveBeenCalledTimes(1);
+      expect(flushSpy).toHaveBeenCalledWith('trace-1');
+    });
+
+    it('flushes spans ending outside any invocation eagerly', async () => {
+      const { client, flushSpy } = makeCachedClient();
+
+      // No boundary flush will ever come for them, and the buffer's own timer
+      // would fire where the runtime suspends the send.
+      client.emit('afterSpanEnd', makeSpan('trace-1') as never);
+      client.emit('afterSpanEnd', makeSpan('trace-1') as never);
+
+      expect(flushSpy).toHaveBeenCalledTimes(2);
+      expect(flushSpy).toHaveBeenCalledWith('trace-1');
+    });
+
+    it('does not flush for span ends when cacheClient is disabled', async () => {
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        cacheClient: false,
+        traceLifecycle: 'stream',
+      } as never);
+      const flushSpy = vi.fn();
+      client.on('flushTraceSpans', flushSpy);
+
+      await withInvocationIsolationScope(async () => {
+        await client.flush(0);
+        client.emit('afterSpanEnd', makeSpan('trace-1') as never);
+        await tick();
+      }, ctx as never);
+
+      expect(flushSpy).not.toHaveBeenCalled();
     });
   });
 });

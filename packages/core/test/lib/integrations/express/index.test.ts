@@ -1,8 +1,4 @@
-import {
-  patchExpressModule,
-  expressErrorHandler,
-  setupExpressErrorHandler,
-} from '../../../../src/integrations/express/index';
+import { patchExpressModule } from '../../../../src/integrations/express/index';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
@@ -15,38 +11,8 @@ import type {
   ExpressRoute,
   ExpressRouterv4,
   ExpressRouterv5,
-  ExpressResponse,
-  ExpressRequest,
-  ExpressMiddleware,
-  ExpressErrorMiddleware,
-  ExpressHandlerOptions,
 } from '../../../../src/integrations/express/types';
 import type { WrappedFunction } from '../../../../src/types/wrappedfunction';
-
-const sdkProcessingMetadata: unknown[] = [];
-const isolationScope = {
-  _scopeData: {} as { sdkProcessingMetadata?: unknown },
-  getScopeData() {
-    return this._scopeData;
-  },
-  setSDKProcessingMetadata({ normalizedRequest }: { normalizedRequest: unknown }) {
-    sdkProcessingMetadata.push(normalizedRequest);
-  },
-};
-
-vi.mock('../../../../src/currentScopes', () => ({
-  getIsolationScope() {
-    return isolationScope;
-  },
-}));
-
-const capturedExceptions: [unknown, unknown][] = [];
-vi.mock('../../../../src/exports', () => ({
-  captureException(error: unknown, hint: unknown) {
-    capturedExceptions.push([error, hint]);
-    return 'eventId';
-  },
-}));
 
 vi.mock('../../../../src/debug-build', () => ({
   DEBUG_BUILD: true,
@@ -259,107 +225,5 @@ describe('patchExpressModule', () => {
       ['Failed to patch express use method:', new Error('Attempting to wrap method use multiple times')],
       ['Failed to patch express application.use method:', new Error('Attempting to wrap method use multiple times')],
     ]);
-  });
-});
-
-describe('expressErrorHandler', () => {
-  it('handles the error if it should', () => {
-    const errorMiddleware = expressErrorHandler();
-    const res = { status: 500 } as unknown as ExpressResponse;
-    const next = vi.fn();
-    const err = new Error('err');
-    const req = { headers: { request: 'headers' } } as unknown as ExpressRequest;
-    errorMiddleware(err, req, res, next);
-    expect((res as unknown as { sentry: string }).sentry).toBe('eventId');
-    expect(capturedExceptions).toStrictEqual([
-      [
-        new Error('err'),
-        {
-          mechanism: {
-            handled: false,
-            type: 'auto.middleware.express',
-          },
-        },
-      ],
-    ]);
-    capturedExceptions.length = 0;
-    expect(sdkProcessingMetadata).toStrictEqual([
-      {
-        url: undefined,
-        method: undefined,
-        query_string: undefined,
-        headers: Object.assign(Object.create(null), { request: 'headers' }),
-        cookies: undefined,
-        data: undefined,
-      },
-    ]);
-    sdkProcessingMetadata.length = 0;
-    expect(next).toHaveBeenCalledExactlyOnceWith(err);
-    next.mockReset();
-  });
-
-  it('does not the error if it should not', () => {
-    const errorMiddleware = expressErrorHandler({
-      shouldHandleError: () => false,
-    });
-    const res = { status: 500 } as unknown as ExpressResponse;
-    const req = { headers: { request: 'headers' } } as unknown as ExpressRequest;
-    const next = vi.fn();
-    const err = new Error('err');
-    errorMiddleware(err, req, res, next);
-    expect((res as unknown as { sentry?: string }).sentry).toBe(undefined);
-    expect(capturedExceptions).toStrictEqual([]);
-    expect(sdkProcessingMetadata).toStrictEqual([
-      {
-        url: undefined,
-        method: undefined,
-        query_string: undefined,
-        headers: Object.assign(Object.create(null), { request: 'headers' }),
-        cookies: undefined,
-        data: undefined,
-      },
-    ]);
-    sdkProcessingMetadata.length = 0;
-    expect(next).toHaveBeenCalledExactlyOnceWith(err);
-    next.mockReset();
-  });
-});
-
-describe('setupExpressErrorHandler', () => {
-  const appUseCalls: unknown[] = [];
-  const app = {
-    use: vi.fn((fn: unknown) => appUseCalls.push(fn)) as (
-      middleware: ExpressMiddleware | ExpressErrorMiddleware,
-    ) => unknown,
-  };
-  const options = {} as ExpressHandlerOptions;
-  it('should have a test here lolz', () => {
-    setupExpressErrorHandler(app, options);
-    expect(app.use).toHaveBeenCalledTimes(2);
-    const reqHandler = appUseCalls[0];
-    expect(typeof reqHandler).toBe('function');
-    const next = vi.fn();
-    (reqHandler as (request: ExpressRequest, _res: ExpressResponse, next: () => void) => void)(
-      {
-        method: 'GET',
-        headers: { request: 'headers' },
-      } as unknown as ExpressRequest,
-      {} as unknown as ExpressResponse,
-      next,
-    );
-    expect(next).toHaveBeenCalledOnce();
-    expect(sdkProcessingMetadata).toStrictEqual([
-      {
-        cookies: undefined,
-        data: undefined,
-        headers: Object.assign(Object.create(null), {
-          request: 'headers',
-        }),
-        method: 'GET',
-        query_string: undefined,
-        url: undefined,
-      },
-    ]);
-    sdkProcessingMetadata.length = 0;
   });
 });

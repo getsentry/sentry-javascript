@@ -1,10 +1,10 @@
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core/browser';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import {
   _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
   defineIntegration,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
 /**

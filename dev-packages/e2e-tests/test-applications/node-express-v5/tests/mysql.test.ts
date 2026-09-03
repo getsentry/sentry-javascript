@@ -13,7 +13,7 @@ test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
   expect(transactionEvent.contexts?.trace?.op).toEqual('http.server');
   expect(transactionEvent.transaction).toEqual('GET /test-mysql');
   expect(transactionEvent.contexts?.trace?.status).toEqual('ok');
-  expect(transactionEvent.contexts?.trace?.data?.['http.status_code']).toEqual(200);
+  expect(transactionEvent.contexts?.trace?.data?.['http.response.status_code']).toEqual(200);
 
   const spans = transactionEvent.spans || [];
   expect(spans).toContainEqual(

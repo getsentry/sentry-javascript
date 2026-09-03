@@ -1,12 +1,13 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 /* eslint-disable max-lines */
 import {
-  captureException,
+  getClient,
+  handleCallbackErrors,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
   startSpanManual,
-  handleCallbackErrors,
   stringify,
 } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
@@ -251,6 +252,37 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
 }
 
 /**
+ * Recover the config a chat message sends but does not carry in its own arguments.
+ *
+ * `chats.create()` takes a config that `@google/genai` reuses for every message, resolving each
+ * request as `params.config ?? chat.config`. A per-message config therefore replaces the chat
+ * config rather than merging into it, and the chat config applies only when the message omits one.
+ * That config lives on the chat instance, which both instrumentation paths already hold: the client
+ * proxy passes it as the method's `context`, the diagnostics-channel path as `data.self`.
+ *
+ * The chat `history` stays off the message spans. The SDK does send it, folded into `contents`, and
+ * the instance carries the whole transcript, but repeating every past turn on every message span
+ * duplicates what earlier spans already reported and grows without bound.
+ */
+export function resolveChatParams(
+  operationName: string,
+  params: Record<string, unknown> | undefined,
+  context: unknown,
+): Record<string, unknown> | undefined {
+  // `!= null` mirrors the SDK's `??`: an explicit `null` config falls back to the chat's.
+  if (operationName !== 'chat' || params?.config != null || !context || typeof context !== 'object') {
+    return params;
+  }
+
+  const chatConfig = (context as Record<string, unknown>).config;
+  if (!chatConfig || typeof chatConfig !== 'object') {
+    return params;
+  }
+
+  return { ...params, config: chatConfig };
+}
+
+/**
  * Instrument any async or synchronous genai method with Sentry spans
  * Handles operations like models.generateContent and chat.sendMessage and chats.create
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
@@ -268,34 +300,34 @@ function instrumentMethod<T extends unknown[], R>(
     apply(target, _, args: T): R | Promise<R> {
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
-      const requestAttributes = extractRequestAttributes(operationName, params, context);
-      const model = requestAttributes[GEN_AI_REQUEST_MODEL] ?? 'unknown';
+      const attributeParams = resolveChatParams(operationName, params, context);
+      const requestAttributes = extractRequestAttributes(operationName, attributeParams, context);
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+      const client = getClient();
+      // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+      const spanName =
+        (typeof model === 'string' && model !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+          ? `${operationName} ${model}`
+          : operationName;
 
       // Check if this is a streaming method
       if (instrumentedMethod.streaming) {
         // Use startSpanManual for streaming methods to control span lifecycle
         return startSpanManual(
           {
-            name: `${operationName} ${model}`,
+            name: spanName,
             op: getGenAiSpanOp(operationName),
             attributes: requestAttributes,
           },
           async (span: Span) => {
             try {
-              if (options.recordInputs && params) {
-                addPrivateRequestAttributes(span, params, operationName);
+              if (options.recordInputs && attributeParams) {
+                addPrivateRequestAttributes(span, attributeParams, operationName);
               }
               const stream = await target.apply(context, args);
               return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
             } catch (error) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-              captureException(error, {
-                mechanism: {
-                  handled: false,
-                  type: 'auto.ai.google_genai',
-                  data: { function: methodPath },
-                },
-              });
               span.end();
               throw error;
             }
@@ -305,22 +337,20 @@ function instrumentMethod<T extends unknown[], R>(
       // Single span for both sync and async operations
       return startSpan(
         {
-          name: `${operationName} ${model}`,
+          name: spanName,
           op: getGenAiSpanOp(operationName),
           attributes: requestAttributes,
         },
         (span: Span) => {
-          if (options.recordInputs && params) {
-            addPrivateRequestAttributes(span, params, operationName);
+          if (options.recordInputs && attributeParams) {
+            addPrivateRequestAttributes(span, attributeParams, operationName);
           }
 
+          // `onError` is a no-op because the rejection is rethrown to the caller and `startSpan` already
+          // marks the span errored; both leading callbacks are positional and only exist to reach `onSuccess`.
           return handleCallbackErrors(
             () => target.apply(context, args),
-            error => {
-              captureException(error, {
-                mechanism: { handled: false, type: 'auto.ai.google_genai', data: { function: methodPath } },
-              });
-            },
+            () => {},
             () => {},
             result => {
               // Only add response attributes for content-producing methods, not for embeddings

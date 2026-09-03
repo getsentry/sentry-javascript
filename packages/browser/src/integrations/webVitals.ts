@@ -1,5 +1,5 @@
-import type { IntegrationFn, Span } from '@sentry/core/browser';
-import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core/browser';
+import type { IntegrationFn, Span } from '@sentry/core';
+import { defineIntegration, hasSpanStreamingEnabled } from '@sentry/core';
 import {
   addWebVitalsToSpan,
   registerInpInteractionListener,

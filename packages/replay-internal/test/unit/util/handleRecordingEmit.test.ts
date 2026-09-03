@@ -175,9 +175,7 @@ describe('Unit | util | handleRecordingEmit', () => {
       },
     };
 
-    vi.spyOn(record.mirror, 'getNode').mockReturnValue(target);
-    vi.spyOn(record.mirror, 'getMeta').mockReturnValue(meta as serializedElementNodeWithId);
-    vi.spyOn(record.mirror, 'getId').mockReturnValue(42);
+    record.mirror.add(target, meta as serializedElementNodeWithId);
 
     syncMirrorAttributesFromMutationEvent({
       type: EventType.IncrementalSnapshot,
@@ -237,8 +235,7 @@ describe('Unit | util | handleRecordingEmit', () => {
       },
     };
 
-    vi.spyOn(record.mirror, 'getNode').mockReturnValue(target);
-    vi.spyOn(record.mirror, 'getMeta').mockReturnValue(meta as serializedElementNodeWithId);
+    record.mirror.add(target, meta as serializedElementNodeWithId);
 
     syncMirrorAttributesFromMutationEvent({
       type: EventType.IncrementalSnapshot,
@@ -259,6 +256,74 @@ describe('Unit | util | handleRecordingEmit', () => {
       },
     });
 
-    expect(meta.attributes['aria-label']).toBe('*********');
+    expect(record.mirror.getMeta(target)?.attributes['aria-label']).toBe('*********');
+  });
+
+  it('does not rewrite the serialized node that was already emitted in an `adds` payload', function () {
+    const target = document.createElement('div');
+
+    // rrweb stores the very same object in the mirror that it emits in `adds`, so a
+    // previously emitted event and the mirror share this reference.
+    const meta = {
+      id: 42,
+      type: NodeType.Element,
+      tagName: 'div',
+      childNodes: [],
+      attributes: {
+        id: 'popover',
+        style: 'position: fixed; left: 0px; top: 0px; transform: translate(0px, -200%); min-width: max-content;',
+      },
+    };
+
+    record.mirror.add(target, meta as serializedElementNodeWithId);
+
+    const addEvent = {
+      type: EventType.IncrementalSnapshot,
+      timestamp: BASE_TIMESTAMP,
+      data: {
+        source: IncrementalSource.Mutation,
+        texts: [],
+        attributes: [],
+        removes: [],
+        adds: [{ parentId: 1, nextId: null, node: meta }],
+      },
+    };
+
+    // rrweb emits a compact style mutation, where `style` is a partial diff object rather
+    // than the full style string.
+    syncMirrorAttributesFromMutationEvent({
+      type: EventType.IncrementalSnapshot,
+      timestamp: BASE_TIMESTAMP + 10,
+      data: {
+        source: IncrementalSource.Mutation,
+        texts: [],
+        attributes: [
+          {
+            id: 42,
+            attributes: {
+              id: 'popover-open',
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              style: { transform: 'translate(631px, 210px)' } as any,
+            },
+          },
+        ],
+        removes: [],
+        adds: [],
+      },
+    });
+
+    // The already emitted event still describes the element as it was when it was serialized.
+    // Buffers that hold events unserialized (i.e. when compression is disabled) would otherwise
+    // ship this partial style diff in place of the full inline style.
+    expect(addEvent.data.adds[0]?.node.attributes).toEqual({
+      id: 'popover',
+      style: 'position: fixed; left: 0px; top: 0px; transform: translate(0px, -200%); min-width: max-content;',
+    });
+
+    // But the mirror is up to date for the attributes that click breadcrumbs care about.
+    expect(record.mirror.getMeta(target)?.attributes).toEqual({
+      id: 'popover-open',
+      style: 'position: fixed; left: 0px; top: 0px; transform: translate(0px, -200%); min-width: max-content;',
+    });
   });
 });

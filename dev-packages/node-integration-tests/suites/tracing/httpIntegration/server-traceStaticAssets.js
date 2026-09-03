@@ -34,6 +34,4 @@ app.get('/assets/app.js', (_req, res) => {
   res.type('application/javascript').send('/* js */');
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

@@ -203,7 +203,7 @@ export function subscribeVercelAiOrchestrionChannels(
     );
     subscribeResolveLanguageModel(tracingChannel, CHANNELS.VERCEL_AI_RESOLVE_LANGUAGE_MODEL, options);
   } catch {
-    DEBUG_BUILD && debug.log('Vercel AI orchestrion channel subscription failed.');
+    DEBUG_BUILD && debug.log('Vercel AI channel subscription failed.');
   }
 }
 
@@ -578,7 +578,7 @@ function patchOperationTools(tools: Record<string, unknown>, options: VercelAiCh
       }
     }
   } catch {
-    DEBUG_BUILD && debug.log('Vercel AI orchestrion tool patching failed.');
+    DEBUG_BUILD && debug.log('Vercel AI tool patching failed.');
   }
 }
 

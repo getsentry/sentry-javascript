@@ -7,9 +7,9 @@ import {
   getClient,
   getRootSpan,
   GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   SPAN_STATUS_ERROR,
   updateSpanName,
@@ -25,8 +25,14 @@ import {
   finalizeNavigationSpanFromHydratedRouter,
   updateNavigationSpanUrlFromLocation,
 } from './utils';
-import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { FUNCTION, MIDDLEWARE } from '@sentry/conventions/op';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  URL_FULL,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
+import { FUNCTION, MIDDLEWARE, NAVIGATION } from '@sentry/conventions/op';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -106,10 +112,12 @@ export function createSentryClientInstrumentation(
           startBrowserTracingNavigationSpan(
             client,
             {
-              name: pathname,
+              // With span streaming, span names have to be low cardinality, so we can't fall back to
+              // the URL. The route hooks parameterize the span once they resolve.
+              name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+                [SENTRY_OP]: NAVIGATION,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                 'navigation.type': 'browser.popstate',
               },
@@ -149,10 +157,12 @@ export function createSentryClientInstrumentation(
               navigationSpan = startBrowserTracingNavigationSpan(
                 client,
                 {
-                  name: currentPathname,
+                  // With span streaming, span names have to be low cardinality, so we can't fall back
+                  // to the URL. The route is resolved once the navigation settles.
+                  name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : currentPathname,
                   attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+                    [SENTRY_OP]: NAVIGATION,
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                     'navigation.type': navigationType,
                   },
@@ -194,10 +204,12 @@ export function createSentryClientInstrumentation(
             navigationSpan = startBrowserTracingNavigationSpan(
               client,
               {
-                name: toPath,
+                // With span streaming, span names have to be low cardinality, so we can't fall back to
+                // the URL. The route hooks parameterize the span once they resolve.
+                name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : toPath,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+                  [SENTRY_OP]: NAVIGATION,
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
                   'navigation.type': 'router.navigate',
                 },
@@ -385,7 +397,7 @@ function updateRootSpanRoute(routeName: string, hasPattern: boolean): void {
   }
 
   updateSpanName(rootSpan, routeName);
-  rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeName });
+  rootSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'route', [URL_TEMPLATE]: routeName });
 }
 
 /**

@@ -12,10 +12,10 @@ import {
   getIntegrationsToSetup,
   GLOBAL_OBJ,
   linkedErrorsIntegration,
-  nodeStackLineParser,
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import { nodeStackLineParser } from '@sentry/core/server';
 import {
   SentryPropagator,
   SentryTracerProvider,

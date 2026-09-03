@@ -48,16 +48,10 @@ interface StreamingState {
 
 function isErrorEvent(event: AnthropicAiStreamingEvent, span: Span): boolean {
   if ('type' in event && typeof event.type === 'string') {
-    // If the event is an error, set the span status and capture the error
-    // These error events are not rejected by the API by default, but are sent as metadata of the response
     if (event.type === 'error') {
+      // The SDK surfaces this error to the caller (the async iterator rejects / their `error`
+      // listener fires), so we only mark the span failed and do not record it.
       span.setStatus({ code: SPAN_STATUS_ERROR, message: mapAnthropicErrorToStatusMessage(event.error?.type) });
-      captureException(event.error, {
-        mechanism: {
-          handled: false,
-          type: 'auto.ai.anthropic.anthropic_error',
-        },
-      });
       return true;
     }
   }
@@ -266,6 +260,8 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   });
 
   stream.on('error', (error: unknown) => {
+    // Attaching this listener stops the stream error from being raised as an unhandled rejection, so
+    // we capture it here to avoid swallowing it (e.g. for callers that don't await/iterate the stream).
     captureException(error, {
       mechanism: {
         handled: false,

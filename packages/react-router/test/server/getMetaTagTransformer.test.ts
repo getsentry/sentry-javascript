@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
 
 vi.mock('@sentry/core', () => ({
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
   getActiveSpan: vi.fn(),
   getRootSpan: vi.fn(),

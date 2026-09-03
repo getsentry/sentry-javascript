@@ -69,12 +69,20 @@ function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpan
  * @param requestId - Request identifier
  * @param span - Active span to correlate
  * @param method - MCP method name
+ * @param capturePolicy - Capture policy resolved when the request began
  */
-export function storeSpanForRequest(transport: MCPTransport, requestId: RequestId, span: Span, method: string): void {
+export function storeSpanForRequest(
+  transport: MCPTransport,
+  requestId: RequestId,
+  span: Span,
+  method: string,
+  capturePolicy: ResolvedMcpOptions,
+): void {
   const spanMap = getOrCreateSpanMap(transport);
   spanMap.set(requestId, {
     span,
     method,
+    capturePolicy,
     // oxlint-disable-next-line sdk/no-unsafe-random-apis
     startTime: Date.now(),
   });
@@ -85,14 +93,12 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
  * @param transport - MCP transport instance
  * @param requestId - Request identifier
  * @param result - Execution result for attribute extraction
- * @param options - Resolved MCP options
  * @param hasError - Whether the JSON-RPC response contained an error
  */
 export function completeSpanWithResults(
   transport: MCPTransport,
   requestId: RequestId,
   result: unknown,
-  options: ResolvedMcpOptions,
   hasError = false,
 ): void {
   const spanMap = getOrCreateSpanMap(transport);
@@ -119,10 +125,10 @@ export function completeSpanWithResults(
     if (hasError) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     } else if (method === 'tools/call') {
-      const toolAttributes = extractToolResultAttributes(result, options.recordOutputs);
+      const toolAttributes = extractToolResultAttributes(result, spanData.capturePolicy.recordOutputs);
       span.setAttributes(toolAttributes);
     } else if (method === 'prompts/get') {
-      const promptAttributes = extractPromptResultAttributes(result, options.recordOutputs);
+      const promptAttributes = extractPromptResultAttributes(result, spanData.capturePolicy.recordOutputs);
       span.setAttributes(promptAttributes);
     }
 

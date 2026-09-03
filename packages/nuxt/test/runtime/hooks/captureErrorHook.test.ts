@@ -1,4 +1,5 @@
 import * as SentryCore from '@sentry/core';
+import * as SentryCoreServer from '@sentry/core/server';
 import { H3Error } from 'h3';
 import type { CapturedErrorContext } from 'nitropack/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,11 +10,18 @@ vi.mock('@sentry/core', async importOriginal => {
   return {
     ...(mod as any),
     captureException: vi.fn(),
-    flushIfServerless: vi.fn(),
     getClient: vi.fn(),
     getCurrentScope: vi.fn(() => ({
       setTransactionName: vi.fn(),
     })),
+  };
+});
+
+vi.mock('@sentry/core/server', async importOriginal => {
+  const mod = await importOriginal();
+  return {
+    ...(mod as any),
+    flushIfServerless: vi.fn(),
   };
 });
 
@@ -34,7 +42,7 @@ describe('sentryCaptureErrorHook', () => {
     (SentryCore.getClient as any).mockReturnValue({
       getOptions: () => ({}),
     });
-    (SentryCore.flushIfServerless as any).mockResolvedValue(undefined);
+    (SentryCoreServer.flushIfServerless as any).mockResolvedValue(undefined);
   });
 
   it('should capture regular errors', async () => {

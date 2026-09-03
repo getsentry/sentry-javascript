@@ -1,10 +1,5 @@
-import {
-  debug,
-  flushIfServerless,
-  getDefaultIsolationScope,
-  getIsolationScope,
-  withIsolationScope,
-} from '@sentry/core';
+import { debug, getDefaultIsolationScope, getIsolationScope, withIsolationScope } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 
 /**
  * Patches the H3 event handler of Nitro.

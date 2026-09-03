@@ -1,9 +1,10 @@
 import type { Client, Span } from '@sentry/core';
 import {
   hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
+  ROUTER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import {
   getCurrentScope,
@@ -12,7 +13,8 @@ import {
   startInactiveSpan,
   WINDOW,
 } from '@sentry/svelte';
-import { SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD, ROUTER } from '@sentry/conventions/op';
 import type { Navigation } from '@sveltejs/kit';
 import { getCurrentNavigation, onNavigationChange, onPageRouteChange } from './navigationState.svelte';
 
@@ -41,10 +43,10 @@ function _instrumentPageLoad(client: Client): void {
     // With span streaming, span names have to be low cardinality. The route id is only available
     // asynchronously, which updates the span name then.
     name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initialPath,
-    op: 'pageload',
     attributes: {
+      [SENTRY_OP]: PAGELOAD,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     },
   });
 
@@ -57,7 +59,7 @@ function _instrumentPageLoad(client: Client): void {
   onPageRouteChange(routeId => {
     if (routeId) {
       pageLoadSpan.updateName(routeId);
-      pageLoadSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
+      pageLoadSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'route', [URL_TEMPLATE]: routeId });
       getCurrentScope().setTransactionName(routeId);
     }
   });
@@ -99,11 +101,14 @@ function _instrumentNavigations(client: Client): void {
     startBrowserTracingNavigationSpan(
       client,
       {
-        name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
-        op: 'navigation',
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        name:
+          parameterizedRouteDestination ||
+          (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : rawRouteDestination || 'unknown'),
         attributes: {
+          [SENTRY_OP]: NAVIGATION,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
           ...(parameterizedRouteDestination && { [URL_TEMPLATE]: parameterizedRouteDestination }),
           ...navigationInfo,
         },
@@ -112,10 +117,11 @@ function _instrumentNavigations(client: Client): void {
     );
 
     routingSpan = startInactiveSpan({
-      name: 'SvelteKit Route Change',
+      // With span streaming, span names have to be low cardinality, and this span carries no route
+      // of its own, so it's the fallback.
+      name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : 'SvelteKit Route Change',
       attributes: {
-        // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
-        [SENTRY_OP]: 'router',
+        [SENTRY_OP]: ROUTER,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
         ...navigationInfo,
       },

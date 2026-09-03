@@ -8,6 +8,8 @@ import {
   debug,
   defineIntegration,
   getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -17,17 +19,21 @@ import {
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
   NETWORK_TRANSPORT,
   SENTRY_KIND,
+  SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
+import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
 
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
@@ -109,7 +115,7 @@ const _knexIntegration = (() => {
         return;
       }
 
-      DEBUG_BUILD && debug.log(`[orchestrion:knex] subscribing to channel "${CHANNELS.KNEX_QUERY}"`);
+      DEBUG_BUILD && debug.log(`[instrumentation:knex] subscribing to channel "${CHANNELS.KNEX_QUERY}"`);
 
       waitForTracingChannelBinding(() => {
         subscribeBuilder(CHANNELS.KNEX_QUERY_BUILDER);
@@ -146,6 +152,7 @@ function subscribeBuilder(channelName: string): void {
 function subscribeQuery(): void {
   bindTracingChannelToSpan<KnexQueryChannelContext>(
     diagnosticsChannel.tracingChannel<KnexQueryChannelContext>(CHANNELS.KNEX_QUERY),
+    // oxlint-disable-next-line complexity
     data => {
       const runner = data.self;
       const builder = runner?.builder;
@@ -163,28 +170,40 @@ function subscribeQuery(): void {
       const connectionString = connection?.connectionString;
       const table = extractTableName(builder);
       const operation = query?.method;
-      const name =
+      const dbNameSpace =
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
+      const dbSystem = mapSystem(client?.driverName);
 
       const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
+      const dialect = client?.driverName === 'mysql' || client?.driverName === 'mysql2' ? 'mysql' : undefined;
+      const querySummary = dbStatement
+        ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(dbStatement, dialect))
+        : undefined;
       const attributes: SpanAttributes = {
+        [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         'knex.version': data.moduleVersion,
-        [DB_SYSTEM_NAME]: mapSystem(client?.driverName),
+        [DB_SYSTEM_NAME]: dbSystem,
         [ATTR_DB_SQL_TABLE]: table,
         [DB_OPERATION_NAME]: operation,
         [DB_USER]: connection?.user,
-        [DB_NAMESPACE]: name,
+        [DB_NAMESPACE]: dbNameSpace,
         [SERVER_ADDRESS]: connection?.host ?? extractHostFromConnectionString(connectionString),
         [SERVER_PORT]: connection?.port ?? extractPortFromConnectionString(connectionString),
         [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
         [DB_QUERY_TEXT]: dbStatement,
+        [DB_QUERY_SUMMARY]: querySummary,
       };
 
+      const sentryClient = getClient();
+      const spanName =
+        sentryClient && hasSpanStreamingEnabled(sentryClient)
+          ? querySummary || getSecondaryStreamName(dbSystem, dbNameSpace, operation, table)
+          : (dbStatement ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
+
       return startInactiveSpan({
-        name: dbStatement ?? getName(name, operation, table) ?? 'knex.query',
-        op: 'db',
+        name: spanName,
         parentSpan,
         attributes,
       });
@@ -262,6 +281,31 @@ function getName(db: string | undefined, operation?: string, table?: string): st
   return db;
 }
 
+function getSecondaryStreamName(
+  dbSystem: string | undefined,
+  dbNameSpace: string | undefined,
+  operation?: string,
+  table?: string,
+): string {
+  if (operation) {
+    if (table) {
+      return `${operation} ${table}`;
+    }
+    if (dbNameSpace) {
+      return `${operation} ${dbNameSpace}`;
+    }
+  }
+  if (table) {
+    return table;
+  }
+  if (dbNameSpace) {
+    return dbNameSpace;
+  }
+  // Mirrors the postgres integration, which falls back to `{db.system.name}` rather than to a static
+  // name. `db.system.name` is only unset when the knex client reports no driver.
+  return dbSystem ?? 'knex.query';
+}
+
 function extractTableName(builder: KnexBuilder | undefined): string | undefined {
   const table = builder?._single?.table;
   if (table && typeof table === 'object') {
@@ -306,10 +350,10 @@ function extractPortFromConnectionString(connectionString: string | undefined): 
 }
 
 /**
- * Orchestrion-driven knex integration.
+ * Diagnostics-channel-based knex integration.
  *
- * Subscribes to the `orchestrion:knex:*` diagnostics_channels that the orchestrion code transform
+ * Subscribes to the `orchestrion:knex:*` diagnostics_channels that Sentry's code transform
  * injects into knex's `Runner.query` (span) and `Client.queryBuilder`/`schemaBuilder`/`raw` (parent-span
- * bookkeeping). Requires the orchestrion runtime hook or bundler plugin to be active.
+ * bookkeeping). Requires the Sentry runtime hook or bundler plugin to be active.
  */
 export const knexIntegration = defineIntegration(_knexIntegration);

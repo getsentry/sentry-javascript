@@ -6,7 +6,8 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-kafkajs
  * - Upstream version: @opentelemetry/instrumentation-kafkajs@0.27.0
  * - Span builders migrated to the `@sentry/core` span API. Kept byte-identical in span name/attributes
- *   for parity with the OTel integration this replaces.
+ *   for parity with the OTel integration this replaces, except for the span name under span streaming,
+ *   which follows the Sentry messaging conventions.
  */
 
 import {
@@ -21,7 +22,9 @@ import {
 import { QUEUE_PROCESS, QUEUE_PUBLISH, QUEUE_RECEIVE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
 import {
+  getClient,
   getTraceData,
+  hasSpanStreamingEnabled,
   propagationContextFromHeaders,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -49,7 +52,7 @@ const TRACE_FLAG_NONE = 0;
 interface ConsumerSpanOptions {
   topic: string;
   message: KafkaMessage | undefined;
-  operationType: string;
+  operationType: 'process' | 'receive';
   attributes: SpanAttributes;
   links?: SpanLink[];
 }
@@ -103,8 +106,10 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 
   const isBatchReceive = operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE;
 
+  const client = getClient();
+
   return startInactiveSpan({
-    name: `${operationName} ${topic}`,
+    name: client && hasSpanStreamingEnabled(client) ? `${operationType} ${topic}` : `${operationName} ${topic}`,
     links,
     attributes: {
       [SENTRY_OP]: isBatchReceive ? QUEUE_RECEIVE : QUEUE_PROCESS,

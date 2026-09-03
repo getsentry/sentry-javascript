@@ -35,6 +35,4 @@ app.get('/bounce', (req, res) => {
   });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

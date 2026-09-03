@@ -3,7 +3,7 @@ import {
   defineIntegration,
   safeSetSpanJSONAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { filterCollectedUrl } from '@sentry/core';
 import { URL_FULL } from '@sentry/conventions/attributes';

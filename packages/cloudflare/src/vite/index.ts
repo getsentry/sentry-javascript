@@ -45,6 +45,10 @@ export interface SentryCloudflareVitePluginOptions {
    * left alone, so this is safe alongside manual instrumentation. Set to
    * `false` to opt out.
    *
+   * The plugin also adds the bindings that resolve to the wrapped classes (this worker's own
+   * Durable Objects and self service bindings) to `rpcTracePropagationBindings`. Bindings to
+   * other workers stay opt-in, their receivers may not run Sentry.
+   *
    * @default true
    */
   autoInstrumentation?: boolean;

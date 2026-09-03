@@ -16,11 +16,20 @@ import {
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
+  GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import {
+  GEN_AI_EMBEDDINGS,
+  GEN_AI_EXECUTE_TOOL,
+  GEN_AI_GENERATE_CONTENT,
+  GEN_AI_INVOKE_AGENT,
+  GEN_AI_RERANK,
+} from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_skipAiProviderWrapping,
@@ -36,6 +45,7 @@ import {
   withScope,
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
 import type { GenAiOptions } from '../../ai/core/utils';
 import { getProviderMetadataAttributes } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
@@ -51,16 +61,18 @@ const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
 
 const ORIGIN = 'auto.vercelai.channel';
 
-// `@sentry/conventions` does not expose these yet, so we keep the literals here.
-const GEN_AI_TOOL_CALL_ID_ATTRIBUTE = 'gen_ai.tool.call.id';
-const GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE = 'gen_ai.tool.description';
-const GEN_AI_EMBEDDINGS_OPERATION = 'embeddings';
-const GEN_AI_RERANK_OPERATION = 'rerank';
-const GEN_AI_INVOKE_AGENT_OPERATION = 'invoke_agent';
-const GEN_AI_EXECUTE_TOOL_OPERATION = 'execute_tool';
-// The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
-// the generic `gen_ai.chat`, so v6 (OTel) and v7 (channel) produce the same spans.
-const GEN_AI_GENERATE_CONTENT_OPERATION = 'generate_content';
+// `gen_ai.operation.name` values, keyed to the span op they map to.
+const GEN_AI_OPERATION_SPAN_OPS = {
+  embeddings: GEN_AI_EMBEDDINGS,
+  rerank: GEN_AI_RERANK,
+  invoke_agent: GEN_AI_INVOKE_AGENT,
+  execute_tool: GEN_AI_EXECUTE_TOOL,
+  // The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
+  // the generic `gen_ai.chat`, so v6 (OTel) and v7 (channel) produce the same spans.
+  generate_content: GEN_AI_GENERATE_CONTENT,
+} as const;
+
+type GenAiOperation = keyof typeof GEN_AI_OPERATION_SPAN_OPS;
 
 // Subset of the `vercel.ai.*` passthrough attributes the OTel integration emits that we reproduce.
 const VERCEL_AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
@@ -395,13 +407,13 @@ export function createSpanFromMessage(
     case 'embedMany': {
       // `embed` carries a single `value`; `embedMany` a `values` array — both map to the embeddings input.
       const input = type === 'embedMany' ? event.values : event.value;
-      return startGenAiSpan(GEN_AI_EMBEDDINGS_OPERATION, modelId, {
+      return startGenAiSpan('embeddings', modelId, {
         ...baseAttributes,
         ...(recordInputs && input !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: stringify(input) } : {}),
       });
     }
     case 'rerank':
-      return startGenAiSpan(GEN_AI_RERANK_OPERATION, modelId, baseAttributes);
+      return startGenAiSpan('rerank', modelId, baseAttributes);
     default:
       // Unknown event type: opt out rather than open a span we can't shape correctly.
       return undefined;
@@ -409,11 +421,14 @@ export function createSpanFromMessage(
 }
 
 /** Start a `gen_ai.<operation>` span named `<operation> <suffix>` (or just `<operation>` when no suffix). */
-function startGenAiSpan(operation: string, suffix: string | undefined, attributes: SpanAttributes): Span {
+function startGenAiSpan(operation: GenAiOperation, suffix: string | undefined, attributes: SpanAttributes): Span {
   return startInactiveSpan({
     name: suffix ? `${operation} ${suffix}` : operation,
-    op: `gen_ai.${operation}`,
-    attributes: { [GEN_AI_OPERATION_NAME]: operation, ...attributes },
+    attributes: {
+      [SENTRY_OP]: GEN_AI_OPERATION_SPAN_OPS[operation],
+      [GEN_AI_OPERATION_NAME]: operation,
+      ...attributes,
+    },
   });
 }
 
@@ -429,7 +444,7 @@ function buildInvokeAgentSpan(
   if (callId) {
     operationIdByCallId.set(callId, { operationId, isStream });
   }
-  const span = startGenAiSpan(GEN_AI_INVOKE_AGENT_OPERATION, functionId, {
+  const span = startGenAiSpan('invoke_agent', functionId, {
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     [GEN_AI_RESPONSE_STREAMING]: isStream,
@@ -454,7 +469,7 @@ function buildModelCallSpan(
   const operationId = parent
     ? `${parent.operationId}.${parent.isStream ? 'doStream' : 'doGenerate'}`
     : 'ai.generateText.doGenerate';
-  return startGenAiSpan(GEN_AI_GENERATE_CONTENT_OPERATION, modelId, {
+  return startGenAiSpan('generate_content', modelId, {
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     ...(recordInputs ? buildInputMessageAttributes(event) : {}),
@@ -471,11 +486,11 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
   // Gated on `recordInputs` to match the OTel path (descriptions come from the recorded tools list).
   const description =
     recordInputs && toolName ? resolveToolDescription(asString(event.callId), toolName, event.tools) : undefined;
-  return startGenAiSpan(GEN_AI_EXECUTE_TOOL_OPERATION, toolName, {
+  return startGenAiSpan('execute_tool', toolName, {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
-    ...(description ? { [GEN_AI_TOOL_DESCRIPTION_ATTRIBUTE]: description } : {}),
+    ...(description ? { [GEN_AI_TOOL_DESCRIPTION]: description } : {}),
     ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(toolInput) } : {}),
   });
 }

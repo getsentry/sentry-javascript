@@ -7,6 +7,7 @@ import {
   serializeInstrumentations,
 } from '@sentry/server-utils/orchestrion/webpack';
 import type { VercelCronsConfig } from '../../common/types';
+import { getBuildLogger } from '../buildLogger';
 import type { RouteManifest } from '../manifest/types';
 import type {
   JSONValue,
@@ -124,8 +125,7 @@ export function constructTurbopackConfig({
     } else {
       // Without this warning the option silently no-ops, which is indistinguishable from
       // annotation being broken.
-      // eslint-disable-next-line no-console
-      console.warn(
+      getBuildLogger(userSentryOptions?.silent).warn(
         `[@sentry/nextjs] \`reactComponentAnnotation\` is enabled but React component annotation requires Next.js 16+ on Turbopack builds${
           nextJsVersion ? ` (detected ${nextJsVersion})` : ''
         }. Your components will not be annotated.`,

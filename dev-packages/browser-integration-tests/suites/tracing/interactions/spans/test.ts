@@ -14,7 +14,6 @@ import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
-  SENTRY_SOURCE,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -101,10 +100,6 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       [SENTRY_SEGMENT_NAME]: {
         type: 'string',
         value: 'Pageload',
-      },
-      [SENTRY_SOURCE]: {
-        type: 'string',
-        value: 'custom',
       },
       [SENTRY_SEGMENT_NAME_SOURCE]: {
         type: 'string',

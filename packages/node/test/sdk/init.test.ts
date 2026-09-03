@@ -4,7 +4,6 @@ import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import * as SentryServerUtils from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
 import { getClient, NodeClient } from '../../src/';
-import * as auto from '../../src/integrations/tracing';
 import { init } from '../../src/sdk';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
@@ -24,7 +23,7 @@ class MockIntegration implements Integration {
 }
 
 describe('init()', () => {
-  let mockAutoPerformanceIntegrations: MockInstance = vi.fn(() => []);
+  let mockGetTracingIntegrations: MockInstance = vi.fn(() => []);
 
   beforeEach(() => {
     global.__SENTRY__ = {};
@@ -32,7 +31,7 @@ describe('init()', () => {
     // prevent the debug from being enabled, resulting in console.log calls
     vi.spyOn(debug, 'enable').mockImplementation(() => {});
 
-    mockAutoPerformanceIntegrations = vi.spyOn(auto, 'getAutoPerformanceIntegrations').mockImplementation(() => []);
+    mockGetTracingIntegrations = vi.spyOn(SentryServerUtils, 'getTracingIntegrations').mockImplementation(() => []);
   });
 
   afterEach(() => {
@@ -67,7 +66,7 @@ describe('init()', () => {
 
       expect(client?.getOptions().integrations.map(integration => integration.name)).toEqual(['SpanStreaming']);
 
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('installs merged default integrations, with overrides provided through options', () => {
@@ -87,7 +86,7 @@ describe('init()', () => {
       expect(mockDefaultIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('installs integrations returned from a callback function', () => {
@@ -111,13 +110,13 @@ describe('init()', () => {
       expect(mockDefaultIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockDefaultIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(0);
       expect(newIntegration.setupOnce).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('installs performance default instrumentations if tracing is enabled', () => {
       const autoPerformanceIntegration = new MockIntegration('Some mock integration 4.4');
 
-      mockAutoPerformanceIntegrations.mockReset().mockImplementation(() => [autoPerformanceIntegration]);
+      mockGetTracingIntegrations.mockReset().mockImplementation(() => [autoPerformanceIntegration]);
 
       const mockIntegrations = [
         new MockIntegration('Some mock integration 4.1'),
@@ -133,7 +132,7 @@ describe('init()', () => {
       expect(mockIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(autoPerformanceIntegration.setupOnce).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(1);
 
       const client = getClient();
       expect(client?.getOptions()).toEqual(
@@ -145,7 +144,7 @@ describe('init()', () => {
 
     it('installs performance default instrumentations if tracing is enabled via `SENTRY_TRACES_SAMPLE_RATE`', () => {
       const autoPerformanceIntegration = new MockIntegration('Some mock integration 4.5');
-      mockAutoPerformanceIntegrations.mockReset().mockImplementation(() => [autoPerformanceIntegration]);
+      mockGetTracingIntegrations.mockReset().mockImplementation(() => [autoPerformanceIntegration]);
 
       process.env.SENTRY_TRACES_SAMPLE_RATE = '1';
 
@@ -156,7 +155,7 @@ describe('init()', () => {
       }
 
       expect(autoPerformanceIntegration.setupOnce).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(1);
 
       const client = getClient();
       expect(client?.getOptions()).toEqual(

@@ -18,11 +18,11 @@ export const processSessionIntegration = defineIntegration(() => {
       process.on('beforeExit', () => {
         const session = getIsolationScope().getSession();
 
-        // Only call endSession, if the Session exists on Scope and SessionStatus is not a
-        // Terminal Status i.e. Exited or Crashed because
-        // "When a session is moved away from ok it must not be updated anymore."
+        // Only call endSession if a Session exists on the Scope and has not already reached a
+        // Terminal Status, because "When a session is moved away from ok it must not be updated
+        // anymore." `ok` is the only non-terminal status.
         // Ref: https://develop.sentry.dev/sdk/sessions/
-        if (session?.status !== 'ok') {
+        if (session?.status === 'ok') {
           endSession();
         }
       });

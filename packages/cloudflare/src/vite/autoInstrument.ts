@@ -128,6 +128,7 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         agentClasses,
         optionsFn,
         optionsImport,
+        sameWorkerBindings: wranglerConfig.sameWorkerBindings,
       });
 
       const wrappedClasses = result?.wrappedClasses ?? new Set<string>();

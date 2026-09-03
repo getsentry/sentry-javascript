@@ -36,7 +36,7 @@ test.describe('tracing in static/pre-rendered routes', () => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.astro',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
           op: 'pageload',
           origin: 'auto.pageload.astro',

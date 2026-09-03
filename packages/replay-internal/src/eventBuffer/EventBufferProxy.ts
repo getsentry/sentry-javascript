@@ -4,6 +4,7 @@ import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } fro
 import { debug } from '../util/logger';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferCompressionWorker } from './EventBufferCompressionWorker';
+import { WorkerDestroyedError } from './error';
 
 /**
  * This proxy will try to use the compression worker, and fall back to use the simple buffer if an error occurs there.
@@ -130,6 +131,11 @@ export class EventBufferProxy implements EventBuffer {
       // Can now clear fallback buffer as it's no longer necessary
       this._fallback.clear();
     } catch (error) {
+      // Destroying the worker (e.g. when the session expires) rejects the
+      // in-flight requests. This is expected teardown, not a failure.
+      if (error instanceof WorkerDestroyedError) {
+        return;
+      }
       DEBUG_BUILD && debug.exception(error, 'Failed to add events when switching buffers.');
     }
   }

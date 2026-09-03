@@ -7,12 +7,8 @@ interface Env {
 }
 
 class MyDurableObjectBase extends DurableObject<Env> {
-  async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    if (url.pathname === '/hello') {
-      return new Response('Hello, World!');
-    }
-    return new Response('Not found', { status: 404 });
+  async sayHello(name: string): Promise<string> {
+    return `Hello, ${name}!`;
   }
 }
 
@@ -37,11 +33,14 @@ export default Sentry.withSentry(
       const id = env.MY_DURABLE_OBJECT.idFromName('test');
       const stub = env.MY_DURABLE_OBJECT.get(id);
 
-      if (url.pathname === '/do/hello') {
-        // Call DO via fetch instead of RPC
-        const doResponse = await stub.fetch(new Request('http://do/hello'));
-        const text = await doResponse.text();
-        return new Response(text);
+      if (url.pathname === '/rpc/hello') {
+        return new Response(await stub.sayHello('World'));
+      }
+
+      // Sentinel: makes the absence of a DO transaction deterministic. It is sent after the RPC
+      // call, so once it arrives everything the RPC call could have produced has arrived too.
+      if (url.pathname === '/sentinel') {
+        return new Response('Sentinel');
       }
 
       return new Response('Not found', { status: 404 });

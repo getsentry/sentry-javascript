@@ -168,11 +168,11 @@ function bindV3(channelName: string, extract: (args: unknown[]) => V3CallInfo | 
 }
 
 /**
- * Orchestrion-driven mongodb integration.
+ * Diagnostics-channel-based mongodb integration.
  *
  * Reproduces the vendored `@opentelemetry/instrumentation-mongodb` span shape
  * (legacy db/net semantic conventions, `mongodb.<op>` names, scrubbed
  * `db.statement`) via the `orchestrion:mongodb:*` diagnostics_channels
- * injected by the orchestrion code transform.
+ * injected by Sentry's code transform.
  */
 export const mongoIntegration = defineIntegration(_mongoIntegration);

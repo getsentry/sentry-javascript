@@ -47,7 +47,6 @@ describe('MCP Server Semantic Conventions', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'tools/call get-weather',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: {
           'mcp.method.name': 'tools/call',
@@ -62,7 +61,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.request.argument.location': '"Seattle, WA"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       });
     });
@@ -81,7 +80,6 @@ describe('MCP Server Semantic Conventions', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'resources/read file:///docs/api.md',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: {
           'mcp.method.name': 'resources/read',
@@ -94,7 +92,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.request.argument.uri': '"file:///docs/api.md"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       });
     });
@@ -113,7 +111,6 @@ describe('MCP Server Semantic Conventions', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'prompts/get analyze-code',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: {
           'mcp.method.name': 'prompts/get',
@@ -126,7 +123,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.request.argument.name': '"analyze-code"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       });
     });
@@ -154,7 +151,7 @@ describe('MCP Server Semantic Conventions', () => {
             'network.protocol.version': '2.0',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
         expect.any(Function),
@@ -194,7 +191,7 @@ describe('MCP Server Semantic Conventions', () => {
             // Sentry-specific
             'sentry.op': 'mcp.server',
             'sentry.origin': 'auto.function.mcp_server',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
       );
@@ -231,7 +228,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.logging.message': 'Addition completed: 2 + 5 = 7',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
         expect.any(Function),
@@ -262,7 +259,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.cancelled.reason': 'user_requested',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -296,7 +293,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.progress.message': 'Processing files...',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -324,7 +321,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.resource.protocol': 'file',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
         expect.any(Function),
@@ -348,11 +345,43 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.method.name': 'notifications/tools/list_changed',
             'sentry.op': 'mcp.notification.server_to_client',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           }),
         }),
         expect.any(Function),
       );
+    });
+
+    it('should keep the method name as the notification span name when span streaming is enabled', async () => {
+      getClientSpy.mockReturnValue(createMockClient(true, undefined, 'stream'));
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method: 'notifications/tools/list_changed', params: {} }, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'notifications/tools/list_changed' }),
+        expect.any(Function),
+      );
+    });
+
+    it('should fall back to a low cardinality notification span name when the method name is missing', async () => {
+      getClientSpy.mockReturnValue(createMockClient(true, undefined, 'stream'));
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method: null, params: {} }, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'MCP notification' }),
+        expect.any(Function),
+      );
+    });
+
+    it('should not fall back to a low cardinality notification span name in static trace lifecycle mode', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method: null, params: {} }, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ name: null }), expect.any(Function));
     });
 
     it('should instrument tool call results and complete span with enriched attributes', async () => {
@@ -387,12 +416,12 @@ describe('MCP Server Semantic Conventions', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call weather-lookup',
-          op: 'mcp.server',
           forceTransaction: true,
           attributes: expect.objectContaining({
             'mcp.method.name': 'tools/call',
             'mcp.tool.name': 'weather-lookup',
             'mcp.request.id': 'req-tool-result',
+            'sentry.op': 'mcp.server',
           }),
         }),
       );
@@ -460,12 +489,12 @@ describe('MCP Server Semantic Conventions', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'prompts/get code-review',
-          op: 'mcp.server',
           forceTransaction: true,
           attributes: expect.objectContaining({
             'mcp.method.name': 'prompts/get',
             'mcp.prompt.name': 'code-review',
             'mcp.request.id': 'req-prompt-result',
+            'sentry.op': 'mcp.server',
           }),
         }),
       );
@@ -582,6 +611,46 @@ describe('MCP Server Semantic Conventions', () => {
 
       const lastCall = startSpanSpy.mock.calls[startSpanSpy.mock.calls.length - 1];
       expect(lastCall?.[0]?.attributes).not.toHaveProperty('mcp.logging.message');
+    });
+  });
+
+  describe('Span names with span streaming', () => {
+    let wrappedMcpServer: ReturnType<typeof createMockMcpServer>;
+    let mockTransport: ReturnType<typeof createMockTransport>;
+
+    beforeEach(() => {
+      getClientSpy.mockReturnValue(createMockClient(true, undefined, 'stream'));
+      wrappedMcpServer = wrapMcpServerWithSentry(createMockMcpServer(), { recordInputs: true, recordOutputs: true });
+      mockTransport = createMockTransport();
+      mockTransport.sessionId = 'test-session-123';
+    });
+
+    it('drops the resource URI from the name, keeping it on the attribute', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.(
+        { jsonrpc: '2.0', method: 'resources/read', id: 'req-1', params: { uri: 'file:///docs/api.md' } },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'resources/read',
+          attributes: expect.objectContaining({ 'mcp.resource.uri': 'file:///docs/api.md' }),
+        }),
+      );
+    });
+
+    it.each([
+      ['tools/call', { name: 'get-weather' }, 'tools/call get-weather'],
+      ['prompts/get', { name: 'analyze-code' }, 'prompts/get analyze-code'],
+      ['initialize', {}, 'initialize'],
+    ])('keeps the %s span name, which is already low cardinality', async (method, params, expected) => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method, id: 'req-1', params }, {});
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ name: expected }));
     });
   });
 });

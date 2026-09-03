@@ -108,7 +108,7 @@ describe('interactionsIntegration', () => {
         op: 'navigation',
         name: '/users/:id',
         sampled: true,
-        attributes: { 'sentry.source': 'route' },
+        attributes: { 'sentry.segment.name.source': 'route' },
       }),
     );
 

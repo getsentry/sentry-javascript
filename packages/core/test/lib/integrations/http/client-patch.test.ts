@@ -114,10 +114,10 @@ describe('patchHttpModuleClient', () => {
       .mockReturnValueOnce({ [HTTP_ON_CLIENT_REQUEST]: handler1 })
       .mockReturnValueOnce({ [HTTP_ON_CLIENT_REQUEST]: handler2 });
 
-    patchHttpModuleClient(httpModule, { propagateTrace: true });
+    patchHttpModuleClient(httpModule, { tracePropagation: true });
     const wrappedStoreHeader = httpModule.ClientRequest.prototype._storeHeader;
 
-    patchHttpModuleClient(httpModule, { propagateTrace: false });
+    patchHttpModuleClient(httpModule, { tracePropagation: false });
 
     // The wrapper itself is preserved (no double-wrapping)...
     expect(httpModule.ClientRequest.prototype._storeHeader).toBe(wrappedStoreHeader);

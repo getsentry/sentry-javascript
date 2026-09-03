@@ -1,35 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { waitForRequest } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'cloudflare-mcp';
-
-function getTransaction(eventData: Awaited<ReturnType<typeof waitForRequest>>) {
-  const event = eventData.envelope[1][0][1];
-  return typeof event !== 'string' && 'transaction' in event ? event : undefined;
-}
-
-function requireTransaction(eventData: Awaited<ReturnType<typeof waitForRequest>>) {
-  const event = getTransaction(eventData);
-  if (!event) {
-    throw new Error('Expected a transaction event');
-  }
-  return event;
-}
 
 test.describe.configure({ mode: 'serial' });
 
 test('sends spans for MCP 2026-07-28 tool calls', async ({ baseURL }) => {
   const url = `${baseURL}/mcp?protocol=modern`;
-  const requestWaiter = waitForRequest(APP_NAME, eventData => {
-    const event = getTransaction(eventData);
-    return event?.transaction === 'POST /mcp' && event.contexts?.trace?.data?.['url.full'] === url;
+  const requestSpanPromise = waitForStreamedSpan(APP_NAME, span => {
+    return getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.full']?.value === url;
   });
-  const mcpWaiter = waitForRequest(APP_NAME, eventData => {
-    const event = getTransaction(eventData);
-    return (
-      event?.transaction === 'tools/call my-tool' &&
-      event.contexts?.trace?.data?.['mcp.protocol.version'] === '2026-07-28'
-    );
+  const mcpSpanPromise = waitForStreamedSpan(APP_NAME, span => {
+    return span.name === 'tools/call my-tool' && span.attributes['mcp.protocol.version']?.value === '2026-07-28';
   });
 
   const response = await fetch(url, {
@@ -72,61 +54,56 @@ test('sends spans for MCP 2026-07-28 tool calls', async ({ baseURL }) => {
     },
   });
 
-  const requestData = await requestWaiter;
-  const mcpData = await mcpWaiter;
-  const requestEvent = requireTransaction(requestData);
-  const mcpEvent = requireTransaction(mcpData);
-  const requestTrace = requestEvent.contexts?.trace;
-  const mcpTrace = mcpEvent.contexts?.trace;
+  const requestSpan = await requestSpanPromise;
+  const mcpSpan = await mcpSpanPromise;
 
-  expect(requestTrace?.op).toBe('http.server');
-  expect(requestTrace?.origin).toBe('auto.http.cloudflare');
-  expect(requestTrace?.status).toBe('ok');
-  expect(requestTrace?.data?.['sentry.origin']).toBe('auto.http.cloudflare');
-  expect(requestTrace?.data?.['sentry.op']).toBe('http.server');
-  expect(requestTrace?.data?.['sentry.source']).toBe('url');
-  expect(requestTrace?.data?.['http.request.method']).toBe('POST');
-  expect(requestTrace?.data?.['url.path']).toBe('/mcp');
-  expect(requestTrace?.data?.['url.full']).toBe(url);
-  expect(requestTrace?.data?.['url.port']).toBe('38787');
-  expect(requestTrace?.data?.['url.scheme']).toBe('http:');
-  expect(requestTrace?.data?.['server.address']).toBe('localhost');
-  expect(requestTrace?.data?.['http.request.body.size']).toBe(341);
-  expect(requestTrace?.data?.['user_agent.original']).toBe('node');
-  expect(requestTrace?.data?.['http.request.header.content_type']).toBe('application/json');
-  expect(requestTrace?.data?.['network.protocol.name']).toBe('http');
-  expect(requestTrace?.data?.['network.protocol.version']).toBe('1.1');
-  expect(requestTrace?.data?.['http.response.status_code']).toBe(200);
-  expect(requestTrace?.data?.['mcp.server.extra']).toBe(' /|\ ^._.^ /|\ ');
-  expect(mcpTrace?.trace_id).toBe(requestTrace?.trace_id);
-  expect(mcpTrace?.trace_id).toBe((mcpData.envelope[0].trace as { trace_id: string }).trace_id);
-  expect(mcpTrace?.parent_span_id).toBe(requestTrace?.span_id);
-  expect(requestData.envelope[0].event_id).not.toBe(mcpData.envelope[0].event_id);
-  expect(mcpTrace?.op).toBe('mcp.server');
-  expect(mcpTrace?.origin).toBe('auto.function.mcp_server');
-  expect(mcpTrace?.status).toBe('ok');
-  expect(mcpTrace?.data?.['mcp.transport']).toBe('PerRequestHTTPServerTransport');
-  expect(mcpTrace?.data?.['network.transport']).toBe('tcp');
-  expect(mcpTrace?.data?.['mcp.protocol.version']).toBe('2026-07-28');
-  expect(mcpTrace?.data?.['mcp.client.name']).toBe('cloudflare-modern-client');
-  expect(mcpTrace?.data?.['mcp.client.version']).toBe('2.0.0');
-  expect(mcpTrace?.data?.['mcp.server.name']).toBe('cloudflare-mcp');
-  expect(mcpTrace?.data?.['mcp.server.version']).toBe('2.0.0');
-  expect(mcpTrace?.data?.['mcp.method.name']).toBe('tools/call');
-  expect(mcpTrace?.data?.['mcp.request.id']).toBe('modern-tool-call');
-  expect(mcpTrace?.data?.['mcp.tool.name']).toBe('my-tool');
-  expect(mcpTrace?.data?.['mcp.request.argument.message']).toBe('"ʕっ•ᴥ•ʔっ"');
-  expect(mcpTrace?.data?.['mcp.tool.result.content_count']).toBe(1);
-  expect(mcpTrace?.data?.['mcp.tool.result.content']).toBe('Tool my-tool: ʕっ•ᴥ•ʔっ');
+  // With span streaming, URL-sourced `http.server` spans are named by method only.
+  expect(requestSpan.name).toBe('POST');
+  expect(requestSpan.status).toBe('ok');
+  expect(requestSpan.attributes['sentry.origin']?.value).toBe('auto.http.cloudflare');
+  expect(requestSpan.attributes['sentry.op']?.value).toBe('http.server');
+  expect(requestSpan.attributes['sentry.segment.name.source']?.value).toBe('url');
+  expect(requestSpan.attributes['http.request.method']?.value).toBe('POST');
+  expect(requestSpan.attributes['url.path']?.value).toBe('/mcp');
+  expect(requestSpan.attributes['url.full']?.value).toBe(url);
+  expect(requestSpan.attributes['url.port']?.value).toBe('38787');
+  expect(requestSpan.attributes['url.scheme']?.value).toBe('http:');
+  expect(requestSpan.attributes['server.address']?.value).toBe('localhost');
+  expect(requestSpan.attributes['http.request.body.size']?.value).toBe(341);
+  expect(requestSpan.attributes['user_agent.original']?.value).toBe('node');
+  expect(requestSpan.attributes['http.request.header.content_type']?.value).toBe('application/json');
+  expect(requestSpan.attributes['network.protocol.name']?.value).toBe('http');
+  expect(requestSpan.attributes['network.protocol.version']?.value).toBe('1.1');
+  expect(requestSpan.attributes['http.response.status_code']?.value).toBe(200);
+  expect(requestSpan.attributes['mcp.server.extra']?.value).toBe(' /|\ ^._.^ /|\ ');
+
+  expect(mcpSpan.trace_id).toBe(requestSpan.trace_id);
+  expect(mcpSpan.parent_span_id).toBe(requestSpan.span_id);
+  expect(mcpSpan.span_id).not.toBe(requestSpan.span_id);
+  expect(mcpSpan.status).toBe('ok');
+  expect(mcpSpan.attributes['sentry.op']?.value).toBe('mcp.server');
+  expect(mcpSpan.attributes['sentry.origin']?.value).toBe('auto.function.mcp_server');
+  expect(mcpSpan.attributes['mcp.transport']?.value).toBe('PerRequestHTTPServerTransport');
+  expect(mcpSpan.attributes['network.transport']?.value).toBe('tcp');
+  expect(mcpSpan.attributes['mcp.protocol.version']?.value).toBe('2026-07-28');
+  expect(mcpSpan.attributes['mcp.client.name']?.value).toBe('cloudflare-modern-client');
+  expect(mcpSpan.attributes['mcp.client.version']?.value).toBe('2.0.0');
+  expect(mcpSpan.attributes['mcp.server.name']?.value).toBe('cloudflare-mcp');
+  expect(mcpSpan.attributes['mcp.server.version']?.value).toBe('2.0.0');
+  expect(mcpSpan.attributes['mcp.method.name']?.value).toBe('tools/call');
+  expect(mcpSpan.attributes['mcp.request.id']?.value).toBe('modern-tool-call');
+  expect(mcpSpan.attributes['mcp.tool.name']?.value).toBe('my-tool');
+  expect(mcpSpan.attributes['mcp.request.argument.message']?.value).toBe('"ʕっ•ᴥ•ʔっ"');
+  expect(mcpSpan.attributes['mcp.tool.result.content_count']?.value).toBe(1);
+  expect(mcpSpan.attributes['mcp.tool.result.content']?.value).toBe('Tool my-tool: ʕっ•ᴥ•ʔっ');
 });
 
 test('keeps sending spans for legacy-compatible MCP tool calls', async ({ baseURL }) => {
   const url = `${baseURL}/mcp?protocol=legacy`;
-  const mcpWaiter = waitForRequest(APP_NAME, eventData => {
-    const event = getTransaction(eventData);
+  const mcpSpanPromise = waitForStreamedSpan(APP_NAME, span => {
     return (
-      event?.transaction === 'tools/call my-tool' &&
-      event.contexts?.trace?.data?.['mcp.request.argument.message'] === '"legacy protocol request"'
+      span.name === 'tools/call my-tool' &&
+      span.attributes['mcp.request.argument.message']?.value === '"legacy protocol request"'
     );
   });
 
@@ -151,15 +128,14 @@ test('keeps sending spans for legacy-compatible MCP tool calls', async ({ baseUR
 
   expect(response.status).toBe(200);
 
-  const mcpEvent = requireTransaction(await mcpWaiter);
-  const trace = mcpEvent.contexts?.trace;
+  const mcpSpan = await mcpSpanPromise;
 
-  expect(trace?.op).toBe('mcp.server');
-  expect(trace?.status).toBe('ok');
-  expect(trace?.data?.['mcp.transport']).toBe('WebStandardStreamableHTTPServerTransport');
-  expect(trace?.data?.['mcp.method.name']).toBe('tools/call');
-  expect(trace?.data?.['mcp.request.id']).toBe('legacy-tool-call');
-  expect(trace?.data?.['mcp.tool.name']).toBe('my-tool');
-  expect(trace?.data?.['mcp.protocol.version']).toBeUndefined();
-  expect(trace?.data?.['mcp.tool.result.content']).toBe('Tool my-tool: legacy protocol request');
+  expect(getSpanOp(mcpSpan)).toBe('mcp.server');
+  expect(mcpSpan.status).toBe('ok');
+  expect(mcpSpan.attributes['mcp.transport']?.value).toBe('WebStandardStreamableHTTPServerTransport');
+  expect(mcpSpan.attributes['mcp.method.name']?.value).toBe('tools/call');
+  expect(mcpSpan.attributes['mcp.request.id']?.value).toBe('legacy-tool-call');
+  expect(mcpSpan.attributes['mcp.tool.name']?.value).toBe('my-tool');
+  expect(mcpSpan.attributes['mcp.tool.result.content']?.value).toBe('Tool my-tool: legacy protocol request');
+  expect(mcpSpan.attributes['mcp.protocol.version']).toBeUndefined();
 });

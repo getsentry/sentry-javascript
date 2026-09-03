@@ -56,6 +56,7 @@ if (typeof serverComponent === 'function') {
 
       return Sentry.wrapServerComponentWithSentry(originalFunction, {
         componentRoute: '__ROUTE__',
+        // @ts-expect-error Used as a placeholder
         componentType: '__COMPONENT_TYPE__',
         sentryTraceHeader,
         baggageHeader,

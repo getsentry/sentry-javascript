@@ -54,7 +54,7 @@ test.describe('distributed tracing', () => {
       contexts: {
         trace: {
           op: 'http.server',
-          origin: 'auto.http.otel.http',
+          origin: 'auto.http.http_server',
         },
       },
     });
@@ -114,7 +114,7 @@ test.describe('distributed tracing', () => {
           type: 'fetch',
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.browser',
-          'http.method': 'GET',
+          'http.request.method': 'GET',
         }),
       }),
     );
@@ -127,7 +127,7 @@ test.describe('distributed tracing', () => {
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
             op: 'http.server',
-            origin: 'auto.http.otel.http',
+            origin: 'auto.http.http_server',
           }),
         }),
       }),
@@ -141,7 +141,7 @@ test.describe('distributed tracing', () => {
         contexts: expect.objectContaining({
           trace: expect.objectContaining({
             op: 'http.server',
-            origin: 'auto.http.otel.http',
+            origin: 'auto.http.http_server',
             parent_span_id: httpClientSpan?.span_id, // http.client span is parent
           }),
         }),

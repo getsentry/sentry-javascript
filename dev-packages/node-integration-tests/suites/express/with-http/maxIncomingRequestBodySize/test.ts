@@ -12,7 +12,7 @@ const MAX_GENERAL = 1024 * 1024; // 1MB
 const MAX_MEDIUM = 10_000;
 const MAX_SMALL = 1000;
 
-describe('express with httpIntegration and not defined maxIncomingRequestBodySize', () => {
+describe('express with httpIntegration and not defined maxRequestBodySize', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -60,7 +60,7 @@ describe('express with httpIntegration and not defined maxIncomingRequestBodySiz
   });
 });
 
-describe('express with httpIntegration, disabled httpBodies, and explicit maxIncomingRequestBodySize', () => {
+describe('express with httpIntegration, disabled httpBodies, and explicit maxRequestBodySize', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -88,7 +88,7 @@ describe('express with httpIntegration, disabled httpBodies, and explicit maxInc
   });
 });
 
-describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', () => {
+describe('express with httpIntegration and maxRequestBodySize: "none"', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -114,7 +114,7 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', 
       await runner.completed();
     });
 
-    test('does not capture any request bodies with "none" setting and "ignoreIncomingRequestBody"', async () => {
+    test('does not capture any request bodies with "none" setting and "ignoreRequestBody"', async () => {
       const runner = createRunner()
         .expect({
           transaction: {
@@ -149,7 +149,7 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', 
   });
 });
 
-describe('express with httpIntegration and maxIncomingRequestBodySize: "always"', () => {
+describe('express with httpIntegration and maxRequestBodySize: "always"', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -197,7 +197,7 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "always"'
   });
 });
 
-describe('express with httpIntegration and maxIncomingRequestBodySize: "small"', () => {
+describe('express with httpIntegration and maxRequestBodySize: "small"', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -266,7 +266,7 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "small"',
   });
 });
 
-describe('express with httpIntegration and maxIncomingRequestBodySize: "medium"', () => {
+describe('express with httpIntegration and maxRequestBodySize: "medium"', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

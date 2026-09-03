@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('should remove sentry-trace and baggage meta tags on ISR dynamic route page load', async ({ page }) => {
   // Navigate to ISR page
@@ -41,15 +41,13 @@ test('should remove meta tags for different ISR dynamic route values', async ({ 
   await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
 });
 
-test('should create unique transactions for ISR pages on each visit', async ({ page }) => {
+test('should create unique traces for ISR pages on each visit', async ({ page }) => {
   const traceIds: string[] = [];
 
   // Load the same ISR page 5 times to ensure cached HTML meta tags are consistently removed
   for (let i = 0; i < 5; i++) {
-    const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-      return !!(
-        transactionEvent.transaction === '/isr-test/:product' && transactionEvent.contexts?.trace?.op === 'pageload'
-      );
+    const spanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
+      return span.name === '/isr-test/:product' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
     if (i === 0) {
@@ -58,8 +56,8 @@ test('should create unique transactions for ISR pages on each visit', async ({ p
       await page.reload();
     }
 
-    const transaction = await transactionPromise;
-    const traceId = transaction.contexts?.trace?.trace_id;
+    const span = await spanPromise;
+    const traceId = span.trace_id;
 
     expect(traceId).toBeDefined();
     expect(traceId).toMatch(/[a-f0-9]{32}/);
@@ -72,23 +70,14 @@ test('should create unique transactions for ISR pages on each visit', async ({ p
 });
 
 test('ISR route should be identified correctly in the route manifest', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-    return transactionEvent.transaction === '/isr-test/:product' && transactionEvent.contexts?.trace?.op === 'pageload';
+  const spanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
+    return span.name === '/isr-test/:product' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto('/isr-test/laptop');
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  // Verify the transaction is properly parameterized
-  expect(transaction).toMatchObject({
-    transaction: '/isr-test/:product',
-    transaction_info: { source: 'route' },
-    contexts: {
-      trace: {
-        data: {
-          'sentry.source': 'route',
-        },
-      },
-    },
-  });
+  // Verify the span is properly parameterized
+  expect(span.name).toBe('/isr-test/:product');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });

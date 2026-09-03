@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { spawn } from 'child_process';
 import * as dotenv from 'dotenv';
-import { mkdtemp, readFile, rm } from 'fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'fs/promises';
 import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
@@ -217,6 +217,15 @@ async function run(): Promise<void> {
     await copyToTemp(originalPath, tmpDirPath);
     await addPnpmOverrides(tmpDirPath, packedDirPath);
 
+    // The Sentry CLI keeps its config and a SQLite cache in `~/.sentry`, so without this every
+    // build reads and writes the machine's global CLI state. That leaks a developer's real auth
+    // config into the run, and any state the natively installed CLI leaves behind - notably a
+    // `cli.db` it has switched to WAL journal mode, which the CLI's wasm SQLite build cannot open
+    // at all - breaks the build with `unable to open database file`. Give each app its own.
+    const sentryConfigDir = join(tmpDirPath, '.tmp_sentry_home');
+    await mkdir(sentryConfigDir, { recursive: true });
+    const appEnv = { ...env, SENTRY_CONFIG_DIR: sentryConfigDir };
+
     const cwd = tmpDirPath;
     // Resolve variant if needed
     const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
@@ -233,7 +242,7 @@ async function run(): Promise<void> {
     }
 
     console.log(`Building ${testLabel} in ${tmpDirPath}...`);
-    await asyncExec(`volta run ${buildCommand}`, { env, cwd });
+    await asyncExec(`volta run ${buildCommand}`, { env: appEnv, cwd });
 
     console.log(`Testing ${testLabel}...`);
     // Pass command as a string to support shell features (env vars, operators like &&)
@@ -248,7 +257,7 @@ async function run(): Promise<void> {
       return flag;
     });
     const testCommand = `volta run ${assertCommand}${quotedTestFlags.length > 0 ? ` ${quotedTestFlags.join(' ')}` : ''}`;
-    await asyncExec(testCommand, { env, cwd });
+    await asyncExec(testCommand, { env: appEnv, cwd });
 
     // clean up (although this is tmp, still nice to do)
     await rm(tmpDirPath, { recursive: true });

@@ -7,14 +7,9 @@ import type {
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
   HandlerDataConsole,
-  HandlerDataDom,
   HandlerDataFetch,
-  HandlerDataHistory,
-  HandlerDataXhr,
   IntegrationFn,
-  XhrBreadcrumbData,
-  XhrBreadcrumbHint,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import {
   addBreadcrumb,
   addConsoleInstrumentationHandler,
@@ -23,20 +18,21 @@ import {
   defineIntegration,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
-  getComponentName,
   getEventDescription,
   parseUrl,
   safeJoin,
   severityLevelFromString,
-} from '@sentry/core/browser';
-import type { FetchHint, XhrHint } from '@sentry/browser-utils';
+} from '@sentry/core';
+import type { FetchHint, HandlerDataDom, HandlerDataHistory, HandlerDataXhr } from '@sentry/browser-utils';
 import {
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
   htmlTreeAsString,
+  getComponentName,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry/browser-utils';
+import type { XhrBreadcrumbData, XhrBreadcrumbHint } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -260,7 +256,7 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       level: getBreadcrumbLogLevelFromHttpStatusCode(status_code),
     };
 
-    client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as XhrHint);
+    client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint);
 
     addBreadcrumb(breadcrumb, hint);
   };

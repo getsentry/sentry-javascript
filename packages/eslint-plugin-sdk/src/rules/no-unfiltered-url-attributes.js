@@ -11,7 +11,9 @@
  */
 
 // Attribute keys that carry a query string, by constant name and by literal value.
-const GUARDED_ATTRIBUTES = new Set(['URL_FULL', 'URL_QUERY', 'HTTP_TARGET', 'url.full', 'url.query', 'http.target']);
+// `http.target` is not listed: the SDK no longer sets it, and its replacement `url.path` is a bare
+// pathname with nothing to filter.
+const GUARDED_ATTRIBUTES = new Set(['URL_FULL', 'URL_QUERY', 'url.full', 'url.query']);
 
 // Helpers that apply `dataCollection.urlQueryParams`.
 const FILTER_FUNCTIONS = new Set([

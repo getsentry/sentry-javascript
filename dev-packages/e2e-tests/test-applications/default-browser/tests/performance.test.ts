@@ -18,7 +18,7 @@ test('captures a pageload transaction', async ({ page }) => {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.browser',
           'sentry.sample_rate': 1,
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'url.full': 'http://localhost:3030/',
           'url.path': '/',
         }),
