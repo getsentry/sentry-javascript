@@ -1028,8 +1028,8 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
         if:
-          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "hono-4", "bun-bytecode",
-          "bun-mysql"]'), matrix.test-application)
+          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "elysia-bun-static", "hono-4",
+          "bun-bytecode", "bun-mysql"]'), matrix.test-application)
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.14'

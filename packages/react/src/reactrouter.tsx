@@ -228,6 +228,22 @@ function computeRootMatch(pathname: string): Match {
   return { path: '/', url: '/', params: {}, isExact: pathname === '/' };
 }
 
+/**
+ * A higher-order component that adds Sentry routing instrumentation to a React Router v4 or v5 `Route` component.
+ * When the wrapped `Route` matches, the active pageload/navigation span is renamed to the parameterized route path.
+ *
+ * The wrapped `Route` must be rendered inside a `Switch`, since the match is read from the `computedMatch` prop
+ * that only `Switch` passes down. For React Router v6 and later, use `wrapReactRouterRouting` instead.
+ *
+ * @example
+ * ```jsx
+ * const SentryRoute = Sentry.withSentryRouting(Route);
+ *
+ * <Switch>
+ *   <SentryRoute path="/users/:id" component={User} />
+ * </Switch>
+ * ```
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 export function withSentryRouting<P extends Record<string, any>, R extends React.ComponentType<P>>(Route: R): R {
   const componentDisplayName = Route.displayName || Route.name;
