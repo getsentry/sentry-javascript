@@ -6,7 +6,6 @@ import { matchRouteManifest, stripBasenameFromPathname } from './route-manifest'
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 // Global variables that these utilities depend on
-let _matchRoutes: MatchRoutes;
 let _stripBasename: boolean = false;
 
 // Navigation context stack for nested/concurrent patchRoutesOnNavigation calls.
@@ -58,8 +57,7 @@ export function getNavigationContext(): NavigationContext | null {
  * Initialize function to set dependencies that the router utilities need.
  * Must be called before using any of the exported utility functions.
  */
-export function initializeRouterUtils(matchRoutes: MatchRoutes, stripBasename: boolean = false): void {
-  _matchRoutes = matchRoutes;
+export function initializeRouterUtils(stripBasename: boolean = false): void {
   _stripBasename = stripBasename;
 }
 
@@ -148,8 +146,12 @@ export function prefixWithSlash(path: string): string {
 /**
  * Rebuilds the route path from all available routes by matching against the current location.
  */
-export function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location: Location): string {
-  const matchedRoutes = _matchRoutes(allRoutes, location) as RouteMatch[];
+export function rebuildRoutePathFromAllRoutes(
+  allRoutes: RouteObject[],
+  location: Location,
+  matchRoutes: MatchRoutes,
+): string {
+  const matchedRoutes = matchRoutes(allRoutes, location) as RouteMatch[];
 
   if (!matchedRoutes || matchedRoutes.length === 0) {
     return '';
@@ -172,6 +174,7 @@ export function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location
               {
                 pathname: strippedPath,
               },
+              matchRoutes,
             ),
           ),
       );
@@ -192,13 +195,14 @@ function reconstructNameFromDescendantParent(
   location: Location,
   allRoutes: RouteObject[],
   currentName: string | undefined,
+  matchRoutes: MatchRoutes,
 ): string | undefined {
   const descendantParents = allRoutes.filter(routeIsDescendant);
   if (!descendantParents.length) {
     return undefined;
   }
 
-  const matchedParents = _matchRoutes(descendantParents, location) as RouteMatch[] | null;
+  const matchedParents = matchRoutes(descendantParents, location) as RouteMatch[] | null;
   const parentMatch = matchedParents?.[matchedParents.length - 1];
   if (!parentMatch || !pickSplat(parentMatch)) {
     return undefined;
@@ -227,6 +231,7 @@ function reconstructNameFromDescendantParent(
   const remainingName = rebuildRoutePathFromAllRoutes(
     allRoutes.filter(route => route !== parentMatch.route),
     { pathname: remainingPathname },
+    matchRoutes,
   );
 
   return remainingName ? prefixWithSlash(`${parentTemplate}${prefixWithSlash(remainingName)}`) : undefined;
@@ -235,8 +240,12 @@ function reconstructNameFromDescendantParent(
 /**
  * Checks if the current location is inside a descendant route (route with splat parameter).
  */
-export function locationIsInsideDescendantRoute(location: Location, routes: RouteObject[]): boolean {
-  const matchedRoutes = _matchRoutes(routes, location) as RouteMatch[];
+export function locationIsInsideDescendantRoute(
+  location: Location,
+  routes: RouteObject[],
+  matchRoutes: MatchRoutes,
+): boolean {
+  const matchedRoutes = matchRoutes(routes, location) as RouteMatch[];
 
   if (matchedRoutes) {
     for (const match of matchedRoutes) {
@@ -328,6 +337,7 @@ export function resolveRouteNameAndSource(
   routes: RouteObject[],
   allRoutes: RouteObject[],
   branches: RouteMatch[],
+  matchRoutes: MatchRoutes,
   basename: string = '',
   lazyRouteManifest?: string[],
   enableAsyncRouteHandlers?: boolean,
@@ -344,10 +354,10 @@ export function resolveRouteNameAndSource(
   let name: string | undefined;
   let source: TransactionSource = 'url';
 
-  const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes);
+  const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes, matchRoutes);
 
   if (isInDescendantRoute) {
-    name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes, location));
+    name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes, location, matchRoutes));
     source = 'route';
   }
 
@@ -357,7 +367,7 @@ export function resolveRouteNameAndSource(
 
   // Guard against orphaned descendant subtrees stealing the transaction name: if the location is
   // anchored by a descendant-parent route (`.../*`) whose prefix was dropped, reconstruct with it.
-  const anchoredName = reconstructNameFromDescendantParent(location, allRoutes, name);
+  const anchoredName = reconstructNameFromDescendantParent(location, allRoutes, name, matchRoutes);
   if (anchoredName) {
     return [anchoredName, 'route'];
   }

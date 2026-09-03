@@ -36,27 +36,25 @@ const mockMatchRoutes = vi.fn();
 describe('reactrouter-compat-utils/utils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    initializeRouterUtils(mockMatchRoutes as MatchRoutes, false);
+    initializeRouterUtils(false);
   });
 
   describe('initializeRouterUtils', () => {
-    it('should initialize with matchRoutes function', () => {
+    it('should initialize with stripBasename disabled', () => {
       expect(() => {
-        initializeRouterUtils(mockMatchRoutes as MatchRoutes, false);
+        initializeRouterUtils(false);
       }).not.toThrow();
     });
 
-    it('should handle custom matchRoutes function with dev mode true', () => {
-      const customMatchRoutes = vi.fn();
+    it('should handle stripBasename enabled', () => {
       expect(() => {
-        initializeRouterUtils(customMatchRoutes as MatchRoutes, true);
+        initializeRouterUtils(true);
       }).not.toThrow();
     });
 
-    it('should handle custom matchRoutes function without dev mode flag', () => {
-      const customMatchRoutes = vi.fn();
+    it('should handle being called without a stripBasename flag', () => {
       expect(() => {
-        initializeRouterUtils(customMatchRoutes as MatchRoutes);
+        initializeRouterUtils();
       }).not.toThrow();
     });
   });
@@ -207,7 +205,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(mockMatches);
 
-      const result = rebuildRoutePathFromAllRoutes(allRoutes, location);
+      const result = rebuildRoutePathFromAllRoutes(allRoutes, location, mockMatchRoutes as MatchRoutes);
       expect(result).toBe('/users');
     });
 
@@ -218,7 +216,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue([]);
 
-      const result = rebuildRoutePathFromAllRoutes(allRoutes, location);
+      const result = rebuildRoutePathFromAllRoutes(allRoutes, location, mockMatchRoutes as MatchRoutes);
       expect(result).toBe('');
     });
 
@@ -229,7 +227,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(null);
 
-      const result = rebuildRoutePathFromAllRoutes(allRoutes, location);
+      const result = rebuildRoutePathFromAllRoutes(allRoutes, location, mockMatchRoutes as MatchRoutes);
       expect(result).toBe('');
     });
 
@@ -249,7 +247,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(mockMatches);
 
-      const result = rebuildRoutePathFromAllRoutes(allRoutes, location);
+      const result = rebuildRoutePathFromAllRoutes(allRoutes, location, mockMatchRoutes as MatchRoutes);
       expect(result).toBe('');
     });
   });
@@ -281,7 +279,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(mockMatches);
 
-      const result = locationIsInsideDescendantRoute(location, routes);
+      const result = locationIsInsideDescendantRoute(location, routes, mockMatchRoutes as MatchRoutes);
       expect(result).toBe(true);
     });
 
@@ -311,7 +309,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(mockMatches);
 
-      const result = locationIsInsideDescendantRoute(location, routes);
+      const result = locationIsInsideDescendantRoute(location, routes, mockMatchRoutes as MatchRoutes);
       expect(result).toBe(false);
     });
 
@@ -341,7 +339,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(mockMatches);
 
-      const result = locationIsInsideDescendantRoute(location, routes);
+      const result = locationIsInsideDescendantRoute(location, routes, mockMatchRoutes as MatchRoutes);
       expect(result).toBe(false);
     });
 
@@ -371,7 +369,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(mockMatches);
 
-      const result = locationIsInsideDescendantRoute(location, routes);
+      const result = locationIsInsideDescendantRoute(location, routes, mockMatchRoutes as MatchRoutes);
       expect(result).toBe(false);
     });
 
@@ -401,7 +399,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(mockMatches);
 
-      const result = locationIsInsideDescendantRoute(location, routes);
+      const result = locationIsInsideDescendantRoute(location, routes, mockMatchRoutes as MatchRoutes);
       expect(result).toBe(false);
     });
 
@@ -412,7 +410,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(null);
 
-      const result = locationIsInsideDescendantRoute(location, routes);
+      const result = locationIsInsideDescendantRoute(location, routes, mockMatchRoutes as MatchRoutes);
       expect(result).toBe(false);
     });
   });
@@ -513,7 +511,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
     it('should handle basename stripping', () => {
       // Initialize with stripBasename = true
-      initializeRouterUtils(mockMatchRoutes as MatchRoutes, true);
+      initializeRouterUtils(true);
 
       const routes: RouteObject[] = [{ path: '/users', element: null }];
       const location: Location = { pathname: '/app/users' };
@@ -544,7 +542,7 @@ describe('reactrouter-compat-utils/utils', () => {
   describe('resolveRouteNameAndSource', () => {
     beforeEach(() => {
       // Reset to default stripBasename = false
-      initializeRouterUtils(mockMatchRoutes as MatchRoutes, false);
+      initializeRouterUtils(false);
     });
 
     it('should use descendant route when location is inside one', () => {
@@ -587,7 +585,14 @@ describe('reactrouter-compat-utils/utils', () => {
         .mockReturnValueOnce(descendantMatches) // First call for descendant check
         .mockReturnValueOnce(rebuildMatches); // Second call for path rebuild
 
-      const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, '');
+      const result = resolveRouteNameAndSource(
+        location,
+        routes,
+        allRoutes,
+        branches,
+        mockMatchRoutes as MatchRoutes,
+        '',
+      );
       // Since locationIsInsideDescendantRoute returns true, it uses route source
       expect(result).toEqual(['/users/123/profile', 'route']);
     });
@@ -617,7 +622,14 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(normalMatches);
 
-      const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, '');
+      const result = resolveRouteNameAndSource(
+        location,
+        routes,
+        allRoutes,
+        branches,
+        mockMatchRoutes as MatchRoutes,
+        '',
+      );
       expect(result).toEqual(['/users', 'route']);
     });
 
@@ -629,7 +641,14 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(null);
 
-      const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, '');
+      const result = resolveRouteNameAndSource(
+        location,
+        routes,
+        allRoutes,
+        branches,
+        mockMatchRoutes as MatchRoutes,
+        '',
+      );
       expect(result).toEqual(['/unknown', 'url']);
     });
   });

@@ -17,7 +17,7 @@ import { fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BrowserClient } from '../src';
+import { BrowserClient, wrapReactRouterRouting as baseWrapReactRouterRouting } from '../src';
 import { allRoutes } from '../src/reactrouter-compat-utils/instrumentation';
 import { reactRouterBrowserTracingIntegration, wrapReactRouterRouting } from '../src/router';
 
@@ -145,15 +145,17 @@ describe('@sentry/react/router', () => {
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(0);
   });
 
-  it('lets callers override the default hooks', () => {
+  it('lets callers override the hooks via the base wrapper', () => {
     const client = createMockBrowserClient();
     setCurrentClient(client);
 
     const customUseLocation = vi.fn(useLocation);
 
-    client.addIntegration(reactRouterBrowserTracingIntegration({ useLocation: customUseLocation }));
+    client.addIntegration(reactRouterBrowserTracingIntegration());
 
-    const SentryRoutes = wrapReactRouterRouting(Routes);
+    // The base wrapper (from `@sentry/react`) accepts an explicit hooks override; the remaining hooks
+    // fall back to the ones captured by the integration above.
+    const SentryRoutes = baseWrapReactRouterRouting(Routes, { useLocation: customUseLocation });
 
     render(
       <MemoryRouter initialEntries={['/']}>

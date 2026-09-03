@@ -231,6 +231,18 @@ export interface ReactRouterOptions {
   lazyRouteManifest?: string[];
 }
 
+/**
+ * The React Router hooks that the routing wrappers depend on. When passed to a wrapper, these are used
+ * directly instead of the ambient values captured during `Sentry.init()` - this is how the `@sentry/react/router`
+ * entry point supplies defaults so the wrappers work without the hooks being threaded through the integration.
+ */
+export interface ReactRouterHooks {
+  useLocation?: UseLocation;
+  useNavigationType?: UseNavigationType;
+  createRoutesFromChildren?: CreateRoutesFromChildren;
+  matchRoutes?: MatchRoutes;
+}
+
 type V6CompatibleVersion = '6' | '7' | '';
 
 export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
@@ -305,6 +317,7 @@ function resolveDeferredLazyRoutePromise(span: Span): void {
  */
 export function processResolvedRoutes(
   resolvedRoutes: RouteObject[],
+  matchRoutes: MatchRoutes,
   parentRoute?: RouteObject,
   currentLocation: Location | null = null,
   capturedSpan?: Span,
@@ -313,7 +326,7 @@ export function processResolvedRoutes(
     allRoutes.add(child);
     // Only check for async handlers if the feature is enabled
     if (_enableAsyncRouteHandlers) {
-      checkRouteForAsyncHandler(child, processResolvedRoutes);
+      checkRouteForAsyncHandler(child, (r, p, l, s) => processResolvedRoutes(r, matchRoutes, p, l, s));
     }
   });
 
@@ -356,10 +369,11 @@ export function processResolvedRoutes(
           location: { pathname: location.pathname },
           routes: Array.from(allRoutes),
           allRoutes: Array.from(allRoutes),
+          matchRoutes,
         });
       } else if (spanOp === 'navigation') {
         // For navigation spans, update the name with the newly loaded routes
-        updateNavigationSpan(targetSpan, location, Array.from(allRoutes), false, _matchRoutes);
+        updateNavigationSpan(targetSpan, location, Array.from(allRoutes), false, matchRoutes);
       }
     }
   }
@@ -388,6 +402,7 @@ export function updateNavigationSpan(
       allRoutes,
       allRoutes,
       (currentBranches as RouteMatch[]) || [],
+      matchRoutes,
       _basename,
       _lazyRouteManifest,
       _enableAsyncRouteHandlers,
@@ -424,6 +439,7 @@ function setupRouterSubscription(
   version: V6CompatibleVersion,
   basename: string | undefined,
   activeRootSpan: Span | undefined,
+  matchRoutes: MatchRoutes,
 ): void {
   let isInitialPageloadComplete = false;
   let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload';
@@ -468,6 +484,7 @@ function setupRouterSubscription(
           version,
           basename,
           allRoutes: Array.from(allRoutes),
+          matchRoutes,
         });
       };
 
@@ -503,8 +520,11 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 >(
   createRouterFunction: CreateRouterFunction<TState, TRouter>,
   version: V6CompatibleVersion,
+  hooks?: ReactRouterHooks,
 ): CreateRouterFunction<TState, TRouter> {
-  if (!_matchRoutes) {
+  const matchRoutes = hooks?.matchRoutes ?? _matchRoutes;
+
+  if (!matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
         `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createRouter\` function because of one or more missing parameters.`,
@@ -518,7 +538,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
     if (_enableAsyncRouteHandlers) {
       for (const route of routes) {
-        checkRouteForAsyncHandler(route, processResolvedRoutes);
+        checkRouteForAsyncHandler(route, (r, p, l, s) => processResolvedRoutes(r, matchRoutes, p, l, s));
       }
     }
 
@@ -539,7 +559,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
     // Pass the captured span to wrapPatchRoutesOnNavigation so it uses the same span
     // even if the span has ended by the time patchRoutesOnNavigation is called.
-    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, false, activeRootSpan);
+    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, false, activeRootSpan, matchRoutes);
     const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
 
@@ -550,13 +570,14 @@ export function createV6CompatibleWrapCreateBrowserRouter<
         routes,
         basename,
         allRoutes: Array.from(allRoutes),
+        matchRoutes,
       });
     }
 
     // Store basename for use in updateNavigationSpan
     _basename = basename || '';
 
-    setupRouterSubscription(router, routes, version, basename, activeRootSpan);
+    setupRouterSubscription(router, routes, version, basename, activeRootSpan, matchRoutes);
 
     return router;
   };
@@ -571,8 +592,11 @@ export function createV6CompatibleWrapCreateMemoryRouter<
 >(
   createRouterFunction: CreateRouterFunction<TState, TRouter>,
   version: V6CompatibleVersion,
+  hooks?: ReactRouterHooks,
 ): CreateRouterFunction<TState, TRouter> {
-  if (!_matchRoutes) {
+  const matchRoutes = hooks?.matchRoutes ?? _matchRoutes;
+
+  if (!matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
         `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
@@ -593,7 +617,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
 
     if (_enableAsyncRouteHandlers) {
       for (const route of routes) {
-        checkRouteForAsyncHandler(route, processResolvedRoutes);
+        checkRouteForAsyncHandler(route, (r, p, l, s) => processResolvedRoutes(r, matchRoutes, p, l, s));
       }
     }
 
@@ -609,7 +633,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       createDeferredLazyRoutePromise(memoryActiveRootSpanEarly);
     }
 
-    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, true, memoryActiveRootSpanEarly);
+    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, true, memoryActiveRootSpanEarly, matchRoutes);
 
     const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
@@ -643,13 +667,14 @@ export function createV6CompatibleWrapCreateMemoryRouter<
         routes,
         basename,
         allRoutes: Array.from(allRoutes),
+        matchRoutes,
       });
     }
 
     // Store basename for use in updateNavigationSpan
     _basename = basename || '';
 
-    setupRouterSubscription(router, routes, version, basename, memoryActiveRootSpan);
+    setupRouterSubscription(router, routes, version, basename, memoryActiveRootSpan, matchRoutes);
 
     return router;
   };
@@ -720,7 +745,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
       _lazyRouteManifest = lazyRouteManifest;
 
       // Initialize the router utils with the required dependencies
-      initializeRouterUtils(matchRoutes, stripBasename || false);
+      initializeRouterUtils(stripBasename || false);
     },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
@@ -746,8 +771,16 @@ export function createReactRouterV6CompatibleTracingIntegration(
   };
 }
 
-export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, version: V6CompatibleVersion): UseRoutes {
-  if (!_useLocation || !_useNavigationType || !_matchRoutes) {
+export function createV6CompatibleWrapUseRoutes(
+  origUseRoutes: UseRoutes,
+  version: V6CompatibleVersion,
+  hooks?: ReactRouterHooks,
+): UseRoutes {
+  const useLocation = hooks?.useLocation ?? _useLocation;
+  const useNavigationType = hooks?.useNavigationType ?? _useNavigationType;
+  const matchRoutes = hooks?.matchRoutes ?? _matchRoutes;
+
+  if (!useLocation || !useNavigationType || !matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(
         'reactRouterV6Instrumentation was unable to wrap `useRoutes` because of one or more missing parameters.',
@@ -766,8 +799,8 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
 
     const Routes = origUseRoutes(routes, locationArg);
 
-    const location = _useLocation();
-    const navigationType = _useNavigationType();
+    const location = useLocation();
+    const navigationType = useNavigationType();
 
     // A value with stable identity to either pick `locationArg` if available or `location` if not
     const stableLocationParam =
@@ -792,6 +825,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
           location: normalizedLocation,
           routes,
           allRoutes: Array.from(allRoutes),
+          matchRoutes,
         });
         isMountRenderPass.current = false;
       } else {
@@ -804,6 +838,7 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
           navigationType,
           version,
           allRoutes: Array.from(allRoutes),
+          matchRoutes,
         });
       }
     }, [navigationType, stableLocationParam]);
@@ -818,8 +853,9 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
 }
 function wrapPatchRoutesOnNavigation(
   opts: Record<string, unknown> | undefined,
-  isMemoryRouter = false,
-  capturedSpan?: Span,
+  isMemoryRouter: boolean,
+  capturedSpan: Span | undefined,
+  matchRoutes: MatchRoutes,
 ): Record<string, unknown> {
   if (!opts || !('patchRoutesOnNavigation' in opts) || typeof opts.patchRoutesOnNavigation !== 'function') {
     return opts || {};
@@ -887,7 +923,7 @@ function wrapPatchRoutesOnNavigation(
                 { pathname: targetPath, search: '', hash: '', state: null, key: 'default' },
                 Array.from(allRoutes),
                 true,
-                _matchRoutes,
+                matchRoutes,
               );
             }
             return originalPatch(routeId, children);
@@ -929,7 +965,7 @@ function wrapPatchRoutesOnNavigation(
               { pathname, search: '', hash: '', state: null, key: 'default' },
               Array.from(allRoutes),
               false,
-              _matchRoutes,
+              matchRoutes,
             );
           }
         }
@@ -952,12 +988,13 @@ export function handleNavigation(opts: {
   routes: RouteObject[];
   navigationType: Action;
   version: V6CompatibleVersion;
+  matchRoutes: MatchRoutes;
   matches?: AgnosticDataRouteMatch;
   basename?: string;
   allRoutes?: RouteObject[];
 }): void {
-  const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-  const branches = Array.isArray(matches) ? matches : _matchRoutes(allRoutes || routes, location, basename);
+  const { location, routes, navigationType, version, matchRoutes, matches, basename, allRoutes } = opts;
+  const branches = Array.isArray(matches) ? matches : matchRoutes(allRoutes || routes, location, basename);
 
   const client = getClient();
   if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
@@ -975,6 +1012,7 @@ export function handleNavigation(opts: {
       allRoutes || routes,
       allRoutes || routes,
       branches as RouteMatch[],
+      matchRoutes,
       basename,
       _lazyRouteManifest,
       _enableAsyncRouteHandlers,
@@ -1061,7 +1099,7 @@ export function handleNavigation(opts: {
         pathname: location.pathname,
         locationKey,
       });
-      patchSpanEnd(navigationSpan, location, routes, basename, 'navigation');
+      patchSpanEnd(navigationSpan, location, routes, basename, 'navigation', matchRoutes);
     } else {
       // If no span was created, remove the placeholder
       activeNavigationSpans.delete(client);
@@ -1117,6 +1155,7 @@ function updatePageloadTransaction({
   activeRootSpan,
   location,
   routes,
+  matchRoutes,
   matches,
   basename,
   allRoutes,
@@ -1124,13 +1163,14 @@ function updatePageloadTransaction({
   activeRootSpan: Span | undefined;
   location: Location;
   routes: RouteObject[];
+  matchRoutes: MatchRoutes;
   matches?: AgnosticDataRouteMatch;
   basename?: string;
   allRoutes?: RouteObject[];
 }): void {
   const branches = Array.isArray(matches)
     ? matches
-    : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
+    : (matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
     const [name, source] = resolveRouteNameAndSource(
@@ -1138,6 +1178,7 @@ function updatePageloadTransaction({
       allRoutes || routes,
       allRoutes || routes,
       branches,
+      matchRoutes,
       basename,
       _lazyRouteManifest,
       _enableAsyncRouteHandlers,
@@ -1156,13 +1197,13 @@ function updatePageloadTransaction({
       }
 
       // Patch span.end() to ensure we update the name one last time before the span is sent
-      patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload');
+      patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload', matchRoutes);
     }
   } else if (activeRootSpan) {
     // Even if branches is null (can happen when lazy routes haven't loaded yet),
     // we still need to patch span.end() so that when lazy routes load and the span ends,
     // we can update the transaction name correctly.
-    patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload');
+    patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload', matchRoutes);
   }
 }
 
@@ -1218,6 +1259,7 @@ function tryUpdateSpanNameBeforeEnd(
   basename: string | undefined,
   spanType: 'pageload' | 'navigation',
   allRoutes: Set<RouteObject>,
+  matchRoutes: MatchRoutes,
 ): void {
   try {
     const currentSource = spanJson.attributes[SENTRY_SEGMENT_NAME_SOURCE] as string | undefined;
@@ -1228,7 +1270,7 @@ function tryUpdateSpanNameBeforeEnd(
 
     const currentAllRoutes = Array.from(allRoutes);
     const routesToUse = currentAllRoutes.length > 0 ? currentAllRoutes : routes;
-    const branches = _matchRoutes(routesToUse, location, basename) as unknown as RouteMatch[];
+    const branches = matchRoutes(routesToUse, location, basename) as unknown as RouteMatch[];
 
     if (!branches) {
       return;
@@ -1239,6 +1281,7 @@ function tryUpdateSpanNameBeforeEnd(
       routesToUse,
       routesToUse,
       branches,
+      matchRoutes,
       basename,
       _lazyRouteManifest,
       _enableAsyncRouteHandlers,
@@ -1273,6 +1316,7 @@ function patchSpanEnd(
   routes: RouteObject[],
   basename: string | undefined,
   spanType: 'pageload' | 'navigation',
+  matchRoutes: MatchRoutes,
 ): void {
   const patchedPropertyName = `__sentry_${spanType}_end_patched__` as const;
   const hasEndBeenPatched = (span as unknown as Record<string, boolean | undefined>)?.[patchedPropertyName];
@@ -1326,7 +1370,17 @@ function patchSpanEnd(
 
     if (shouldWaitForLazyRoutes) {
       if (_lazyRouteTimeout === 0) {
-        tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutes);
+        tryUpdateSpanNameBeforeEnd(
+          span,
+          spanJson,
+          currentName,
+          location,
+          routes,
+          basename,
+          spanType,
+          allRoutes,
+          matchRoutes,
+        );
         cleanupNavigationSpan();
         originalEnd(endTimestamp);
         return;
@@ -1359,6 +1413,7 @@ function patchSpanEnd(
             basename,
             spanType,
             allRoutes,
+            matchRoutes,
           );
           cleanupNavigationSpan();
           originalEnd(endTimestamp);
@@ -1370,7 +1425,17 @@ function patchSpanEnd(
       return;
     }
 
-    tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutes);
+    tryUpdateSpanNameBeforeEnd(
+      span,
+      spanJson,
+      currentName,
+      location,
+      routes,
+      basename,
+      spanType,
+      allRoutes,
+      matchRoutes,
+    );
     cleanupNavigationSpan();
     originalEnd(endTimestamp);
   };
@@ -1382,12 +1447,18 @@ function patchSpanEnd(
 export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<string, any>, R extends React.FC<P>>(
   Routes: R,
   version: V6CompatibleVersion,
+  hooks?: ReactRouterHooks,
 ): R {
-  if (!_useLocation || !_useNavigationType || !_createRoutesFromChildren || !_matchRoutes) {
+  const useLocation = hooks?.useLocation ?? _useLocation;
+  const useNavigationType = hooks?.useNavigationType ?? _useNavigationType;
+  const createRoutesFromChildren = hooks?.createRoutesFromChildren ?? _createRoutesFromChildren;
+  const matchRoutes = hooks?.matchRoutes ?? _matchRoutes;
+
+  if (!useLocation || !useNavigationType || !createRoutesFromChildren || !matchRoutes) {
     DEBUG_BUILD &&
       debug.warn(`reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.
-      useLocation: ${_useLocation}. useNavigationType: ${_useNavigationType}.
-      createRoutesFromChildren: ${_createRoutesFromChildren}. matchRoutes: ${_matchRoutes}.`);
+      useLocation: ${useLocation}. useNavigationType: ${useNavigationType}.
+      createRoutesFromChildren: ${createRoutesFromChildren}. matchRoutes: ${matchRoutes}.`);
 
     return Routes;
   }
@@ -1395,10 +1466,10 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
   const SentryRoutes: React.FC<P> = (props: P) => {
     const isMountRenderPass = React.useRef(true);
 
-    const location = _useLocation();
-    const navigationType = _useNavigationType();
+    const location = useLocation();
+    const navigationType = useNavigationType();
 
-    const routes = _createRoutesFromChildren(props.children) as RouteObject[];
+    const routes = createRoutesFromChildren(props.children) as RouteObject[];
 
     // Register this `<Routes>`'s routes in the shared set for as long as it is mounted, removing them on
     // unmount so they don't leak into later unrelated navigations (#22782). Tying add and remove to the
@@ -1417,13 +1488,21 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
             location,
             routes,
             allRoutes: Array.from(allRoutes),
+            matchRoutes,
           });
           isMountRenderPass.current = false;
         } else {
           // Note: Component-based routes don't support lazy route tracking via lazyRouteTimeout
           // because React.lazy() loads happen at the component level, not the router level.
           // Use createBrowserRouter with patchRoutesOnNavigation for lazy route tracking.
-          handleNavigation({ location, routes, navigationType, version, allRoutes: Array.from(allRoutes) });
+          handleNavigation({
+            location,
+            routes,
+            navigationType,
+            version,
+            allRoutes: Array.from(allRoutes),
+            matchRoutes,
+          });
         }
       },
       // Re-run only on location/navigation changes, not children changes
