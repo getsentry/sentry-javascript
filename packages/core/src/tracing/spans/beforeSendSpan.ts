@@ -2,7 +2,8 @@ import { DEBUG_BUILD } from '../../debug-build';
 import type { BeforeSendStaticSpanCallback, BeforeSendStreamedSpanCallback } from '../../types/options';
 import type { SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { addNonEnumerableProperty } from '../../utils/object';
-import { consoleSandbox, debug } from '../../utils/debug-logger';
+import { consoleSandbox } from '../../utils/debug-logger';
+import { safeCallback } from '../../utils/safeCallback';
 
 /**
  * A wrapper to use the static, transaction-based span format in your `beforeSendSpan` callback.
@@ -64,25 +65,25 @@ export function applyBeforeSendSpanCallback<T extends StreamedSpanJSON | SpanJSO
   span: T,
   beforeSendSpan: (span: T) => T,
 ): T {
-  try {
-    const modifedSpan = beforeSendSpan(span);
-    if (!modifedSpan) {
-      if (!hasShownSpanDropWarning) {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
-          );
-        });
-        hasShownSpanDropWarning = true;
-      }
-      return span;
-    }
-    return modifedSpan;
-  } catch (error) {
-    // Spans are captured synchronously when they end, so a throwing callback would otherwise
-    // propagate into whatever user code ended the span.
-    DEBUG_BUILD && debug.error('The `beforeSendSpan` callback threw an error, sending the span unmodified:', error);
-    return span;
+  // Spans are captured synchronously when they end, so a throwing callback would otherwise
+  // propagate into whatever user code ended the span.
+  const modifiedSpan = safeCallback(
+    DEBUG_BUILD ? 'The `beforeSendSpan` callback threw an error, sending the span unmodified:' : '',
+    () => beforeSendSpan(span),
+    () => span,
+  );
+  if (modifiedSpan) {
+    return modifiedSpan;
   }
+
+  if (!hasShownSpanDropWarning) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
+      );
+    });
+    hasShownSpanDropWarning = true;
+  }
+  return span;
 }

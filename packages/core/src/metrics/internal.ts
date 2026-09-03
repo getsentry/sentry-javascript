@@ -8,6 +8,7 @@ import type { Integration } from '../types/integration';
 import type { Metric, SerializedMetric } from '../types/metric';
 import type { User } from '../types/user';
 import { debug } from '../utils/debug-logger';
+import { safeCallback } from '../utils/safeCallback';
 import { getCombinedScopeData } from '../utils/scopeData';
 import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
@@ -181,9 +182,16 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   client.emit('processMetric', enrichedMetric);
 
-  const processedMetric = beforeSendMetric ? beforeSendMetric(enrichedMetric) : enrichedMetric;
+  const processedMetric = beforeSendMetric
+    ? safeCallback(
+        DEBUG_BUILD ? 'The `beforeSendMetric` callback threw an error, dropping the metric:' : '',
+        () => beforeSendMetric(enrichedMetric),
+        () => null,
+      )
+    : enrichedMetric;
 
   if (!processedMetric) {
+    client.recordDroppedEvent('before_send', 'metric', 1);
     DEBUG_BUILD && debug.log('`beforeSendMetric` returned `null`, will not send metric.');
     return;
   }

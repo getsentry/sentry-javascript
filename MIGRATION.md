@@ -481,6 +481,24 @@ Sentry.init({
 
 `ignoreSpans` itself is unchanged in shape, but it now takes effect when a span **starts** rather than when the transaction is sent. Matched spans are never recorded at all, which means a matched non-segment span's children are re-parented to its parent instead of being dropped.
 
+#### `ignoreStatusCodes` is deprecated
+
+The `ignoreStatusCodes` option is deprecated on `httpIntegration` and `httpServerSpansIntegration` (Node and the SDKs built on it) as well as on `denoHttpIntegration` and `denoServeIntegration`. It will be removed in v12, without a direct replacement.
+
+The filter runs on the finished transaction event, which is no longer supported span streaming. Child spans are sent as they end, before the response status code is known, so a request's spans can no longer be dropped once the status turns out to be uninteresting. The option therefore only has an effect with `traceLifecycle: 'static'`.
+
+To keep specific requests out of Sentry, decide before they are instrumented: Use `tracesSampler`, or ignore the request via `ignoreIncomingRequests`, which matches on the incoming request instead of on the response:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.httpIntegration({
+      ignoreIncomingRequests: urlPath => urlPath.startsWith('/admin'),
+    }),
+  ],
+});
+```
+
 #### Opting out of span streaming
 
 To keep the previous transaction-based model, set `traceLifecycle: 'static'`:
@@ -656,7 +674,8 @@ Sentry.init({
 
 This filter runs on transaction events (`processEvent`), so it only takes effect when `traceLifecycle` is `'static'`.
 The default `'stream'` lifecycle does not produce transaction events, and typical Deno apps are unaffected. Node's
-`httpIntegration` has the same limitation.
+`httpIntegration` has the same limitation. For that reason, [`ignoreStatusCodes` is deprecated](#ignorestatuscodes-is-deprecated)
+and will be removed in v12.
 
 Transactions that are kept now also carry the HTTP status in the top-level `response` context, as in the other server
 SDKs.
@@ -980,6 +999,8 @@ Messaging span names now read `<operation type> <destination>` in every integrat
 
 Cache keys are unbounded, so they are no longer part of a cache span name. They remain available on the `cache.key` attribute, and every cache span now also carries a `cache.operation` attribute (`get`, `put`, `remove`) — the value the name is built from. That attribute is set in both trace lifecycles. This affects the redis/ioredis cache spans (`cachePrefixes`), the Nuxt and Nitro storage spans, and the dataloader spans.
 
+A Redis command whose key matches `cachePrefixes` now starts as a `cache.*` span instead of being converted from a `db.query` span at response time. `ignoreSpans` is evaluated at span start, so filters can match these spans by their cache op and name. A failed cache command reports as a cache span too, where it previously stayed a `db.query` span.
+
 A dataloader span no longer carries the loader's `name` either (`dataloader.load usersLoader` becomes `cache.get`), because the cache conventions have no slot for it in the name. It is reported on the `db.collection.name` attribute instead — a loader batches one entity type, so it is the closest thing dataloader has to a collection — and that attribute is set in both trace lifecycles. Unnamed loaders do not set it.
 
 Redis has no SQL statement to summarize and no collection to pair a command with, so redis and ioredis `db.query` spans are named after the operation and the connection instead of the command that was sent. The command and its arguments remain available on `db.query.text`, redacted as before. `MULTI`/`PIPELINE` batch spans are unchanged — they were already named after their operation, which they now also report on `db.operation.name`. `db.namespace` is deliberately not used in the name: for redis it is the numeric database index, which says nothing about what the command did.
@@ -1239,9 +1260,35 @@ Affected SDKs: `@sentry/react-router`.
 + import { sentryOnBuildEnd } from '@sentry/react-router/vite';
 ```
 
+### Remix: Vite plugin moved to `@sentry/remix/vite`
+
+Affected SDKs: `@sentry/remix`.
+
+`sentryRemixVitePlugin` is no longer available from the main `@sentry/remix` entry point. Import it from the dedicated subpath instead:
+
+```diff
+// vite.config.ts
+- import { sentryRemixVitePlugin } from '@sentry/remix';
++ import { sentryRemixVitePlugin } from '@sentry/remix/vite';
+```
+
+The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs
+
+- `@sentry/core` now exports only isomorphic code. Browser-only exports live on `@sentry/core/browser` and server-only exports on `@sentry/core/server`, and neither subpath re-exports the shared surface any more. This keeps server-only code (HTTP instrumentation, ANR, postgres and sql helpers) out of browser bundles. Most of these APIs are also re-exported by the platform SDKs (`@sentry/node`, `@sentry/browser`, ...), which is unchanged, so this only affects code importing straight from `@sentry/core`. TypeScript reports it as `has no exported member`.
+
+```js
+// before
+import { loadModule, trpcMiddleware } from '@sentry/core';
+import type { BrowserClientReplayOptions } from '@sentry/core';
+
+// after
+import { loadModule, trpcMiddleware } from '@sentry/core/server';
+import type { BrowserClientReplayOptions } from '@sentry/core/browser';
+```
 
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - `Scope.clear()` was removed. To reset scope state, re-initialize the SDK or run your code in a fresh scope via `withScope`/`withIsolationScope`.
@@ -1423,6 +1470,8 @@ Sentry.httpIntegration({
   },
 });
 ```
+
+Note that `ignoreStatusCodes` is itself [deprecated](#ignorestatuscodes-is-deprecated) and will be removed in v12.
 
 ### `@sentry/cloudflare`
 
