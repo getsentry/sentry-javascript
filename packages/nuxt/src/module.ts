@@ -94,7 +94,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     const serverConfigFile = await findDefaultSdkInitFile('server', nuxt, moduleOptions);
-    const isNitroV3 = (await getNitroMajorVersion()) >= 3;
+    const isNitroV3 = (await getNitroMajorVersion(nuxt.options.rootDir)) >= 3;
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
 
