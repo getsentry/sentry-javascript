@@ -80,30 +80,44 @@ test('sends an application render span and a root component span on pageload', a
   // the root spans stop depending on the mixin.
   test.fail(true, 'Vue tracing is registered through app.mixin(), which needs the Options API');
 
-  const transactionPromise = waitForTransaction('nuxt-5', async transactionEvent => {
-    return transactionEvent.transaction === '/client-error' && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
+  const spansPromise = collectStreamedSpans('nuxt-5', spans =>
+    spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),
+  );
 
   await page.goto(`/client-error`);
 
-  const rootSpan = await transactionPromise;
-  const uiSpans = rootSpan.spans.filter(span => span.origin === 'auto.ui.vue');
+  const spans = await spansPromise;
+  const uiSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ui.vue');
 
-  const applicationRenderSpans = uiSpans.filter(span => span.description === 'Application Render');
+  const applicationRenderSpans = uiSpans.filter(span => span.name === 'Application Render');
   expect(applicationRenderSpans).toHaveLength(1);
   expect(applicationRenderSpans[0]).toMatchObject({
-    data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.render' },
-    description: 'Application Render',
-    op: 'ui.render',
-    origin: 'auto.ui.vue',
+    name: 'Application Render',
+    is_segment: false,
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'ui.render' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+    }),
   });
 
-  const rootComponentSpans = uiSpans.filter(span => span.description === 'Vue <Root>');
+  const rootComponentSpans = uiSpans.filter(span => span.name === 'Vue <Root>');
   expect(rootComponentSpans).toHaveLength(1);
   expect(rootComponentSpans[0]).toMatchObject({
-    data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.mount' },
-    description: 'Vue <Root>',
-    op: 'ui.mount',
-    origin: 'auto.ui.vue',
+    name: 'Vue <Root>',
+    is_segment: false,
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'ui.mount' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+    }),
   });
 });
