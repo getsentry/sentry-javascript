@@ -1,197 +1,181 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('Sends a transaction for a successful route', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /test-success'
-    );
+test('Sends a segment span for a successful route', async ({ baseURL, request }) => {
+  const spanPromise = waitForStreamedSpan('elysia-bun', span => {
+    return getSpanOp(span) === 'http.server' && span.name === 'GET /test-success' && span.is_segment;
   });
 
   await request.get(`${baseURL}/test-success`);
 
-  const transactionEvent = await transactionEventPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent).toEqual(
+  expect(span).toEqual(
     expect.objectContaining({
-      transaction: 'GET /test-success',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
-    }),
-  );
-
-  expect(transactionEvent.contexts?.trace).toEqual(
-    expect.objectContaining({
-      op: 'http.server',
+      name: 'GET /test-success',
+      is_segment: true,
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
     }),
   );
+
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto.http.elysia', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'http.route': { value: '/test-success', type: 'string' },
+  });
 });
 
-test('Sends a transaction with parameterized route name', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-param/:param'
-    );
+test('Sends a segment span with parameterized route name', async ({ baseURL, request }) => {
+  const spanPromise = waitForStreamedSpan('elysia-bun', span => {
+    return getSpanOp(span) === 'http.server' && span.name === 'GET /test-param/:param' && span.is_segment;
   });
 
   await request.get(`${baseURL}/test-param/123`);
 
-  const transactionEvent = await transactionEventPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent.transaction).toBe('GET /test-param/:param');
-  expect(transactionEvent.transaction_info?.source).toBe('route');
+  expect(span.name).toBe('GET /test-param/:param');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Sends a transaction with multiple parameterized segments', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
+test('Sends a segment span with multiple parameterized segments', async ({ baseURL, request }) => {
+  const spanPromise = waitForStreamedSpan('elysia-bun', span => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-multi-param/:param1/:param2'
+      getSpanOp(span) === 'http.server' && span.name === 'GET /test-multi-param/:param1/:param2' && span.is_segment
     );
   });
 
   await request.get(`${baseURL}/test-multi-param/foo/bar`);
 
-  const transactionEvent = await transactionEventPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent.transaction).toBe('GET /test-multi-param/:param1/:param2');
-  expect(transactionEvent.transaction_info?.source).toBe('route');
+  expect(span.name).toBe('GET /test-multi-param/:param1/:param2');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Sends a transaction for an errored route', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-exception/:id'
-    );
+test('Sends a segment span for an errored route', async ({ baseURL, request }) => {
+  const spanPromise = waitForStreamedSpan('elysia-bun', span => {
+    return getSpanOp(span) === 'http.server' && span.name === 'GET /test-exception/:id' && span.is_segment;
   });
 
   await request.get(`${baseURL}/test-exception/777`);
 
-  const transactionEvent = await transactionEventPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent.transaction).toBe('GET /test-exception/:id');
-  expect(transactionEvent.contexts?.trace?.status).toBe('internal_error');
+  expect(span.name).toBe('GET /test-exception/:id');
+  expect(span.status).toBe('error');
 });
 
 test('Includes manually started spans with parent-child relationship', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-transaction'
-    );
-  });
+  const spansPromise = collectStreamedSpans('elysia-bun', spans =>
+    spans.some(span => span.name === 'GET /test-transaction' && span.is_segment),
+  );
 
   await request.get(`${baseURL}/test-transaction`);
 
-  const transactionEvent = await transactionEventPromise;
-  const spans = transactionEvent.spans || [];
+  const spans = await spansPromise;
 
-  const testSpan = spans.find(span => span.description === 'test-span');
-  const childSpan = spans.find(span => span.description === 'child-span');
+  const testSpan = spans.find(span => span.name === 'test-span');
+  const childSpan = spans.find(span => span.name === 'child-span');
 
   expect(testSpan).toEqual(
     expect.objectContaining({
-      description: 'test-span',
-      origin: 'manual',
+      name: 'test-span',
+      attributes: expect.objectContaining({
+        'sentry.origin': { value: 'manual', type: 'string' },
+      }),
     }),
   );
 
   expect(childSpan).toEqual(
     expect.objectContaining({
-      description: 'child-span',
-      origin: 'manual',
+      name: 'child-span',
       parent_span_id: testSpan?.span_id,
+      attributes: expect.objectContaining({
+        'sentry.origin': { value: 'manual', type: 'string' },
+      }),
     }),
   );
 });
 
 test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /test-success'
-    );
-  });
+  const spansPromise = collectStreamedSpans('elysia-bun', spans =>
+    spans.some(span => span.name === 'GET /test-success' && span.is_segment),
+  );
 
   await request.get(`${baseURL}/test-success`);
 
-  const transactionEvent = await transactionEventPromise;
-  const spans = transactionEvent.spans || [];
+  const spans = await spansPromise;
 
   // Elysia should produce lifecycle spans enriched with sentry attributes
-  const elysiaSpans = spans.filter(span => span.origin === 'auto.http.elysia');
+  const elysiaSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.http.elysia');
   expect(elysiaSpans.length).toBeGreaterThan(0);
 
-  // The Handle span should be present as a request handler
+  // With span streaming, request handler spans are named after their route
   expect(spans).toContainEqual(
     expect.objectContaining({
-      description: 'Handle',
-      op: 'handler',
-      origin: 'auto.http.elysia',
+      name: '/test-success',
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'handler', type: 'string' },
+        'sentry.origin': { value: 'auto.http.elysia', type: 'string' },
+        'http.route': { value: '/test-success', type: 'string' },
+      }),
     }),
   );
 });
 
-test('Names anonymous handler spans as "anonymous" instead of "<unknown>"', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /with-middleware/test'
-    );
-  });
+test('Names handler spans after the route instead of "<unknown>"', async ({ baseURL, request }) => {
+  const spansPromise = collectStreamedSpans('elysia-bun', spans =>
+    spans.some(span => span.name === 'GET /with-middleware/test' && span.is_segment),
+  );
 
   // Use a route with middleware so there are child handler spans
   await request.get(`${baseURL}/with-middleware/test`);
 
-  const transactionEvent = await transactionEventPromise;
-  const spans = transactionEvent.spans || [];
+  const spans = await spansPromise;
 
-  // No <unknown> spans should exist — we name them 'anonymous' instead
-  const unknownSpans = spans.filter(span => span.description === '<unknown>');
+  // No <unknown> spans should exist
+  const unknownSpans = spans.filter(span => span.name === '<unknown>');
   expect(unknownSpans).toHaveLength(0);
 
-  // Anonymous handler spans should be named 'anonymous'
-  const anonymousSpans = spans.filter(span => span.description === 'anonymous' && span.origin === 'auto.http.elysia');
-  expect(anonymousSpans.length).toBeGreaterThan(0);
+  // Handler spans are named after the route, so the (anonymous) handler name never becomes a span name
+  const handlerSpans = spans.filter(span => getSpanOp(span) === 'handler');
+  expect(handlerSpans.length).toBeGreaterThan(0);
+  expect(handlerSpans.every(span => span.name === '/with-middleware/test')).toBe(true);
 
   // Named Elysia lifecycle spans should still be present
-  expect(spans.filter(span => span.origin === 'auto.http.elysia').length).toBeGreaterThan(0);
+  expect(spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.http.elysia').length).toBeGreaterThan(
+    0,
+  );
 });
 
 test('Creates lifecycle spans for route-specific middleware', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /with-middleware/test'
-    );
-  });
+  const spansPromise = collectStreamedSpans('elysia-bun', spans =>
+    spans.some(span => span.name === 'GET /with-middleware/test' && span.is_segment),
+  );
 
   await request.get(`${baseURL}/with-middleware/test`);
 
-  const transactionEvent = await transactionEventPromise;
-  const spans = transactionEvent.spans || [];
+  const spans = await spansPromise;
 
   // BeforeHandle span should be present from the route-specific middleware
   expect(spans).toContainEqual(
     expect.objectContaining({
-      description: 'BeforeHandle',
-      op: 'middleware',
-      origin: 'auto.http.elysia',
+      name: 'BeforeHandle',
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'middleware', type: 'string' },
+        'sentry.origin': { value: 'auto.http.elysia', type: 'string' },
+      }),
     }),
   );
 });
 
 test('Captures request metadata for POST requests', async ({ baseURL, request }) => {
-  const transactionEventPromise = waitForTransaction('elysia-bun', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'POST /test-post'
-    );
+  const spanPromise = waitForStreamedSpan('elysia-bun', span => {
+    return getSpanOp(span) === 'http.server' && span.name === 'POST /test-post' && span.is_segment;
   });
 
   const response = await request.post(`${baseURL}/test-post`, {
@@ -202,15 +186,10 @@ test('Captures request metadata for POST requests', async ({ baseURL, request })
 
   expect(resBody).toEqual({ status: 'ok', body: { foo: 'bar', other: 1 } });
 
-  const transactionEvent = await transactionEventPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent.request).toEqual(
-    expect.objectContaining({
-      method: 'POST',
-      url: expect.stringContaining('/test-post'),
-      headers: expect.objectContaining({
-        'content-type': 'application/json',
-      }),
-    }),
-  );
+  expect(span.attributes).toMatchObject({
+    'url.path': { value: '/test-post', type: 'string' },
+    'url.full': { value: expect.stringContaining('/test-post'), type: 'string' },
+  });
 });

@@ -1,28 +1,38 @@
-import type { Envelope, TransactionEvent } from '@sentry/core';
+import type { Envelope, Event, SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
 
-function getTransaction(envelope: Envelope): TransactionEvent {
-  return envelope[1][0][1] as TransactionEvent;
+function getSpans(envelope: Envelope): SerializedStreamedSpan[] {
+  return (envelope[1][0][1] as SerializedStreamedSpanContainer).items;
 }
 
 it('creates an http.client span for outgoing fetch requests', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transaction = getTransaction(envelope);
+      const spans = getSpans(envelope);
 
-      expect(transaction.transaction).toBe('GET /outgoing-fetch');
+      const segmentSpan = spans.find(span => span.is_segment);
+      expect(segmentSpan).toMatchObject({
+        // `Bun.serve` without `routes` has no parameterized route, so the streamed segment is
+        // named after the method only; the path lives in `url.path`.
+        name: 'GET',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'http.server', type: 'string' },
+          'url.path': { value: '/outgoing-fetch', type: 'string' },
+        }),
+      });
 
-      const httpClientSpan = transaction.spans?.find(span => span.op === 'http.client');
+      const httpClientSpan = spans.find(span => span.attributes['sentry.op']?.value === 'http.client');
 
       expect(httpClientSpan).toBeDefined();
       expect(httpClientSpan).toMatchObject({
-        op: 'http.client',
-        origin: 'auto.http.fetch',
-        description: expect.stringMatching(/^GET http:\/\/localhost:\d+\/allowed$/),
-        data: expect.objectContaining({
-          'http.request.method': 'GET',
-          type: 'fetch',
+        name: 'GET localhost',
+        parent_span_id: segmentSpan!.span_id,
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'http.client', type: 'string' },
+          'sentry.origin': { value: 'auto.http.fetch', type: 'string' },
+          'http.request.method': { value: 'GET', type: 'string' },
+          type: { value: 'fetch', type: 'string' },
         }),
       });
     })
@@ -54,25 +64,31 @@ it('does not propagate headers to outgoing fetch requests outside tracePropagati
 });
 
 it('records a breadcrumb for outgoing fetch requests', async ({ signal }) => {
+  // Streamed spans carry no breadcrumbs, so the breadcrumb is asserted on an error
+  // captured right after the fetch instead.
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transaction = getTransaction(envelope);
+      const [, envelopeItems] = envelope;
+      const [itemHeader, event] = envelopeItems[0] as [{ type: string }, Event];
 
-      const fetchBreadcrumb = transaction.breadcrumbs?.find(
-        breadcrumb => breadcrumb.category === 'fetch' && (breadcrumb.data?.url as string)?.includes('/allowed'),
-      );
+      expect(itemHeader.type).toBe('event');
+      expect(event.exception?.values?.[0]?.value).toBe('fetch done');
 
-      expect(fetchBreadcrumb).toMatchObject({
-        category: 'fetch',
-        type: 'http',
-        data: expect.objectContaining({
-          method: 'GET',
-          status_code: 200,
+      expect(event.breadcrumbs).toContainEqual(
+        expect.objectContaining({
+          category: 'fetch',
+          type: 'http',
+          data: expect.objectContaining({
+            method: 'GET',
+            status_code: 200,
+            url: expect.stringMatching(/\/allowed$/),
+          }),
         }),
-      });
+      );
     })
+    .ignore('span')
     .start(signal);
 
-  await runner.makeRequest('get', '/outgoing-fetch');
+  await runner.makeRequest('get', '/outgoing-fetch-error');
   await runner.completed();
 });
