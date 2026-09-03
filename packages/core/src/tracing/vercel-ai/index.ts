@@ -601,6 +601,23 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
     setAttributeIfDefined(attributes, 'gen_ai.usage.input_tokens.cache_miss', metadata.deepseek.promptCacheMissTokens);
   }
 
+  // Google (v5 uses 'google', v6 Vertex AI uses 'vertex'). Gemini reports its reasoning ("thoughts")
+  // tokens separately from the candidate output count, so the SDK's `outputTokens` covers only the
+  // visible answer. Recompute output from `candidatesTokenCount + thoughtsTokenCount` rather than
+  // adding onto the existing value, which stays correct even if a future SDK version already folds
+  // reasoning in. `candidatesTokenCount` is optional, so output and total are written together or
+  // not at all: taking the thoughts-inclusive total beside a candidate-only output would report a
+  // span whose parts do not add up.
+  const googleUsage = (metadata.google ?? metadata.vertex)?.usageMetadata;
+  if (googleUsage && typeof googleUsage.thoughtsTokenCount === 'number' && googleUsage.thoughtsTokenCount > 0) {
+    setAttributeIfDefined(attributes, 'gen_ai.usage.reasoning.output_tokens', googleUsage.thoughtsTokenCount);
+    if (typeof googleUsage.candidatesTokenCount === 'number') {
+      attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] =
+        googleUsage.candidatesTokenCount + googleUsage.thoughtsTokenCount;
+      setAttributeIfDefined(attributes, GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, googleUsage.totalTokenCount);
+    }
+  }
+
   return attributes;
 }
 
@@ -609,11 +626,23 @@ function addProviderMetadataToAttributes(attributes: Record<string, unknown>): v
   if (!providerMetadata) {
     return;
   }
+  // An `invoke_agent` span carries the summed `ai.usage.*` of every step, while `providerMetadata`
+  // describes the last step alone. Writing output or total from it would replace the aggregate with
+  // one step's figures, so a two-step call reports output 50 against input 900. The event-processor
+  // path happens to overwrite it again in `applyAccumulatedTokens`; the streamed path ships it. The
+  // reasoning count is still worth having, since nothing else carries it and it is not a total.
+  const lastStepOnly = attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] === 'invoke_agent';
   try {
     const derived = getProviderMetadataAttributes(JSON.parse(providerMetadata) as ProviderMetadata);
     for (const [key, value] of Object.entries(derived)) {
       // Preserve the original behaviour of not overwriting an already-set conversation id.
       if (key === GEN_AI_CONVERSATION_ID_ATTRIBUTE && attributes[key]) {
+        continue;
+      }
+      if (
+        lastStepOnly &&
+        (key === GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE || key === GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE)
+      ) {
         continue;
       }
       attributes[key] = value;
