@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test.describe('environment detection', async () => {
@@ -21,19 +21,19 @@ test.describe('environment detection', async () => {
     }
   });
 
-  test('sets correct environment for client-side transactions', async ({ page }) => {
-    const transactionPromise = waitForTransaction('nuxt-5', async transactionEvent => {
-      return transactionEvent.transaction === '/test-param/:param()';
+  test('sets correct environment for client-side spans', async ({ page }) => {
+    const pageloadSpanPromise = waitForStreamedSpan('nuxt-5', span => {
+      return span.is_segment && span.name === '/test-param/:param()';
     });
 
     await page.goto(`/test-param/1234`);
 
-    const transaction = await transactionPromise;
+    const pageloadSpan = await pageloadSpanPromise;
 
     if (isDevMode) {
-      expect(transaction.environment).toBe('development');
+      expect(pageloadSpan.attributes['sentry.environment']?.value).toBe('development');
     } else {
-      expect(transaction.environment).toBe('production');
+      expect(pageloadSpan.attributes['sentry.environment']?.value).toBe('production');
     }
   });
 
@@ -56,22 +56,22 @@ test.describe('environment detection', async () => {
     }
   });
 
-  test('sets correct environment for server-side transactions', async ({ page }) => {
-    const transactionPromise = waitForTransaction('nuxt-5', async transactionEvent => {
-      return transactionEvent.transaction === 'GET /api/nitro-fetch';
+  test('sets correct environment for server-side spans', async ({ page }) => {
+    const serverSpanPromise = waitForStreamedSpan('nuxt-5', span => {
+      return span.is_segment && span.attributes['url.path']?.value === '/api/nitro-fetch';
     });
 
     await page.goto(`/fetch-server-routes`, isDevMode ? { waitUntil: 'networkidle' } : {});
     await page.getByText('Fetch Nitro $fetch', { exact: true }).click();
 
-    const transaction = await transactionPromise;
+    const serverSpan = await serverSpanPromise;
 
-    expect(transaction.contexts.trace.op).toBe('http.server');
+    expect(getSpanOp(serverSpan)).toBe('http.server');
 
     if (isDevMode) {
-      expect(transaction.environment).toBe('development');
+      expect(serverSpan.attributes['sentry.environment']?.value).toBe('development');
     } else {
-      expect(transaction.environment).toBe('production');
+      expect(serverSpan.attributes['sentry.environment']?.value).toBe('production');
     }
   });
 });
