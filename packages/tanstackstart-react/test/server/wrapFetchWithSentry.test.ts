@@ -28,7 +28,7 @@ vi.mock('@sentry/core', async importOriginal => {
   };
 });
 
-vi.mock('@sentry/server-utils', async importOriginal => {
+vi.mock('@sentry/server-utils/no-diagnostic-channels', async importOriginal => {
   const original = await importOriginal();
   return {
     ...original,
