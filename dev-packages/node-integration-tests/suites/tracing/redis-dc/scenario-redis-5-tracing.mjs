@@ -21,6 +21,10 @@ async function run() {
         await redisClient.get('dc-cache:unavailable-data');
 
         await redisClient.mGet(['dc-test-key', 'dc-cache:test-key', 'dc-cache:unavailable-data']);
+
+        // a failing command on a cache key (GET on a list rejects with WRONGTYPE)
+        await redisClient.lPush('dc-cache:list-key', 'value');
+        await redisClient.get('dc-cache:list-key').catch(() => {});
       } finally {
         await redisClient.disconnect();
       }

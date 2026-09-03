@@ -1,48 +1,43 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans } from '@sentry-internal/test-utils';
 
-test('Sends a transaction for a request to app router with URL', async ({ page }) => {
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-15', transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'GET /parameterized/[one]/beep/[two]' &&
-      transactionEvent.contexts?.trace?.data?.['http.target']?.startsWith('/parameterized/1337/beep/42')
-    );
-  });
+test('Sends a span for a request to app router with URL', async ({ page }) => {
+  const spansPromise = collectStreamedSpans('nextjs-15', spans =>
+    spans.some(
+      span =>
+        span.name === 'GET /parameterized/[one]/beep/[two]' &&
+        span.is_segment &&
+        String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
+    ),
+  );
 
   await page.goto('/parameterized/1337/beep/42');
 
-  const transactionEvent = await serverComponentTransactionPromise;
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(
+    span =>
+      span.name === 'GET /parameterized/[one]/beep/[two]' &&
+      span.is_segment &&
+      String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
+  )!;
 
-  expect(transactionEvent.contexts?.trace).toEqual({
-    data: expect.objectContaining({
-      'sentry.op': 'http.server',
-      'sentry.origin': 'auto',
-      'sentry.sample_rate': 1,
-      'sentry.segment.name.source': 'route',
-      'http.method': 'GET',
-      'http.response.status_code': 200,
-      'http.route': '/parameterized/[one]/beep/[two]',
-      'http.status_code': 200,
-      'http.target': '/parameterized/1337/beep/42',
-      'sentry.kind': 'server',
-      'next.route': '/parameterized/[one]/beep/[two]',
-    }),
-    op: 'http.server',
-    origin: 'auto',
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    status: 'ok',
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+  expect(segmentSpan.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(segmentSpan.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(segmentSpan.status).toBe('ok');
+  expect(segmentSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto', type: 'string' },
+    'sentry.sample_rate': { value: 1, type: 'integer' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'http.method': { value: 'GET', type: 'string' },
+    'http.response.status_code': { value: 200, type: 'integer' },
+    'http.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
+    'http.status_code': { value: 200, type: 'integer' },
+    'http.target': { value: '/parameterized/1337/beep/42', type: 'string' },
+    'sentry.kind': { value: 'server', type: 'string' },
+    'next.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
   });
 
-  expect(transactionEvent.request).toMatchObject({
-    url: expect.stringContaining('/parameterized/1337/beep/42'),
-  });
-
-  // The transaction should not contain any spans with the same name as the transaction
-  // e.g. "GET /parameterized/[one]/beep/[two]"
-  expect(
-    transactionEvent.spans?.filter(span => {
-      return span.description === transactionEvent.transaction;
-    }),
-  ).toHaveLength(0);
+  // No child span should share the segment span's name
+  expect(spans.filter(span => !span.is_segment && span.name === segmentSpan.name)).toHaveLength(0);
 });
