@@ -1243,6 +1243,35 @@ Affected SDKs: `@sentry/react-router`.
 
 ### `@sentry/core` / All SDKs
 
+- `@sentry/core` now exports only isomorphic code. Browser-only exports live on `@sentry/core/browser` and server-only exports on `@sentry/core/server`, and neither subpath re-exports the shared surface any more. This keeps server-only code (HTTP instrumentation, ANR, postgres and sql helpers) out of browser bundles. Most of these APIs are also re-exported by the platform SDKs (`@sentry/node`, `@sentry/browser`, ...), which is unchanged, so this only affects code importing straight from `@sentry/core`. TypeScript reports it as `has no exported member`.
+
+```js
+// before
+import { loadModule, trpcMiddleware } from '@sentry/core';
+import type { BrowserClientReplayOptions } from '@sentry/core';
+
+// after
+import { loadModule, trpcMiddleware } from '@sentry/core/server';
+import type { BrowserClientReplayOptions } from '@sentry/core/browser';
+```
+
+Isomorphic APIs stay on `@sentry/core`, so a single import may need splitting in two:
+
+```js
+// before
+import { fill, isThenable, loadModule } from '@sentry/core';
+
+// after
+import { fill, isThenable } from '@sentry/core';
+import { loadModule } from '@sentry/core/server';
+```
+
+Only on `@sentry/core/browser`: `startIdleSpan`, and the `BrowserClientReplayOptions`, `XhrBreadcrumbData` and `XhrBreadcrumbHint` types.
+
+Only on `@sentry/core/server`: `ServerRuntimeClient`, `trpcMiddleware`, `wrapMcpServerWithSentry`, `loadModule`, `isNodeEnv`, `node`, `nodeStackLineParser`, `filenameIsInApp`, `vercelWaitUntil`, `flushIfServerless`, `watchdogTimer`, `callFrameToStackFrame`, `patchExpressModule`, `instrumentPostgresJsSql`, `DEFAULT_IGNORE_STATUS_CODES`, the HTTP helpers (`patchHttpModuleClient`, `getHttpClientSubscriptions`, `getHttpServerSubscriptions`, `isStaticAssetRequest`, `processHttpServerTransactionEvent`, `recordRequestSession`, `addOutgoingRequestBreadcrumb`, `getRequestUrl`, `getRequestUrlObject`, `getRequestUrlFromClientRequest`, `getRequestOptions`, `HTTP_ON_CLIENT_REQUEST`, `HTTP_ON_SERVER_REQUEST`), and the `ServerRuntimeClientOptions`, `ServerRuntimeOptions`, `ExpressMiddleware`, `ExpressErrorMiddleware`, `HttpInstrumentationOptions`, `HttpClientRequest`, `HttpIncomingMessage`, `HttpServerResponse`, `HttpModuleExport`, `PostgresConnectionContext` and `SqlDialect` types.
+
+`startSpan`, `startInactiveSpan` and `startSpanManual` are still exported from `@sentry/core`. The variants on `@sentry/core/browser` are browser-specific ones that also set up span streaming.
+
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - `Scope.clear()` was removed. To reset scope state, re-initialize the SDK or run your code in a fresh scope via `withScope`/`withIsolationScope`.
 - The deprecated positional `spanOrigin` argument of `instrumentFetchRequest` was removed. Pass an options object (e.g. `{ spanOrigin }`) as the last argument instead.
