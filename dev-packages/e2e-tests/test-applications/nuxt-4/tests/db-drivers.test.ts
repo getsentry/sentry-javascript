@@ -33,7 +33,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
 
   expect(spans).toContainEqual(
     expect.objectContaining({
-      name: 'set test-key [1 other arguments]',
+      name: 'set localhost:6379',
       status: 'ok',
       is_segment: false,
       attributes: expect.objectContaining({
@@ -42,12 +42,14 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
         'db.system.name': { type: 'string', value: 'redis' },
         'db.operation.name': { type: 'string', value: 'set' },
         'db.query.text': { type: 'string', value: 'set test-key [1 other arguments]' },
+        'server.address': { type: 'string', value: 'localhost' },
+        'server.port': { type: 'integer', value: 6379 },
       }),
     }),
   );
   expect(spans).toContainEqual(
     expect.objectContaining({
-      name: 'get test-key',
+      name: 'get localhost:6379',
       status: 'ok',
       is_segment: false,
       attributes: expect.objectContaining({
@@ -56,6 +58,8 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
         'db.system.name': { type: 'string', value: 'redis' },
         'db.operation.name': { type: 'string', value: 'get' },
         'db.query.text': { type: 'string', value: 'get test-key' },
+        'server.address': { type: 'string', value: 'localhost' },
+        'server.port': { type: 'integer', value: 6379 },
       }),
     }),
   );
