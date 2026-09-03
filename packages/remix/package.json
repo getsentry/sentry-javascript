@@ -42,6 +42,11 @@
       "types": "./build/types/cloudflare/index.d.ts",
       "default": "./build/esm/cloudflare/index.js"
     },
+    "./vite": {
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js",
+      "require": "./build/cjs/vite/index.js"
+    },
     "./import": {
       "import": {
         "default": "./build/import-hook.mjs"
