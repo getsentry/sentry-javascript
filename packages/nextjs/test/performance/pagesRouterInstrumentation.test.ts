@@ -2,7 +2,8 @@ import type { Client } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
-import Router from 'next/router';
+// The instrumentation imports the module behind the `next/router` shim on demand, so that is what is mocked.
+import Router from 'next/dist/client/router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   pagesRouterInstrumentNavigation,
@@ -21,17 +22,17 @@ const originalBuildManifestRoutes = globalObject.__BUILD_MANIFEST?.sortedPages;
 
 let eventHandlers: { [eventName: string]: Set<(...args: any[]) => void> } = {};
 
-vi.mock('next/router', () => {
+vi.mock('next/dist/client/router', () => {
   return {
     default: {
       events: {
-        on(type: string, handler: (...args: any[]) => void) {
+        on: vi.fn((type: string, handler: (...args: any[]) => void) => {
           if (!eventHandlers[type]) {
             eventHandlers[type] = new Set();
           }
 
           eventHandlers[type]!.add(handler);
-        },
+        }),
         off: vi.fn((type: string, handler: (...args: any[]) => void) => {
           if (eventHandlers[type]) {
             eventHandlers[type]!.delete(handler);
@@ -300,7 +301,7 @@ describe('pagesRouterInstrumentNavigation', () => {
     ['/e/f/g', '/e/[f]/[g]/[[...h]]', 'route'],
   ])(
     'should create a parameterized transaction on route change (%s)',
-    (targetLocation, expectedTransactionName, expectedTransactionSource) => {
+    async (targetLocation, expectedTransactionName, expectedTransactionSource) => {
       setUpNextPage({
         url: 'https://example.com/home',
         route: '/home',
@@ -325,6 +326,8 @@ describe('pagesRouterInstrumentNavigation', () => {
       } as unknown as Client;
 
       pagesRouterInstrumentNavigation(client);
+      // The router is imported on demand; the listener exists once that import has settled.
+      await vi.dynamicImportSettled();
 
       Router.events.emit('routeChangeStart', targetLocation);
 
@@ -352,4 +355,31 @@ describe('pagesRouterInstrumentNavigation', () => {
       });
     },
   );
+
+  it('registers the route change listener only once the on-demand router import has settled', async () => {
+    setUpNextPage({
+      url: 'https://example.com/home',
+      route: '/home',
+      hasNextData: true,
+      navigatableRoutes: ['/home'],
+    });
+
+    const client = {
+      emit: vi.fn(),
+      getOptions: () => ({}),
+    } as unknown as Client;
+
+    // The pageload instrumentation reads `__NEXT_DATA__` and the build manifest only - it never needs the router.
+    pagesRouterInstrumentPageLoad(client);
+    expect(Router.events.on).not.toHaveBeenCalled();
+
+    // The navigation instrumentation imports the router on demand: nothing is registered synchronously ...
+    pagesRouterInstrumentNavigation(client);
+    expect(Router.events.on).not.toHaveBeenCalled();
+
+    // ... and exactly one listener once the import has settled.
+    await vi.dynamicImportSettled();
+    expect(Router.events.on).toHaveBeenCalledTimes(1);
+    expect(Router.events.on).toHaveBeenCalledWith('routeChangeStart', expect.any(Function));
+  });
 });

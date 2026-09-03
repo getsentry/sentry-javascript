@@ -15,18 +15,41 @@ import {
   WINDOW,
 } from '@sentry/react';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
-import RouterImport from 'next/router';
+import type RouterImport from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 import { DEBUG_BUILD } from '../../common/debug-build';
 import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
-// next/router v10 is CJS
-//
-// For ESM/CJS interoperability 'reasons', depending on how this file is loaded, Router might be on the default export
-const Router: typeof RouterImport = RouterImport.events
-  ? RouterImport
-  : (RouterImport as unknown as { default: typeof RouterImport }).default;
+type NextRouter = typeof RouterImport;
+
+/**
+ * Loads the Pages Router singleton (what `next/router` exports) on demand.
+ *
+ * It must not be imported statically: it is the whole Pages Router client runtime (the `Router` class,
+ * `path-to-regexp`, the route loader, ...), `next` does not declare `sideEffects`, and whether an app uses
+ * the Pages Router is only known at runtime (see `nextRoutingInstrumentation.ts`). A static import therefore
+ * lands the entire Pages Router in the client bundle of every app - App Router apps included, which never
+ * reach this code - and no bundler can tree-shake it away, with or without `__SENTRY_TRACING__`. Behind
+ * `import()` the module stays out of the initial graph.
+ *
+ * `next/dist/client/router` rather than the public `next/router` entry on purpose: that entry is a one-line
+ * CJS shim re-exporting this module, and a shim that is not in the app's initial chunks becomes a tiny extra
+ * chunk request on every Pages Router pageload (151 bytes on Turbopack, 99 on webpack when measured). The
+ * module itself is already part of the Pages Router runtime, so importing it directly adds no request and
+ * resolves on the next microtask. The type still comes from `next/router`; it is the same object.
+ */
+function loadNextRouter(): Promise<NextRouter> {
+  return import('next/dist/client/router').then(routerModule => {
+    // next/router v10 is CJS
+    //
+    // For ESM/CJS interoperability 'reasons', depending on how this file is loaded, Router might be the
+    // namespace itself, sit on its default export, or on the default export's default export.
+    const namespace = routerModule as unknown as { default?: NextRouter };
+    const candidate = (namespace.default ?? namespace) as NextRouter;
+    return candidate.events ? candidate : (candidate as unknown as { default: NextRouter }).default;
+  });
+}
 
 const globalObject = WINDOW;
 
@@ -144,39 +167,48 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
  *
  * Leverages the SingletonRouter from the `next/router` to
  * generate pageload/navigation transactions and parameterize
- * transaction names.
+ * transaction names. The router is loaded on demand (see `loadNextRouter`), so the
+ * `routeChangeStart` listener is registered once that import has settled.
  */
 export function pagesRouterInstrumentNavigation(client: Client): void {
-  Router.events.on('routeChangeStart', (navigationTarget: string) => {
-    const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
-    const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
+  void loadNextRouter()
+    .then(Router => {
+      Router.events.on('routeChangeStart', (navigationTarget: string) => {
+        const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
+        const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
 
-    let newLocation: string;
-    let spanSource: TransactionSource;
+        let newLocation: string;
+        let spanSource: TransactionSource;
 
-    if (matchedRoute) {
-      newLocation = matchedRoute;
-      spanSource = 'route';
-    } else {
-      newLocation = strippedNavigationTarget;
-      spanSource = 'url';
-    }
+        if (matchedRoute) {
+          newLocation = matchedRoute;
+          spanSource = 'route';
+        } else {
+          newLocation = strippedNavigationTarget;
+          spanSource = 'url';
+        }
 
-    startBrowserTracingNavigationSpan(
-      client,
-      {
-        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-        name: spanSource === 'route' || !hasSpanStreamingEnabled(client) ? newLocation : NAVIGATION_SPAN_NAME_FALLBACK,
-        attributes: {
-          [SENTRY_OP]: NAVIGATION,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
-          [SENTRY_SEGMENT_NAME_SOURCE]: spanSource,
-          ...(spanSource === 'route' && { [URL_TEMPLATE]: newLocation }),
-        },
-      },
-      { url: getAbsoluteUrl(navigationTarget) },
-    );
-  });
+        startBrowserTracingNavigationSpan(
+          client,
+          {
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+            name:
+              spanSource === 'route' || !hasSpanStreamingEnabled(client) ? newLocation : NAVIGATION_SPAN_NAME_FALLBACK,
+            attributes: {
+              [SENTRY_OP]: NAVIGATION,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
+              [SENTRY_SEGMENT_NAME_SOURCE]: spanSource,
+              ...(spanSource === 'route' && { [URL_TEMPLATE]: newLocation }),
+            },
+          },
+          { url: getAbsoluteUrl(navigationTarget) },
+        );
+      });
+    })
+    .catch((error: unknown) => {
+      DEBUG_BUILD &&
+        debug.warn('Could not load `next/router`, Pages Router navigations will not be instrumented:', error);
+    });
 }
 
 function getNextRouteFromPathname(pathname: string): string | undefined {
