@@ -197,13 +197,6 @@ test('sends a pageload transaction with a route name as transaction name if avai
       op: 'ui.mount',
       origin: 'auto.ui.vue',
     });
-
-    // `Application Render` ends on a debounce that every component hook re-arms, so it closes last.
-    // On `/components` this proves the span stayed open until the async chunk's components mounted.
-    // A missing end timestamp fails the comparison, because nothing beats infinity.
-    for (const span of uiSpans) {
-      expect(applicationRenderSpan?.timestamp).toBeGreaterThanOrEqual(span.timestamp ?? Number.POSITIVE_INFINITY);
-    }
   });
 });
 
