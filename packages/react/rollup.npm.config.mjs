@@ -6,6 +6,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 // https://legacy.reactjs.org/blog/2020/09/22/introducing-the-new-jsx-transform.html
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
+    entrypoints: ['src/index.ts', 'src/router.ts'],
     packageSpecificConfig: {
       external: ['react', 'react/jsx-runtime'],
     },
