@@ -20,7 +20,7 @@ import type { EventDropReason, Outcome } from './types/clientreport';
 import type { DataCategory } from './types/datacategory';
 import type { DsnComponents } from './types/dsn';
 import type { DynamicSamplingContext, Envelope } from './types/envelope';
-import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types/event';
+import type { ErrorEvent, Event, EventHint, TransactionEvent } from './types/event';
 import type { EventProcessor } from './types/eventprocessor';
 import type { FeedbackEvent } from './types/feedback';
 import type { Integration } from './types/integration';
@@ -41,7 +41,7 @@ import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
-import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
+import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
@@ -50,7 +50,7 @@ import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
-import { CALLBACK_ERROR, safeCallback } from './utils/safeCallback';
+import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
@@ -1515,6 +1515,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
     const beforeSendLabel = `before send for type \`${eventType}\``;
+    let beforeSendDropReason: 'before_send' | 'callback_error' = 'before_send';
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
@@ -1522,18 +1523,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
     const dataCategory = getDataCategoryByType(event.type);
 
-    const recordDroppedEvent = (reason: EventDropReason): void => {
-      this.recordDroppedEvent(reason, dataCategory);
-      if (isTransaction) {
-        // the transaction itself counts as one span, plus all the child spans that are added
-        this.recordDroppedEvent(reason, 'span', 1 + (event.spans || []).length);
-      }
-    };
-
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
         if (prepared === null) {
-          this.recordDroppedEvent('event_processor', dataCategory);
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
@@ -1542,13 +1534,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           return prepared;
         }
 
-        const result = processBeforeSend(this, options, prepared, hint);
+        const result = processBeforeSend(this, options, prepared, hint, () => {
+          beforeSendDropReason = 'callback_error';
+        });
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          recordDroppedEvent('before_send');
-          throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
+          this.recordDroppedEvent(beforeSendDropReason, dataCategory);
+          if (isTransaction) {
+            const spans = event.spans || [];
+            // the transaction itself counts as one span, plus all the child spans that are added
+            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + spans.length);
+          }
+          const dropMessage = beforeSendDropReason === 'callback_error' ? 'threw an error' : 'returned `null`';
+          throw _makeDoNotSendEventError(`${beforeSendLabel} ${dropMessage}, will not send event.`);
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
@@ -1589,11 +1589,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         return processedEvent;
       })
       .then(null, reason => {
-        if (reason === CALLBACK_ERROR) {
-          recordDroppedEvent('callback_error');
-          throw _makeDoNotSendEventError('A user callback threw an error, will not send event.');
-        }
-
         if (_isDoNotSendEventError(reason) || _isInternalError(reason)) {
           throw reason;
         }
@@ -1696,10 +1691,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): PromiseLike<Event>;
 }
 
-function getDataCategoryByType(type: EventType | 'replay_event' | undefined): DataCategory {
-  return type === 'replay_event' ? 'replay' : type || 'error';
-}
-
 /**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
  */
@@ -1709,13 +1700,17 @@ function _validateBeforeSendResult(
 ): PromiseLike<Event | null> | Event | null {
   const invalidValueError = `${beforeSendLabel} must return \`null\` or a valid event.`;
   if (isThenable(beforeSendResult)) {
-    // A rejection can only be `CALLBACK_ERROR` here, as `safeCallback` already handled the user callback rejecting
-    return beforeSendResult.then(event => {
-      if (!isPlainObject(event) && event !== null) {
-        throw _makeInternalError(invalidValueError);
-      }
-      return event;
-    });
+    return beforeSendResult.then(
+      event => {
+        if (!isPlainObject(event) && event !== null) {
+          throw _makeInternalError(invalidValueError);
+        }
+        return event;
+      },
+      e => {
+        throw _makeInternalError(`${beforeSendLabel} rejected with ${e}`);
+      },
+    );
   } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
     throw _makeInternalError(invalidValueError);
   }
@@ -1730,6 +1725,7 @@ function processBeforeSend(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
+  onCallbackError: () => void,
 ): PromiseLike<Event | null> | Event | null {
   const {
     beforeSend,
@@ -1747,7 +1743,8 @@ function processBeforeSend(
       DEBUG_BUILD ? 'The `beforeSend` callback threw an error, dropping the event:' : '',
       () => beforeSend(errorEvent, hint),
       () => {
-        throw CALLBACK_ERROR;
+        onCallbackError();
+        return null;
       },
     );
   }
@@ -1824,7 +1821,8 @@ function processBeforeSend(
         DEBUG_BUILD ? 'The `beforeSendTransaction` callback threw an error, dropping the event:' : '',
         () => beforeSendTransaction(processedEvent as TransactionEvent, hint),
         () => {
-          throw CALLBACK_ERROR;
+          onCallbackError();
+          return null;
         },
       );
     }
