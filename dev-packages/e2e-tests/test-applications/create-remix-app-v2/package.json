@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
-    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
     "@remix-run/css-bundle": "2.17.4",
     "@remix-run/node": "2.17.4",
     "@remix-run/react": "2.17.4",

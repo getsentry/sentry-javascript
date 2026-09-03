@@ -1,4 +1,5 @@
 import type { Plugin } from 'vite';
+import { makeOrchestrionPlugin } from './orchestrionPlugin';
 import { makeRouteManifestPlugin } from './routeManifestPlugin';
 import type { SentryRemixVitePluginOptions } from './types';
 
@@ -7,8 +8,9 @@ export type { SentryRemixVitePluginOptions };
 /**
  * Sentry Vite plugins for Remix.
  *
- * Add these to your Vite configuration to inject the Remix route manifest, so client-side
- * transactions are parameterized.
+ * Add these to your Vite configuration to
+ * - inject the Remix route manifest, so client-side transactions are parameterized, and
+ * - build-time instrument supported server-side dependencies (such as database clients).
  *
  * @example
  * ```typescript
@@ -28,5 +30,5 @@ export type { SentryRemixVitePluginOptions };
  * ```
  */
 export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}): Plugin[] {
-  return [makeRouteManifestPlugin(options)];
+  return [makeRouteManifestPlugin(options), makeOrchestrionPlugin(options)];
 }

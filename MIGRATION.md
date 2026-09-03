@@ -1272,6 +1272,8 @@ Affected SDKs: `@sentry/remix`.
 + import { sentryRemixVitePlugin } from '@sentry/remix/vite';
 ```
 
+The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs
