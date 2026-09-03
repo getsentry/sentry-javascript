@@ -619,7 +619,15 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
   return attributes;
 }
 
-const LAST_STEP_ONLY_USAGE_KEYS = new Set<string>([
+/**
+ * Usage attributes that `getProviderMetadataAttributes` derives from `providerMetadata`, which
+ * describes only the last step of a call. They must not be written onto a span that reports usage
+ * aggregated across steps (`gen_ai.invoke_agent`), where they would replace the aggregate with one
+ * step's figures. Exported so the channel/orchestrion subscribers, which call
+ * `getProviderMetadataAttributes` directly rather than through `addProviderMetadataToAttributes`,
+ * apply the same rule.
+ */
+export const LAST_STEP_ONLY_USAGE_KEYS = new Set<string>([
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
   'gen_ai.usage.reasoning.output_tokens',

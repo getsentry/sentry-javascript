@@ -178,7 +178,7 @@ export {
 export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
-export { addVercelAiProcessors, getProviderMetadataAttributes } from './tracing/vercel-ai';
+export { addVercelAiProcessors, getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from './tracing/vercel-ai';
 export { getTruncatedJsonString, shouldEnableTruncation, resolveAIRecordingOptions } from './tracing/ai/utils';
 export {
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,

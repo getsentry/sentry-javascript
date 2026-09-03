@@ -35,6 +35,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   getClient,
   getProviderMetadataAttributes,
+  LAST_STEP_ONLY_USAGE_KEYS,
   getTruncatedJsonString,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -575,6 +576,16 @@ export function enrichSpanOnEnd(
   ) {
     // oxlint-disable-next-line typescript/no-dynamic-delete
     delete providerAttributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE];
+  }
+  // A top-level operation's span reports usage aggregated across every step, while
+  // `providerMetadata` describes the last step alone. Dropping the derived usage keeps the
+  // aggregate intact; the model-call spans still carry the provider-derived figures. Matches the
+  // OTel path, which applies the same rule in `addProviderMetadataToAttributes`.
+  if (ROOT_OPERATION_TYPES.has(type)) {
+    for (const key of LAST_STEP_ONLY_USAGE_KEYS) {
+      // oxlint-disable-next-line typescript/no-dynamic-delete
+      delete providerAttributes[key];
+    }
   }
   span.setAttributes(providerAttributes);
 
