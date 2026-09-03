@@ -1255,12 +1255,6 @@ import { loadModule, trpcMiddleware } from '@sentry/core/server';
 import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 ```
 
-Only on `@sentry/core/browser`: `startIdleSpan`, and the `BrowserClientReplayOptions`, `XhrBreadcrumbData` and `XhrBreadcrumbHint` types.
-
-Only on `@sentry/core/server`: `ServerRuntimeClient`, `trpcMiddleware`, `wrapMcpServerWithSentry`, `loadModule`, `isNodeEnv`, `node`, `nodeStackLineParser`, `filenameIsInApp`, `vercelWaitUntil`, `flushIfServerless`, `watchdogTimer`, `callFrameToStackFrame`, `patchExpressModule`, `instrumentPostgresJsSql`, `DEFAULT_IGNORE_STATUS_CODES`, the HTTP helpers (`patchHttpModuleClient`, `getHttpClientSubscriptions`, `getHttpServerSubscriptions`, `isStaticAssetRequest`, `processHttpServerTransactionEvent`, `recordRequestSession`, `addOutgoingRequestBreadcrumb`, `getRequestUrl`, `getRequestUrlObject`, `getRequestUrlFromClientRequest`, `getRequestOptions`, `HTTP_ON_CLIENT_REQUEST`, `HTTP_ON_SERVER_REQUEST`), and the `ServerRuntimeClientOptions`, `ServerRuntimeOptions`, `ExpressMiddleware`, `ExpressErrorMiddleware`, `HttpInstrumentationOptions`, `HttpClientRequest`, `HttpIncomingMessage`, `HttpServerResponse`, `HttpModuleExport`, `PostgresConnectionContext` and `SqlDialect` types.
-
-`startSpan`, `startInactiveSpan` and `startSpanManual` are still exported from `@sentry/core`. The variants on `@sentry/core/browser` are browser-specific ones that also set up span streaming.
-
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - `Scope.clear()` was removed. To reset scope state, re-initialize the SDK or run your code in a fresh scope via `withScope`/`withIsolationScope`.
 - The deprecated positional `spanOrigin` argument of `instrumentFetchRequest` was removed. Pass an options object (e.g. `{ spanOrigin }`) as the last argument instead.
