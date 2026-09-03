@@ -1,5 +1,6 @@
 import type { Nuxt } from '@nuxt/schema';
 import * as fs from 'fs';
+import * as path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   addOTelCommonJSImportAlias,
@@ -36,7 +37,7 @@ describe('findDefaultSdkInitFile', () => {
       });
 
       const result = await findDefaultSdkInitFile('server');
-      expect(result).toMatch(`packages/nuxt/sentry.server.config.${ext}`);
+      expect(result).toMatch(path.join('packages', 'nuxt', `sentry.server.config.${ext}`));
     },
   );
 
@@ -48,7 +49,7 @@ describe('findDefaultSdkInitFile', () => {
       });
 
       const result = await findDefaultSdkInitFile('client');
-      expect(result).toMatch(`packages/nuxt/sentry.client.config.${ext}`);
+      expect(result).toMatch(path.join('packages', 'nuxt', `sentry.client.config.${ext}`));
     },
   );
 
@@ -67,7 +68,7 @@ describe('findDefaultSdkInitFile', () => {
         configDir: '~/config',
       });
 
-      expect(result).toBe(`${baseDir}/sentry.client.config.${ext}`);
+      expect(result).toBe(path.resolve(baseDir, `sentry.client.config.${ext}`));
       expect(resolvePathMock).toHaveBeenCalledWith('~/config', { type: 'dir' });
     },
   );
@@ -87,7 +88,7 @@ describe('findDefaultSdkInitFile', () => {
         configDir: '~/config',
       });
 
-      expect(result).toBe(`${baseDir}/sentry.server.config.${ext}`);
+      expect(result).toBe(path.resolve(baseDir, `sentry.server.config.${ext}`));
       expect(resolvePathMock).toHaveBeenCalledWith('~/config', { type: 'dir' });
     },
   );
@@ -138,7 +139,7 @@ describe('findDefaultSdkInitFile', () => {
     } as unknown as Nuxt;
 
     const result = await findDefaultSdkInitFile('client', nuxtMock);
-    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
+    expect(result).toMatch(path.join('packages', 'nuxt', 'sentry.client.config.ts'));
   });
 
   it('should return the latest layer config file path if server config exists', async () => {
@@ -164,12 +165,15 @@ describe('findDefaultSdkInitFile', () => {
     } as unknown as Nuxt;
 
     const result = await findDefaultSdkInitFile('server', nuxtMock);
-    expect(result).toMatch('packages/nuxt/sentry.server.config.ts');
+    expect(result).toMatch(path.join('packages', 'nuxt', 'sentry.server.config.ts'));
   });
 
   it('should return the latest layer config file path if client config exists in former layer', async () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return !(filePath instanceof URL) && filePath.toString().includes('nuxt/sentry.client.config.ts');
+      return (
+        !(filePath instanceof URL) &&
+        filePath.toString().includes(path.join('nuxt', 'module', 'sentry.client.config.ts'))
+      );
     });
 
     const nuxtMock = {
@@ -186,7 +190,7 @@ describe('findDefaultSdkInitFile', () => {
     } as unknown as Nuxt;
 
     const result = await findDefaultSdkInitFile('client', nuxtMock);
-    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
+    expect(result).toMatch(path.join('packages', 'nuxt', 'module', 'sentry.client.config.ts'));
   });
 });
 
