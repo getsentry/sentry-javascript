@@ -13,7 +13,6 @@ const targetServer = Bun.serve({
 const targetUrl = `http://localhost:${targetServer.port}`;
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'production',
   dsn: process.env.SENTRY_DSN,
   tracesSampleRate: 1.0,
@@ -37,6 +36,12 @@ const server = Bun.serve({
       const response = await fetch(`${targetUrl}/disallowed`);
       const data = await response.json();
       return Response.json(data);
+    }
+
+    if (url.pathname === '/outgoing-fetch-message') {
+      await fetch(`${targetUrl}/allowed`);
+      Sentry.captureMessage('fetch done');
+      return new Response('OK');
     }
 
     return new Response('Hello from Bun!');
