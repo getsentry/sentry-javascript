@@ -45,8 +45,12 @@ test('sends a navigation root span with a parameterized URL', async ({ page }) =
   });
 });
 
-// fixme: note that this test only works because we explictly enabled Vue’s Options API in the nuxt config
 test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
+  // Nuxt 5 disables the Options API by default (nuxt/nuxt#35791), which turns `app.mixin()` into a
+  // no-op, and that mixin is where the SDK creates every UI span. Flips to passing once component
+  // tracking works without it.
+  test.fail(true, 'Vue tracing is registered through app.mixin(), which needs the Options API');
+
   const spansPromise = collectStreamedSpans('nuxt-5', spans =>
     spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),
   );
@@ -68,5 +72,38 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
       'sentry.op': { type: 'string', value: 'ui.mount' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
     }),
+  });
+});
+
+test('sends an application render span and a root component span on pageload', async ({ page }) => {
+  // Same root cause as above: no Options API, no `app.mixin()`, no UI spans. Flips to passing once
+  // the root spans stop depending on the mixin.
+  test.fail(true, 'Vue tracing is registered through app.mixin(), which needs the Options API');
+
+  const transactionPromise = waitForTransaction('nuxt-5', async transactionEvent => {
+    return transactionEvent.transaction === '/client-error' && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/client-error`);
+
+  const rootSpan = await transactionPromise;
+  const uiSpans = rootSpan.spans.filter(span => span.origin === 'auto.ui.vue');
+
+  const applicationRenderSpans = uiSpans.filter(span => span.description === 'Application Render');
+  expect(applicationRenderSpans).toHaveLength(1);
+  expect(applicationRenderSpans[0]).toMatchObject({
+    data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.render' },
+    description: 'Application Render',
+    op: 'ui.render',
+    origin: 'auto.ui.vue',
+  });
+
+  const rootComponentSpans = uiSpans.filter(span => span.description === 'Vue <Root>');
+  expect(rootComponentSpans).toHaveLength(1);
+  expect(rootComponentSpans[0]).toMatchObject({
+    data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.mount' },
+    description: 'Vue <Root>',
+    op: 'ui.mount',
+    origin: 'auto.ui.vue',
   });
 });

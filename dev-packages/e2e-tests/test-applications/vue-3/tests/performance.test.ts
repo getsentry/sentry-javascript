@@ -138,6 +138,69 @@ test('sends a pageload transaction with a route name as transaction name if avai
   });
 });
 
+// The root component is always tracked, even when it is missing from `trackComponents`. `/` mounts
+// the eagerly imported `HomeView` synchronously, `/components` loads its view through a dynamic
+// `import()`. The root spans have to show up with both timings.
+[
+  { route: '/', transaction: '/', description: 'a route with a synchronously mounted component' },
+  { route: '/components', transaction: '/components', description: 'a route with an async component' },
+].forEach(({ route, transaction, description }) => {
+  test(`sends an application render span and a root component span on ${description}`, async ({ page }) => {
+    // Vue compiles `app.mixin()` down to a no-op when the Options API is disabled, so the SDK creates no UI spans at all.
+    test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');
+
+    const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
+      return transactionEvent.transaction === transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
+    await page.goto(route);
+
+    const rootSpan = await transactionPromise;
+    const uiSpans = (rootSpan.spans || []).filter(span => span.origin === 'auto.ui.vue');
+
+    const applicationRenderSpans = uiSpans.filter(span => span.description === 'Application Render');
+    expect(applicationRenderSpans).toHaveLength(1);
+    expect(applicationRenderSpans[0]).toMatchObject({
+      data: {
+        'sentry.op': 'ui.render',
+        'sentry.origin': 'auto.ui.vue',
+      },
+      op: 'ui.render',
+      origin: 'auto.ui.vue',
+    });
+
+    const rootComponentSpans = uiSpans.filter(span => span.description === 'Vue <Root>');
+    expect(rootComponentSpans).toHaveLength(1);
+    expect(rootComponentSpans[0]).toMatchObject({
+      data: {
+        'sentry.op': 'ui.mount',
+        'sentry.origin': 'auto.ui.vue',
+      },
+      op: 'ui.mount',
+      origin: 'auto.ui.vue',
+    });
+  });
+});
+
+// `HomeView` renders on `/` but is missing from `trackComponents`, so only the two root spans exist.
+test('sends no component spans on a route without tracked components', async ({ page }) => {
+  test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');
+
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
+    return transactionEvent.transaction === '/' && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/`);
+
+  const rootSpan = await transactionPromise;
+  const uiSpanDescriptions = (rootSpan.spans || [])
+    .filter(span => span.origin === 'auto.ui.vue')
+    .map(span => span.description)
+    .sort();
+
+  expect(uiSpanDescriptions).toEqual(['Application Render', 'Vue <Root>']);
+});
+
 test('sends a lifecycle span for the root and for each tracked component only', async ({ page }) => {
   // Vue compiles `app.mixin()` down to a no-op when the Options API is disabled, so the SDK creates no UI spans at all.
   test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');

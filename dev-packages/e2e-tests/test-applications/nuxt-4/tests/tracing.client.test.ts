@@ -45,6 +45,45 @@ test('sends a navigation root span with a parameterized URL', async ({ page }) =
   });
 });
 
+test('sends an application render span and a root component span on pageload', async ({ page }) => {
+  const transactionPromise = waitForTransaction('nuxt-4', async transactionEvent => {
+    return transactionEvent.transaction === '/client-error' && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/client-error`);
+
+  const rootSpan = await transactionPromise;
+  const uiSpans = rootSpan.spans.filter(span => span.origin === 'auto.ui.vue');
+
+  const applicationRenderSpans = uiSpans.filter(span => span.description === 'Application Render');
+  expect(applicationRenderSpans).toHaveLength(1);
+  expect(applicationRenderSpans[0]).toMatchObject({
+    data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.render' },
+    description: 'Application Render',
+    op: 'ui.render',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    origin: 'auto.ui.vue',
+  });
+
+  const rootComponentSpans = uiSpans.filter(span => span.description === 'Vue <Root>');
+  expect(rootComponentSpans).toHaveLength(1);
+  expect(rootComponentSpans[0]).toMatchObject({
+    data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.mount' },
+    description: 'Vue <Root>',
+    op: 'ui.mount',
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    origin: 'auto.ui.vue',
+  });
+});
+
 test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
   const spansPromise = collectStreamedSpans('nuxt-4', spans =>
     spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),

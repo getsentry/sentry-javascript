@@ -5,8 +5,8 @@
 import { spanToJSON } from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it as baseIt, vi } from 'vitest';
-import type { App } from 'vue';
-import { createApp, h } from 'vue';
+import type { App, Ref } from 'vue';
+import { createApp, h, nextTick, ref } from 'vue';
 import * as Sentry from '../../src';
 import type { Options, TracingOptions } from '../../src/types';
 
@@ -19,6 +19,7 @@ const SENTRY_ORIGIN_ATTRIBUTE = 'sentry.origin';
 const VUE_SPAN_ORIGIN = 'auto.ui.vue';
 const UI_MOUNT_SPAN_OP = 'ui.mount';
 const UI_RENDER_SPAN_OP = 'ui.render';
+const UI_UPDATE_SPAN_OP = 'ui.update';
 
 interface UiSpan {
   name: string;
@@ -32,6 +33,14 @@ interface UiSpan {
 function createTestApp(): App {
   const child = { name: 'ChildComponent', render: () => h('p', 'child') };
   return createApp({ name: 'RootComponent', render: () => h('div', [h(child)]) });
+}
+
+/** Like `createTestApp`, but the root render reads a ref, so mutating it re-renders the root. */
+function createReactiveTestApp(): { app: App; message: Ref<string> } {
+  const message = ref('initial message');
+  const child = { name: 'ChildComponent', render: () => h('p', 'child') };
+  const app = createApp({ name: 'RootComponent', render: () => h('div', [h('span', message.value), h(child)]) });
+  return { app, message };
 }
 
 /** Reads the mixins Vue accepted. `app.mixin()` is a silent no-op without the Options API. */
@@ -169,6 +178,72 @@ describe('tracing mixin span creation', () => {
 
     expect(uiSpans).toEqual([
       { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+    ]);
+  });
+
+  // The mixin always tracks the root component: `isRootComponent || …` short-circuits before the
+  // `trackComponents` filter runs. The next four tests record what that means for each hook, so a
+  // mixin replacement can prove which parts it keeps.
+
+  it('tracks the root component for update hooks without trackComponents', async ({ uiSpans, initSentry }) => {
+    const { app, message } = createReactiveTestApp();
+    initSentry({ tracing: { hooks: ['update'] }, sdk: { app } });
+    const container = document.createElement('div');
+
+    await Sentry.startSpan({ name: 'pageload' }, async () => {
+      app.mount(container);
+      message.value = 'updated message';
+      // Works under fake timers: Vue flushes re-renders through microtasks, not timers.
+      await nextTick();
+      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS + 1);
+    });
+
+    expect(uiSpans).toEqual([
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Vue <Root>', op: UI_UPDATE_SPAN_OP },
+      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+    ]);
+  });
+
+  // `beforeCreate` fires very early in `app.mount()`, but the mixin creates the root render span
+  // first, in the same handler. So the `create` span has a parent and is emitted, as `ui.mount`,
+  // which is the op the `create` operation maps to.
+  it('tracks the root component for create hooks without trackComponents', ({ app, uiSpans, initSentry }) => {
+    initSentry({ tracing: { hooks: ['create'] } });
+
+    mountUnderActiveSpan(app);
+
+    expect(uiSpans).toEqual([
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP }, // create
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP }, // mount (DEFAULT_HOOKS is always merged in)
+      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+    ]);
+  });
+
+  // `activate` maps to the `activated`/`deactivated` hooks, which Vue only calls inside
+  // `<KeepAlive>`. A root component is never kept alive, so `activate` produces no root span.
+  it('does not track the root component for activate hooks', ({ app, uiSpans, initSentry }) => {
+    initSentry({ tracing: { hooks: ['activate'] } });
+
+    mountUnderActiveSpan(app);
+
+    expect(uiSpans).toEqual([
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+    ]);
+  });
+
+  // Component spans are keyed by operation, not by span op, so `create` and `mount` each emit their
+  // own root span even though both map to `ui.mount`.
+  it('emits two root mount spans when both create and mount hooks are enabled', ({ app, uiSpans, initSentry }) => {
+    initSentry({ tracing: { hooks: ['create', 'mount'] } });
+
+    mountUnderActiveSpan(app);
+
+    expect(uiSpans).toEqual([
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP }, // create
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP }, // mount
       { name: 'Application Render', op: UI_RENDER_SPAN_OP },
     ]);
   });
