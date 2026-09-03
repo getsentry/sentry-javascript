@@ -4,7 +4,6 @@ import {
   getNavigationContext,
   getNormalizedName,
   getNumberOfUrlSegments,
-  initializeRouterUtils,
   locationIsInsideDescendantRoute,
   pathEndsWithWildcard,
   pathIsWildcardAndHasChildren,
@@ -14,7 +13,24 @@ import {
   setNavigationContext,
   transactionNameHasWildcard,
 } from '../../src/reactrouter-compat-utils';
-import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../../src/types';
+import type { Location, MatchRoutes, ReactRouterConfig, RouteMatch, RouteObject } from '../../src/types';
+
+/** Builds a `ReactRouterConfig` for the `resolveRouteNameAndSource` calls that now receive it. */
+function makeConfig(overrides: Partial<ReactRouterConfig> = {}): ReactRouterConfig {
+  return {
+    useLocation: vi.fn(),
+    useNavigationType: vi.fn(),
+    createRoutesFromChildren: vi.fn(),
+    matchRoutes: mockMatchRoutes,
+    stripBasename: false,
+    enableAsyncRouteHandlers: false,
+    instrumentNavigation: true,
+    lazyRouteTimeout: 3000,
+    lazyRouteManifest: undefined,
+    basename: '',
+    ...overrides,
+  };
+}
 
 vi.mock('@sentry/browser', async requireActual => {
   const actual = await requireActual();
@@ -36,27 +52,6 @@ const mockMatchRoutes = vi.fn();
 describe('reactrouter-compat-utils/utils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    initializeRouterUtils(false);
-  });
-
-  describe('initializeRouterUtils', () => {
-    it('should initialize with stripBasename disabled', () => {
-      expect(() => {
-        initializeRouterUtils(false);
-      }).not.toThrow();
-    });
-
-    it('should handle stripBasename enabled', () => {
-      expect(() => {
-        initializeRouterUtils(true);
-      }).not.toThrow();
-    });
-
-    it('should handle being called without a stripBasename flag', () => {
-      expect(() => {
-        initializeRouterUtils();
-      }).not.toThrow();
-    });
   });
 
   describe('prefixWithSlash', () => {
@@ -510,9 +505,6 @@ describe('reactrouter-compat-utils/utils', () => {
     });
 
     it('should handle basename stripping', () => {
-      // Initialize with stripBasename = true
-      initializeRouterUtils(true);
-
       const routes: RouteObject[] = [{ path: '/users', element: null }];
       const location: Location = { pathname: '/app/users' };
       const branches: RouteMatch[] = [
@@ -524,7 +516,8 @@ describe('reactrouter-compat-utils/utils', () => {
         },
       ];
 
-      const result = getNormalizedName(routes, location, branches, '/app');
+      // stripBasename = true
+      const result = getNormalizedName(routes, location, branches, '/app', true);
       // Function falls back to url when basename stripping doesn't match exact logic
       expect(result).toEqual(['/users', 'url']);
     });
@@ -540,11 +533,6 @@ describe('reactrouter-compat-utils/utils', () => {
   });
 
   describe('resolveRouteNameAndSource', () => {
-    beforeEach(() => {
-      // Reset to default stripBasename = false
-      initializeRouterUtils(false);
-    });
-
     it('should use descendant route when location is inside one', () => {
       const location: Location = { pathname: '/users/123/profile' };
       const routes: RouteObject[] = [{ path: '/users', element: null }];
@@ -585,14 +573,7 @@ describe('reactrouter-compat-utils/utils', () => {
         .mockReturnValueOnce(descendantMatches) // First call for descendant check
         .mockReturnValueOnce(rebuildMatches); // Second call for path rebuild
 
-      const result = resolveRouteNameAndSource(
-        location,
-        routes,
-        allRoutes,
-        branches,
-        mockMatchRoutes as MatchRoutes,
-        '',
-      );
+      const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, makeConfig());
       // Since locationIsInsideDescendantRoute returns true, it uses route source
       expect(result).toEqual(['/users/123/profile', 'route']);
     });
@@ -622,14 +603,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(normalMatches);
 
-      const result = resolveRouteNameAndSource(
-        location,
-        routes,
-        allRoutes,
-        branches,
-        mockMatchRoutes as MatchRoutes,
-        '',
-      );
+      const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, makeConfig());
       expect(result).toEqual(['/users', 'route']);
     });
 
@@ -641,14 +615,7 @@ describe('reactrouter-compat-utils/utils', () => {
 
       mockMatchRoutes.mockReturnValue(null);
 
-      const result = resolveRouteNameAndSource(
-        location,
-        routes,
-        allRoutes,
-        branches,
-        mockMatchRoutes as MatchRoutes,
-        '',
-      );
+      const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, makeConfig());
       expect(result).toEqual(['/unknown', 'url']);
     });
   });

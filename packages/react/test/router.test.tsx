@@ -15,9 +15,9 @@ import {
 import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BrowserClient, wrapReactRouterRouting as baseWrapReactRouterRouting } from '../src';
+import { BrowserClient } from '../src';
 import { allRoutes } from '../src/reactrouter-compat-utils/instrumentation';
 import { reactRouterBrowserTracingIntegration, wrapReactRouterRouting } from '../src/router';
 
@@ -145,19 +145,12 @@ describe('@sentry/react/router', () => {
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(0);
   });
 
-  it('lets callers override the hooks via the base wrapper', () => {
-    const client = createMockBrowserClient();
-    setCurrentClient(client);
+  it('renders uninstrumented (no spans, no crash) when the integration is not set up', () => {
+    // No client / integration - the wrapper has no client config to read, so it must fall back to
+    // rendering the plain routes without instrumenting.
+    const SentryRoutes = wrapReactRouterRouting(Routes);
 
-    const customUseLocation = vi.fn(useLocation);
-
-    client.addIntegration(reactRouterBrowserTracingIntegration());
-
-    // The base wrapper (from `@sentry/react`) accepts an explicit hooks override; the remaining hooks
-    // fall back to the ones captured by the integration above.
-    const SentryRoutes = baseWrapReactRouterRouting(Routes, { useLocation: customUseLocation });
-
-    render(
+    const { getByText } = render(
       <MemoryRouter initialEntries={['/']}>
         <SentryRoutes>
           <Route path="/" element={<div>Home</div>} />
@@ -165,6 +158,8 @@ describe('@sentry/react/router', () => {
       </MemoryRouter>,
     );
 
-    expect(customUseLocation).toHaveBeenCalled();
+    expect(getByText('Home')).toBeDefined();
+    expect(mockStartBrowserTracingPageLoadSpan).not.toHaveBeenCalled();
+    expect(mockStartBrowserTracingNavigationSpan).not.toHaveBeenCalled();
   });
 });

@@ -12,6 +12,7 @@ import type { Client, Integration, Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   debug,
+  extendIntegration,
   getClient,
   getCurrentScope,
   hasSpanStreamingEnabled,
@@ -30,6 +31,7 @@ import type {
   CreateRoutesFromChildren,
   Location,
   MatchRoutes,
+  ReactRouterConfig,
   RouteMatch,
   RouteObject,
   Router,
@@ -43,7 +45,6 @@ import { checkRouteForAsyncHandler } from './lazy-routes';
 import {
   clearNavigationContext,
   getActiveRootSpan,
-  initializeRouterUtils,
   resolveRouteNameAndSource,
   setNavigationContext,
   transactionNameHasWildcard,
@@ -51,17 +52,11 @@ import {
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
-let _useLocation: UseLocation;
-let _useNavigationType: UseNavigationType;
-let _createRoutesFromChildren: CreateRoutesFromChildren;
-let _matchRoutes: MatchRoutes;
+const reactRouterConfigByClient = new WeakMap<Client, ReactRouterConfig>();
 
-let _enableAsyncRouteHandlers: boolean = false;
-let _lazyRouteTimeout = 3000;
-let _lazyRouteManifest: string[] | undefined;
-let _basename: string = '';
-
-const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
+function getRouterConfig(client: Client | undefined): ReactRouterConfig | undefined {
+  return client ? reactRouterConfigByClient.get(client) : undefined;
+}
 
 // Detect navigations in a layout effect so the navigation trace is set up before child route components'
 // passive mount effects fire requests (else they propagate the stale pageload trace).
@@ -231,18 +226,6 @@ export interface ReactRouterOptions {
   lazyRouteManifest?: string[];
 }
 
-/**
- * The React Router hooks that the routing wrappers depend on. When passed to a wrapper, these are used
- * directly instead of the ambient values captured during `Sentry.init()` - this is how the `@sentry/react/router`
- * entry point supplies defaults so the wrappers work without the hooks being threaded through the integration.
- */
-export interface ReactRouterHooks {
-  useLocation?: UseLocation;
-  useNavigationType?: UseNavigationType;
-  createRoutesFromChildren?: CreateRoutesFromChildren;
-  matchRoutes?: MatchRoutes;
-}
-
 type V6CompatibleVersion = '6' | '7' | '';
 
 export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
@@ -317,7 +300,7 @@ function resolveDeferredLazyRoutePromise(span: Span): void {
  */
 export function processResolvedRoutes(
   resolvedRoutes: RouteObject[],
-  matchRoutes: MatchRoutes,
+  config: ReactRouterConfig,
   parentRoute?: RouteObject,
   currentLocation: Location | null = null,
   capturedSpan?: Span,
@@ -325,8 +308,8 @@ export function processResolvedRoutes(
   resolvedRoutes.forEach(child => {
     allRoutes.add(child);
     // Only check for async handlers if the feature is enabled
-    if (_enableAsyncRouteHandlers) {
-      checkRouteForAsyncHandler(child, (r, p, l, s) => processResolvedRoutes(r, matchRoutes, p, l, s));
+    if (config.enableAsyncRouteHandlers) {
+      checkRouteForAsyncHandler(child, (r, p, l, s) => processResolvedRoutes(r, config, p, l, s));
     }
   });
 
@@ -369,11 +352,11 @@ export function processResolvedRoutes(
           location: { pathname: location.pathname },
           routes: Array.from(allRoutes),
           allRoutes: Array.from(allRoutes),
-          matchRoutes,
+          config,
         });
       } else if (spanOp === 'navigation') {
         // For navigation spans, update the name with the newly loaded routes
-        updateNavigationSpan(targetSpan, location, Array.from(allRoutes), false, matchRoutes);
+        updateNavigationSpan(targetSpan, location, Array.from(allRoutes), false, config);
       }
     }
   }
@@ -387,7 +370,7 @@ export function updateNavigationSpan(
   location: Location,
   allRoutes: RouteObject[],
   forceUpdate = false,
-  matchRoutes: MatchRoutes,
+  config: ReactRouterConfig,
 ): void {
   const { name: currentName, end_timestamp, attributes } = spanToJSON(activeRootSpan);
 
@@ -396,16 +379,13 @@ export function updateNavigationSpan(
   const shouldUpdate = !hasBeenNamed || forceUpdate || currentNameHasWildcard;
 
   if (shouldUpdate && !end_timestamp) {
-    const currentBranches = matchRoutes(allRoutes, location);
+    const currentBranches = config.matchRoutes(allRoutes, location);
     const [name, source] = resolveRouteNameAndSource(
       location,
       allRoutes,
       allRoutes,
       (currentBranches as RouteMatch[]) || [],
-      matchRoutes,
-      _basename,
-      _lazyRouteManifest,
-      _enableAsyncRouteHandlers,
+      config,
     );
 
     const currentSource = attributes[SENTRY_SEGMENT_NAME_SOURCE];
@@ -437,9 +417,8 @@ function setupRouterSubscription(
   router: Router,
   routes: RouteObject[],
   version: V6CompatibleVersion,
-  basename: string | undefined,
   activeRootSpan: Span | undefined,
-  matchRoutes: MatchRoutes,
+  config: ReactRouterConfig,
 ): void {
   let isInitialPageloadComplete = false;
   let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload';
@@ -482,9 +461,8 @@ function setupRouterSubscription(
           routes,
           navigationType: state.historyAction,
           version,
-          basename,
           allRoutes: Array.from(allRoutes),
-          matchRoutes,
+          config,
         });
       };
 
@@ -520,25 +498,26 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 >(
   createRouterFunction: CreateRouterFunction<TState, TRouter>,
   version: V6CompatibleVersion,
-  hooks?: ReactRouterHooks,
 ): CreateRouterFunction<TState, TRouter> {
-  const matchRoutes = hooks?.matchRoutes ?? _matchRoutes;
-
-  if (!matchRoutes) {
-    DEBUG_BUILD &&
-      debug.warn(
-        `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createRouter\` function because of one or more missing parameters.`,
-      );
-
-    return createRouterFunction;
-  }
-
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
+    const base = getRouterConfig(getClient());
+    if (!base) {
+      DEBUG_BUILD &&
+        debug.warn(
+          `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createRouter\` function because the React Router browser tracing integration was not set up. Make sure \`Sentry.init()\` runs before the router is created.`,
+        );
+
+      return createRouterFunction(routes, opts);
+    }
+
+    // Copy per-router so the router's basename doesn't leak into other routers sharing the client config.
+    const config: ReactRouterConfig = { ...base, basename: opts?.basename || '' };
+
     addRoutesToAllRoutes(routes);
 
-    if (_enableAsyncRouteHandlers) {
+    if (config.enableAsyncRouteHandlers) {
       for (const route of routes) {
-        checkRouteForAsyncHandler(route, (r, p, l, s) => processResolvedRoutes(r, matchRoutes, p, l, s));
+        checkRouteForAsyncHandler(route, (r, p, l, s) => processResolvedRoutes(r, config, p, l, s));
       }
     }
 
@@ -559,25 +538,20 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
     // Pass the captured span to wrapPatchRoutesOnNavigation so it uses the same span
     // even if the span has ended by the time patchRoutesOnNavigation is called.
-    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, false, activeRootSpan, matchRoutes);
+    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, false, activeRootSpan, config);
     const router = createRouterFunction(routes, wrappedOpts);
-    const basename = opts?.basename;
 
     if (router.state.historyAction === 'POP' && activeRootSpan) {
       updatePageloadTransaction({
         activeRootSpan,
         location: router.state.location,
         routes,
-        basename,
         allRoutes: Array.from(allRoutes),
-        matchRoutes,
+        config,
       });
     }
 
-    // Store basename for use in updateNavigationSpan
-    _basename = basename || '';
-
-    setupRouterSubscription(router, routes, version, basename, activeRootSpan, matchRoutes);
+    setupRouterSubscription(router, routes, version, activeRootSpan, config);
 
     return router;
   };
@@ -592,19 +566,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
 >(
   createRouterFunction: CreateRouterFunction<TState, TRouter>,
   version: V6CompatibleVersion,
-  hooks?: ReactRouterHooks,
 ): CreateRouterFunction<TState, TRouter> {
-  const matchRoutes = hooks?.matchRoutes ?? _matchRoutes;
-
-  if (!matchRoutes) {
-    DEBUG_BUILD &&
-      debug.warn(
-        `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
-      );
-
-    return createRouterFunction;
-  }
-
   return function (
     routes: RouteObject[],
     opts?: Record<string, unknown> & {
@@ -613,11 +575,24 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       initialIndex?: number;
     },
   ): TRouter {
+    const base = getRouterConfig(getClient());
+    if (!base) {
+      DEBUG_BUILD &&
+        debug.warn(
+          `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createMemoryRouter\` function because the React Router browser tracing integration was not set up. Make sure \`Sentry.init()\` runs before the router is created.`,
+        );
+
+      return createRouterFunction(routes, opts);
+    }
+
+    // Copy per-router so the router's basename doesn't leak into other routers sharing the client config.
+    const config: ReactRouterConfig = { ...base, basename: opts?.basename || '' };
+
     addRoutesToAllRoutes(routes);
 
-    if (_enableAsyncRouteHandlers) {
+    if (config.enableAsyncRouteHandlers) {
       for (const route of routes) {
-        checkRouteForAsyncHandler(route, (r, p, l, s) => processResolvedRoutes(r, matchRoutes, p, l, s));
+        checkRouteForAsyncHandler(route, (r, p, l, s) => processResolvedRoutes(r, config, p, l, s));
       }
     }
 
@@ -633,10 +608,9 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       createDeferredLazyRoutePromise(memoryActiveRootSpanEarly);
     }
 
-    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, true, memoryActiveRootSpanEarly, matchRoutes);
+    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, true, memoryActiveRootSpanEarly, config);
 
     const router = createRouterFunction(routes, wrappedOpts);
-    const basename = opts?.basename;
 
     let initialEntry = undefined;
 
@@ -665,16 +639,12 @@ export function createV6CompatibleWrapCreateMemoryRouter<
         activeRootSpan: memoryActiveRootSpan,
         location,
         routes,
-        basename,
         allRoutes: Array.from(allRoutes),
-        matchRoutes,
+        config,
       });
     }
 
-    // Store basename for use in updateNavigationSpan
-    _basename = basename || '';
-
-    setupRouterSubscription(router, routes, version, basename, memoryActiveRootSpan, matchRoutes);
+    setupRouterSubscription(router, routes, version, memoryActiveRootSpan, config);
 
     return router;
   };
@@ -702,18 +672,16 @@ export function createReactRouterV6CompatibleTracingIntegration(
     lazyRouteManifest,
   } = options;
 
-  return {
-    ...integration,
+  return extendIntegration(integration, {
     setup(client) {
-      integration.setup(client);
-
       const finalTimeout = options.finalTimeout ?? 30000;
       const defaultMaxWait = (options.idleTimeout ?? 1000) * 3;
       const configuredMaxWait = lazyRouteTimeout ?? defaultMaxWait;
 
+      let resolvedLazyRouteTimeout: number;
       // Cap Infinity at finalTimeout to prevent indefinite hangs
       if (configuredMaxWait === Infinity) {
-        _lazyRouteTimeout = finalTimeout;
+        resolvedLazyRouteTimeout = finalTimeout;
         DEBUG_BUILD &&
           debug.log(
             '[React Router] lazyRouteTimeout set to Infinity, capping at finalTimeout:',
@@ -723,7 +691,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
       } else if (Number.isNaN(configuredMaxWait)) {
         DEBUG_BUILD &&
           debug.warn('[React Router] lazyRouteTimeout must be a number, falling back to default:', defaultMaxWait);
-        _lazyRouteTimeout = defaultMaxWait;
+        resolvedLazyRouteTimeout = defaultMaxWait;
       } else if (configuredMaxWait < 0) {
         DEBUG_BUILD &&
           debug.warn(
@@ -732,24 +700,25 @@ export function createReactRouterV6CompatibleTracingIntegration(
             'falling back to:',
             defaultMaxWait,
           );
-        _lazyRouteTimeout = defaultMaxWait;
+        resolvedLazyRouteTimeout = defaultMaxWait;
       } else {
-        _lazyRouteTimeout = configuredMaxWait;
+        resolvedLazyRouteTimeout = configuredMaxWait;
       }
 
-      _useLocation = useLocation;
-      _useNavigationType = useNavigationType;
-      _matchRoutes = matchRoutes;
-      _createRoutesFromChildren = createRoutesFromChildren;
-      _enableAsyncRouteHandlers = enableAsyncRouteHandlers;
-      _lazyRouteManifest = lazyRouteManifest;
-
-      // Initialize the router utils with the required dependencies
-      initializeRouterUtils(stripBasename || false);
+      reactRouterConfigByClient.set(client, {
+        useLocation,
+        useNavigationType,
+        createRoutesFromChildren,
+        matchRoutes,
+        stripBasename: stripBasename || false,
+        enableAsyncRouteHandlers,
+        instrumentNavigation,
+        lazyRouteTimeout: resolvedLazyRouteTimeout,
+        lazyRouteManifest,
+        basename: '',
+      });
     },
     afterAllSetup(client) {
-      integration.afterAllSetup(client);
-
       const initPathName = WINDOW.location?.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
@@ -763,44 +732,34 @@ export function createReactRouterV6CompatibleTracingIntegration(
           },
         });
       }
-
-      if (instrumentNavigation) {
-        CLIENTS_WITH_INSTRUMENT_NAVIGATION.add(client);
-      }
     },
-  };
+  });
 }
 
-export function createV6CompatibleWrapUseRoutes(
-  origUseRoutes: UseRoutes,
-  version: V6CompatibleVersion,
-  hooks?: ReactRouterHooks,
-): UseRoutes {
-  const useLocation = hooks?.useLocation ?? _useLocation;
-  const useNavigationType = hooks?.useNavigationType ?? _useNavigationType;
-  const matchRoutes = hooks?.matchRoutes ?? _matchRoutes;
-
-  if (!useLocation || !useNavigationType || !matchRoutes) {
-    DEBUG_BUILD &&
-      debug.warn(
-        'reactRouterV6Instrumentation was unable to wrap `useRoutes` because of one or more missing parameters.',
-      );
-
-    return origUseRoutes;
-  }
+export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, version: V6CompatibleVersion): UseRoutes {
+  // Uninstrumented fallback used when the integration has not been set up. It only calls `origUseRoutes`,
+  // so its hook usage stays stable and switching to/from the instrumented component is Rules-of-Hooks safe.
+  const UninstrumentedRoutes: React.FC<{ routes: RouteObject[]; locationArg?: Partial<Location> | string }> = ({
+    routes,
+    locationArg,
+  }) => {
+    return origUseRoutes(routes, locationArg);
+  };
 
   const SentryRoutes: React.FC<{
     children?: React.ReactNode;
     routes: RouteObject[];
     locationArg?: Partial<Location> | string;
   }> = (props: { children?: React.ReactNode; routes: RouteObject[]; locationArg?: Partial<Location> | string }) => {
+    // Present because the outer wrapper only renders this when config exists.
+    const config = getRouterConfig(getClient()) as ReactRouterConfig;
     const isMountRenderPass = React.useRef(true);
     const { routes, locationArg } = props;
 
     const Routes = origUseRoutes(routes, locationArg);
 
-    const location = useLocation();
-    const navigationType = useNavigationType();
+    const location = config.useLocation();
+    const navigationType = config.useNavigationType();
 
     // A value with stable identity to either pick `locationArg` if available or `location` if not
     const stableLocationParam =
@@ -825,7 +784,7 @@ export function createV6CompatibleWrapUseRoutes(
           location: normalizedLocation,
           routes,
           allRoutes: Array.from(allRoutes),
-          matchRoutes,
+          config,
         });
         isMountRenderPass.current = false;
       } else {
@@ -838,7 +797,7 @@ export function createV6CompatibleWrapUseRoutes(
           navigationType,
           version,
           allRoutes: Array.from(allRoutes),
-          matchRoutes,
+          config,
         });
       }
     }, [navigationType, stableLocationParam]);
@@ -846,16 +805,29 @@ export function createV6CompatibleWrapUseRoutes(
     return Routes;
   };
 
+  // Outer decider - reads the client config at *render* time (so wrapping before `Sentry.init()` still
+  // works once the app renders) and itself calls no hooks, keeping the instrumented/uninstrumented switch
+  // Rules-of-Hooks safe.
+  const SentryRoutesWrapper: React.FC<{ routes: RouteObject[]; locationArg?: Partial<Location> | string }> = ({
+    routes,
+    locationArg,
+  }) => {
+    if (!getRouterConfig(getClient())) {
+      return <UninstrumentedRoutes routes={routes} locationArg={locationArg} />;
+    }
+    return <SentryRoutes routes={routes} locationArg={locationArg} />;
+  };
+
   // eslint-disable-next-line react/display-name
   return (routes: RouteObject[], locationArg?: Partial<Location> | string): React.ReactElement | null => {
-    return <SentryRoutes routes={routes} locationArg={locationArg} />;
+    return <SentryRoutesWrapper routes={routes} locationArg={locationArg} />;
   };
 }
 function wrapPatchRoutesOnNavigation(
   opts: Record<string, unknown> | undefined,
   isMemoryRouter: boolean,
   capturedSpan: Span | undefined,
-  matchRoutes: MatchRoutes,
+  config: ReactRouterConfig,
 ): Record<string, unknown> {
   if (!opts || !('patchRoutesOnNavigation' in opts) || typeof opts.patchRoutesOnNavigation !== 'function') {
     return opts || {};
@@ -923,7 +895,7 @@ function wrapPatchRoutesOnNavigation(
                 { pathname: targetPath, search: '', hash: '', state: null, key: 'default' },
                 Array.from(allRoutes),
                 true,
-                matchRoutes,
+                config,
               );
             }
             return originalPatch(routeId, children);
@@ -965,7 +937,7 @@ function wrapPatchRoutesOnNavigation(
               { pathname, search: '', hash: '', state: null, key: 'default' },
               Array.from(allRoutes),
               false,
-              matchRoutes,
+              config,
             );
           }
         }
@@ -988,16 +960,17 @@ export function handleNavigation(opts: {
   routes: RouteObject[];
   navigationType: Action;
   version: V6CompatibleVersion;
-  matchRoutes: MatchRoutes;
+  config: ReactRouterConfig;
   matches?: AgnosticDataRouteMatch;
-  basename?: string;
   allRoutes?: RouteObject[];
 }): void {
-  const { location, routes, navigationType, version, matchRoutes, matches, basename, allRoutes } = opts;
-  const branches = Array.isArray(matches) ? matches : matchRoutes(allRoutes || routes, location, basename);
+  const { location, routes, navigationType, version, config, matches, allRoutes } = opts;
+  const branches = Array.isArray(matches)
+    ? matches
+    : config.matchRoutes(allRoutes || routes, location, config.basename);
 
   const client = getClient();
-  if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
+  if (!client || !config.instrumentNavigation) {
     return;
   }
 
@@ -1012,10 +985,7 @@ export function handleNavigation(opts: {
       allRoutes || routes,
       allRoutes || routes,
       branches as RouteMatch[],
-      matchRoutes,
-      basename,
-      _lazyRouteManifest,
-      _enableAsyncRouteHandlers,
+      config,
     );
 
     const locationKey = computeLocationKey(location);
@@ -1099,7 +1069,7 @@ export function handleNavigation(opts: {
         pathname: location.pathname,
         locationKey,
       });
-      patchSpanEnd(navigationSpan, location, routes, basename, 'navigation', matchRoutes);
+      patchSpanEnd(navigationSpan, location, routes, 'navigation', config);
     } else {
       // If no span was created, remove the placeholder
       activeNavigationSpans.delete(client);
@@ -1155,22 +1125,20 @@ function updatePageloadTransaction({
   activeRootSpan,
   location,
   routes,
-  matchRoutes,
+  config,
   matches,
-  basename,
   allRoutes,
 }: {
   activeRootSpan: Span | undefined;
   location: Location;
   routes: RouteObject[];
-  matchRoutes: MatchRoutes;
+  config: ReactRouterConfig;
   matches?: AgnosticDataRouteMatch;
-  basename?: string;
   allRoutes?: RouteObject[];
 }): void {
   const branches = Array.isArray(matches)
     ? matches
-    : (matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
+    : (config.matchRoutes(allRoutes || routes, location, config.basename) as unknown as RouteMatch[]);
 
   if (branches) {
     const [name, source] = resolveRouteNameAndSource(
@@ -1178,10 +1146,7 @@ function updatePageloadTransaction({
       allRoutes || routes,
       allRoutes || routes,
       branches,
-      matchRoutes,
-      basename,
-      _lazyRouteManifest,
-      _enableAsyncRouteHandlers,
+      config,
     );
 
     getCurrentScope().setTransactionName(name || '/');
@@ -1197,13 +1162,13 @@ function updatePageloadTransaction({
       }
 
       // Patch span.end() to ensure we update the name one last time before the span is sent
-      patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload', matchRoutes);
+      patchSpanEnd(activeRootSpan, location, routes, 'pageload', config);
     }
   } else if (activeRootSpan) {
     // Even if branches is null (can happen when lazy routes haven't loaded yet),
     // we still need to patch span.end() so that when lazy routes load and the span ends,
     // we can update the transaction name correctly.
-    patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload', matchRoutes);
+    patchSpanEnd(activeRootSpan, location, routes, 'pageload', config);
   }
 }
 
@@ -1256,10 +1221,9 @@ function tryUpdateSpanNameBeforeEnd(
   currentName: string | undefined,
   location: Location,
   routes: RouteObject[],
-  basename: string | undefined,
   spanType: 'pageload' | 'navigation',
   allRoutes: Set<RouteObject>,
-  matchRoutes: MatchRoutes,
+  config: ReactRouterConfig,
 ): void {
   try {
     const currentSource = spanJson.attributes[SENTRY_SEGMENT_NAME_SOURCE] as string | undefined;
@@ -1270,22 +1234,13 @@ function tryUpdateSpanNameBeforeEnd(
 
     const currentAllRoutes = Array.from(allRoutes);
     const routesToUse = currentAllRoutes.length > 0 ? currentAllRoutes : routes;
-    const branches = matchRoutes(routesToUse, location, basename) as unknown as RouteMatch[];
+    const branches = config.matchRoutes(routesToUse, location, config.basename) as unknown as RouteMatch[];
 
     if (!branches) {
       return;
     }
 
-    const [name, source] = resolveRouteNameAndSource(
-      location,
-      routesToUse,
-      routesToUse,
-      branches,
-      matchRoutes,
-      basename,
-      _lazyRouteManifest,
-      _enableAsyncRouteHandlers,
-    );
+    const [name, source] = resolveRouteNameAndSource(location, routesToUse, routesToUse, branches, config);
 
     const isImprovement = shouldUpdateWildcardSpanName(currentName, currentSource, name, source, true);
     const spanNotEnded = spanType === 'pageload' || !spanJson.end_timestamp;
@@ -1314,9 +1269,8 @@ function patchSpanEnd(
   span: Span,
   location: Location,
   routes: RouteObject[],
-  basename: string | undefined,
   spanType: 'pageload' | 'navigation',
-  matchRoutes: MatchRoutes,
+  config: ReactRouterConfig,
 ): void {
   const patchedPropertyName = `__sentry_${spanType}_end_patched__` as const;
   const hasEndBeenPatched = (span as unknown as Record<string, boolean | undefined>)?.[patchedPropertyName];
@@ -1369,18 +1323,8 @@ function patchSpanEnd(
       (transactionNameHasWildcard(currentName) || currentSource !== 'route');
 
     if (shouldWaitForLazyRoutes) {
-      if (_lazyRouteTimeout === 0) {
-        tryUpdateSpanNameBeforeEnd(
-          span,
-          spanJson,
-          currentName,
-          location,
-          routes,
-          basename,
-          spanType,
-          allRoutes,
-          matchRoutes,
-        );
+      if (config.lazyRouteTimeout === 0) {
+        tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, spanType, allRoutes, config);
         cleanupNavigationSpan();
         originalEnd(endTimestamp);
         return;
@@ -1389,12 +1333,12 @@ function patchSpanEnd(
       // If we have pending promises, wait for them. Otherwise, just wait for the timeout.
       // This handles the case where we know lazy routes might load but patchRoutesOnNavigation
       // hasn't been called yet.
-      const timeoutPromise = new Promise<void>(r => setTimeout(r, _lazyRouteTimeout));
+      const timeoutPromise = new Promise<void>(r => setTimeout(r, config.lazyRouteTimeout));
       let waitPromise: Promise<void>;
 
       if (pendingPromises && pendingPromises.size > 0) {
         const allSettled = Promise.allSettled(pendingPromises).then(() => {});
-        waitPromise = _lazyRouteTimeout === Infinity ? allSettled : Promise.race([allSettled, timeoutPromise]);
+        waitPromise = config.lazyRouteTimeout === Infinity ? allSettled : Promise.race([allSettled, timeoutPromise]);
       } else {
         // No pending promises yet, but we know lazy routes might load
         // Wait for the timeout to give React Router time to call patchRoutesOnNavigation
@@ -1410,10 +1354,9 @@ function patchSpanEnd(
             updatedSpanJson.name,
             location,
             routes,
-            basename,
             spanType,
             allRoutes,
-            matchRoutes,
+            config,
           );
           cleanupNavigationSpan();
           originalEnd(endTimestamp);
@@ -1425,17 +1368,7 @@ function patchSpanEnd(
       return;
     }
 
-    tryUpdateSpanNameBeforeEnd(
-      span,
-      spanJson,
-      currentName,
-      location,
-      routes,
-      basename,
-      spanType,
-      allRoutes,
-      matchRoutes,
-    );
+    tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, spanType, allRoutes, config);
     cleanupNavigationSpan();
     originalEnd(endTimestamp);
   };
@@ -1447,29 +1380,17 @@ function patchSpanEnd(
 export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<string, any>, R extends React.FC<P>>(
   Routes: R,
   version: V6CompatibleVersion,
-  hooks?: ReactRouterHooks,
 ): R {
-  const useLocation = hooks?.useLocation ?? _useLocation;
-  const useNavigationType = hooks?.useNavigationType ?? _useNavigationType;
-  const createRoutesFromChildren = hooks?.createRoutesFromChildren ?? _createRoutesFromChildren;
-  const matchRoutes = hooks?.matchRoutes ?? _matchRoutes;
-
-  if (!useLocation || !useNavigationType || !createRoutesFromChildren || !matchRoutes) {
-    DEBUG_BUILD &&
-      debug.warn(`reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.
-      useLocation: ${useLocation}. useNavigationType: ${useNavigationType}.
-      createRoutesFromChildren: ${createRoutesFromChildren}. matchRoutes: ${matchRoutes}.`);
-
-    return Routes;
-  }
-
-  const SentryRoutes: React.FC<P> = (props: P) => {
+  // Instrumented implementation. Only rendered by the outer `SentryRoutes` once a client config exists,
+  // so `getRouterConfig(...)` is present here and the router hooks are called unconditionally.
+  const InstrumentedRoutes: React.FC<P> = (props: P) => {
+    const config = getRouterConfig(getClient()) as ReactRouterConfig;
     const isMountRenderPass = React.useRef(true);
 
-    const location = useLocation();
-    const navigationType = useNavigationType();
+    const location = config.useLocation();
+    const navigationType = config.useNavigationType();
 
-    const routes = createRoutesFromChildren(props.children) as RouteObject[];
+    const routes = config.createRoutesFromChildren(props.children) as RouteObject[];
 
     // Register this `<Routes>`'s routes in the shared set for as long as it is mounted, removing them on
     // unmount so they don't leak into later unrelated navigations (#22782). Tying add and remove to the
@@ -1488,7 +1409,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
             location,
             routes,
             allRoutes: Array.from(allRoutes),
-            matchRoutes,
+            config,
           });
           isMountRenderPass.current = false;
         } else {
@@ -1501,7 +1422,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
             navigationType,
             version,
             allRoutes: Array.from(allRoutes),
-            matchRoutes,
+            config,
           });
         }
       },
@@ -1512,6 +1433,19 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
     // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return <Routes {...props} />;
+  };
+
+  // Outer decider - reads the client config at *render* time (so wrapping before `Sentry.init()` still
+  // works once the app renders) and itself calls no hooks, keeping the instrumented/uninstrumented switch
+  // Rules-of-Hooks safe.
+  const SentryRoutes: React.FC<P> = (props: P) => {
+    if (!getRouterConfig(getClient())) {
+      // @ts-expect-error Setting more specific React Component typing for `R` generic above
+      // will break advanced type inference done by react router params
+      return <Routes {...props} />;
+    }
+
+    return <InstrumentedRoutes {...props} />;
   };
 
   hoistNonReactStatics(SentryRoutes, Routes);
