@@ -138,19 +138,37 @@ test('sends a pageload transaction with a route name as transaction name if avai
   });
 });
 
-// The root component is always tracked, even when it is missing from `trackComponents`. `/` mounts
-// the eagerly imported `HomeView` synchronously, `/components` loads its view through a dynamic
-// `import()`. The root spans have to show up with both timings.
+// The root component is always tracked, even when the route's view is missing from `trackComponents`.
+// The root itself mounts synchronously on both routes (`app.mount()` does not wait for the router).
+// What differs on `/components` is that its view arrives through a dynamic `import()`, so the
+// async-loaded components must join the same pageload while `Application Render` is still open.
 [
-  { route: '/', transaction: '/', description: 'a route with a synchronously mounted component' },
-  { route: '/components', transaction: '/components', description: 'a route with an async component' },
-].forEach(({ route, transaction, description }) => {
-  test(`sends an application render span and a root component span on ${description}`, async ({ page }) => {
+  {
+    route: '/',
+    routeDescription: 'a route with a synchronously mounted component',
+    // `HomeView` is missing from `trackComponents`, so the root spans are the only UI spans.
+    expectedUiSpanDescriptions: ['Application Render', 'Vue <Root>'],
+  },
+  {
+    route: '/components',
+    routeDescription: 'a route with an async component',
+    expectedUiSpanDescriptions: [
+      'Application Render',
+      'Vue <ComponentMainView>',
+      'Vue <ComponentOneView>',
+      'Vue <Root>',
+    ],
+  },
+].forEach(({ route, routeDescription, expectedUiSpanDescriptions }) => {
+  test(`sends an application render span and a root component span on ${routeDescription}`, async ({ page }) => {
     // Vue compiles `app.mixin()` down to a no-op when the Options API is disabled, so the SDK creates no UI spans at all.
     test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');
 
     const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
-      return transactionEvent.transaction === transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+      return (
+        transactionEvent.contexts?.trace?.op === 'pageload' &&
+        transactionEvent.contexts?.trace?.data?.['url.path'] === route
+      );
     });
 
     await page.goto(route);
@@ -158,9 +176,10 @@ test('sends a pageload transaction with a route name as transaction name if avai
     const rootSpan = await transactionPromise;
     const uiSpans = (rootSpan.spans || []).filter(span => span.origin === 'auto.ui.vue');
 
-    const applicationRenderSpans = uiSpans.filter(span => span.description === 'Application Render');
-    expect(applicationRenderSpans).toHaveLength(1);
-    expect(applicationRenderSpans[0]).toMatchObject({
+    expect(uiSpans.map(span => span.description).sort()).toEqual(expectedUiSpanDescriptions);
+
+    const applicationRenderSpan = uiSpans.find(span => span.description === 'Application Render');
+    expect(applicationRenderSpan).toMatchObject({
       data: {
         'sentry.op': 'ui.render',
         'sentry.origin': 'auto.ui.vue',
@@ -169,9 +188,8 @@ test('sends a pageload transaction with a route name as transaction name if avai
       origin: 'auto.ui.vue',
     });
 
-    const rootComponentSpans = uiSpans.filter(span => span.description === 'Vue <Root>');
-    expect(rootComponentSpans).toHaveLength(1);
-    expect(rootComponentSpans[0]).toMatchObject({
+    const rootComponentSpan = uiSpans.find(span => span.description === 'Vue <Root>');
+    expect(rootComponentSpan).toMatchObject({
       data: {
         'sentry.op': 'ui.mount',
         'sentry.origin': 'auto.ui.vue',
@@ -179,26 +197,14 @@ test('sends a pageload transaction with a route name as transaction name if avai
       op: 'ui.mount',
       origin: 'auto.ui.vue',
     });
+
+    // `Application Render` ends on a debounce that every component hook re-arms, so it closes last.
+    // On `/components` this proves the span stayed open until the async chunk's components mounted.
+    // A missing end timestamp fails the comparison, because nothing beats infinity.
+    for (const span of uiSpans) {
+      expect(applicationRenderSpan?.timestamp).toBeGreaterThanOrEqual(span.timestamp ?? Number.POSITIVE_INFINITY);
+    }
   });
-});
-
-// `HomeView` renders on `/` but is missing from `trackComponents`, so only the two root spans exist.
-test('sends no component spans on a route without tracked components', async ({ page }) => {
-  test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');
-
-  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
-    return transactionEvent.transaction === '/' && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
-
-  await page.goto(`/`);
-
-  const rootSpan = await transactionPromise;
-  const uiSpanDescriptions = (rootSpan.spans || [])
-    .filter(span => span.origin === 'auto.ui.vue')
-    .map(span => span.description)
-    .sort();
-
-  expect(uiSpanDescriptions).toEqual(['Application Render', 'Vue <Root>']);
 });
 
 test('sends a lifecycle span for the root and for each tracked component only', async ({ page }) => {
