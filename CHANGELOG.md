@@ -30,6 +30,15 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
   - `browser.bfcache.not_restored` — a counter of the (Chromium-only) `notRestoredReasons` for a miss.
   - `browser.bfcache.reload.duration` — a distribution of how expensive the fallback reload was on a miss.
 
+## 11.0.0-beta.1
+
+This is a beta release of the upcoming major release of version 11.
+This release does not yet entail a comprehensive changelog as version 11 is not yet stable.
+
+For this release's iteration of the migration guide, see the [Migration Guide as per `11.0.0-beta.1`](https://github.com/getsentry/sentry-javascript/blob/11.0.0-beta.1/MIGRATION.md#upgrading-from-10x-to-11x).
+
+Please note that the migration guide is work in progress and subject to change.
+
 ## 11.0.0-beta.0
 
 This is a beta release of the upcoming major release of version 11.
