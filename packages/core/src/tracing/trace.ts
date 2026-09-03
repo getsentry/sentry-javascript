@@ -495,8 +495,8 @@ function _startRootSpan(
   const currentPropagationContext = scope.getPropagationContext();
   const _isTracingSuppressed = isTracingSuppressed(scope);
 
-  const { sampled, sampleRate, localSampleRateWasApplied, dropReason } = _isTracingSuppressed
-    ? { sampled: false }
+  const [sampled, sampleRate, localSampleRateWasApplied, dropReason] = _isTracingSuppressed
+    ? [false]
     : sampleSpan(
         options,
         {

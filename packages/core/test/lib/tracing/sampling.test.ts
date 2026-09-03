@@ -14,25 +14,27 @@ describe('sampleSpan', () => {
     it('inherits the parent sampling decision', () => {
       const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
 
-      expect(sampleSpan({ tracesSampler }, { name: 'test', attributes: {}, parentSampled: true }, 0.5)).toEqual({
-        sampled: true,
-        sampleRate: 1,
-      });
-      expect(sampleSpan({ tracesSampler }, { name: 'test', attributes: {}, parentSampled: false }, 0.5)).toEqual({
-        sampled: false,
-        sampleRate: 0,
-      });
+      expect(sampleSpan({ tracesSampler }, { name: 'test', attributes: {}, parentSampled: true }, 0.5)).toEqual([
+        true,
+        1,
+        undefined,
+      ]);
+      expect(sampleSpan({ tracesSampler }, { name: 'test', attributes: {}, parentSampled: false }, 0.5)).toEqual([
+        false,
+        0,
+        undefined,
+      ]);
       expect(debugErrorSpy).toHaveBeenCalledWith(expectedMessage, exception);
     });
 
     it('falls back to `tracesSampleRate` without a parent decision', () => {
       const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
 
-      expect(sampleSpan({ tracesSampler, tracesSampleRate: 0.6 }, { name: 'test', attributes: {} }, 0.5)).toEqual({
-        sampled: true,
-        sampleRate: 0.6,
-        localSampleRateWasApplied: true,
-      });
+      expect(sampleSpan({ tracesSampler, tracesSampleRate: 0.6 }, { name: 'test', attributes: {} }, 0.5)).toEqual([
+        true,
+        0.6,
+        true,
+      ]);
       expect(debugErrorSpy).toHaveBeenCalledWith(expectedMessage, exception);
     });
 
@@ -40,10 +42,12 @@ describe('sampleSpan', () => {
       const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
       const debugWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
 
-      expect(sampleSpan({ tracesSampler }, { name: 'test', attributes: {} }, 0.5)).toEqual({
-        sampled: false,
-        dropReason: 'callback_error',
-      });
+      expect(sampleSpan({ tracesSampler }, { name: 'test', attributes: {} }, 0.5)).toEqual([
+        false,
+        undefined,
+        undefined,
+        'callback_error',
+      ]);
       expect(debugErrorSpy).toHaveBeenCalledWith(expectedMessage, exception);
       expect(debugWarnSpy).not.toHaveBeenCalled();
     });
