@@ -1,12 +1,10 @@
 import * as Sentry from '@sentry/react';
-// The `@sentry/react/router` entry pulls the required router hooks from `react-router` itself, so
-// unlike `@sentry/react` it does not require passing `useLocation`/`useNavigationType`/`matchRoutes`/
-// `createRoutesFromChildren` to the integration.
 import { reactRouterBrowserTracingIntegration, wrapReactRouterRouting } from '@sentry/react/router';
 import * as React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import Index from './pages/Index';
+import Products from './pages/Products';
 import User from './pages/User';
 
 Sentry.init({
@@ -26,6 +24,7 @@ root.render(
     <SentryRoutes>
       <Route path="/" element={<Index />} />
       <Route path="/user/:id" element={<User />} />
+      <Route path="/products" element={<Products />} />
     </SentryRoutes>
   </BrowserRouter>,
 );

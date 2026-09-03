@@ -1,10 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-// This app configures tracing purely through `@sentry/react/router` -
-// `reactRouterBrowserTracingIntegration()` is called with no arguments, so these spans prove the
-// entry point pulls the router hooks from `react-router` and instruments correctly.
-
 test('sends a pageload span with a parameterized route name (no hooks passed to the integration)', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('react-router-7-router-entry', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
