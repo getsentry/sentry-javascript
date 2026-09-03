@@ -3,6 +3,7 @@ import type { Event, EventHint } from './types/event';
 import type { EventProcessor } from './types/eventprocessor';
 import { debug } from './utils/debug-logger';
 import { isThenable } from './utils/is';
+import { safeCallback } from './utils/safeCallback';
 import { rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
 
 /**
@@ -34,9 +35,15 @@ function _notifyEventProcessors(
     return event;
   }
 
-  const result = processor({ ...event }, hint);
+  const processorName = `Event processor "${processor.id || '?'}"`;
 
-  DEBUG_BUILD && result === null && debug.log(`Event processor "${processor.id || '?'}" dropped event`);
+  const result = safeCallback(
+    DEBUG_BUILD ? `${processorName} threw an error, dropping event:` : '',
+    () => processor({ ...event }, hint),
+    () => null,
+  );
+
+  DEBUG_BUILD && result === null && debug.log(`${processorName} dropped event`);
 
   if (isThenable(result)) {
     return result.then(final => _notifyEventProcessors(final, hint, processors, index + 1));
