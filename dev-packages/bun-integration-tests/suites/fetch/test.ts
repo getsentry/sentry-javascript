@@ -1,4 +1,4 @@
-import type { Envelope, SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@sentry/core';
+import type { Envelope, Event, SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
 
@@ -64,14 +64,15 @@ it('does not propagate headers to outgoing fetch requests outside tracePropagati
 });
 
 it('records a breadcrumb for outgoing fetch requests', async ({ signal }) => {
-  // Streamed spans carry no breadcrumbs, so the breadcrumb is asserted on a message
+  // Streamed spans carry no breadcrumbs, so the breadcrumb is asserted on an error
   // captured right after the fetch instead.
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const [, envelopeItems] = envelope;
-      const [itemHeader, event] = envelopeItems[0] as [{ type: string }, { breadcrumbs?: unknown[] }];
+      const [itemHeader, event] = envelopeItems[0] as [{ type: string }, Event];
 
       expect(itemHeader.type).toBe('event');
+      expect(event.exception?.values?.[0]?.value).toBe('fetch done');
 
       expect(event.breadcrumbs).toContainEqual(
         expect.objectContaining({
@@ -88,6 +89,6 @@ it('records a breadcrumb for outgoing fetch requests', async ({ signal }) => {
     .ignore('span')
     .start(signal);
 
-  await runner.makeRequest('get', '/outgoing-fetch-message');
+  await runner.makeRequest('get', '/outgoing-fetch-error');
   await runner.completed();
 });

@@ -38,9 +38,9 @@ const server = Bun.serve({
       return Response.json(data);
     }
 
-    if (url.pathname === '/outgoing-fetch-message') {
+    if (url.pathname === '/outgoing-fetch-error') {
       await fetch(`${targetUrl}/allowed`);
-      Sentry.captureMessage('fetch done');
+      Sentry.captureException(new Error('fetch done'));
       return new Response('OK');
     }
 
