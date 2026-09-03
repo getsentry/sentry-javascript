@@ -1,36 +1,39 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans } from '@sentry-internal/test-utils';
 
-test('Should send a transaction with a fetch span', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /request-instrumentation';
-  });
+test('Should send a fetch span', async ({ page }) => {
+  // The fetch spans are children of the segment span, which ends last.
+  const spansPromise = collectStreamedSpans('nextjs-14', spans =>
+    spans.some(span => span.name === 'GET /request-instrumentation' && span.is_segment),
+  );
 
   await page.goto(`/request-instrumentation`);
 
-  await expect(transactionPromise).resolves.toBeDefined();
+  const spans = await spansPromise;
 
-  const transactionEvent = await transactionPromise;
-
-  expect(transactionEvent.spans).toContainEqual(
+  // `http.client` span names are low cardinality under span streaming, so the name is the method and
+  // host rather than the full URL.
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      data: expect.objectContaining({
-        'http.request.method': 'GET',
-        'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.node_fetch',
+      name: 'GET github.com',
+      attributes: expect.objectContaining({
+        'http.request.method': { value: 'GET', type: 'string' },
+        'sentry.op': { value: 'http.client', type: 'string' },
+        'sentry.origin': { value: 'auto.http.node_fetch', type: 'string' },
+        'url.full': { value: 'https://github.com/', type: 'string' },
       }),
-      description: 'GET https://github.com/',
     }),
   );
 
-  expect(transactionEvent.spans).toContainEqual(
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      data: expect.objectContaining({
-        'http.request.method': 'GET',
-        'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.client',
+      name: 'GET github.com',
+      attributes: expect.objectContaining({
+        'http.request.method': { value: 'GET', type: 'string' },
+        'sentry.op': { value: 'http.client', type: 'string' },
+        'sentry.origin': { value: 'auto.http.client', type: 'string' },
+        'url.full': { value: 'https://github.com/', type: 'string' },
       }),
-      description: 'GET https://github.com/',
     }),
   );
 });

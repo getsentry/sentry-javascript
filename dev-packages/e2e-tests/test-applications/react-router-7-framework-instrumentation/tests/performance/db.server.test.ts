@@ -22,9 +22,12 @@ test.describe('server - orchestrion db instrumentation', () => {
 
     const childSpans = spans.filter(span => !span.is_segment);
 
+    // Under span streaming a redis span is named after the operation and the connection — the key
+    // it acts on is unbounded, so it stays on `db.query.text`. The route builds its client without
+    // a host or port, so ioredis' own `localhost:6379` defaults are what the name reports.
     expect(childSpans).toContainEqual(
       expect.objectContaining({
-        name: 'set test-key [1 other arguments]',
+        name: 'set localhost:6379',
         status: 'ok',
         attributes: expect.objectContaining({
           'sentry.op': { value: 'db.query', type: 'string' },
@@ -32,12 +35,14 @@ test.describe('server - orchestrion db instrumentation', () => {
           'db.system.name': { value: 'redis', type: 'string' },
           'db.operation.name': { value: 'set', type: 'string' },
           'db.query.text': { value: 'set test-key [1 other arguments]', type: 'string' },
+          'server.address': { value: 'localhost', type: 'string' },
+          'server.port': { value: 6379, type: 'integer' },
         }),
       }),
     );
     expect(childSpans).toContainEqual(
       expect.objectContaining({
-        name: 'get test-key',
+        name: 'get localhost:6379',
         status: 'ok',
         attributes: expect.objectContaining({
           'sentry.op': { value: 'db.query', type: 'string' },
@@ -45,12 +50,16 @@ test.describe('server - orchestrion db instrumentation', () => {
           'db.system.name': { value: 'redis', type: 'string' },
           'db.operation.name': { value: 'get', type: 'string' },
           'db.query.text': { value: 'get test-key', type: 'string' },
+          'server.address': { value: 'localhost', type: 'string' },
+          'server.port': { value: 6379, type: 'integer' },
         }),
       }),
     );
 
     // Each command maps to exactly one span (no offline-queue duplicate).
-    const setSpans = spans.filter(span => span.name === 'set test-key [1 other arguments]');
+    const setSpans = spans.filter(
+      span => span.attributes['db.query.text']?.value === 'set test-key [1 other arguments]',
+    );
     expect(setSpans).toHaveLength(1);
 
     // Every db span nests under the native instrumentation-API http.server segment.

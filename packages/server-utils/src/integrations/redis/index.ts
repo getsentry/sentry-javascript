@@ -22,9 +22,10 @@ import {
   waitForTracingChannelBinding,
 } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
+import { getRedisQueryNaming } from './redis-span-name';
 import { defaultDbStatementSerializer } from './redis-statement-serializer';
 import type { RedisCacheOptions } from './redis-cache';
-import { applyRedisCacheAttributes } from './redis-cache';
+import { applyCacheResponseAttributes, getRedisCacheAttributes } from './redis-cache';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { redisModuleNames } from '../../orchestrion/config/redis';
 import { ioredisModuleNames } from '../../orchestrion/config/ioredis';
@@ -58,7 +59,7 @@ interface LegacyRedisClient {
 }
 
 interface NodeRedisClientOptions {
-  socket?: { host?: string; port?: number };
+  socket?: { host?: string; port?: number; path?: string };
   url?: string;
 }
 
@@ -90,25 +91,46 @@ function stripCommandOptions(args: unknown[]): unknown[] {
   return args;
 }
 
+// Resolves the connection the way node-redis >= 5.12 reports it on its own diagnostics channel: a
+// unix socket reports its path and no port, a TCP client the `localhost:6379` it defaults to.
+// Only v4 writes those defaults back into `client.options`, so reading the options as-is would
+// report a connection for a v4 client and none for the identically configured v5 one.
 function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanAttributes {
+  const socket = options?.socket;
+  const host = socket?.path ?? socket?.host ?? 'localhost';
+  const port = socket?.path != null ? undefined : (socket?.port ?? 6379);
+
   return {
     [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
-    ...(options?.socket?.host != null ? { [SERVER_ADDRESS]: options.socket.host } : {}),
-    ...(options?.socket?.port != null ? { [SERVER_PORT]: options.socket.port } : {}),
+    [SERVER_ADDRESS]: host,
+    ...(port != null ? { [SERVER_PORT]: port } : {}),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
   };
 }
 
-function startCommandSpan(commandName: string, commandArgs: Array<string | Buffer>, attributes: SpanAttributes): Span {
+function startCommandSpan(
+  commandName: string,
+  commandArgs: Array<string | Buffer>,
+  attributes: SpanAttributes,
+  cacheOptions: RedisCacheOptions,
+): Span {
   const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
+  const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(commandName, commandArgs, {
+    host: attributes[SERVER_ADDRESS],
+    port: attributes[SERVER_PORT],
+  });
+  const cacheProperties = getRedisCacheAttributes(commandName, commandArgs, attributes, cacheOptions);
+
   return startInactiveSpan({
-    name: dbStatement || `redis-${commandName}`,
+    name: cacheProperties?.name ?? streamedName ?? (dbStatement || `redis-${commandName}`),
     attributes: {
       [SENTRY_KIND]: 'client',
       ...attributes,
       [SENTRY_OP]: DB_QUERY,
       [DB_OPERATION_NAME]: commandName,
+      ...namingAttributes,
       [DB_QUERY_TEXT]: dbStatement,
+      ...cacheProperties?.attributes,
     },
   });
 }
@@ -147,13 +169,13 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
       if (client?.connection_options?.port != null) {
         attributes[SERVER_PORT] = client.connection_options.port;
       }
-      const span = startCommandSpan(command.command, command.args ?? [], attributes);
+      const span = startCommandSpan(command.command, command.args ?? [], attributes, cacheOptions);
       (data as CommandContext & { _sentrySpan?: Span })._sentrySpan = span;
 
       const parentSpan = getActiveSpan();
       command.callback = function (this: unknown, err: Error | null | undefined, reply: unknown) {
         if (!err) {
-          applyRedisCacheAttributes(span, command.command, command.args ?? [], reply, cacheOptions);
+          applyCacheResponseAttributes(span, reply);
         }
         endSpan(span, err);
         // eslint-disable-next-line prefer-rest-params
@@ -188,16 +210,12 @@ function bindNodeRedisCommandChannel(
       }
       const commandName = String(wireArgs[0]);
       const options = (data.self as NodeRedisClient | undefined)?.options;
-      return startCommandSpan(commandName, wireArgs.slice(1), nodeRedisAttributes(options));
+      return startCommandSpan(commandName, wireArgs.slice(1), nodeRedisAttributes(options), cacheOptions);
     },
     {
       beforeSpanEnd(span, data) {
-        if ('error' in data) {
-          return;
-        }
-        const wireArgs = getWireArgs(data);
-        if (wireArgs?.length) {
-          applyRedisCacheAttributes(span, String(wireArgs[0]), wireArgs.slice(1), data.result, cacheOptions);
+        if (!('error' in data)) {
+          applyCacheResponseAttributes(span, data.result);
         }
       },
     },
@@ -248,17 +266,16 @@ function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: Com
   bindTracingChannelToSpan(channel, data => {
     const commands = data.arguments?.[0];
     const size = Array.isArray(commands) ? commands.length : undefined;
-    const socket = (data.self as NodeRedisClient | undefined)?.options?.socket;
+    const options = (data.self as NodeRedisClient | undefined)?.options;
+    const operation = getOperation(data);
     return startInactiveSpan({
-      name: getOperation(data),
+      name: operation,
       attributes: {
         [SENTRY_KIND]: 'client',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        ...nodeRedisAttributes(options),
         [SENTRY_OP]: DB_QUERY,
-        [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
+        [DB_OPERATION_NAME]: operation,
         ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
-        ...(socket?.host != null ? { [SERVER_ADDRESS]: socket.host } : {}),
-        ...(socket?.port != null ? { [SERVER_PORT]: socket.port } : {}),
       },
     });
   });

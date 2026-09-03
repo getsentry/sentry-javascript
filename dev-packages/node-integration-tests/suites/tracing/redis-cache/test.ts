@@ -1,3 +1,5 @@
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -450,7 +452,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       test('should name cache spans after the cache operation when streamed (redis-4)', async () => {
         await createTestRunner()
           .withEnv({ STREAMED: 'true' })
-          // The connect span is streamed in its own envelope, ahead of the command spans.
+          // The connect span opens its own segment. `unordered` keeps this expectation from
+          // depending on which segment the buffer happens to emit first.
           .unordered()
           .expect({ span: { items: EXPECTED_STREAMED_SPANS } })
           .start()
@@ -669,11 +672,366 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       test('should name cache spans after the cache operation when streamed (redis-5)', async () => {
         await createTestRunner()
           .withEnv({ STREAMED: 'true' })
-          // The connect span is streamed in its own envelope, ahead of the command spans.
+          // The connect span opens its own segment. `unordered` keeps this expectation from
+          // depending on which segment the buffer happens to emit first.
           .unordered()
           .expect({ span: { items: EXPECTED_STREAMED_SPANS } })
           .start()
           .completed();
+      });
+    });
+  });
+
+  describe('streamed', () => {
+    // The blocks above assert the same commands as transactions. With span streaming, span names
+    // have to be low cardinality, so `db.query` spans drop the serialized statement from their
+    // name — it stays on `db.query.text` — and are named
+    // `{db.operation.name} {server.address}:{server.port}` instead. Cache spans are named after
+    // their cache operation, and batch spans keep their `MULTI`/`PIPELINE` name.
+    const streamAttribute = (value: unknown): { type: string; value: unknown } => ({
+      type: Array.isArray(value) ? 'array' : Number.isInteger(value) ? 'integer' : typeof value,
+      value,
+    });
+
+    // Streamed spans carry `{ type, value }` attribute pairs; the expectations below are written
+    // as plain values and wrapped here.
+    const streamAttributes = (values: Record<string, unknown>): Record<string, unknown> =>
+      Object.fromEntries(Object.entries(values).map(([key, value]) => [key, streamAttribute(value)]));
+
+    const commonAttributes = (segmentName: string): Record<string, unknown> => ({
+      ...streamAttributes({
+        'db.system.name': 'redis',
+        'sentry.environment': 'production',
+        'sentry.kind': 'client',
+        'sentry.origin': redisOrigin,
+        'sentry.release': '1.0',
+        'sentry.sdk.name': 'sentry.javascript.node',
+        'sentry.segment.name': segmentName,
+        [SENTRY_TRACE_LIFECYCLE]: 'stream',
+      }),
+      'sentry.sdk.version': { type: 'string', value: expect.any(String) },
+      'sentry.segment.id': { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
+    });
+
+    function streamedSpan({
+      name,
+      op,
+      segmentName,
+      status = 'ok',
+      attributes,
+    }: {
+      name: string;
+      op: string;
+      segmentName: string;
+      status?: string;
+      attributes: Record<string, unknown>;
+    }): unknown {
+      return {
+        name,
+        attributes: {
+          ...commonAttributes(segmentName),
+          ...streamAttributes({ 'sentry.op': op, ...attributes }),
+        },
+        end_timestamp: expect.any(Number),
+        is_segment: false,
+        parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+        span_id: expect.stringMatching(/^[\da-f]{16}$/),
+        start_timestamp: expect.any(Number),
+        status,
+        trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      };
+    }
+
+    const childSpans = (container: SerializedStreamedSpanContainer): SerializedStreamedSpanContainer['items'] =>
+      container.items.filter(item => !item.is_segment);
+
+    describe('ioredis', () => {
+      const segmentName = 'Test Span';
+      const connection = { 'server.address': 'localhost', 'server.port': 6383 };
+      const peer = { 'network.peer.address': 'localhost', 'network.peer.port': 6383 };
+
+      const span = (name: string, op: string, attributes: Record<string, unknown>, status?: string): unknown =>
+        streamedSpan({ name, op, segmentName, status, attributes: { ...connection, ...attributes } });
+
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        attributes: Record<string, unknown>,
+      ): unknown => span(op, op, { ...peer, 'cache.operation': op.slice('cache.'.length), ...attributes });
+
+      createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument-ioredis.mjs', (createTestRunner, test) => {
+        test('creates streamed db and cache spans (ioredis)', { timeout: 60_000 }, async () => {
+          await createTestRunner()
+            .withEnv({ STREAMED: 'true' })
+            .expect({
+              span: (container: SerializedStreamedSpanContainer) => {
+                expect(container.items.find(item => item.is_segment)?.name).toBe(segmentName);
+
+                expect(childSpans(container)).toEqual([
+                  span('set localhost:6383', redisSpanOp, {
+                    'db.operation.name': 'set',
+                    'db.query.text': 'set test-key [1 other arguments]',
+                  }),
+                  cacheSpan('cache.put', {
+                    'db.operation.name': 'set',
+                    'db.query.text': 'set ioredis-cache:test-key [1 other arguments]',
+                    'cache.key': ['ioredis-cache:test-key'],
+                    'cache.item_size': 2,
+                  }),
+                  cacheSpan('cache.put', {
+                    'db.operation.name': 'set',
+                    'db.query.text': 'set ioredis-cache:test-key-set-EX [3 other arguments]',
+                    'cache.key': ['ioredis-cache:test-key-set-EX'],
+                    'cache.item_size': 2,
+                  }),
+                  cacheSpan('cache.put', {
+                    'db.operation.name': 'setex',
+                    'db.query.text': 'setex ioredis-cache:test-key-setex [2 other arguments]',
+                    'cache.key': ['ioredis-cache:test-key-setex'],
+                    'cache.item_size': 2,
+                  }),
+                  span('get localhost:6383', redisSpanOp, {
+                    'db.operation.name': 'get',
+                    'db.query.text': 'get test-key',
+                  }),
+                  cacheSpan('cache.get', {
+                    'db.operation.name': 'get',
+                    'db.query.text': 'get ioredis-cache:test-key',
+                    'cache.key': ['ioredis-cache:test-key'],
+                    'cache.hit': true,
+                    'cache.item_size': 10,
+                  }),
+                  cacheSpan('cache.get', {
+                    'db.operation.name': 'get',
+                    'db.query.text': 'get ioredis-cache:unavailable-data',
+                    'cache.key': ['ioredis-cache:unavailable-data'],
+                    'cache.hit': false,
+                  }),
+                  cacheSpan('cache.get', {
+                    'db.operation.name': 'mget',
+                    'db.query.text': 'mget [3 other arguments]',
+                    'cache.key': ['test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data'],
+                    'cache.hit': true,
+                    'cache.item_size': 20,
+                  }),
+                  cacheSpan('cache.remove', {
+                    'db.operation.name': 'del',
+                    'db.query.text': 'del ioredis-cache:test-key',
+                    'cache.key': ['ioredis-cache:test-key'],
+                  }),
+                ]);
+              },
+            })
+            .start()
+            .completed();
+        });
+      });
+    });
+
+    // node-redis v4 fills in `socket.host`, so its `db.query` spans get the
+    // `{db.operation.name} {server.address}:{server.port}` name.
+    describe('redis-4', () => {
+      const segmentName = 'Test Span Redis 4';
+      const connection = { 'server.address': 'localhost', 'server.port': 6383 };
+      const peer = { 'network.peer.address': 'localhost', 'network.peer.port': 6383 };
+
+      const span = (name: string, op: string, attributes: Record<string, unknown>, status?: string): unknown =>
+        streamedSpan({ name, op, segmentName, status, attributes: { ...connection, ...attributes } });
+
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        attributes: Record<string, unknown>,
+      ): unknown => span(op, op, { ...peer, 'cache.operation': op.slice('cache.'.length), ...attributes });
+
+      createEsmAndCjsTests(__dirname, 'scenario-redis-4.mjs', 'instrument-redis-4.mjs', (createTestRunner, test) => {
+        test('creates streamed db and cache spans (redis-4)', { timeout: 60_000 }, async () => {
+          await createTestRunner()
+            .withEnv({ STREAMED: 'true' })
+            .expect({
+              span: (container: SerializedStreamedSpanContainer) => {
+                // The connect span opens its own segment, but shares the trace with the test span,
+                // so both segments arrive in the same container.
+                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
+                  'redis-connect',
+                  segmentName,
+                ]);
+
+                expect(childSpans(container)).toEqual([
+                  span('SET localhost:6383', redisSpanOp, {
+                    'db.operation.name': 'SET',
+                    'db.query.text': 'SET redis-test-key [1 other arguments]',
+                  }),
+                  cacheSpan('cache.put', {
+                    'db.operation.name': 'SET',
+                    'db.query.text': 'SET redis-cache:test-key [1 other arguments]',
+                    'cache.key': ['redis-cache:test-key'],
+                    'cache.item_size': 2,
+                  }),
+                  cacheSpan('cache.put', {
+                    'db.operation.name': 'SET',
+                    'db.query.text': 'SET redis-cache:test-key-set-EX [3 other arguments]',
+                    'cache.key': ['redis-cache:test-key-set-EX'],
+                    'cache.item_size': 2,
+                  }),
+                  cacheSpan('cache.put', {
+                    'db.operation.name': 'SETEX',
+                    'db.query.text': 'SETEX redis-cache:test-key-setex [2 other arguments]',
+                    'cache.key': ['redis-cache:test-key-setex'],
+                    'cache.item_size': 2,
+                  }),
+                  span('GET localhost:6383', redisSpanOp, {
+                    'db.operation.name': 'GET',
+                    'db.query.text': 'GET redis-test-key',
+                  }),
+                  cacheSpan('cache.get', {
+                    'db.operation.name': 'GET',
+                    'db.query.text': 'GET redis-cache:test-key',
+                    'cache.key': ['redis-cache:test-key'],
+                    'cache.hit': true,
+                    'cache.item_size': 10,
+                  }),
+                  cacheSpan('cache.get', {
+                    'db.operation.name': 'GET',
+                    'db.query.text': 'GET redis-cache:unavailable-data',
+                    'cache.key': ['redis-cache:unavailable-data'],
+                    'cache.hit': false,
+                  }),
+                  cacheSpan('cache.get', {
+                    'db.operation.name': 'MGET',
+                    'db.query.text': 'MGET [3 other arguments]',
+                    'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
+                    'cache.hit': true,
+                    'cache.item_size': 20,
+                  }),
+                  cacheSpan('cache.remove', {
+                    'db.operation.name': 'DEL',
+                    'db.query.text': 'DEL redis-cache:test-key',
+                    'cache.key': ['redis-cache:test-key'],
+                  }),
+                  // Batch spans are named after the batch operation, which is already low cardinality.
+                  span('MULTI', redisSpanOp, { 'db.operation.name': 'MULTI', 'db.operation.batch.size': 2 }),
+                  span(
+                    'INCR localhost:6383',
+                    redisSpanOp,
+                    {
+                      'db.operation.name': 'INCR',
+                      'db.query.text': 'INCR redis-test-key',
+                      'error.type': 'Error',
+                      'sentry.status.message': 'ERR value is not an integer or out of range',
+                    },
+                    'error',
+                  ),
+                ]);
+              },
+            })
+            .start()
+            .completed();
+        });
+      });
+    });
+
+    // node-redis v5 leaves `socket.host` unset when only a port is passed, unlike v4. The
+    // integration fills in the library's own `localhost` default, so both report the same
+    // connection and get the same span name.
+    describe('redis-5', () => {
+      const segmentName = 'Test Span Redis 5';
+      const connection = { 'server.address': 'localhost', 'server.port': 6383 };
+      const peer = { 'network.peer.address': 'localhost', 'network.peer.port': 6383 };
+
+      const span = (name: string, op: string, attributes: Record<string, unknown>, status?: string): unknown =>
+        streamedSpan({ name, op, segmentName, status, attributes: { ...connection, ...attributes } });
+
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        attributes: Record<string, unknown>,
+      ): unknown => span(op, op, { ...peer, 'cache.operation': op.slice('cache.'.length), ...attributes });
+
+      createEsmAndCjsTests(__dirname, 'scenario-redis-5.mjs', 'instrument-redis-5.mjs', (createTestRunner, test) => {
+        test('creates streamed db and cache spans (redis-5)', { timeout: 60_000 }, async () => {
+          await createTestRunner()
+            .withEnv({ STREAMED: 'true' })
+            .expect({
+              span: (container: SerializedStreamedSpanContainer) => {
+                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
+                  'redis-connect',
+                  segmentName,
+                ]);
+
+                expect(childSpans(container)).toEqual([
+                  span('SET localhost:6383', redisSpanOp, {
+                    'db.operation.name': 'SET',
+                    'db.query.text': 'SET redis-5-test-key [1 other arguments]',
+                  }),
+                  cacheSpan('cache.put', {
+                    'db.operation.name': 'SET',
+                    'db.query.text': 'SET redis-5-cache:test-key [1 other arguments]',
+                    'cache.key': ['redis-5-cache:test-key'],
+                    'cache.item_size': 2,
+                  }),
+                  cacheSpan('cache.put', {
+                    'db.operation.name': 'SET',
+                    'db.query.text': 'SET redis-5-cache:test-key-set-EX [3 other arguments]',
+                    'cache.key': ['redis-5-cache:test-key-set-EX'],
+                    'cache.item_size': 2,
+                  }),
+                  cacheSpan('cache.put', {
+                    'db.operation.name': 'SETEX',
+                    'db.query.text': 'SETEX redis-5-cache:test-key-setex [2 other arguments]',
+                    'cache.key': ['redis-5-cache:test-key-setex'],
+                    'cache.item_size': 2,
+                  }),
+                  span('GET localhost:6383', redisSpanOp, {
+                    'db.operation.name': 'GET',
+                    'db.query.text': 'GET redis-5-test-key',
+                  }),
+                  cacheSpan('cache.get', {
+                    'db.operation.name': 'GET',
+                    'db.query.text': 'GET redis-5-cache:test-key',
+                    'cache.key': ['redis-5-cache:test-key'],
+                    'cache.hit': true,
+                    'cache.item_size': 10,
+                  }),
+                  cacheSpan('cache.get', {
+                    'db.operation.name': 'GET',
+                    'db.query.text': 'GET redis-5-cache:unavailable-data',
+                    'cache.key': ['redis-5-cache:unavailable-data'],
+                    'cache.hit': false,
+                  }),
+                  cacheSpan('cache.get', {
+                    'db.operation.name': 'MGET',
+                    'db.query.text': 'MGET [3 other arguments]',
+                    'cache.key': ['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data'],
+                    'cache.hit': true,
+                    'cache.item_size': 20,
+                  }),
+                  cacheSpan('cache.remove', {
+                    'db.operation.name': 'DEL',
+                    'db.query.text': 'DEL redis-5-cache:test-key',
+                    'cache.key': ['redis-5-cache:test-key'],
+                  }),
+                  span('MULTI', redisSpanOp, { 'db.operation.name': 'MULTI', 'db.operation.batch.size': 2 }),
+                  span(
+                    'INCR localhost:6383',
+                    redisSpanOp,
+                    {
+                      'db.operation.name': 'INCR',
+                      'db.query.text': 'INCR redis-5-test-key',
+                      'error.type': 'Error',
+                      'sentry.status.message': 'ERR value is not an integer or out of range',
+                    },
+                    'error',
+                  ),
+                ]);
+              },
+            })
+            .start()
+            .completed();
+        });
       });
     });
   });
