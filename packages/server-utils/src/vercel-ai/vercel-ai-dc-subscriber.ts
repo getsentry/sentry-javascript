@@ -33,9 +33,9 @@ import {
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
+  LAST_STEP_ONLY_USAGE_KEYS,
   getClient,
   getProviderMetadataAttributes,
-  LAST_STEP_ONLY_USAGE_KEYS,
   getTruncatedJsonString,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -129,6 +129,20 @@ export function clearOperationCallId(callId: string): void {
   operationIdByCallId.delete(callId);
   toolDescriptionsByCallId.delete(callId);
   invokeAgentSpanByCallId.delete(callId);
+}
+
+/**
+ * `providerMetadata` is last-step only; drop derived usage on spans that report an aggregate.
+ * Matches `addProviderMetadataToAttributes`.
+ */
+function dropLastStepOnlyUsage(providerAttributes: Record<string, number | string>, type: ChannelEventType): void {
+  if (!ROOT_OPERATION_TYPES.has(type)) {
+    return;
+  }
+  for (const key of LAST_STEP_ONLY_USAGE_KEYS) {
+    // oxlint-disable-next-line typescript/no-dynamic-delete
+    delete providerAttributes[key];
+  }
 }
 
 /** Record tool name → description from an event's `tools`, so tool spans can backfill the description. */
@@ -577,16 +591,7 @@ export function enrichSpanOnEnd(
     // oxlint-disable-next-line typescript/no-dynamic-delete
     delete providerAttributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE];
   }
-  // A top-level operation's span reports usage aggregated across every step, while
-  // `providerMetadata` describes the last step alone. Dropping the derived usage keeps the
-  // aggregate intact; the model-call spans still carry the provider-derived figures. Matches the
-  // OTel path, which applies the same rule in `addProviderMetadataToAttributes`.
-  if (ROOT_OPERATION_TYPES.has(type)) {
-    for (const key of LAST_STEP_ONLY_USAGE_KEYS) {
-      // oxlint-disable-next-line typescript/no-dynamic-delete
-      delete providerAttributes[key];
-    }
-  }
+  dropLastStepOnlyUsage(providerAttributes, type);
   span.setAttributes(providerAttributes);
 
   if (recordOutputs) {
