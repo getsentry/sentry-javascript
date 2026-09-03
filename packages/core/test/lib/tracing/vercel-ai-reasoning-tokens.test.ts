@@ -78,10 +78,10 @@ describe('vercel-ai Gemini reasoning tokens', () => {
     expect(processed?.data?.['gen_ai.usage.reasoning.output_tokens']).toBe(100);
   });
 
-  it('leaves output and total alone when candidatesTokenCount is absent', () => {
-    // `candidatesTokenCount` is optional in the Gemini response. Without it there is no candidate
-    // count to add reasoning to, so rewriting the total on its own would leave a span whose
-    // thoughts-inclusive total does not match its candidate-only output.
+  it('counts an absent candidatesTokenCount as zero', () => {
+    // Gemini omits `candidatesTokenCount` when the response is truncated during thinking, which
+    // means no candidate tokens were produced. Treating it as zero keeps the reasoning tokens in
+    // the output rather than dropping the whole recompute and reporting the candidate-only count.
     const [processed] = processSpans([
       span('ai.generateText.doGenerate', {
         'ai.usage.completionTokens': 1,
@@ -91,9 +91,8 @@ describe('vercel-ai Gemini reasoning tokens', () => {
       }),
     ]);
 
-    expect(processed?.data?.['gen_ai.usage.output_tokens']).toBe(1);
-    expect(processed?.data?.['gen_ai.usage.total_tokens']).toBeUndefined();
-    // The reasoning count is still reported: nothing else on the span carries it.
+    expect(processed?.data?.['gen_ai.usage.output_tokens']).toBe(100);
+    expect(processed?.data?.['gen_ai.usage.total_tokens']).toBe(115);
     expect(processed?.data?.['gen_ai.usage.reasoning.output_tokens']).toBe(100);
   });
 
@@ -112,9 +111,10 @@ describe('vercel-ai Gemini reasoning tokens', () => {
     expect(parent?.data?.['gen_ai.operation.name']).toBe('invoke_agent');
     expect(parent?.data?.['gen_ai.usage.input_tokens']).toBe(900);
     expect(parent?.data?.['gen_ai.usage.output_tokens']).toBe(350);
-    expect(parent?.data?.['gen_ai.usage.total_tokens']).not.toBe(115);
-    // The reasoning count is not an aggregate, so it survives and is the only place it appears.
-    expect(parent?.data?.['gen_ai.usage.reasoning.output_tokens']).toBe(100);
+    expect(parent?.data?.['gen_ai.usage.total_tokens']).toBe(1250);
+    // Reasoning is a subset of an output this span never recomputes, so it is left off entirely
+    // rather than reporting the last step's count against the summed output.
+    expect(parent?.data?.['gen_ai.usage.reasoning.output_tokens']).toBeUndefined();
   });
 
   it('keeps a multi-step call consistent: the parent sums, each step reports its own reasoning', () => {
@@ -171,7 +171,46 @@ describe('vercel-ai Gemini reasoning tokens', () => {
 
     // The parent keeps an aggregate whose parts add up, rather than step two's 101 and 115.
     expect(parent?.data?.['gen_ai.usage.input_tokens']).toBe(900);
-    expect(parent?.data?.['gen_ai.usage.output_tokens']).not.toBe(101);
-    expect(parent?.data?.['gen_ai.usage.total_tokens']).not.toBe(115);
+    expect(parent?.data?.['gen_ai.usage.output_tokens']).toBe(350);
+    expect(parent?.data?.['gen_ai.usage.total_tokens']).toBe(1250);
+    // The last step's 100 would stand in for the call's real 180, and nothing sums it, so it is
+    // left off rather than reported.
+    expect(parent?.data?.['gen_ai.usage.reasoning.output_tokens']).toBeUndefined();
+  });
+
+  it('holds on the streamed path, which has no accumulation pass to repair the parent', () => {
+    // The event processor sees the whole transaction and re-derives an `invoke_agent` parent from
+    // its children; `processSpan` sees one span at a time and ships whatever it produced. This is
+    // the path the gate actually protects.
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1.0 }));
+    client.init();
+    addVercelAiProcessors(client);
+
+    const streamed = (attrs: Record<string, unknown>): Record<string, unknown> => {
+      const span = { span_id: 's', trace_id: 't', attributes: { 'sentry.origin': 'auto.vercelai.otel', ...attrs } };
+      client.emit('processSpan', span as never);
+      return span.attributes;
+    };
+
+    const parent = streamed({
+      'operation.name': 'ai.generateText',
+      'ai.usage.inputTokens': 14,
+      'ai.usage.outputTokens': 1,
+      'ai.response.providerMetadata': JSON.stringify(GEMINI_REASONING_METADATA),
+    });
+    const child = streamed({
+      'operation.name': 'ai.generateText.doGenerate',
+      'ai.usage.promptTokens': 14,
+      'ai.usage.completionTokens': 1,
+      'ai.response.providerMetadata': JSON.stringify(GEMINI_REASONING_METADATA),
+    });
+
+    expect(child['gen_ai.usage.output_tokens']).toBe(101);
+    expect(child['gen_ai.usage.total_tokens']).toBe(115);
+    expect(child['gen_ai.usage.reasoning.output_tokens']).toBe(100);
+
+    // No reasoning count larger than the output it is meant to be a subset of.
+    expect(parent['gen_ai.usage.output_tokens']).toBe(1);
+    expect(parent['gen_ai.usage.reasoning.output_tokens']).toBeUndefined();
   });
 });

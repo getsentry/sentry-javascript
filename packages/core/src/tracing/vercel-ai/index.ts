@@ -605,21 +605,25 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
   // tokens separately from the candidate output count, so the SDK's `outputTokens` covers only the
   // visible answer. Recompute output from `candidatesTokenCount + thoughtsTokenCount` rather than
   // adding onto the existing value, which stays correct even if a future SDK version already folds
-  // reasoning in. `candidatesTokenCount` is optional, so output and total are written together or
-  // not at all: taking the thoughts-inclusive total beside a candidate-only output would report a
-  // span whose parts do not add up.
+  // reasoning in. `candidatesTokenCount` is omitted when the response is truncated during thinking,
+  // which means no candidate tokens, so it counts as zero. Reasoning is a subset of output per the
+  // conventions, so it is only written alongside the reasoning-inclusive output it belongs to.
   const googleUsage = (metadata.google ?? metadata.vertex)?.usageMetadata;
   if (googleUsage && typeof googleUsage.thoughtsTokenCount === 'number' && googleUsage.thoughtsTokenCount > 0) {
+    attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] =
+      (googleUsage.candidatesTokenCount ?? 0) + googleUsage.thoughtsTokenCount;
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, googleUsage.totalTokenCount);
     setAttributeIfDefined(attributes, 'gen_ai.usage.reasoning.output_tokens', googleUsage.thoughtsTokenCount);
-    if (typeof googleUsage.candidatesTokenCount === 'number') {
-      attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] =
-        googleUsage.candidatesTokenCount + googleUsage.thoughtsTokenCount;
-      setAttributeIfDefined(attributes, GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, googleUsage.totalTokenCount);
-    }
   }
 
   return attributes;
 }
+
+const LAST_STEP_ONLY_USAGE_KEYS = new Set<string>([
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+  'gen_ai.usage.reasoning.output_tokens',
+]);
 
 function addProviderMetadataToAttributes(attributes: Record<string, unknown>): void {
   const providerMetadata = attributes[AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE] as string | undefined;
@@ -629,8 +633,9 @@ function addProviderMetadataToAttributes(attributes: Record<string, unknown>): v
   // An `invoke_agent` span carries the summed `ai.usage.*` of every step, while `providerMetadata`
   // describes the last step alone. Writing output or total from it would replace the aggregate with
   // one step's figures, so a two-step call reports output 50 against input 900. The event-processor
-  // path happens to overwrite it again in `applyAccumulatedTokens`; the streamed path ships it. The
-  // reasoning count is still worth having, since nothing else carries it and it is not a total.
+  // path happens to overwrite it again in `applyAccumulatedTokens`; the streamed path ships it.
+  // Reasoning goes with them: it is a subset of an output the parent never recomputes, and the
+  // accumulator never sums it, so the last step's count would stand in for the whole call.
   const lastStepOnly = attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] === 'invoke_agent';
   try {
     const derived = getProviderMetadataAttributes(JSON.parse(providerMetadata) as ProviderMetadata);
@@ -639,10 +644,7 @@ function addProviderMetadataToAttributes(attributes: Record<string, unknown>): v
       if (key === GEN_AI_CONVERSATION_ID_ATTRIBUTE && attributes[key]) {
         continue;
       }
-      if (
-        lastStepOnly &&
-        (key === GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE || key === GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE)
-      ) {
+      if (lastStepOnly && LAST_STEP_ONLY_USAGE_KEYS.has(key)) {
         continue;
       }
       attributes[key] = value;
