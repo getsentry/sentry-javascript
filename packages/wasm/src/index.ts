@@ -1,7 +1,8 @@
-import type { DebugImage, Event, IntegrationFn, StackFrame } from '@sentry/core';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
 import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
+import { uniqueImageForSyntheticFilename } from './matchSyntheticWasmFilename';
 import { patchWebAssembly } from './patchWebAssembly';
-import { getImage, getImages, registerModule } from './registry';
+import { getImage, getImages, registerModule, toProtocolDebugImage, type RegisteredWasmImage } from './registry';
 
 const INTEGRATION_NAME = 'Wasm';
 
@@ -32,7 +33,7 @@ interface WasmIntegrationOptions {
 
 // Access WINDOW with proper typing for _sentryWasmImages
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  _sentryWasmImages?: Array<DebugImage>;
+  _sentryWasmImages?: Array<RegisteredWasmImage>;
 };
 
 const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
@@ -58,8 +59,8 @@ const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
 
       if (hasAtLeastOneWasmFrameWithImage) {
         event.debug_meta = event.debug_meta || {};
-        const mainThreadImages = getImages();
-        const workerImages = WINDOW._sentryWasmImages || [];
+        const mainThreadImages = getImages().map(toProtocolDebugImage);
+        const workerImages = (WINDOW._sentryWasmImages || []).map(toProtocolDebugImage);
         event.debug_meta.images = [...(event.debug_meta.images || []), ...mainThreadImages, ...workerImages];
       }
 
@@ -127,7 +128,7 @@ export function patchFrames(
 
       // Exact `code_file` miss: `match[1]` is `wasm://wasm/…`, not the registered http URL.
       if (index < 0 && workerImageIndex < 0) {
-        const unique = uniqueImageForSyntheticFilename(match[1]);
+        const unique = uniqueImageForSyntheticFilename(match[1], getImages(), WINDOW._sentryWasmImages || []);
         if (unique) {
           frame.filename = unique.codeFile;
           if (unique.worker) {
@@ -148,7 +149,7 @@ export function patchFrames(
       }
     } else {
       // Bare `wasm://wasm/<file>-<hash>` — JS parser already set `instruction_addr`.
-      const unique = uniqueImageForSyntheticFilename(frame.filename);
+      const unique = uniqueImageForSyntheticFilename(frame.filename, getImages(), WINDOW._sentryWasmImages || []);
       if (unique && frame.instruction_addr) {
         frame.filename = unique.codeFile;
         frame.platform = 'native';
@@ -177,40 +178,6 @@ function getWorkerImage(url: string): number {
   return workerImages.findIndex(image => {
     return image.type === 'wasm' && image.code_file === url;
   });
-}
-
-function fileBasename(url: string): string | undefined {
-  try {
-    return new URL(url).pathname.split('/').pop() || undefined;
-  } catch {
-    return url.split('/').pop();
-  }
-}
-
-/** Chrome may label buffer-compiled modules `wasm://wasm/<filename>-<hash>` (window and workers). */
-function uniqueImageForSyntheticFilename(
-  filename: string,
-): { index: number; worker: boolean; codeFile: string } | undefined {
-  const body = filename.match(/^wasm:\/\/wasm\/(.+)$/i)?.[1];
-  if (!body) {
-    return undefined;
-  }
-  const basename = body.replace(/-[0-9a-fA-F]{6,16}$/, '');
-  const hits: Array<{ index: number; worker: boolean; codeFile: string; debugId: string }> = [];
-  const consider = (images: Array<DebugImage>, worker: boolean): void => {
-    images.forEach((image, index) => {
-      if (image.type === 'wasm' && typeof image.code_file === 'string' && fileBasename(image.code_file) === basename) {
-        hits.push({ index, worker, codeFile: image.code_file, debugId: image.debug_id });
-      }
-    });
-  };
-  consider(getImages(), false);
-  consider(WINDOW._sentryWasmImages || [], true);
-  // Same binary may be registered under several URLs (page + worker, CDN vs origin).
-  // Chrome's wasm:// hash is not a debug_id, so different binaries that share a
-  // filename still cannot be told apart.
-  const debugIds = new Set(hits.map(hit => hit.debugId));
-  return debugIds.size === 1 ? hits[0] : undefined;
 }
 
 /**
