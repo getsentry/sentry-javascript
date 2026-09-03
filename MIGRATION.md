@@ -1255,17 +1255,6 @@ import { loadModule, trpcMiddleware } from '@sentry/core/server';
 import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 ```
 
-Isomorphic APIs stay on `@sentry/core`, so a single import may need splitting in two:
-
-```js
-// before
-import { fill, isThenable, loadModule } from '@sentry/core';
-
-// after
-import { fill, isThenable } from '@sentry/core';
-import { loadModule } from '@sentry/core/server';
-```
-
 Only on `@sentry/core/browser`: `startIdleSpan`, and the `BrowserClientReplayOptions`, `XhrBreadcrumbData` and `XhrBreadcrumbHint` types.
 
 Only on `@sentry/core/server`: `ServerRuntimeClient`, `trpcMiddleware`, `wrapMcpServerWithSentry`, `loadModule`, `isNodeEnv`, `node`, `nodeStackLineParser`, `filenameIsInApp`, `vercelWaitUntil`, `flushIfServerless`, `watchdogTimer`, `callFrameToStackFrame`, `patchExpressModule`, `instrumentPostgresJsSql`, `DEFAULT_IGNORE_STATUS_CODES`, the HTTP helpers (`patchHttpModuleClient`, `getHttpClientSubscriptions`, `getHttpServerSubscriptions`, `isStaticAssetRequest`, `processHttpServerTransactionEvent`, `recordRequestSession`, `addOutgoingRequestBreadcrumb`, `getRequestUrl`, `getRequestUrlObject`, `getRequestUrlFromClientRequest`, `getRequestOptions`, `HTTP_ON_CLIENT_REQUEST`, `HTTP_ON_SERVER_REQUEST`), and the `ServerRuntimeClientOptions`, `ServerRuntimeOptions`, `ExpressMiddleware`, `ExpressErrorMiddleware`, `HttpInstrumentationOptions`, `HttpClientRequest`, `HttpIncomingMessage`, `HttpServerResponse`, `HttpModuleExport`, `PostgresConnectionContext` and `SqlDialect` types.
