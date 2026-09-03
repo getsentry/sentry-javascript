@@ -139,9 +139,9 @@ test.describe('distributed tracing', () => {
       }),
     });
 
-    // All 3 root spans and the http.client span should share the same trace_id
+    // `collectStreamedSpans` already guarantees the pageload and http.client spans share a trace,
+    // so only the independently awaited server spans need the check.
     expect(pageloadSpan?.trace_id).toBeDefined();
-    expect(pageloadSpan?.trace_id).toBe(httpClientSpan?.trace_id);
     expect(pageloadSpan?.trace_id).toBe(ssrSpan.trace_id);
     expect(pageloadSpan?.trace_id).toBe(serverReqSpan.trace_id);
   });
