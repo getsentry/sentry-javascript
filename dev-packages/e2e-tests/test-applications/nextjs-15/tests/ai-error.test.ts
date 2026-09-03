@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpans, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
 // FIXME: This app uses `ai@^3`, which the channel-based Vercel AI integration doesn't instrument
 // (it supports v4-v6 via the orchestrion transform and v7 via the native `ai:telemetry` channel).
 // With channel-based instrumentation now the default, no gen_ai spans are produced. Re-enable once
 // the app is upgraded to `ai@v7` (or v3 support is restored).
 test.fixme('should create AI spans with correct attributes and error linking', async ({ page }) => {
-  const aiTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return transactionEvent.transaction === 'GET /ai-error-test';
+  const aiSpanPromise = waitForStreamedSpan('nextjs-15', span => {
+    return span.name === 'GET /ai-error-test' && span.is_segment;
   });
 
   // gen_ai spans are extracted into a separate span v2 envelope item
@@ -21,12 +21,12 @@ test.fixme('should create AI spans with correct attributes and error linking', a
 
   await page.goto('/ai-error-test');
 
-  const aiTransaction = await aiTransactionPromise;
+  const aiSpan = await aiSpanPromise;
   const genAiSpans = await genAiSpansPromise;
   const errorEvent = await errorEventPromise;
 
-  expect(aiTransaction).toBeDefined();
-  expect(aiTransaction.transaction).toBe('GET /ai-error-test');
+  expect(aiSpan).toBeDefined();
+  expect(aiSpan.name).toBe('GET /ai-error-test');
 
   // Each generateText call should create 2 spans: one for the pipeline and one for doGenerate
   // Plus a span for the tool call
@@ -44,5 +44,5 @@ test.fixme('should create AI spans with correct attributes and error linking', a
   expect(errorEvent).toBeDefined();
 
   //Verify error is linked to the same trace as the transaction
-  expect(errorEvent?.contexts?.trace?.trace_id).toBe(aiTransaction.contexts?.trace?.trace_id);
+  expect(errorEvent?.contexts?.trace?.trace_id).toBe(aiSpan.trace_id);
 });

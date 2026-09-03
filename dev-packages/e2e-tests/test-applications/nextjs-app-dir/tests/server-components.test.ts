@@ -1,101 +1,95 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('Sends a transaction for a request to app router', async ({ page }) => {
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
+// Streamed spans are flushed across multiple envelopes as they end, so child spans can arrive in an
+// earlier envelope than the `is_segment` root span. Accumulate spans until the root span is seen.
+function collectSpansUntilSegment(segmentName: string) {
+  return collectStreamedSpans('nextjs-app-dir', spans =>
+    spans.some(span => span.name === segmentName && span.is_segment),
+  );
+}
+
+test('Sends a span for a request to app router', async ({ page }) => {
+  const serverComponentSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return (
-      transactionEvent?.transaction === 'GET /server-component/parameter/[...parameters]' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'].startsWith('/server-component/parameter/1337/42')
+      span.name === 'GET /server-component/parameter/[...parameters]' &&
+      span.is_segment &&
+      String(span.attributes['http.target']?.value).startsWith('/server-component/parameter/1337/42')
     );
   });
 
   await page.goto('/server-component/parameter/1337/42');
 
-  const transactionEvent = await serverComponentTransactionPromise;
+  const span = await serverComponentSpanPromise;
 
-  expect(transactionEvent.contexts?.trace).toEqual({
-    data: expect.objectContaining({
-      'sentry.op': 'http.server',
-      'sentry.origin': 'auto',
-      'sentry.sample_rate': 1,
-      'sentry.segment.name.source': 'route',
-      'http.method': 'GET',
-      'http.response.status_code': 200,
-      'http.route': '/server-component/parameter/[...parameters]',
-      'http.status_code': 200,
-      'http.target': '/server-component/parameter/1337/42',
-      'sentry.kind': 'server',
-      'next.route': '/server-component/parameter/[...parameters]',
-    }),
-    op: 'http.server',
-    origin: 'auto',
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    status: 'ok',
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+  expect(span.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(span.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(span.status).toBe('ok');
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto', type: 'string' },
+    'sentry.sample_rate': { value: 1, type: 'integer' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'http.method': { value: 'GET', type: 'string' },
+    'http.response.status_code': { value: 200, type: 'integer' },
+    'http.route': { value: '/server-component/parameter/[...parameters]', type: 'string' },
+    'http.status_code': { value: 200, type: 'integer' },
+    'http.target': { value: '/server-component/parameter/1337/42', type: 'string' },
+    'sentry.kind': { value: 'server', type: 'string' },
+    'next.route': { value: '/server-component/parameter/[...parameters]', type: 'string' },
   });
-
-  expect(transactionEvent.request).toMatchObject({
-    url: expect.stringContaining('/server-component/parameter/1337/42'),
-  });
-
-  // The transaction should not contain any spans with the same name as the transaction
-  // e.g. "GET /server-component/parameter/[...parameters]"
-  expect(
-    transactionEvent.spans?.filter(span => {
-      return span.description === transactionEvent.transaction;
-    }),
-  ).toHaveLength(0);
 });
 
-test('Should not set an error status on an app router transaction when it redirects', async ({ page }) => {
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /server-component/redirect';
+test('Should not set an error status on an app router span when it redirects', async ({ page }) => {
+  const serverComponentSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
+    return span.name === 'GET /server-component/redirect' && span.is_segment;
   });
 
   await page.goto('/server-component/redirect');
 
-  const transactionEvent = await serverComponentTransactionPromise;
+  const span = await serverComponentSpanPromise;
 
-  expect(transactionEvent.contexts?.trace?.status).not.toBe('internal_error');
+  expect(span.status).toBe('ok');
 });
 
 test('Should set a "not_found" status on a server component span when notFound() is called and the request span should have status ok', async ({
   page,
 }) => {
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /server-component/not-found';
-  });
+  const spansPromise = collectSpansUntilSegment('GET /server-component/not-found');
 
   await page.goto('/server-component/not-found');
 
-  const transactionEvent = await serverComponentTransactionPromise;
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.name === 'GET /server-component/not-found' && span.is_segment)!;
 
-  // Transaction should have status ok, because the http status is ok, but the render component span should be not_found
-  expect(transactionEvent.contexts?.trace?.status).toBe('ok');
-  expect(transactionEvent.spans).toContainEqual(
+  // Segment span should have status ok, because the http status is ok, but the render component span
+  // should carry the not_found status.
+  expect(segmentSpan.status).toBe('ok');
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      description: 'render route (app) /server-component/not-found',
-      status: 'not_found',
+      name: 'render route (app) /server-component/not-found',
+      status: 'error',
+      attributes: expect.objectContaining({
+        'sentry.status.message': { value: 'not_found', type: 'string' },
+      }),
     }),
   );
 
   // Page server component span should have the right name and attributes
-  expect(transactionEvent.spans).toContainEqual(
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      description: 'resolve page server component "/server-component/not-found"',
-      op: 'function',
-      data: expect.objectContaining({
-        'sentry.nextjs.ssr.function.type': 'Page',
-        'sentry.nextjs.ssr.function.route': '/server-component/not-found',
+      name: 'resolve page server component "/server-component/not-found"',
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'function', type: 'string' },
+        'sentry.nextjs.ssr.function.type': { value: 'Page', type: 'string' },
+        'sentry.nextjs.ssr.function.route': { value: '/server-component/not-found', type: 'string' },
       }),
     }),
   );
 });
 
-test('Should capture an error and transaction for a app router page', async ({ page }) => {
-  const transactionEventPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /server-component/faulty';
-  });
+test('Should capture an error and spans for a app router page', async ({ page }) => {
+  const spansPromise = collectSpansUntilSegment('GET /server-component/faulty');
 
   const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'I am a faulty server component';
@@ -103,37 +97,41 @@ test('Should capture an error and transaction for a app router page', async ({ p
 
   await page.goto('/server-component/faulty');
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
   const errorEvent = await errorEventPromise;
+  const segmentSpan = spans.find(span => span.name === 'GET /server-component/faulty' && span.is_segment)!;
 
   // Error event should have the right transaction name
   expect(errorEvent.transaction).toBe(`Page Server Component (/server-component/faulty)`);
 
-  // Transaction should have status ok, because the http status is ok, but the render component span should be internal_error
-  expect(transactionEvent.contexts?.trace?.status).toBe('ok');
-  expect(transactionEvent.spans).toContainEqual(
+  // Segment span should have status ok, because the http status is ok, but the render component span
+  // should be errored. Only the binary status is asserted: when a span is terminated by an exception
+  // rather than an explicit status, `sentry.status.message` carries the error text, which differs per
+  // Next.js version (React replaces it with a generic string in Next 15 production builds).
+  expect(segmentSpan.status).toBe('ok');
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      description: 'render route (app) /server-component/faulty',
-      status: 'internal_error',
+      name: 'render route (app) /server-component/faulty',
+      status: 'error',
     }),
   );
 
   // The page server component span should have the right name and attributes
-  expect(transactionEvent.spans).toContainEqual(
+  expect(spans).toContainEqual(
     expect.objectContaining({
-      description: 'resolve page server component "/server-component/faulty"',
-      op: 'function',
-      data: expect.objectContaining({
-        'sentry.nextjs.ssr.function.type': 'Page',
-        'sentry.nextjs.ssr.function.route': '/server-component/faulty',
+      name: 'resolve page server component "/server-component/faulty"',
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'function', type: 'string' },
+        'sentry.nextjs.ssr.function.type': { value: 'Page', type: 'string' },
+        'sentry.nextjs.ssr.function.route': { value: '/server-component/faulty', type: 'string' },
       }),
     }),
   );
 
+  // Assert that isolation scope works properly. Span v2 carries no scope tags, so this is only
+  // asserted on the error event; the span-side assertions were dropped in the streaming port.
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-  expect(transactionEvent.tags?.['my-isolated-tag']).toBe(true);
-  expect(transactionEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
   // Modules are set for Next.js
   expect(errorEvent.modules).toEqual(

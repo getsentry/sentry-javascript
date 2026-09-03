@@ -7,10 +7,8 @@ import { expect, test } from '@playwright/test';
 // failed to load, the deps would stay external and the runtime `--import` hook would
 // inject the channels at runtime instead - the span tests would still pass. These
 // assertions inspect the built server bundle directly so a broken plugin can't hide
-// behind that runtime fallback. Only relevant in the orchestrion variant.
+// behind that runtime fallback.
 test.describe('orchestrion build-time injection', () => {
-  test.skip(process.env.INJECT_ORCHESTRION !== 'true', 'Only runs in the orchestrion variant');
-
   const serverBundle = readFileSync(path.join(process.cwd(), 'build/server/index.js'), 'utf8');
 
   test('force-bundles the instrumented deps instead of externalizing them', () => {

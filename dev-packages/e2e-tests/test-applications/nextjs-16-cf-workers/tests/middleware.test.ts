@@ -1,92 +1,77 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
-// TODO: Skipped until the Cloudflare Workers edge middleware setup emits middleware transactions reliably.
+// TODO: Skipped until the Cloudflare Workers edge middleware setup emits middleware spans reliably.
 test.skip('tracesSampler receives normalizedRequest for edge middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET';
+  const middlewareSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
+    return span.name === 'middleware GET' && span.is_segment;
   });
 
   await request.get('/api/endpoint-behind-middleware');
 
-  const middlewareTransaction = await middlewareTransactionPromise;
+  const middlewareSpan = await middlewareSpanPromise;
 
-  expect(middlewareTransaction.contexts?.runtime?.name).toBe('cloudflare');
-  expect(middlewareTransaction.request?.url).toContain('/api/endpoint-behind-middleware');
-  expect(middlewareTransaction.request?.method).toBe('GET');
+  expect(String(middlewareSpan.attributes['http.target']?.value)).toContain('/api/endpoint-behind-middleware');
+  expect(middlewareSpan.attributes['http.request.method']?.value).toBe('GET');
 });
 
 // TODO: Middleware tests need SDK adjustments for Cloudflare Workers edge runtime
-test.skip('Should create a transaction for middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET';
+test.skip('Should create a span for middleware', async ({ request }) => {
+  const middlewareSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
+    return span.name === 'middleware GET' && span.is_segment;
   });
 
   const response = await request.get('/api/endpoint-behind-middleware');
   expect(await response.json()).toStrictEqual({ name: 'John Doe' });
 
-  const middlewareTransaction = await middlewareTransactionPromise;
+  const middlewareSpan = await middlewareSpanPromise;
 
-  expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
-  expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-  expect(middlewareTransaction.transaction_info?.source).toBe('route');
-
-  // Assert that isolation scope works properly
-  expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
-  // TODO: Isolation scope is not working properly yet
-  // expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  expect(middlewareSpan.status).toBe('ok');
+  expect(getSpanOp(middlewareSpan)).toBe('middleware');
+  expect(middlewareSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 // TODO: Middleware tests need SDK adjustments for Cloudflare Workers edge runtime
 test.skip('Faulty middlewares', async ({ request }) => {
   test.skip(isDevMode, 'Throwing crashes the dev server atm'); // https://github.com/vercel/next.js/issues/85261
-  const middlewareTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET';
-  });
-
-  const errorEventPromise = waitForError('nextjs-16-cf-workers', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'Middleware Error';
+  const middlewareSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
+    return span.name === 'middleware GET' && span.is_segment;
   });
 
   request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
     // Noop
   });
 
-  await test.step('should record transactions', async () => {
-    const middlewareTransaction = await middlewareTransactionPromise;
-    expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
-    expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware');
-    expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-    expect(middlewareTransaction.transaction_info?.source).toBe('route');
+  await test.step('should record spans', async () => {
+    const middlewareSpan = await middlewareSpanPromise;
+    expect(middlewareSpan.status).toBe('error');
+    expect(getSpanOp(middlewareSpan)).toBe('middleware');
+    expect(middlewareSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
   });
 });
 
 // TODO: Middleware tests need SDK adjustments for Cloudflare Workers edge runtime
-test.skip('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({
-  request,
-}) => {
+test.skip('Should trace outgoing fetch requests inside middleware', async ({ request }) => {
   test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
-  const middlewareTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET';
-  });
+
+  // `http.client` span names are low cardinality under span streaming, hence `GET localhost` rather
+  // than the full URL.
+  const spansPromise = collectStreamedSpans('nextjs-16-cf-workers', spans =>
+    spans.some(span => getSpanOp(span) === 'http.client' && span.name === 'GET localhost'),
+  );
 
   request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-make-request': '1' } }).catch(() => {
     // Noop
   });
 
-  const middlewareTransaction = await middlewareTransactionPromise;
+  const spans = await spansPromise;
+  const fetchSpan = spans.find(span => getSpanOp(span) === 'http.client' && span.name === 'GET localhost')!;
 
-  // Breadcrumbs should always be created for the fetch request
-  expect(middlewareTransaction.breadcrumbs).toEqual(
-    expect.arrayContaining([
-      {
-        category: 'http',
-        data: { 'http.request.method': 'GET', status_code: 200, url: 'http://localhost:3030/' },
-        timestamp: expect.any(Number),
-        type: 'http',
-      },
-    ]),
-  );
+  expect(fetchSpan.status).toBe('ok');
+  expect(fetchSpan.attributes).toMatchObject({
+    'http.request.method': { value: 'GET', type: 'string' },
+    'http.response.status_code': { value: 200, type: 'integer' },
+    'url.full': { value: 'http://localhost:3030/', type: 'string' },
+  });
 });
