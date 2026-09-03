@@ -59,19 +59,21 @@ Three things to work out from that:
 
 If a repo has no matching `@sentry/*` dep, it has nothing to bump. Say so and drop it.
 
-## Step 2: ask which repos to bump
+## Step 2: ask which repos to skip
 
-Ask with **`AskUserQuestion`, `multiSelect: true`**, one option per repo. Label each option
-with the repo name and put its current SDK version from step 1 in the description, so it
-is obvious which ones are already up to date.
+The default is to bump every repo. `AskUserQuestion` cannot pre-tick options, so ask the
+inverse: which repos to **skip**. An untouched question then means "bump all of them",
+which is the default you want, and ticking a repo removes it.
 
-Nothing comes preselected, so the user ticks the repos they want bumped and anything left
-unticked is skipped. Say that in the question text. A single question takes at most four
-options and needs at least two, so split more repos than that across several questions in
-the same call (five repos go three and two).
+Use **`multiSelect: true`**, one option per repo, labelled with the repo name and carrying
+its current SDK version from step 1 in the description, so a repo that is already on the
+target version is obvious. Make the question text say that unticked repos get bumped.
 
-Only bump the repos that come back selected. Skip this step when the user already named
-the repos.
+A question takes at most four options and needs at least two, so split a longer list
+across several questions in the same call (five repos go three and two).
+
+Bump every repo that does _not_ come back selected. Skip this step when the user already
+named the repos.
 
 ## Step 3: get a working tree
 
@@ -126,7 +128,7 @@ node -e '
 git diff package.json
 ```
 
-## Step 5: install and build
+## Step 5: install, build, and adapt
 
 Install with the package manager identified in step 1. How far to go depends on what the
 working tree cost you.
@@ -148,8 +150,32 @@ Either way, confirm the lockfile diff is Sentry-only, version moves and nothing 
 Unrelated entries mean the wrong package manager ran, so reset the lockfile and redo the
 install rather than committing the churn.
 
-If a build breaks on an intentional SDK change, fix it in the consumer following
-`MIGRATION.md` in `sentry-javascript`, and report it.
+### Adapting the consumer
+
+A major or prerelease bump is meant to break things. Finding that breakage and fixing it
+is the job, not a detour from it, so budget for code changes beyond the version numbers.
+
+**Read `MIGRATION.md` for the range you are crossing** before you start guessing at
+errors. It is in `sentry-javascript`, and covers removed options, moved exports and
+renamed build options. Note that a repo two or more prereleases behind crosses every
+change in between, not just the newest one.
+
+**Run the typecheck as well as the build.** They fail on different things, and a build
+that compiles can still be hiding type errors in files it does not check.
+
+**Check build config separately.** `next.config.*`, vite configs and the like are the
+blind spot: they are often plain JavaScript, or typechecked under a module resolution
+that cannot see the SDK's types, so a removed option sits there silently doing nothing
+instead of erroring. Grep the config for every option name the guide lists as removed or
+renamed, rather than trusting a green build.
+
+**Confirm a failure is yours before chasing it.** Re-run the same command on the base
+branch without the bump. Consumer repos fail for their own reasons (a missing env var, a
+broken hook, a full disk), and attributing those to the SDK wastes the run.
+
+**Report anything the guide missed.** A breaking change you had to reverse-engineer from
+a type error is the most valuable thing this exercise produces. Say so explicitly, and
+open a migration-guide PR against `sentry-javascript`.
 
 ## Step 6: commit, push, PR
 
@@ -157,7 +183,9 @@ One commit per repo. Match each repo's own commit convention, which you can read
 log (`git log origin/$BASE --oneline -20`); they differ (`chore(deps):`, `build(deps):`,
 `build(js):`, plain `chore:`).
 
-Open every PR as a **draft**, `## What` / `## Why` only:
+Open every PR as a **draft**, `## What` / `## Why` only. When the bump needed code
+changes, say what they were and why the new version required them, so a reviewer who does
+not follow the SDK can tell the adaptation apart from the version numbers:
 
 ```bash
 gh pr create --draft --base $BASE \
@@ -173,7 +201,9 @@ Keep <repo> on the latest v11 prerelease so we catch breaking changes early."
 
 ## Report back
 
-A short table: repo, PR link, how it was verified (local build or CI only), and whether
-anything needed adapting. Call out any install or build that failed.
+A short table: repo, PR link, how it was verified (local build or CI only), and what
+needed adapting. Call out any install or build that failed, and list separately any
+breaking change that was not in `MIGRATION.md`, with the migration-guide PR that fixes
+that.
 
 Delete scratchpad clones once their PRs are open.
