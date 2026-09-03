@@ -1060,6 +1060,8 @@ Because a name built from an operation type has to be able to say which operatio
 
 Cache keys are no longer part of a cache span name. They remain available on the `cache.key` attribute, and every cache span now also carries a `cache.operation` attribute (`get`, `put`, `remove`), which is the value the name is built from. This affects the redis/ioredis cache spans (with `cachePrefixes` set on the redis integration), the Nuxt and Nitro storage spans, and the dataloader spans.
 
+For the Redis cache integration, the `maxCacheKeyLength` option no longer has an effect if span streaming is enabled, as it only affected the span name based on the cache key.
+
 A Redis command whose key matches `cachePrefixes` now starts as a `cache.*` span instead of being converted from a `db.query` span at response time. `ignoreSpans` is evaluated at span start, so filters can match these spans by their cache op and name. A failed cache command reports as a cache span too, where it previously stayed a `db.query` span.
 
 A dataloader span no longer carries the loader's `name` either (`dataloader.load usersLoader` becomes `cache.get`). The loader `name` is reported on the `db.collection.name` attribute instead.
