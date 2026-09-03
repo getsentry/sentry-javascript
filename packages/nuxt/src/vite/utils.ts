@@ -7,21 +7,37 @@ import type { SentryNuxtModuleOptions } from '../common/types';
 import { resolvePath } from '@nuxt/kit';
 
 /**
- * Gets the major version of the installed nitro package.
- * Returns 2 as the default if nitro is not found or the version cannot be determined.
+ * Gets the major version of the Nitro package used by the app's Nuxt installation.
+ * Returns 2 as the default if the version cannot be determined.
+ *
+ * Nitro v2 is published as `nitropack`, v3 as `nitro`. Resolving `nitro` directly is
+ * unreliable: module resolution walks up the directory tree, so in a monorepo an
+ * unrelated `nitro` v3 above the app wins even when the app's Nuxt uses `nitropack` v2.
+ * Instead, follow the dependency chain Nuxt itself imports Nitro through:
+ * `nuxt` -> (`@nuxt/nitro-server` ->) `nitro` | `nitropack`.
  */
-export async function getNitroMajorVersion(): Promise<number> {
+export async function getNitroMajorVersion(rootDir: string): Promise<number> {
   try {
     const { getPackageInfo } = await import('local-pkg');
-    const info = await getPackageInfo('nitro');
-    if (info?.version) {
-      const major = parseInt(info.version.split('.')[0] ?? '2', 10);
-      return isNaN(major) ? 2 : major;
+
+    // The package that declares the Nitro dependency: `nuxt` itself, or `@nuxt/nitro-server` (Nuxt >= 3.21) when nuxt delegates to it
+    let provider = await getPackageInfo('nuxt', { paths: [rootDir] });
+    if (provider?.packageJson.dependencies?.['@nuxt/nitro-server']) {
+      provider = (await getPackageInfo('@nuxt/nitro-server', { paths: [provider.rootPath] })) ?? provider;
     }
+
+    if (!provider?.packageJson.dependencies?.nitro) {
+      return 2;
+    }
+
+    const info = await getPackageInfo('nitro', { paths: [provider.rootPath] });
+    const major = parseInt(info?.version?.split('.')[0] ?? '', 10);
+    // The provider imports `nitro` (not `nitropack`), so it is at least v3 even if the version is unreadable
+    return isNaN(major) ? 3 : major;
   } catch {
-    // If local-pkg is unavailable or nitro is not found, default to v2
+    // If local-pkg is unavailable or resolution fails, default to v2
+    return 2;
   }
-  return 2;
 }
 
 /**
