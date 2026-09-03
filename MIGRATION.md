@@ -481,6 +481,24 @@ Sentry.init({
 
 `ignoreSpans` itself is unchanged in shape, but it now takes effect when a span **starts** rather than when the transaction is sent. Matched spans are never recorded at all, which means a matched non-segment span's children are re-parented to its parent instead of being dropped.
 
+#### `ignoreStatusCodes` is deprecated
+
+The `ignoreStatusCodes` option is deprecated on `httpIntegration` and `httpServerSpansIntegration` (Node and the SDKs built on it) as well as on `denoHttpIntegration` and `denoServeIntegration`. It will be removed in v12, without a direct replacement.
+
+The filter runs on the finished transaction event, which is no longer supported span streaming. Child spans are sent as they end, before the response status code is known, so a request's spans can no longer be dropped once the status turns out to be uninteresting. The option therefore only has an effect with `traceLifecycle: 'static'`.
+
+To keep specific requests out of Sentry, decide before they are instrumented: Use `tracesSampler`, or ignore the request via `ignoreIncomingRequests`, which matches on the incoming request instead of on the response:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.httpIntegration({
+      ignoreIncomingRequests: urlPath => urlPath.startsWith('/admin'),
+    }),
+  ],
+});
+```
+
 #### Opting out of span streaming
 
 To keep the previous transaction-based model, set `traceLifecycle: 'static'`:
@@ -656,7 +674,8 @@ Sentry.init({
 
 This filter runs on transaction events (`processEvent`), so it only takes effect when `traceLifecycle` is `'static'`.
 The default `'stream'` lifecycle does not produce transaction events, and typical Deno apps are unaffected. Node's
-`httpIntegration` has the same limitation.
+`httpIntegration` has the same limitation. For that reason, [`ignoreStatusCodes` is deprecated](#ignorestatuscodes-is-deprecated)
+and will be removed in v12.
 
 Transactions that are kept now also carry the HTTP status in the top-level `response` context, as in the other server
 SDKs.
@@ -1425,6 +1444,8 @@ Sentry.httpIntegration({
   },
 });
 ```
+
+Note that `ignoreStatusCodes` is itself [deprecated](#ignorestatuscodes-is-deprecated) and will be removed in v12.
 
 ### `@sentry/cloudflare`
 
