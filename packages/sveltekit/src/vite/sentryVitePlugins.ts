@@ -4,10 +4,12 @@ import * as path from 'path';
 import type { Plugin } from 'vite';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
+import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import { detectAdapter } from './detectAdapter';
 import { makeGlobalValuesInjectionPlugin } from './injectGlobalValues';
+import { createKitConfigResolver } from './kitConfig';
 import { makeCustomSentryVitePlugins } from './sourceMaps';
-import { loadSvelteConfig } from './svelteConfig';
+import { getAdapterOutputDir } from './svelteConfig';
 import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from './types';
 
 const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
@@ -24,20 +26,32 @@ const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
  * Make sure, it is registered before the SvelteKit plugin.
  */
 export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}): Promise<Plugin[]> {
-  const svelteConfig = await loadSvelteConfig();
+  const kitConfigResolver = createKitConfigResolver();
+  const getKitConfig = kitConfigResolver.get;
+
+  // The adapter can only be detected once the SvelteKit config is available, so it's resolved
+  // lazily (but only once) by the plugins that need it.
+  let adapterPromise: Promise<SupportedSvelteKitAdapters> | undefined;
+  const getAdapter = (): Promise<SupportedSvelteKitAdapters> =>
+    (adapterPromise ??= (async () => options.adapter || detectAdapter(await getKitConfig(), options.debug))());
+
+  // Side effect: for the Node adapter we invoke `adapter.adapt()` to learn the output directory,
+  // and `@sveltejs/adapter-node` v6 wipes that directory when it runs. So this must happen once,
+  // before the build writes anything - never from a late hook like `closeBundle`.
+  let adapterOutputDirPromise: Promise<string> | undefined;
+  const getAdapterOutputDirOnce = (): Promise<string> =>
+    (adapterOutputDirPromise ??= (async () => getAdapterOutputDir(await getKitConfig(), await getAdapter()))());
 
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,
-    adapter: options.adapter || (await detectAdapter(svelteConfig, options.debug)),
   };
 
-  const sentryPlugins: Plugin[] = [makeBrowserTracingVariantResolverPlugin()];
+  // First so the config settles as early as possible. The plugins below read it in `configResolved`,
+  // which Vite runs concurrently, so their order relative to the resolver doesn't matter.
+  const sentryPlugins: Plugin[] = [kitConfigResolver.plugin, makeBrowserTracingVariantResolverPlugin()];
 
   if (mergedOptions.autoInstrument) {
-    // SvelteKit 3 (>= next.8) promoted `tracing` out of `experimental`; older versions nest it there.
-    const kitTracingEnabled = !!(svelteConfig.kit?.tracing?.server || svelteConfig.kit?.experimental?.tracing?.server);
-
     const pluginOptions: AutoInstrumentSelection = {
       load: true,
       serverLoad: true,
@@ -48,8 +62,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
       makeAutoInstrumentationPlugin({
         ...pluginOptions,
         debug: options.debug || false,
-        // if kit-internal tracing is enabled, we only want to wrap and instrument client-side code.
-        onlyInstrumentClient: kitTracingEnabled,
+        getKitConfig,
       }),
     );
   }
@@ -63,11 +76,19 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     // TODO: I don't think this is technically correct. Either we always or never inject the output directory.
     // Stack traces shouldn't be different, depending on source maps config. With debugIds, we might not even
     // need to rewrite frames anymore.
-    sentryPlugins.push(await makeGlobalValuesInjectionPlugin(svelteConfig, mergedOptions));
+    sentryPlugins.push(
+      makeGlobalValuesInjectionPlugin({
+        getKitConfig,
+        getAdapterOutputDir: getAdapterOutputDirOnce,
+        debug: mergedOptions.debug,
+      }),
+    );
   }
 
   if (sentryVitePluginsOptions) {
-    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions, svelteConfig);
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions, {
+      getAdapterOutputDir: getAdapterOutputDirOnce,
+    });
     sentryPlugins.push(...sentryVitePlugins);
   }
 
@@ -201,6 +222,9 @@ export function generateVitePluginOptions(
       autoUploadSourceMaps: _filtered3,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       autoInstrument: _filtered4,
+      // Consumed by `sentrySvelteKit()` for adapter detection, not by the Vite plugin
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      adapter: _filtered5,
       sentryUrl,
       ...newSvelteKitPluginOptions
     } = svelteKitPluginOptions;
@@ -218,7 +242,6 @@ export function generateVitePluginOptions(
       ...deprecated_unstableSourceMapUploadOptions,
       ...unstable_sentryVitePluginOptions,
 
-      adapter: svelteKitPluginOptions.adapter,
       // override the plugin's debug flag with the one from the top-level options
       debug: svelteKitPluginOptions.debug,
     };
