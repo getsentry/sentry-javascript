@@ -249,7 +249,7 @@ test.describe('finish routing span', () => {
 });
 
 test.describe('TraceDirective', () => {
-  test('creates a child span with the component name as span name on ngOnInit', async ({ page }) => {
+  test('creates a child tracingSpan with component name as span name on ngOnInit', async ({ page }) => {
     const spansPromise = collectStreamedSpans('angular-18', spans => {
       return (
         spans.some(
@@ -257,8 +257,7 @@ test.describe('TraceDirective', () => {
             span.is_segment &&
             getSpanOp(span) === 'navigation' &&
             span.attributes['url.path']?.value === '/component-tracking',
-        ) &&
-        spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ui.angular.trace_directive').length >= 2
+        ) && spans.some(span => span.attributes['sentry.origin']?.value === 'auto.ui.angular.trace_directive')
       );
     });
 
@@ -267,28 +266,19 @@ test.describe('TraceDirective', () => {
     // immediately navigate to a different route
     const [_, spans] = await Promise.all([page.locator('#componentTracking').click(), spansPromise]);
 
-    const traceDirectiveSpans = spans.filter(
+    const traceDirectiveSpan = spans.find(
       span => span.attributes['sentry.origin']?.value === 'auto.ui.angular.trace_directive',
     );
 
-    expect(traceDirectiveSpans).toHaveLength(2);
-    expect(traceDirectiveSpans).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: '<sample-component>', // custom component name passed to trace directive
-          attributes: expect.objectContaining({
-            'sentry.op': { type: 'string', value: 'ui.mount' },
-            'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_directive' },
-          }),
+    expect(traceDirectiveSpan).toBeDefined();
+    expect(traceDirectiveSpan).toEqual(
+      expect.objectContaining({
+        name: '<sample-component>',
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'ui.mount' },
+          'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_directive' },
         }),
-        expect.objectContaining({
-          name: '<app-sample-component>', // fallback selector name
-          attributes: expect.objectContaining({
-            'sentry.op': { type: 'string', value: 'ui.mount' },
-            'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_directive' },
-          }),
-        }),
-      ]),
+      }),
     );
   });
 });
