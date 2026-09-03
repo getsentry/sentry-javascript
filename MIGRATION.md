@@ -1260,6 +1260,18 @@ Affected SDKs: `@sentry/react-router`.
 + import { sentryOnBuildEnd } from '@sentry/react-router/vite';
 ```
 
+### Remix: Vite plugin moved to `@sentry/remix/vite`
+
+Affected SDKs: `@sentry/remix`.
+
+`sentryRemixVitePlugin` is no longer available from the main `@sentry/remix` entry point. Import it from the dedicated subpath instead:
+
+```diff
+// vite.config.ts
+- import { sentryRemixVitePlugin } from '@sentry/remix';
++ import { sentryRemixVitePlugin } from '@sentry/remix/vite';
+```
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs

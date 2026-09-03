@@ -1,6 +1,7 @@
 import * as path from 'path';
 import type { Plugin } from 'vite';
-import { createRemixRouteManifest } from './createRemixRouteManifest';
+import { createRemixRouteManifest } from '../config/createRemixRouteManifest';
+import type { SentryRemixVitePluginOptions } from './types';
 
 /**
  * Escapes a JSON string for safe embedding in HTML script tags.
@@ -12,45 +13,13 @@ function escapeJsonForHtml(jsonString: string): string {
     .replace(/<!--/g, '<\\!--'); // Escape <!-- to prevent HTML comment injection
 }
 
-export type SentryRemixVitePluginOptions = {
-  /**
-   * Path to the app directory (where routes folder is located).
-   * Can be relative to project root or absolute.
-   * Defaults to 'app' in the project root.
-   *
-   * @example './app'
-   * @example '/absolute/path/to/app'
-   */
-  appDirPath?: string;
-};
-
 // Global variable key used to store the route manifest
 const MANIFEST_GLOBAL_KEY = '_sentryRemixRouteManifest' as const;
 
 /**
  * Vite plugin to inject Remix route manifest for Sentry client-side route parameterization.
- *
- * @param options - Plugin configuration options
- * @returns Vite plugin
- *
- * @example
- * ```typescript
- * // vite.config.ts
- * import { defineConfig } from 'vite';
- * import { vitePlugin as remix } from '@remix-run/dev';
- * import { sentryRemixVitePlugin } from '@sentry/remix';
- *
- * export default defineConfig({
- *   plugins: [
- *     remix(),
- *     sentryRemixVitePlugin({
- *       appDirPath: './app',
- *     }),
- *   ],
- * });
- * ```
  */
-export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}): Plugin {
+export function makeRouteManifestPlugin(options: Pick<SentryRemixVitePluginOptions, 'appDirPath'> = {}): Plugin {
   let routeManifestJson: string = '';
   let isDevMode = false;
 
