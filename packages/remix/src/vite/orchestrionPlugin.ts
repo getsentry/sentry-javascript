@@ -6,14 +6,27 @@ type AnyHook = (this: unknown, ...args: never[]) => unknown;
 type ObjectHook<T> = T | { order?: 'pre' | 'post' | null; handler: T };
 type ConfigHook = (this: unknown, config: UserConfig, env: ConfigEnv) => unknown;
 
+const WORKER_RESOLVE_CONDITIONS = ['workerd', 'worker'];
+
 /**
  * Cloudflare Pages and Hydrogen/Oxygen builds instrument through `instrumentBuild()` from
  * `@sentry/remix/cloudflare`, which wraps the build instead of subscribing to diagnostics
  * channels. Transforming there would add a `node:diagnostics_channel` import and subscriber code
  * that nothing reads.
+ *
+ * Oxygen sets `ssr.target`, but Remix's own Vite plugin never does — a Cloudflare app is marked by
+ * workerd resolve conditions instead (`cloudflareDevProxyVitePlugin` sets `externalConditions`,
+ * the Cloudflare template sets `conditions`), so all three signals have to be checked.
  */
 function isWorkerTarget(config: UserConfig | ResolvedConfig | undefined): boolean {
-  return config?.ssr?.target === 'webworker';
+  const ssr = config?.ssr;
+  if (ssr?.target === 'webworker') {
+    return true;
+  }
+
+  return [ssr?.resolve?.conditions, ssr?.resolve?.externalConditions].some(conditions =>
+    conditions?.some(condition => WORKER_RESOLVE_CONDITIONS.includes(condition)),
+  );
 }
 
 function hookHandler<T extends AnyHook>(hook: ObjectHook<T> | undefined): T | undefined {

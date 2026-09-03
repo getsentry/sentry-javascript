@@ -28,6 +28,14 @@ vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
 
 const NODE_CONFIG = { ssr: { target: 'node' } } as UserConfig;
 const WORKER_CONFIG = { ssr: { target: 'webworker' } } as UserConfig;
+// Remix's own Vite plugin never sets `ssr.target`, so a Cloudflare app is only recognizable by its
+// workerd resolve conditions: `cloudflareDevProxyVitePlugin` contributes `externalConditions`, the
+// Cloudflare template sets `conditions` in the user's own config.
+const WORKER_CONFIGS: Array<[string, UserConfig]> = [
+  ['ssr.target', WORKER_CONFIG],
+  ['ssr.resolve.conditions', { ssr: { resolve: { conditions: ['workerd', 'worker', 'browser'] } } } as UserConfig],
+  ['ssr.resolve.externalConditions', { ssr: { resolve: { externalConditions: ['workerd', 'worker'] } } } as UserConfig],
+];
 const BUILD_ENV = { command: 'build', mode: 'production' } as ConfigEnv;
 const SERVE_ENV = { command: 'serve', mode: 'development' } as ConfigEnv;
 
@@ -85,13 +93,13 @@ describe('sentryRemixVitePlugin', () => {
       expect(callHook(orchestrion.transform, 'code', 'mysql.js', { ssr: true })).toEqual({ code: 'transformed' });
     });
 
-    it('skips force-bundling and transforming for webworker builds', () => {
+    it.each(WORKER_CONFIGS)('skips force-bundling and transforming when %s marks a worker', (_signal, config) => {
       const orchestrion = sentryRemixVitePlugin()[1]!;
 
-      expect(callHook(orchestrion.config, WORKER_CONFIG, BUILD_ENV)).toBeNull();
+      expect(callHook(orchestrion.config, config, BUILD_ENV)).toBeNull();
       expect(orchestrionConfig).not.toHaveBeenCalled();
 
-      callHook(orchestrion.configResolved, WORKER_CONFIG);
+      callHook(orchestrion.configResolved, config);
       expect(orchestrionConfigResolved).not.toHaveBeenCalled();
 
       expect(callHook(orchestrion.transform, 'code', 'mysql.js', { ssr: true })).toBeNull();
