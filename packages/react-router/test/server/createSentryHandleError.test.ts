@@ -1,5 +1,5 @@
 import * as core from '@sentry/core';
-import * as serverUtils from '@sentry/server-utils';
+import * as serverUtils from '@sentry/server-utils/no-diagnostic-channels';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSentryHandleError } from '../../src/server/createSentryHandleError';
@@ -8,7 +8,7 @@ vi.mock('@sentry/core', () => ({
   captureException: vi.fn(),
 }));
 
-vi.mock('@sentry/server-utils', () => ({
+vi.mock('@sentry/server-utils/no-diagnostic-channels', () => ({
   flushIfServerless: vi.fn().mockResolvedValue(undefined),
 }));
 

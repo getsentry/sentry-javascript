@@ -1,5 +1,5 @@
 import { captureException, consoleSandbox } from '@sentry/core';
-import { flushIfServerless } from '@sentry/server-utils';
+import { flushIfServerless } from '@sentry/server-utils/no-diagnostic-channels';
 import type { AnyErrorHandler, SentryHandleServerErrorInput } from '../common/handleErrorTypes';
 import { shouldCaptureError } from '../common/handleErrorTypes';
 import { getCloudflareExecutionContext } from './utils';

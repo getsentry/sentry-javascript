@@ -1,6 +1,6 @@
 import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
-import * as serverUtils from '@sentry/server-utils';
+import * as serverUtils from '@sentry/server-utils/no-diagnostic-channels';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSentryServerInstrumentation,
@@ -24,7 +24,7 @@ vi.mock('@sentry/core', async () => {
   };
 });
 
-vi.mock('@sentry/server-utils', () => ({
+vi.mock('@sentry/server-utils/no-diagnostic-channels', () => ({
   flushIfServerless: vi.fn(),
 }));
 
