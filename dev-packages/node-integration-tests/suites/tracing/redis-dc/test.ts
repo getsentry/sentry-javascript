@@ -24,7 +24,7 @@ describeWithDockerCompose(
             'db.query.text': 'SET dc-test-key ?',
           }),
         }),
-        // cache SET: span name updated to key by cacheResponseHook
+        // cache SET: starts as a cache span, named by its key in the static lifecycle
         expect.objectContaining({
           description: 'dc-cache:test-key',
           op: 'cache.put',
@@ -95,6 +95,18 @@ describeWithDockerCompose(
             'db.query.text': 'MGET ? ? ?',
           }),
         }),
+        // a failing command on a cache key reports as an errored cache span:
+        // the span starts as a cache span, so the classification survives the error
+        expect.objectContaining({
+          description: 'dc-cache:list-key',
+          op: 'cache.get',
+          status: 'internal_error',
+          origin: 'auto.db.redis.diagnostic_channel',
+          data: expect.objectContaining({
+            'cache.operation': 'get',
+            'cache.key': ['dc-cache:list-key'],
+          }),
+        }),
       ]),
     };
 
@@ -109,6 +121,34 @@ describeWithDockerCompose(
         await createTestRunner()
           .expect({ transaction: EXPECTED_CONNECT })
           .expect({ transaction: EXPECTED_TRANSACTION })
+          .start()
+          .completed();
+      });
+
+      // `ignoreSpans` is evaluated at span start under streaming, so this only passes because the
+      // span starts as a cache span — a db span renamed at response time would slip through.
+      test('drops cache spans matching an ignoreSpans op filter at span start', { timeout: 60_000 }, async () => {
+        await createTestRunner()
+          .withEnv({ STREAMED: 'true', IGNORE_CACHE_GET: 'true' })
+          .unignore('client_report')
+          // The span container and the client report flush on independent timers, so they can
+          // arrive in either order.
+          .unordered()
+          .expect({
+            span: (container: SerializedStreamedSpanContainer) => {
+              const names = container.items.map(item => item.name);
+              expect(names).toContain('cache.put');
+              expect(names).not.toContain('cache.get');
+            },
+          })
+          .expect({
+            client_report: {
+              discarded_events: [
+                // the two GETs on cache keys plus the failing GET, which is also decided at start
+                { category: 'span', quantity: 3, reason: 'ignored' },
+              ],
+            },
+          })
           .start()
           .completed();
       });
@@ -165,8 +205,8 @@ describeWithDockerCompose(
 
       const PEER = { 'network.peer.address': HOST, 'network.peer.port': PORT };
 
-      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
-      // and reports the connection it inherited as peer attributes too.
+      // A cache span is a db span whose key matched a cache prefix: it starts named after its
+      // cache operation and reports the connection as peer attributes too.
       const cacheSpan = (
         op: 'cache.get' | 'cache.put' | 'cache.remove',
         attributes: Record<string, unknown>,
@@ -194,7 +234,7 @@ describeWithDockerCompose(
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET dc-test-key ?',
                   }),
-                  // cache SET: turned into a cache span, and renamed by the cache hook
+                  // cache SET: starts as a cache span
                   cacheSpan('cache.put', {
                     'db.operation.name': 'SET',
                     'db.query.text': 'SET dc-cache:test-key ?',
@@ -233,6 +273,22 @@ describeWithDockerCompose(
                     'db.operation.name': 'MGET',
                     'db.query.text': 'MGET ? ? ?',
                   }),
+                  streamedSpan(`LPUSH ${HOST}:${PORT}`, 'db.query', {
+                    'db.operation.name': 'LPUSH',
+                    'db.query.text': 'LPUSH dc-cache:list-key ?',
+                  }),
+                  // a failing command on a cache key reports as an errored cache span:
+                  // the span starts as a cache span, so the classification survives the error
+                  {
+                    ...(cacheSpan('cache.get', {
+                      'db.operation.name': 'GET',
+                      'db.query.text': 'GET dc-cache:list-key',
+                      'cache.key': ['dc-cache:list-key'],
+                      'error.type': 'Error',
+                      'sentry.status.message': 'WRONGTYPE Operation against a key holding the wrong kind of value',
+                    }) as Record<string, unknown>),
+                    status: 'error',
+                  },
                 ]);
               },
             })

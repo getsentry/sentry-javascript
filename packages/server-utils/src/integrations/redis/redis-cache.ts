@@ -1,14 +1,12 @@
 import {
   CACHE_OPERATION,
-  NET_PEER_NAME,
-  NET_PEER_PORT,
   NETWORK_PEER_ADDRESS,
   NETWORK_PEER_PORT,
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   CACHE_OPERATION_NAMES,
   getClient,
@@ -48,6 +46,10 @@ export interface RedisCacheOptions {
    * Passing `0` will use the full cache key without truncation.
    *
    * By default, the full cache key is used.
+   *
+   * Only applies with `traceLifecycle: 'static'`. With span streaming (the default), span names are
+   * low cardinality: cache spans are named after the cache operation (e.g. `cache.get`) and the
+   * key is only added to the `cache.key` attribute, so there is nothing to truncate.
    */
   maxCacheKeyLength?: number;
 }
@@ -142,21 +144,22 @@ export function calculateCacheItemSize(response: unknown): number | undefined {
 }
 
 /**
- * Turns a redis command span into a cache span when its key matches one of the configured
- * `cachePrefixes`: sets the cache op, operation, key, hit/miss and item-size attributes and renames
- * the span to the cache key (or, with span streaming, to the low-cardinality cache operation).
- * A no-op when no `cachePrefixes` are set or the command/key is not cache-relevant.
+ * Decides at span-start time whether a redis command is a cache operation (its key matches one of
+ * the configured `cachePrefixes`) and returns the span name plus attribute overrides to merge into
+ * the db span options, or `undefined` for a plain db span. Callers must spread the returned
+ * attributes after their db attributes, so the cache op overrides the db op. Deciding at start time
+ * — instead of renaming the db span at response time — makes `ignoreSpans` and span streaming see
+ * the same op/name the user sees in the UI.
  *
- * Runs at command response time against the already-started db span, so it can read connection
- * attributes off the span and derive the item size from the response.
+ * `dbAttributes` are the attributes the caller starts the span with; the network peer is derived
+ * from `server.address`/`server.port` in there.
  */
-export function applyRedisCacheAttributes(
-  span: Span,
+export function getRedisCacheAttributes(
   redisCommand: string,
   cmdArgs: RedisCommandArgs,
-  response: unknown,
+  dbAttributes: SpanAttributes,
   options: RedisCacheOptions,
-): void {
+): { name: string; attributes: SpanAttributes } | undefined {
   const safeKey = getCacheKeySafely(redisCommand, cmdArgs);
   const cacheOperation = getCacheOperation(redisCommand);
 
@@ -167,52 +170,58 @@ export function applyRedisCacheAttributes(
     !shouldConsiderForCache(redisCommand, safeKey, options.cachePrefixes)
   ) {
     // not relevant for cache
-    return;
+    return undefined;
   }
 
-  // otel/ioredis seems to be using the old standard, as there was a change to those params: https://github.com/open-telemetry/opentelemetry-specification/issues/3199
-  // We are using params based on the docs: https://opentelemetry.io/docs/specs/semconv/attributes-registry/network/
-  // Fall back to stable semconv attributes (server.address/server.port) when
-  // old-semconv ones are absent, eg OTEL_SEMCONV_STABILITY_OPT_IN=database
-  // set for node-redis v4/v5.
-  const attributes = spanToJSON(span).attributes;
-  // oxlint-disable-next-line typescript/no-deprecated
-  const networkPeerAddress = (attributes[NET_PEER_NAME] ?? attributes[SERVER_ADDRESS]) as string | undefined;
-  // oxlint-disable-next-line typescript/no-deprecated
-  const networkPeerPort = (attributes[NET_PEER_PORT] ?? attributes[SERVER_PORT]) as number | undefined;
-
-  if (networkPeerPort && networkPeerAddress) {
-    span.setAttributes({ [NETWORK_PEER_ADDRESS]: networkPeerAddress, [NETWORK_PEER_PORT]: networkPeerPort });
-  }
-
-  // A remove response is a delete-count, not a cached value, so its size is meaningless.
-  const cacheItemSize = isInCommands(REMOVE_COMMANDS, redisCommand) ? undefined : calculateCacheItemSize(response);
-
-  if (cacheItemSize) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
-  }
-
-  if (isInCommands(GET_COMMANDS, redisCommand) && cacheItemSize !== undefined) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
-  }
-
-  span.setAttributes({
+  const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: cacheOperation,
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
     [CACHE_OPERATION]: CACHE_OPERATION_NAMES[cacheOperation],
-  });
+  };
+
+  const networkPeerAddress = dbAttributes[SERVER_ADDRESS] as string | undefined;
+  const networkPeerPort = dbAttributes[SERVER_PORT] as number | undefined;
+  if (networkPeerPort && networkPeerAddress) {
+    attributes[NETWORK_PEER_ADDRESS] = networkPeerAddress;
+    attributes[NETWORK_PEER_PORT] = networkPeerPort;
+  }
 
   const client = getClient();
   if (client && hasSpanStreamingEnabled(client)) {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the cache key.
-    span.updateName(cacheOperation);
-    return;
+    return { name: cacheOperation, attributes };
   }
 
   // todo: change to string[] once EAP supports it
   const spanDescription = safeKey.join(', ');
 
-  span.updateName(options.maxCacheKeyLength ? truncate(spanDescription, options.maxCacheKeyLength) : spanDescription);
+  return {
+    name: options.maxCacheKeyLength ? truncate(spanDescription, options.maxCacheKeyLength) : spanDescription,
+    attributes,
+  };
+}
+
+/**
+ * Sets the response-derived cache attributes (`cache.hit`, `cache.item_size`) on a span that was
+ * started as a cache span via {@link getRedisCacheAttributes}. A no-op for plain db spans and for
+ * `cache.remove` spans — a remove response is a delete-count, not a cached value, so its size is
+ * meaningless.
+ */
+export function applyCacheResponseAttributes(span: Span, response: unknown): void {
+  const op = spanToJSON(span).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+  if (op !== CACHE_GET && op !== CACHE_PUT) {
+    return;
+  }
+
+  const cacheItemSize = calculateCacheItemSize(response);
+
+  if (cacheItemSize) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
+  }
+
+  if (op === CACHE_GET && cacheItemSize !== undefined) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
+  }
 }
 
 type NestedArray<T> = Array<NestedArray<T> | T>;

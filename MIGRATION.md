@@ -481,6 +481,24 @@ Sentry.init({
 
 `ignoreSpans` itself is unchanged in shape, but it now takes effect when a span **starts** rather than when the transaction is sent. Matched spans are never recorded at all, which means a matched non-segment span's children are re-parented to its parent instead of being dropped.
 
+#### `ignoreStatusCodes` is deprecated
+
+The `ignoreStatusCodes` option is deprecated on `httpIntegration` and `httpServerSpansIntegration` (Node and the SDKs built on it) as well as on `denoHttpIntegration` and `denoServeIntegration`. It will be removed in v12, without a direct replacement.
+
+The filter runs on the finished transaction event, which is no longer supported span streaming. Child spans are sent as they end, before the response status code is known, so a request's spans can no longer be dropped once the status turns out to be uninteresting. The option therefore only has an effect with `traceLifecycle: 'static'`.
+
+To keep specific requests out of Sentry, decide before they are instrumented: Use `tracesSampler`, or ignore the request via `ignoreIncomingRequests`, which matches on the incoming request instead of on the response:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.httpIntegration({
+      ignoreIncomingRequests: urlPath => urlPath.startsWith('/admin'),
+    }),
+  ],
+});
+```
+
 #### Opting out of span streaming
 
 To keep the previous transaction-based model, set `traceLifecycle: 'static'`:
@@ -656,7 +674,8 @@ Sentry.init({
 
 This filter runs on transaction events (`processEvent`), so it only takes effect when `traceLifecycle` is `'static'`.
 The default `'stream'` lifecycle does not produce transaction events, and typical Deno apps are unaffected. Node's
-`httpIntegration` has the same limitation.
+`httpIntegration` has the same limitation. For that reason, [`ignoreStatusCodes` is deprecated](#ignorestatuscodes-is-deprecated)
+and will be removed in v12.
 
 Transactions that are kept now also carry the HTTP status in the top-level `response` context, as in the other server
 SDKs.
@@ -979,6 +998,8 @@ A mongoose span's name is built from `db.collection.name`, so it holds the colle
 Messaging span names now read `<operation type> <destination>` in every integration. The amqplib, kafkajs and NestJS BullMQ integrations used their own word order or verb, so their names change: `my-queue process` became `process my-queue`, amqplib's `publish` became `send`, and the kafkajs batch span's `poll` became `receive`. Cloudflare Queues and the kafkajs producer already matched the conventions, so their names are the same in both trace lifecycles. The operation name an integration reports upstream stays on `messaging.operation.name`.
 
 Cache keys are unbounded, so they are no longer part of a cache span name. They remain available on the `cache.key` attribute, and every cache span now also carries a `cache.operation` attribute (`get`, `put`, `remove`) — the value the name is built from. That attribute is set in both trace lifecycles. This affects the redis/ioredis cache spans (`cachePrefixes`), the Nuxt and Nitro storage spans, and the dataloader spans.
+
+A Redis command whose key matches `cachePrefixes` now starts as a `cache.*` span instead of being converted from a `db.query` span at response time. `ignoreSpans` is evaluated at span start, so filters can match these spans by their cache op and name. A failed cache command reports as a cache span too, where it previously stayed a `db.query` span.
 
 A dataloader span no longer carries the loader's `name` either (`dataloader.load usersLoader` becomes `cache.get`), because the cache conventions have no slot for it in the name. It is reported on the `db.collection.name` attribute instead — a loader batches one entity type, so it is the closest thing dataloader has to a collection — and that attribute is set in both trace lifecycles. Unnamed loaders do not set it.
 
@@ -1423,6 +1444,8 @@ Sentry.httpIntegration({
   },
 });
 ```
+
+Note that `ignoreStatusCodes` is itself [deprecated](#ignorestatuscodes-is-deprecated) and will be removed in v12.
 
 ### `@sentry/cloudflare`
 

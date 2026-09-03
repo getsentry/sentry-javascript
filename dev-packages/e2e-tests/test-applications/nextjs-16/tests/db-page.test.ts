@@ -15,8 +15,6 @@ test('Instruments DB calls made during server-side rendering of a page', async (
 
   // One page render produces spans from both injection paths: pg (externalized → runtime module
   // hook) and ioredis (bundle-safe allowlisted → build-time loader).
-  // The postgres span name is low cardinality under span streaming (just the operation); the query
-  // itself is asserted below via `db.query.text`. The redis span names still carry their full text.
   expect(spans).toContainEqual(
     expect.objectContaining({
       name: 'SELECT',
@@ -31,7 +29,7 @@ test('Instruments DB calls made during server-side rendering of a page', async (
   );
   expect(spans).toContainEqual(
     expect.objectContaining({
-      name: 'set page-key [1 other arguments]',
+      name: 'set localhost:6379',
       status: 'ok',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'db.query', type: 'string' },
@@ -44,7 +42,7 @@ test('Instruments DB calls made during server-side rendering of a page', async (
   );
   expect(spans).toContainEqual(
     expect.objectContaining({
-      name: 'get page-key',
+      name: 'get localhost:6379',
       status: 'ok',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'db.query', type: 'string' },
