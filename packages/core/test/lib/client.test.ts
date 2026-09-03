@@ -2374,6 +2374,7 @@ describe('Client', () => {
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
       expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
       expect(debugErrorSpy).toHaveBeenCalledWith(
         'The `beforeSend` callback threw an error, dropping the event:',
         exception,
@@ -2416,6 +2417,7 @@ describe('Client', () => {
 
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(2);
       expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'transaction');
       expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'span', 3);
       expect(debugErrorSpy).toHaveBeenCalledWith(

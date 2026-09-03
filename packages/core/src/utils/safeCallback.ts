@@ -4,8 +4,8 @@ import { isThenable } from './is';
 
 /**
  * Lets a `safeCallback` fallback signal "the callback failed" as opposed to "the callback returned `null`",
- * so the call site can report the drop as `callback_error`. Return it from synchronous call sites; throw it
- * to abort a promise chain.
+ * so the call site can report the drop as `callback_error`. Always return it, never throw it: a thrown
+ * sentinel would have to be caught at every boundary, and some of those (e.g. `prepareEvent`) are public.
  */
 export const CALLBACK_ERROR = Symbol.for('SentryCallbackError');
 

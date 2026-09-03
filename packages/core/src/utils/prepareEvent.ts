@@ -7,6 +7,7 @@ import type { Event, EventHint } from '../types/event';
 import type { ClientOptions } from '../types/options';
 import type { StackParser } from '../types/stacktrace';
 import { getFilenameToDebugIdMap } from './debug-ids';
+import { getDataCategoryByType } from './envelope';
 import { addExceptionMechanismToCapturedException, uuid4 } from './misc';
 import { normalize } from './normalize';
 import { applyScopeDataToEvent, applySpanToEvent, getCombinedScopeData } from './scopeData';
@@ -36,7 +37,8 @@ export type ExclusiveEventHintOrCaptureContext =
  * @param event The original event.
  * @param hint May contain additional information about the original exception.
  * @param scope A scope containing event metadata.
- * @returns A new event with more information.
+ * @returns A new event with more information, or `null` if an event processor dropped it (or threw). In that case the
+ *   drop has already been recorded on the client, so callers must not record it again.
  * @hidden
  */
 export function prepareEvent(
@@ -102,18 +104,29 @@ export function prepareEvent(
   // Skip event processors for internal exceptions to prevent recursion
   // oxlint-disable-next-line typescript/prefer-optional-chain
   const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
-  const result = isInternalException
+  const result: PromiseLike<Event | null> = isInternalException
     ? resolvedSyncPromise(prepared)
-    : notifyEventProcessors(eventProcessors, prepared, hint);
+    : notifyEventProcessors(eventProcessors, prepared, hint, 0, reason => {
+        if (!client) {
+          return;
+        }
+
+        client.recordDroppedEvent(reason, getDataCategoryByType(event.type));
+        if (reason === 'callback_error' && event.type === 'transaction') {
+          client.recordDroppedEvent(reason, 'span', 1 + (event.spans || []).length);
+        }
+      });
 
   return result.then(evt => {
-    if (evt) {
-      // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified
-      // file names (e.g.the RewriteFrames integration) the filename -> debug ID relationship isn't destroyed.
-      // This should not cause any PII issues, since we're only moving data that is already on the event and not adding
-      // any new data
-      applyDebugMeta(evt);
+    if (!evt) {
+      return null;
     }
+
+    // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified
+    // file names (e.g.the RewriteFrames integration) the filename -> debug ID relationship isn't destroyed.
+    // This should not cause any PII issues, since we're only moving data that is already on the event and not adding
+    // any new data
+    applyDebugMeta(evt);
 
     if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
       return normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
