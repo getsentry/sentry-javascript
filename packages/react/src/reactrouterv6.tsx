@@ -1,6 +1,6 @@
 import type { browserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
-import type { ReactRouterHooks, ReactRouterOptions } from './reactrouter-compat-utils';
+import type { ReactRouterOptions } from './reactrouter-compat-utils';
 import {
   createReactRouterV6CompatibleTracingIntegration,
   createV6CompatibleWithSentryReactRouterRouting,
@@ -28,8 +28,8 @@ export function reactRouterV6BrowserTracingIntegration(
  *
  * @deprecated Use `wrapUseRoutes` instead.
  */
-export function wrapUseRoutesV6(origUseRoutes: UseRoutes, hooks?: ReactRouterHooks): UseRoutes {
-  return createV6CompatibleWrapUseRoutes(origUseRoutes, '6', hooks);
+export function wrapUseRoutesV6(origUseRoutes: UseRoutes): UseRoutes {
+  return createV6CompatibleWrapUseRoutes(origUseRoutes, '6');
 }
 
 /**
@@ -41,11 +41,8 @@ export function wrapUseRoutesV6(origUseRoutes: UseRoutes, hooks?: ReactRouterHoo
 export function wrapCreateBrowserRouterV6<
   TState extends RouterState = RouterState,
   TRouter extends Router<TState> = Router<TState>,
->(
-  createRouterFunction: CreateRouterFunction<TState, TRouter>,
-  hooks?: ReactRouterHooks,
-): CreateRouterFunction<TState, TRouter> {
-  return createV6CompatibleWrapCreateBrowserRouter(createRouterFunction, '6', hooks);
+>(createRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
+  return createV6CompatibleWrapCreateBrowserRouter(createRouterFunction, '6');
 }
 
 /**
@@ -59,11 +56,8 @@ export function wrapCreateBrowserRouterV6<
 export function wrapCreateMemoryRouterV6<
   TState extends RouterState = RouterState,
   TRouter extends Router<TState> = Router<TState>,
->(
-  createMemoryRouterFunction: CreateRouterFunction<TState, TRouter>,
-  hooks?: ReactRouterHooks,
-): CreateRouterFunction<TState, TRouter> {
-  return createV6CompatibleWrapCreateMemoryRouter(createMemoryRouterFunction, '6', hooks);
+>(createMemoryRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
+  return createV6CompatibleWrapCreateMemoryRouter(createMemoryRouterFunction, '6');
 }
 
 /**
@@ -73,9 +67,6 @@ export function wrapCreateMemoryRouterV6<
  * @deprecated Use `wrapReactRouterRouting` instead.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function withSentryReactRouterV6Routing<P extends Record<string, any>, R extends React.FC<P>>(
-  routes: R,
-  hooks?: ReactRouterHooks,
-): R {
-  return createV6CompatibleWithSentryReactRouterRouting<P, R>(routes, '6', hooks);
+export function withSentryReactRouterV6Routing<P extends Record<string, any>, R extends React.FC<P>>(routes: R): R {
+  return createV6CompatibleWithSentryReactRouterRouting<P, R>(routes, '6');
 }
