@@ -244,6 +244,12 @@ User IP address inference, which was previously gated on `sendDefaultPii`, is no
 `dataCollection.userInfo`. An explicit `requestDataIntegration({ include: { ip: true } })` overrides
 `dataCollection.userInfo: false` for data collected by that integration.
 
+#### Astro client IP
+
+`trackClientIp` no longer defaults to `false`. When you leave it unset, `handleRequest` now follows
+`dataCollection.userInfo`, which defaults to `true`, so Astro apps that set neither option start
+reporting `user.ip_address`. Pass `trackClientIp: false` to keep the v10 behaviour.
+
 #### Remix action form data
 
 `captureActionFormDataKeys` is an integration-level override, so it no longer requires
