@@ -1,12 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-// The generation-function spans are children of the segment span, which ends last, so accumulate
-// spans until the segment for this request arrives.
 function collectSpansForTarget(httpTarget: string) {
-  return collectStreamedSpans('nextjs-14', spans =>
-    spans.some(span => span.is_segment && span.attributes['http.target']?.value === httpTarget),
-  );
+  return collectStreamedSpansUntilSegment('nextjs-14', span => span.attributes['http.target']?.value === httpTarget);
 }
 
 test('Should emit a span for a generateMetadata() function invocation', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a server root span on pageload', async ({ page }) => {
   const serverSpanPromise = waitForStreamedSpan('nuxt-5', span => {
@@ -40,8 +40,9 @@ test('does not send spans for build asset folder "_nuxt"', async ({ page }) => {
 
 // TODO: Make test work with Nuxt 5
 test.skip('captures server API calls made with Nitro $fetch', async ({ page }) => {
-  const spansPromise = collectStreamedSpans('nuxt-5', spans =>
-    spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/nitro-fetch'),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nuxt-5',
+    span => span.attributes['url.path']?.value === '/api/nitro-fetch',
   );
 
   await page.goto(`/fetch-server-routes`);
