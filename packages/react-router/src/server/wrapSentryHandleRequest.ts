@@ -7,15 +7,26 @@ import {
   updateSpanName,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
+import type { EntryContext, RouterContextProvider } from 'react-router';
 import { isInstrumentationApiUsed } from './serverGlobals';
 
-type OriginalHandleRequestWithoutMiddleware = (
+/**
+ * React Router v7's `AppLoadContext`, declared here because v8 removed the export: middleware is
+ * always enabled there, so the load context is always a `RouterContextProvider`. The SDK supports
+ * both majors, so the shape is mirrored instead of imported.
+ */
+export interface AppLoadContext {
+  [key: string]: unknown;
+}
+
+// Generic over the load context so apps that augment `AppLoadContext` via declaration merging keep
+// their own shape instead of being widened to the base index signature.
+type OriginalHandleRequestWithoutMiddleware<LoadContext extends AppLoadContext = AppLoadContext> = (
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  loadContext: AppLoadContext,
+  loadContext: LoadContext,
 ) => Promise<unknown>;
 
 type OriginalHandleRequestWithMiddleware = (
@@ -32,9 +43,9 @@ type OriginalHandleRequestWithMiddleware = (
  * @param originalHandle - The original handleRequest function to wrap
  * @returns A wrapped version of the handle request function with Sentry instrumentation
  */
-export function wrapSentryHandleRequest(
-  originalHandle: OriginalHandleRequestWithoutMiddleware,
-): OriginalHandleRequestWithoutMiddleware;
+export function wrapSentryHandleRequest<LoadContext extends AppLoadContext>(
+  originalHandle: OriginalHandleRequestWithoutMiddleware<LoadContext>,
+): OriginalHandleRequestWithoutMiddleware<LoadContext>;
 /**
  * Wraps the original handleRequest function to add Sentry instrumentation.
  *

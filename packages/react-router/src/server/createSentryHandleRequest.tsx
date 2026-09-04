@@ -1,10 +1,10 @@
 import type { createReadableStreamFromReadable } from '@react-router/node';
 import type { ReactNode } from 'react';
 import React from 'react';
-import type { AppLoadContext, EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
+import type { EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
 import { PassThrough } from 'stream';
 import { getMetaTagTransformer } from './getMetaTagTransformer';
-import { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
+import { type AppLoadContext, wrapSentryHandleRequest } from './wrapSentryHandleRequest';
 
 type RenderToPipeableStreamOptions = {
   [key: string]: unknown;
