@@ -29,7 +29,7 @@ type BrowserTracingOptions = Parameters<typeof browserTracingIntegration>[0];
  * Sentry.init({ integrations: [reactRouterBrowserTracingIntegration()] });
  * ```
  *
- * Any of the hooks can still be overridden via `options` (e.g. to supply the `react-router-dom` versions).
+ * Any of the hooks can still be overridden via `options` (e.g. to supply the `react-router-dom` versions in v6).
  *
  * This requires `react-router` to be resolvable (it is declared as an optional peer dependency). If you are on
  * React Router v6 with only `react-router-dom` installed, either add `react-router` as a dependency or import
