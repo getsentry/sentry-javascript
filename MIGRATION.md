@@ -1301,6 +1301,41 @@ Affected SDKs: `@sentry/remix`.
 
 The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
 
+### React: Simpler React Router setup via `@sentry/react/router`
+
+Affected SDKs: `@sentry/react`.
+
+`@sentry/react` gained a new `@sentry/react/router` entry point that pulls the required React Router hooks (`useLocation`, `useNavigationType`, `matchRoutes`, `createRoutesFromChildren`) from `react-router` for you, so you no longer have to thread them through `reactRouterBrowserTracingIntegration` yourself:
+
+```diff
+- import * as Sentry from '@sentry/react';
+- import { useEffect } from 'react';
+- import { createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router';
++ import * as Sentry from '@sentry/react';
++ import { reactRouterBrowserTracingIntegration } from '@sentry/react/router';
+
+  Sentry.init({
+    integrations: [
+-     Sentry.reactRouterBrowserTracingIntegration({
+-       useEffect,
+-       useLocation,
+-       useNavigationType,
+-       createRoutesFromChildren,
+-       matchRoutes,
+-     }),
++     reactRouterBrowserTracingIntegration(),
+    ],
+  });
+```
+
+The `wrapReactRouterRouting`, `wrapUseRoutes`, `wrapCreateBrowserRouter` and `wrapCreateMemoryRouter` helpers are re-exported from `@sentry/react/router` as well.
+
+This entry requires `react-router` to be resolvable — it is declared as an optional peer dependency and supports React Router v6, v7 and v8. If you are on React Router v6 with only `react-router-dom` installed, either add `react-router` as a dependency or keep importing `reactRouterBrowserTracingIntegration` from `@sentry/react` and pass the hooks explicitly.
+
+The existing `@sentry/react` API is unchanged and keeps working; passing the hooks there is now optional too (`useEffect` in particular is no longer used and can be omitted).
+
+Additionally — for **every** `@sentry/react` routing setup, not just the new entry — the order in which you add the browser tracing integration and wrap your routes no longer matters.
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs

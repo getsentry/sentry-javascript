@@ -18,7 +18,6 @@ export {
 export {
   resolveRouteNameAndSource,
   getNormalizedName,
-  initializeRouterUtils,
   locationIsInsideDescendantRoute,
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
