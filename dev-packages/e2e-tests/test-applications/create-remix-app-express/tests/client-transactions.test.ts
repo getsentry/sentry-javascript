@@ -1,30 +1,27 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('Sends a pageload transaction to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/';
+test('Sends a pageload span to Sentry', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/';
   });
 
   await page.goto('/');
 
-  const transactionEvent = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent).toBeDefined();
-  expect(transactionEvent.contexts?.trace?.data).toEqual(
-    expect.objectContaining({
-      'sentry.origin': 'auto.pageload.remix',
-      'sentry.segment.name.source': 'route',
-      'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-      'url.path': '/',
-      'url.template': '/',
-    }),
-  );
+  expect(span.attributes).toMatchObject({
+    'sentry.origin': { value: 'auto.pageload.remix', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/$/), type: 'string' },
+    'url.path': { value: '/', type: 'string' },
+    'url.template': { value: '/', type: 'string' },
+  });
 });
 
-test('Sends a navigation transaction to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/user/:id';
+test('Sends a navigation span to Sentry', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/user/:id';
   });
 
   await page.goto('/');
@@ -32,17 +29,14 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   const linkElement = page.locator('id=navigation');
   await linkElement.click();
 
-  const transactionEvent = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent).toBeDefined();
-  expect(transactionEvent.contexts?.trace?.data).toEqual(
-    expect.objectContaining({
-      'sentry.segment.name.source': 'route',
-      'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
-      'url.path': '/user/5',
-      'url.template': '/user/:id',
-    }),
-  );
+  expect(span.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/), type: 'string' },
+    'url.path': { value: '/user/5', type: 'string' },
+    'url.template': { value: '/user/:id', type: 'string' },
+  });
 });
 
 test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
@@ -133,78 +127,66 @@ test('Does not inject sentry-trace and baggage when throwing an external redirec
   expect(baggage).toBeFalsy();
 });
 
-test('Pageload transaction is parameterized for a dynamic route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/error-boundary-capture/:id'
-    );
+test('Pageload span is parameterized for a dynamic route', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/error-boundary-capture/:id';
   });
 
   await page.goto('/error-boundary-capture/123');
 
-  const transactionEvent = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Pageload transaction is parameterized for a 2-level nested route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/users/:userId/posts/:postId'
-    );
+test('Pageload span is parameterized for a 2-level nested route', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/users/:userId/posts/:postId';
   });
 
   await page.goto('/users/user123/posts/post456');
 
-  const transactionEvent = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Pageload transaction is parameterized for a deeply nested route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/deeply/:nested/:structure/:id'
-    );
+test('Pageload span is parameterized for a deeply nested route', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/deeply/:nested/:structure/:id';
   });
 
   await page.goto('/deeply/level1/level2/level3');
 
-  const transactionEvent = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Pageload transaction is parameterized for a flat dot-notation route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/products/:productId/reviews/:reviewId'
-    );
+test('Pageload span is parameterized for a flat dot-notation route', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/products/:productId/reviews/:reviewId';
   });
 
   await page.goto('/products/prod789/reviews/rev101');
 
-  const transactionEvent = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-test('Reports a manually created transaction', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent.transaction === 'test_transaction_1';
+test('Reports a manually created span', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return span.name === 'test_transaction_1';
   });
 
   await page.goto('/manual-tracing/0');
 
-  const transactionEvent = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent.sdk?.name).toBe('sentry.javascript.remix');
-  expect(transactionEvent.start_timestamp).toBeDefined();
-  expect(transactionEvent.timestamp).toBeDefined();
+  expect(span.attributes['sentry.sdk.name']?.value).toBe('sentry.javascript.remix');
+  expect(span.start_timestamp).toBeDefined();
+  expect(span.end_timestamp).toBeDefined();
 });
 
 test('Renders data from a deferred loader response', async ({ page }) => {
