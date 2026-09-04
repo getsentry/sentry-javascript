@@ -1,10 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 
 test('sends a pageload span with component tracking init spans', async ({ page }) => {
-  const spansPromise = collectStreamedSpans('svelte-5', spansOfTrace =>
-    spansOfTrace.some(span => getSpanOp(span) === 'pageload' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('svelte-5', span => getSpanOp(span) === 'pageload');
 
   await page.goto(`/`);
 

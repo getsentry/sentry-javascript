@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 
 // The Nuxt module auto-wires the orchestrion build-time transform, which injects
 // `diagnostics_channel` publishers into these drivers as Nitro bundles them. That
@@ -10,9 +10,7 @@ import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 // segment is selected via its `url.path` attribute. Driver spans can flush before
 // the segment, so accumulate until the segment arrives and filter by its trace.
 async function collectRequestSpans(path: string) {
-  const spans = await collectStreamedSpans('nuxt-4', spans =>
-    spans.some(span => span.is_segment && span.attributes['url.path']?.value === path),
-  );
+  const spans = await collectStreamedSpansUntilSegment('nuxt-4', span => span.attributes['url.path']?.value === path);
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === path);
 
   return spans.filter(span => span.trace_id === rootSpan?.trace_id);
