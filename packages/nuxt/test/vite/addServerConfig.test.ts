@@ -1,10 +1,11 @@
-import type { Nuxt } from '@nuxt/schema';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fs from 'fs';
+import type { NitroConfig } from 'nitropack';
 import {
-  addDevServerConfigFile,
-  DEV_SERVER_CONFIG_PATH,
+  addServerConfigShimWithWarning,
+  addServerConfigPlugin,
   wrapEntryWithDynamicImport,
 } from '../../src/vite/addServerConfig';
 import {
@@ -113,9 +114,11 @@ describe('wrapEntryWithDynamicImport', () => {
 });
 
 const addTemplateMock = vi.hoisted(() => vi.fn());
+const addServerPluginMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@nuxt/kit', () => ({
   addTemplate: addTemplateMock,
+  addServerPlugin: addServerPluginMock,
   // `@nuxt/kit` resolves rather than joins, which is what lets an absolute layer path win over the base.
   createResolver: (base: string) => ({ resolve: (input: string) => path.resolve(base, input) }),
 }));
@@ -123,62 +126,171 @@ vi.mock('@nuxt/kit', () => ({
 const APP_ROOT = '/my/monorepo/apps/web';
 // `findDefaultSdkInitFile` always returns an absolute path, built from the layer's own `cwd`.
 const APP_CONFIG = `${APP_ROOT}/sentry.server.config.ts`;
-const LAYER_CONFIG = '/my/monorepo/layers/base/sentry.server.config.ts';
 
-function generate(serverConfigFile: string): string {
-  const nuxt = { options: { rootDir: APP_ROOT, buildDir: path.join(APP_ROOT, '.nuxt') } } as Nuxt;
+describe('addServerConfigPlugin', () => {
+  const flagsDst = `${APP_ROOT}/.nuxt/sentry-runtime-flags.mjs`;
+  const pluginDst = `${APP_ROOT}/.nuxt/sentry-server-config-plugin.mjs`;
 
-  addDevServerConfigFile(nuxt, serverConfigFile);
+  function createFakeNuxt(): {
+    nuxt: Parameters<typeof addServerConfigPlugin>[0];
+    hooks: Record<string, (nitroConfig: NitroConfig) => void>;
+  } {
+    const hooks: Record<string, (nitroConfig: NitroConfig) => void> = {};
+    const nuxt = {
+      options: { rootDir: APP_ROOT, buildDir: path.join(APP_ROOT, '.nuxt'), nitro: {} },
+      hook: (name: string, callback: (nitroConfig: NitroConfig) => void) => {
+        hooks[name] = callback;
+      },
+    } as unknown as Parameters<typeof addServerConfigPlugin>[0];
 
-  return addTemplateMock.mock.calls[0]?.[0].getContents();
-}
+    return { nuxt, hooks };
+  }
 
-describe('addDevServerConfigFile', () => {
+  function templateContents(filename: string): string {
+    const call = addTemplateMock.mock.calls.find(args => args[0]?.filename === filename);
+    expect(call).toBeDefined();
+    return call?.[0].getContents();
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
+    addTemplateMock.mockImplementation((opts: { filename: string }) => ({
+      dst: `${APP_ROOT}/.nuxt/${opts.filename}`,
+    }));
   });
 
-  it('writes the file into the build directory so `--import` can resolve it', () => {
-    generate(APP_CONFIG);
+  it('registers a plugin that evaluates the runtime flags before the config', () => {
+    const { nuxt } = createFakeNuxt();
 
-    expect(addTemplateMock).toHaveBeenCalledWith({
-      filename: DEV_SERVER_CONFIG_PATH,
-      write: true,
-      getContents: expect.any(Function),
-    });
+    addServerConfigPlugin(nuxt, APP_CONFIG);
+
+    expect(templateContents('sentry-server-config-plugin.mjs')).toBe(
+      `import ${JSON.stringify(flagsDst)};\nimport ${JSON.stringify(APP_CONFIG)};\nexport default () => {};\n`,
+    );
+    expect(addServerPluginMock).toHaveBeenCalledWith(pluginDst);
   });
 
-  it('imports the user config as a file URL so Node can load it directly', () => {
-    expect(generate(APP_CONFIG)).toContain(`await import(${JSON.stringify(pathToFileURL(APP_CONFIG).href)})`);
+  it('derives the runtime flags from the build-time `import.meta` values', () => {
+    const { nuxt } = createFakeNuxt();
+
+    addServerConfigPlugin(nuxt, APP_CONFIG);
+
+    const contents = templateContents('sentry-runtime-flags.mjs');
+    expect(contents).toContain('globalThis.__SENTRY_NUXT_DEV_MODE__ = import.meta.dev === true;');
+    expect(contents).toContain('globalThis.__SENTRY_NUXT_PRERENDER__ = import.meta.prerender === true;');
   });
 
-  it('sets the dev flag before importing the config', () => {
-    const contents = generate(APP_CONFIG);
+  it('marks the config and the flags as side-effectful so tree shaking cannot drop them', () => {
+    const { nuxt } = createFakeNuxt();
+    nuxt.options.nitro.moduleSideEffects = ['unenv/polyfill/'];
 
-    // A static import would be hoisted above the assignment and `Sentry.init()` would then see no flag.
-    expect(contents).not.toMatch(/^import /m);
-    expect(contents.indexOf('__SENTRY_NUXT_DEV_MODE__')).toBeLessThan(contents.indexOf('await import('));
+    addServerConfigPlugin(nuxt, APP_CONFIG);
+
+    expect(nuxt.options.nitro.moduleSideEffects).toEqual(['unenv/polyfill/', APP_CONFIG, flagsDst]);
   });
 
-  it('catches a config Node cannot load, so a broken config does not stop the dev server', () => {
-    const contents = generate(APP_CONFIG);
+  it('inlines the config and both templates so the dev bundle transpiles them', () => {
+    const { nuxt, hooks } = createFakeNuxt();
+    addServerConfigPlugin(nuxt, APP_CONFIG);
+    const nitroConfig: NitroConfig = { externals: { inline: ['@sentry/'] } };
 
-    expect(contents).toMatch(/try \{[\s\S]*await import\([\s\S]*\} catch \(error\) \{[\s\S]*console\.warn\(/);
-    expect(contents).toContain('Could not load `sentry.server.config.ts`');
+    hooks['nitro:config']!(nitroConfig);
+
+    expect(nitroConfig.externals?.inline).toEqual(['@sentry/', APP_CONFIG, pluginDst, flagsDst]);
   });
 
-  it('documents the command that preloads the file', () => {
-    expect(generate(APP_CONFIG)).toContain("NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs'");
+  it('moves its plugin to the front when other modules registered plugins first', () => {
+    const { nuxt, hooks } = createFakeNuxt();
+    addServerConfigPlugin(nuxt, APP_CONFIG);
+    const nitroConfig: NitroConfig = { plugins: ['other-module-plugin.mjs', pluginDst] };
+
+    hooks['nitro:config']!(nitroConfig);
+
+    expect(nitroConfig.plugins).toEqual([pluginDst, 'other-module-plugin.mjs']);
   });
 
-  describe('when the config comes from a layer outside the project root', () => {
-    it('imports the config from the layer it belongs to', () => {
-      expect(generate(LAYER_CONFIG)).toContain(`await import(${JSON.stringify(pathToFileURL(LAYER_CONFIG).href)})`);
-    });
+  it('removes the plugin and warns on Cloudflare presets instead of importing the Node SDK into workerd', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { nuxt, hooks } = createFakeNuxt();
+    addServerConfigPlugin(nuxt, APP_CONFIG);
+    const nitroConfig: NitroConfig = { preset: 'cloudflare_module', plugins: ['other-plugin.mjs', pluginDst] };
 
-    it('keeps the preload path relative to the project root', () => {
-      // The file we generate always lives in the app's own build directory, wherever the config came from.
-      expect(generate(LAYER_CONFIG)).toContain("NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs'");
-    });
+    hooks['nitro:config']!(nitroConfig);
+
+    expect(nitroConfig.plugins).toEqual(['other-plugin.mjs']);
+    expect(nitroConfig.externals).toBeUndefined();
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('sentryCloudflareNitroPlugin'));
+    consoleWarnSpy.mockRestore();
+  });
+});
+
+describe('addImportCompatShim', () => {
+  function createFakeNitro(options: { dev?: boolean; preset?: string }): {
+    nitro: Parameters<typeof addServerConfigShimWithWarning>[0];
+    runCloseHook: () => Promise<void>;
+  } {
+    const hooks: Record<string, () => Promise<void>> = {};
+    const nitro = {
+      hooks: {
+        hook: (name: string, callback: () => Promise<void>) => {
+          hooks[name] = callback;
+        },
+      },
+      options: {
+        dev: options.dev ?? false,
+        preset: options.preset ?? 'node-server',
+        output: { serverDir: `${APP_ROOT}/.output/server` },
+      },
+    } as unknown as Parameters<typeof addServerConfigShimWithWarning>[0];
+
+    return { nitro, runCloseHook: () => hooks['close']!() };
+  }
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('writes the shim to the former config path after the build', async () => {
+    const writeFileSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue();
+    const { nitro, runCloseHook } = createFakeNitro({});
+
+    addServerConfigShimWithWarning(nitro);
+    await runCloseHook();
+
+    expect(writeFileSpy).toHaveBeenCalledWith(
+      `${APP_ROOT}/.output/server/sentry.server.config.mjs`,
+      expect.stringContaining('no longer needed'),
+      'utf8',
+    );
+  });
+
+  it('does not write the shim for dev servers', async () => {
+    const writeFileSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue();
+    const { nitro, runCloseHook } = createFakeNitro({ dev: true });
+
+    addServerConfigShimWithWarning(nitro);
+    await runCloseHook();
+
+    expect(writeFileSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not write the shim into the prerenderer output', async () => {
+    const writeFileSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue();
+    const { nitro, runCloseHook } = createFakeNitro({ preset: 'nitro-prerender' });
+
+    addServerConfigShimWithWarning(nitro);
+    await runCloseHook();
+
+    expect(writeFileSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not write the shim for Cloudflare presets', async () => {
+    const writeFileSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue();
+    const { nitro, runCloseHook } = createFakeNitro({ preset: 'cloudflare_module' });
+
+    addServerConfigShimWithWarning(nitro);
+    await runCloseHook();
+
+    expect(writeFileSpy).not.toHaveBeenCalled();
   });
 });
