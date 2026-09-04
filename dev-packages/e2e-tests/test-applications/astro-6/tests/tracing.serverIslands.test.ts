@@ -1,23 +1,14 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'astro-6';
 
 test.describe('tracing in static routes with server islands', () => {
   test('only sends client pageload span and server island endpoint span', async ({ page }) => {
-    // The resource span for the server island request is a child of the pageload segment, and
-    // streamed children arrive in later envelopes than the segment they hang off.
-    const clientSpansPromise = collectStreamedSpans(
-      APP_NAME,
-      spans =>
-        spans.some(span => getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/server-island') &&
-        spans.some(
-          span =>
-            getSpanOp(span) === 'resource.link' &&
-            /\/_server-islands\/Avatar.*$/.test(String(span.attributes['url.full']?.value)),
-        ),
-    );
+    // The resource span for the server island request is a child of the pageload segment, so the
+    // whole trace is in hand once the segment has arrived.
+    const clientSpansPromise = collectStreamedSpansUntilSegment(APP_NAME, '/server-island');
 
     const serverIslandEndpointSpanPromise = waitForStreamedSpan(APP_NAME, span => {
       return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /_server-islands/[name]';
