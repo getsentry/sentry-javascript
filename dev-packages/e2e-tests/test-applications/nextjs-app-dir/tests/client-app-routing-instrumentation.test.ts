@@ -81,10 +81,7 @@ test('Creates a navigation span for `router.replace()`', async ({ page }) => {
   expect(await navigationSpanPromise).toBeDefined();
 });
 
-// Skipped rather than relaxed to `browser.popstate`: under span streaming these navigations lose the
-// back/forward distinction, which looks like a regression rather than intended behaviour.
-// See https://github.com/getsentry/sentry-javascript/issues/23909
-test.skip('Creates a navigation span for `router.back()`', async ({ page }) => {
+test('Creates a navigation span for `router.back()`', async ({ page }) => {
   const navigationSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return span.name === `/navigation/:param/router-back` && getSpanOp(span) === 'navigation';
   });
@@ -101,10 +98,7 @@ test.skip('Creates a navigation span for `router.back()`', async ({ page }) => {
   expect(navigationSpan.attributes['navigation.type']?.value).toMatch(/router\.(back|traverse)/);
 });
 
-// Skipped rather than relaxed to `browser.popstate`: under span streaming these navigations lose the
-// back/forward distinction, which looks like a regression rather than intended behaviour.
-// See https://github.com/getsentry/sentry-javascript/issues/23909
-test.skip('Creates a navigation span for `router.forward()`', async ({ page }) => {
+test('Creates a navigation span for `router.forward()`', async ({ page }) => {
   const navigationSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
     return (
       span.name === `/navigation/:param/router-push` &&
