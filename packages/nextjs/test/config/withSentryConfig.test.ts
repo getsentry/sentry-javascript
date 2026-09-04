@@ -17,8 +17,17 @@ const EXPECTED_DEFAULT_EXTERNALS = [
   ...filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES),
   ...ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
 ];
+const originalTurbopackWarningShown = process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
 
 describe('withSentryConfig', () => {
+  afterEach(() => {
+    if (originalTurbopackWarningShown === undefined) {
+      delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+    } else {
+      process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__ = originalTurbopackWarningShown;
+    }
+  });
+
   // `next.config.js` / `next.config.mjs` get no type checking, so this warning is the only signal
   // those users receive that the option is gone.
   describe('removed `unstable_sentryWebpackPluginOptions`', () => {
@@ -1276,6 +1285,21 @@ describe('withSentryConfig', () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.3.9. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
       );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('warns only once when the config is materialized repeatedly', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+      materializeFinalNextConfig(exportedNextConfig);
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
 
       consoleWarnSpy.mockRestore();
     });
