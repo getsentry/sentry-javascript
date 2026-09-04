@@ -53,6 +53,7 @@ export async function sendReplayRequest({
   const replayEvent = await prepareReplayEvent({ scope, client, replayId, event: baseEvent });
 
   if (!replayEvent) {
+    // `prepareEvent` already records the event processor drop, so do not record it again here.
     DEBUG_BUILD && debug.log('An event processor returned `null`, will not send event.');
     return Promise.resolve({});
   }
