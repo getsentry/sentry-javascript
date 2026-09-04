@@ -1,7 +1,8 @@
-import type { DebugImage, Event, IntegrationFn, StackFrame } from '@sentry/core';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
 import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
+import { uniqueImageForSyntheticFilename } from './matchSyntheticWasmFilename';
 import { patchWebAssembly } from './patchWebAssembly';
-import { getImage, getImages, registerModule } from './registry';
+import { getImage, getImages, registerModule, toProtocolDebugImage, type RegisteredWasmImage } from './registry';
 
 const INTEGRATION_NAME = 'Wasm';
 
@@ -32,7 +33,7 @@ interface WasmIntegrationOptions {
 
 // Access WINDOW with proper typing for _sentryWasmImages
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  _sentryWasmImages?: Array<DebugImage>;
+  _sentryWasmImages?: Array<RegisteredWasmImage>;
 };
 
 const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
@@ -58,8 +59,8 @@ const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
 
       if (hasAtLeastOneWasmFrameWithImage) {
         event.debug_meta = event.debug_meta || {};
-        const mainThreadImages = getImages();
-        const workerImages = WINDOW._sentryWasmImages || [];
+        const mainThreadImages = getImages().map(toProtocolDebugImage);
+        const workerImages = (WINDOW._sentryWasmImages || []).map(toProtocolDebugImage);
         event.debug_meta.images = [...(event.debug_meta.images || []), ...mainThreadImages, ...workerImages];
       }
 
@@ -109,9 +110,11 @@ export function patchFrames(
       match = frame.filename.match(PARSER_REGEX) as null | [string, string, string];
     }
 
+    // `<url>:wasm-function[N]:0xADDR` — address is still in filename (JS parser did not split it).
+    // `<url>` is usually the fetch URL (`http://…/app.wasm`); Chrome may instead use `wasm://wasm/<file>-<hash>`.
     if (match) {
-      const index = getImage(match[1]);
-      const workerImageIndex = getWorkerImage(match[1]);
+      let index = getImage(match[1]);
+      let workerImageIndex = getWorkerImage(match[1]);
       frame.instruction_addr = match[2];
       frame.filename = match[1];
       frame.platform = 'native';
@@ -123,12 +126,42 @@ export function patchFrames(
         };
       }
 
+      // Exact `code_file` miss: `match[1]` is `wasm://wasm/…`, not the registered http URL.
+      if (index < 0 && workerImageIndex < 0) {
+        const unique = uniqueImageForSyntheticFilename(match[1], getImages(), WINDOW._sentryWasmImages || []);
+        if (unique) {
+          frame.filename = unique.codeFile;
+          if (unique.worker) {
+            workerImageIndex = unique.index;
+          } else {
+            index = unique.index;
+          }
+        }
+      }
+
       if (index >= 0) {
         frame.addr_mode = `rel:${existingImagesOffset + index}`;
         hasAtLeastOneWasmFrameWithImage = true;
       } else if (workerImageIndex >= 0) {
         const mainThreadImagesCount = getImages().length;
         frame.addr_mode = `rel:${existingImagesOffset + mainThreadImagesCount + workerImageIndex}`;
+        hasAtLeastOneWasmFrameWithImage = true;
+      }
+    } else {
+      // Bare `wasm://wasm/<file>-<hash>` — JS parser already set `instruction_addr`.
+      const unique = uniqueImageForSyntheticFilename(frame.filename, getImages(), WINDOW._sentryWasmImages || []);
+      if (unique && frame.instruction_addr) {
+        frame.filename = unique.codeFile;
+        frame.platform = 'native';
+        if (applicationKey) {
+          frame.module_metadata = {
+            ...frame.module_metadata,
+            [`${BUNDLER_PLUGIN_APP_KEY_PREFIX}${applicationKey}`]: true,
+          };
+        }
+        frame.addr_mode = unique.worker
+          ? `rel:${existingImagesOffset + getImages().length + unique.index}`
+          : `rel:${existingImagesOffset + unique.index}`;
         hasAtLeastOneWasmFrameWithImage = true;
       }
     }

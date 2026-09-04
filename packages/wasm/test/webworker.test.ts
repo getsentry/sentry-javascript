@@ -1,14 +1,23 @@
 import type { DebugImage, StackFrame } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { patchFrames, registerWebWorkerWasm } from '../src/index';
+import { IMAGES } from '../src/registry';
+import { restoreWasmGlobals, saveWasmGlobals } from './wasmTestHelpers';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryWasmImages?: Array<DebugImage>;
 };
 
 describe('registerWebWorkerWasm()', () => {
+  let savedGlobals = saveWasmGlobals();
+
+  beforeEach(() => {
+    savedGlobals = saveWasmGlobals();
+  });
+
   afterEach(() => {
+    restoreWasmGlobals(savedGlobals);
     delete WINDOW._sentryWasmImages;
     vi.restoreAllMocks();
   });
@@ -18,12 +27,12 @@ describe('registerWebWorkerWasm()', () => {
     const mockSelf = { postMessage: mockPostMessage };
 
     const originalInstantiateStreaming = WebAssembly.instantiateStreaming;
+    const originalInstantiate = WebAssembly.instantiate;
 
     registerWebWorkerWasm({ self: mockSelf });
 
     expect(WebAssembly.instantiateStreaming).not.toBe(originalInstantiateStreaming);
-
-    WebAssembly.instantiateStreaming = originalInstantiateStreaming;
+    expect(WebAssembly.instantiate).not.toBe(originalInstantiate);
   });
 
   it('should patch WebAssembly.compileStreaming when available', () => {
@@ -35,13 +44,12 @@ describe('registerWebWorkerWasm()', () => {
     registerWebWorkerWasm({ self: mockSelf });
 
     expect(WebAssembly.compileStreaming).not.toBe(originalCompileStreaming);
-
-    WebAssembly.compileStreaming = originalCompileStreaming;
   });
 });
 
 describe('patchFrames() with worker images', () => {
   afterEach(() => {
+    IMAGES.length = 0;
     delete WINDOW._sentryWasmImages;
   });
 
@@ -143,5 +151,88 @@ describe('patchFrames() with worker images', () => {
 
     expect(result).toBe(true);
     expect(frames[0]?.addr_mode).toBe('rel:3');
+  });
+
+  it('matches wasm:// frames to a unique worker image by filename', () => {
+    WINDOW._sentryWasmImages = [
+      {
+        type: 'wasm',
+        code_id: 'abc123',
+        code_file: 'http://localhost:8080/web/assets/emscripten-raycast/maze.split.wasm',
+        debug_file: null,
+        debug_id: 'abc12300000000000000000000000000',
+      },
+    ];
+
+    const frames: StackFrame[] = [
+      {
+        filename: 'wasm://wasm/maze.split.wasm-000197f6',
+        function: 'trigger_crash_divzero',
+        instruction_addr: '0x283d',
+        in_app: true,
+      },
+    ];
+
+    const result = patchFrames(frames);
+
+    expect(result).toBe(true);
+    expect(frames[0]?.filename).toBe('http://localhost:8080/web/assets/emscripten-raycast/maze.split.wasm');
+    expect(frames[0]?.addr_mode).toBe('rel:0');
+  });
+
+  it('matches wasm:// frames when page and worker registered the same moduleName', () => {
+    const image = {
+      type: 'wasm' as const,
+      code_id: 'abc123',
+      code_file: 'http://localhost:8080/web/assets/emscripten-raycast/maze.split.wasm',
+      debug_file: null,
+      debug_id: 'abc12300000000000000000000000000',
+      moduleName: 'maze.split.wasm',
+    };
+    IMAGES.push(image);
+    WINDOW._sentryWasmImages = [image];
+
+    const frames: StackFrame[] = [
+      {
+        filename: 'wasm://wasm/maze.split.wasm-000197f6',
+        function: 'trigger_crash_divzero',
+        instruction_addr: '0x283d',
+        in_app: true,
+      },
+    ];
+
+    const result = patchFrames(frames);
+
+    expect(result).toBe(true);
+    expect(frames[0]?.filename).toBe('http://localhost:8080/web/assets/emscripten-raycast/maze.split.wasm');
+    expect(frames[0]?.addr_mode).toBe('rel:0');
+  });
+
+  it('matches wasm:// frames to a worker image by name-section module name', () => {
+    WINDOW._sentryWasmImages = [
+      {
+        type: 'wasm',
+        code_id: 'aabb',
+        code_file: 'http://localhost:8080/web/assets/rust/demo_bg.wasm',
+        debug_file: null,
+        debug_id: 'aabb00000000000000000000000000000',
+        moduleName: 'demo.wasm',
+      },
+    ];
+
+    const frames: StackFrame[] = [
+      {
+        filename: 'wasm://wasm/demo.wasm-000197f6',
+        function: 'trigger_crash_divzero',
+        instruction_addr: '0x283d',
+        in_app: true,
+      },
+    ];
+
+    const result = patchFrames(frames);
+
+    expect(result).toBe(true);
+    expect(frames[0]?.filename).toBe('http://localhost:8080/web/assets/rust/demo_bg.wasm');
+    expect(frames[0]?.addr_mode).toBe('rel:0');
   });
 });
