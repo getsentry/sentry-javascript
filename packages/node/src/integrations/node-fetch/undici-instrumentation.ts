@@ -321,8 +321,7 @@ function onRequestHeaders(config: NodeFetchOptions, { request, socket }: Request
 
     for (const [name, value] of headersMap.entries()) {
       if (headersToAttribs.has(name)) {
-        // The sensitive denylist applies even to explicitly listed headers, so an `authorization`
-        // entry in `headersToSpanAttributes` still reports as `[Filtered]`.
+        // An allowlist entry does not exempt a header from the denylist.
         spanAttributes[`http.request.header.${name}`] = _INTERNAL_shouldFilterDataKey(name, true)
           ? _INTERNAL_FILTERED_VALUE
           : Array.isArray(value)

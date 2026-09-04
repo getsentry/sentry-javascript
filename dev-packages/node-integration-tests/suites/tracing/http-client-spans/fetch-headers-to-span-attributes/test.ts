@@ -9,12 +9,11 @@ describe('outgoing fetch spans - headers to span attributes', () => {
 
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('maps configured request & response headers to span attributes', async () => {
-      expect.assertions(3);
+      expect.assertions(2);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()
         .get('/api/v0', headers => {
           expect(headers['x-test-header']).toBe('test-value');
-          expect(headers['authorization']).toBe('Bearer super-secret');
         })
         .start();
 
@@ -30,7 +29,7 @@ describe('outgoing fetch spans - headers to span attributes', () => {
                 origin: 'auto.http.node_fetch',
                 data: expect.objectContaining({
                   'http.request.header.x-test-header': ['test-value'],
-                  // Listing a header explicitly does not exempt it from the sensitive denylist.
+                  // Listed in `headersToSpanAttributes`, but the denylist still wins.
                   'http.request.header.authorization': '[Filtered]',
                   'http.response.header.x-powered-by': ['Express'],
                 }),

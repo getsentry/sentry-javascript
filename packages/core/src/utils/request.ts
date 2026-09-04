@@ -312,7 +312,6 @@ export function httpHeadersToSpanAttributes(
               cookieValue;
           }
         } else {
-          // Per spec, a cookie header we cannot split into key-value pairs is filtered as a whole.
           spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}`] = FILTERED_VALUE;
         }
       } else {
@@ -346,11 +345,11 @@ function normalizeAttributeKey(key: string): string {
 }
 
 /**
- * Splits a `Cookie` / `Set-Cookie` header into its individual name-value pairs.
+ * Splits a `Cookie` / `Set-Cookie` header into its name-value pairs, or returns `undefined` when it
+ * holds none.
  *
- * Segments that are not a `name=value` pair are dropped rather than emitted as a key: an opaque
- * cookie string used as an attribute key cannot be scrubbed by any denylist. When nothing parses,
- * `undefined` signals the caller to filter the header as a whole.
+ * A segment without an `=` is dropped. It would otherwise become the attribute key itself, and no
+ * denylist can scrub a key.
  */
 function parseCookieHeader(value: string, isSetCookie: boolean): Record<string, string> | undefined {
   // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")
