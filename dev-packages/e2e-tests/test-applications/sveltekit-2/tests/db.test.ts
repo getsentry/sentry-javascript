@@ -10,7 +10,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
 
   expect(traceSpans).toContainEqual(
     expect.objectContaining({
-      name: 'set test-key [1 other arguments]',
+      name: 'set localhost:6379',
       status: 'ok',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'db.query', type: 'string' },
@@ -23,7 +23,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
   );
   expect(traceSpans).toContainEqual(
     expect.objectContaining({
-      name: 'get test-key',
+      name: 'get localhost:6379',
       status: 'ok',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'db.query', type: 'string' },
