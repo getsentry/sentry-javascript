@@ -40,6 +40,8 @@ import {
   getUrlQuery,
   filterCollectedUrl,
   filterCollectedUrlQuery,
+  _INTERNAL_shouldFilterDataKey,
+  _INTERNAL_FILTERED_VALUE,
 } from '@sentry/core';
 import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
@@ -319,8 +321,12 @@ function onRequestHeaders(config: NodeFetchOptions, { request, socket }: Request
 
     for (const [name, value] of headersMap.entries()) {
       if (headersToAttribs.has(name)) {
-        const attrValue = Array.isArray(value) ? value : [value];
-        spanAttributes[`http.request.header.${name}`] = attrValue;
+        // An allowlist entry does not exempt a header from the denylist.
+        spanAttributes[`http.request.header.${name}`] = _INTERNAL_shouldFilterDataKey(name, true)
+          ? _INTERNAL_FILTERED_VALUE
+          : Array.isArray(value)
+            ? value
+            : [value];
       }
     }
   }
@@ -370,7 +376,9 @@ function onResponseHeaders(config: NodeFetchOptions, { request, response }: Resp
 
       if (headersToAttribs.has(name)) {
         const attrName = `http.response.header.${name}`;
-        if (!Object.prototype.hasOwnProperty.call(spanAttributes, attrName)) {
+        if (_INTERNAL_shouldFilterDataKey(name, true)) {
+          spanAttributes[attrName] = _INTERNAL_FILTERED_VALUE;
+        } else if (!Object.prototype.hasOwnProperty.call(spanAttributes, attrName)) {
           spanAttributes[attrName] = [value.toString()];
         } else {
           (spanAttributes[attrName] as string[]).push(value.toString());

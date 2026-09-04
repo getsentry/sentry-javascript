@@ -303,8 +303,9 @@ export function httpHeadersToSpanAttributes(
           continue;
         }
 
-        if (typeof value === 'string' && value !== '') {
-          const parsed = parseCookieHeader(value, lowerKey === 'set-cookie');
+        const parsed =
+          typeof value === 'string' && value !== '' ? parseCookieHeader(value, lowerKey === 'set-cookie') : undefined;
+        if (parsed) {
           const filtered = filterKeyValueData(parsed, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS);
           for (const [cookieKey, cookieValue] of Object.entries(filtered)) {
             spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}.${normalizeAttributeKey(cookieKey)}`] =
@@ -343,7 +344,14 @@ function normalizeAttributeKey(key: string): string {
   return key.replace(/-/g, '_');
 }
 
-function parseCookieHeader(value: string, isSetCookie: boolean): Record<string, string> {
+/**
+ * Splits a `Cookie` / `Set-Cookie` header into its name-value pairs, or returns `undefined` when it
+ * holds none.
+ *
+ * A segment without an `=` is dropped. It would otherwise become the attribute key itself, and no
+ * denylist can scrub a key.
+ */
+function parseCookieHeader(value: string, isSetCookie: boolean): Record<string, string> | undefined {
   // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")
   // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
   const semicolonIndex = value.indexOf(';');
@@ -353,11 +361,11 @@ function parseCookieHeader(value: string, isSetCookie: boolean): Record<string, 
   const result: Record<string, string> = {};
   for (const cookie of cookies) {
     const equalSignIndex = cookie.indexOf('=');
-    const cookieKey = (equalSignIndex !== -1 ? cookie.substring(0, equalSignIndex) : cookie).toLowerCase();
-    const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
-    result[cookieKey] = cookieValue;
+    if (equalSignIndex > 0) {
+      result[cookie.substring(0, equalSignIndex).toLowerCase()] = cookie.substring(equalSignIndex + 1);
+    }
   }
-  return result;
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 /** Extract the query params from an URL. */

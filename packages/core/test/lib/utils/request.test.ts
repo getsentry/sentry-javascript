@@ -650,8 +650,7 @@ describe('request utils', () => {
 
       it('attaches and filters sensitive cookie headers', () => {
         const headers = {
-          Cookie:
-            'session=abc123; tracking=enabled; cookie-authentication-key-without-value; theme=dark; lang=en; user_session=xyz789; pref=1',
+          Cookie: 'session=abc123; tracking=enabled; theme=dark; lang=en; user_session=xyz789; pref=1',
         };
 
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
@@ -662,9 +661,28 @@ describe('request utils', () => {
           'http.request.header.cookie.theme': 'dark',
           'http.request.header.cookie.lang': 'en',
           'http.request.header.cookie.user_session': '[Filtered]',
-          'http.request.header.cookie.cookie_authentication_key_without_value': '[Filtered]',
           'http.request.header.cookie.pref': '1',
         });
+      });
+
+      it('drops cookie segments that are not a name=value pair', () => {
+        // The segment would become the attribute key, and keys are never scrubbed.
+        const headers = { Cookie: 'session=abc123; theme=dark; y7Uu0Rk2QpLmXv3' };
+
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
+
+        expect(result).toEqual({
+          'http.request.header.cookie.session': '[Filtered]',
+          'http.request.header.cookie.theme': 'dark',
+        });
+      });
+
+      it('filters the whole cookie header when it holds no name=value pair', () => {
+        const headers = { Cookie: 'y7Uu0Rk2QpLmXv3' };
+
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
+
+        expect(result).toEqual({ 'http.request.header.cookie': '[Filtered]' });
       });
 
       it('filters common framework and provider session-style cookie names', () => {
@@ -725,7 +743,7 @@ describe('request utils', () => {
         ['pref=1; Max-Age=3600', { 'http.request.header.set_cookie.pref': '1' }],
         ['color=blue; Path=/dashboard', { 'http.request.header.set_cookie.color': 'blue' }],
         ['token=eyJhbGc=.eyJzdWI=.SflKxw; Secure', { 'http.request.header.set_cookie.token': '[Filtered]' }],
-        ['auth_required; HttpOnly', { 'http.request.header.set_cookie.auth_required': '[Filtered]' }],
+        ['auth_required; HttpOnly', { 'http.request.header.set_cookie': '[Filtered]' }],
         ['empty=; Secure', { 'http.request.header.set_cookie.empty': '' }],
       ])('should parse and filter Set-Cookie header: %s', (setCookieValue, expected) => {
         const headers = { 'Set-Cookie': setCookieValue };
