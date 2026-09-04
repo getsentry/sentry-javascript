@@ -97,10 +97,14 @@ export class LocalLambdaStack extends Stack {
       };
 
       fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
-      execFileSync('pnpm', ['install', '--offline', '--prod', '--ignore-scripts', '--no-frozen-lockfile'], {
-        cwd: lambdaPath,
-        stdio: 'inherit',
-      });
+      execFileSync(
+        'pnpm',
+        ['install', '--offline', '--prod', '--ignore-scripts', '--no-frozen-lockfile', '--config.node-linker=hoisted'],
+        {
+          cwd: lambdaPath,
+          stdio: 'inherit',
+        },
+      );
 
       if (!process.env.NODE_VERSION) {
         throw new Error('[LocalLambdaStack] NODE_VERSION is not set');

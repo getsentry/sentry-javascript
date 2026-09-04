@@ -1,25 +1,10 @@
 import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration, getCurrentScope, safeSetSpanJSONAttributes } from '@sentry/core';
-import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { sep, join } from 'node:path';
 import { DEBUG_BUILD } from '../debug-build';
 import { parseHandlerString, resolveHandlerFile } from '../handlerResolution';
 
 const SHIM_MODULE_ID = '@sentry/aws-serverless/run-lambda-handler';
-
-export function findHandlerShimFile(resolvedShimFile: string, nodeModulesPaths: string[] | null): string | undefined {
-  const nodeModulesMarker = `${sep}node_modules${sep}`;
-  const lastNodeModulesIndex = resolvedShimFile.lastIndexOf(nodeModulesMarker);
-  const packageRelativePath =
-    lastNodeModulesIndex < 0 ? undefined : resolvedShimFile.slice(lastNodeModulesIndex + nodeModulesMarker.length);
-
-  const logicalShimFiles = packageRelativePath
-    ? (nodeModulesPaths ?? []).map(nodeModulesPath => join(nodeModulesPath, packageRelativePath))
-    : [];
-
-  return [...logicalShimFiles, resolvedShimFile].find(shimFile => !shimFile.includes('..') && existsSync(shimFile));
-}
 
 function resolveShimFile(): string | undefined {
   try {
@@ -27,12 +12,7 @@ function resolveShimFile(): string | undefined {
     // directly, e.g. in tests) we create one. Rollup converts `import.meta.url` to an
     // equivalent for the CJS build, so both branches are always syntactically valid.
     const resolve = typeof require === 'function' ? require.resolve : createRequire(import.meta.url).resolve;
-    const resolvedShimFile = resolve(SHIM_MODULE_ID);
-    const shimFile = findHandlerShimFile(resolvedShimFile, resolve.paths(SHIM_MODULE_ID));
-    if (!shimFile) {
-      DEBUG_BUILD && debug.warn(`Could not find a Lambda-compatible path for ${SHIM_MODULE_ID}.`);
-    }
-    return shimFile;
+    return resolve(SHIM_MODULE_ID);
   } catch (error) {
     DEBUG_BUILD && debug.warn(`Could not resolve ${SHIM_MODULE_ID}, not instrumenting the Lambda handler.`, error);
     return undefined;
