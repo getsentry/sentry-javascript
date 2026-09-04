@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { EventsService } from './events.service';
+import { reportIsolationScopeOnSpan } from './utils';
 
 @Controller('events')
 export class EventsController {
@@ -15,12 +16,15 @@ export class EventsController {
   @Get('emit-multiple')
   async emitMultipleEvents() {
     await this.eventsService.emitMultipleEvents();
+    reportIsolationScopeOnSpan();
 
     return { message: 'Events emitted' };
   }
 
   @Get('test-isolation')
   testIsolation() {
+    reportIsolationScopeOnSpan();
+
     return { message: 'ok' };
   }
 }
