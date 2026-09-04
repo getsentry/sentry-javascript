@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'astro-6';
 
@@ -79,34 +79,37 @@ test.describe('nested SSR routes (client, server, server request)', () => {
    *         └── http.client — GET localhost                          (executing fetch call from SSR page - span)
    *             └── http.server — GET /api/user/[userId].json        (server request)
    */
-  const isUserPageTraceComplete = (spans: SerializedStreamedSpan[]): boolean =>
-    spans.some(isSegmentNamed('pageload', '/user-page/[userId]')) &&
-    spans.some(isSegmentNamed('http.server', 'GET /user-page/[userId]')) &&
-    spans.some(span => getSpanOp(span) === 'http.server' && span.name === 'GET /api/user/[userId].json') &&
-    spans.some(span => getSpanOp(span) === 'http.client');
+  // Every span of this page load is identifiable on its own, so each is awaited separately. That
+  // keeps "they share a trace" an assertion rather than the selector the spans are looked up by.
+  const isApiRequestSpan = (span: SerializedStreamedSpan): boolean =>
+    getSpanOp(span) === 'http.server' && span.name === 'GET /api/user/[userId].json';
+  const isApiFetchSpan = (span: SerializedStreamedSpan): boolean =>
+    getSpanOp(span) === 'http.client' &&
+    String(span.attributes['url.full']?.value).includes('/api/user/myUsername123.json');
+
+  const waitForUserPageSpans = (): Promise<
+    [SerializedStreamedSpan, SerializedStreamedSpan, SerializedStreamedSpan, SerializedStreamedSpan]
+  > =>
+    Promise.all([
+      waitForStreamedSpan(APP_NAME, isSegmentNamed('pageload', '/user-page/[userId]')),
+      waitForStreamedSpan(APP_NAME, isSegmentNamed('http.server', 'GET /user-page/[userId]')),
+      waitForStreamedSpan(APP_NAME, isApiRequestSpan),
+      waitForStreamedSpan(APP_NAME, isApiFetchSpan),
+    ]);
 
   test('sends connected server and client pageload and request spans with the same trace id', async ({ page }) => {
-    // Every span of this page load shares one trace, so accumulating the trace is what makes the
-    // parent/child assertions below possible: streamed children arrive in later envelopes than the
-    // segment they hang off.
-    const spansPromise = collectStreamedSpans(APP_NAME, isUserPageTraceComplete);
+    const spansPromise = waitForUserPageSpans();
 
     await page.goto('/user-page/myUsername123');
 
-    const spans = await spansPromise;
+    const [clientPageloadSpan, serverPageRequestSpan, serverHTTPServerRequestSpan, serverRequestHTTPClientSpan] =
+      await spansPromise;
 
-    const clientPageloadSpan = spans.find(isSegmentNamed('pageload', '/user-page/[userId]'))!;
-    const serverPageRequestSpan = spans.find(isSegmentNamed('http.server', 'GET /user-page/[userId]'))!;
-    const serverHTTPServerRequestSpan = spans.find(
-      span => getSpanOp(span) === 'http.server' && span.name === 'GET /api/user/[userId].json',
-    )!;
-    const serverRequestHTTPClientSpan = spans.find(
-      span =>
-        getSpanOp(span) === 'http.client' &&
-        String(span.attributes['url.full']?.value).includes('/api/user/myUsername123.json'),
-    )!;
-
-    expect(serverRequestHTTPClientSpan).toBeDefined();
+    // All four spans belong to the same trace
+    const traceId = serverPageRequestSpan.trace_id;
+    expect(clientPageloadSpan.trace_id).toEqual(traceId);
+    expect(serverHTTPServerRequestSpan.trace_id).toEqual(traceId);
+    expect(serverRequestHTTPClientSpan.trace_id).toEqual(traceId);
 
     // serverPageRequest has no parent (root span)
     expect(serverPageRequestSpan.parent_span_id).toBeUndefined();
@@ -120,17 +123,17 @@ test.describe('nested SSR routes (client, server, server request)', () => {
   });
 
   test('sends parametrized pageload, server and API request span names', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, isUserPageTraceComplete);
+    const spansPromise = waitForUserPageSpans();
 
     await page.goto('/user-page/myUsername123');
 
     const routeNameMetaContent = await page.locator('meta[name="sentry-route-name"]').getAttribute('content');
     expect(routeNameMetaContent).toBe('%2Fuser-page%2F%5BuserId%5D');
 
-    const spans = await spansPromise;
+    const [clientPageloadSpan, serverPageRequestSpan, serverHTTPServerRequestSpan, serverRequestHTTPClientSpan] =
+      await spansPromise;
 
     // Client pageload span - parametrized route with pageload operation
-    const clientPageloadSpan = spans.find(isSegmentNamed('pageload', '/user-page/[userId]'))!;
     expect(clientPageloadSpan.attributes).toMatchObject({
       'sentry.op': { value: 'pageload', type: 'string' },
       'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
@@ -144,7 +147,6 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     });
 
     // Server page request span - parametrized span name with the actual URL in the attributes
-    const serverPageRequestSpan = spans.find(isSegmentNamed('http.server', 'GET /user-page/[userId]'))!;
     expect(serverPageRequestSpan.attributes).toMatchObject({
       'sentry.op': { value: 'http.server', type: 'string' },
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },
@@ -159,11 +161,6 @@ test.describe('nested SSR routes (client, server, server request)', () => {
 
     // HTTP client span - with span streaming only the domain is kept in the name, the URL lives in
     // the attributes
-    const serverRequestHTTPClientSpan = spans.find(
-      span =>
-        getSpanOp(span) === 'http.client' &&
-        String(span.attributes['url.full']?.value).includes('/api/user/myUsername123.json'),
-    )!;
     expect(serverRequestHTTPClientSpan.name).toBe('GET localhost');
     expect(serverRequestHTTPClientSpan.attributes).toMatchObject({
       'sentry.op': { value: 'http.client', type: 'string' },
@@ -173,9 +170,6 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     });
 
     // Server HTTP request span
-    const serverHTTPServerRequestSpan = spans.find(
-      span => getSpanOp(span) === 'http.server' && span.name === 'GET /api/user/[userId].json',
-    )!;
     expect(serverHTTPServerRequestSpan.attributes).toMatchObject({
       'sentry.op': { value: 'http.server', type: 'string' },
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },

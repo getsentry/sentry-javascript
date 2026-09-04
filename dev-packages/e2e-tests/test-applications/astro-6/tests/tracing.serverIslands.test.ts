@@ -42,8 +42,9 @@ test.describe('tracing in static routes with server islands', () => {
       span =>
         getSpanOp(span) === 'resource.link' &&
         /\/_server-islands\/Avatar.*$/.test(String(span.attributes['url.full']?.value)),
-    )!;
-    expect(resourceLinkSpan.attributes['sentry.origin']?.value).toBe('auto.resource.browser.metrics');
+    );
+    expect(resourceLinkSpan).toBeDefined();
+    expect(resourceLinkSpan!.attributes['sentry.origin']?.value).toBe('auto.resource.browser.metrics');
 
     const serverIslandEndpointSpan = await serverIslandEndpointSpanPromise;
 
