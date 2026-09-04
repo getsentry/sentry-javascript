@@ -1,73 +1,51 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
-test('Transaction includes span and correct value for decorated async function', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-fastify', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-span-decorator-async'
-    );
-  });
+const APP_NAME = 'nestjs-fastify';
+
+test('Trace includes span and correct value for decorated async function', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-span-decorator-async');
 
   const response = await fetch(`${baseURL}/test-span-decorator-async`);
   const body = await response.json();
 
   expect(body.result).toEqual('test');
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent.spans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        data: {
-          'sentry.origin': 'auto.function.nestjs.sentry_traced',
-          'sentry.op': 'wait and return a string',
-        },
-        description: 'wait',
-        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        start_timestamp: expect.any(Number),
-        status: 'ok',
-        op: 'wait and return a string',
-        origin: 'auto.function.nestjs.sentry_traced',
+  expect(spans).toContainEqual(
+    expect.objectContaining({
+      name: 'wait',
+      is_segment: false,
+      status: 'ok',
+      attributes: expect.objectContaining({
+        'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
+        'sentry.op': { type: 'string', value: 'wait and return a string' },
       }),
-    ]),
+    }),
   );
 });
 
-test('Transaction includes span and correct value for decorated sync function', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-fastify', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-span-decorator-sync'
-    );
-  });
+test('Trace includes span and correct value for decorated sync function', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-span-decorator-sync');
 
   const response = await fetch(`${baseURL}/test-span-decorator-sync`);
   const body = await response.json();
 
   expect(body.result).toEqual('test');
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent.spans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        data: {
-          'sentry.origin': 'auto.function.nestjs.sentry_traced',
-          'sentry.op': 'return a string',
-        },
-        description: 'getString',
-        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        start_timestamp: expect.any(Number),
-        status: 'ok',
-        op: 'return a string',
-        origin: 'auto.function.nestjs.sentry_traced',
+  expect(spans).toContainEqual(
+    expect.objectContaining({
+      name: 'getString',
+      is_segment: false,
+      status: 'ok',
+      attributes: expect.objectContaining({
+        'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
+        'sentry.op': { type: 'string', value: 'return a string' },
       }),
-    ]),
+    }),
   );
 });
 
