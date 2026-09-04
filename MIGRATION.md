@@ -998,7 +998,9 @@ their names are unchanged. The only new behaviour is the fallback: if neither th
 nor the `AWS_LAMBDA_FUNCTION_NAME` environment variable yields a function name, the span is named
 `Serverless function execution` instead of carrying an empty name. These spans continue to carry the
 function name on `faas.name`, the request URL on `url.full`, and the invocation details on
-`aws.lambda.*` and `aws.cloudwatch.logs.*`.
+`aws.lambda.*` and `aws.cloudwatch.logs.*`. Their `sentry.segment.name.source` is now `component`
+rather than `custom`, matching the other FaaS spans: the name comes from the function, not from the
+user. This applies in both trace lifecycles.
 
 #### Filtering and sampling
 
