@@ -519,12 +519,15 @@ export function waitForStreamedSpanEnvelope(
  *   return getSpanV2Op(span) === 'http.client';
  * });
  * ```
+ *
+ * Pass `timestamp` to look further back than the moment of the call, e.g. `0` for a span the app
+ * emits at startup, before any test can start listening.
  */
 export function waitForStreamedSpan(
   proxyServerName: string,
   callback: (span: SerializedStreamedSpan) => Promise<boolean> | boolean,
+  timestamp: number = getNanosecondTimestamp(),
 ): Promise<SerializedStreamedSpan> {
-  const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
     waitForRequest(
       proxyServerName,

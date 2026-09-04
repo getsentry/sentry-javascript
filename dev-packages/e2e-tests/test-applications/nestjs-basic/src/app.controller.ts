@@ -1,5 +1,5 @@
 import { Controller, Get, Param, ParseIntPipe, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
-import { flush } from '@sentry/nestjs';
+import { flush, getActiveSpan, getIsolationScope, getRootSpan } from '@sentry/nestjs';
 import { AppService } from './app.service';
 import { AsyncInterceptor } from './async-example.interceptor';
 import { ScheduleService } from './schedule.service';
@@ -103,6 +103,17 @@ export class AppController {
 
   @Get('test-schedule-isolation')
   testScheduleIsolation() {
+    // Streamed spans carry no breadcrumbs, so the test reads from this attribute whether a
+    // breadcrumb added by a scheduled task leaked into this request's isolation scope
+    const activeSpan = getActiveSpan();
+    if (activeSpan) {
+      const breadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      getRootSpan(activeSpan).setAttribute(
+        'isolation_scope.has_schedule_breadcrumb',
+        breadcrumbs.some(breadcrumb => breadcrumb.message === 'leaked-breadcrumb-from-schedule'),
+      );
+    }
+
     return { message: 'ok' };
   }
 
