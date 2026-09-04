@@ -965,6 +965,7 @@ The following span names were adjusted:
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL                                                      | `/users/123`, `SvelteKit Route Change`                                         | The span's `http.route`, or `Router` if the SDK has none                                                                                                                            | `/users/:id`, `Router`                                 |
 | `handler`                                                                | Framework-specific, often carrying the request method                                                     | `GET /users/:id`, `route-handler`, `getUser`                                   | The span's `http.route`, or `Request handler` if the SDK has none                                                                                                                   | `/users/:id`, `Request handler`                        |
 | `function.gcp`                                                           | The request method and path for HTTP functions, otherwise the trigger's event or trigger type             | `POST /users`, `google.pubsub.topic.publish`, `firebase.function.http.request` | The function name, or `Serverless function execution` if the SDK cannot resolve one                                                                                                 | `myFunction`, `Serverless function execution`          |
+| `function.aws`                                                           | The Lambda function name                                                                                  | `my-function`                                                                  | Unchanged, except that the SDK now falls back to `Serverless function execution` if it cannot resolve the function name                                                             | `my-function`, `Serverless function execution`         |
 | `graphql`                                                                | The graphql phase and, for operations, the operation name                                                 | `query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`                | The operation type, or the processing type where there is none                                                                                                                      | `GraphQL query`, `GraphQL parse`, `GraphQL resolve`    |
 | `gen_ai.chat`, `gen_ai.embeddings`, `gen_ai.generate_content`            | `{operation} {model}`, or `{operation} unknown` if the model is missing                                   | `chat gpt-4`, `chat unknown`                                                   | `{operation} {model}`, or `{operation}` if the model is missing                                                                                                                     | `chat gpt-4`, `chat`                                   |
 | `gen_ai.invoke_agent`                                                    | The LangChain chain name, prefixed with `chain` rather than the operation                                 | `chain format_prompt`, `chain unknown_chain`                                   | `{operation} {name}`, where the name is the span's `gen_ai.agent.name`, `gen_ai.pipeline.name` or `gen_ai.function_id`, in that order, or `{operation}` if the span carries none    | `invoke_agent format_prompt`, `invoke_agent`           |
@@ -991,6 +992,15 @@ Whatever the name no longer carries stays on the span as an attribute:
 - `faas.name` — the function name the span is named after.
 - `gcp.function.context.*` — the fields of the trigger event, including the event type the span used to be named after.
 - `http.request.method` and `url.path` — for HTTP-triggered functions, the method and path the span used to be named after.
+
+`function.aws` spans in `@sentry/aws-serverless` were already named after the Lambda function, so
+their names are unchanged. The only new behaviour is the fallback: if neither the invocation context
+nor the `AWS_LAMBDA_FUNCTION_NAME` environment variable yields a function name, the span is named
+`Serverless function execution` instead of carrying an empty name. These spans continue to carry the
+function name on `faas.name`, the request URL on `url.full`, and the invocation details on
+`aws.lambda.*` and `aws.cloudwatch.logs.*`. Their `sentry.segment.name.source` is now `component`
+rather than `custom`, matching the other FaaS spans: the name comes from the function, not from the
+user. This applies in both trace lifecycles.
 
 #### Filtering and sampling
 
