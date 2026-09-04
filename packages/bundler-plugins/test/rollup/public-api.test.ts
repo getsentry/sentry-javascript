@@ -9,7 +9,10 @@ const { babelCoreImportMock, transformAsyncMock, viteAnnotationModuleImportMock,
       babelCoreImportMock: vi.fn(),
       transformAsyncMock: vi.fn(async (code: string) => ({ code, map: null })),
       viteAnnotationModuleImportMock: vi.fn(),
-      viteAnnotationTransformMock: vi.fn(async () => ({ code: 'fast-path', map: null })),
+      viteAnnotationTransformMock: vi.fn(async () => ({
+        code: 'fast-path',
+        map: null,
+      })),
     };
   });
 
@@ -101,6 +104,12 @@ test('uses a Rollup 3-compatible function transform hook for Rollup builds', () 
   expect(typeof vitePlugin.transform).toBe('object');
 });
 
+test('runs Vite 8 debug ID finalization after other generateBundle hooks', () => {
+  const vitePlugin = _rollupPluginInternal({ release: { inject: false } }, 'vite', '8') as Plugin;
+
+  expect(vitePlugin.generateBundle).toMatchObject({ order: 'post' });
+});
+
 describe('sentryRollupPlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -123,7 +132,7 @@ describe('sentryRollupPlugin', () => {
 describe('Hooks', () => {
   const [plugin] = sentryRollupPlugin({ release: { inject: false } }) as [Plugin];
 
-  const renderChunk = plugin.renderChunk as (
+  const renderChunk = plugin.renderChunk as unknown as (
     code: string,
     chunkInfo: { fileName: string; facadeModuleId?: string },
   ) => {
@@ -294,7 +303,9 @@ bootstrap();`;
       });
 
       it('should inject into regular JS chunks (no HTML facade)', () => {
-        const result = renderChunk(`console.log("Hello");`, { fileName: 'bundle.js' });
+        const result = renderChunk(`console.log("Hello");`, {
+          fileName: 'bundle.js',
+        });
         expect(result).not.toBeNull();
         expect(result?.code).toMatchInlineSnapshot(
           `"!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79f18a7f-ca16-4168-9797-906c82058367",e._sentryDebugIdIdentifier="sentry-dbid-79f18a7f-ca16-4168-9797-906c82058367");}catch(e){}}();console.log("Hello");"`,
