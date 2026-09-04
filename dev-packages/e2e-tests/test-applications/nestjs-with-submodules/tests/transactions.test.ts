@@ -1,248 +1,153 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
-test('Sends an API route transaction from module', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /example-module/transaction'
-    );
-  });
+const APP_NAME = 'nestjs-with-submodules';
+
+function findSpan(spans: SerializedStreamedSpan[], name: string): SerializedStreamedSpan | undefined {
+  return spans.find(span => span.name === name);
+}
+
+test('Sends streamed spans for an API route from module', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-module/transaction');
 
   await fetch(`${baseURL}/example-module/transaction`);
 
-  const transactionEvent = await pageloadTransactionEventPromise;
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment)!;
 
-  expect(transactionEvent.contexts?.trace).toEqual({
-    data: {
-      'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.http_server',
-      'sentry.op': 'http.server',
-      'sentry.sample_rate': 1,
-      'sentry.kind': 'server',
-      'http.response.status_code': 200,
-      'url.full': 'http://localhost:3030/example-module/transaction',
-      'url.path': '/example-module/transaction',
-      'server.address': 'localhost',
-      'http.request.method': 'GET',
-      'url.scheme': 'http',
-      'user_agent.original': 'node',
-      'client.address': '::1',
-      'client.port': expect.any(Number),
-      'network.transport': 'tcp',
-      'network.local.address': expect.any(String),
-      'network.local.port': expect.any(Number),
-      'network.peer.address': expect.any(String),
-      'network.peer.port': expect.any(Number),
-      'network.protocol.name': 'http',
-      'network.protocol.version': '1.1',
-      'server.port': 3030,
-      'http.response.status_text': 'OK',
-      'http.route': '/example-module/transaction',
-      'http.request.header.accept': '*/*',
-      'http.request.header.accept_encoding': 'gzip, deflate',
-      'http.request.header.accept_language': '*',
-      'http.request.header.connection': 'keep-alive',
-      'http.request.header.host': expect.any(String),
-      'http.request.header.sec_fetch_mode': 'cors',
-      'http.request.header.user_agent': 'node',
-    },
-    op: 'http.server',
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+  expect(segmentSpan).toMatchObject({
+    name: 'GET /example-module/transaction',
+    is_segment: true,
     status: 'ok',
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.http_server',
+    attributes: expect.objectContaining({
+      'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+      'sentry.op': { type: 'string', value: 'http.server' },
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'sentry.sample_rate': { type: 'integer', value: 1 },
+      'sentry.kind': { type: 'string', value: 'server' },
+      'http.request.method': { type: 'string', value: 'GET' },
+      'http.route': { type: 'string', value: '/example-module/transaction' },
+      'http.response.status_code': { type: 'integer', value: 200 },
+      'http.response.status_text': { type: 'string', value: 'OK' },
+      'url.full': { type: 'string', value: 'http://localhost:3030/example-module/transaction' },
+      'url.path': { type: 'string', value: '/example-module/transaction' },
+      'url.scheme': { type: 'string', value: 'http' },
+      'server.address': { type: 'string', value: 'localhost' },
+      'server.port': { type: 'integer', value: 3030 },
+      'user_agent.original': { type: 'string', value: 'node' },
+    }),
   });
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          data: {
-            'express.name': '/example-module/transaction',
-            'express.type': 'request_handler',
-            'http.route': '/example-module/transaction',
-            'sentry.origin': 'auto.http.express',
-            'sentry.op': 'handler',
-          },
-          op: 'handler',
-          description: '/example-module/transaction',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'auto.http.express',
-        },
-        {
-          data: {
-            'sentry.origin': 'manual',
-          },
-          description: 'test-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'manual',
-        },
-        {
-          data: {
-            'sentry.origin': 'manual',
-          },
-          description: 'child-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'manual',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.origin': 'auto.http.nestjs',
-            'sentry.op': 'handler',
-            component: '@nestjs/core',
-            'nestjs.version': expect.any(String),
-            'nestjs.type': 'handler',
-            'nestjs.callback': 'testTransaction',
-          },
-          description: 'testTransaction',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'auto.http.nestjs',
-          op: 'handler',
-        },
-      ]),
-      transaction: 'GET /example-module/transaction',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
+  expect(findSpan(spans, '/example-module/transaction')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    parent_span_id: segmentSpan.span_id,
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'handler' },
+      'sentry.origin': { type: 'string', value: 'auto.http.express' },
+      'express.name': { type: 'string', value: '/example-module/transaction' },
+      'express.type': { type: 'string', value: 'request_handler' },
+      'http.route': { type: 'string', value: '/example-module/transaction' },
     }),
-  );
+  });
+
+  // The Nest handler span carries the callback name as an attribute rather than in its name, which
+  // stays low cardinality under span streaming.
+  expect(findSpan(spans, 'Request handler')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'handler' },
+      'sentry.origin': { type: 'string', value: 'auto.http.nestjs' },
+      component: { type: 'string', value: '@nestjs/core' },
+      'nestjs.type': { type: 'string', value: 'handler' },
+      'nestjs.callback': { type: 'string', value: 'testTransaction' },
+      'nestjs.version': { type: 'string', value: expect.any(String) },
+    }),
+  });
+
+  const testSpan = findSpan(spans, 'test-span');
+  expect(testSpan).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
+  });
+
+  expect(findSpan(spans, 'child-span')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    parent_span_id: testSpan!.span_id,
+    attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
+  });
+
+  for (const span of spans) {
+    expect(span.trace_id).toBe(segmentSpan.trace_id);
+  }
 });
 
-test('API route transaction includes exception filter span for global filter in module registered after Sentry', async ({
+test('API route trace includes exception filter span for global filter in module registered after Sentry', async ({
   baseURL,
 }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /example-module/expected-exception' &&
-      transactionEvent?.request?.url?.includes('/example-module/expected-exception')
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-module/expected-exception');
 
   const response = await fetch(`${baseURL}/example-module/expected-exception`);
   expect(response.status).toBe(400);
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.exception_filter',
-          },
-          description: 'ExampleExceptionFilter',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.exception_filter',
-        },
-      ]),
+  expect(findSpan(spans, 'ExampleExceptionFilter')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.exception_filter' },
     }),
-  );
+  });
 });
 
-test('API route transaction includes exception filter span for local filter in module registered after Sentry', async ({
+test('API route trace includes exception filter span for local filter in module registered after Sentry', async ({
   baseURL,
 }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /example-module-local-filter/expected-exception' &&
-      transactionEvent?.request?.url?.includes('/example-module-local-filter/expected-exception')
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(
+    APP_NAME,
+    'GET /example-module-local-filter/expected-exception',
+  );
 
   const response = await fetch(`${baseURL}/example-module-local-filter/expected-exception`);
   expect(response.status).toBe(400);
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.exception_filter',
-          },
-          description: 'LocalExampleExceptionFilter',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.exception_filter',
-        },
-      ]),
+  expect(findSpan(spans, 'LocalExampleExceptionFilter')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.exception_filter' },
     }),
-  );
+  });
 });
 
-test('API route transaction includes exception filter span for global filter in module registered before Sentry', async ({
+test('API route trace includes exception filter span for global filter in module registered before Sentry', async ({
   baseURL,
 }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /example-module-registered-first/expected-exception' &&
-      transactionEvent?.request?.url?.includes('/example-module-registered-first/expected-exception')
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(
+    APP_NAME,
+    'GET /example-module-registered-first/expected-exception',
+  );
 
   const response = await fetch(`${baseURL}/example-module-registered-first/expected-exception`);
   expect(response.status).toBe(400);
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.exception_filter',
-          },
-          description: 'ExampleExceptionFilterRegisteredFirst',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.exception_filter',
-        },
-      ]),
+  expect(findSpan(spans, 'ExampleExceptionFilterRegisteredFirst')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.exception_filter' },
     }),
-  );
+  });
 });
