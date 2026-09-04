@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test('Should create a span for middleware', async ({ request }) => {
-  const spansPromise = collectStreamedSpans('nextjs-16', spans =>
-    spans.some(span => span.name === 'middleware GET' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'middleware GET');
 
   const routeSpanPromise = waitForStreamedSpan('nextjs-16', span => {
     return span.name === 'GET /api/endpoint-behind-middleware' && span.is_segment;

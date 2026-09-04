@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForError,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 const packageJson = require('../package.json');
@@ -145,8 +151,9 @@ test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions 
 test('Will not include spans with faulty timestamps for slow loading pages', async ({ page }) => {
   test.slow();
 
-  const spansPromise = collectStreamedSpans('nextjs-app-dir', spans =>
-    spans.some(span => span.name === '/very-slow-component' && getSpanOp(span) === 'pageload' && span.is_segment),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-app-dir',
+    span => span.name === '/very-slow-component' && getSpanOp(span) === 'pageload',
   );
 
   await page.goto('/very-slow-component', { timeout: 11000 });

@@ -12,6 +12,8 @@ export {
   waitForStreamedSpans,
   waitForStreamedSpanEnvelope,
   collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  collectSpanNamesUntilSegment,
   getSpanOp,
 } from './event-proxy-server';
 export type { SerializedStreamedSpan } from '@sentry/core';

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
-  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
   getSpanOp,
   waitForStreamedSpan,
   waitForStreamedSpans,
@@ -14,9 +14,10 @@ const BROWSER_TIMING_OPS = [
 ];
 
 test('Captures a pageload span', async ({ page }) => {
-  const spansPromise = collectStreamedSpans('react-create-hash-router', spans => {
-    return spans.some(span => getSpanOp(span) === 'pageload' && span.is_segment);
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'react-create-hash-router',
+    span => getSpanOp(span) === 'pageload',
+  );
 
   await page.goto('/');
 

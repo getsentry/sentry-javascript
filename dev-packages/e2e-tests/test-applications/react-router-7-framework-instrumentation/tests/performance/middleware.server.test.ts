@@ -1,12 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('server - instrumentation API middleware', () => {
   test('should instrument server middleware with instrumentation API origin', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-      spansOfTrace.some(span => span.name === 'GET /performance/with-middleware' && span.is_segment),
-    );
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/with-middleware');
 
     await page.goto(`/performance/with-middleware`);
 
@@ -57,9 +55,7 @@ test.describe('server - instrumentation API middleware', () => {
   });
 
   test('should have middleware span run before loader span', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-      spansOfTrace.some(span => span.name === 'GET /performance/with-middleware' && span.is_segment),
-    );
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/with-middleware');
 
     await page.goto(`/performance/with-middleware`);
 
@@ -76,9 +72,7 @@ test.describe('server - instrumentation API middleware', () => {
   });
 
   test('should track multiple middlewares with correct indices', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-      spansOfTrace.some(span => span.name === 'GET /performance/multi-middleware' && span.is_segment),
-    );
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/multi-middleware');
 
     await page.goto(`/performance/multi-middleware`);
 
