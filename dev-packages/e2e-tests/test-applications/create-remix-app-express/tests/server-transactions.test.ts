@@ -111,9 +111,9 @@ test('Propagates the trace when the ErrorBoundary is triggered', async ({ page }
   expect(pageloadSpan.name).toBe('/error-boundary-capture/:id');
   expect(pageloadSpan.span_id).not.toBe(serverSegmentSpan.span_id);
 
-  const loaderSpan = streamedSpans.find(span => span.span_id === pageloadSpan.parent_span_id);
-  expect(loaderSpan).toBeDefined();
-  expect(loaderSpan!.attributes['code.function.name']?.value).toBe('loader');
+  const findLoaderSpan = () => streamedSpans.find(span => span.span_id === pageloadSpan.parent_span_id);
+  await expect.poll(findLoaderSpan).toBeDefined();
+  expect(findLoaderSpan()!.attributes['code.function.name']?.value).toBe('loader');
 });
 
 test('Parameterizes a 2-level nested route on the server', async ({ page }) => {
@@ -250,9 +250,10 @@ test('Sends two linked spans (server & client) to Sentry', async ({ page }) => {
   expect(serverSegmentSpan.attributes['http.route']).toBeUndefined();
   expect(findPageloadSpan()!.span_id).not.toBe(serverSegmentSpan.span_id);
 
-  const loaderSpan = streamedSpans.find(span => span.span_id === loaderSpanId)!;
-  expect(loaderSpan.attributes['code.function.name']?.value).toBe('loader');
-  expect(loaderSpan.parent_span_id).toBe(serverSegmentSpan.span_id);
+  const findLoaderSpan = () => streamedSpans.find(span => span.span_id === loaderSpanId);
+  await expect.poll(findLoaderSpan).toBeDefined();
+  expect(findLoaderSpan()!.attributes['code.function.name']?.value).toBe('loader');
+  expect(findLoaderSpan()!.parent_span_id).toBe(serverSegmentSpan.span_id);
 });
 
 test('Does not bleed scope tags between concurrent requests', async ({ request }) => {
