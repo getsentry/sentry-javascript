@@ -50,7 +50,7 @@ test('Links the server and client spans of one page load', async ({ page }) => {
   await expect.poll(findServerSegmentSpan).toBeDefined();
   expect(findPageloadSpan()!.span_id).not.toBe(findServerSegmentSpan()!.span_id);
 
-  const loaderSpan = streamedSpans.find(span => span.span_id === loaderSpanId);
-  expect(loaderSpan).toBeDefined();
-  expect(loaderSpan!.attributes['code.function.name']?.value).toBe('loader');
+  const findLoaderSpan = () => streamedSpans.find(span => span.span_id === loaderSpanId);
+  await expect.poll(findLoaderSpan).toBeDefined();
+  expect(findLoaderSpan()!.attributes['code.function.name']?.value).toBe('loader');
 });
