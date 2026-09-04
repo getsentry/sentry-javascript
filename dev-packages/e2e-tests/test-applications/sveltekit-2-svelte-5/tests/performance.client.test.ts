@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
 test.describe('client-specific performance events', () => {
@@ -53,9 +53,7 @@ test.describe('client-specific performance events', () => {
   });
 
   test('records manually added component tracking spans', async ({ page }) => {
-    const componentTraceSpansPromise = collectStreamedSpans('sveltekit-2-svelte-5', spansOfTrace =>
-      spansOfTrace.some(span => span.name === '/components' && span.is_segment),
-    );
+    const componentTraceSpansPromise = collectStreamedSpansUntilSegment('sveltekit-2-svelte-5', '/components');
 
     await waitForInitialPageload(page);
 

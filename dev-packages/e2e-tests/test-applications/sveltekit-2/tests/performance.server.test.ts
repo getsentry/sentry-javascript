@@ -1,10 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
-  const serverTraceSpansPromise = collectStreamedSpans('sveltekit-2', spansOfTrace =>
-    spansOfTrace.some(span => span.name === 'GET /server-load-fetch' && span.is_segment),
-  );
+  const serverTraceSpansPromise = collectStreamedSpansUntilSegment('sveltekit-2', 'GET /server-load-fetch');
 
   await page.goto('/server-load-fetch');
 

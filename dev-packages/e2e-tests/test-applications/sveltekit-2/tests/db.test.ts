@@ -1,10 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 
 test('Instruments ioredis automatically', async ({ baseURL }) => {
-  const traceSpansPromise = collectStreamedSpans('sveltekit-2', spansOfTrace =>
-    spansOfTrace.some(span => getSpanOp(span) === 'http.server' && span.name === 'GET /db-ioredis' && span.is_segment),
-  );
+  const traceSpansPromise = collectStreamedSpansUntilSegment('sveltekit-2', 'GET /db-ioredis');
 
   await fetch(`${baseURL}/db-ioredis`);
 
@@ -39,9 +37,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
 });
 
 test('Instruments mysql automatically', async ({ baseURL }) => {
-  const traceSpansPromise = collectStreamedSpans('sveltekit-2', spansOfTrace =>
-    spansOfTrace.some(span => getSpanOp(span) === 'http.server' && span.name === 'GET /db-mysql' && span.is_segment),
-  );
+  const traceSpansPromise = collectStreamedSpansUntilSegment('sveltekit-2', 'GET /db-mysql');
 
   await fetch(`${baseURL}/db-mysql`);
 

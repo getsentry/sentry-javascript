@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 import { getSegmentChildSpans } from './utils';
 
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
-  const serverTraceSpansPromise = collectStreamedSpans('sveltekit-2-kit-tracing', spansOfTrace =>
-    spansOfTrace.some(span => span.name === 'GET /server-load-fetch' && span.is_segment),
-  );
+  const serverTraceSpansPromise = collectStreamedSpansUntilSegment('sveltekit-2-kit-tracing', 'GET /server-load-fetch');
 
   await page.goto('/server-load-fetch');
 
@@ -109,9 +107,7 @@ test('server pageload request span has nested request span for sub request', asy
 });
 
 test('server trace includes form action span', async ({ page }) => {
-  const serverTraceSpansPromise = collectStreamedSpans('sveltekit-2-kit-tracing', spansOfTrace =>
-    spansOfTrace.some(span => span.name === 'POST /form-action' && span.is_segment),
-  );
+  const serverTraceSpansPromise = collectStreamedSpansUntilSegment('sveltekit-2-kit-tracing', 'POST /form-action');
 
   await page.goto('/form-action');
 

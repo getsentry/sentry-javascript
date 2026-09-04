@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
 test('capture a distributed pageload trace', async ({ page }) => {
@@ -163,8 +168,9 @@ test('captures a navigation span directly after pageload', async ({ page }) => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationTraceSpansPromise = collectStreamedSpans('sveltekit-2-kit-tracing', spansOfTrace =>
-    spansOfTrace.some(span => getSpanOp(span) === 'navigation' && span.is_segment),
+  const navigationTraceSpansPromise = collectStreamedSpansUntilSegment(
+    'sveltekit-2-kit-tracing',
+    span => getSpanOp(span) === 'navigation',
   );
 
   await waitForInitialPageload(page, { route: '/' });
@@ -219,8 +225,9 @@ test('captures a navigation span directly after pageload', async ({ page }) => {
 
 test('captures one navigation span per redirect', async ({ page }) => {
   const collectNavigationTrace = (route: string) =>
-    collectStreamedSpans('sveltekit-2-kit-tracing', spansOfTrace =>
-      spansOfTrace.some(span => getSpanOp(span) === 'navigation' && span.name === route && span.is_segment),
+    collectStreamedSpansUntilSegment(
+      'sveltekit-2-kit-tracing',
+      span => getSpanOp(span) === 'navigation' && span.name === route,
     );
 
   const redirect1TraceSpansPromise = collectNavigationTrace('/redirect1');
