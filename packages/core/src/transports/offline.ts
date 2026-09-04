@@ -171,7 +171,9 @@ export function makeOfflineTransport<TO>(
         retryDelay = START_DELAY;
         return result;
       } catch (e) {
-        if (await shouldQueue(envelope, e as Error, retryDelay)) {
+        // do not unnecessarily await if it's not a Promise
+        const decision = shouldQueue(envelope, e as Error, retryDelay);
+        if (isThenable(decision) ? await decision : decision) {
           // If this envelope was a retry, we want to add it to the front of the queue so it's retried again first.
           if (isRetry) {
             await store.unshift(envelope);

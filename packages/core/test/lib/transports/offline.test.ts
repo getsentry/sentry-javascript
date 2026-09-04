@@ -400,6 +400,31 @@ describe('makeOfflineTransport', () => {
     await expect(result).resolves.toEqual({ statusCode: 200 });
   });
 
+  it('a synchronous shouldStore does not defer the store by a microtask', async () => {
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+
+    const { getCalls, store } = createTestStore();
+    const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 });
+    const transport = makeOfflineTransport(baseTransport)({
+      ...transportOptions,
+      createStore: store,
+      shouldSend: () => false,
+      shouldStore: () => true,
+    });
+
+    // A synchronous `shouldSend` that says no throws in the same tick,
+    // so the envelope must reach the store before the host can stop JS
+    // execution.
+    const result = transport.send(ERROR_ENVELOPE);
+    expect(getCalls()).toEqual(['push']);
+
+    await expect(result).resolves.toEqual({});
+    expect(getSendCount()).toEqual(0);
+  });
+
   it('should not store client report envelopes on send failure', async () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport(new Error());
