@@ -9,6 +9,7 @@ const DEFAULTS: ResolvedDataCollection = {
   graphQL: { document: true, variables: true },
   genAI: { inputs: true, outputs: true },
   databaseQueryData: true,
+  queues: true,
   stackFrameVariables: true,
   frameContextLines: 5,
 };
@@ -41,6 +42,7 @@ export function resolveDataCollectionOptions(options: { dataCollection?: DataCol
       outputs: dc.genAI?.outputs ?? DEFAULTS.genAI.outputs,
     },
     databaseQueryData: dc.databaseQueryData ?? DEFAULTS.databaseQueryData,
+    queues: dc.queues ?? DEFAULTS.queues,
     stackFrameVariables: dc.stackFrameVariables ?? DEFAULTS.stackFrameVariables,
     frameContextLines: dc.frameContextLines ?? DEFAULTS.frameContextLines,
   };
