@@ -47,7 +47,7 @@ import {
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
 import type { GenAiOptions } from '../../ai/core/utils';
-import { getProviderMetadataAttributes } from '../../ai/vercel-ai';
+import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum, tapModelCallStream } from './util';
@@ -132,6 +132,19 @@ export function clearOperationCallId(callId: string): void {
   operationIdByCallId.delete(callId);
   toolDescriptionsByCallId.delete(callId);
   invokeAgentSpanByCallId.delete(callId);
+}
+
+/**
+ * `providerMetadata` is last-step only; drop derived usage on spans that report an aggregate.
+ */
+function dropLastStepOnlyUsage(providerAttributes: Record<string, number | string>, type: ChannelEventType): void {
+  if (!ROOT_OPERATION_TYPES.has(type)) {
+    return;
+  }
+  for (const key of LAST_STEP_ONLY_USAGE_KEYS) {
+    // oxlint-disable-next-line typescript/no-dynamic-delete
+    delete providerAttributes[key];
+  }
 }
 
 /** Record tool name → description from an event's `tools`, so tool spans can backfill the description. */
@@ -573,6 +586,7 @@ export function enrichSpanOnEnd(
     // oxlint-disable-next-line typescript/no-dynamic-delete
     delete providerAttributes[GEN_AI_CONVERSATION_ID];
   }
+  dropLastStepOnlyUsage(providerAttributes, type);
   span.setAttributes(providerAttributes);
 
   if (recordOutputs) {
