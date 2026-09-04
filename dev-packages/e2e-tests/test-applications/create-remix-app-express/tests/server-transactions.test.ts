@@ -1,26 +1,42 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  getSpanOp,
+  waitForError,
+  waitForStreamedSpan,
+  waitForStreamedSpans,
+} from '@sentry-internal/test-utils';
+
+const APP_NAME = 'create-remix-app-express';
 
 test.describe.configure({ mode: 'serial' });
 
-test('Sends parameterized transaction name to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
-  });
+function isSegmentNamed(name: string): (span: SerializedStreamedSpan) => boolean {
+  return span => getSpanOp(span) === 'http.server' && span.is_segment && span.name === name;
+}
+
+function isDataFunction(name: 'action' | 'loader', routeId?: string): (span: SerializedStreamedSpan) => boolean {
+  return span =>
+    span.attributes['code.function.name']?.value === name &&
+    (routeId === undefined || span.attributes['match.route.id']?.value === routeId);
+}
+
+test('Sends a parameterized span name to Sentry', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan(APP_NAME, isSegmentNamed('GET user/:id'));
 
   await page.goto('/user/123');
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction).toBeDefined();
-  expect(transaction.transaction).toBe('GET user/:id');
-  expect(transaction.contexts?.trace?.data?.['http.route']).toBe('user/:id');
+  expect(span.attributes['http.route']?.value).toBe('user/:id');
 });
 
-test('Sends form data with action span', async ({ page }) => {
-  const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent?.spans?.some(span => span.data && span.data['code.function.name'] === 'action') || false;
-  });
+test('Sends form data with the action span', async ({ page }) => {
+  const spansPromise = collectStreamedSpans(
+    APP_NAME,
+    spans => spans.some(isSegmentNamed('POST action-formdata')) && spans.some(isDataFunction('action')),
+  );
 
   await page.goto('/action-formdata');
 
@@ -33,178 +49,160 @@ test('Sends form data with action span', async ({ page }) => {
 
   await page.locator('button[type=submit]').click();
 
-  const actionSpan = (await formdataActionTransaction)?.spans?.find(
-    span => span.data && span.data['code.function.name'] === 'action',
-  );
+  const spans = await spansPromise;
+  const actionSpan = spans.find(isDataFunction('action'));
 
   expect(actionSpan).toBeDefined();
-  expect(actionSpan?.op).toBe('function');
-  expect(actionSpan?.data?.['code.function.name']).toBe('action');
-  expect(actionSpan?.data).toMatchObject({
-    'remix.action_form_data.text': 'test',
-    'remix.action_form_data.file': 'file.txt',
+  expect(getSpanOp(actionSpan!)).toBe('function');
+  expect(actionSpan!.attributes).toMatchObject({
+    'remix.action_form_data.text': { value: 'test', type: 'string' },
+    'remix.action_form_data.file': { value: 'file.txt', type: 'string' },
   });
 });
 
 test('Sends a loader span to Sentry', async ({ page }) => {
-  const loaderTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent?.spans?.some(span => span.data && span.data['code.function.name'] === 'loader') || false;
-  });
+  const spansPromise = collectStreamedSpans(
+    APP_NAME,
+    spans => spans.some(isSegmentNamed('GET')) && spans.some(isDataFunction('loader')),
+  );
 
   await page.goto('/');
 
-  const loaderSpan = (await loaderTransactionPromise)?.spans?.find(
-    span => span.data && span.data['code.function.name'] === 'loader',
-  );
+  const spans = await spansPromise;
+  const loaderSpan = spans.find(isDataFunction('loader'));
 
   expect(loaderSpan).toBeDefined();
-  expect(loaderSpan?.op).toBe('function');
-  expect(loaderSpan?.data?.['code.function.name']).toBe('loader');
+  expect(getSpanOp(loaderSpan!)).toBe('function');
 });
 
-test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
-  // We use this to identify the transactions
-  const testTag = crypto.randomUUID();
-
-  const httpServerTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.tags?.['sentry_test'] === testTag;
+test('Propagates the trace when the ErrorBoundary is triggered', async ({ page }) => {
+  // Streamed spans are buffered before they flush, so spans from an earlier page load can still be
+  // arriving here.
+  const streamedSpans: SerializedStreamedSpan[] = [];
+  void waitForStreamedSpans(APP_NAME, spans => {
+    streamedSpans.push(...spans);
+    return false;
   });
 
-  const pageLoadTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.tags?.['sentry_test'] === testTag;
-  });
+  // The ErrorBoundary replaces the document, so there is no `sentry-trace` meta tag to read this
+  // page load's trace off. A unique path identifies its server segment instead.
+  const id = crypto.randomUUID();
+  await page.goto(`/error-boundary-capture/${id}`);
+  await expect(page.locator('#event-id')).not.toBeEmpty();
 
-  page.goto(`/client-error?tag=${testTag}`);
+  const findServerSegmentSpan = () =>
+    streamedSpans.find(
+      span =>
+        getSpanOp(span) === 'http.server' &&
+        span.is_segment &&
+        span.attributes['url.path']?.value === `/error-boundary-capture/${id}`,
+    );
+  await expect.poll(findServerSegmentSpan).toBeDefined();
+  const serverSegmentSpan = findServerSegmentSpan()!;
+  expect(serverSegmentSpan.name).toBe('GET error-boundary-capture/:id');
 
-  const pageloadTransaction = await pageLoadTransactionPromise;
-  const httpServerTransaction = await httpServerTransactionPromise;
+  // The client continues the server trace, so its pageload span hangs off the root loader span.
+  const findPageloadSpan = () =>
+    streamedSpans.find(
+      span => getSpanOp(span) === 'pageload' && span.is_segment && span.trace_id === serverSegmentSpan.trace_id,
+    );
+  await expect.poll(findPageloadSpan).toBeDefined();
+  const pageloadSpan = findPageloadSpan()!;
+  expect(pageloadSpan.name).toBe('/error-boundary-capture/:id');
+  expect(pageloadSpan.span_id).not.toBe(serverSegmentSpan.span_id);
 
-  expect(pageloadTransaction).toBeDefined();
-  expect(httpServerTransaction).toBeDefined();
-
-  const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
-  const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
-  const loaderSpanId = httpServerTransaction?.spans?.find(
-    span => span.data && span.data['code.function.name'] === 'loader',
-  )?.span_id;
-
-  const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
-  const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
-  const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
-
-  expect(httpServerTransaction.transaction).toBe('GET client-error');
-  expect(pageloadTransaction.transaction).toBe('/client-error');
-
-  expect(httpServerTraceId).toBeDefined();
-  expect(httpServerSpanId).toBeDefined();
-
-  expect(pageLoadTraceId).toEqual(httpServerTraceId);
-  expect(pageLoadParentSpanId).toEqual(loaderSpanId);
-  expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
+  const loaderSpan = streamedSpans.find(span => span.span_id === pageloadSpan.parent_span_id);
+  expect(loaderSpan).toBeDefined();
+  expect(loaderSpan!.attributes['code.function.name']?.value).toBe('loader');
 });
 
 test('Parameterizes a 2-level nested route on the server', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return txn.contexts?.trace?.op === 'http.server' && txn.transaction === 'GET users/:userId/posts/:postId';
-  });
+  const spansPromise = collectStreamedSpans(
+    APP_NAME,
+    spans => spans.some(isSegmentNamed('GET users/:userId/posts/:postId')) && spans.some(isDataFunction('loader')),
+  );
 
   await page.goto('/users/user123/posts/post456');
 
-  const transaction = await transactionPromise;
+  const spans = await spansPromise;
+  const segment = spans.find(isSegmentNamed('GET users/:userId/posts/:postId'))!;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
-  expect(transaction.spans?.some(s => s.data?.['code.function.name'] === 'loader' && s.op === 'function')).toBe(true);
+  expect(segment.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(spans.some(span => isDataFunction('loader')(span) && getSpanOp(span) === 'function')).toBe(true);
 });
 
 test('Parameterizes a 3-level nested API route on the server', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return txn.contexts?.trace?.op === 'http.server' && txn.transaction === 'GET api/v1/data/:id';
-  });
+  const spanPromise = waitForStreamedSpan(APP_NAME, isSegmentNamed('GET api/v1/data/:id'));
 
   await page.goto('/api/v1/data/abc123');
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test('Parameterizes a deeply nested route on the server', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return txn.contexts?.trace?.op === 'http.server' && txn.transaction === 'GET deeply/:nested/:structure/:id';
-  });
+  const spanPromise = waitForStreamedSpan(APP_NAME, isSegmentNamed('GET deeply/:nested/:structure/:id'));
 
   await page.goto('/deeply/level1/level2/level3');
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test('Parameterizes a flat dot-notation route on the server', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return txn.contexts?.trace?.op === 'http.server' && txn.transaction === 'GET products/:productId/reviews/:reviewId';
-  });
+  const spanPromise = waitForStreamedSpan(APP_NAME, isSegmentNamed('GET products/:productId/reviews/:reviewId'));
 
   await page.goto('/products/prod789/reviews/rev101');
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test('Records action and loader spans on a parameterized action route', async ({ request }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return txn.transaction === 'POST action-json-response/:id';
-  });
+  const routeId = 'routes/action-json-response.$id';
+  const spansPromise = collectStreamedSpans(
+    APP_NAME,
+    spans =>
+      spans.some(isSegmentNamed('POST action-json-response/:id')) &&
+      spans.some(isDataFunction('action', routeId)) &&
+      spans.some(isDataFunction('loader', 'root')) &&
+      spans.some(isDataFunction('loader', routeId)),
+  );
 
   await request.post('/action-json-response/123123');
 
-  const transaction = await transactionPromise;
+  const spans = await spansPromise;
+  const actionSpan = spans.find(isDataFunction('action', routeId))!;
 
-  const actionSpan = transaction.spans?.find(
-    s =>
-      s.data?.['code.function.name'] === 'action' && s.data?.['match.route.id'] === 'routes/action-json-response.$id',
-  );
-  expect(actionSpan).toBeDefined();
-  expect(actionSpan?.op).toBe('function');
-  expect(actionSpan?.data?.['match.params.id']).toBe('123123');
+  expect(getSpanOp(actionSpan)).toBe('function');
+  expect(actionSpan.attributes['match.params.id']?.value).toBe('123123');
 
-  const rootLoaderSpan = transaction.spans?.find(
-    s => s.data?.['code.function.name'] === 'loader' && s.data?.['match.route.id'] === 'root',
-  );
-  expect(rootLoaderSpan).toBeDefined();
-
-  const routeLoaderSpan = transaction.spans?.find(
-    s =>
-      s.data?.['code.function.name'] === 'loader' && s.data?.['match.route.id'] === 'routes/action-json-response.$id',
-  );
-  expect(routeLoaderSpan).toBeDefined();
-
-  expect(transaction.request?.method).toBe('POST');
+  const segment = spans.find(isSegmentNamed('POST action-json-response/:id'))!;
+  expect(segment.attributes['http.request.method']?.value).toBe('POST');
 });
 
 test('Records loader spans on a deferred loader response', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return txn.transaction === 'GET loader-defer-response/:id';
-  });
+  const routeId = 'routes/loader-defer-response.$id';
+  const spansPromise = collectStreamedSpans(
+    APP_NAME,
+    spans =>
+      spans.some(isSegmentNamed('GET loader-defer-response/:id')) && spans.some(isDataFunction('loader', routeId)),
+  );
 
   await page.goto('/loader-defer-response/123123');
 
-  const transaction = await transactionPromise;
+  const spans = await spansPromise;
+  const segment = spans.find(isSegmentNamed('GET loader-defer-response/:id'))!;
 
-  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
-  expect(
-    transaction.spans?.some(
-      s =>
-        s.data?.['code.function.name'] === 'loader' &&
-        s.data?.['match.route.id'] === 'routes/loader-defer-response.$id',
-    ),
-  ).toBe(true);
+  expect(segment.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test('Continues a trace from incoming sentry-trace and baggage headers', async ({ request }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return txn.contexts?.trace?.trace_id === '12312012123120121231201212312012';
+  const spanPromise = waitForStreamedSpan(APP_NAME, span => {
+    return span.trace_id === '12312012123120121231201212312012' && span.is_segment;
   });
 
   await request.get('/loader-json-response/3', {
@@ -214,17 +212,51 @@ test('Continues a trace from incoming sentry-trace and baggage headers', async (
     },
   });
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction.contexts?.trace?.parent_span_id).toBe('1121201211212012');
+  expect(span.parent_span_id).toBe('1121201211212012');
+});
+
+test('Sends two linked spans (server & client) to Sentry', async ({ page }) => {
+  const streamedSpans: SerializedStreamedSpan[] = [];
+  void waitForStreamedSpans(APP_NAME, spans => {
+    streamedSpans.push(...spans);
+    return false;
+  });
+
+  await page.goto('/');
+
+  const sentryTrace = await page.getAttribute('meta[name="sentry-trace"]', 'content');
+  const [traceId, loaderSpanId] = (sentryTrace ?? '').split('-');
+  expect(traceId).toMatch(/^[a-f0-9]{32}$/);
+  expect(loaderSpanId).toMatch(/^[a-f0-9]{16}$/);
+
+  const findPageloadSpan = () =>
+    streamedSpans.find(
+      span => getSpanOp(span) === 'pageload' && span.is_segment && span.parent_span_id === loaderSpanId,
+    );
+  await expect.poll(findPageloadSpan).toBeDefined();
+  expect(findPageloadSpan()!.trace_id).toBe(traceId);
+  expect(findPageloadSpan()!.name).toBe('/');
+
+  const findServerSegmentSpan = () =>
+    streamedSpans.find(span => getSpanOp(span) === 'http.server' && span.is_segment && span.trace_id === traceId);
+  await expect.poll(findServerSegmentSpan).toBeDefined();
+  const serverSegmentSpan = findServerSegmentSpan()!;
+
+  // The index route has no path of its own, so the segment keeps the low-cardinality method-only
+  // name it starts with and never gets an `http.route`.
+  expect(serverSegmentSpan.name).toBe('GET');
+  expect(serverSegmentSpan.attributes['http.route']).toBeUndefined();
+  expect(findPageloadSpan()!.span_id).not.toBe(serverSegmentSpan.span_id);
+
+  const loaderSpan = streamedSpans.find(span => span.span_id === loaderSpanId)!;
+  expect(loaderSpan.attributes['code.function.name']?.value).toBe('loader');
+  expect(loaderSpan.parent_span_id).toBe(serverSegmentSpan.span_id);
 });
 
 test('Does not bleed scope tags between concurrent requests', async ({ request }) => {
-  const txnPromises = [1, 2, 3, 4].map(i =>
-    waitForTransaction('create-remix-app-express', txn => {
-      return txn.transaction === 'GET scope-bleed/:id' && txn.tags?.[`tag${i}`] === String(i);
-    }),
-  );
+  const eventPromises = [1, 2, 3, 4].map(i => waitForError(APP_NAME, event => event.message === `scope-bleed-${i}`));
 
   await Promise.all([
     request.get('/scope-bleed/1'),
@@ -233,61 +265,16 @@ test('Does not bleed scope tags between concurrent requests', async ({ request }
     request.get('/scope-bleed/4'),
   ]);
 
-  const transactions = await Promise.all(txnPromises);
+  const events = await Promise.all(eventPromises);
 
-  transactions.forEach(txn => {
-    const tags = txn.tags ?? {};
+  events.forEach(event => {
+    const tags = event.tags ?? {};
     const customTags = Object.keys(tags).filter(t => t.startsWith('tag'));
     expect(customTags).toHaveLength(1);
 
     const key = customTags[0]!;
     const value = key[key.length - 1];
     expect(tags[key]).toBe(value);
+    expect(event.message).toBe(`scope-bleed-${value}`);
   });
-});
-
-test('Sends two linked transactions (server & client) to Sentry', async ({ page }) => {
-  // We use this to identify the transactions
-  const testTag = crypto.randomUUID();
-
-  const httpServerTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.tags?.['sentry_test'] === testTag;
-  });
-
-  const pageLoadTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.tags?.['sentry_test'] === testTag;
-  });
-
-  page.goto(`/?tag=${testTag}`);
-
-  const pageloadTransaction = await pageLoadTransactionPromise;
-  const httpServerTransaction = await httpServerTransactionPromise;
-
-  expect(pageloadTransaction).toBeDefined();
-  expect(httpServerTransaction).toBeDefined();
-
-  const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
-  const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
-
-  const loaderSpan = httpServerTransaction?.spans?.find(
-    span => span.data && span.data['code.function.name'] === 'loader',
-  );
-  const loaderSpanId = loaderSpan?.span_id;
-  const loaderParentSpanId = loaderSpan?.parent_span_id;
-
-  const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
-  const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
-  const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
-
-  expect(httpServerTransaction.transaction).toBe('GET /');
-  expect(httpServerTransaction.contexts?.trace?.data?.['http.route']).toBeUndefined();
-  expect(pageloadTransaction.transaction).toBe('/');
-
-  expect(httpServerTraceId).toBeDefined();
-  expect(httpServerSpanId).toBeDefined();
-
-  expect(loaderParentSpanId).toEqual(httpServerSpanId);
-  expect(pageLoadTraceId).toEqual(httpServerTraceId);
-  expect(pageLoadParentSpanId).toEqual(loaderSpanId);
-  expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
 });

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Sends a loader error to Sentry', async ({ page }) => {
   const loaderErrorPromise = waitForError('create-remix-app-express', errorEvent => {
@@ -14,8 +14,8 @@ test('Sends a loader error to Sentry', async ({ page }) => {
 });
 
 test('Reports an error thrown from a loader with handleError mechanism', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return txn.transaction === 'GET loader-json-response/:id' && txn.contexts?.trace?.status === 'internal_error';
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return getSpanOp(span) === 'http.server' && span.name === 'GET loader-json-response/:id' && span.status === 'error';
   });
   const errorPromise = waitForError('create-remix-app-express', errorEvent => {
     return (
@@ -26,10 +26,10 @@ test('Reports an error thrown from a loader with handleError mechanism', async (
 
   await page.goto('/loader-json-response/-2').catch(() => {});
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
   const errorEvent = await errorPromise;
 
-  expect(transaction.contexts?.trace?.data?.['http.response.status_code']).toBe(500);
+  expect(span.attributes['http.response.status_code']?.value).toBe(500);
   expect(errorEvent.exception?.values?.[0]?.mechanism).toMatchObject({
     handled: false,
     type: 'auto.function.remix.server',
@@ -76,8 +76,10 @@ test('Reports an error in the redirection target loader', async ({ page }) => {
 });
 
 test('Reports an error thrown from an action', async ({ request }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return txn.transaction === 'POST action-json-response/:id' && txn.contexts?.trace?.status === 'internal_error';
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return (
+      getSpanOp(span) === 'http.server' && span.name === 'POST action-json-response/:id' && span.status === 'error'
+    );
   });
   const errorPromise = waitForError('create-remix-app-express', errorEvent => {
     return (
@@ -90,10 +92,10 @@ test('Reports an error thrown from an action', async ({ request }) => {
 
   await request.post('/action-json-response/-1').catch(() => {});
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
   const errorEvent = await errorPromise;
 
-  expect(transaction.contexts?.trace?.data?.['http.response.status_code']).toBe(500);
+  expect(span.attributes['http.response.status_code']?.value).toBe(500);
   expect(errorEvent.exception?.values?.[0]?.mechanism).toMatchObject({
     handled: false,
     type: 'auto.function.remix.server',
@@ -177,12 +179,8 @@ test('Reports a thrown plain object from an action', async ({ request }) => {
 });
 
 test('Reports an SSR error and applies tags from wrapHandleErrorWithSentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-express', txn => {
-    return (
-      txn.transaction === 'GET ssr-error' &&
-      txn.contexts?.trace?.status === 'internal_error' &&
-      txn.tags?.['remix-test-tag'] === 'remix-test-value'
-    );
+  const spanPromise = waitForStreamedSpan('create-remix-app-express', span => {
+    return getSpanOp(span) === 'http.server' && span.name === 'GET ssr-error' && span.status === 'error';
   });
   const errorPromise = waitForError('create-remix-app-express', errorEvent => {
     return errorEvent.exception?.values?.[0]?.value === 'Sentry SSR Test Error';
@@ -190,10 +188,12 @@ test('Reports an SSR error and applies tags from wrapHandleErrorWithSentry', asy
 
   await page.goto('/ssr-error').catch(() => {});
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
   const errorEvent = await errorPromise;
 
-  expect(transaction.contexts?.trace?.data?.['http.response.status_code']).toBe(500);
+  expect(span.attributes['http.response.status_code']?.value).toBe(500);
+  // `wrapHandleErrorWithSentry` sets the tag on the scope, which only events carry.
+  expect(errorEvent.tags?.['remix-test-tag']).toBe('remix-test-value');
   expect(errorEvent.exception?.values?.[0]?.mechanism).toMatchObject({
     handled: false,
     type: 'auto.function.remix.server',
