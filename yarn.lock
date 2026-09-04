@@ -26247,9 +26247,9 @@ token-types@^6.1.1:
     ieee754 "^1.2.1"
 
 toml@^4.1.1:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/toml/-/toml-4.1.1.tgz#ab8248d0403ba2c02ffcf8515b42f0dcf0d6d1b5"
-  integrity sha512-EBJnVBr3dTXdA89WVFoAIPUqkBjxPMwRqsfuo1r240tKFHXv3zgca4+NJib/h6TyvGF7vOawz0jGuryJCdNHrw==
+  version "4.3.0"
+  resolved "https://registry.yarnpkg.com/toml/-/toml-4.3.0.tgz#10e2ff83296ec17d8935bf02364e4969cfeaae67"
+  integrity sha512-lVb8X9BsPVuH0M4BKeS91tXAmJvCjQ5UIyAbQFaxkKGyUFK2RPkhwaFSQH8vbpl1d23eu/IBH+dwVMHWaq9A5A==
 
 totalist@^3.0.0:
   version "3.0.0"
