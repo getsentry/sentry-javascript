@@ -59,13 +59,11 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
       const normalizedRequest = httpRequestToRequestData(req);
       getCurrentScope().setSDKProcessingMetadata({ normalizedRequest });
 
-      const client = getClient();
-
       const functionName = getFunctionName();
-      const name =
-        client && hasSpanStreamingEnabled(client)
-          ? functionName || SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK
-          : `${reqMethod} ${reqUrl}`;
+
+      const client = getClient();
+      const hasSpanStreaming = client && hasSpanStreamingEnabled(client);
+      const name = hasSpanStreaming ? functionName || SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK : `${reqMethod} ${reqUrl}`;
 
       return startSpanManual(
         {
@@ -74,7 +72,7 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
             [SENTRY_OP]: FUNCTION_GCP,
             [FAAS_NAME]: functionName,
             [FAAS_TRIGGER]: 'http',
-            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: hasSpanStreaming ? 'component' : 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
             // The method and path used to be the span name; they stay on the span so that
             // information survives the low-cardinality rename.
