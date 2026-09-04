@@ -105,10 +105,8 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'string',
               value: 'gpt-4',
             });
-            expect(chatToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
-              type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
-            });
+            // Tool definitions are gen AI input data, so `genAI.inputs: false` drops them.
+            expect(chatToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeUndefined();
             expect(chatToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
@@ -164,10 +162,7 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'boolean',
               value: true,
             });
-            expect(streamingChatToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
-              type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
-            });
+            expect(streamingChatToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeUndefined();
             expect(streamingChatToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
@@ -224,10 +219,7 @@ describe('OpenAI Tool Calls integration', () => {
               value: 'gpt-4',
             });
             expect(responsesToolsSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
-            expect(responsesToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
-              type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
-            });
+            expect(responsesToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeUndefined();
             expect(responsesToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
@@ -283,10 +275,7 @@ describe('OpenAI Tool Calls integration', () => {
               type: 'boolean',
               value: true,
             });
-            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
-              type: 'string',
-              value: WEATHER_TOOL_DEFINITION,
-            });
+            expect(streamingResponsesToolsSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeUndefined();
             expect(streamingResponsesToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
               type: 'string',
               value: 'gpt-4',
