@@ -1,10 +1,14 @@
 import { runInNewContext } from 'node:vm';
+import {
+  addNonEnumerableProperty,
+  type Client,
+  createStackParser,
+  eventFromMessage,
+  eventFromUnknownInput,
+  exceptionFromError,
+} from '@sentry/core';
 import { describe, expect, it, test } from 'vitest';
-import type { Client } from '../../../src/client';
-import { eventFromMessage, eventFromUnknownInput, exceptionFromError } from '../../../src/utils/eventbuilder';
-import { nodeStackLineParser } from '../../../src/utils/node-stack-trace';
-import { addNonEnumerableProperty } from '../../../src/utils/object';
-import { createStackParser } from '../../../src/utils/stacktrace';
+import { nodeStackLineParser } from '../src/utils/node-stack-trace';
 
 const stackParser = createStackParser(nodeStackLineParser());
 

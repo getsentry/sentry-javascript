@@ -2,7 +2,7 @@
 import { RPC } from '@sentry/conventions/op';
 import { isObjectLike } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/async-context';
 import type { CloudflareOptions } from './client';
 import { getInstrumented, markAsInstrumented } from './instrument';
 import { instrumentDurableObjectHandlers } from './instrumentations/instrumentDurableObjectHandlers';

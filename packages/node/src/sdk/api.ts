@@ -2,7 +2,7 @@
 
 import type { StackParser } from '@sentry/core';
 import { createStackParser, GLOBAL_OBJ } from '@sentry/core';
-import { nodeStackLineParser } from '@sentry/core/server';
+import { nodeStackLineParser } from '@sentry/server-utils';
 import { createGetModuleFromFilename } from '../utils/module';
 
 /**

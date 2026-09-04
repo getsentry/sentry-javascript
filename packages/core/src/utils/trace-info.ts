@@ -10,7 +10,7 @@ import type { DynamicSamplingContext } from '../types/envelope';
 import { getActiveSpan, spanToTraceContext } from './spanUtils';
 
 /** Extract trace information from scope */
-export function _getTraceInfoFromScope(
+export function getTraceInfoFromScope(
   client: Client,
   scope: Scope | undefined,
 ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {

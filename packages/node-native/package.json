@@ -57,7 +57,8 @@
   "dependencies": {
     "@sentry/node-native-stacktrace": "^0.5.1",
     "@sentry/core": "10.67.0",
-    "@sentry/node": "10.67.0"
+    "@sentry/node": "10.67.0",
+    "@sentry/server-utils": "10.67.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.1"

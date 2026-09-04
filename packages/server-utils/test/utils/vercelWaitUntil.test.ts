@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { vercelWaitUntil } from '../../../src/utils/vercelWaitUntil';
-import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
+import { GLOBAL_OBJ } from '@sentry/core';
+import { vercelWaitUntil } from '../../src/utils/vercelWaitUntil';
 
 describe('vercelWaitUntil', () => {
   const VERCEL_REQUEST_CONTEXT_SYMBOL = Symbol.for('@vercel/request-context');

@@ -1,5 +1,5 @@
 import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugins/core';
-import { loadModule } from '@sentry/core/server';
+import { loadModule } from '@sentry/server-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getBuildLogger } from './buildLogger';

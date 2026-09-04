@@ -2,6 +2,7 @@ import type { Integration } from '@sentry/core';
 import { debug, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import * as SentryServerUtils from '@sentry/server-utils';
+import * as SentryServerUtilsAsyncContext from '@sentry/server-utils/async-context';
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
 import { getClient, NodeClient } from '../../src/';
 import { init } from '../../src/sdk';
@@ -209,7 +210,7 @@ describe('init()', () => {
     });
 
     it('uses the AsyncLocalStorage context strategy by default', () => {
-      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const alsStrategySpy = vi.spyOn(SentryServerUtilsAsyncContext, 'setAsyncLocalStorageAsyncContextStrategy');
       const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
 
       init({ dsn: PUBLIC_DSN });
@@ -227,7 +228,7 @@ describe('init()', () => {
     });
 
     it('uses the OpenTelemetry context strategy when opting in', () => {
-      const alsStrategySpy = vi.spyOn(SentryServerUtils, 'setAsyncLocalStorageAsyncContextStrategy');
+      const alsStrategySpy = vi.spyOn(SentryServerUtilsAsyncContext, 'setAsyncLocalStorageAsyncContextStrategy');
       const otelStrategySpy = vi.spyOn(SentryOpentelemetry, 'setOpenTelemetryContextAsyncContextStrategy');
 
       init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: true });
