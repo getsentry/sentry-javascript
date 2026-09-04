@@ -17,8 +17,10 @@ export function filterCookies(cookieString: string, behavior: CollectBehavior): 
   try {
     const parsed = parseCookie(cookieString);
 
+    // An opaque or malformed cookie string yields no pairs; the spec requires the whole value to be
+    // filtered rather than silently dropped.
     if (Object.keys(parsed).length === 0) {
-      return {};
+      return cookieString ? FILTERED : {};
     }
 
     return filterKeyValueData(parsed, behavior, SENSITIVE_COOKIE_NAME_SNIPPETS);

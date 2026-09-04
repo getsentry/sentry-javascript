@@ -648,7 +648,7 @@ describe('request utils', () => {
         });
       });
 
-      it('attaches and filters sensitive cookie headers', () => {
+      it('attaches and filters sensitive cookie headers, dropping segments that are not key-value pairs', () => {
         const headers = {
           Cookie:
             'session=abc123; tracking=enabled; cookie-authentication-key-without-value; theme=dark; lang=en; user_session=xyz789; pref=1',
@@ -656,13 +656,13 @@ describe('request utils', () => {
 
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
+        // The valueless segment is dropped: as an attribute key it could not be scrubbed.
         expect(result).toEqual({
           'http.request.header.cookie.session': '[Filtered]',
           'http.request.header.cookie.tracking': 'enabled',
           'http.request.header.cookie.theme': 'dark',
           'http.request.header.cookie.lang': 'en',
           'http.request.header.cookie.user_session': '[Filtered]',
-          'http.request.header.cookie.cookie_authentication_key_without_value': '[Filtered]',
           'http.request.header.cookie.pref': '1',
         });
       });
@@ -725,7 +725,8 @@ describe('request utils', () => {
         ['pref=1; Max-Age=3600', { 'http.request.header.set_cookie.pref': '1' }],
         ['color=blue; Path=/dashboard', { 'http.request.header.set_cookie.color': 'blue' }],
         ['token=eyJhbGc=.eyJzdWI=.SflKxw; Secure', { 'http.request.header.set_cookie.token': '[Filtered]' }],
-        ['auth_required; HttpOnly', { 'http.request.header.set_cookie.auth_required': '[Filtered]' }],
+        // No `name=value` pair to extract, so the whole header falls back to the filtered value.
+        ['auth_required; HttpOnly', { 'http.request.header.set_cookie': '[Filtered]' }],
         ['empty=; Secure', { 'http.request.header.set_cookie.empty': '' }],
       ])('should parse and filter Set-Cookie header: %s', (setCookieValue, expected) => {
         const headers = { 'Set-Cookie': setCookieValue };

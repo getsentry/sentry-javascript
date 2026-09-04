@@ -10,7 +10,7 @@ Sentry.init({
   integrations: [
     Sentry.nativeNodeFetchIntegration({
       headersToSpanAttributes: {
-        requestHeaders: ['x-test-header'],
+        requestHeaders: ['x-test-header', 'authorization'],
         responseHeaders: ['x-powered-by'],
       },
     }),
