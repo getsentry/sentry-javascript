@@ -33,7 +33,11 @@ import { DB } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
+  filterCollectedDbQueryText,
+} from '@sentry/core/server';
 
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
@@ -174,8 +178,9 @@ function subscribeQuery(): void {
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
       const dbSystem = mapSystem(client?.driverName);
 
-      const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
       const dialect = client?.driverName === 'mysql' || client?.driverName === 'mysql2' ? 'mysql' : undefined;
+      const dbStatement =
+        query?.sql != null ? filterCollectedDbQueryText(truncate(query.sql, MAX_QUERY_LENGTH), dialect) : undefined;
       const querySummary = dbStatement
         ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(dbStatement, dialect))
         : undefined;

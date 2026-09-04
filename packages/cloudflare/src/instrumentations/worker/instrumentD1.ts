@@ -11,7 +11,11 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
+  filterCollectedDbQueryText,
+} from '@sentry/core/server';
 import { ensureInstrumented } from '../../instrument';
 
 // Patching is based on internal Cloudflare D1 API
@@ -134,7 +138,8 @@ function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOpti
   const querySummary = query ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(query)) : undefined;
 
   const client = getClient();
-  const name = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : query;
+  const queryText = filterCollectedDbQueryText(query, undefined, client);
+  const name = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : queryText;
 
   return {
     name,
@@ -142,7 +147,7 @@ function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOpti
       [SENTRY_OP]: DB_QUERY,
       'db.system.name': 'cloudflare-d1',
       'db.operation.name': type,
-      'db.query.text': query,
+      'db.query.text': queryText,
       'db.query.summary': querySummary,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
     },

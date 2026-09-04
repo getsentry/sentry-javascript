@@ -31,6 +31,7 @@ export {
   getSqlQuerySummary as _INTERNAL_getSqlQuerySummary,
   sanitizeSqlQuery as _INTERNAL_sanitizeSqlQuery,
 } from './utils/sql';
+export { filterCollectedDbQueryText } from './utils/data-collection/filterCollectedDbQueryText';
 export type { SqlDialect } from './utils/sql';
 
 export { patchHttpModuleClient } from './integrations/http/client-patch';
