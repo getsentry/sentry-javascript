@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import {
-  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
   getSpanOp,
   waitForError,
   waitForStreamedSpan,
@@ -33,10 +33,7 @@ test('Sends a parameterized span name to Sentry', async ({ page }) => {
 });
 
 test('Sends form data with the action span', async ({ page }) => {
-  const spansPromise = collectStreamedSpans(
-    APP_NAME,
-    spans => spans.some(isSegmentNamed('POST action-formdata')) && spans.some(isDataFunction('action')),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'POST action-formdata');
 
   await page.goto('/action-formdata');
 
@@ -61,9 +58,11 @@ test('Sends form data with the action span', async ({ page }) => {
 });
 
 test('Sends a loader span to Sentry', async ({ page }) => {
-  const spansPromise = collectStreamedSpans(
+  // The index route has no path of its own, so the segment is named after the method alone; its
+  // `url.path` is what tells this request apart.
+  const spansPromise = collectStreamedSpansUntilSegment(
     APP_NAME,
-    spans => spans.some(isSegmentNamed('GET')) && spans.some(isDataFunction('loader')),
+    span => getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/',
   );
 
   await page.goto('/');
@@ -117,10 +116,7 @@ test('Propagates the trace when the ErrorBoundary is triggered', async ({ page }
 });
 
 test('Parameterizes a 2-level nested route on the server', async ({ page }) => {
-  const spansPromise = collectStreamedSpans(
-    APP_NAME,
-    spans => spans.some(isSegmentNamed('GET users/:userId/posts/:postId')) && spans.some(isDataFunction('loader')),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET users/:userId/posts/:postId');
 
   await page.goto('/users/user123/posts/post456');
 
@@ -163,22 +159,19 @@ test('Parameterizes a flat dot-notation route on the server', async ({ page }) =
 
 test('Records action and loader spans on a parameterized action route', async ({ request }) => {
   const routeId = 'routes/action-json-response.$id';
-  const spansPromise = collectStreamedSpans(
-    APP_NAME,
-    spans =>
-      spans.some(isSegmentNamed('POST action-json-response/:id')) &&
-      spans.some(isDataFunction('action', routeId)) &&
-      spans.some(isDataFunction('loader', 'root')) &&
-      spans.some(isDataFunction('loader', routeId)),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'POST action-json-response/:id');
 
   await request.post('/action-json-response/123123');
 
   const spans = await spansPromise;
   const actionSpan = spans.find(isDataFunction('action', routeId))!;
 
+  expect(actionSpan).toBeDefined();
   expect(getSpanOp(actionSpan)).toBe('function');
   expect(actionSpan.attributes['match.params.id']?.value).toBe('123123');
+
+  expect(spans.some(isDataFunction('loader', 'root'))).toBe(true);
+  expect(spans.some(isDataFunction('loader', routeId))).toBe(true);
 
   const segment = spans.find(isSegmentNamed('POST action-json-response/:id'))!;
   expect(segment.attributes['http.request.method']?.value).toBe('POST');
@@ -186,11 +179,7 @@ test('Records action and loader spans on a parameterized action route', async ({
 
 test('Records loader spans on a deferred loader response', async ({ page }) => {
   const routeId = 'routes/loader-defer-response.$id';
-  const spansPromise = collectStreamedSpans(
-    APP_NAME,
-    spans =>
-      spans.some(isSegmentNamed('GET loader-defer-response/:id')) && spans.some(isDataFunction('loader', routeId)),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET loader-defer-response/:id');
 
   await page.goto('/loader-defer-response/123123');
 
@@ -198,6 +187,7 @@ test('Records loader spans on a deferred loader response', async ({ page }) => {
   const segment = spans.find(isSegmentNamed('GET loader-defer-response/:id'))!;
 
   expect(segment.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(spans.some(isDataFunction('loader', routeId))).toBe(true);
 });
 
 test('Continues a trace from incoming sentry-trace and baggage headers', async ({ request }) => {
