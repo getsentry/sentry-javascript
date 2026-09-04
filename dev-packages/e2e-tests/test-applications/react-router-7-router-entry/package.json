@@ -23,9 +23,10 @@
     "preview": "vite preview",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "typecheck": "tsc --noEmit",
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm install && pnpm add react@canary react-dom@canary && pnpm build",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm typecheck && pnpm test"
   },
   "eslintConfig": {
     "extends": [
