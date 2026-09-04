@@ -65,7 +65,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '54 KB',
+    limit: '55 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -73,7 +73,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'spanStreamingIntegration'),
     gzip: true,
-    limit: '54 KB',
+    limit: '55 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -121,7 +121,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '98 KB',
+    limit: '99 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -129,7 +129,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '111 KB',
+    limit: '112 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -196,7 +196,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '56 KB',
+    limit: '57 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Vue SDK (ESM)
@@ -213,7 +213,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '56 KB',
+    limit: '57 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Svelte SDK (ESM)
@@ -265,28 +265,28 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    limit: '92 KB',
+    limit: '93 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: true,
-    limit: '94 KB',
+    limit: '95 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: true,
-    limit: '98 KB',
+    limit: '99 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: true,
-    limit: '100 KB',
+    limit: '101 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // browser CDN bundles (non-gzipped)
@@ -295,7 +295,7 @@ module.exports = [
     path: createCDNPath('bundle.min.js'),
     gzip: false,
     brotli: false,
-    limit: '95 KB',
+    limit: '96 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -303,7 +303,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '152 KB',
+    limit: '153 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -319,7 +319,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '158 KB',
+    limit: '159 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -335,7 +335,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: false,
     brotli: false,
-    limit: '272 KB',
+    limit: '273 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -343,7 +343,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '278 KB',
+    limit: '279 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -351,7 +351,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: false,
     brotli: false,
-    limit: '286 KB',
+    limit: '287 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -359,7 +359,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '291 KB',
+    limit: '292 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Next.js SDK (ESM)
@@ -388,7 +388,7 @@ module.exports = [
     path: 'packages/core/build/esm/server.js',
     import: '*',
     gzip: true,
-    limit: '71 KB',
+    limit: '46 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -396,7 +396,7 @@ module.exports = [
     path: 'packages/core/build/esm/browser.js',
     import: '*',
     gzip: true,
-    limit: '57 KB',
+    limit: '19 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Node SDK (ESM)
@@ -406,7 +406,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '128 KB',
+    limit: '130 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   {
@@ -414,7 +414,7 @@ module.exports = [
     path: ['packages/server-runtime-injection/build/esm/hook.js', 'packages/node/build/import-hook.mjs'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '91 KB',
+    limit: '87 KB',
     disablePlugins: ['@size-limit/esbuild'],
     modifyWebpackConfig: function (config) {
       // Both packages declare `sideEffects: false`, which lets webpack
@@ -430,7 +430,7 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    limit: '93 KB',
+    limit: '94 KB',
     disablePlugins: ['@size-limit/esbuild'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
@@ -452,7 +452,7 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '108 KB',
+    limit: '109 KB',
     disablePlugins: ['@size-limit/esbuild'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
@@ -473,7 +473,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '101 KB',
+    limit: '102 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
   // Cloudflare SDK (ESM) - compressed, minified to match `wrangler deploy --dry-run --minify` output
@@ -484,7 +484,7 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: false,
     brotli: false,
-    limit: '201 KiB',
+    limit: '203 KiB',
     disablePlugins: ['@size-limit/webpack'],
     webpack: false,
     modifyEsbuildConfig: function (config) {
@@ -504,7 +504,7 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: false,
     brotli: false,
-    limit: '491 KiB',
+    limit: '496 KiB',
     disablePlugins: ['@size-limit/webpack'],
     webpack: false,
     modifyEsbuildConfig: function (config) {

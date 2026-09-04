@@ -23,8 +23,9 @@ Version 11 of the Sentry JavaScript SDK primarily focuses on better OpenTelemetr
 
 Since some of these changes are not caught by TypeScript or other tooling, we recommend reading through this entire guide before upgrading. For an early overview see [#22056 "What's coming in v11"](https://github.com/getsentry/sentry-javascript/issues/22056).
 
-Version 11 of the SDK is compatible with Sentry self-hosted versions 24.4.2 or higher (unchanged from v10).
-Lower versions may continue to work, but may not support all features.
+Version 11 of the SDK is compatible with Sentry self-hosted versions 26.4.2 or higher. Lower versions may continue to
+work, but are not supported. For the best experience we recommend updating your self-hosted Sentry to the latest
+version.
 
 ## 1. Version Support Changes:
 
@@ -186,6 +187,7 @@ We've replaced `sendDefaultPii` with `dataCollection`, which controls each categ
 | `urlQueryParams`      | `true`                             | `true`               |
 | `genAI`               | inputs + outputs not collected     | inputs + outputs     |
 | `databaseQueryData`   | `false`                            | `true`               |
+| `queues`              | not collected                      | `true`               |
 | `stackFrameVariables` | `true`                             | `true`               |
 | `frameContextLines`   | `7`                                | `5`                  |
 
@@ -221,6 +223,7 @@ Sentry.init({
     urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     genAI: { inputs: false, outputs: false },
     databaseQueryData: false,
+    queues: false,
     graphQL: { document: false, variables: false },
   },
 });

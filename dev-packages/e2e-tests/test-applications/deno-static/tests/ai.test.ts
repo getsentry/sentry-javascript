@@ -1,0 +1,62 @@
+import { expect, test } from '@playwright/test';
+import { waitForTransaction } from '@sentry-internal/test-utils';
+
+test('should create AI pipeline spans with Vercel AI SDK', async ({ baseURL }) => {
+  const aiTransactionPromise = waitForTransaction('deno-static', event => {
+    return event?.spans?.some(span => span.description === 'ai-test') ?? false;
+  });
+
+  await fetch(`${baseURL}/test-ai`);
+
+  const aiTransaction = await aiTransactionPromise;
+
+  expect(aiTransaction).toBeDefined();
+
+  const spans = aiTransaction.spans || [];
+
+  // The parent span wrapping all AI calls should exist
+  expect(spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'ai-test',
+        op: 'function',
+      }),
+    ]),
+  );
+
+  // Vercel AI SDK emits OTel spans for generateText calls.
+  // Due to the AI SDK monkey-patching limitation (https://github.com/vercel/ai/pull/6716),
+  // only explicitly opted-in calls produce telemetry spans.
+  // The explicitly enabled call (experimental_telemetry: { isEnabled: true }) should produce spans.
+  const aiSpans = spans.filter((span: any) => {
+    if (
+      span.op === 'gen_ai.invoke_agent' ||
+      span.op === 'gen_ai.generate_content' ||
+      span.op === 'gen_ai.execute_tool'
+    ) {
+      return true;
+    }
+    // Processed Vercel AI spans (incl. cases where OTel kind no longer maps to a generic `op`)
+    if (span.origin === 'auto.vercelai.otel') {
+      return true;
+    }
+    // Raw Vercel AI OTel span names / attributes before or without full Sentry mapping
+    if (typeof span.description === 'string' && span.description.startsWith('ai.')) {
+      return true;
+    }
+    if (span.data?.['ai.operationId'] != null || span.data?.['gen_ai.pipeline.name'] != null) {
+      return true;
+    }
+    return false;
+  });
+
+  // We expect at least one AI-related span from the explicitly enabled call
+  expect(aiSpans.length).toBeGreaterThanOrEqual(1);
+
+  // Verify the disabled call was not captured
+  const promptsInSpans = spans
+    .map((span: any) => span.data?.['vercel.ai.prompt'])
+    .filter((prompt: unknown): prompt is string => prompt !== undefined);
+  const hasDisabledPrompt = promptsInSpans.some((prompt: string) => prompt.includes('Where is the disabled span?'));
+  expect(hasDisabledPrompt).toBe(false);
+});

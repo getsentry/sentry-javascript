@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('nuxt-4', span => {
@@ -46,8 +46,9 @@ test('sends a navigation root span with a parameterized URL', async ({ page }) =
 });
 
 test('sends an application render span and a root component span on pageload', async ({ page }) => {
-  const spansPromise = collectStreamedSpans('nuxt-4', spans =>
-    spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nuxt-4',
+    span => span.name === '/client-error' && getSpanOp(span) === 'pageload',
   );
 
   await page.goto(`/client-error`);
@@ -89,8 +90,9 @@ test('sends an application render span and a root component span on pageload', a
 });
 
 test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
-  const spansPromise = collectStreamedSpans('nuxt-4', spans =>
-    spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nuxt-4',
+    span => span.name === '/client-error' && getSpanOp(span) === 'pageload',
   );
 
   await page.goto(`/client-error`);

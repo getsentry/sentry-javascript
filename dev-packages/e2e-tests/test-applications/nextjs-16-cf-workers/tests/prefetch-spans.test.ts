@@ -1,14 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test('Prefetch client spans should have a http.request.prefetch attribute', async ({ page }) => {
   test.skip(isDevMode, "Prefetch requests don't have the prefetch header in dev mode");
 
   // The prefetch span is a child of the pageload segment span, which ends last.
-  const spansPromise = collectStreamedSpans('nextjs-16-cf-workers', spans =>
-    spans.some(span => span.name === '/prefetching' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16-cf-workers', '/prefetching');
 
   await page.goto(`/prefetching`);
 

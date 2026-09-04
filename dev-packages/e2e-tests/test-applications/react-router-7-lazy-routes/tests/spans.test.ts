@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import {
-  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
   getSpanOp,
   waitForStreamedSpan,
   waitForStreamedSpans,
@@ -917,9 +917,7 @@ test('Correctly names pageload span for slow lazy route with fetch', async ({ pa
   // This test verifies that a slow lazy route (with top-level await and fetch)
   // creates a correctly named pageload span
 
-  const spansPromise = collectStreamedSpans('react-router-7-lazy-routes', spansOfTrace =>
-    spansOfTrace.some(span => span.name === '/slow-fetch/:id' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('react-router-7-lazy-routes', '/slow-fetch/:id');
 
   await page.goto('/slow-fetch/123');
 
@@ -1394,9 +1392,10 @@ test('Route manifest provides correct name when pageload span ends before lazy r
 test('GQL fetch span is attributed to the correct navigation segment when navigating from index to lazy GQL page', async ({
   page,
 }) => {
-  const pageloadSpansPromise = collectStreamedSpans('react-router-7-lazy-routes', spans => {
-    return spans.some(span => getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/');
-  });
+  const pageloadSpansPromise = collectStreamedSpansUntilSegment(
+    'react-router-7-lazy-routes',
+    span => getSpanOp(span) === 'pageload' && span.name === '/',
+  );
 
   await page.goto('/');
   const pageloadSpans = await pageloadSpansPromise;
@@ -1407,9 +1406,10 @@ test('GQL fetch span is attributed to the correct navigation segment when naviga
   );
   expect(pageloadGqlSpans.length).toBe(0);
 
-  const navigationSpansPromise = collectStreamedSpans('react-router-7-lazy-routes', spans => {
-    return spans.some(span => getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy-gql-a/fetch');
-  });
+  const navigationSpansPromise = collectStreamedSpansUntilSegment(
+    'react-router-7-lazy-routes',
+    span => getSpanOp(span) === 'navigation' && span.name === '/lazy-gql-a/fetch',
+  );
 
   // Navigate to lazy GQL page A
   const gqlLink = page.locator('id=navigation-to-gql-a');
@@ -1445,9 +1445,10 @@ test('GQL fetch spans are attributed to correct navigation segments when navigat
   await page.waitForTimeout(500);
 
   // Navigate to GQL page A
-  const firstNavSpansPromise = collectStreamedSpans('react-router-7-lazy-routes', spans => {
-    return spans.some(span => getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy-gql-a/fetch');
-  });
+  const firstNavSpansPromise = collectStreamedSpansUntilSegment(
+    'react-router-7-lazy-routes',
+    span => getSpanOp(span) === 'navigation' && span.name === '/lazy-gql-a/fetch',
+  );
 
   const gqlALink = page.locator('id=navigation-to-gql-a');
   await expect(gqlALink).toBeVisible();
@@ -1473,9 +1474,10 @@ test('GQL fetch spans are attributed to correct navigation segments when navigat
   expect(firstUserBSpans.length).toBe(0);
 
   // Now navigate from GQL page A to GQL page B
-  const secondNavSpansPromise = collectStreamedSpans('react-router-7-lazy-routes', spans => {
-    return spans.some(span => getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/lazy-gql-b/fetch');
-  });
+  const secondNavSpansPromise = collectStreamedSpansUntilSegment(
+    'react-router-7-lazy-routes',
+    span => getSpanOp(span) === 'navigation' && span.name === '/lazy-gql-b/fetch',
+  );
 
   const gqlBLink = page.locator('id=navigate-to-gql-b');
   await expect(gqlBLink).toBeVisible();

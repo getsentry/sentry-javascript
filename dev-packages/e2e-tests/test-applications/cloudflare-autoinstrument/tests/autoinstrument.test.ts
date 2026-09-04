@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import { callRpc } from './agent-socket';
 
 // The worker entry (`src/index.ts`) contains no Sentry calls at all — every
@@ -90,11 +95,9 @@ for (const { title, binding, agentClass } of [
 }
 
 test('applies plain Durable Object instrumentation to a non-Agent class', async ({ baseURL }) => {
-  const spansPromise = collectStreamedSpans('cloudflare-autoinstrument', spans =>
-    spans.some(
-      span =>
-        getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === '/plain-do',
-    ),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'cloudflare-autoinstrument',
+    span => getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/plain-do',
   );
 
   const res = await fetch(`${baseURL}/plain-do`);

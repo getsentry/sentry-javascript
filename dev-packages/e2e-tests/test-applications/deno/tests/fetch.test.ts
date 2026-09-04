@@ -1,21 +1,20 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('Outbound fetch inside Sentry span creates transaction', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('deno', event => {
-    return event?.spans?.some(span => span.description === 'test-outgoing-fetch') ?? false;
-  });
+test('Outbound fetch inside Sentry span creates streamed span', async ({ baseURL }) => {
+  const spanPromise = waitForStreamedSpan('deno', span => span.name === 'test-outgoing-fetch');
 
   await fetch(`${baseURL}/test-outgoing-fetch`);
 
-  const transaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transaction.spans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        description: 'test-outgoing-fetch',
-        origin: 'manual',
+  expect(span).toEqual(
+    expect.objectContaining({
+      name: 'test-outgoing-fetch',
+      is_segment: false,
+      attributes: expect.objectContaining({
+        'sentry.origin': { type: 'string', value: 'manual' },
       }),
-    ]),
+    }),
   );
 });
