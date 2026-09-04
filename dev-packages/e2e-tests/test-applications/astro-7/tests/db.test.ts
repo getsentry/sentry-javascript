@@ -1,19 +1,10 @@
 import { expect, test } from '@playwright/test';
-import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'astro-7';
 
-function isSegmentNamed(name: string): (span: SerializedStreamedSpan) => boolean {
-  return span => getSpanOp(span) === 'http.server' && span.is_segment && span.name === name;
-}
-
 test('Instruments ioredis automatically', async ({ baseURL }) => {
-  const spansPromise = collectStreamedSpans(
-    APP_NAME,
-    spans =>
-      spans.some(isSegmentNamed('GET /db-ioredis')) && spans.filter(span => getSpanOp(span) === 'db.query').length >= 2,
-  );
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /db-ioredis');
 
   await fetch(`${baseURL}/db-ioredis`);
 
@@ -47,10 +38,7 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
 });
 
 test('Instruments mysql automatically', async ({ baseURL }) => {
-  const spansPromise = collectStreamedSpans(
-    APP_NAME,
-    spans => spans.some(isSegmentNamed('GET /db-mysql')) && spans.filter(span => getSpanOp(span) === 'db').length >= 2,
-  );
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /db-mysql');
 
   await fetch(`${baseURL}/db-mysql`);
 
