@@ -33,6 +33,9 @@ test.describe('tracing in static/pre-rendered routes', () => {
       'sentry.op': { value: 'pageload', type: 'string' },
       'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'url.template': { value: '/test-static', type: 'string' },
+      'url.path': { value: '/test-static', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/test-static$/), type: 'string' },
     });
 
     await page.waitForTimeout(1000); // wait another sec to ensure no server span is sent
