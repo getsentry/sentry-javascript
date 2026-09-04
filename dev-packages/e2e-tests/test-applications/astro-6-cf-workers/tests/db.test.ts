@@ -1,15 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'astro-6-cf-workers';
 
 test('a real mysql query emits a db span with orchestrion-channel attributes', async ({ request }) => {
-  const spansPromise = collectStreamedSpans(
-    APP_NAME,
-    spans =>
-      spans.some(span => getSpanOp(span) === 'http.server' && span.is_segment) &&
-      spans.some(span => getSpanOp(span) === 'db'),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /db-mysql');
 
   const res = await request.get('/db-mysql');
   expect(res.status()).toBe(200);
@@ -31,12 +26,7 @@ test('a real mysql query emits a db span with orchestrion-channel attributes', a
 });
 
 test('a nested query lands on the same trace (async context restored)', async ({ request }) => {
-  const spansPromise = collectStreamedSpans(
-    APP_NAME,
-    spans =>
-      spans.some(span => getSpanOp(span) === 'http.server' && span.is_segment) &&
-      spans.filter(span => getSpanOp(span) === 'db').length >= 2,
-  );
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /db-mysql');
 
   const res = await request.get('/db-mysql');
   expect(res.status()).toBe(200);
