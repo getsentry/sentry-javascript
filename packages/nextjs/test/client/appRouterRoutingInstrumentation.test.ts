@@ -83,6 +83,7 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     delete globalWithNext.next;
     delete globalWithNext._sentryRouteManifest;
   });
@@ -96,7 +97,7 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
       const afterCall = core.timestampInSeconds();
 
       await sleep(30);
-      window.history.replaceState({}, '', '/navigation/1337/router-back');
+      window.history.replaceState({}, '', '/navigation/1337/router-back?foo=bar');
       window.dispatchEvent(new PopStateEvent('popstate'));
 
       const span = core.getActiveSpan();
@@ -109,6 +110,7 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
           'navigation.type': 'router.back',
           'url.template': '/navigation/:param/router-back',
           'url.path': '/navigation/1337/router-back',
+          'url.full': 'http://localhost:3000/navigation/1337/router-back?foo=bar',
         }),
       );
       expect(spanJson.start_timestamp).toBeGreaterThanOrEqual(beforeCall);
@@ -182,9 +184,10 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
     it('does not carry a router call over to a later, unrelated popstate', async () => {
       const { core, router } = await setup(traceLifecycle);
 
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
       router.forward();
       // A `forward()` without a forward history entry never fires `popstate`.
-      await sleep(1100);
+      vi.advanceTimersByTime(1000);
 
       window.history.replaceState({}, '', '/navigation/1337/router-back');
       window.dispatchEvent(new PopStateEvent('popstate'));

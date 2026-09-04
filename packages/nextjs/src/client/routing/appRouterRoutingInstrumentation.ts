@@ -228,7 +228,9 @@ export function appRouterInstrumentNavigation(client: Client): void {
             ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
           },
         },
-        { url: getAbsoluteUrl(pathname) },
+        // The full location rather than just the pathname, so the span's `url.full` keeps the
+        // (filtered) query string like the update path above does.
+        { url: WINDOW.location.href },
       );
     }
   });
