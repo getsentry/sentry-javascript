@@ -601,19 +601,58 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
     setAttributeIfDefined(attributes, 'gen_ai.usage.input_tokens.cache_miss', metadata.deepseek.promptCacheMissTokens);
   }
 
+  // Google (v5 uses 'google', v6 Vertex AI uses 'vertex'). Gemini reports its reasoning ("thoughts")
+  // tokens separately from the candidate output count, so the SDK's `outputTokens` covers only the
+  // visible answer. Recompute output from `candidatesTokenCount + thoughtsTokenCount` rather than
+  // adding onto the existing value, which stays correct even if a future SDK version already folds
+  // reasoning in. `candidatesTokenCount` is omitted when the response is truncated during thinking,
+  // which means no candidate tokens, so it counts as zero. Reasoning is a subset of output per the
+  // conventions, so it is only written alongside the reasoning-inclusive output it belongs to.
+  const googleUsage = (metadata.google ?? metadata.vertex)?.usageMetadata;
+  if (googleUsage && typeof googleUsage.thoughtsTokenCount === 'number' && googleUsage.thoughtsTokenCount > 0) {
+    attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] =
+      (googleUsage.candidatesTokenCount ?? 0) + googleUsage.thoughtsTokenCount;
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, googleUsage.totalTokenCount);
+    setAttributeIfDefined(attributes, 'gen_ai.usage.reasoning.output_tokens', googleUsage.thoughtsTokenCount);
+  }
+
   return attributes;
 }
+
+/**
+ * Usage attributes that `getProviderMetadataAttributes` derives from `providerMetadata`, which
+ * describes only the last step of a call. They must not be written onto a span that reports usage
+ * aggregated across steps (`gen_ai.invoke_agent`), where they would replace the aggregate with one
+ * step's figures. Exported so the channel/orchestrion subscribers, which call
+ * `getProviderMetadataAttributes` directly rather than through `addProviderMetadataToAttributes`,
+ * apply the same rule.
+ */
+export const LAST_STEP_ONLY_USAGE_KEYS = new Set<string>([
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+  'gen_ai.usage.reasoning.output_tokens',
+]);
 
 function addProviderMetadataToAttributes(attributes: Record<string, unknown>): void {
   const providerMetadata = attributes[AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE] as string | undefined;
   if (!providerMetadata) {
     return;
   }
+  // An `invoke_agent` span carries the summed `ai.usage.*` of every step, while `providerMetadata`
+  // describes the last step alone. Writing output or total from it would replace the aggregate with
+  // one step's figures, so a two-step call reports output 50 against input 900. The event-processor
+  // path happens to overwrite it again in `applyAccumulatedTokens`; the streamed path ships it.
+  // Reasoning goes with them: it is a subset of an output the parent never recomputes, and the
+  // accumulator never sums it, so the last step's count would stand in for the whole call.
+  const lastStepOnly = attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] === 'invoke_agent';
   try {
     const derived = getProviderMetadataAttributes(JSON.parse(providerMetadata) as ProviderMetadata);
     for (const [key, value] of Object.entries(derived)) {
       // Preserve the original behaviour of not overwriting an already-set conversation id.
       if (key === GEN_AI_CONVERSATION_ID_ATTRIBUTE && attributes[key]) {
+        continue;
+      }
+      if (lastStepOnly && LAST_STEP_ONLY_USAGE_KEYS.has(key)) {
         continue;
       }
       attributes[key] = value;
