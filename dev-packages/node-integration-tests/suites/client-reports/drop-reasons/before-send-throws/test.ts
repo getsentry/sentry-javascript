@@ -14,7 +14,7 @@ test('records a client report and no extra error event when beforeSend throws', 
           {
             category: 'error',
             quantity: 1,
-            reason: 'before_send',
+            reason: 'callback_error',
           },
         ],
       },

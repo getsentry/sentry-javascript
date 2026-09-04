@@ -17,14 +17,43 @@ describe('notifyEventProcessors', () => {
 
   it('stops when a processor returns null', async () => {
     const later = vi.fn(event => event);
+    const onDrop = vi.fn();
 
-    const result = await notifyEventProcessors([() => null, later], { message: 'hello' }, {});
+    const result = await notifyEventProcessors([() => null, later], { message: 'hello' }, {}, 0, onDrop);
 
     expect(result).toBeNull();
     expect(later).not.toHaveBeenCalled();
+    expect(onDrop).toHaveBeenCalledOnce();
+    expect(onDrop).toHaveBeenCalledWith('event_processor');
   });
 
-  it('drops the event when a processor throws synchronously', async () => {
+  it('stops and reports the drop when a processor returns undefined', async () => {
+    const processor = (() => undefined) as unknown as EventProcessor;
+    const later = vi.fn(event => event);
+    const onDrop = vi.fn();
+
+    const result = await notifyEventProcessors([processor, later], { message: 'hello' }, {}, 0, onDrop);
+
+    expect(result).toBeNull();
+    expect(later).not.toHaveBeenCalled();
+    expect(onDrop).toHaveBeenCalledOnce();
+    expect(onDrop).toHaveBeenCalledWith('event_processor');
+  });
+
+  it('stops and reports the drop when a processor resolves undefined', async () => {
+    const processor = (() => Promise.resolve(undefined)) as unknown as EventProcessor;
+    const later = vi.fn(event => event);
+    const onDrop = vi.fn();
+
+    const result = await notifyEventProcessors([processor, later], { message: 'hello' }, {}, 0, onDrop);
+
+    expect(result).toBeNull();
+    expect(later).not.toHaveBeenCalled();
+    expect(onDrop).toHaveBeenCalledOnce();
+    expect(onDrop).toHaveBeenCalledWith('event_processor');
+  });
+
+  it('resolves with `null` and reports a callback error when a processor throws synchronously', async () => {
     const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
     const error = new Error('boom');
     const throwing: EventProcessor = () => {
@@ -32,23 +61,29 @@ describe('notifyEventProcessors', () => {
     };
     throwing.id = 'Throwing';
     const later = vi.fn(event => event);
+    const onDrop = vi.fn();
 
-    const result = await notifyEventProcessors([throwing, later], { message: 'hello' }, {});
+    await expect(notifyEventProcessors([throwing, later], { message: 'hello' }, {}, 0, onDrop)).resolves.toBeNull();
 
-    expect(result).toBeNull();
     expect(later).not.toHaveBeenCalled();
+    expect(onDrop).toHaveBeenCalledOnce();
+    expect(onDrop).toHaveBeenCalledWith('callback_error');
     expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "Throwing" threw an error, dropping event:', error);
   });
 
-  it('drops the event when a processor rejects', async () => {
+  it('resolves with `null` and reports a callback error when a processor rejects', async () => {
     const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
     const error = new Error('boom');
     const later = vi.fn(event => event);
+    const onDrop = vi.fn();
 
-    const result = await notifyEventProcessors([() => Promise.reject(error), later], { message: 'hello' }, {});
+    await expect(
+      notifyEventProcessors([() => Promise.reject(error), later], { message: 'hello' }, {}, 0, onDrop),
+    ).resolves.toBeNull();
 
-    expect(result).toBeNull();
     expect(later).not.toHaveBeenCalled();
+    expect(onDrop).toHaveBeenCalledOnce();
+    expect(onDrop).toHaveBeenCalledWith('callback_error');
     expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "?" threw an error, dropping event:', error);
   });
 });

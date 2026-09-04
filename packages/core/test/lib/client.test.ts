@@ -2222,7 +2222,7 @@ describe('Client', () => {
 
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(recordDroppedEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
       expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "?" threw an error, dropping event:', exception);
     });
 
@@ -2244,7 +2244,7 @@ describe('Client', () => {
 
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(recordDroppedEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
       expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "?" threw an error, dropping event:', exception);
     });
 
@@ -2277,7 +2277,7 @@ describe('Client', () => {
 
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(recordDroppedEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
     });
 
     test('a rejecting event processor stops the processor chain', async () => {
@@ -2312,7 +2312,7 @@ describe('Client', () => {
 
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(recordDroppedEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
     });
 
     test('client-level event processor that throws on all events does not capture a new event', () => {
@@ -2348,7 +2348,7 @@ describe('Client', () => {
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
       expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
       expect(debugErrorSpy).toHaveBeenCalledWith(
         'The `beforeSend` callback threw an error, dropping the event:',
@@ -2373,7 +2373,8 @@ describe('Client', () => {
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
       expect(debugErrorSpy).toHaveBeenCalledWith(
         'The `beforeSend` callback threw an error, dropping the event:',
         exception,
@@ -2416,8 +2417,9 @@ describe('Client', () => {
 
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
-      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'span', 3);
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'transaction');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'span', 3);
       expect(debugErrorSpy).toHaveBeenCalledWith(
         'The `beforeSendTransaction` callback threw an error, dropping the event:',
         exception,
