@@ -148,7 +148,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         metadata,
       );
 
-      const toolDefsJson = extractToolDefinitions(extraParams);
+      const toolDefsJson = recordInputs ? extractToolDefinitions(extraParams) : undefined;
       if (toolDefsJson) {
         attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefsJson;
       }

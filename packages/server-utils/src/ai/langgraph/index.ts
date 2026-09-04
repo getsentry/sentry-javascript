@@ -142,15 +142,16 @@ export function instrumentCompiledGraphInvoke(
               );
             }
 
+            const recordInputs = options.recordInputs;
+            const recordOutputs = options.recordOutputs;
+
             // Extract available tools from the graph instance
-            const tools = extractToolsFromCompiledGraph(graphInstance);
+            const tools = recordInputs ? extractToolsFromCompiledGraph(graphInstance) : null;
             if (tools) {
               span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
             }
 
             // Parse input messages
-            const recordInputs = options.recordInputs;
-            const recordOutputs = options.recordOutputs;
             const inputMessages =
               args.length > 0 ? ((args[0] as { messages?: LangChainMessage[] } | null)?.messages ?? []) : [];
 

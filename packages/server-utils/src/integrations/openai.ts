@@ -81,7 +81,7 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
 
   const { recordInputs } = resolveAIRecordingOptions(options);
 
-  const attributes = extractRequestAttributes(args, operation);
+  const attributes = extractRequestAttributes(args, operation, recordInputs);
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
   const model = (params?.model as string) || 'unknown';
   const client = getClient();
