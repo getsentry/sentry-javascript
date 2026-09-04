@@ -1,9 +1,9 @@
 {
-  "name": "deno-streamed-app",
+  "name": "deno-static-app",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "deno run --allow-net --allow-env --allow-read --allow-sys src/app.ts",
+    "start": "deno run --allow-net --allow-env --allow-read src/app.ts",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install",
@@ -21,13 +21,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sentryTest": {
-    "optionalVariants": [
-      {
-        "deno-version": "latest",
-        "label": "deno-streamed (latest)"
-      }
-    ]
   }
 }
