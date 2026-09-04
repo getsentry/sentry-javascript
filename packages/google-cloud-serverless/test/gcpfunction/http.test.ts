@@ -215,6 +215,7 @@ describe('GCPFunction', () => {
             // The method and path stay on the span even though they are no longer the name.
             [HTTP_REQUEST_METHOD]: 'POST',
             [URL_PATH]: '/path',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           }),
         }),
         expect.any(Function),
@@ -233,7 +234,10 @@ describe('GCPFunction', () => {
       expect(mockStartSpanManual).toBeCalledWith(
         expect.objectContaining({
           name: 'my-cloud-run-service',
-          attributes: expect.objectContaining({ [FAAS_NAME]: 'my-cloud-run-service' }),
+          attributes: expect.objectContaining({
+            [FAAS_NAME]: 'my-cloud-run-service',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
+          }),
         }),
         expect.any(Function),
       );
@@ -251,7 +255,7 @@ describe('GCPFunction', () => {
       expect(mockStartSpanManual).toBeCalledWith(
         expect.objectContaining({
           name: SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
-          attributes: expect.objectContaining({ [FAAS_NAME]: undefined }),
+          attributes: expect.objectContaining({ [FAAS_NAME]: undefined, [SENTRY_SEGMENT_NAME_SOURCE]: 'component' }),
         }),
         expect.any(Function),
       );
@@ -283,7 +287,10 @@ describe('GCPFunction', () => {
       expect(mockStartSpanManual).toBeCalledWith(
         expect.objectContaining({
           name: 'POST /path',
-          attributes: expect.objectContaining({ [FAAS_NAME]: 'myCloudFunction' }),
+          attributes: expect.objectContaining({
+            [FAAS_NAME]: 'myCloudFunction',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          }),
         }),
         expect.any(Function),
       );
