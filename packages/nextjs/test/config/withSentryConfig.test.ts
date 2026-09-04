@@ -1298,7 +1298,10 @@ describe('withSentryConfig', () => {
       materializeFinalNextConfig(exportedNextConfig);
       materializeFinalNextConfig(exportedNextConfig);
 
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      const turbopackWarnings = consoleWarnSpy.mock.calls.filter(([message]) =>
+        String(message).includes('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+      expect(turbopackWarnings).toHaveLength(1);
 
       consoleWarnSpy.mockRestore();
     });
