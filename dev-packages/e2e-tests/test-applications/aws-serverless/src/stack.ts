@@ -27,14 +27,6 @@ function resolvePackagesDir(): string {
   return path.resolve(__dirname, '../../../../../packages');
 }
 
-function materializePackage(lambdaPath: string, packageName: string): void {
-  const packagePath = path.join(lambdaPath, 'node_modules', ...packageName.split('/'));
-  const resolvedPackagePath = fs.realpathSync(packagePath);
-
-  fs.rmSync(packagePath, { recursive: true, force: true });
-  fs.cpSync(resolvedPackagePath, packagePath, { recursive: true, dereference: true });
-}
-
 export class LocalLambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps, hostIp: string) {
     console.log('[LocalLambdaStack] Creating local SAM Lambda Stack');
@@ -87,15 +79,6 @@ export class LocalLambdaStack extends Stack {
         dependencies[name] = `file:${relativePath.replace(/\\/g, '/')}`;
       }
 
-      const awsServerlessPackageJson = JSON.parse(
-        fs.readFileSync(path.join(packagesDir, 'aws-serverless', 'package.json'), 'utf8'),
-      ) as { dependencies: Record<string, string> };
-      const conventionsVersion = awsServerlessPackageJson.dependencies['@sentry/conventions'];
-      if (!conventionsVersion) {
-        throw new Error('[LocalLambdaStack] @sentry/aws-serverless does not declare @sentry/conventions');
-      }
-      dependencies['@sentry/conventions'] = conventionsVersion;
-
       console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
 
       if (fs.existsSync(lockfilePath)) {
@@ -118,9 +101,6 @@ export class LocalLambdaStack extends Stack {
         cwd: lambdaPath,
         stdio: 'inherit',
       });
-
-      // Lambda handler names cannot contain pnpm's `.pnpm` virtual-store path.
-      materializePackage(lambdaPath, '@sentry/aws-serverless');
 
       if (!process.env.NODE_VERSION) {
         throw new Error('[LocalLambdaStack] NODE_VERSION is not set');

@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { awsLambdaIntegration, redirectLambdaHandler } from '../src/integration/awslambda';
+import { awsLambdaIntegration, findHandlerShimFile, redirectLambdaHandler } from '../src/integration/awslambda';
 
 const mockGetScopeData = vi.fn();
 
@@ -43,6 +43,34 @@ describe('redirectLambdaHandler', () => {
     expect(process.env.SENTRY_ORIGINAL_HANDLER).toBe('index.handler');
     expect(process.env._HANDLER).toMatch(/\/run-lambda-handler\.handler$/);
     expect(process.env._HANDLER).not.toContain('..');
+  });
+
+  test('uses a logical package path when pnpm resolves the shim to an invalid virtual-store path', () => {
+    const nodeModulesPath = path.join(taskRoot, 'node_modules');
+    const logicalShimFile = path.join(
+      nodeModulesPath,
+      '@sentry',
+      'aws-serverless',
+      'build',
+      'npm',
+      'run-lambda-handler.mjs',
+    );
+    fs.mkdirSync(path.dirname(logicalShimFile), { recursive: true });
+    fs.writeFileSync(logicalShimFile, 'export const handler = () => {};');
+
+    const resolvedShimFile = path.join(
+      nodeModulesPath,
+      '.pnpm',
+      '@sentry+aws-serverless@file+..+..+packages+aws-serverless',
+      'node_modules',
+      '@sentry',
+      'aws-serverless',
+      'build',
+      'npm',
+      'run-lambda-handler.mjs',
+    );
+
+    expect(findHandlerShimFile(resolvedShimFile, [nodeModulesPath])).toBe(logicalShimFile);
   });
 
   test('does nothing when LAMBDA_TASK_ROOT or _HANDLER are not set', () => {
