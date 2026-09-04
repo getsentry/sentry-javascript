@@ -1,6 +1,7 @@
 import {
   FAAS_NAME,
   FAAS_TRIGGER,
+  GCP_FUNCTION_CONTEXT_TYPE,
   SENTRY_KIND,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -10,7 +11,10 @@ import type { SpanAttributes } from '@sentry/core';
 import {
   captureException,
   flush,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
   SPAN_STATUS_ERROR,
   startSpanManual,
 } from '@sentry/core';
@@ -56,7 +60,9 @@ export function wrapFunctionsRegistration(data: FunctionsChannelContext, trigger
 
 function wrapHandler(handler: Handler, triggerType: string): Handler {
   const wrapped = async function (this: unknown, ...handlerArgs: unknown[]): Promise<unknown> {
-    const functionName = process.env.FUNCTION_TARGET || process.env.K_SERVICE || 'unknown';
+    const functionName = getFunctionName();
+
+    const enhancedTriggerType = `firebase.function.${triggerType}`;
 
     const attributes: SpanAttributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: FUNCTIONS_ORIGIN,
@@ -66,6 +72,11 @@ function wrapHandler(handler: Handler, triggerType: string): Handler {
       [SENTRY_KIND]: 'server',
       [SENTRY_OP]: FUNCTION_GCP,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
+
+      // This is a bit of "cheating" but not entirely wrong:
+      // by setting this attribute, the span description of a streamed span will be set to the
+      // static span name, which is the triggerType string.
+      [GCP_FUNCTION_CONTEXT_TYPE]: enhancedTriggerType,
     };
 
     if (process.env.GCLOUD_PROJECT) {
@@ -76,10 +87,16 @@ function wrapHandler(handler: Handler, triggerType: string): Handler {
       attributes['cloud.event_source'] = process.env.EVENTARC_CLOUD_EVENT_SOURCE;
     }
 
+    const client = getClient();
+    const name =
+      client && hasSpanStreamingEnabled(client)
+        ? functionName || SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK
+        : enhancedTriggerType;
+
     // `startSpanManual` keeps the span active while still allowing us to end it before flushing on error.
     return startSpanManual(
       {
-        name: `firebase.function.${triggerType}`,
+        name,
         attributes,
       },
       async span => {
@@ -105,4 +122,14 @@ function wrapHandler(handler: Handler, triggerType: string): Handler {
 
   (wrapped as unknown as Record<string, unknown>)[WRAPPED] = true;
   return wrapped;
+}
+
+/**
+ * Resolves the name of the currently executing cloud function.
+ *
+ * Mirrors `getFunctionName` in `@sentry/google-cloud-serverless`: both feed `faas.name` for
+ * `function.gcp` spans, so the resolution order has to stay the same in the two places.
+ */
+function getFunctionName(): string | undefined {
+  return process.env.FUNCTION_TARGET || process.env.K_SERVICE || undefined;
 }
