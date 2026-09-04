@@ -22,7 +22,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
+  filterCollectedDbQueryText,
+} from '@sentry/core/server';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { pgModuleNames } from '../orchestrion/config/pg';
@@ -186,10 +190,11 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
     ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(queryConfig.text))
     : undefined;
 
+  const queryText = filterCollectedDbQueryText(queryConfig?.text, undefined, client);
   const name =
     client && hasSpanStreamingEnabled(client)
       ? querySummary || params.database || DB_SYSTEM_POSTGRESQL
-      : (queryConfig?.text ?? SPAN_QUERY_FALLBACK);
+      : (queryText ?? SPAN_QUERY_FALLBACK);
 
   return {
     name,
@@ -197,7 +202,7 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
       [SENTRY_OP]: DB,
       ...getConnectionAttributes(params),
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      [DB_QUERY_TEXT]: queryConfig?.text || undefined,
+      [DB_QUERY_TEXT]: queryText || undefined,
       [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },

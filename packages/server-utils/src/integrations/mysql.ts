@@ -22,7 +22,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
+  filterCollectedDbQueryText,
+} from '@sentry/core/server';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { mysqlModuleNames } from '../orchestrion/config/mysql';
@@ -91,10 +95,11 @@ function instrumentMysql(): void {
       const querySummary = sql ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql, 'mysql')) : undefined;
 
       const client = getClient();
+      const queryText = filterCollectedDbQueryText(sql, 'mysql', client);
       const name =
         client && hasSpanStreamingEnabled(client)
           ? querySummary || database || DB_SYSTEM_NAME_VALUE_MYSQL
-          : (sql ?? 'mysql.query');
+          : (queryText ?? 'mysql.query');
 
       return startInactiveSpan({
         name,
@@ -106,7 +111,7 @@ function instrumentMysql(): void {
           [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
           ...(database ? { [DB_NAMESPACE]: database } : {}),
           ...(user ? { [DB_USER]: user } : {}),
-          ...(sql ? { [DB_QUERY_TEXT]: sql } : {}),
+          ...(queryText ? { [DB_QUERY_TEXT]: queryText } : {}),
           [DB_QUERY_SUMMARY]: querySummary,
           [SERVER_ADDRESS]: host,
           [SERVER_PORT]: portIsNumber ? portNumber : undefined,

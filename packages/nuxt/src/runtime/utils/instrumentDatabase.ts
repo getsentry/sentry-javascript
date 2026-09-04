@@ -13,7 +13,12 @@ import {
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery, flushIfServerless } from '@sentry/core/server';
+import {
+  _INTERNAL_getSqlQuerySummary,
+  _INTERNAL_sanitizeSqlQuery,
+  filterCollectedDbQueryText,
+  flushIfServerless,
+} from '@sentry/core/server';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
 import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
@@ -260,7 +265,7 @@ function createStartSpanOptions(query: string, data: DatabaseSpanData): StartSpa
   return {
     name,
     attributes: {
-      [DB_QUERY_TEXT]: query,
+      [DB_QUERY_TEXT]: filterCollectedDbQueryText(query),
       [DB_QUERY_SUMMARY]: querySummary,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
       [SENTRY_OP]: DB_QUERY,
