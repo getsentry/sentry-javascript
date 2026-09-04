@@ -65,7 +65,6 @@ function _wrapCloudEventFunction(
           [FAAS_TRIGGER]: 'cloud_event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
-          // not yet in conventions but this attribute will also determine the span description
           [GCP_FUNCTION_CONTEXT_TYPE]: context.type,
           [GCP_FUNCTION_CONTEXT_ID]: context.id,
           [GCP_FUNCTION_CONTEXT_SOURCE]: context.source,
