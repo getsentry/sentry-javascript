@@ -77,6 +77,11 @@ export async function findDefaultSdkInitFile(
 
 export const SERVER_CONFIG_FILENAME = 'sentry.server.config';
 
+/** Whether a resolved Nitro preset targets Cloudflare (workerd). Nitro normalizes preset names, so any `cloudflare*` spelling matches. */
+export function isCloudflarePreset(preset: string | undefined): boolean {
+  return !!preset?.replace(/-/g, '_').startsWith('cloudflare');
+}
+
 /** Builds the value for `node --import`. Node reads it as a URL, so it needs forward slashes on Windows too. */
 export function toImportSpecifier(fromDir: string, filePath: string): string {
   return `./${path.relative(fromDir, filePath).split(/[\\/]/).join('/')}`;
