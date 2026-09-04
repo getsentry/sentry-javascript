@@ -1,21 +1,34 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+
+const APP_NAME = 'astro-7';
 
 test.describe('tracing in static routes with server islands', () => {
-  test('only sends client pageload transaction and server island endpoint transaction', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {
-      return txnEvent.transaction === '/server-island';
-    });
+  test('only sends client pageload span and server island endpoint span', async ({ page }) => {
+    // The resource span for the server island request is a child of the pageload segment, and
+    // streamed children arrive in later envelopes than the segment they hang off.
+    const clientSpansPromise = collectStreamedSpans(
+      APP_NAME,
+      spans =>
+        spans.some(span => getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/server-island') &&
+        spans.some(
+          span =>
+            getSpanOp(span) === 'resource.link' &&
+            /\/_server-islands\/Avatar.*$/.test(String(span.attributes['url.full']?.value)),
+        ),
+    );
 
-    const serverIslandEndpointTxnPromise = waitForTransaction('astro-7', evt => {
-      return evt.transaction === 'GET /_server-islands/[name]';
+    const serverIslandEndpointSpanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /_server-islands/[name]';
     });
 
     await page.goto('/server-island');
 
-    const clientPageloadTxn = await clientPageloadTxnPromise;
-    const clientPageloadTraceId = clientPageloadTxn.contexts?.trace?.trace_id;
-    const clientPageloadParentSpanId = clientPageloadTxn.contexts?.trace?.parent_span_id;
+    const clientSpans = await clientSpansPromise;
+    const clientPageloadSpan = clientSpans.find(
+      span => getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/server-island',
+    )!;
 
     const sentryTraceMetaTags = await page.locator('meta[name="sentry-trace"]').count();
     expect(sentryTraceMetaTags).toBe(0);
@@ -23,75 +36,42 @@ test.describe('tracing in static routes with server islands', () => {
     const baggageMetaTags = await page.locator('meta[name="baggage"]').count();
     expect(baggageMetaTags).toBe(0);
 
-    expect(clientPageloadTraceId).toMatch(/[a-f0-9]{32}/);
-    expect(clientPageloadParentSpanId).toBeUndefined();
+    expect(clientPageloadSpan.trace_id).toMatch(/[a-f0-9]{32}/);
+    expect(clientPageloadSpan.parent_span_id).toBeUndefined();
 
-    expect(clientPageloadTxn).toMatchObject({
-      contexts: {
-        trace: {
-          data: expect.objectContaining({
-            'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.astro',
-            'sentry.segment.name.source': 'route',
-          }),
-          op: 'pageload',
-          origin: 'auto.pageload.astro',
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: clientPageloadTraceId,
-        },
-      },
-      platform: 'javascript',
-      transaction: '/server-island',
-      transaction_info: {
-        source: 'route',
-      },
-      type: 'transaction',
+    expect(clientPageloadSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'pageload', type: 'string' },
+      'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
     });
 
-    const pageloadSpans = clientPageloadTxn.spans;
+    // the pageload trace contains a resource link span for the preloaded server island request.
+    // With span streaming the resource span is named after the domain, so the URL lives in `url.full`.
+    const resourceLinkSpan = clientSpans.find(
+      span =>
+        getSpanOp(span) === 'resource.link' &&
+        /\/_server-islands\/Avatar.*$/.test(String(span.attributes['url.full']?.value)),
+    )!;
+    expect(resourceLinkSpan.attributes['sentry.origin']?.value).toBe('auto.resource.browser.metrics');
 
-    // pageload transaction contains a resource link span for the preloaded server island request
-    expect(pageloadSpans).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          op: 'resource.link',
-          origin: 'auto.resource.browser.metrics',
-          description: expect.stringMatching(/\/_server-islands\/Avatar.*$/),
-        }),
-      ]),
-    );
+    const serverIslandEndpointSpan = await serverIslandEndpointSpanPromise;
 
-    const serverIslandEndpointTxn = await serverIslandEndpointTxnPromise;
-
-    expect(serverIslandEndpointTxn).toMatchObject({
-      contexts: {
-        trace: {
-          data: expect.objectContaining({
-            'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.astro',
-            'sentry.segment.name.source': 'route',
-            'http.request.header.accept': expect.any(String),
-            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
-            'http.request.header.accept_language': 'en-US',
-            'http.request.header.sec_fetch_mode': 'cors',
-            'http.request.header.user_agent': expect.any(String),
-          }),
-          op: 'http.server',
-          origin: 'auto.http.astro',
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        },
-      },
-      transaction: 'GET /_server-islands/[name]',
+    expect(serverIslandEndpointSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'http.server', type: 'string' },
+      'sentry.origin': { value: 'auto.http.astro', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'http.request.header.accept': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept_encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
+      'http.request.header.accept_language': { value: 'en-US', type: 'string' },
+      'http.request.header.sec_fetch_mode': { value: 'cors', type: 'string' },
+      'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
     });
-
-    const serverIslandEndpointTraceId = serverIslandEndpointTxn.contexts?.trace?.trace_id;
 
     // unfortunately, the server island trace id is not the same as the client pageload trace id
     // this is because the server island endpoint request is made as a resource link request,
     // meaning our fetch instrumentation can't attach headers to the request :(
-    expect(serverIslandEndpointTraceId).not.toBe(clientPageloadTraceId);
+    expect(serverIslandEndpointSpan.trace_id).not.toBe(clientPageloadSpan.trace_id);
 
-    await page.waitForTimeout(1000); // wait another sec to ensure no server transaction is sent
+    await page.waitForTimeout(1000); // wait another sec to ensure no server span is sent
   });
 });
