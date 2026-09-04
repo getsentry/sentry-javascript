@@ -1,8 +1,11 @@
 import * as Sentry from '@sentry/react';
-import { reactRouterBrowserTracingIntegration, wrapReactRouterRouting } from '@sentry/react/router';
+import { reactRouterBrowserTracingIntegration } from '@sentry/react/router';
 import * as React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router';
+import { BrowserRouter, Route } from 'react-router';
+// Importing this evaluates `sentry-routes.tsx` (which calls `wrapReactRouterRouting`) BEFORE the
+// `Sentry.init()` call below runs - i.e. the routes are wrapped before Sentry is initialized.
+import { SentryRoutes } from './sentry-routes';
 import Index from './pages/Index';
 import Products from './pages/Products';
 import User from './pages/User';
@@ -15,8 +18,6 @@ Sentry.init({
   release: 'e2e-test',
   tunnel: 'http://localhost:3031',
 });
-
-const SentryRoutes = wrapReactRouterRouting(Routes);
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
