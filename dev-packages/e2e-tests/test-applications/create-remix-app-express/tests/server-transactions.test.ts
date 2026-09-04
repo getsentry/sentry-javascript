@@ -75,44 +75,42 @@ test('Sends a loader span to Sentry', async ({ page }) => {
 });
 
 test('Propagates the trace when the ErrorBoundary is triggered', async ({ page }) => {
-  // Streamed spans are buffered before they flush, so spans from an earlier page load can still be
-  // arriving here.
-  const streamedSpans: SerializedStreamedSpan[] = [];
-  void waitForStreamedSpans(APP_NAME, spans => {
-    streamedSpans.push(...spans);
-    return false;
-  });
-
   // The ErrorBoundary replaces the document, so there is no `sentry-trace` meta tag to read this
-  // page load's trace off. A unique path identifies its server segment instead.
-  const id = crypto.randomUUID();
-  await page.goto(`/error-boundary-capture/${id}`);
+  // page load's trace off. A unique path identifies all three of its spans instead, which lets each
+  // one be awaited on its own rather than selected out of an accumulated trace.
+  const path = `/error-boundary-capture/${crypto.randomUUID()}`;
+  const hasPath = (span: SerializedStreamedSpan): boolean => span.attributes['url.path']?.value === path;
+
+  const serverSegmentSpanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => getSpanOp(span) === 'http.server' && span.is_segment && hasPath(span),
+  );
+  // Remix renders the document from inside the root loader, so that is the span the client
+  // continues the trace from.
+  const loaderSpanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => isDataFunction('loader', 'root')(span) && hasPath(span),
+  );
+  const pageloadSpanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => getSpanOp(span) === 'pageload' && span.is_segment && hasPath(span),
+  );
+
+  await page.goto(path);
   await expect(page.locator('#event-id')).not.toBeEmpty();
 
-  const findServerSegmentSpan = () =>
-    streamedSpans.find(
-      span =>
-        getSpanOp(span) === 'http.server' &&
-        span.is_segment &&
-        span.attributes['url.path']?.value === `/error-boundary-capture/${id}`,
-    );
-  await expect.poll(findServerSegmentSpan).toBeDefined();
-  const serverSegmentSpan = findServerSegmentSpan()!;
+  const serverSegmentSpan = await serverSegmentSpanPromise;
+  const loaderSpan = await loaderSpanPromise;
+  const pageloadSpan = await pageloadSpanPromise;
+
   expect(serverSegmentSpan.name).toBe('GET error-boundary-capture/:id');
+  expect(pageloadSpan.name).toBe('/error-boundary-capture/:id');
 
   // The client continues the server trace, so its pageload span hangs off the root loader span.
-  const findPageloadSpan = () =>
-    streamedSpans.find(
-      span => getSpanOp(span) === 'pageload' && span.is_segment && span.trace_id === serverSegmentSpan.trace_id,
-    );
-  await expect.poll(findPageloadSpan).toBeDefined();
-  const pageloadSpan = findPageloadSpan()!;
-  expect(pageloadSpan.name).toBe('/error-boundary-capture/:id');
+  expect(loaderSpan.parent_span_id).toBe(serverSegmentSpan.span_id);
+  expect(pageloadSpan.parent_span_id).toBe(loaderSpan.span_id);
+  expect(pageloadSpan.trace_id).toBe(serverSegmentSpan.trace_id);
   expect(pageloadSpan.span_id).not.toBe(serverSegmentSpan.span_id);
-
-  const findLoaderSpan = () => streamedSpans.find(span => span.span_id === pageloadSpan.parent_span_id);
-  await expect.poll(findLoaderSpan).toBeDefined();
-  expect(findLoaderSpan()!.attributes['code.function.name']?.value).toBe('loader');
 });
 
 test('Parameterizes a 2-level nested route on the server', async ({ page }) => {
