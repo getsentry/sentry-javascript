@@ -3,7 +3,6 @@ import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import {
   collectStreamedSpansUntilSegment,
   getSpanOp,
-  waitForError,
   waitForStreamedSpan,
   waitForStreamedSpans,
 } from '@sentry-internal/test-utils';
@@ -244,8 +243,13 @@ test('Sends two linked spans (server & client) to Sentry', async ({ page }) => {
   expect(findLoaderSpan()!.parent_span_id).toBe(serverSegmentSpan.span_id);
 });
 
-test('Does not bleed scope tags between concurrent requests', async ({ request }) => {
-  const eventPromises = [1, 2, 3, 4].map(i => waitForError(APP_NAME, event => event.message === `scope-bleed-${i}`));
+test('Does not bleed scope attributes between concurrent requests', async ({ request }) => {
+  const spanPromises = [1, 2, 3, 4].map(i =>
+    waitForStreamedSpan(
+      APP_NAME,
+      span => isSegmentNamed('GET scope-bleed/:id')(span) && span.attributes[`tag${i}`]?.value === String(i),
+    ),
+  );
 
   await Promise.all([
     request.get('/scope-bleed/1'),
@@ -254,16 +258,13 @@ test('Does not bleed scope tags between concurrent requests', async ({ request }
     request.get('/scope-bleed/4'),
   ]);
 
-  const events = await Promise.all(eventPromises);
+  const spans = await Promise.all(spanPromises);
 
-  events.forEach(event => {
-    const tags = event.tags ?? {};
-    const customTags = Object.keys(tags).filter(t => t.startsWith('tag'));
-    expect(customTags).toHaveLength(1);
+  spans.forEach(span => {
+    const customKeys = Object.keys(span.attributes).filter(key => key.startsWith('tag'));
+    expect(customKeys).toHaveLength(1);
 
-    const key = customTags[0]!;
-    const value = key[key.length - 1];
-    expect(tags[key]).toBe(value);
-    expect(event.message).toBe(`scope-bleed-${value}`);
+    const key = customKeys[0]!;
+    expect(span.attributes[key]?.value).toBe(key[key.length - 1]);
   });
 });
