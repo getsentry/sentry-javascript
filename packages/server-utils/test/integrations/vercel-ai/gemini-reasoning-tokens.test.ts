@@ -115,4 +115,16 @@ describe('Vercel AI Gemini reasoning tokens', () => {
     expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(1250);
     expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBeUndefined();
   });
+
+  // OpenAI reports reasoning against an `outputTokens` that already includes it, so there is no
+  // recomputed output to suppress and the subset relationship still holds on the aggregate span.
+  it('keeps OpenAI reasoning tokens on an invoke_agent span', () => {
+    const data = runSpan('generateText', {
+      usage: { inputTokens: 900, outputTokens: 350, totalTokens: 1250 },
+      providerMetadata: { openai: { reasoningTokens: 120 } },
+    });
+
+    expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(350);
+    expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(120);
+  });
 });
