@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
 import { resolveAIRecordingOptions } from '../ai/core/utils';
 import { createLangChainCallbackHandler } from '../ai/langchain';
-import { instrumentCompiledGraphInvoke } from '../ai/langgraph';
+import { instrumentCompiledGraphInvoke, instrumentCompiledGraphStream } from '../ai/langgraph';
 import { LANGGRAPH_INTEGRATION_NAME } from '../ai/langgraph/constants';
 import type { CompiledGraph, LangGraphOptions } from '../ai/langgraph/types';
 import { extractAgentNameFromParams, extractLLMFromParams, wrapToolsWithSpans } from '../ai/langgraph/utils';
@@ -47,7 +47,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
   const resolvedOptions = resolveAIRecordingOptions(options);
   const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
 
-  // StateGraph.compile returns synchronously; wrap the returned graph's `invoke` at `end`.
+  // StateGraph.compile returns synchronously; wrap the returned graph's agent methods at `end`.
   diagnosticsChannel
     .tracingChannel<CompileChannelContext>(CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE)
     .end.subscribe(message => {
@@ -55,11 +55,11 @@ function instrumentLanggraph(options: LangGraphOptions): void {
         return;
       }
       const { arguments: args, result } = message as CompileChannelContext;
-      wrapCompiledGraphInvoke(result, getFirstArgObject(args) ?? {}, resolvedOptions, null, sentryHandler);
+      wrapCompiledGraphMethods(result, getFirstArgObject(args) ?? {}, resolvedOptions, null, sentryHandler);
     });
 
-  // createReactAgent only wraps tools and the returned graph's `invoke`. Tools are wrapped at
-  // `start` (before the agent runs), invoke at `end`.
+  // createReactAgent only wraps tools and the returned graph's agent methods. Tools are wrapped at
+  // `start` (before the agent runs), agent methods at `end`.
   const reactAgentChannel = diagnosticsChannel.tracingChannel<CreateReactAgentChannelContext>(
     CHANNELS.LANGGRAPH_CREATE_REACT_AGENT,
   );
@@ -84,7 +84,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
     const { arguments: args, result } = message as CreateReactAgentChannelContext;
     const agentName = extractAgentNameFromParams(args) ?? undefined;
     const compileOptions = agentName ? { name: agentName } : {};
-    wrapCompiledGraphInvoke(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);
+    wrapCompiledGraphMethods(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);
   });
   // Make sure a thrown `createReactAgent` doesn't leave the suppression flag stuck on.
   reactAgentChannel.error.subscribe(() => {
@@ -99,10 +99,10 @@ function getFirstArgObject(args: unknown[] | undefined): Record<string, unknown>
 }
 
 /**
- * Wrap the compiled graph's `invoke` with the shared `invoke_agent` instrumentation, exactly as the
- * OTel path does on the returned graph.
+ * Wrap the compiled graph's agent methods with the shared `invoke_agent` instrumentation, exactly as
+ * the OTel path does on the returned graph.
  */
-function wrapCompiledGraphInvoke(
+function wrapCompiledGraphMethods(
   graph: unknown,
   compileOptions: Record<string, unknown>,
   options: LangGraphOptions,
@@ -118,6 +118,18 @@ function wrapCompiledGraphInvoke(
   if (typeof originalInvoke === 'function') {
     compiledGraph.invoke = instrumentCompiledGraphInvoke(
       originalInvoke.bind(compiledGraph),
+      compiledGraph,
+      compileOptions,
+      options,
+      llm,
+      sentryHandler,
+    );
+  }
+
+  const originalStream = compiledGraph.stream;
+  if (typeof originalStream === 'function') {
+    compiledGraph.stream = instrumentCompiledGraphStream(
+      originalStream.bind(compiledGraph),
       compiledGraph,
       compileOptions,
       options,

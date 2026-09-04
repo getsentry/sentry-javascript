@@ -61,6 +61,13 @@ export default Sentry.withSentry(
         messages: [{ role: 'user', content: 'What is the weather in SF?' }],
       });
 
+      const stream = await compiled.stream({
+        messages: [{ role: 'user', content: 'Stream the weather in SF' }],
+      });
+      for await (const _chunk of stream) {
+        // Consuming the iterator is what runs the graph and completes the agent span.
+      }
+
       return new Response(JSON.stringify({ success: true }));
     },
   },
