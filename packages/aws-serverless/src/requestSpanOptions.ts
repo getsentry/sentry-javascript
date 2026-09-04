@@ -28,7 +28,13 @@ import {
 } from '@sentry/conventions/attributes';
 import { FUNCTION_AWS } from '@sentry/conventions/op';
 import type { SpanAttributes, StartSpanOptions } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, filterCollectedUrl } from '@sentry/core';
+import {
+  getClient,
+  hasSpanStreamingEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
+  filterCollectedUrl,
+} from '@sentry/core';
 import type { Context } from 'aws-lambda';
 import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
 
@@ -43,9 +49,16 @@ interface ApiGatewayLikeEvent {
  * Builds the options for the `function.aws` transaction started for each invocation.
  */
 export function getRequestSpanOptions(event: unknown, context: Context, requestIsColdStart: boolean): StartSpanOptions {
+  const client = getClient();
+
+  const functionName = getFunctionName(context);
+
   // The span is started within the surrounding `continueTrace`, so it continues the incoming trace.
   return {
-    name: context.functionName,
+    name:
+      client && hasSpanStreamingEnabled(client)
+        ? functionName || SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK
+        : context.functionName,
     attributes: {
       [SENTRY_OP]: FUNCTION_AWS,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.aws_lambda',
@@ -55,11 +68,21 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
       [CLOUD_ACCOUNT_ID]: extractAccountId(context.invokedFunctionArn),
       [CLOUD_PROVIDER]: 'aws',
       [CLOUD_PLATFORM]: 'aws_lambda',
-      [FAAS_NAME]: context.functionName,
+      [FAAS_NAME]: functionName,
       [FAAS_COLDSTART]: requestIsColdStart,
       ...extractOtherEventFields(event),
     },
   };
+}
+
+/**
+ * Resolves the name of the currently executing Lambda function.
+ *
+ * The runtime always populates `context.functionName`; `AWS_LAMBDA_FUNCTION_NAME` covers custom
+ * runtimes and local emulators that only partially fill in the invocation context.
+ */
+function getFunctionName(context: Context): string | undefined {
+  return context.functionName || process.env.AWS_LAMBDA_FUNCTION_NAME || undefined;
 }
 
 function extractAccountId(arn: string): string | undefined {
