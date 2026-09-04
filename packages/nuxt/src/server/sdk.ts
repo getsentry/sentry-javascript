@@ -13,6 +13,7 @@ import { init as initNode } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import {
   isNuxtDevRuntime,
+  isNuxtPrerenderRuntime,
   isNuxtServerInitialized,
   markNuxtServerInitialized,
 } from '../common/devMode';
@@ -24,6 +25,13 @@ import type { SentryNuxtServerOptions } from '../common/types';
  * @param options Configuration options for the SDK.
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
+  // The prerenderer executes the server bundle (including nitro plugins) at build time (pollutes release health and adds build-time traces)
+  if (isNuxtPrerenderRuntime()) {
+    // potential follow-up: configurable with `capturePrerenderErrors`
+    DEBUG_BUILD && debug.log('Detected a Nitro prerender build. Skipping Sentry server initialization.');
+    return undefined;
+  }
+
   // Since the server config is bundled into the Nitro build, a `node --import` preload of a config
   // file initializes the SDK a second time. The first init wins so a preload keeps its semantics.
   if (isNuxtServerInitialized()) {

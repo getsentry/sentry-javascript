@@ -14,6 +14,11 @@ export function isNuxtDevRuntime(): boolean {
   return NUXT_DEV_MODE_FLAG in GLOBAL_OBJ && GLOBAL_OBJ[NUXT_DEV_MODE_FLAG] === true;
 }
 
+/** Whether the server bundle is executed by the Nitro prerenderer at build time. */
+export function isNuxtPrerenderRuntime(): boolean {
+  return NUXT_PRERENDER_FLAG in GLOBAL_OBJ && GLOBAL_OBJ[NUXT_PRERENDER_FLAG] === true;
+}
+
 /** Whether a Nuxt server SDK `init` already ran in this process. */
 export function isNuxtServerInitialized(): boolean {
   return NUXT_SERVER_INITIALIZED_FLAG in GLOBAL_OBJ && GLOBAL_OBJ[NUXT_SERVER_INITIALIZED_FLAG] === true;

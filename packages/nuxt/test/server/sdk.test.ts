@@ -47,6 +47,20 @@ describe('Nuxt Server SDK', () => {
     });
 
     describe('initialization guards', () => {
+      it('skips initialization during a prerender build', () => {
+        const globalWithFlag = globalThis as { __SENTRY_NUXT_PRERENDER__?: boolean };
+
+        // The generated runtime-flags module sets this by name, so a rename must break the test rather than the runtime.
+        expect(NUXT_PRERENDER_FLAG).toBe('__SENTRY_NUXT_PRERENDER__');
+
+        globalWithFlag.__SENTRY_NUXT_PRERENDER__ = true;
+
+        const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        expect(client).toBeUndefined();
+        expect(nodeInit).not.toHaveBeenCalled();
+      });
+
       it('skips a second initialization and notifies that the `--import` preload is removable', () => {
         // A `node --import` preload of the config file initializes once before the bundled config does.
         expect(NUXT_SERVER_INITIALIZED_FLAG).toBe('__SENTRY_NUXT_SERVER_INITIALIZED__');
