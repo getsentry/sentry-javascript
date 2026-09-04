@@ -1334,7 +1334,7 @@ This entry requires `react-router` to be resolvable — it is declared as an opt
 
 The existing `@sentry/react` API is unchanged and keeps working; passing the hooks there is now optional too (`useEffect` in particular is no longer used and can be omitted).
 
-Additionally — for **every** `@sentry/react` routing setup, not just the new entry — the order in which you add the browser tracing integration and wrap your routes no longer matters. Previously `Sentry.init()` had to run before your routes were wrapped (e.g. `withSentryReactRouterV6Routing`, `wrapReactRouterRouting`, `wrapUseRoutes`, `wrapCreateBrowserRouter`); wrapping earlier silently produced uninstrumented routes. Wrapping now reads its configuration when the router renders (or is created), so wrapping at module-evaluation time — before `Sentry.init()` — still instruments correctly.
+Additionally — for **every** `@sentry/react` routing setup, not just the new entry — the order in which you add the browser tracing integration and wrap your routes no longer matters.
 
 ## 3. Removed APIs
 
