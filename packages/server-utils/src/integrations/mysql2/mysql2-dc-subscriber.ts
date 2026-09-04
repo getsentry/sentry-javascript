@@ -12,7 +12,7 @@ import {
 import { DB } from '@sentry/conventions/op';
 import { getClient, hasSpanStreamingEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../../utils/sql';
 
 // Channel names published by mysql2 >= 3.20.0 (see mysql2 `lib/tracing.js`).
 // Hardcoded so the subscriber does not have to import mysql2 — the channels
@@ -97,9 +97,9 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
       // mysql2 does not sanitize its channel payload, so the statement may carry
       // raw user values (on the `query` channel they are inlined). Strip every
       // literal before it leaves the process; `values` is never attached.
-      const queryText = data.query ? _INTERNAL_sanitizeSqlQuery(data.query, 'mysql') : undefined;
+      const queryText = data.query ? sanitizeSqlQuery(data.query, 'mysql') : undefined;
       const operation = queryText?.match(SQL_OPERATION_RE)?.[1]?.toUpperCase();
-      const querySummary = _INTERNAL_getSqlQuerySummary(queryText);
+      const querySummary = getSqlQuerySummary(queryText);
 
       const client = getClient();
       const name =

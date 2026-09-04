@@ -11,7 +11,7 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
 import { ensureInstrumented } from '../../instrument';
 
 // Patching is based on internal Cloudflare D1 API
@@ -131,7 +131,7 @@ function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Respo
 }
 
 function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOptions {
-  const querySummary = query ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(query)) : undefined;
+  const querySummary = query ? getSqlQuerySummary(sanitizeSqlQuery(query)) : undefined;
 
   const client = getClient();
   const name = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : query;

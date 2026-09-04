@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../../../src/utils/sql';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../../src/utils/sql';
 
 describe('getSqlQuerySummary', () => {
   it.each([undefined, ''])('returns undefined for %j', input => {

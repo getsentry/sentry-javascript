@@ -3,16 +3,19 @@
 // without depending on OpenTelemetry module hooking.
 /* eslint-disable max-lines */
 
-import { getClient } from '../currentScopes';
+import {
+  debug,
+  getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
+  isObjectLike,
+  type Span,
+  type SpanAttributes,
+  SPAN_STATUS_ERROR,
+  startSpanManual,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { SPAN_STATUS_ERROR } from '../tracing';
-import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
-import { startSpanManual } from '../tracing/trace';
-import type { Span, SpanAttributes } from '../types/span';
 import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
-import { debug } from '../utils/debug-logger';
-import { isObjectLike } from '../utils/is';
-import { getActiveSpan } from '../utils/spanUtils';
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
