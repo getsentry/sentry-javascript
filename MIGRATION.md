@@ -187,6 +187,7 @@ We've replaced `sendDefaultPii` with `dataCollection`, which controls each categ
 | `urlQueryParams`      | `true`                             | `true`               |
 | `genAI`               | inputs + outputs not collected     | inputs + outputs     |
 | `databaseQueryData`   | `false`                            | `true`               |
+| `queues`              | not collected                      | `true`               |
 | `stackFrameVariables` | `true`                             | `true`               |
 | `frameContextLines`   | `7`                                | `5`                  |
 
@@ -222,6 +223,7 @@ Sentry.init({
     urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     genAI: { inputs: false, outputs: false },
     databaseQueryData: false,
+    queues: false,
     graphQL: { document: false, variables: false },
   },
 });
