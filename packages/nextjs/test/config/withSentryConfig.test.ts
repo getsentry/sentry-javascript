@@ -17,15 +17,14 @@ const EXPECTED_DEFAULT_EXTERNALS = [
   ...filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES),
   ...ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
 ];
-const originalTurbopackWarningShown = process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
 
 describe('withSentryConfig', () => {
+  beforeEach(() => {
+    delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+  });
+
   afterEach(() => {
-    if (originalTurbopackWarningShown === undefined) {
-      delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
-    } else {
-      process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__ = originalTurbopackWarningShown;
-    }
+    delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
   });
 
   // `next.config.js` / `next.config.mjs` get no type checking, so this warning is the only signal
