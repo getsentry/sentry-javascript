@@ -85,7 +85,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
       expect.objectContaining({
         data: {
           'db.statement': expect.stringContaining('SELECT'),
-          'db.query.summary': 'SELECT "public"',
+          'db.query.summary': 'SELECT "public"."User"',
           'db.system': 'postgresql',
           'sentry.kind': 'client',
           'sentry.op': 'db',
@@ -157,10 +157,10 @@ describeWithDockerCompose('Prisma ORM v5', { workingDirectory: [__dirname] }, ()
                     })),
                   ).toEqual([
                     { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
-                    { name: 'SELECT "public"', summary: 'SELECT "public"' },
+                    { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"' },
                     { name: 'BEGIN', summary: 'BEGIN' },
                     { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
-                    { name: 'SELECT "public"', summary: 'SELECT "public"' },
+                    { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"' },
                     { name: 'COMMIT', summary: 'COMMIT' },
                     { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
                   ]);

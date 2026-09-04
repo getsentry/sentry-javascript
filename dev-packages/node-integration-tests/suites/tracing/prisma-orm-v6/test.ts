@@ -88,7 +88,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
                   'sentry.op': 'db',
                   'db.query.text':
                     'SELECT "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" FROM "public"."User" WHERE 1=1 OFFSET $1',
-                  'db.query.summary': 'SELECT "public"',
+                  'db.query.summary': 'SELECT "public"."User"',
                   'db.system': 'postgresql',
                   'sentry.kind': 'client',
                 },
@@ -136,8 +136,6 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
             span: container => {
               const querySpans = container.items.filter(item => item.attributes['db.query.text']);
 
-              // `SELECT "public"` is what the core query-summary helper derives from a schema-qualified,
-              // quoted table (it stops at the first quoted identifier).
               expect(
                 querySpans.map(span => ({
                   name: span.name,
@@ -145,7 +143,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
                 })),
               ).toEqual([
                 { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
-                { name: 'SELECT "public"', summary: 'SELECT "public"' },
+                { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"' },
                 { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
               ]);
 
