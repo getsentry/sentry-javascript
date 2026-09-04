@@ -47,21 +47,21 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
 
   // With span streaming the span name is the low-cardinality query summary; the statement stays in
   // `db.query.text`.
-  for (const query of ['SELECT 1 + 1 AS solution', 'SELECT NOW()']) {
-    expect(mysqlSpans).toContainEqual(
-      expect.objectContaining({
-        name: 'SELECT',
-        status: 'ok',
-        attributes: expect.objectContaining({
-          'sentry.origin': { value: 'auto.db.mysql', type: 'string' },
-          'db.system.name': { value: 'mysql', type: 'string' },
-          'db.query.text': { value: query, type: 'string' },
-          'db.user': { value: 'root', type: 'string' },
-          'db.connection_string': { value: expect.any(String), type: 'string' },
-          'server.address': { value: expect.any(String), type: 'string' },
-          'server.port': { value: 3306, type: 'integer' },
-        }),
+  const expectedQuerySpan = (query: string) =>
+    expect.objectContaining({
+      name: 'SELECT',
+      status: 'ok',
+      attributes: expect.objectContaining({
+        'sentry.origin': { value: 'auto.db.mysql', type: 'string' },
+        'db.system.name': { value: 'mysql', type: 'string' },
+        'db.query.text': { value: query, type: 'string' },
+        'db.user': { value: 'root', type: 'string' },
+        'db.connection_string': { value: expect.any(String), type: 'string' },
+        'server.address': { value: expect.any(String), type: 'string' },
+        'server.port': { value: 3306, type: 'integer' },
       }),
-    );
-  }
+    });
+
+  expect(mysqlSpans).toContainEqual(expectedQuerySpan('SELECT 1 + 1 AS solution'));
+  expect(mysqlSpans).toContainEqual(expectedQuerySpan('SELECT NOW()'));
 });
