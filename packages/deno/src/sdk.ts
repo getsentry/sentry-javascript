@@ -6,6 +6,7 @@ import {
   eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
+  hasSpansEnabled,
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -26,7 +27,7 @@ import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
 /** Get the default integrations for the Deno SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
+export function getDefaultIntegrations(options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
@@ -45,7 +46,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     globalHandlersIntegration(),
     // server-utils integrations
     ...getErrorIntegrations(),
-    ...getTracingIntegrations(),
+    ...(hasSpansEnabled(options) ? getTracingIntegrations() : []),
   ];
 }
 
@@ -96,14 +97,16 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  * @see {@link DenoOptions} for documentation on configuration options.
  */
 export function init(options: DenoOptions = {}): Client {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
+  // Computed into a local rather than written back onto `options`: the default set now
+  // depends on the tracing options, so caching it on the caller's object would pin the
+  // result of the first `init` for any reused options object.
+  const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrations(options);
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
+    defaultIntegrations,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(options),
+    integrations: getIntegrationsToSetup({ ...options, defaultIntegrations }),
     transport: options.transport || makeFetchTransport,
   };
 
