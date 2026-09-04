@@ -308,6 +308,33 @@ describe('sentryMiddleware', () => {
       });
     });
 
+    it('follows `dataCollection.userInfo` when `trackClientIp` is not set', async () => {
+      // The shared client mock resolves `userInfo` to `false`.
+      const middleware = handleRequest();
+      const ctx = {
+        ...DYNAMIC_REQUEST_CONTEXT,
+      };
+
+      // @ts-expect-error, a partial ctx object is fine here
+      await middleware(ctx, async () => {
+        expect(SentryCore.getIsolationScope().getScopeData().user?.ip_address).toBeUndefined();
+        return nextResult;
+      });
+    });
+
+    it('does not attach a client IP if `trackClientIp=false`', async () => {
+      const middleware = handleRequest({ trackClientIp: false });
+      const ctx = {
+        ...DYNAMIC_REQUEST_CONTEXT,
+      };
+
+      // @ts-expect-error, a partial ctx object is fine here
+      await middleware(ctx, async () => {
+        expect(SentryCore.getIsolationScope().getScopeData().user?.ip_address).toBeUndefined();
+        return nextResult;
+      });
+    });
+
     it("doesn't attach a client IP if `trackClientIp=true` when handling static page requests", async () => {
       const middleware = handleRequest({ trackClientIp: true });
 
