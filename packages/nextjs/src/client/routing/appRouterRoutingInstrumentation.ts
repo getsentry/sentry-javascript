@@ -51,21 +51,31 @@ interface PendingHistoryTraversal {
 }
 
 let pendingHistoryTraversal: PendingHistoryTraversal | undefined;
+let pendingHistoryTraversalTimeout: ReturnType<typeof setTimeout> | undefined;
 
 /**
  * A `back()`/`forward()` without a matching history entry never fires `popstate`. Without an expiry,
  * a later unrelated `popstate` (e.g. the browser's back button) would be attributed to that stale
  * router call. Browsers dispatch the `popstate` of a same-document traversal within a few
- * milliseconds, so anything older than this is not the traversal we are waiting for.
+ * milliseconds, so anything older than this is not the traversal we are waiting for. A timer rather
+ * than a timestamp comparison keeps this tolerant of a blocked main thread, which delays the
+ * `popstate` and the timer alike.
  */
-const PENDING_HISTORY_TRAVERSAL_MAX_AGE_S = 1;
+const PENDING_HISTORY_TRAVERSAL_TIMEOUT_MS = 1000;
+
+function setPendingHistoryTraversal(navigationType: PendingHistoryTraversal['navigationType']): void {
+  clearTimeout(pendingHistoryTraversalTimeout);
+  pendingHistoryTraversal = { navigationType, startTime: timestampInSeconds() };
+  pendingHistoryTraversalTimeout = setTimeout(() => {
+    pendingHistoryTraversal = undefined;
+  }, PENDING_HISTORY_TRAVERSAL_TIMEOUT_MS);
+}
 
 function takePendingHistoryTraversal(): PendingHistoryTraversal | undefined {
+  clearTimeout(pendingHistoryTraversalTimeout);
   const traversal = pendingHistoryTraversal;
   pendingHistoryTraversal = undefined;
-  return traversal && timestampInSeconds() - traversal.startTime <= PENDING_HISTORY_TRAVERSAL_MAX_AGE_S
-    ? traversal
-    : undefined;
+  return traversal;
 }
 
 /**
@@ -285,10 +295,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
           }
 
           if (routerFunctionName === 'back' || routerFunctionName === 'forward') {
-            pendingHistoryTraversal = {
-              navigationType: `router.${routerFunctionName}`,
-              startTime: timestampInSeconds(),
-            };
+            setPendingHistoryTraversal(`router.${routerFunctionName}`);
             return target.apply(thisArg, argArray);
           }
 

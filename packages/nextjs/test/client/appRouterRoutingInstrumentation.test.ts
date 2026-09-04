@@ -42,7 +42,8 @@ function sleep(ms: number): Promise<void> {
 /**
  * The instrumentation module keeps its routing state (patched routers, the current navigation span,
  * the popstate listener) at module level, so every test gets fresh copies of it and of the SDK
- * packages it imports.
+ * packages it imports. The `popstate` listeners of earlier tests stay registered on `window`, but
+ * they only reach clients that are no longer current, whose navigation handlers bail out early.
  */
 async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   core: Core;
@@ -126,6 +127,43 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
       expect(core.spanToJSON(span!).attributes).toEqual(
         expect.objectContaining({ 'navigation.type': 'router.forward' }),
       );
+    });
+
+    it('keeps the router call when the main thread is blocked until the popstate', async () => {
+      const { core, router } = await setup(traceLifecycle);
+
+      router.back();
+      const blockedUntil = Date.now() + 1100;
+      while (Date.now() < blockedUntil) {
+        // busy-wait
+      }
+      window.history.replaceState({}, '', '/navigation/1337/router-back');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+
+      const span = core.getActiveSpan();
+      expect(span).toBeDefined();
+      expect(core.spanToJSON(span!).attributes).toEqual(expect.objectContaining({ 'navigation.type': 'router.back' }));
+    });
+
+    it('starts a new span for `router.back()` while a `router.push()` span is still open', async () => {
+      const { core, router } = await setup(traceLifecycle);
+
+      router.push('/navigation');
+      const pushSpan = core.getActiveSpan();
+      expect(pushSpan).toBeDefined();
+
+      router.back();
+      window.history.replaceState({}, '', '/navigation/1337/router-back');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+
+      const span = core.getActiveSpan();
+      expect(span).toBeDefined();
+      expect(span).not.toBe(pushSpan);
+      expect(core.spanToJSON(span!).attributes).toEqual(expect.objectContaining({ 'navigation.type': 'router.back' }));
+      expect(core.spanToJSON(pushSpan!).attributes).toEqual(
+        expect.objectContaining({ 'navigation.type': 'router.push' }),
+      );
+      expect(core.spanToJSON(pushSpan!).end_timestamp).toBeDefined();
     });
 
     it('tags a popstate without a preceding router call with `browser.popstate`', async () => {
