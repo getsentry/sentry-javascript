@@ -1195,6 +1195,34 @@ Affected SDKs: `@sentry/cloudflare`.
 
 Calls to rate limiter bindings (`env.MY_RATE_LIMITER.limit()`) no longer create a span. The removed span had the op `rpc`, the origin `auto.faas.cloudflare.rate_limit`, and the attribute `rpc.service: cloudflare.rate_limit`. Remove any dashboard, alert, or `ignoreSpans` entry that references it.
 
+### `@sentry/nuxt`: the server config is bundled, `--import` is no longer needed
+
+The SDK now bundles `sentry.server.config.ts` into the Nitro server build, where it initializes itself when the server starts. Instrumentation happens at build time, so preloading the config file is no longer necessary.
+
+Remove the `--import` flag from your production start command:
+
+```bash
+# before
+node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
+
+# after
+node .output/server/index.mjs
+```
+
+Old start commands keep working: the SDK still emits a file at the old path, but it only prints a reminder that the flag can be removed. If you preload a file that calls `Sentry.init` yourself, that init wins and the bundled one is skipped.
+
+The same applies in development. Remove the `NODE_OPTIONS` preload:
+
+```bash
+# before
+NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev
+
+# after
+nuxt dev
+```
+
+Since no preload is needed anymore, the `autoInjectServerSentry` option (`'top-level-import'` and `'experimental_dynamic-import'`) and `experimental_entrypointWrappedFunctions` are deprecated. Remove them from your `sentry` module options as the default behavior replaces both. They will be deleted in the next major version.
+
 ### `@sentry/ember` is now a v2 addon with manual setup
 
 Affected SDKs: `@sentry/ember`.
@@ -1698,11 +1726,7 @@ public/instrument.server.ts
 sentry.server.config.ts
 ```
 
-After the rename, the SDK also emits `.output/server/sentry.server.config.mjs` for you to preload:
-
-```bash
-node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
-```
+After the rename, the SDK bundles the file into the Nitro server build and initializes itself at server startup. See ["the server config is bundled"](#sentrynuxt-the-server-config-is-bundled---import-is-no-longer-needed) above: the `--import` preload is no longer needed.
 
 The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
 
