@@ -21,6 +21,14 @@ const WEBPACK: BundlerInfo = { isTurbopack: false, isWebpack: true, isTurbopackS
 // variants need distinct paths to both actually scan. Neither is a directory, which is what makes it log.
 const NOT_A_DIRECTORY = { silent: __filename, notSilent: path.join(__dirname, 'testUtils.ts') };
 
+beforeEach(() => {
+  delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+});
+
+afterEach(() => {
+  delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+});
+
 describe('getBuildLogger', () => {
   it('forwards to the console when not silent', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

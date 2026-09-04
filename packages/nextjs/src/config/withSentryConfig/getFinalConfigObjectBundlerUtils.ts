@@ -13,6 +13,8 @@ import { constructWebpackConfigFunction } from '../webpack';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from './constants';
 import type { VercelCronsConfigResult } from './getFinalConfigObjectUtils';
 
+const UNSUPPORTED_TURBOPACK_WARNING_SHOWN = '__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__';
+
 /**
  * Information about the active bundler and feature support based on Next.js version.
  */
@@ -43,7 +45,14 @@ export function maybeWarnAboutUnsupportedTurbopack(
   silent?: boolean,
 ): void {
   // Warn if using turbopack with an unsupported Next.js version
-  if (!bundlerInfo.isTurbopackSupported && bundlerInfo.isTurbopack) {
+  if (
+    !bundlerInfo.isTurbopackSupported &&
+    bundlerInfo.isTurbopack &&
+    !silent &&
+    process.env[UNSUPPORTED_TURBOPACK_WARNING_SHOWN] !== '1'
+  ) {
+    // Next.js may evaluate its config in child processes, which inherit this state from their parent.
+    process.env[UNSUPPORTED_TURBOPACK_WARNING_SHOWN] = '1';
     getBuildLogger(silent).warn(
       `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
     );
