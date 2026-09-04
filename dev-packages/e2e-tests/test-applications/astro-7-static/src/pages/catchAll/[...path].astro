@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+
+const params = Astro.params;
+---
+
+<Layout title="CatchAll SSR page">
+  <p>params: {params}</p>
+</Layout>
