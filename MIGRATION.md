@@ -1301,7 +1301,7 @@ Affected SDKs: `@sentry/remix`.
 
 The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
 
-### React: simpler React Router setup via `@sentry/react/router`
+### React: Simpler React Router setup via `@sentry/react/router`
 
 Affected SDKs: `@sentry/react`.
 
