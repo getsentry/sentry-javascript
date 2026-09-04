@@ -37,12 +37,15 @@ const SENTRY_PATCHED = '__sentry_patched__';
  */
 export function instrumentStateGraphCompile(
   originalCompile: (...args: unknown[]) => CompiledGraph,
-  options: LangGraphOptions,
+  rawOptions: LangGraphOptions,
 ): (...args: unknown[]) => CompiledGraph {
   if (Object.prototype.hasOwnProperty.call(originalCompile, SENTRY_PATCHED)) {
     return originalCompile;
   }
 
+  // This is exported, so callers can hand us an options object with no recording flags set. Resolving
+  // here (rather than only in `instrumentStateGraph`) keeps that path on the `dataCollection` defaults.
+  const options = resolveAIRecordingOptions(rawOptions);
   const sentryHandler = createLangChainCallbackHandler(options);
 
   const wrapped = new Proxy(originalCompile, {
