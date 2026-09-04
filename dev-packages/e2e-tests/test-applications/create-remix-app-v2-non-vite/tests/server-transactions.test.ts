@@ -57,7 +57,8 @@ test('Sends two linked spans (server & client) to Sentry', async ({ page }) => {
   expect(serverSegmentSpan.name).toBe('GET');
   expect(findPageloadSpan()!.span_id).not.toBe(serverSegmentSpan.span_id);
 
-  const loaderSpan = streamedSpans.find(span => span.span_id === loaderSpanId)!;
-  expect(loaderSpan.attributes['code.function.name']?.value).toBe('loader');
-  expect(loaderSpan.parent_span_id).toBe(serverSegmentSpan.span_id);
+  const findLoaderSpan = () => streamedSpans.find(span => span.span_id === loaderSpanId);
+  await expect.poll(findLoaderSpan).toBeDefined();
+  expect(findLoaderSpan()!.attributes['code.function.name']?.value).toBe('loader');
+  expect(findLoaderSpan()!.parent_span_id).toBe(serverSegmentSpan.span_id);
 });
