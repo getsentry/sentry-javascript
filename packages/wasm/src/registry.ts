@@ -1,6 +1,15 @@
 import type { DebugImage } from '@sentry/core';
 
-export const IMAGES: Array<DebugImage> = [];
+/**
+ * A debug image with a marker for modules that were compiled from raw bytes.
+ * The engine names those modules itself, so their `code_file` is only a
+ * prediction and frames may have to be matched against them by elimination.
+ * The field crosses worker boundaries via postMessage and is stripped before
+ * images are attached to an event.
+ */
+export type WasmDebugImage = Extract<DebugImage, { type: 'wasm' }> & { _fromBuffer?: true };
+
+export const IMAGES: Array<WasmDebugImage> = [];
 
 export interface ModuleInfo {
   buildId: string | null;
@@ -39,8 +48,13 @@ export function getModuleInfo(module: WebAssembly.Module): ModuleInfo {
 
 /**
  * Records a module and returns the created debug image.
+ *
+ * @param module the compiled module
+ * @param url the URL the module was loaded from, or the engine's synthetic
+ *            script name for modules compiled from raw bytes
+ * @param fromBuffer whether the module was compiled from raw bytes
  */
-export function registerModule(module: WebAssembly.Module, url: string): DebugImage | null {
+export function registerModule(module: WebAssembly.Module, url: string, fromBuffer?: boolean): DebugImage | null {
   const { buildId, debugFile } = getModuleInfo(module);
   if (!buildId) {
     return null;
@@ -53,21 +67,31 @@ export function registerModule(module: WebAssembly.Module, url: string): DebugIm
 
   let debugFileUrl = null;
   if (debugFile) {
-    try {
-      debugFileUrl = new URL(debugFile, url).href;
-    } catch {
-      // debugFile could be a blob URL which causes the URL constructor to throw
-      // for now we just ignore this case
+    if (url.startsWith('wasm://')) {
+      // A synthetic script name is no meaningful base to resolve against, so
+      // keep the raw value from the external_debug_info section.
+      debugFileUrl = debugFile;
+    } else {
+      try {
+        debugFileUrl = new URL(debugFile, url).href;
+      } catch {
+        // debugFile could be a blob URL which causes the URL constructor to throw
+        // for now we just ignore this case
+      }
     }
   }
 
-  const image: DebugImage = {
+  const image: WasmDebugImage = {
     type: 'wasm',
     code_id: buildId,
     code_file: url,
     debug_file: debugFileUrl,
     debug_id: `${buildId.padEnd(32, '0').slice(0, 32)}0`,
   };
+
+  if (fromBuffer) {
+    image._fromBuffer = true;
+  }
 
   IMAGES.push(image);
   return image;
@@ -76,7 +100,7 @@ export function registerModule(module: WebAssembly.Module, url: string): DebugIm
 /**
  * Returns all known images.
  */
-export function getImages(): Array<DebugImage> {
+export function getImages(): Array<WasmDebugImage> {
   return IMAGES;
 }
 
@@ -86,7 +110,5 @@ export function getImages(): Array<DebugImage> {
  * @param url the URL of the WebAssembly module.
  */
 export function getImage(url: string): number {
-  return IMAGES.findIndex(image => {
-    return image.type === 'wasm' && image.code_file === url;
-  });
+  return IMAGES.findIndex(image => image.type === 'wasm' && image.code_file === url);
 }

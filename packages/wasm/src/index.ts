@@ -1,6 +1,7 @@
 import type { DebugImage, Event, IntegrationFn, StackFrame } from '@sentry/core';
 import { defineIntegration, GLOBAL_OBJ } from '@sentry/core';
 import { patchWebAssembly } from './patchWebAssembly';
+import type { WasmDebugImage } from './registry';
 import { getImage, getImages, registerModule } from './registry';
 
 const INTEGRATION_NAME = 'Wasm';
@@ -32,7 +33,7 @@ interface WasmIntegrationOptions {
 
 // Access WINDOW with proper typing for _sentryWasmImages
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  _sentryWasmImages?: Array<DebugImage>;
+  _sentryWasmImages?: Array<WasmDebugImage>;
 };
 
 const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
@@ -59,8 +60,12 @@ const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
       if (hasAtLeastOneWasmFrameWithImage) {
         event.debug_meta = event.debug_meta || {};
         const mainThreadImages = getImages();
-        const workerImages = WINDOW._sentryWasmImages || [];
-        event.debug_meta.images = [...(event.debug_meta.images || []), ...mainThreadImages, ...workerImages];
+        const workerImages = getWorkerImages();
+        event.debug_meta.images = [
+          ...(event.debug_meta.images || []),
+          ...mainThreadImages.map(stripInternalFields),
+          ...workerImages.map(stripInternalFields),
+        ];
       }
 
       return event;
@@ -137,29 +142,35 @@ export function patchFrames(
   return hasAtLeastOneWasmFrameWithImage;
 }
 
+function getWorkerImages(): Array<WasmDebugImage> {
+  return WINDOW._sentryWasmImages || [];
+}
+
+function stripInternalFields(image: WasmDebugImage): DebugImage {
+  const { _fromBuffer, ...rest } = image;
+  return rest;
+}
+
 /**
  * Looks up an image by URL in worker images.
  */
 function getWorkerImage(url: string): number {
-  const workerImages = WINDOW._sentryWasmImages || [];
-  return workerImages.findIndex(image => {
-    return image.type === 'wasm' && image.code_file === url;
-  });
+  return getWorkerImages().findIndex(image => image.type === 'wasm' && image.code_file === url);
 }
 
 /**
  * Use this function to register WASM support in a web worker.
  *
  * This function will:
- * - Patch WebAssembly.instantiateStreaming and WebAssembly.compileStreaming in the worker
+ * - Patch the WebAssembly compilation APIs in the worker
  * - Forward WASM debug images to the parent thread for symbolication
  *
  * @param options {RegisterWebWorkerWasmOptions} Options:
  *   - `self`: The worker's global scope (self).
  */
 export function registerWebWorkerWasm({ self }: RegisterWebWorkerWasmOptions): void {
-  patchWebAssembly((module, url) => {
-    const image = registerModule(module, url);
+  patchWebAssembly((module, url, fromBuffer) => {
+    const image = registerModule(module, url, fromBuffer);
 
     if (image) {
       self.postMessage({
