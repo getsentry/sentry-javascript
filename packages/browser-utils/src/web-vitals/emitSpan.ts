@@ -17,7 +17,7 @@ import { SOFT_NAVIGATION_ID_ATTRIBUTE } from './softNavs';
 
 // TODO(conventions): replace with `BROWSER_NAVIGATION_TYPE` from `@sentry/conventions/attributes`
 // once https://github.com/getsentry/sentry-conventions/pull/600 is released.
-const BROWSER_NAVIGATION_TYPE_ATTRIBUTE = 'browser.navigation.type';
+export const BROWSER_NAVIGATION_TYPE_ATTRIBUTE = 'browser.navigation.type';
 
 // web-vitals reports a wider set of navigation types than the attribute defines. Only the states
 // Navigation Timing cannot express keep their own value; every ordinary document navigation folds
