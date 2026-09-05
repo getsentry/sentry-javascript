@@ -1,5 +1,9 @@
 import { useEffect, type ReactNode } from 'react';
-import { Outlet, createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
+import { Outlet, createRootRoute, HeadContent, Scripts, useRouterState } from '@tanstack/react-router';
+
+// Long enough that the SSR stream flushes a chunk boundary inside this attribute, ahead of
+// the head. See https://github.com/getsentry/sentry-javascript/issues/23468.
+const LONG_ATTRIBUTE = 'x'.repeat(3000);
 
 export const Route = createRootRoute({
   head: () => ({
@@ -36,8 +40,10 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
+  const pathname = useRouterState({ select: state => state.location.pathname });
+
   return (
-    <html>
+    <html {...(pathname.startsWith('/split-head-chunk') ? { 'data-long': LONG_ATTRIBUTE } : {})}>
       <head>
         <HeadContent />
       </head>
