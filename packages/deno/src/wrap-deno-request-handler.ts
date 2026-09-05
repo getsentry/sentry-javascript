@@ -11,6 +11,7 @@ import {
   captureBodyFromWinterCGRequest,
   captureException,
   continueTrace,
+  debug,
   getClient,
   getHttpSpanDetailsFromUrlObject,
   hasSpanStreamingEnabled,
@@ -48,7 +49,12 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
 
     const client = getClient();
     if (!client) {
-      throw new Error('could not get Deno client. Did you run Sentry.init?');
+      // `denoServeIntegration` patches `Deno.serve` from `Client.init()`, which a
+      // directly-constructed client also runs — that path never calls
+      // `setCurrentClient`, so the patch can be live with no client bound. Keep
+      // requests flowing to the user's handler, uninstrumented.
+      debug.warn('Cannot instrument Deno.serve request. No client defined.');
+      return handler();
     }
     isolationScope.setClient(client);
 
