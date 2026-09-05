@@ -5,6 +5,7 @@ export {
   addLcpInstrumentationHandler,
   addInpInstrumentationHandler,
   addFcpInstrumentationHandler,
+  enableBfcacheReporting,
   enableSoftNavigationReporting,
 } from './instrumentation/performanceObserver';
 

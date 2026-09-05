@@ -817,6 +817,33 @@ describe('soft navigation web vitals', () => {
     expect(calls[1]![0].parentSpan).toBe(navigationSpan);
   });
 
+  it('reports a bfcache restore against the restore navigation span, not the frozen pageload', () => {
+    const bfcacheNavigationSpan = { spanContext: () => ({ spanId: 'bfcache-nav' }) } as any;
+    vi.mocked(SentryCore.getActiveSpan).mockReturnValue(bfcacheNavigationSpan);
+    vi.mocked(SentryCore.getRootSpan).mockReturnValue(bfcacheNavigationSpan);
+
+    trackLcpAsSpan(client, true);
+
+    lcpCallback({
+      metric: {
+        value: 40,
+        navigationId: 9,
+        navigationType: 'back-forward-cache',
+        entries: [{ startTime: 40, element: {} }],
+      },
+    });
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentSpan: bfcacheNavigationSpan,
+        attributes: expect.objectContaining({ 'browser.navigation.type': 'bfcache' }),
+      }),
+    );
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalledWith(
+      expect.objectContaining({ parentSpan: pageloadSpan }),
+    );
+  });
+
   it('drops soft navigation vitals that could not be correlated', () => {
     vi.spyOn(softNavs, 'getNavigationSpanForMetric').mockReturnValue(undefined);
 
