@@ -17,7 +17,7 @@ export {
   spanStreamingIntegration,
 } from '@sentry/core';
 
-export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/core/browser';
+export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/browser-utils';
 export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,

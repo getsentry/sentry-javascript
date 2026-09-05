@@ -13,7 +13,7 @@ import {
   stripDataUrlContent,
   filterCollectedUrl,
 } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/core/browser';
+import { startInactiveSpan } from '@sentry/browser-utils';
 import { WINDOW } from '../helpers';
 
 const responseToStreamSpan = new WeakMap<object, Span>();

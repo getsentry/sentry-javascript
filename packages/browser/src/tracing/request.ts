@@ -22,7 +22,7 @@ import {
   stripUrlQueryAndFragment,
   timestampInSeconds,
 } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/core/browser';
+import { startInactiveSpan } from '@sentry/browser-utils';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, XhrHint } from '@sentry/browser-utils';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '@sentry/core';
 import {

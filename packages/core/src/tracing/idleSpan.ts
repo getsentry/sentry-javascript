@@ -16,7 +16,6 @@ import {
   spanToStaticSpanJSON,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
-import { _INTERNAL_ensureBrowserSpanStreaming } from './browserSpanApi';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
@@ -91,7 +90,6 @@ interface IdleSpanOptions {
  */
 export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Partial<IdleSpanOptions> = {}): Span {
   const client = getClient();
-  _INTERNAL_ensureBrowserSpanStreaming(client);
 
   // Activities store a list of active spans
   const activities = new Map<string, boolean>();

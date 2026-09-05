@@ -22,17 +22,19 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanIsSampled,
+  spanStreamingIntegration,
   spanToJSON,
   timestampInSeconds,
   TRACING_DEFAULTS,
   browserPerformanceTimeOrigin,
 } from '@sentry/core';
-import { _INTERNAL_ensureBrowserSpanStreaming, startIdleSpan, startInactiveSpan } from '@sentry/core/browser';
+import { startIdleSpan } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
   getLocationHref,
   isBotUserAgent,
+  startInactiveSpan,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
 } from '@sentry/browser-utils';
@@ -564,10 +566,12 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         return;
       }
 
-      // Technically, every startSpan call already ensures that `spanStreamingIntegration` is installed,
-      // but we do it here anyway for the edge case that users disabled pageload and navigation spans and
-      // purely rely on manual startSpan calls.
-      _INTERNAL_ensureBrowserSpanStreaming(client);
+      // The pageload/navigation idle span is started through the unguarded `startIdleSpan`, so - unlike
+      // the guarded `startSpan` APIs - nothing installs span streaming for it. We ensure it here.
+      // `addIntegration` is idempotent by name, so this is safe even if a span already installed it.
+      if (hasSpanStreamingEnabled(client)) {
+        client.addIntegration(spanStreamingIntegration());
+      }
 
       // Auto-register webVitalsIntegration if the user hasn't added one. We do this in
       // afterAllSetup so that a user-provided webVitalsIntegration - which may be ordered after

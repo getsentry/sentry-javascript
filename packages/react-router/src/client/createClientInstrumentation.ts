@@ -15,7 +15,7 @@ import {
   updateSpanName,
   filterCollectedUrl,
 } from '@sentry/core';
-import { startSpan } from '@sentry/core/browser';
+import { startSpan } from '@sentry/browser';
 import type { ClientInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';

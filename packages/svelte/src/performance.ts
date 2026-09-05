@@ -1,7 +1,7 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { debug } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/core/browser';
+import { startInactiveSpan } from '@sentry/browser';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { UI_MOUNT, UI_UPDATE } from '@sentry/conventions/op';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
