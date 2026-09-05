@@ -36,6 +36,7 @@ interface BuildWasmOptions {
   moduleName?: string;
   padding?: number;
   padSeed?: number;
+  buildIdSeed?: number;
 }
 
 const WASM_HEADER = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
@@ -48,13 +49,14 @@ const CODE_SECTION = [0x0a, 0x05, 0x01, 0x03, 0x00, 0x00, 0x0b]; // body: unreac
 // optionally with build_id / name sections and a padding custom section.
 function buildWasm({
   buildId = true,
+  buildIdSeed = 0,
   moduleName,
   padding = 0,
   padSeed = 0,
 }: BuildWasmOptions = {}): Uint8Array<ArrayBuffer> {
   const bytes = [...WASM_HEADER, ...TYPE_SECTION, ...FUNCTION_SECTION, ...EXPORT_SECTION, ...CODE_SECTION];
   if (buildId) {
-    bytes.push(...customSection('build_id', BUILD_ID_BYTES));
+    bytes.push(...customSection('build_id', [...BUILD_ID_BYTES.slice(0, 15), BUILD_ID_BYTES[15]! + buildIdSeed]));
   }
   if (moduleName) {
     const nameBytes = [...moduleName].map(c => c.charCodeAt(0));
@@ -240,6 +242,85 @@ describe('registerWebWorkerWasm()', () => {
     (GLOBAL_OBJ as { _sentryWasmImages?: WasmDebugImage[] })._sentryWasmImages = [forwarded as WasmDebugImage];
     try {
       const frames = [frameForFilename(filename)];
+      expect(patchFrames(frames)).toBe(true);
+      expect(frames[0]?.addr_mode).toBe('rel:0');
+    } finally {
+      delete (GLOBAL_OBJ as { _sentryWasmImages?: WasmDebugImage[] })._sentryWasmImages;
+    }
+  });
+});
+
+describe('single-buffer-image fallback', () => {
+  // The patched Module constructor registers the module as a buffer image.
+  function registerBufferImage(bytes: Uint8Array<ArrayBuffer>): void {
+    new WebAssembly.Module(bytes);
+  }
+
+  it('matches call-site-derived names when exactly one buffer image exists', () => {
+    registerBufferImage(buildWasm({ padding: 17000 }));
+
+    const frames = [
+      frameForFilename('http://localhost:8001/app.js line 12 > WebAssembly.instantiate:wasm-function[0]:0x1e'),
+    ];
+
+    expect(patchFrames(frames)).toBe(true);
+    expect(frames[0]?.addr_mode).toBe('rel:0');
+    expect(frames[0]?.platform).toBe('native');
+  });
+
+  it('does not fall back when the filename is a regular url', () => {
+    registerBufferImage(buildWasm({ padding: 17000 }));
+
+    const frames = [frameForFilename('http://localhost:8001/other.wasm:wasm-function[0]:0x1e')];
+
+    expect(patchFrames(frames)).toBe(false);
+    expect(frames[0]?.addr_mode).toBeUndefined();
+  });
+
+  it('does not fall back when multiple buffer images exist', () => {
+    registerBufferImage(buildWasm({ padding: 17000 }));
+    registerBufferImage(buildWasm({ padding: 18000, buildIdSeed: 1 }));
+
+    const frames = [
+      frameForFilename('http://localhost:8001/app.js line 12 > WebAssembly.instantiate:wasm-function[0]:0x1e'),
+    ];
+
+    expect(patchFrames(frames)).toBe(false);
+  });
+
+  it('does not fall back for images registered from streaming urls', () => {
+    const module = new WebAssembly.Module(buildWasm({ padding: 17000 }));
+    IMAGES.length = 0; // drop the auto-registered buffer image
+    registerModule(module, 'http://localhost:8001/main.wasm');
+
+    const frames = [
+      frameForFilename('http://localhost:8001/app.js line 12 > WebAssembly.instantiate:wasm-function[0]:0x1e'),
+    ];
+
+    expect(patchFrames(frames)).toBe(false);
+  });
+
+  it('matches unpredicted wasm:// names, which is how modules below the hashing cutoff are found', () => {
+    registerBufferImage(buildWasm({ padding: 100 }));
+
+    const frames = [frameForFilename('wasm://wasm/ffffffff:wasm-function[0]:0x1e')];
+
+    expect(patchFrames(frames)).toBe(true);
+    expect(frames[0]?.addr_mode).toBe('rel:0');
+  });
+
+  it('falls back when the same module is registered on the main thread and in a worker', () => {
+    const bytes = buildWasm({ padding: 17000 });
+    registerBufferImage(bytes);
+    (GLOBAL_OBJ as { _sentryWasmImages?: WasmDebugImage[] })._sentryWasmImages = [
+      { ...(getImages()[0] as WasmDebugImage) },
+    ];
+
+    try {
+      const frames = [
+        frameForFilename('http://localhost:8001/app.js line 12 > WebAssembly.instantiate:wasm-function[0]:0x1e'),
+      ];
+
       expect(patchFrames(frames)).toBe(true);
       expect(frames[0]?.addr_mode).toBe('rel:0');
     } finally {

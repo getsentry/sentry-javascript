@@ -135,6 +135,17 @@ export function patchFrames(
         const mainThreadImagesCount = getImages().length;
         frame.addr_mode = `rel:${existingImagesOffset + mainThreadImagesCount + workerImageIndex}`;
         hasAtLeastOneWasmFrameWithImage = true;
+      } else if (isEngineNamedWasmFilename(match[1])) {
+        // The engine names modules that were compiled from raw bytes itself:
+        // V8 hashes the content of modules below its hashing cutoff, Firefox
+        // derives the name from the compile call site. Neither can be
+        // predicted at registration time. If exactly one distinct module was
+        // registered from raw bytes, the frame can only belong to it.
+        const fallbackIndex = getSingleBufferImageIndex();
+        if (fallbackIndex >= 0) {
+          frame.addr_mode = `rel:${existingImagesOffset + fallbackIndex}`;
+          hasAtLeastOneWasmFrameWithImage = true;
+        }
       }
     }
   });
@@ -156,6 +167,33 @@ function stripInternalFields(image: WasmDebugImage): DebugImage {
  */
 function getWorkerImage(url: string): number {
   return getWorkerImages().findIndex(image => image.type === 'wasm' && image.code_file === url);
+}
+
+function isEngineNamedWasmFilename(filename: string): boolean {
+  return filename.startsWith('wasm://') || filename.includes('> WebAssembly.');
+}
+
+/**
+ * Returns the index (across main-thread and worker images) of the only
+ * distinct image that was registered from raw bytes, or -1 if there is none
+ * or more than one. The same module registered on several threads counts
+ * once, since the images share their build id.
+ */
+function getSingleBufferImageIndex(): number {
+  const mainImages = getImages();
+  const workerImages = getWorkerImages();
+  let index = -1;
+  const buildIds = new Set<string>();
+  const collect = (image: WasmDebugImage, imageIndex: number): void => {
+    const buildId = image.code_id;
+    if (image._fromBuffer && buildId && !buildIds.has(buildId)) {
+      buildIds.add(buildId);
+      index = imageIndex;
+    }
+  };
+  mainImages.forEach((image, i) => collect(image, i));
+  workerImages.forEach((image, i) => collect(image, mainImages.length + i));
+  return buildIds.size === 1 ? index : -1;
 }
 
 /**
