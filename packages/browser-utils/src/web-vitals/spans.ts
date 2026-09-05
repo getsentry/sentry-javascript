@@ -1,36 +1,31 @@
-import type { Client, Integration, Span, SpanAttributes } from '@sentry/core';
+import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
   getActiveSpan,
-  getClient,
-  getCurrentScope,
   getRootSpan,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
   timestampInSeconds,
 } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
-import { WINDOW } from '../types';
 import type { InteractionType } from './inp';
 import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
-import type { InstrumentationHandlerCallback } from '../instrumentation/performanceObserver';
+import type { InstrumentationHandlerCallback, MetricNavigationType } from '../instrumentation/performanceObserver';
 import {
   addClsInstrumentationHandler,
   addInpInstrumentationHandler,
   addLcpInstrumentationHandler,
 } from '../instrumentation/performanceObserver';
+import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
+import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
 import type { WebVitalReportEvent } from './reportEvents';
 import { listenForWebVitalReportEvents } from './reportEvents';
+import { getNavigationSpanForMetric } from './softNavs';
 import { getBrowserPerformanceAPI, msToSec, supportsWebVital } from '../performance/utils';
 import type { PerformanceEventTiming } from '../instrumentation/performanceObserver';
-import { SENTRY_SEGMENT_NAME, SENTRY_TRANSACTION } from '@sentry/conventions/attributes';
 import {
   UI_INTERACTION_CLICK,
   UI_INTERACTION_DRAG,
@@ -47,149 +42,70 @@ const INTERACTION_TYPE_TO_SPAN_OP: Record<InteractionType, string> = {
   press: UI_INTERACTION_PRESS,
 };
 
-// Locally-defined interfaces to avoid leaking bare global type references into the
-// generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
-// available during this package's compilation but are NOT carried to consumers.
-// This mirrors the pattern used for PerformanceEventTiming in instrument.ts.
-export interface LayoutShift extends PerformanceEntry {
-  value: number;
-  sources: Array<{ node: Node | null }>;
-  hadRecentInput: boolean;
-}
-
-export interface LargestContentfulPaint extends PerformanceEntry {
-  readonly renderTime: DOMHighResTimeStamp;
-  readonly loadTime: DOMHighResTimeStamp;
-  readonly size: number;
-  readonly id: string;
-  readonly url: string;
-  readonly element: Element | null;
-}
-
-interface WebVitalSpanOptions {
-  name: string;
-  op: string;
-  origin: string;
-  metricName: 'lcp' | 'cls' | 'inp';
-  value: number;
-  attributes?: SpanAttributes;
-  parentSpan?: Span;
-  reportEvent?: WebVitalReportEvent;
-  startTime: number;
-  endTime?: number;
-  /**
-   * When `true`, the span is sent on its own as a v2 streamed span instead of being folded into a
-   * transaction. Used for INP when span streaming is disabled (it reports late, so it can't ride
-   * the pageload transaction).
-   *
-   * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped and INP always streams.
-   */
-  standalone?: boolean;
-}
+type WebVitalMetric = Parameters<Parameters<typeof addLcpInstrumentationHandler>[0]>[0]['metric'];
+type InpMetric = Parameters<InstrumentationHandlerCallback>[0]['metric'];
 
 /**
- * Emits a web vital span. When `standalone` is set it is sent on its own as a v2 streamed span;
- * otherwise it flows through the span streaming pipeline as a child of `parentSpan`.
+ * Reports a web vital once per navigation, for browsers reporting soft navigations.
+ *
+ * With `reportSoftNavs`, web-vitals restarts the metric on every soft navigation and force-reports
+ * the previous one just before it does (and again on pagehide). Since we also drop
+ * `reportAllChanges` in this mode, every value we're handed is already the final one for its
+ * navigation, so there is nothing to accumulate: each report is a span.
  */
-export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
-  const {
-    name,
-    op,
-    origin,
-    metricName,
-    value,
-    attributes: passedAttributes,
-    parentSpan,
-    reportEvent,
-    startTime,
-    endTime,
-    standalone,
-  } = options;
-
-  // Taken off the segment span itself, so it can't diverge from it: a routing instrumentation may
-  // rename that span (a pageload span is named `Pageload` until its route resolves), and the scope's
-  // transaction name is deliberately not kept in sync with it. Only a standalone span, which is sent
-  // without its segment span, has to fall back to the scope.
-  const segmentSpan = parentSpan && getRootSpan(parentSpan);
-  const segmentName = segmentSpan ? spanToJSON(segmentSpan).name : getCurrentScope().getScopeData().transactionName;
-
-  const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
-    [`browser.web_vital.${metricName}.value`]: value,
-    // oxlint-disable-next-line typescript-eslint/no-deprecated
-    [SENTRY_TRANSACTION]: segmentName,
-    [SENTRY_SEGMENT_NAME]: segmentName,
-    // Web vital score calculation relies on the user agent
-    'user_agent.original': WINDOW.navigator?.userAgent,
-    ...passedAttributes,
-  };
-
-  if (parentSpan && spanToJSON(parentSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'pageload') {
-    // for LCP and CLS, we collect the pageload span id as an attribute
-    attributes['sentry.pageload.span_id'] = parentSpan.spanContext().spanId;
-  }
-
-  if (reportEvent) {
-    attributes[`browser.web_vital.${metricName}.report_event`] = reportEvent;
-  }
-
-  // A standalone span is sent as a plain v2 span without running the `processSpan` hooks (see
-  // `captureStandaloneSpanWithStaticCallback`), so Replay can't attach the replay id itself. Set it
-  // here, mirroring Replay's `processSpan`, so INP keeps its replay association like it did on v1.
-  // TODO(standalone): remove once the static (transaction) trace lifecycle is dropped and INP always
-  // streams, at which point Replay's `processSpan` runs and attaches the replay id.
-  if (standalone) {
-    Object.assign(attributes, getReplayAttributes());
-  }
-
-  const span = startInactiveSpan({
-    name,
-    attributes,
-    startTime,
-    parentSpan,
-    // oxlint-disable-next-line typescript/no-deprecated -- intentional during the v1/v2 transition; see the TODO(standalone) above
-    experimental: standalone ? { standalone: true } : undefined,
+function trackWebVitalPerNavigation<M extends WebVitalMetric>(
+  client: Client,
+  addInstrumentationHandler: (callback: (data: { metric: M }) => void) => unknown,
+  send: (metric: M, parentSpan: Span | undefined, softNavigationId: number | undefined) => void,
+): void {
+  let pageloadSpan: Span | undefined;
+  client.on('afterStartPageLoadSpan', span => {
+    pageloadSpan = span;
   });
 
-  if (span) {
-    span.end(endTime ?? startTime);
-  }
-}
+  addInstrumentationHandler(({ metric }) => {
+    const navigationSpan = getNavigationSpanForMetric(metric);
+    if (metric.navigationType === 'soft-navigation') {
+      // Reporting an uncorrelated soft navigation vital would attribute it to the wrong route, so
+      // it's dropped instead.
+      if (navigationSpan) {
+        send(metric, navigationSpan, metric.navigationId);
+      } else {
+        DEBUG_BUILD &&
+          debug.log(`[SoftNav] Dropping ${metric.name} for uncorrelated soft navigation ${metric.navigationId}`);
+      }
+      return;
+    }
 
-interface ReplayIntegration extends Integration {
-  getReplayId: (onlyIfSampled?: boolean) => string | undefined;
-  getRecordingMode: () => 'session' | 'buffer' | undefined;
-}
-
-// TODO(standalone): remove once the static (transaction) trace lifecycle is dropped; Replay's
-// `processSpan` then attaches the replay id to the streamed INP span instead.
-function getReplayAttributes(): SpanAttributes {
-  const replay = getClient()?.getIntegrationByName<ReplayIntegration>('Replay');
-  const replayId = replay?.getReplayId(true);
-  if (!replayId) {
-    return {};
-  }
-
-  return {
-    'sentry.replay_id': replayId,
-    'sentry._internal.replay_is_buffering': replay!.getRecordingMode() === 'buffer' ? true : undefined,
-  };
+    send(metric, pageloadSpan, undefined);
+  });
 }
 
 /**
  * Tracks LCP as a streamed span.
  */
-export function trackLcpAsSpan(client: Client): void {
-  let lcpValue = 0;
-  let lcpEntry: LargestContentfulPaint | undefined;
-
+export function trackLcpAsSpan(client: Client, reportSoftNavs = false): void {
   if (!supportsWebVital('largest-contentful-paint')) {
     return;
   }
 
+  if (reportSoftNavs) {
+    trackWebVitalPerNavigation(client, addLcpInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
+      const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
+      _sendLcpSpan(metric.value, entry, parentSpan, undefined, softNavigationId, metric.navigationType);
+    });
+    return;
+  }
+
+  let lcpValue = 0;
+  let lcpEntry: LargestContentfulPaint | undefined;
+  let lcpNavigationType: MetricNavigationType | undefined;
+
   const cleanupLcpHandler = addLcpInstrumentationHandler(({ metric }) => {
+    // The navigation type describes the page, not the entry, so it is worth keeping even for a
+    // report we otherwise discard.
+    lcpNavigationType = metric.navigationType;
+
     const entry = metric.entries[metric.entries.length - 1] as LargestContentfulPaint | undefined;
     if (!entry || !isValidLcpMetric(metric.value)) {
       return;
@@ -199,7 +115,7 @@ export function trackLcpAsSpan(client: Client): void {
   }, true);
 
   listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, reportEvent);
+    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, reportEvent, undefined, lcpNavigationType);
     cleanupLcpHandler();
   });
 }
@@ -212,6 +128,8 @@ export function _sendLcpSpan(
   entry: LargestContentfulPaint | undefined,
   pageloadSpan?: Span,
   reportEvent?: WebVitalReportEvent,
+  softNavigationId?: number,
+  navigationType?: MetricNavigationType,
 ): void {
   if (!isValidLcpMetric(lcpValue)) {
     return;
@@ -244,21 +162,36 @@ export function _sendLcpSpan(
     reportEvent,
     startTime: timeOrigin,
     endTime,
+    softNavigationId,
+    navigationType,
   });
 }
 
 /**
  * Tracks CLS as a streamed span.
  */
-export function trackClsAsSpan(client: Client): void {
-  let clsValue = 0;
-  let clsEntry: LayoutShift | undefined;
-
+export function trackClsAsSpan(client: Client, reportSoftNavs = false): void {
   if (!supportsWebVital('layout-shift')) {
     return;
   }
 
+  if (reportSoftNavs) {
+    trackWebVitalPerNavigation(client, addClsInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
+      const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
+      _sendClsSpan(metric.value, entry, parentSpan, undefined, softNavigationId, metric.navigationType);
+    });
+    return;
+  }
+
+  let clsValue = 0;
+  let clsEntry: LayoutShift | undefined;
+  let clsNavigationType: MetricNavigationType | undefined;
+
   const cleanupClsHandler = addClsInstrumentationHandler(({ metric }) => {
+    // A CLS of 0 is reported with no entries and still emits a span, so the navigation type has to
+    // be captured before the entry check rather than alongside the value.
+    clsNavigationType = metric.navigationType;
+
     const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
       return;
@@ -268,7 +201,7 @@ export function trackClsAsSpan(client: Client): void {
   }, true);
 
   listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    _sendClsSpan(clsValue, clsEntry, pageloadSpan, reportEvent);
+    _sendClsSpan(clsValue, clsEntry, pageloadSpan, reportEvent, undefined, clsNavigationType);
     cleanupClsHandler();
   });
 }
@@ -281,6 +214,8 @@ export function _sendClsSpan(
   entry: LayoutShift | undefined,
   pageloadSpan?: Span,
   reportEvent?: WebVitalReportEvent,
+  softNavigationId?: number,
+  navigationType?: MetricNavigationType,
 ): void {
   DEBUG_BUILD && debug.log(`Sending CLS span (${clsValue})`);
 
@@ -305,6 +240,8 @@ export function _sendClsSpan(
     parentSpan: pageloadSpan,
     reportEvent,
     startTime,
+    softNavigationId,
+    navigationType,
   });
 }
 
@@ -313,7 +250,7 @@ export function _sendClsSpan(
  * Requires `registerInpInteractionListener()` to be called separately for cached element names and
  * root spans per interaction.
  */
-export function trackInpAsSpan(client: Client): void {
+export function trackInpAsSpan(client: Client, reportSoftNavs = false): void {
   const performance = getBrowserPerformanceAPI();
   if (!performance || !browserPerformanceTimeOrigin()) {
     return;
@@ -326,49 +263,77 @@ export function trackInpAsSpan(client: Client): void {
   // TODO(standalone): once the static trace lifecycle is dropped, INP always streams; drop this flag.
   const standalone = !hasSpanStreamingEnabled(client);
 
+  if (reportSoftNavs) {
+    // INP restarts per navigation and reports once that navigation is over, by which point the
+    // navigation span has ended and the interaction cache no longer knows about it. The metric
+    // says which navigation it belongs to, so INP is attributed exactly like LCP and CLS.
+    trackWebVitalPerNavigation(client, addInpInstrumentationHandler, (metric, parentSpan, softNavigationId) => {
+      if (isPlausibleInp(metric)) {
+        _sendInpSpan(metric.value, findInpEntry(metric), standalone, parentSpan, softNavigationId, metric);
+      }
+    });
+    return;
+  }
+
   const onInp: InstrumentationHandlerCallback = ({ metric }) => {
-    if (metric.value == null) {
-      return;
+    if (isPlausibleInp(metric)) {
+      _sendInpSpan(metric.value, findInpEntry(metric), standalone, undefined, undefined, metric);
     }
-
-    const duration = msToSec(metric.value);
-
-    if (duration > MAX_PLAUSIBLE_INP_DURATION) {
-      return;
-    }
-
-    const entry = metric.entries.find(e => e.duration === metric.value && INP_ENTRY_MAP[e.name]);
-
-    if (!entry) {
-      return;
-    }
-
-    _sendInpSpan(metric.value, entry, standalone);
   };
 
   addInpInstrumentationHandler(onInp);
 }
 
+function isPlausibleInp(metric: InpMetric): boolean {
+  return metric.value != null && msToSec(metric.value) <= MAX_PLAUSIBLE_INP_DURATION;
+}
+
+/**
+ * The entry an INP span is built from: the one whose duration the reported value came from.
+ *
+ * There isn't always one. When every interaction of a soft navigation stayed below the Event Timing
+ * threshold, web-vitals reports a synthetic value with no entries at all - see
+ * `_estimateP98LongestInteraction`. The span still gets reported in that case, just without the
+ * element and interaction type an entry would have supplied.
+ */
+function findInpEntry(metric: InpMetric): PerformanceEventTiming | undefined {
+  return metric.entries.find(e => e.duration === metric.value && INP_ENTRY_MAP[e.name]);
+}
+
 /**
  * Exported only for testing.
  */
-export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, standalone = false): void {
+export function _sendInpSpan(
+  inpValue: number,
+  entry: PerformanceEventTiming | undefined,
+  standalone = false,
+  attributedSpan?: Span,
+  softNavigationId?: number,
+  metric?: InpMetric,
+): void {
   DEBUG_BUILD && debug.log(`Sending INP span (${inpValue})`);
 
-  const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+  // A web vital span carries the metric, not a real interaction timing, so an INP without an entry
+  // is still worth reporting. It just has no element or interaction type to describe, and is placed
+  // at the start of the navigation it belongs to rather than at the interaction.
+  const startTime = msToSec(
+    (browserPerformanceTimeOrigin() as number) + (entry?.startTime ?? metric?.navigationStartTime ?? 0),
+  );
   const duration = msToSec(inpValue);
-  const interactionType = INP_ENTRY_MAP[entry.name];
+  // An INP without an entry has no interaction type to report. It still has to land inside the
+  // `ui.interaction.*` family, because falling outside it would hide exactly the fast navigations
+  // that web-vitals synthesizes these values for (GoogleChrome/web-vitals#724), reintroducing the
+  // reporting bias they were added to remove.
+  const interactionType = (entry && INP_ENTRY_MAP[entry.name]) || 'click';
 
-  if (!interactionType) {
-    return;
-  }
-
-  const cachedContext = getCachedInteractionContext(entry.interactionId);
+  const cachedContext = entry && getCachedInteractionContext(entry.interactionId);
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-  const spanToUse = cachedContext?.span || rootSpan;
-  const name = cachedContext?.elementName || htmlTreeAsString(entry.target);
+  // With soft navigations the caller knows exactly which navigation the metric belongs to. Without
+  // them we fall back to the span that was active when the interaction was observed.
+  const spanToUse = attributedSpan || cachedContext?.span || rootSpan;
+  const name = cachedContext?.elementName || (entry ? htmlTreeAsString(entry.target) : 'Interaction to next paint');
 
   _emitWebVitalSpan({
     name,
@@ -377,11 +342,13 @@ export function _sendInpSpan(inpValue: number, entry: PerformanceEventTiming, st
     metricName: 'inp',
     value: inpValue,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
+      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
     },
     startTime,
     endTime: startTime + duration,
+    navigationType: metric?.navigationType,
     parentSpan: spanToUse,
     standalone,
+    softNavigationId,
   });
 }
