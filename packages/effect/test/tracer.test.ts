@@ -2,8 +2,10 @@ import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
 import * as sentryCoreBrowser from '@sentry/core/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry/core/server';
 import { Effect } from 'effect';
-import { afterEach, vi } from 'vitest';
+import * as Tracer from 'effect/Tracer';
+import { afterEach, beforeEach, vi } from 'vitest';
 import { SentryEffectTracer as clientTracer } from '../src/client/tracer';
 import { SentryEffectTracer as serverTracer } from '../src/server/tracer';
 
@@ -31,7 +33,7 @@ function mockSpan(overrides: Record<string, unknown> = {}): sentryCore.Span {
   } as unknown as sentryCore.Span;
 }
 
-describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ tracer, spanApi }) => {
+describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spanApi }) => {
   const withSentryTracer = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.withTracer(effect, tracer);
 
   afterEach(() => {
@@ -225,4 +227,132 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ tracer, spanApi }) =
       expect(result).toBe('with-tracer');
     }).pipe(Effect.withTracer(tracer)),
   );
+
+  describe('trace structure', () => {
+    const traceId = 'a'.repeat(32);
+    const spanId = 'b'.repeat(16);
+
+    beforeEach(() => {
+      const client = new ServerRuntimeClient({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        integrations: [],
+        transport: () => sentryCore.createTransport({ recordDroppedEvent: () => undefined }, () => Promise.resolve({})),
+        stackParser: () => [],
+        tracesSampleRate: 1,
+        traceLifecycle: 'static',
+      });
+      sentryCore.getCurrentScope().setClient(client);
+      client.init();
+    });
+
+    afterEach(() => {
+      sentryCore.getCurrentScope().setClient(undefined);
+    });
+
+    const currentSentrySpan = Effect.map(
+      Effect.currentSpan,
+      span => (span as unknown as { sentrySpan: sentryCore.Span }).sentrySpan,
+    );
+
+    const run = <A, E>(effect: Effect.Effect<A, E>): A => Effect.runSync(Effect.withTracer(effect, tracer));
+
+    it('continues the trace of an external parent as a new root span', () => {
+      const parent = Tracer.externalSpan({ traceId, spanId, sampled: true });
+      const span = run(Effect.withSpan('reactor', { parent })(currentSentrySpan));
+
+      expect(sentryCore.spanToJSON(span)).toMatchObject({ trace_id: traceId, parent_span_id: spanId });
+      expect(sentryCore.spanIsSampled(span)).toBe(true);
+      expect(sentryCore.getDynamicSamplingContextFromSpan(span)).toMatchObject({
+        trace_id: traceId,
+        public_key: 'public',
+        sampled: 'true',
+      });
+    });
+
+    it('honors the sampling decision of an external parent', () => {
+      const parent = Tracer.externalSpan({ traceId, spanId, sampled: false });
+      const span = run(Effect.withSpan('reactor', { parent })(currentSentrySpan));
+
+      expect(sentryCore.spanToJSON(span).trace_id).toBe(traceId);
+      expect(sentryCore.spanIsSampled(span)).toBe(false);
+    });
+
+    it('does not nest a root: true span under the enclosing Effect span', () => {
+      const [outer, inner] = run(
+        Effect.withSpan('outer')(
+          Effect.all([currentSentrySpan, Effect.withSpan('inner', { root: true })(currentSentrySpan)]),
+        ),
+      );
+
+      expect(sentryCore.spanToJSON(inner).parent_span_id).toBeUndefined();
+      if (variant === 'server') {
+        expect(sentryCore.spanToJSON(inner).trace_id).not.toBe(sentryCore.spanToJSON(outer).trace_id);
+      } else {
+        expect(sentryCore.spanToJSON(inner).trace_id).toBe(sentryCore.spanToJSON(outer).trace_id);
+      }
+    });
+
+    it('nests a parentless Effect span under a foreign active Sentry span', () => {
+      sentryCore.startSpan({ name: 'http.server' }, request => {
+        const span = run(Effect.withSpan('handler')(currentSentrySpan));
+
+        expect(sentryCore.spanToJSON(span).parent_span_id).toBe(request.spanContext().spanId);
+        expect(sentryCore.spanToJSON(span).trace_id).toBe(request.spanContext().traceId);
+      });
+    });
+
+    it('does not parent a parentless Effect span on a span leaked from another fiber', () => {
+      const leaked = run(Effect.withSpan('other-fiber')(currentSentrySpan));
+
+      sentryCore.withActiveSpan(leaked, () => {
+        const span = run(Effect.withSpan('root')(currentSentrySpan));
+
+        expect(sentryCore.spanToJSON(span).parent_span_id).toBeUndefined();
+      });
+    });
+
+    it('does not parent a parentless Effect span on an unsampled span leaked from another fiber', () => {
+      const leaked = sentryCore.withScope(scope => {
+        scope.setPropagationContext({ traceId, sampled: false, sampleRand: 0.5 });
+        return run(Effect.withSpan('unsampled-fiber')(currentSentrySpan));
+      });
+      expect(sentryCore.spanIsSampled(leaked)).toBe(false);
+
+      sentryCore.withActiveSpan(leaked, () => {
+        const span = run(Effect.withSpan('root')(currentSentrySpan));
+
+        expect(sentryCore.spanIsSampled(span)).toBe(true);
+        expect(sentryCore.spanToJSON(span).parent_span_id).toBeUndefined();
+      });
+    });
+
+    it('keeps a parentless Effect span in a trace the user continued', () => {
+      sentryCore.continueTrace({ sentryTrace: `${traceId}-${spanId}-1`, baggage: undefined }, () => {
+        const span = run(Effect.withSpan('handler')(currentSentrySpan));
+
+        expect(sentryCore.spanToJSON(span)).toMatchObject({ trace_id: traceId, parent_span_id: spanId });
+      });
+    });
+
+    if (variant === 'server') {
+      it('starts a new trace for every parentless Effect span', () => {
+        const processTraceId = sentryCore.getCurrentScope().getPropagationContext().traceId;
+        const first = run(Effect.withSpan('first')(currentSentrySpan));
+        const second = run(Effect.withSpan('second')(currentSentrySpan));
+
+        expect(sentryCore.spanToJSON(first).trace_id).not.toBe(processTraceId);
+        expect(sentryCore.spanToJSON(second).trace_id).not.toBe(processTraceId);
+        expect(sentryCore.spanToJSON(first).trace_id).not.toBe(sentryCore.spanToJSON(second).trace_id);
+      });
+    } else {
+      it('keeps parentless Effect spans in the page trace', () => {
+        const pageTraceId = sentryCore.getCurrentScope().getPropagationContext().traceId;
+        const first = run(Effect.withSpan('first')(currentSentrySpan));
+        const second = run(Effect.withSpan('second')(currentSentrySpan));
+
+        expect(sentryCore.spanToJSON(first).trace_id).toBe(pageTraceId);
+        expect(sentryCore.spanToJSON(second).trace_id).toBe(pageTraceId);
+      });
+    }
+  });
 });
