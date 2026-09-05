@@ -49,3 +49,12 @@ it('records data-sentry-element as data-sentry-component when appropriate', func
     ['data-sentry-component']: 'element',
   });
 });
+
+it('does not write the data-sentry-component fallback back onto the passed attributes', function () {
+  // These are rrweb's serialized attributes, shared with events that may not be serialized yet.
+  const attributes = { ['data-sentry-element']: 'element' };
+
+  getAttributesToRecord(attributes);
+
+  expect(attributes).toEqual({ ['data-sentry-element']: 'element' });
+});
