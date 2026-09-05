@@ -23,7 +23,11 @@ function entrypointWrappers(...names: string[]): Map<string, ClassWrapperKind> {
 }
 
 function transform(code: string, ctx: TransformContext) {
-  return applyAutoInstrumentTransforms(code, parseJS(code), ctx);
+  const result = applyAutoInstrumentTransforms(code, parseJS(code), ctx);
+  // Rewriting whole statements (rather than only splicing in wrappers) makes it possible to emit
+  // syntactically broken output, which would surface as an opaque bundler error.
+  if (result) parseJS(result.code);
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -203,9 +207,122 @@ describe('Durable Object class wrapping', () => {
     expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
   });
 
-  it('leaves re-exports from other modules alone and reports them unwrapped', () => {
+  it('wraps a DO class imported from another module and exported by specifier', () => {
+    const code = ["import { MyDurableObject } from './do';", 'export { MyDurableObject };'].join('\n');
+
+    const result = transform(code, ctx)!;
+    // The import binding cannot be reassigned, so the export is re-pointed at a wrapper binding.
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { MyDurableObject } from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), MyDurableObject);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+      ].join('\n'),
+    );
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
+  });
+
+  it('wraps a DO class re-exported straight from another module', () => {
     const code = "export { MyDurableObject } from './do';";
-    expect(transform(code, ctx)).toBeUndefined();
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { MyDurableObject as __SENTRY_REEXPORT_MyDurableObject__ } from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+      ].join('\n'),
+    );
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
+  });
+
+  it('wraps an aliased re-export from another module', () => {
+    const code = "export { Internal as MyDurableObject } from './do';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { Internal as __SENTRY_REEXPORT_MyDurableObject__ } from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+      ].join('\n'),
+    );
+  });
+
+  it('wraps a default re-export from another module', () => {
+    const code = "export { default as MyDurableObject } from './do';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import __SENTRY_REEXPORT_MyDurableObject__ from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves sibling specifiers of a re-export statement untouched', () => {
+    const code = "export { Helper, MyDurableObject, other as Other } from './do';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { MyDurableObject as __SENTRY_REEXPORT_MyDurableObject__ } from './do';",
+        'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyDurableObject__);',
+        'export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };',
+        "export { Helper, other as Other } from './do';",
+      ].join('\n'),
+    );
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
+  });
+
+  it('wraps a mix of local and imported classes in one export statement', () => {
+    const mixed: TransformContext = { classWrappers: doWrappers('LocalDO', 'ImportedDO'), optionsFn: '(env) => ({})' };
+    const code = [
+      "import { ImportedDO } from './do';",
+      'class DurableObject {}',
+      'class LocalDO extends DurableObject {}',
+      'const unrelated = 1;',
+      'export { LocalDO, ImportedDO, unrelated };',
+    ].join('\n');
+
+    const result = transform(code, mixed)!;
+    // The local class keeps its binding (renamed declaration + wrapper), so its specifier is
+    // carried over untouched alongside the unrelated one.
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { ImportedDO } from './do';",
+        'class DurableObject {}',
+        'class __SENTRY_ORIGINAL_LocalDO__ extends DurableObject {}',
+        'const LocalDO = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_ORIGINAL_LocalDO__);',
+        '',
+        'const unrelated = 1;',
+        'const __SENTRY_WRAPPED_ImportedDO__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), ImportedDO);',
+        'export { __SENTRY_WRAPPED_ImportedDO__ as ImportedDO };',
+        'export { LocalDO, unrelated };',
+      ].join('\n'),
+    );
+    expect(result.wrappedClasses).toEqual(new Set(['LocalDO', 'ImportedDO']));
+  });
+
+  it('counts a locally hand-wrapped class exported by specifier as wrapped', () => {
+    const code = [
+      "import { instrumentDurableObjectWithSentry } from '@sentry/cloudflare';",
+      "import { Impl } from './do';",
+      'const MyDurableObject = instrumentDurableObjectWithSentry((env) => ({}), Impl);',
+      'export { MyDurableObject };',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
+    expect(result.code).toBe(code);
   });
 
   it('reports wrapped DO classes for the inline export form', () => {
@@ -282,6 +399,18 @@ describe('Workflow class wrapping', () => {
     );
     expect(result.code).toContain('export { MyWorkflow };');
     expect(result.wrappedClasses).toEqual(new Set(['MyWorkflow']));
+  });
+
+  it('wraps a workflow class re-exported from another module', () => {
+    const code = "export { MyWorkflow } from './workflow';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain("import { MyWorkflow as __SENTRY_REEXPORT_MyWorkflow__ } from './workflow';");
+    expect(result.code).toContain(
+      'const __SENTRY_WRAPPED_MyWorkflow__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentWorkflowWithSentry, (env) => ({}), __SENTRY_REEXPORT_MyWorkflow__);',
+    );
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyWorkflow__ as MyWorkflow };');
+    expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
   });
 
   it('counts a manually wrapped workflow export as wrapped without touching it', () => {
@@ -416,9 +545,42 @@ describe('WorkerEntrypoint class wrapping (config fallback)', () => {
     expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
   });
 
+  it('wraps a configured entrypoint re-exported from another module', () => {
+    const code = "export { AdminEntry } from './admin';";
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain("import { AdminEntry as __SENTRY_REEXPORT_AdminEntry__ } from './admin';");
+    expect(result.code).toContain(
+      'const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_AdminEntry__);',
+    );
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
+  });
+
   it('ignores an entrypoint that is neither structurally detected nor configured', () => {
     const other: TransformContext = { classWrappers: new Map(), optionsFn: '(env) => ({})' };
     const code = ["import { BaseEntry } from './base';", 'export class AdminEntry extends BaseEntry {}'].join('\n');
+    expect(transform(code, other)).toBeUndefined();
+  });
+
+  // Structural detection reads the entry's own AST, so it can only ever name a class declared
+  // there — an unconfigured re-export has no base chain to inspect and must be left alone.
+  it('does not wrap a re-export that is only structurally detectable', () => {
+    const other: TransformContext = { classWrappers: new Map(), optionsFn: '(env) => ({})' };
+    const code = "export { AdminEntry } from './admin';";
+    expect(transform(code, other)).toBeUndefined();
+  });
+
+  // In `export { X } from '...'` the specifier's "local" name belongs to the *source* module, so it
+  // must never be matched against classes detected in this one — they are unrelated bindings that
+  // merely share a name.
+  it('does not wrap a re-export whose source name collides with a local entrypoint class', () => {
+    const other: TransformContext = { classWrappers: new Map(), optionsFn: '(env) => ({})' };
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'class AdminEntry extends WorkerEntrypoint {}',
+      "export { AdminEntry } from './admin';",
+    ].join('\n');
+
     expect(transform(code, other)).toBeUndefined();
   });
 });
@@ -760,7 +922,7 @@ describe('same-worker RPC binding floor', () => {
     expect(result.code).not.toContain('rpcTracePropagationBindings');
   });
 
-  it('drops a binding whose class is re-exported from another module', () => {
+  it('keeps a binding whose class is re-exported from another module', () => {
     const code = ['export { MyDO } from "./myDo";', 'export default { fetch() {} };'].join('\n');
 
     const result = transform(code, {
@@ -769,8 +931,10 @@ describe('same-worker RPC binding floor', () => {
       sameWorkerBindings: [{ bindingName: 'MY_DO', className: 'MyDO' }],
     })!;
 
-    expect(result.code).toContain('const __SENTRY_OPTIONS__ = () => undefined;');
-    expect(result.code).not.toContain('rpcTracePropagationBindings');
+    expect(result.code).toContain('rpcTracePropagationBindings: ["MY_DO",');
+    expect(result.code).toContain(
+      '__SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, __SENTRY_OPTIONS__, __SENTRY_REEXPORT_MyDO__)',
+    );
   });
 
   it('leaves the output untouched when there are no same-worker bindings', () => {
