@@ -84,6 +84,8 @@ export {
   openAIIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,

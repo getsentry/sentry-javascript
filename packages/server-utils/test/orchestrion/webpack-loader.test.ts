@@ -48,6 +48,7 @@ describe('orchestrion webpack/Turbopack loader', () => {
     root = mkdtempSync(join(tmpdir(), 'orch-webpack-loader-'));
     makePackage(root, 'mysql', '2.18.1');
     makePackage(root, 'left-pad', '1.3.0');
+    makePackage(root, '@mastra/core', '1.63.2');
   });
 
   afterAll(() => {
@@ -102,6 +103,40 @@ describe('orchestrion webpack/Turbopack loader', () => {
     const source = 'export const app = 1;\n';
     const { code } = runLoader('/app/src/index.js', source, { instrumentations });
 
+    expect(code).toBe(source);
+  });
+
+  it('transforms the hashed `@mastra/core` chunk that contains `class Mastra`', () => {
+    // `class Mastra` lives only in tsdown's content-hashed file; the stable
+    // `dist/mastra/index.js` is a one-line re-export and cannot be wrapped.
+    const hashed = join(root, 'node_modules/@mastra/core/dist/mastra-RpLTNzL-.js');
+    const source = 'var Mastra = class Mastra {\n  constructor() {}\n};\nexport { Mastra };\n';
+    const { error, code } = runLoader(hashed, source, { instrumentations });
+
+    expect(error).toBeNull();
+    expect(code).toContain('orchestrion:@mastra/core:mastraConstructor');
+    expect(code).toContain('import {orchestrionModuleInjected, mastraIntegration} from "@sentry/server-utils"');
+    expect(code).toContain('orchestrionModuleInjected("@mastra/core", mastraIntegration)');
+  });
+
+  it('transforms a hashed `.mjs` `@mastra/core` chunk that contains `class Mastra`', () => {
+    const hashed = join(root, 'node_modules/@mastra/core/dist/mastra-RpLTNzL-.mjs');
+    const source = 'var Mastra = class Mastra {\n  constructor() {}\n};\nexport { Mastra };\n';
+    const { error, code } = runLoader(hashed, source, { instrumentations });
+
+    expect(error).toBeNull();
+    expect(code).toContain('orchestrion:@mastra/core:mastraConstructor');
+    expect(code).toContain('import {orchestrionModuleInjected, mastraIntegration} from "@sentry/server-utils"');
+    expect(code).toContain('orchestrionModuleInjected("@mastra/core", mastraIntegration)');
+  });
+
+  it('does not transform the stable Mastra re-export that does not contain the class', () => {
+    const source = 'import { t as Mastra } from "../mastra-RpLTNzL-.js";\nexport { Mastra };\n';
+    const { error, code } = runLoader(join(root, 'node_modules/@mastra/core/dist/mastra/index.js'), source, {
+      instrumentations,
+    });
+
+    expect(error).toBeNull();
     expect(code).toBe(source);
   });
 });

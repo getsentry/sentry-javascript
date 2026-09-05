@@ -20,6 +20,8 @@ export {
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,

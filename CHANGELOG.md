@@ -14,6 +14,7 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
   - `DenoMongoose` => `Mongoose`
   - `DenoMysql` => `Mysql`
   - `DenoPostgres` => `Postgres`
+- feat(node): Add first-party Mastra integration ([#23823](https://github.com/getsentry/sentry-javascript/pull/23823)). Enabled by default; disable with `defaultIntegrations: integrations => integrations.filter(i => i.name !== 'Mastra')`.
 - **feat(browser): Add `bfcacheMetricsIntegration` to track back/forward cache health**
 
   The new opt-in `bfcacheMetricsIntegration` emits metrics about browser back/forward cache (bfcache) navigations, so you can
