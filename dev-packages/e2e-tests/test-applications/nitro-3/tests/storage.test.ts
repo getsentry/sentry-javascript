@@ -1,6 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/nitro';
+import { collectStreamedSpans } from '@sentry-internal/test-utils';
+
+// Streamed spans arrive across several envelopes (a child can flush before its segment),
+// so accumulate until the segment span has arrived and filter by its trace.
+async function collectStorageSpans(route: string) {
+  const spans = await collectStreamedSpans('nitro-3', spans =>
+    spans.some(span => span.is_segment && span.attributes['url.path']?.value === route),
+  );
+  const segmentSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === route);
+
+  return spans.filter(
+    span => span.trace_id === segmentSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nitro',
+  );
+}
 
 test.describe('Storage Instrumentation', () => {
   const prefixKey = (key: string) => `cache:${key}`;
@@ -8,135 +20,128 @@ test.describe('Storage Instrumentation', () => {
   const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
 
   test('instruments all storage operations and creates spans with correct attributes', async ({ request }) => {
-    const transactionPromise = waitForTransaction('nitro-3', transactionEvent => {
-      return transactionEvent.transaction?.includes('GET /api/test-storage') ?? false;
-    });
+    const storageSpansPromise = collectStorageSpans('/api/test-storage');
 
     const response = await request.get('/api/test-storage');
     expect(response.status()).toBe(200);
 
-    const transaction = await transactionPromise;
+    const allStorageSpans = await storageSpansPromise;
 
     // Helper to find spans by operation
-    const findSpansByMethod = (method: string) => {
-      return transaction.spans?.filter(span => span.data?.['db.operation.name'] === method) || [];
-    };
+    const findSpansByMethod = (method: string) =>
+      allStorageSpans.filter(span => span.attributes['db.operation.name']?.value === method);
+
+    const findSpanByCacheKey = (method: string, key: string) =>
+      findSpansByMethod(method).find(span => span.attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY]?.value === key);
 
     // Test setItem spans
-    const setItemSpans = findSpansByMethod('setItem');
-    expect(setItemSpans.length).toBeGreaterThanOrEqual(1);
-    const setItemSpan = setItemSpans.find(span => span.data?.[SEMANTIC_ATTRIBUTE_CACHE_KEY] === prefixKey('user:123'));
+    expect(findSpansByMethod('setItem').length).toBeGreaterThanOrEqual(1);
+    const setItemSpan = findSpanByCacheKey('setItem', prefixKey('user:123'));
     expect(setItemSpan).toBeDefined();
-    expect(setItemSpan?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('user:123'),
-      'db.operation.name': 'setItem',
-      'db.system.name': expect.any(String),
+    expect(setItemSpan?.attributes).toMatchObject({
+      'sentry.op': { type: 'string', value: 'cache.put' },
+      'cache.operation': { type: 'string', value: 'put' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
+      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('user:123') },
+      'db.operation.name': { type: 'string', value: 'setItem' },
+      'db.system.name': { type: 'string', value: expect.any(String) },
     });
-    expect(setItemSpan?.description).toBe(prefixKey('user:123'));
+    expect(setItemSpan?.name).toBe('cache.put');
 
     // Test setItemRaw spans
-    const setItemRawSpans = findSpansByMethod('setItemRaw');
-    expect(setItemRawSpans.length).toBeGreaterThanOrEqual(1);
-    const setItemRawSpan = setItemRawSpans.find(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_CACHE_KEY] === prefixKey('raw:data'),
-    );
+    expect(findSpansByMethod('setItemRaw').length).toBeGreaterThanOrEqual(1);
+    const setItemRawSpan = findSpanByCacheKey('setItemRaw', prefixKey('raw:data'));
     expect(setItemRawSpan).toBeDefined();
-    expect(setItemRawSpan?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('raw:data'),
-      'db.operation.name': 'setItemRaw',
-      'db.system.name': expect.any(String),
+    expect(setItemRawSpan?.attributes).toMatchObject({
+      'sentry.op': { type: 'string', value: 'cache.put' },
+      'cache.operation': { type: 'string', value: 'put' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
+      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('raw:data') },
+      'db.operation.name': { type: 'string', value: 'setItemRaw' },
+      'db.system.name': { type: 'string', value: expect.any(String) },
     });
 
     // Test hasItem spans - should have cache hit attribute
-    const hasItemSpans = findSpansByMethod('hasItem');
-    expect(hasItemSpans.length).toBeGreaterThanOrEqual(1);
-    const hasItemSpan = hasItemSpans.find(span => span.data?.[SEMANTIC_ATTRIBUTE_CACHE_KEY] === prefixKey('user:123'));
+    expect(findSpansByMethod('hasItem').length).toBeGreaterThanOrEqual(1);
+    const hasItemSpan = findSpanByCacheKey('hasItem', prefixKey('user:123'));
     expect(hasItemSpan).toBeDefined();
-    expect(hasItemSpan?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('user:123'),
-      [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-      'db.operation.name': 'hasItem',
-      'db.system.name': expect.any(String),
+    expect(hasItemSpan?.attributes).toMatchObject({
+      'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
+      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('user:123') },
+      [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
+      'db.operation.name': { type: 'string', value: 'hasItem' },
+      'db.system.name': { type: 'string', value: expect.any(String) },
     });
 
     // Test getItem spans - should have cache hit attribute
-    const getItemSpans = findSpansByMethod('getItem');
-    expect(getItemSpans.length).toBeGreaterThanOrEqual(1);
-    const getItemSpan = getItemSpans.find(span => span.data?.[SEMANTIC_ATTRIBUTE_CACHE_KEY] === prefixKey('user:123'));
+    expect(findSpansByMethod('getItem').length).toBeGreaterThanOrEqual(1);
+    const getItemSpan = findSpanByCacheKey('getItem', prefixKey('user:123'));
     expect(getItemSpan).toBeDefined();
-    expect(getItemSpan?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('user:123'),
-      [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-      'db.operation.name': 'getItem',
-      'db.system.name': expect.any(String),
+    expect(getItemSpan?.attributes).toMatchObject({
+      'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
+      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('user:123') },
+      [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
+      'db.operation.name': { type: 'string', value: 'getItem' },
+      'db.system.name': { type: 'string', value: expect.any(String) },
     });
-    expect(getItemSpan?.description).toBe(prefixKey('user:123'));
+    expect(getItemSpan?.name).toBe('cache.get');
 
     // Test getItemRaw spans - should have cache hit attribute
-    const getItemRawSpans = findSpansByMethod('getItemRaw');
-    expect(getItemRawSpans.length).toBeGreaterThanOrEqual(1);
-    const getItemRawSpan = getItemRawSpans.find(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_CACHE_KEY] === prefixKey('raw:data'),
-    );
+    expect(findSpansByMethod('getItemRaw').length).toBeGreaterThanOrEqual(1);
+    const getItemRawSpan = findSpanByCacheKey('getItemRaw', prefixKey('raw:data'));
     expect(getItemRawSpan).toBeDefined();
-    expect(getItemRawSpan?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('raw:data'),
-      [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-      'db.operation.name': 'getItemRaw',
-      'db.system.name': expect.any(String),
+    expect(getItemRawSpan?.attributes).toMatchObject({
+      'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
+      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('raw:data') },
+      [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
+      'db.operation.name': { type: 'string', value: 'getItemRaw' },
+      'db.system.name': { type: 'string', value: expect.any(String) },
     });
 
     // Test getKeys spans
     const getKeysSpans = findSpansByMethod('getKeys');
     expect(getKeysSpans.length).toBeGreaterThanOrEqual(1);
-    expect(getKeysSpans[0]?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-      'db.operation.name': 'getKeys',
-      'db.system.name': expect.any(String),
+    expect(getKeysSpans[0]?.attributes).toMatchObject({
+      'sentry.op': { type: 'string', value: 'cache.get' },
+      'cache.operation': { type: 'string', value: 'get' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
+      'db.operation.name': { type: 'string', value: 'getKeys' },
+      'db.system.name': { type: 'string', value: expect.any(String) },
     });
 
     // Test removeItem spans
-    const removeItemSpans = findSpansByMethod('removeItem');
-    expect(removeItemSpans.length).toBeGreaterThanOrEqual(1);
-    const removeItemSpan = removeItemSpans.find(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_CACHE_KEY] === prefixKey('batch:1'),
-    );
+    expect(findSpansByMethod('removeItem').length).toBeGreaterThanOrEqual(1);
+    const removeItemSpan = findSpanByCacheKey('removeItem', prefixKey('batch:1'));
     expect(removeItemSpan).toBeDefined();
-    expect(removeItemSpan?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.remove',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('batch:1'),
-      'db.operation.name': 'removeItem',
-      'db.system.name': expect.any(String),
+    expect(removeItemSpan?.attributes).toMatchObject({
+      'sentry.op': { type: 'string', value: 'cache.remove' },
+      'cache.operation': { type: 'string', value: 'remove' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
+      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('batch:1') },
+      'db.operation.name': { type: 'string', value: 'removeItem' },
+      'db.system.name': { type: 'string', value: expect.any(String) },
     });
 
     // Test clear spans
     const clearSpans = findSpansByMethod('clear');
     expect(clearSpans.length).toBeGreaterThanOrEqual(1);
-    expect(clearSpans[0]?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.remove',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
-      'db.operation.name': 'clear',
-      'db.system.name': expect.any(String),
+    expect(clearSpans[0]?.attributes).toMatchObject({
+      'sentry.op': { type: 'string', value: 'cache.remove' },
+      'cache.operation': { type: 'string', value: 'remove' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
+      'db.operation.name': { type: 'string', value: 'clear' },
+      'db.system.name': { type: 'string', value: expect.any(String) },
     });
 
     // Verify all spans have OK status
-    const allStorageSpans = transaction.spans?.filter(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.cache.nitro',
-    );
-    expect(allStorageSpans?.length).toBeGreaterThan(0);
-    allStorageSpans?.forEach(span => {
+    expect(allStorageSpans.length).toBeGreaterThan(0);
+    allStorageSpans.forEach(span => {
       expect(span.status).toBe('ok');
     });
   });
