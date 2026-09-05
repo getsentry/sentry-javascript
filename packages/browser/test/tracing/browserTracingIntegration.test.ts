@@ -770,6 +770,46 @@ describe('browserTracingIntegration', () => {
     expect(spanToJSON(pageloadSpan!).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
   });
 
+  describe('pagehide', () => {
+    it('ends the active idle span so its root is not stranded on a frozen page', () => {
+      // `registerBackgroundTabDetection` waits for `visibilitychange`, which on a same-tab
+      // navigation fires after `pagehide` has already frozen the document into the bfcache. A root
+      // ended there can never be sent, while its children have been streaming all along.
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span = getActiveSpan()!;
+      expect(span).toBeDefined();
+      expect(spanToJSON(span).end_timestamp).toBeUndefined();
+
+      WINDOW.dispatchEvent(new Event('pagehide'));
+
+      const json = spanToJSON(span);
+      expect(json.end_timestamp).toBeDefined();
+      expect(json.attributes?.['sentry.idle_span_finish_reason']).toBe('documentHidden');
+    });
+
+    it('does nothing when there is no active idle span', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(() => WINDOW.dispatchEvent(new Event('pagehide'))).not.toThrow();
+      expect(getActiveSpan()).toBeUndefined();
+    });
+  });
+
   describe('startBrowserTracingNavigationSpan', () => {
     it('works without integration setup', () => {
       const client = new BrowserClient(
