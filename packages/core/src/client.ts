@@ -4,6 +4,7 @@ import { DEFAULT_ENVIRONMENT } from './constants';
 import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
+import { applyEscapedErrorSpanToEvent } from './utils/errorSpanAttribution';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
 import { _INTERNAL_flushLogsBuffer } from './logs/internal';
@@ -1442,6 +1443,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         trace: { ...evt.contexts?.trace, ...getTraceContextFromScope(currentScope) },
         ...evt.contexts,
       };
+
+      // Deliberately after the merge above: an error captured with no active span has no trace
+      // context until then, and without its trace id we cannot tell whether the span we recorded
+      // belongs to the same trace, which risks the event disagreeing with the DSC we build below.
+      applyEscapedErrorSpanToEvent(evt, hint);
 
       const dynamicSamplingContext = getDynamicSamplingContextFromScope(this, currentScope);
 
