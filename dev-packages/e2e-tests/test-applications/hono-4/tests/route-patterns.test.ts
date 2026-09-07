@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForStreamedSpan, getSpanOp, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 import { APP_NAME } from './constants';
 
 const PREFIX = '/test-routes';
@@ -13,20 +13,26 @@ const REGISTRATION_STYLES = [
 test.describe('HTTP methods', () => {
   ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].forEach(method => {
     test(`sends transaction for ${method}`, async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `${method} ${PREFIX}`;
-      });
+      const segmentPromise = collectStreamedSpansUntilSegment(
+        APP_NAME,
+        segment => getSpanOp(segment) === 'http.server' && segment.name === `${method} ${PREFIX}`,
+      );
 
       const response = await fetch(`${baseURL}${PREFIX}`, { method });
       expect(response.status).toBe(200);
 
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`${method} ${PREFIX}`);
-      expect(transaction.contexts?.trace?.op).toBe('http.server');
-      expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+      const segmentSpans = await segmentPromise;
+      const segment = segmentSpans.find(
+        segment => segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === `${method} ${PREFIX}`,
+      )!;
+      expect(segment.name).toBe(`${method} ${PREFIX}`);
+      expect(getSpanOp(segment)).toBe('http.server');
+      expect(segment.attributes?.['sentry.segment.name.source']?.value).toBe('route');
 
-      const spans = transaction.spans || [];
-      const middlewareSpans = spans.filter(s => s.op === 'middleware');
+      const spans = segmentSpans.filter(
+        span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
+      );
+      const middlewareSpans = spans.filter(s => getSpanOp(s) === 'middleware');
       expect(middlewareSpans).toEqual([]);
     });
   });
@@ -35,20 +41,27 @@ test.describe('HTTP methods', () => {
 test.describe('route registration styles', () => {
   REGISTRATION_STYLES.forEach(({ name, path }) => {
     test(`${name} sends transaction with route source`, async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${PREFIX}${path}`;
-      });
+      const segmentPromise = collectStreamedSpansUntilSegment(
+        APP_NAME,
+        segment => getSpanOp(segment) === 'http.server' && segment.name === `GET ${PREFIX}${path}`,
+      );
 
       const response = await fetch(`${baseURL}${PREFIX}${path}`);
       expect(response.status).toBe(200);
 
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`GET ${PREFIX}${path}`);
-      expect(transaction.contexts?.trace?.op).toBe('http.server');
-      expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+      const segmentSpans = await segmentPromise;
+      const segment = segmentSpans.find(
+        segment =>
+          segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === `GET ${PREFIX}${path}`,
+      )!;
+      expect(segment.name).toBe(`GET ${PREFIX}${path}`);
+      expect(getSpanOp(segment)).toBe('http.server');
+      expect(segment.attributes?.['sentry.segment.name.source']?.value).toBe('route');
 
-      const spans = transaction.spans || [];
-      const middlewareSpans = spans.filter(s => s.op === 'middleware');
+      const spans = segmentSpans.filter(
+        span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
+      );
+      const middlewareSpans = spans.filter(s => getSpanOp(s) === 'middleware');
       expect(middlewareSpans).toEqual([]);
     });
   });
@@ -58,62 +71,74 @@ test.describe('route registration styles', () => {
     { name: '.on()', path: '/on' },
   ].forEach(({ name, path }) => {
     test(`${name} responds to POST`, async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `POST ${PREFIX}${path}`;
-      });
+      const segmentPromise = collectStreamedSpansUntilSegment(
+        APP_NAME,
+        segment => getSpanOp(segment) === 'http.server' && segment.name === `POST ${PREFIX}${path}`,
+      );
 
       const response = await fetch(`${baseURL}${PREFIX}${path}`, { method: 'POST' });
       expect(response.status).toBe(200);
 
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`POST ${PREFIX}${path}`);
-      expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+      const segmentSpans = await segmentPromise;
+      const segment = segmentSpans.find(
+        segment =>
+          segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === `POST ${PREFIX}${path}`,
+      )!;
+      expect(segment.name).toBe(`POST ${PREFIX}${path}`);
+      expect(segment.attributes?.['sentry.segment.name.source']?.value).toBe('route');
 
-      const spans = transaction.spans || [];
-      const middlewareSpans = spans.filter(s => s.op === 'middleware');
+      const spans = segmentSpans.filter(
+        span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
+      );
+      const middlewareSpans = spans.filter(s => getSpanOp(s) === 'middleware');
       expect(middlewareSpans).toEqual([]);
     });
   });
 });
 
 test.describe('request data extraction', () => {
-  test('includes method, url, and headers on transaction', async ({ baseURL }) => {
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${PREFIX}/request-data`;
-    });
+  test('includes method, url, and headers on span', async ({ baseURL }) => {
+    const segmentPromise = waitForStreamedSpan(
+      APP_NAME,
+      segment =>
+        segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === `GET ${PREFIX}/request-data`,
+    );
 
     const response = await fetch(`${baseURL}${PREFIX}/request-data`);
     expect(response.status).toBe(200);
 
-    const transaction = await transactionPromise;
-    expect(transaction.request?.method).toBe('GET');
-    expect(transaction.request?.url).toContain(PREFIX);
-    expect(transaction.request?.headers).toBeDefined();
+    const segment = await segmentPromise;
+    expect(segment.attributes['http.request.method']?.value).toBe('GET');
+    expect(segment.attributes['url.full']?.value).toContain(PREFIX);
+    expect(segment.attributes['http.request.header.host']).toBeDefined();
   });
 
   test('includes query_string when present', async ({ baseURL }) => {
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return (
-        event.contexts?.trace?.op === 'http.server' &&
-        event.transaction === `GET ${PREFIX}/query-test` &&
-        event.request?.query_string === 'foo=bar&baz=42'
-      );
-    });
+    const segmentPromise = waitForStreamedSpan(
+      APP_NAME,
+      segment =>
+        segment.is_segment &&
+        getSpanOp(segment) === 'http.server' &&
+        segment.name === `GET ${PREFIX}/query-test` &&
+        segment.attributes['url.query']?.value === 'foo=bar&baz=42',
+    );
 
     const response = await fetch(`${baseURL}${PREFIX}/query-test?foo=bar&baz=42`);
     expect(response.status).toBe(200);
 
-    const transaction = await transactionPromise;
+    const segment = await segmentPromise;
 
-    expect(transaction.request?.method).toBe('GET');
-    expect(transaction.request?.url).toContain(`${PREFIX}/query-test`);
-    expect(transaction.request?.query_string).toBe('foo=bar&baz=42');
+    expect(segment.attributes['http.request.method']?.value).toBe('GET');
+    expect(segment.attributes['url.full']?.value).toContain(`${PREFIX}/query-test`);
+    expect(segment.attributes['url.query']?.value).toBe('foo=bar&baz=42');
   });
 
   test('includes request data for POST with headers', async ({ baseURL }) => {
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && event.transaction === `POST ${PREFIX}/request-data`;
-    });
+    const segmentPromise = waitForStreamedSpan(
+      APP_NAME,
+      segment =>
+        segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === `POST ${PREFIX}/request-data`,
+    );
 
     const response = await fetch(`${baseURL}${PREFIX}/request-data`, {
       method: 'POST',
@@ -121,27 +146,33 @@ test.describe('request data extraction', () => {
     });
     expect(response.status).toBe(200);
 
-    const transaction = await transactionPromise;
-    expect(transaction.request?.method).toBe('POST');
-    expect(transaction.request?.url).toContain(PREFIX);
-    expect(transaction.request?.headers?.['x-custom-header']).toBe('test-value');
+    const segment = await segmentPromise;
+    expect(segment.attributes['http.request.method']?.value).toBe('POST');
+    expect(segment.attributes['url.full']?.value).toContain(PREFIX);
+    expect(segment.attributes['http.request.header.x_custom_header']?.value).toBe('test-value');
   });
 });
 
-test('async handler sends transaction', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction(APP_NAME, event => {
-    return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${PREFIX}/async`;
-  });
+test('async handler sends span', async ({ baseURL }) => {
+  const segmentPromise = collectStreamedSpansUntilSegment(
+    APP_NAME,
+    segment => getSpanOp(segment) === 'http.server' && segment.name === `GET ${PREFIX}/async`,
+  );
 
   const response = await fetch(`${baseURL}${PREFIX}/async`);
   expect(response.status).toBe(200);
 
-  const transaction = await transactionPromise;
-  expect(transaction.transaction).toBe(`GET ${PREFIX}/async`);
-  expect(transaction.contexts?.trace?.op).toBe('http.server');
-  expect(transaction.contexts?.trace?.data?.['sentry.segment.name.source']).toBe('route');
+  const segmentSpans = await segmentPromise;
+  const segment = segmentSpans.find(
+    segment => segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === `GET ${PREFIX}/async`,
+  )!;
+  expect(segment.name).toBe(`GET ${PREFIX}/async`);
+  expect(getSpanOp(segment)).toBe('http.server');
+  expect(segment.attributes?.['sentry.segment.name.source']?.value).toBe('route');
 
-  const spans = transaction.spans || [];
-  const middlewareSpans = spans.filter(s => s.op === 'middleware');
+  const spans = segmentSpans.filter(
+    span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
+  );
+  const middlewareSpans = spans.filter(s => getSpanOp(s) === 'middleware');
   expect(middlewareSpans).toEqual([]);
 });
