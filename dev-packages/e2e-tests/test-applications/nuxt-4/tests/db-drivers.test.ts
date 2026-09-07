@@ -17,6 +17,11 @@ async function collectRequestSpans(path: string) {
 }
 
 test('Instruments ioredis automatically', async ({ baseURL }) => {
+  // Dev relies on runtime injection (no build-time transform), but the dev bundle hoists the ioredis
+  // import above the inlined `Sentry.init`, so its instrumented file loads before injection is active
+  // and gets no channels (5.10.x has no native ones). mysql requires its file lazily, after init.
+  test.skip(process.env.TEST_ENV === 'development', 'ioredis loads before runtime injection is active in dev');
+
   const spansPromise = collectRequestSpans('/api/db-ioredis');
 
   const response = await fetch(`${baseURL}/api/db-ioredis`);

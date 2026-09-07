@@ -12,13 +12,13 @@
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:dev": "TEST_ENV=development playwright test environment",
-    "test:build": "pnpm install && pnpm build",
+    "test:dev": "TEST_ENV=development playwright test environment db-drivers",
     "test:build": "pnpm install && node ./scripts/build-with-prerender-event-sink.mjs",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:prod:import": "TEST_ENV=production-import playwright test"
   },
+  "//": "Pin ioredis to 5.10.1 because that's the last version before it publishes its own diagnostics channels",
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
