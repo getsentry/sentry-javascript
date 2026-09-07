@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
 test.describe('Trace propagation', () => {
   test('should inject metatags in ssr pageload', async ({ page }) => {
@@ -18,19 +18,30 @@ test.describe('Trace propagation', () => {
   });
 
   test('should have trace connection between server and client', async ({ page }) => {
-    const serverSpanPromise = waitForStreamedSpan('tanstackstart-react-cloudflare', span => {
-      return span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/';
-    });
-
-    const clientSpanPromise = waitForStreamedSpan('tanstackstart-react-cloudflare', span => {
-      return span.is_segment && getSpanOp(span) === 'pageload' && span.name === '/';
+    const spansPromise = collectStreamedSpans('tanstackstart-react-cloudflare', spans => {
+      return (
+        spans.some(
+          span => span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/',
+        ) &&
+        spans.some(
+          span =>
+            span.is_segment &&
+            getSpanOp(span) === 'pageload' &&
+            (span.name === '/' || span.attributes['url.path']?.value === '/'),
+        )
+      );
     });
 
     await page.goto('/');
 
-    const serverSpan = await serverSpanPromise;
-    const clientSpan = await clientSpanPromise;
+    const spans = await spansPromise;
+    const serverSpan = spans.find(
+      span => span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/',
+    );
+    const clientSpan = spans.find(span => span.is_segment && getSpanOp(span) === 'pageload');
 
-    expect(clientSpan.trace_id).toBe(serverSpan.trace_id);
+    expect(serverSpan).toBeDefined();
+    expect(clientSpan).toBeDefined();
+    expect(clientSpan?.trace_id).toBe(serverSpan?.trace_id);
   });
 });
