@@ -67,13 +67,27 @@ function pathnameMatchesTunnelRoute(pathname: string): boolean {
     : expectedTunnelPathMatcher.test(pathname);
 }
 
-function waitForServerHttpSpan(matchesPathname: (pathname: string) => boolean): Promise<unknown> {
-  return waitForStreamedSpan('tanstackstart-react', span => {
-    return getSpanOp(span) === 'http.server' && matchesPathname(String(span.attributes['url.path']?.value ?? ''));
-  });
+function waitForServerHttpSpan(matchesPathname: (pathname: string) => boolean, since?: number): Promise<unknown> {
+  return waitForStreamedSpan(
+    'tanstackstart-react',
+    span => {
+      return getSpanOp(span) === 'http.server' && matchesPathname(String(span.attributes['url.path']?.value ?? ''));
+    },
+    since,
+  );
 }
 
 test('Does not create a server transaction for the tunnel route', async ({ page }) => {
+  // Custom routes self-register `ignoreSpans` on the first POST; that first streamed
+  // span still leaks (see `createSentryTunnelRoute`). The previous test already made
+  // that POST — wait it out so it cannot win the race below. Managed routes register
+  // at startup and never emit this span. The leaked span may already have arrived, so
+  // this wait looks back over everything the proxy recorded instead of only what comes
+  // in from here on.
+  if (tunnelRouteMode === 'custom') {
+    await waitForServerHttpSpan(pathnameMatchesTunnelRoute, 0);
+  }
+
   // The incoming POST to the tunnel route must not be turned into an `http.server`
   // transaction by the server SDK — tunnel traffic is plumbing, not application requests.
   const tunnelServerEventPromise = waitForServerHttpSpan(pathnameMatchesTunnelRoute);
