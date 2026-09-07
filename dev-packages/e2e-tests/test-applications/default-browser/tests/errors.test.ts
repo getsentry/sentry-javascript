@@ -29,7 +29,7 @@ test('captures an error', async ({ page }) => {
   });
 });
 
-test('sets correct transactionName', async ({ page }) => {
+test('sets the pageload span name and error transaction name', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('default-browser', span => {
     return getSpanOp(span) === 'pageload' && span.is_segment;
   });
@@ -40,6 +40,7 @@ test('sets correct transactionName', async ({ page }) => {
 
   await page.goto('/');
   const pageloadSpan = await pageloadSpanPromise;
+  expect(pageloadSpan.name).toBe('Pageload');
 
   const exceptionButton = page.locator('id=exception-button');
   await exceptionButton.click();
