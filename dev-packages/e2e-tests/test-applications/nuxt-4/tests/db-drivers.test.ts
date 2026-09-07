@@ -2,9 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 
 // The Nuxt module auto-wires the orchestrion build-time transform, which injects
-// `diagnostics_channel` publishers into these drivers as Nitro bundles them. That
-// only happens in the production build, so these tests are excluded from the
-// `test:dev` pass (which filters to `environment`).
+// `diagnostics_channel` publishers into these drivers as Nitro bundles them. `nuxt dev`
+// has no bundle to transform, so there the drivers rely on runtime injection instead.
 
 // Exact-match API routes keep a bare method-only segment name under h3 v1, so the
 // segment is selected via its `url.path` attribute. Driver spans can flush before
@@ -17,10 +16,10 @@ async function collectRequestSpans(path: string) {
 }
 
 test('Instruments ioredis automatically', async ({ baseURL }) => {
-  // Dev relies on runtime injection (no build-time transform), but the dev bundle hoists the ioredis
-  // import above the inlined `Sentry.init`, so its instrumented file loads before injection is active
-  // and gets no channels (5.10.x has no native ones). mysql requires its file lazily, after init.
-  test.skip(process.env.TEST_ENV === 'development', 'ioredis loads before runtime injection is active in dev');
+  // ioredis 5.10.x has no native channels, so dev needs runtime injection — but the dev bundle hoists
+  // its import above the inlined `Sentry.init`, so it loads before injection is active. (ioredis >=5.11
+  // publishes native channels and does work in dev; mysql requires its file lazily, after init.)
+  test.skip(process.env.TEST_ENV === 'development', 'ioredis <5.11 loads before runtime injection is active in dev');
 
   const spansPromise = collectRequestSpans('/api/db-ioredis');
 
