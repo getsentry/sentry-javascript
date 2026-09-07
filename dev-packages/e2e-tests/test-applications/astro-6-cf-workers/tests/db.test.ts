@@ -1,43 +1,40 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+
+const APP_NAME = 'astro-6-cf-workers';
 
 test('a real mysql query emits a db span with orchestrion-channel attributes', async ({ request }) => {
-  const transactionPromise = waitForTransaction('astro-6-cf-workers', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      (transactionEvent.spans?.some(span => span.op === 'db') ?? false)
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /db-mysql');
 
   const res = await request.get('/db-mysql');
   expect(res.status()).toBe(200);
 
-  const transactionEvent = await transactionPromise;
-  const dbSpans = transactionEvent.spans!.filter(span => span.op === 'db');
+  const spans = await spansPromise;
+  const dbSpans = spans.filter(span => getSpanOp(span) === 'db');
 
-  const firstQuery = dbSpans.find(span => span.description === 'SELECT 1 + 1 AS solution');
+  const firstQuery = dbSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT 1 + 1 AS solution');
   expect(firstQuery).toBeDefined();
-  expect(firstQuery!.data?.['sentry.origin']).toBe('auto.db.mysql');
-  expect(firstQuery!.data?.['db.system.name']).toBe('mysql');
-  expect(firstQuery!.data?.['db.query.text']).toBe('SELECT 1 + 1 AS solution');
-  expect(firstQuery!.data?.['server.address']).toBe('127.0.0.1');
-  expect(firstQuery!.data?.['server.port']).toBe(3306);
-  expect(firstQuery!.data?.['db.user']).toBe('root');
+  // With span streaming the span name is the low-cardinality query summary; the statement stays in
+  // `db.query.text`.
+  expect(firstQuery!.name).toBe('SELECT');
+  expect(firstQuery!.attributes['sentry.origin']?.value).toBe('auto.db.mysql');
+  expect(firstQuery!.attributes['db.system.name']?.value).toBe('mysql');
+  expect(firstQuery!.attributes['db.query.text']?.value).toBe('SELECT 1 + 1 AS solution');
+  expect(firstQuery!.attributes['server.address']?.value).toBe('127.0.0.1');
+  expect(firstQuery!.attributes['server.port']?.value).toBe(3306);
+  expect(firstQuery!.attributes['db.user']?.value).toBe('root');
 });
 
-test('a nested query lands on the same transaction (async context restored)', async ({ request }) => {
-  const transactionPromise = waitForTransaction('astro-6-cf-workers', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      (transactionEvent.spans?.filter(span => span.op === 'db').length ?? 0) >= 2
-    );
-  });
+test('a nested query lands on the same trace (async context restored)', async ({ request }) => {
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /db-mysql');
 
   const res = await request.get('/db-mysql');
   expect(res.status()).toBe(200);
 
-  const transactionEvent = await transactionPromise;
-  const descriptions = transactionEvent.spans!.filter(span => span.op === 'db').map(span => span.description);
-  expect(descriptions).toContain('SELECT 1 + 1 AS solution');
-  expect(descriptions).toContain('SELECT NOW()');
+  const spans = await spansPromise;
+  const queryTexts = spans
+    .filter(span => getSpanOp(span) === 'db')
+    .map(span => span.attributes['db.query.text']?.value);
+  expect(queryTexts).toContain('SELECT 1 + 1 AS solution');
+  expect(queryTexts).toContain('SELECT NOW()');
 });
