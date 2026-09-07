@@ -1,15 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, waitForError } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'nestjs-with-submodules';
-
-/**
- * Resolves once the request's segment span has been streamed, which is how these specs know the
- * request finished and any error it would have produced had its chance to be sent.
- */
-function waitForSegmentSpan(name: string): Promise<unknown> {
-  return waitForStreamedSpan(APP_NAME, span => span.is_segment && span.name === name);
-}
 
 test('Sends unexpected exception to Sentry if thrown in module with global filter', async ({ baseURL }) => {
   const errorEventPromise = waitForError(APP_NAME, event => {
@@ -128,12 +120,14 @@ test('Does not send exception to Sentry if user-defined global exception filter 
     return event?.transaction === 'GET /example-module/expected-exception';
   });
 
-  const segmentSpanPromise = waitForSegmentSpan('GET /example-module/expected-exception');
+  // Waiting for each request's segment span is how this spec knows the request finished and
+  // any error it would have produced had its chance to be sent.
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-module/expected-exception');
 
   const response = await fetch(`${baseURL}/example-module/expected-exception`);
   expect(response.status).toBe(400);
 
-  await segmentSpanPromise;
+  await spansPromise;
 
   (await fetch(`${baseURL}/flush`)).text();
 
@@ -156,12 +150,12 @@ test('Does not send exception to Sentry if user-defined local exception filter a
     return event?.transaction === 'GET /example-module-local-filter/expected-exception';
   });
 
-  const segmentSpanPromise = waitForSegmentSpan('GET /example-module-local-filter/expected-exception');
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-module-local-filter/expected-exception');
 
   const response = await fetch(`${baseURL}/example-module-local-filter/expected-exception`);
   expect(response.status).toBe(400);
 
-  await segmentSpanPromise;
+  await spansPromise;
 
   (await fetch(`${baseURL}/flush`)).text();
 
@@ -181,12 +175,12 @@ test('Does not send expected exception to Sentry if exception is thrown in modul
     return event?.transaction === 'GET /example-module-registered-first/expected-exception';
   });
 
-  const segmentSpanPromise = waitForSegmentSpan('GET /example-module-registered-first/expected-exception');
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-module-registered-first/expected-exception');
 
   const response = await fetch(`${baseURL}/example-module-registered-first/expected-exception`);
   expect(response.status).toBe(400);
 
-  await segmentSpanPromise;
+  await spansPromise;
 
   (await fetch(`${baseURL}/flush`)).text();
 
@@ -206,7 +200,7 @@ test('Global specific exception filter registered in main module is applied and 
     return event?.transaction === 'GET /example-exception-specific-filter';
   });
 
-  const segmentSpanPromise = waitForSegmentSpan('GET /example-exception-specific-filter');
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-exception-specific-filter');
 
   const response = await fetch(`${baseURL}/example-exception-specific-filter`);
   const responseBody = await response.json();
@@ -219,7 +213,7 @@ test('Global specific exception filter registered in main module is applied and 
     message: 'Example exception was handled by specific filter!',
   });
 
-  await segmentSpanPromise;
+  await spansPromise;
 
   (await fetch(`${baseURL}/flush`)).text();
 
@@ -239,7 +233,7 @@ test('Local specific exception filter registered in main module is applied and e
     return event?.transaction === 'GET /example-exception-local-filter';
   });
 
-  const segmentSpanPromise = waitForSegmentSpan('GET /example-exception-local-filter');
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-exception-local-filter');
 
   const response = await fetch(`${baseURL}/example-exception-local-filter`);
   const responseBody = await response.json();
@@ -252,7 +246,7 @@ test('Local specific exception filter registered in main module is applied and e
     message: 'Example exception was handled by local filter!',
   });
 
-  await segmentSpanPromise;
+  await spansPromise;
 
   (await fetch(`${baseURL}/flush`)).text();
 
