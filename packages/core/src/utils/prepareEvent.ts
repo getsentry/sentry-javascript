@@ -112,7 +112,7 @@ export function prepareEvent(
         }
 
         client.recordDroppedEvent(reason, getDataCategoryByType(event.type));
-        if (reason === 'callback_error' && event.type === 'transaction') {
+        if (event.type === 'transaction') {
           client.recordDroppedEvent(reason, 'span', 1 + (event.spans || []).length);
         }
       });

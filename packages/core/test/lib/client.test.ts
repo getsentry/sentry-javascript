@@ -2142,8 +2142,8 @@ describe('Client', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'error');
     });
 
-    test('event processor records dropped transaction events', () => {
-      expect.assertions(1);
+    test('event processor records dropped transaction events and spans', () => {
+      expect.assertions(3);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -2153,9 +2153,28 @@ describe('Client', () => {
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
-      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' }, {}, scope);
+      client.captureEvent(
+        {
+          transaction: '/dogs/are/great',
+          type: 'transaction',
+          spans: [
+            {
+              description: 'fetch dogs',
+              data: {},
+              status: 'ok',
+              span_id: '9e15bf99fbe4bc80',
+              start_timestamp: 1591603196.637835,
+              trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            },
+          ],
+        },
+        {},
+        scope,
+      );
 
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
     });
 
     test('mutating transaction name with event processors sets transaction-name-change metadata', () => {
