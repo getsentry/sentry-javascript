@@ -22,7 +22,6 @@ class MyWorkflowBase extends WorkflowEntrypoint<Env> {
 export const MyWorkflow = Sentry.instrumentWorkflowWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   MyWorkflowBase,
@@ -31,7 +30,6 @@ export const MyWorkflow = Sentry.instrumentWorkflowWithSentry(
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   {

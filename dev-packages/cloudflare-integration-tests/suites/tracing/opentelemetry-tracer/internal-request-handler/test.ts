@@ -1,60 +1,39 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import type { Event } from '@sentry/core';
 import { expect, it } from 'vitest';
-import { SHORT_UUID_MATCHER } from '../../../../expect';
 import { createRunner } from '../../../../runner';
+import { getSpanOp } from '../../../../spanUtils';
 
 it('captures spans emitted through @opentelemetry/api inside _INTERNAL_wrapRequestHandler', async ({ signal }) => {
-  const runner = createRunner(__dirname)
-    .expect(envelope => {
-      const event = envelope[1]?.[0]?.[1] as Event;
-      expect(event.transaction).toBe('GET /');
-      expect(event.contexts?.trace?.op).toBe('http.server');
+  const runner = createRunner(__dirname).start(signal);
 
-      const requestSpanId = event.contexts?.trace?.span_id;
-      const traceId = event.contexts?.trace?.trace_id;
-      const handleSpanId = event.spans?.[0]?.span_id;
-      const sentryChildSpanId = event.spans?.[1]?.span_id;
-
-      // Spans are ordered by start time.
-      expect(event.spans).toEqual([
-        {
-          data: { [SENTRY_ORIGIN]: 'manual' },
-          description: 'sveltekit.handle.root',
-          parent_span_id: requestSpanId,
-          span_id: SHORT_UUID_MATCHER,
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: traceId,
-          origin: 'manual',
-        },
-        {
-          data: { [SENTRY_ORIGIN]: 'manual' },
-          description: 'sentry child',
-          parent_span_id: handleSpanId,
-          span_id: SHORT_UUID_MATCHER,
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: traceId,
-          origin: 'manual',
-        },
-        {
-          data: { [SENTRY_ORIGIN]: 'manual', 'http.route': '/' },
-          description: 'sveltekit.resolve',
-          parent_span_id: sentryChildSpanId,
-          span_id: SHORT_UUID_MATCHER,
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: traceId,
-          origin: 'manual',
-        },
-      ]);
-    })
-    .start(signal);
+  // The segment span arrives in its own envelope. It ends after the children it wraps, but each
+  // envelope is its own request to the mock server, so it can still be received first. Waiting for
+  // the three children by name rather than for the segment keeps the assertions below reliable.
+  const spansPromise = runner.collectStreamedSpans(
+    spansOfTrace =>
+      ['sveltekit.handle.root', 'sentry child', 'sveltekit.resolve'].every(name =>
+        spansOfTrace.some(span => span.name === name),
+      ) && spansOfTrace.some(span => span.is_segment),
+  );
 
   await runner.makeRequest('get', '/');
-  await runner.completed();
+
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment);
+  expect(getSpanOp(segmentSpan!)).toBe('http.server');
+
+  const handleSpan = spans.find(span => span.name === 'sveltekit.handle.root');
+  const sentryChild = spans.find(span => span.name === 'sentry child');
+  const resolveSpan = spans.find(span => span.name === 'sveltekit.resolve');
+
+  for (const span of spans.filter(span => !span.is_segment)) {
+    expect(span.trace_id).toBe(segmentSpan?.trace_id);
+    expect(span.status).toBe('ok');
+    expect(span.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'manual' });
+  }
+
+  expect(handleSpan?.parent_span_id).toBe(segmentSpan?.span_id);
+  expect(sentryChild?.parent_span_id).toBe(handleSpan?.span_id);
+  expect(resolveSpan?.parent_span_id).toBe(sentryChild?.span_id);
+  expect(resolveSpan?.attributes['http.route']).toEqual({ type: 'string', value: '/' });
 });

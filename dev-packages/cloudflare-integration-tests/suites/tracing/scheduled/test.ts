@@ -7,35 +7,30 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 import { createRunner } from '../../../runner';
+import { getSpansFromEnvelope } from '../../../spanUtils';
 
-it('Scheduled handler creates transaction with correct attributes', async ({ signal }) => {
+it('Scheduled handler creates a segment span with correct attributes', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .withWranglerArgs('--test-scheduled')
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1];
-      expect(transactionEvent).toEqual(
+      const spans = getSpansFromEnvelope(envelope);
+
+      expect(spans).toHaveLength(1);
+      expect(spans[0]).toEqual(
         expect.objectContaining({
-          type: 'transaction',
-          transaction: expect.stringMatching(/^Scheduled Cron/),
-          transaction_info: { source: 'task' },
-          spans: [],
-          contexts: expect.objectContaining({
-            trace: {
-              span_id: expect.any(String),
-              trace_id: expect.any(String),
-              op: 'function',
-              origin: 'auto.faas.cloudflare.scheduled',
-              status: 'ok',
-              data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.scheduled',
-                [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-                'faas.cron': expect.any(String),
-                'faas.time': expect.any(String),
-                'faas.trigger': 'timer',
-              },
-            },
+          name: expect.stringMatching(/^Scheduled Cron/),
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          is_segment: true,
+          status: 'ok',
+          attributes: expect.objectContaining({
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'function' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.faas.cloudflare.scheduled' },
+            [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'task' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+            'faas.cron': { type: 'string', value: expect.any(String) },
+            'faas.time': { type: 'string', value: expect.any(String) },
+            'faas.trigger': { type: 'string', value: 'timer' },
           }),
         }),
       );

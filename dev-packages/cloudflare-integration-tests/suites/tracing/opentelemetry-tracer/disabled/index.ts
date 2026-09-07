@@ -9,7 +9,6 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    traceLifecycle: 'static',
     // Deliberately left unset — the global tracer provider stays OTel's noop, so the spans below
     // must not reach Sentry.
   }),
