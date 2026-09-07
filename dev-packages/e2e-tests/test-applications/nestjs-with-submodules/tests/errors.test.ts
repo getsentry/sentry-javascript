@@ -150,7 +150,10 @@ test('Does not send exception to Sentry if user-defined local exception filter a
     return event?.transaction === 'GET /example-module-local-filter/expected-exception';
   });
 
-  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-module-local-filter/expected-exception');
+  const spansPromise = collectStreamedSpansUntilSegment(
+    APP_NAME,
+    'GET /example-module-local-filter/expected-exception',
+  );
 
   const response = await fetch(`${baseURL}/example-module-local-filter/expected-exception`);
   expect(response.status).toBe(400);
@@ -175,7 +178,10 @@ test('Does not send expected exception to Sentry if exception is thrown in modul
     return event?.transaction === 'GET /example-module-registered-first/expected-exception';
   });
 
-  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-module-registered-first/expected-exception');
+  const spansPromise = collectStreamedSpansUntilSegment(
+    APP_NAME,
+    'GET /example-module-registered-first/expected-exception',
+  );
 
   const response = await fetch(`${baseURL}/example-module-registered-first/expected-exception`);
   expect(response.status).toBe(400);
