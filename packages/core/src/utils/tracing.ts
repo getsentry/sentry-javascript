@@ -53,6 +53,17 @@ export function extractTraceparentData(traceparent?: string): TraceparentData | 
 }
 
 /**
+ * Whether a propagation context continues an incoming trace, rather than being the head of a new one.
+ *
+ * Both fields have to be checked. `parentSpanId` is unset when the incoming `sentry-trace` header
+ * carried no span id, which the header format allows. `dsc` is unset when a remote parent arrived
+ * without any incoming baggage. Either one on its own therefore misses a continued trace.
+ */
+export function isContinuingTrace(propagationContext: PropagationContext): boolean {
+  return !!propagationContext.parentSpanId || !!propagationContext.dsc;
+}
+
+/**
  * Create a propagation context from incoming headers or
  * creates a minimal new one if the headers are undefined.
  */

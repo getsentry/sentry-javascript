@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, type Mock, test, vi } from 'vitest';
 import type { Client } from '../../src/client';
 import { getCurrentScope } from '../../src/currentScopes';
-import { captureCheckIn } from '../../src/exports';
+import { captureCheckIn } from '../../src/monitor';
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind, setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types/integration';
