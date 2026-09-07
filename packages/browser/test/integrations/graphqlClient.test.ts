@@ -10,11 +10,32 @@ import { URL_FULL } from '@sentry/conventions/attributes';
 import { describe, expect, test } from 'vitest';
 import {
   _getGraphQLOperation,
+  _redactGraphqlDocument,
   getGraphQLRequestPayload,
   getRequestPayloadXhrOrFetch,
   graphqlClientIntegration,
   parseGraphQLQuery,
 } from '../../src/integrations/graphqlClient';
+
+describe('_redactGraphqlDocument', () => {
+  test('replaces string and numeric literal arguments', () => {
+    expect(_redactGraphqlDocument('query { user(email: "jane@example.com", age: 42) { name } }')).toBe(
+      'query { user(email: "*", age: *) { name } }',
+    );
+  });
+
+  test('replaces block string literals', () => {
+    expect(_redactGraphqlDocument('mutation { post(body: """secret\nlines""") { id } }')).toBe(
+      'mutation { post(body: "*") { id } }',
+    );
+  });
+
+  test('leaves documents without literals untouched', () => {
+    const document = 'query Test($id: ID!) {\n  people {\n    name\n  }\n}';
+
+    expect(_redactGraphqlDocument(document)).toBe(document);
+  });
+});
 
 describe('GraphqlClient', () => {
   describe('parseGraphQLQuery', () => {
