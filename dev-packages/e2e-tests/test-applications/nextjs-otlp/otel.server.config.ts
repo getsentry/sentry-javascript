@@ -1,8 +1,5 @@
-import { metrics } from '@opentelemetry/api';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
-import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { getOtlpTracesEndpoint } from '@sentry/nextjs';
@@ -27,7 +24,7 @@ if (!globalWithOtelFlag.__otelRegistered) {
     throw new Error('Could not derive an OTLP traces endpoint from NEXT_PUBLIC_E2E_TEST_DSN');
   }
 
-  // The user owns tracing: this registers the global tracer provider, context manager and
+  // The app owns tracing: this registers the global tracer provider, context manager and
   // propagator. Sentry is initialized afterwards with `enableOpenTelemetrySetup: false` so it does
   // not contend for any of them.
   new NodeTracerProvider({
@@ -39,17 +36,4 @@ if (!globalWithOtelFlag.__otelRegistered) {
       ),
     ],
   }).register();
-
-  metrics.setGlobalMeterProvider(
-    new MeterProvider({
-      resource,
-      readers: [
-        new PeriodicExportingMetricReader({
-          exporter: new OTLPMetricExporter({ url: `${otlpBaseUrl}/v1/metrics` }),
-          exportIntervalMillis: 500,
-          exportTimeoutMillis: 500,
-        }),
-      ],
-    }),
-  );
 }
