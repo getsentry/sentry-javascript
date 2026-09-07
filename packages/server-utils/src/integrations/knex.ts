@@ -33,11 +33,8 @@ import { DB } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import {
-  _INTERNAL_getSqlQuerySummary,
-  _INTERNAL_sanitizeSqlQuery,
-  filterCollectedDbQueryText,
-} from '@sentry/core/server';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { filterCollectedDbQueryText } from '../utils/filterCollectedDbQueryText';
 
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
@@ -181,9 +178,7 @@ function subscribeQuery(): void {
       const dialect = client?.driverName === 'mysql' || client?.driverName === 'mysql2' ? 'mysql' : undefined;
       const dbStatement =
         query?.sql != null ? filterCollectedDbQueryText(truncate(query.sql, MAX_QUERY_LENGTH), dialect) : undefined;
-      const querySummary = dbStatement
-        ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(dbStatement, dialect))
-        : undefined;
+      const querySummary = dbStatement ? getSqlQuerySummary(sanitizeSqlQuery(dbStatement, dialect)) : undefined;
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',

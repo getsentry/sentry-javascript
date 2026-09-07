@@ -22,11 +22,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import {
-  _INTERNAL_getSqlQuerySummary,
-  _INTERNAL_sanitizeSqlQuery,
-  filterCollectedDbQueryText,
-} from '@sentry/core/server';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { filterCollectedDbQueryText } from '../utils/filterCollectedDbQueryText';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { mysqlModuleNames } from '../orchestrion/config/mysql';
@@ -92,7 +89,7 @@ function instrumentMysql(): void {
       // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
       data._sentryCallerScope = getCurrentScope();
 
-      const querySummary = sql ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql, 'mysql')) : undefined;
+      const querySummary = sql ? getSqlQuerySummary(sanitizeSqlQuery(sql, 'mysql')) : undefined;
 
       const client = getClient();
       const queryText = filterCollectedDbQueryText(sql, 'mysql', client);

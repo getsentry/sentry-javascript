@@ -28,11 +28,8 @@ import { DB } from '@sentry/conventions/op';
 import { CHANNELS } from '../orchestrion/channels';
 import { tediousModuleNames } from '../orchestrion/config/tedious';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
-import {
-  _INTERNAL_getSqlQuerySummary,
-  _INTERNAL_sanitizeSqlQuery,
-  filterCollectedDbQueryText,
-} from '@sentry/core/server';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { filterCollectedDbQueryText } from '../utils/filterCollectedDbQueryText';
 
 // NOTE: this uses the same name as the OTel integration by design. When orchestrion injection is active,
 // `_init` swaps the OTel `Tedious` integration out of the defaults and appends this one (matched by name).
@@ -136,8 +133,7 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const databaseName = connection[currentDatabaseSymbol];
     const sql = extractSql(request);
-    const querySummary =
-      sql && operation !== 'callProcedure' ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql)) : undefined;
+    const querySummary = sql && operation !== 'callProcedure' ? getSqlQuerySummary(sanitizeSqlQuery(sql)) : undefined;
 
     const attributes: SpanAttributes = {
       [SENTRY_OP]: DB,
