@@ -1,5 +1,5 @@
 import { captureException, getClient, getCurrentScope } from '@sentry/core';
-import { flushIfServerless } from '@sentry/server-utils';
+import { flushIfServerless } from '@sentry/server-utils/no-diagnostic-channels';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { H3Error } from 'h3';
 import type { CapturedErrorContext } from 'nitropack/types';

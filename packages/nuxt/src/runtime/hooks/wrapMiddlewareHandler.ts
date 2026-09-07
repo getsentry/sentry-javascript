@@ -11,7 +11,7 @@ import {
   type SpanAttributes,
   startSpan,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/server-utils';
+import { flushIfServerless } from '@sentry/server-utils/no-diagnostic-channels';
 import type {
   _ResponseMiddleware as ResponseMiddleware,
   EventHandler,

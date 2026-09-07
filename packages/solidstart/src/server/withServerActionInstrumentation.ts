@@ -1,5 +1,5 @@
 import { handleCallbackErrors, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR } from '@sentry/core';
-import { flushIfServerless } from '@sentry/server-utils';
+import { flushIfServerless } from '@sentry/server-utils/no-diagnostic-channels';
 import { captureException, getActiveSpan, spanToJSON, startSpan } from '@sentry/node';
 import { isRedirect } from './utils';
 import {
@@ -10,7 +10,7 @@ import {
   URL_PATH,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
-import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
+import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils/no-diagnostic-channels';
 
 /**
  * Wraps a server action (functions that use the 'use server' directive)

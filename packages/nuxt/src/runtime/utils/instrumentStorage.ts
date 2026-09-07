@@ -16,7 +16,7 @@ import {
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/server-utils';
+import { flushIfServerless } from '@sentry/server-utils/no-diagnostic-channels';
 import type { Driver, Storage } from 'unstorage';
 
 /**
