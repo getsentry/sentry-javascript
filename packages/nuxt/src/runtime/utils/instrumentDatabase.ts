@@ -14,7 +14,7 @@ import {
   type StartSpanOptions,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { filterCollectedDbQueryText, getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
 import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
@@ -250,18 +250,19 @@ function createBreadcrumb(query: string): void {
  * Creates a start span options object.
  */
 function createStartSpanOptions(query: string, data: DatabaseSpanData): StartSpanOptions {
-  const querySummary = query ? getSqlQuerySummary(sanitizeSqlQuery(query)) : undefined;
+  const queryText = query ? sanitizeSqlQuery(query) : undefined;
+  const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
 
   const client = getClient();
   const name =
     client && hasSpanStreamingEnabled(client)
       ? querySummary || (data[DB_NAMESPACE] as string | undefined) || DB_SPAN_NAME_FALLBACK
-      : query;
+      : (queryText ?? DB_SPAN_NAME_FALLBACK);
 
   return {
     name,
     attributes: {
-      [DB_QUERY_TEXT]: filterCollectedDbQueryText(query),
+      [DB_QUERY_TEXT]: queryText,
       [DB_QUERY_SUMMARY]: querySummary,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
       [SENTRY_OP]: DB_QUERY,

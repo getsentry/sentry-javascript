@@ -11,7 +11,7 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
-import { filterCollectedDbQueryText, getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
 import { ensureInstrumented } from '../../instrument';
 
 // Patching is based on internal Cloudflare D1 API
@@ -122,7 +122,8 @@ type D1QueryType = 'first' | 'run' | 'all' | 'raw' | 'batch' | 'exec';
 function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Response): void {
   addBreadcrumb({
     category: 'query',
-    message: query,
+    // The breadcrumb carries the same query text as the span, so it is sanitized the same way.
+    message: sanitizeSqlQuery(query),
     data: {
       ...(d1Result ? getAttributesFromD1Response(d1Result) : {}),
       'db.operation.name': type,
@@ -131,10 +132,10 @@ function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Respo
 }
 
 function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOptions {
-  const querySummary = query ? getSqlQuerySummary(sanitizeSqlQuery(query)) : undefined;
+  const queryText = sanitizeSqlQuery(query);
+  const querySummary = query ? getSqlQuerySummary(queryText) : undefined;
 
   const client = getClient();
-  const queryText = filterCollectedDbQueryText(query, undefined, client);
   const name = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : queryText;
 
   return {

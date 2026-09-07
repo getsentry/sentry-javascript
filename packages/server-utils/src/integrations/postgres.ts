@@ -23,7 +23,6 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
-import { filterCollectedDbQueryText } from '../utils/filterCollectedDbQueryText';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { pgModuleNames } from '../orchestrion/config/pg';
@@ -181,11 +180,10 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
-  // The statement is sanitized before it is summarized, so that a string literal containing
-  // `from`/`join` can't leak a value into the summary.
-  const querySummary = queryConfig?.text ? getSqlQuerySummary(sanitizeSqlQuery(queryConfig.text)) : undefined;
-
-  const queryText = filterCollectedDbQueryText(queryConfig?.text, undefined, client);
+  // Per OTel, `db.query.text` must not carry inline literal values. `$n` placeholders survive the
+  // sanitizer, so parameterized statements pass through unchanged.
+  const queryText = queryConfig?.text ? sanitizeSqlQuery(queryConfig.text) : undefined;
+  const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
   const name =
     client && hasSpanStreamingEnabled(client)
       ? querySummary || params.database || DB_SYSTEM_POSTGRESQL

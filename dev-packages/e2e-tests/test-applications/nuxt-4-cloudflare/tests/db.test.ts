@@ -26,13 +26,13 @@ test('a real mysql query emits a db span with orchestrion-channel attributes', a
 
   const dbSpans = spans.filter(span => getSpanOp(span) === 'db' && span.trace_id === rootSpan!.trace_id);
 
-  const firstQuery = dbSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT 1 + 1 AS solution');
+  const firstQuery = dbSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT ? + ? AS solution');
   expect(firstQuery).toBeDefined();
   expect(firstQuery!.name).toBe('SELECT');
   expect(firstQuery!.attributes).toMatchObject({
     'sentry.origin': { type: 'string', value: 'auto.db.mysql' },
     'db.system.name': { type: 'string', value: 'mysql' },
-    'db.query.text': { type: 'string', value: 'SELECT 1 + 1 AS solution' },
+    'db.query.text': { type: 'string', value: 'SELECT ? + ? AS solution' },
     'server.address': { type: 'string', value: '127.0.0.1' },
     'server.port': { type: 'integer', value: 3306 },
     'db.user': { type: 'string', value: 'root' },
@@ -52,6 +52,6 @@ test('a nested query lands on the same trace (async context restored)', async ({
   const queryTexts = spans
     .filter(span => getSpanOp(span) === 'db' && span.trace_id === rootSpan!.trace_id)
     .map(span => span.attributes['db.query.text']?.value);
-  expect(queryTexts).toContain('SELECT 1 + 1 AS solution');
+  expect(queryTexts).toContain('SELECT ? + ? AS solution');
   expect(queryTexts).toContain('SELECT NOW()');
 });

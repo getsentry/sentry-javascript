@@ -15,11 +15,11 @@ test('a real mysql query emits a db span with orchestrion-channel attributes', a
   const transactionEvent = await transactionPromise;
   const dbSpans = transactionEvent.spans!.filter(span => span.op === 'db');
 
-  const firstQuery = dbSpans.find(span => span.description === 'SELECT 1 + 1 AS solution');
+  const firstQuery = dbSpans.find(span => span.description === 'SELECT ? + ? AS solution');
   expect(firstQuery).toBeDefined();
   expect(firstQuery!.data?.['sentry.origin']).toBe('auto.db.mysql');
   expect(firstQuery!.data?.['db.system.name']).toBe('mysql');
-  expect(firstQuery!.data?.['db.query.text']).toBe('SELECT 1 + 1 AS solution');
+  expect(firstQuery!.data?.['db.query.text']).toBe('SELECT ? + ? AS solution');
   expect(firstQuery!.data?.['server.address']).toBe('127.0.0.1');
   expect(firstQuery!.data?.['server.port']).toBe(3306);
   expect(firstQuery!.data?.['db.user']).toBe('root');
@@ -38,6 +38,6 @@ test('a nested query lands on the same transaction (async context restored)', as
 
   const transactionEvent = await transactionPromise;
   const descriptions = transactionEvent.spans!.filter(span => span.op === 'db').map(span => span.description);
-  expect(descriptions).toContain('SELECT 1 + 1 AS solution');
+  expect(descriptions).toContain('SELECT ? + ? AS solution');
   expect(descriptions).toContain('SELECT NOW()');
 });

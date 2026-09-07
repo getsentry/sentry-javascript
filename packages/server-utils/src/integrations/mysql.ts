@@ -23,7 +23,6 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
-import { filterCollectedDbQueryText } from '../utils/filterCollectedDbQueryText';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { mysqlModuleNames } from '../orchestrion/config/mysql';
@@ -89,10 +88,12 @@ function instrumentMysql(): void {
       // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
       data._sentryCallerScope = getCurrentScope();
 
-      const querySummary = sql ? getSqlQuerySummary(sanitizeSqlQuery(sql, 'mysql')) : undefined;
+      // Per OTel, `db.query.text` must not carry inline literal values, so the sanitized form is
+      // attached rather than the raw statement.
+      const queryText = sql ? sanitizeSqlQuery(sql, 'mysql') : undefined;
+      const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
 
       const client = getClient();
-      const queryText = filterCollectedDbQueryText(sql, 'mysql', client);
       const name =
         client && hasSpanStreamingEnabled(client)
           ? querySummary || database || DB_SYSTEM_NAME_VALUE_MYSQL

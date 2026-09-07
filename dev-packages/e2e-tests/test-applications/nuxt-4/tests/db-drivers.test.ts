@@ -83,7 +83,7 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
         'sentry.op': { type: 'string', value: 'db' },
         'sentry.origin': { type: 'string', value: 'auto.db.mysql' },
         'db.system.name': { type: 'string', value: 'mysql' },
-        'db.query.text': { type: 'string', value: 'SELECT 1 + 1 AS solution' },
+        'db.query.text': { type: 'string', value: 'SELECT ? + ? AS solution' },
         'db.query.summary': { type: 'string', value: 'SELECT' },
         'db.user': { type: 'string', value: 'root' },
         'db.connection_string': { type: 'string', value: expect.any(String) },

@@ -131,7 +131,7 @@ test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
     expect.objectContaining({
       op: 'db',
       origin: 'auto.db.mysql',
-      description: 'SELECT 1 + 1 AS solution',
+      description: 'SELECT ? + ? AS solution',
     }),
   );
   expect(spans).toContainEqual(

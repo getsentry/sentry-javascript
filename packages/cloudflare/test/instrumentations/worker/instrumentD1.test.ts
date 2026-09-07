@@ -116,7 +116,6 @@ describe('instrumentD1', () => {
       beforeEach(() => {
         getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue({
           getOptions: () => ({ traceLifecycle: 'stream' }),
-          getDataCollectionOptions: () => ({ databaseQueryData: true }),
         } as unknown as ReturnType<typeof SentryCore.getClient>);
       });
 
