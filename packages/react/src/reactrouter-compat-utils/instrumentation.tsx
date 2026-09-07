@@ -705,18 +705,35 @@ export function createReactRouterV6CompatibleTracingIntegration(
         resolvedLazyRouteTimeout = configuredMaxWait;
       }
 
-      reactRouterConfigByClient.set(client, {
-        useLocation,
-        useNavigationType,
-        createRoutesFromChildren,
-        matchRoutes,
-        stripBasename: stripBasename || false,
-        enableAsyncRouteHandlers,
-        instrumentNavigation,
-        lazyRouteTimeout: resolvedLazyRouteTimeout,
-        lazyRouteManifest,
-        basename: '',
-      });
+      // Only store a config when every hook the wrappers call is present. Storing a partial config would
+      // make the wrappers take the instrumented branch and invoke a missing hook (e.g. `config.useLocation`)
+      // at render time, crashing the host app. Without a config the wrappers fall back to uninstrumented
+      // routes instead. The `@sentry/react/react-router` entry supplies these automatically.
+      if (
+        typeof useLocation === 'function' &&
+        typeof useNavigationType === 'function' &&
+        typeof createRoutesFromChildren === 'function' &&
+        typeof matchRoutes === 'function'
+      ) {
+        reactRouterConfigByClient.set(client, {
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+          stripBasename: stripBasename || false,
+          enableAsyncRouteHandlers,
+          instrumentNavigation,
+          lazyRouteTimeout: resolvedLazyRouteTimeout,
+          lazyRouteManifest,
+          basename: '',
+        });
+      } else {
+        DEBUG_BUILD &&
+          debug.warn(
+            '[React Router] Skipping route instrumentation because `useLocation`, `useNavigationType`, `createRoutesFromChildren` or `matchRoutes` was not provided. ' +
+              'Pass them to `reactRouterBrowserTracingIntegration`, or import it from `@sentry/react/react-router` to have them supplied automatically.',
+          );
+      }
     },
     afterAllSetup(client) {
       const initPathName = WINDOW.location?.pathname;

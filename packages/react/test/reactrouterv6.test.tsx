@@ -94,6 +94,33 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
     allRoutes.clear();
   });
 
+  it('falls back to uninstrumented routes when the required hooks are omitted (does not crash the app)', () => {
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    // A plain-JS consumer that skips the required hooks. TypeScript declares them as required, but nothing
+    // enforces that at runtime - so the wrappers must fall back to rendering the original routes rather than
+    // storing a partial config and later invoking an undefined hook, which would crash the host app.
+    client.addIntegration(
+      reactRouterV6BrowserTracingIntegration({} as Parameters<typeof reactRouterV6BrowserTracingIntegration>[0]),
+    );
+
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+    const { getByText } = render(
+      <MemoryRouter initialEntries={['/about']}>
+        <SentryRoutes>
+          <Route path="/about" element={<div>About Page</div>} />
+        </SentryRoutes>
+      </MemoryRouter>,
+    );
+
+    expect(getByText('About Page')).toBeDefined();
+    // Uninstrumented: no route-based span name update or navigation instrumentation ran.
+    expect(mockRootSpan.updateName).not.toHaveBeenCalled();
+    expect(mockStartBrowserTracingNavigationSpan).not.toHaveBeenCalled();
+  });
+
   it('wrapCreateMemoryRouterV6 starts and updates a pageload transaction - single initialEntry', () => {
     const client = createMockBrowserClient();
     setCurrentClient(client);
