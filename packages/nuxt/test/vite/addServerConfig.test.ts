@@ -209,8 +209,7 @@ describe('addServerConfigPlugin', () => {
     expect(nitroConfig.plugins).toEqual([pluginDst, 'other-module-plugin.mjs']);
   });
 
-  it('removes the plugin and warns on Cloudflare presets instead of importing the Node SDK into workerd', () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('removes the plugin for explicitly configured Cloudflare presets', () => {
     const { nuxt, hooks } = createFakeNuxt();
     addServerConfigPlugin(nuxt, APP_CONFIG);
     const nitroConfig: NitroConfig = { preset: 'cloudflare_module', plugins: ['other-plugin.mjs', pluginDst] };
@@ -219,8 +218,31 @@ describe('addServerConfigPlugin', () => {
 
     expect(nitroConfig.plugins).toEqual(['other-plugin.mjs']);
     expect(nitroConfig.externals).toBeUndefined();
+  });
+
+  it('removes the plugin and warns when the resolved preset targets Cloudflare', () => {
+    // Env-derived presets (`NITRO_PRESET`, Cloudflare Pages CI) are only resolved inside Nitro,
+    // after `nitro:config` ran, so the authoritative check uses `nitro:init`.
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { nuxt, hooks } = createFakeNuxt();
+    addServerConfigPlugin(nuxt, APP_CONFIG);
+    const nitro = { options: { preset: 'cloudflare_pages', plugins: ['other-plugin.mjs', pluginDst] } };
+
+    hooks['nitro:init']!(nitro as never);
+
+    expect(nitro.options.plugins).toEqual(['other-plugin.mjs']);
     expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('sentryCloudflareNitroPlugin'));
     consoleWarnSpy.mockRestore();
+  });
+
+  it('keeps the plugin when the resolved preset is not Cloudflare', () => {
+    const { nuxt, hooks } = createFakeNuxt();
+    addServerConfigPlugin(nuxt, APP_CONFIG);
+    const nitro = { options: { preset: 'node-server', plugins: ['other-plugin.mjs', pluginDst] } };
+
+    hooks['nitro:init']!(nitro as never);
+
+    expect(nitro.options.plugins).toEqual(['other-plugin.mjs', pluginDst]);
   });
 });
 

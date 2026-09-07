@@ -143,16 +143,10 @@ export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string): voi
   ];
 
   nuxt.hook('nitro:config', nitroConfig => {
-    // On Cloudflare the SDK is set up through `sentryCloudflareNitroPlugin`; the Node SDK config
-    // must not end up in the worker bundle.
+    // Early skip for explicitly configured Cloudflare presets. The authoritative check runs on
+    // `nitro:init`: env-derived presets (`NITRO_PRESET`, Cloudflare Pages CI) resolve only inside Nitro.
     if (isCloudflarePreset(nitroConfig.preset)) {
       nitroConfig.plugins = (nitroConfig.plugins ?? []).filter(plugin => plugin !== configPluginTemplate.dst);
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[Sentry] Found \`${basename(configPath)}\`, but the Nitro preset targets Cloudflare, where this file is not used. Set up the SDK with \`sentryCloudflareNitroPlugin\` instead: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/cloudflare-workers/`,
-        );
-      });
       return;
     }
 
@@ -167,6 +161,22 @@ export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string): voi
     const inline = externals.inline;
     const existingInline = Array.isArray(inline) ? inline : inline ? [inline] : [];
     externals.inline = [...existingInline, configPath, configPluginTemplate.dst, runtimeFlagsTemplate.dst];
+  });
+
+  // On Cloudflare the SDK is set up through `sentryCloudflareNitroPlugin`; the Node SDK config
+  // must not end up in the worker bundle. `nitro.options.preset` is resolved here.
+  nuxt.hook('nitro:init', nitro => {
+    if (nuxt.options._prepare || !isCloudflarePreset(nitro.options.preset)) {
+      return;
+    }
+
+    nitro.options.plugins = (nitro.options.plugins ?? []).filter(plugin => plugin !== configPluginTemplate.dst);
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Sentry] Found \`${basename(configPath)}\`, but the Nitro preset targets Cloudflare, where this file is not used. Set up the SDK with \`sentryCloudflareNitroPlugin\` instead: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/cloudflare-workers/`,
+      );
+    });
   });
 }
 
