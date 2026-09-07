@@ -1,15 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, waitForError } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'nestjs-8';
-
-/**
- * Resolves once the request's segment span has been streamed, which is how these specs know the
- * request finished and any error it would have produced had its chance to be sent.
- */
-function waitForSegmentSpan(name: string): Promise<unknown> {
-  return waitForStreamedSpan(APP_NAME, span => span.is_segment && span.name === name);
-}
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
   const errorEventPromise = waitForError(APP_NAME, event => {
@@ -63,8 +55,10 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-500-exception/:id';
   });
 
-  const segmentSpanPromise400 = waitForSegmentSpan('GET /test-expected-400-exception/:id');
-  const segmentSpanPromise500 = waitForSegmentSpan('GET /test-expected-500-exception/:id');
+  // Waiting for each request's segment span is how this spec knows the request finished and
+  // any error it would have produced had its chance to be sent.
+  const spansPromise400 = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-expected-400-exception/:id');
+  const spansPromise500 = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-expected-500-exception/:id');
 
   const response400 = await fetch(`${baseURL}/test-expected-400-exception/123`);
   expect(response400.status).toBe(400);
@@ -72,8 +66,8 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   const response500 = await fetch(`${baseURL}/test-expected-500-exception/123`);
   expect(response500.status).toBe(500);
 
-  await segmentSpanPromise400;
-  await segmentSpanPromise500;
+  await spansPromise400;
+  await spansPromise500;
 
   (await fetch(`${baseURL}/flush`)).text();
 
@@ -91,12 +85,12 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-rpc-exception/:id';
   });
 
-  const segmentSpanPromise = waitForSegmentSpan('GET /test-expected-rpc-exception/:id');
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-expected-rpc-exception/:id');
 
   const response = await fetch(`${baseURL}/test-expected-rpc-exception/123`);
   expect(response.status).toBe(500);
 
-  await segmentSpanPromise;
+  await spansPromise;
 
   (await fetch(`${baseURL}/flush`)).text();
 
@@ -116,7 +110,7 @@ test('Global exception filter registered in main module is applied and exception
     return event?.transaction === 'GET /example-exception-global-filter';
   });
 
-  const segmentSpanPromise = waitForSegmentSpan('GET /example-exception-global-filter');
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-exception-global-filter');
 
   const response = await fetch(`${baseURL}/example-exception-global-filter`);
   const responseBody = await response.json();
@@ -129,7 +123,7 @@ test('Global exception filter registered in main module is applied and exception
     message: 'Example exception was handled by global filter!',
   });
 
-  await segmentSpanPromise;
+  await spansPromise;
 
   (await fetch(`${baseURL}/flush`)).text();
 
@@ -149,7 +143,7 @@ test('Local exception filter registered in main module is applied and exception 
     return event?.transaction === 'GET /example-exception-local-filter';
   });
 
-  const segmentSpanPromise = waitForSegmentSpan('GET /example-exception-local-filter');
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /example-exception-local-filter');
 
   const response = await fetch(`${baseURL}/example-exception-local-filter`);
   const responseBody = await response.json();
@@ -162,7 +156,7 @@ test('Local exception filter registered in main module is applied and exception 
     message: 'Example exception was handled by local filter!',
   });
 
-  await segmentSpanPromise;
+  await spansPromise;
 
   (await fetch(`${baseURL}/flush`)).text();
 
