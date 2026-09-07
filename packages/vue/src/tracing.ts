@@ -3,7 +3,7 @@ import type { Span } from '@sentry/core';
 import { debug, timestampInSeconds, uniq } from '@sentry/core';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { UI_MOUNT, UI_RENDER, UI_UNMOUNT, UI_UPDATE } from '@sentry/conventions/op';
-import { DEFAULT_HOOKS } from './constants';
+import { DEFAULT_HOOKS, DEFAULT_ROOT_SPAN_TIMEOUT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 import { formatComponentName } from './vendor/components';
@@ -18,9 +18,9 @@ const VUE_OPERATION_TO_SPAN_OP: Record<Operation, string> = {
   destroy: UI_UNMOUNT,
 };
 
-type Mixins = Parameters<Vue['mixin']>[0];
+export type Mixins = Parameters<Vue['mixin']>[0];
 
-interface VueSentry extends ViewModel {
+export interface VueSentry extends ViewModel {
   readonly $root: VueSentry;
   $_sentryComponentSpans?: {
     [key: string]: Span | undefined;
@@ -42,7 +42,7 @@ const HOOKS: { [key in Operation]: Hook[] } = {
 };
 
 /** End the top-level component span and activity with a debounce configured using `timeout` option */
-function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
+export function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
   if (vm.$_sentryRootComponentSpanTimer) {
     clearTimeout(vm.$_sentryRootComponentSpanTimer);
   }
@@ -73,7 +73,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
 
   const mixins: Mixins = {};
 
-  const rootComponentSpanFinalTimeout = options.timeout || 2000;
+  const rootComponentSpanFinalTimeout = options.timeout || DEFAULT_ROOT_SPAN_TIMEOUT;
 
   for (const operation of hooks) {
     // Retrieve corresponding hooks from Vue lifecycle.

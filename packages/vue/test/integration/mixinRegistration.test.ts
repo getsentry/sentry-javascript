@@ -5,8 +5,8 @@
 import { spanToJSON } from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it as baseIt, vi } from 'vitest';
-import type { App, Ref } from 'vue';
-import { createApp, h, nextTick, ref } from 'vue';
+import type { App, Component, Ref } from 'vue';
+import { createApp, defineAsyncComponent, h, nextTick, ref } from 'vue';
 import * as Sentry from '../../src';
 import type { Options, TracingOptions } from '../../src/types';
 
@@ -41,6 +41,19 @@ function createReactiveTestApp(): { app: App; message: Ref<string> } {
   const child = { name: 'ChildComponent', render: () => h('p', 'child') };
   const app = createApp({ name: 'RootComponent', render: () => h('div', [h('span', message.value), h(child)]) });
   return { app, message };
+}
+
+/** An app whose only child mounts when the returned `resolveChild` is called. */
+function createAppWithDeferredChild(): { app: App; resolveChild: () => void } {
+  let resolve: (component: Component) => void = () => {};
+  const asyncChild = defineAsyncComponent(
+    () =>
+      new Promise<Component>(resolveLoader => {
+        resolve = resolveLoader;
+      }),
+  );
+  const app = createApp({ name: 'RootComponent', render: () => h('div', [h(asyncChild)]) });
+  return { app, resolveChild: () => resolve({ render: () => h('p', 'child') }) };
 }
 
 /** Reads the mixins Vue accepted. `app.mixin()` is a silent no-op without the Options API. */
@@ -183,8 +196,7 @@ describe('tracing mixin span creation', () => {
   });
 
   // The mixin always tracks the root component: `isRootComponent || …` short-circuits before the
-  // `trackComponents` filter runs. The next four tests record what that means for each hook, so a
-  // mixin replacement can prove which parts it keeps.
+  // `trackComponents` filter runs. The following tests record what that means for each hook.
 
   it('tracks the root component for update hooks without trackComponents', async ({ uiSpans, initSentry }) => {
     const { app, message } = createReactiveTestApp();
@@ -206,9 +218,8 @@ describe('tracing mixin span creation', () => {
     ]);
   });
 
-  // `beforeCreate` fires very early in `app.mount()`, but the mixin creates the root render span
-  // first, in the same handler. So the `create` span has a parent and is emitted, as `ui.mount`,
-  // which is the op the `create` operation maps to.
+  // The mixin creates the root render span in the same `beforeCreate` handler, so the `create`
+  // span has a parent even this early in `app.mount()`. The `create` operation maps to `ui.mount`.
   it('tracks the root component for create hooks without trackComponents', ({ app, uiSpans, initSentry }) => {
     initSentry({ tracing: { hooks: ['create'] } });
 
@@ -248,6 +259,21 @@ describe('tracing mixin span creation', () => {
     ]);
   });
 
+  // `maybeEndRootComponentSpan` arms one debounce timer per component, so a late child never
+  // clears the root's earlier timer, and the root's timer ends the span first. The twin test in
+  // the disabled describe below proves the `app.mount()` wrap matches.
+  it('ends the root render span before a deferred child mounts', ({ uiSpans, initSentry }) => {
+    const { app } = createAppWithDeferredChild();
+    initSentry({ sdk: { app } });
+
+    mountUnderActiveSpan(app);
+
+    expect(uiSpans).toEqual([
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+    ]);
+  });
+
   // Vue 3 compiles `app.mixin()` down to a no-op returning the app when the `__VUE_OPTIONS_API__`
   // build flag is `false`. Nuxt 5 sets that flag by default (nuxt/nuxt#35791), so this stub matches
   // what those users run. The real build is covered by the `vue-3 (no Options API)` e2e variant.
@@ -256,9 +282,7 @@ describe('tracing mixin span creation', () => {
       app.mixin = () => app;
     }
 
-    // Drop `.fails` once tracing no longer depends on `app.mixin()`. Vitest then reports this as a
-    // failure, which is the signal to delete the modifier.
-    it.fails('creates the same UI spans as with the Options API enabled', ({ app, uiSpans, initSentry }) => {
+    it('creates the same UI spans as with the Options API enabled', ({ app, uiSpans, initSentry }) => {
       disableOptionsApi(app);
       initSentry();
 
@@ -279,6 +303,86 @@ describe('tracing mixin span creation', () => {
       expect(container.innerHTML).toBe('<div><p>child</p></div>');
     });
 
+    // Users rely on `const instance = app.mount(container)`; the wrap must not swallow it.
+    it('returns the root instance from the wrapped mount', ({ app, initSentry }) => {
+      disableOptionsApi(app);
+      initSentry();
+      const container = document.createElement('div');
+
+      const rootInstance = app.mount(container);
+
+      expect(rootInstance.$el).toBe(container.firstElementChild);
+    });
+
+    // Matches the mixin-path twin above: the mixin never waited for late children either.
+    // Framework SDKs can push the end out through `INTERNAL_extendVueRootRenderSpan` (the Nuxt SDK does).
+    it('ends the root render span before a deferred child mounts', ({ uiSpans, initSentry }) => {
+      const { app } = createAppWithDeferredChild();
+      disableOptionsApi(app);
+      initSentry({ sdk: { app } });
+
+      mountUnderActiveSpan(app);
+
+      expect(uiSpans).toEqual([
+        { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+        { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+      ]);
+    });
+
+    it('records no further spans when a child mounts after the root span ended', async ({ uiSpans, initSentry }) => {
+      const { app, resolveChild } = createAppWithDeferredChild();
+      disableOptionsApi(app);
+      initSentry({ sdk: { app } });
+      const container = mountUnderActiveSpan(app);
+
+      resolveChild();
+      // Async component resolution hops through several real microtasks before the re-render
+      // flush, so poll until the child rendered; `vi.waitFor` advances the fake timers itself.
+      await vi.waitFor(() => expect(container.innerHTML).toBe('<div><p>child</p></div>'));
+      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS + 1);
+      expect(uiSpans).toEqual([
+        { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+        { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+      ]);
+    });
+
+    it('extendVueRootRenderSpan pushes back the root render span end', ({ app, uiSpans, initSentry }) => {
+      disableOptionsApi(app);
+      initSentry();
+      const container = document.createElement('div');
+
+      Sentry.startSpan({ name: 'pageload' }, () => {
+        app.mount(container);
+        vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2);
+        Sentry.INTERNAL_extendVueRootRenderSpan(app);
+        // The original debounce deadline has passed by now; only the extension keeps the span open.
+        vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2 + 1);
+        expect(uiSpans).toEqual([{ name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP }]);
+        vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2);
+      });
+
+      expect(uiSpans).toEqual([
+        { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+        { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+      ]);
+    });
+
+    // Guards against re-arming a timer on every call (e.g. each Nuxt `page:finish`, forever).
+    it('extendVueRootRenderSpan does nothing once the root render span has ended', ({ app, uiSpans, initSentry }) => {
+      disableOptionsApi(app);
+      initSentry();
+      mountUnderActiveSpan(app);
+
+      const timersBeforeExtend = vi.getTimerCount();
+      Sentry.INTERNAL_extendVueRootRenderSpan(app);
+
+      expect(vi.getTimerCount()).toBe(timersBeforeExtend);
+      expect(uiSpans).toEqual([
+        { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+        { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+      ]);
+    });
+
     it('attaches the Vue error handler', ({ app, initSentry }) => {
       disableOptionsApi(app);
 
@@ -286,6 +390,21 @@ describe('tracing mixin span creation', () => {
 
       expect(app.config.errorHandler).toBeDefined();
     });
+  });
+
+  // On the mixin path no fallback is registered, so there is nothing for the helper to extend.
+  it('extendVueRootRenderSpan is a no-op for an app instrumented through the mixin', ({ app, uiSpans, initSentry }) => {
+    initSentry();
+    mountUnderActiveSpan(app);
+
+    const timersBeforeExtend = vi.getTimerCount();
+    Sentry.INTERNAL_extendVueRootRenderSpan(app);
+
+    expect(vi.getTimerCount()).toBe(timersBeforeExtend);
+    expect(uiSpans).toEqual([
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+    ]);
   });
 });
 
@@ -302,18 +421,49 @@ describe('Options API detection guard', () => {
     consoleWarn.mockRestore();
   });
 
-  it('warns when the app dropped the tracing mixin', ({ app, initSentry }) => {
+  // The default spans survive without the mixin (see the fallback tests above), so warning about a
+  // default config would be noise on every Nuxt 5 app.
+  it('does not warn with default options when the app dropped the tracing mixin', ({ app, initSentry }) => {
     app.mixin = () => app;
 
     initSentry();
 
+    expect(consoleWarn).not.toHaveBeenCalledWith(OPTIONS_API_WARNING);
+  });
+
+  it('warns when trackComponents is enabled and the app dropped the tracing mixin', ({ app, initSentry }) => {
+    app.mixin = () => app;
+
+    initSentry({ tracing: { trackComponents: true } });
+
     expect(consoleWarn).toHaveBeenCalledWith(OPTIONS_API_WARNING);
+  });
+
+  it('warns when a tracked component list is configured and the app dropped the tracing mixin', ({
+    app,
+    initSentry,
+  }) => {
+    app.mixin = () => app;
+
+    initSentry({ tracing: { trackComponents: ['ChildComponent'] } });
+
+    expect(consoleWarn).toHaveBeenCalledWith(OPTIONS_API_WARNING);
+  });
+
+  // A custom `hooks` config also degrades without the mixin, but the fallback still covers
+  // `mount` for the root, so only `trackComponents` is worth a warning.
+  it('does not warn when only hooks are configured', ({ app, initSentry }) => {
+    app.mixin = () => app;
+
+    initSentry({ tracing: { hooks: ['update'] } });
+
+    expect(consoleWarn).not.toHaveBeenCalledWith(OPTIONS_API_WARNING);
   });
 
   it('points a plain Vue app at its bundler config', ({ app, initSentry }) => {
     app.mixin = () => app;
 
-    initSentry();
+    initSentry({ tracing: { trackComponents: true } });
 
     expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('`define` config of your bundler'));
     expect(consoleWarn).not.toHaveBeenCalledWith(expect.stringContaining('nuxt.config.ts'));
@@ -324,13 +474,13 @@ describe('Options API detection guard', () => {
     app.mixin = () => app;
     Object.defineProperty(app, '$nuxt', { get: () => ({}) });
 
-    initSentry();
+    initSentry({ tracing: { trackComponents: true } });
 
     expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('`vue: { optionsApi: true }`'));
   });
 
   it('does not warn when the app accepted the tracing mixin', ({ initSentry }) => {
-    initSentry();
+    initSentry({ tracing: { trackComponents: true } });
 
     expect(consoleWarn).not.toHaveBeenCalledWith(OPTIONS_API_WARNING);
   });
@@ -338,7 +488,7 @@ describe('Options API detection guard', () => {
   it('does not warn when tracing is disabled, because no mixin is registered', ({ app, initSentry }) => {
     app.mixin = () => app;
 
-    initSentry({ sdk: { tracesSampleRate: undefined } });
+    initSentry({ tracing: { trackComponents: true }, sdk: { tracesSampleRate: undefined } });
 
     expect(consoleWarn).not.toHaveBeenCalledWith(OPTIONS_API_WARNING);
   });
@@ -347,7 +497,7 @@ describe('Options API detection guard', () => {
   it('does not warn for a Vue 2 constructor', ({ initSentry }) => {
     const vue2Constructor = { config: {}, mixin: () => {} };
 
-    initSentry({ sdk: { app: undefined, Vue: vue2Constructor } });
+    initSentry({ tracing: { trackComponents: true }, sdk: { app: undefined, Vue: vue2Constructor } });
 
     expect(consoleWarn).not.toHaveBeenCalledWith(OPTIONS_API_WARNING);
   });

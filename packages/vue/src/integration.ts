@@ -1,9 +1,10 @@
 import { consoleSandbox, defineIntegration, GLOBAL_OBJ, hasSpansEnabled } from '@sentry/core';
-import { DEFAULT_HOOKS } from './constants';
+import { DEFAULT_HOOKS, DEFAULT_ROOT_SPAN_TIMEOUT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { attachErrorHandler } from './errorhandler';
+import { instrumentAppMountWithoutMixin } from './rootInstrumentation';
 import { createTracingMixins } from './tracing';
-import type { Options, Vue, VueOptions } from './types';
+import type { Options, TracingOptions, Vue, VueOptions } from './types';
 
 const globalWithVue = GLOBAL_OBJ as typeof GLOBAL_OBJ & { Vue: Vue };
 
@@ -13,7 +14,7 @@ const DEFAULT_CONFIG: VueOptions = {
   attachErrorHandler: true,
   tracingOptions: {
     hooks: DEFAULT_HOOKS,
-    timeout: 2000,
+    timeout: DEFAULT_ROOT_SPAN_TIMEOUT,
     trackComponents: false,
   },
 };
@@ -76,21 +77,35 @@ const vueInit = (app: Vue, options: Options): void => {
   if (hasSpansEnabled(options)) {
     const mixins = createTracingMixins(options.tracingOptions);
     app.mixin(mixins);
-    warnIfMixinWasDropped(app, mixins);
+    if (!mixinWasApplied(app, mixins)) {
+      instrumentAppMountWithoutMixin(app, mixins, options.tracingOptions?.timeout || DEFAULT_ROOT_SPAN_TIMEOUT);
+      warnAboutLostComponentTracking(app, options.tracingOptions);
+    }
   }
 };
 
 /**
- * `app.mixin()` is a no-op when Options API is disabled (default in Nuxt 5).
- * Without mixins (Options API) users lose every UI span (render, mount, etc.)
-
+ * Reads back whether Vue accepted the mixin, because `app.mixin()` fails silently when the Options
+ * API is disabled (the Nuxt 5 default). A Vue 2 constructor has no `_context` and no Options API
+ * flag, so the mixin always applies there.
+ *
  * See: https://github.com/vuejs/core/blob/v3.5.41/packages/runtime-core/src/apiCreateApp.ts
  */
-function warnIfMixinWasDropped(app: Vue, mixin: unknown): void {
-  // Vue 2 has no `_context` and no Options API flag, so there is nothing to check.
+function mixinWasApplied(app: Vue, mixin: unknown): boolean {
   const mixins = (app as Vue & { _context?: { mixins?: unknown[] } })._context?.mixins;
+  return !mixins || mixins.includes(mixin);
+}
 
-  if (!mixins || mixins.includes(mixin)) {
+/**
+ * Warns only when the dropped mixin loses component tracking the user opted into. The default
+ * spans still work through the `app.mount()` wrap, so a default config stays silent.
+ */
+function warnAboutLostComponentTracking(app: Vue, tracingOptions: Partial<TracingOptions> | undefined): void {
+  const trackComponents = tracingOptions?.trackComponents;
+  const losesComponentSpans =
+    trackComponents === true || (Array.isArray(trackComponents) && trackComponents.length > 0);
+
+  if (!losesComponentSpans) {
     return;
   }
 
@@ -103,7 +118,7 @@ function warnIfMixinWasDropped(app: Vue, mixin: unknown): void {
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
     console.warn(
-      `[@sentry/vue]: The Vue Options API is disabled (\`__VUE_OPTIONS_API__: false\`), so Sentry cannot record UI spans. You lose \`Application Render\` and the component mount, update and unmount spans. Errors, pageload spans and navigation spans still work. ${fix}`,
+      `[@sentry/vue]: The Vue Options API is disabled (\`__VUE_OPTIONS_API__: false\`). Sentry still records the \`Application Render\` and root component mount spans, but component tracking (\`trackComponents\`) needs the Options API. ${fix}`,
     );
   });
 }
