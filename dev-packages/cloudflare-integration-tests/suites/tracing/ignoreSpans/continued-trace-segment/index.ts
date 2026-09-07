@@ -9,7 +9,6 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 0,
-    traceLifecycle: 'stream',
     ignoreSpans: [{ op: 'http.server' }],
     tracePropagationTargets: [env.SERVER_URL],
   }),
