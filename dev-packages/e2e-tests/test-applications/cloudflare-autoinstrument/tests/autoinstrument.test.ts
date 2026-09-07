@@ -45,6 +45,16 @@ for (const { title, binding, agentClass } of [
     binding: 'derived-agent',
     agentClass: 'DerivedAgent',
   },
+  {
+    title: 'an Agent imported from another module and exported by specifier',
+    binding: 'imported-agent',
+    agentClass: 'ImportedAgent',
+  },
+  {
+    title: 'an Agent re-exported straight from another module',
+    binding: 're-exported-agent',
+    agentClass: 'ReExportedAgent',
+  },
 ]) {
   test(`applies agent instrumentation to ${title}`, async ({ baseURL }) => {
     const instance = `${binding}-instance`;

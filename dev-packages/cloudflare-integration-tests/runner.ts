@@ -132,6 +132,8 @@ type Expected = Envelope | ((envelope: Envelope) => void);
 
 type StartResult = {
   completed(): Promise<void>;
+  /** Every non-ignored envelope received so far, matched or not, for count assertions. */
+  getReceivedEnvelopes(): Envelope[];
   makeRequest<T>(
     method: 'get' | 'post',
     path: string,
@@ -211,6 +213,7 @@ export function createRunner(...paths: string[]) {
       });
 
       const expectedEnvelopeCount = expectedEnvelopes.length;
+      const receivedEnvelopes: Envelope[] = [];
 
       let envelopeCount = 0;
       const envelopeWaiters: { expected: Expected; resolve: () => void; reject: (e: unknown) => void }[] = [];
@@ -255,6 +258,8 @@ export function createRunner(...paths: string[]) {
         if (ignored.has(envelopeItemType)) {
           return;
         }
+
+        receivedEnvelopes.push(envelope);
 
         // Check per-request waiters first (FIFO order)
         if (envelopeWaiters.length > 0) {
@@ -415,6 +420,9 @@ export function createRunner(...paths: string[]) {
       return {
         completed: async function (): Promise<void> {
           return isComplete;
+        },
+        getReceivedEnvelopes: function (): Envelope[] {
+          return receivedEnvelopes;
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',
