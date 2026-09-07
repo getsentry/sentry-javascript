@@ -4,15 +4,14 @@ import { waitForError, waitForStreamedSpan, waitForStreamedSpans } from '@sentry
 
 const APP_NAME = 'nestjs-distributed-tracing';
 
-function waitForSegmentSpan(name: string): Promise<SerializedStreamedSpan> {
-  return waitForStreamedSpan(APP_NAME, span => span.is_segment && span.name === name);
-}
-
 test('Event emitter', async () => {
   const eventErrorPromise = waitForError(APP_NAME, errorEvent => {
     return errorEvent.exception.values[0].value === 'Test error from event handler';
   });
-  const successEventSpanPromise = waitForSegmentSpan('event myEvent.pass');
+  const successEventSpanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => span.is_segment && span.name === 'event myEvent.pass',
+  );
 
   const eventsUrl = `http://localhost:3050/events/emit`;
   await fetch(eventsUrl);
@@ -54,7 +53,10 @@ test('Event handler breadcrumbs do not leak into subsequent HTTP requests', asyn
   // Wait for at least one setInterval tick to fire and add the breadcrumb
   await new Promise(resolve => setTimeout(resolve, 3000));
 
-  const segmentSpanPromise = waitForSegmentSpan('GET /events/test-isolation');
+  const segmentSpanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => span.is_segment && span.name === 'GET /events/test-isolation',
+  );
 
   await fetch('http://localhost:3050/events/test-isolation');
 
@@ -76,7 +78,10 @@ test('Multiple OnEvent decorators', async () => {
     return false;
   });
 
-  const rootSpanPromise = waitForSegmentSpan('GET /events/emit-multiple');
+  const rootSpanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => span.is_segment && span.name === 'GET /events/emit-multiple',
+  );
 
   const eventsUrl = `http://localhost:3050/events/emit-multiple`;
   await fetch(eventsUrl);
