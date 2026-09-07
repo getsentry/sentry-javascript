@@ -19,7 +19,6 @@ class TestDurableObjectBase extends DurableObject<Env> {
 export const TestDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   TestDurableObjectBase,
@@ -28,7 +27,6 @@ export const TestDurableObject = Sentry.instrumentDurableObjectWithSentry(
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   {
