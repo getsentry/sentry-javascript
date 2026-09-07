@@ -302,10 +302,6 @@ export function eventFromUnknownInput(
       event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
       addExceptionTypeValue(event, message);
     }
-    if ('code' in domException) {
-      // eslint-disable-next-line typescript/no-deprecated
-      event.tags = { ...event.tags, 'DOMException.code': `${domException.code}` };
-    }
 
     return event;
   }

@@ -1,23 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans } from '@sentry-internal/test-utils';
-
-// Streamed spans are flushed across multiple envelopes as they end, so the server-component child spans
-// can arrive in a different (earlier) envelope than the `is_segment` root span. Accumulate spans across
-// envelopes until the root span (which ends last) is seen.
-function collectSpanNamesUntilSegment(segmentName: string): Promise<string[]> {
-  return collectStreamedSpans('nextjs-16-bun', spans =>
-    spans.some(span => span.name === segmentName && span.is_segment),
-  ).then(spans => spans.map(span => span.name));
-}
+import { collectSpanNamesUntilSegment, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('Sends a span for a request to app router with URL', async ({ page }) => {
-  const spansPromise = collectStreamedSpans('nextjs-16-bun', spans =>
-    spans.some(
-      span =>
-        span.name === 'GET /parameterized/[one]/beep/[two]' &&
-        span.is_segment &&
-        String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
-    ),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-16-bun',
+    span =>
+      span.name === 'GET /parameterized/[one]/beep/[two]' &&
+      String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
   );
 
   await page.goto('/parameterized/1337/beep/42');
@@ -54,7 +43,7 @@ test('Sends a span for a request to app router with URL', async ({ page }) => {
 test('Will create spans for every server component and metadata generation functions when visiting a page', async ({
   page,
 }) => {
-  const spanNamesPromise = collectSpanNamesUntilSegment('GET /nested-layout');
+  const spanNamesPromise = collectSpanNamesUntilSegment('nextjs-16-bun', 'GET /nested-layout');
 
   await page.goto('/nested-layout');
 
@@ -73,7 +62,7 @@ test('Will create spans for every server component and metadata generation funct
 test('Will create spans for every server component and metadata generation functions when visiting a dynamic page', async ({
   page,
 }) => {
-  const spanNamesPromise = collectSpanNamesUntilSegment('GET /nested-layout/[dynamic]');
+  const spanNamesPromise = collectSpanNamesUntilSegment('nextjs-16-bun', 'GET /nested-layout/[dynamic]');
 
   await page.goto('/nested-layout/123');
 

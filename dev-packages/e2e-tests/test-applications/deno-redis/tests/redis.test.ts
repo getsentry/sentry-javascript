@@ -1,71 +1,89 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry/core';
 
-test('GET command emits an http.server transaction containing a db.query child span', async ({ baseURL }) => {
-  // Each incoming request gets a Sentry http.server transaction (via the
+// `Deno.serve` has no route information, so with span streaming the http.server segment is
+// named after the method only; the path lives in `url.path`.
+function isSegmentFor(path: string): (span: SerializedStreamedSpan) => boolean {
+  return span => getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === path;
+}
+
+function isRedisCommand(span: SerializedStreamedSpan): boolean {
+  return getSpanOp(span) === 'db.query';
+}
+
+// `db.query.text` carries the key, so with span streaming a redis command span is named
+// `{db.operation.name} {server.address}:{server.port}` instead.
+function expectedCommandName(span: SerializedStreamedSpan): string {
+  const { 'db.operation.name': operation, 'server.address': address, 'server.port': port } = span.attributes;
+  return `${operation?.value} ${address?.value}:${port?.value}`;
+}
+
+test('GET command emits an http.server segment containing a db.query child span', async ({ baseURL }) => {
+  // Each incoming request gets a Sentry http.server segment span (via the
   // default denoServeIntegration); the redis command runs inside it, so the
-  // child span attaches to that transaction.
-  const transactionPromise = waitForTransaction('deno-redis', event => {
-    return (
-      event?.contexts?.trace?.op === 'http.server' &&
-      (event.request?.url ?? '').includes('/redis-get') &&
-      (event.spans?.some(span => span.op === 'db.query') ?? false)
-    );
-  });
+  // child span joins that trace.
+  const spansPromise = collectStreamedSpans(
+    'deno-redis',
+    spans => spans.some(isSegmentFor('/redis-get')) && spans.some(isRedisCommand),
+  );
 
   const res = await fetch(`${baseURL}/redis-get?key=cache:user:42`);
   expect(res.status).toBe(200);
   await res.json();
 
-  const transaction = await transactionPromise;
-  const redisSpan = transaction.spans!.find(span => span.op === 'db.query');
+  const spans = await spansPromise;
+  const segment = spans.find(isSegmentFor('/redis-get'))!;
+  const redisSpan = spans.find(isRedisCommand);
   expect(redisSpan).toBeDefined();
-  expect(redisSpan!.description).toBe('redis-GET');
-  expect(redisSpan!.data?.['db.system.name']).toBe('redis');
-  // Statement omits the value; for GET the only allowed arg is the key.
-  expect(redisSpan!.data?.['db.query.text']).toBe('GET cache:user:42');
-  expect(redisSpan!.data?.['server.port']).toBe(6379);
+  expect(redisSpan!.parent_span_id).toBe(segment.span_id);
+  expect(redisSpan!.name).toBe(expectedCommandName(redisSpan!));
+  expect(redisSpan!.attributes).toMatchObject({
+    'db.system.name': { value: 'redis', type: 'string' },
+    'db.operation.name': { value: 'GET', type: 'string' },
+    // Statement omits the value; for GET the only allowed arg is the key.
+    'db.query.text': { value: 'GET cache:user:42', type: 'string' },
+    'server.port': { value: 6379, type: 'integer' },
+  });
 });
 
-test('SET then GET emit two db.query child spans on the same transaction', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('deno-redis', event => {
-    return (
-      event?.contexts?.trace?.op === 'http.server' &&
-      (event.request?.url ?? '').includes('/redis-set-get') &&
-      (event.spans?.filter(span => span.op === 'db.query').length ?? 0) >= 2
-    );
-  });
+test('SET then GET emit two db.query child spans on the same trace', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpans(
+    'deno-redis',
+    spans => spans.some(isSegmentFor('/redis-set-get')) && spans.filter(isRedisCommand).length >= 2,
+  );
 
   const res = await fetch(`${baseURL}/redis-set-get?key=cache:greeting&value=hello`);
   expect(res.status).toBe(200);
   await res.json();
 
-  const transaction = await transactionPromise;
-  const redisSpans = transaction.spans!.filter(span => span.op === 'db.query');
+  const spans = await spansPromise;
+  const segment = spans.find(isSegmentFor('/redis-set-get'))!;
+  const redisSpans = spans.filter(isRedisCommand);
   expect(redisSpans.length).toBeGreaterThanOrEqual(2);
-  const ops = redisSpans.map(s => s.description);
-  expect(ops).toContain('redis-SET');
-  expect(ops).toContain('redis-GET');
+  expect(redisSpans.every(span => span.parent_span_id === segment.span_id)).toBe(true);
+  const ops = redisSpans.map(span => span.attributes['db.operation.name']?.value);
+  expect(ops).toContain('SET');
+  expect(ops).toContain('GET');
 });
 
 test('MULTI batch emits a PIPELINE/MULTI batch span', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('deno-redis', event => {
-    return (
-      event?.contexts?.trace?.op === 'http.server' &&
-      (event.request?.url ?? '').includes('/redis-multi') &&
-      (event.spans?.some(span => span.description === 'MULTI' || span.description === 'PIPELINE') ?? false)
-    );
-  });
+  const isBatchSpan = (span: SerializedStreamedSpan) => span.name === 'MULTI' || span.name === 'PIPELINE';
+
+  const spansPromise = collectStreamedSpans(
+    'deno-redis',
+    spans => spans.some(isSegmentFor('/redis-multi')) && spans.some(isBatchSpan),
+  );
 
   const res = await fetch(`${baseURL}/redis-multi`);
   expect(res.status).toBe(200);
   await res.json();
 
-  const transaction = await transactionPromise;
-  const batchSpan = transaction.spans!.find(span => span.description === 'MULTI' || span.description === 'PIPELINE');
+  const spans = await spansPromise;
+  const batchSpan = spans.find(isBatchSpan);
   expect(batchSpan).toBeDefined();
-  expect(batchSpan!.op).toBe('db.query');
-  expect(batchSpan!.data?.['db.system.name']).toBe('redis');
+  expect(getSpanOp(batchSpan!)).toBe('db.query');
+  expect(batchSpan!.attributes['db.system.name']?.value).toBe('redis');
 });
 
 test('shut down redis client', async ({ baseURL }) => {

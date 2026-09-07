@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { addTemplate, createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
@@ -20,6 +21,7 @@ import {
   SENTRY_WRAPPED_FUNCTIONS,
   SERVER_CONFIG_FILENAME,
   toImportSpecifier,
+  toResolvablePath,
 } from './utils';
 
 /** Path of the generated dev-mode config file, relative to the Nuxt build directory. */
@@ -31,7 +33,7 @@ export const DEV_SERVER_CONFIG_PATH = `dev/${SERVER_CONFIG_FILENAME}.mjs`;
  * In dev-mode, Nitro v3 has no server bundle to emit into, so Node loads the server config file as it is written.
  */
 export function addDevServerConfigFile(nuxt: Nuxt, serverConfigFile: string): void {
-  const configPath = createResolver(nuxt.options.rootDir).resolve(`/${serverConfigFile}`);
+  const configPath = createResolver(nuxt.options.rootDir).resolve(serverConfigFile);
   const importSpecifier = toImportSpecifier(
     nuxt.options.rootDir,
     path.join(nuxt.options.buildDir, DEV_SERVER_CONFIG_PATH),
@@ -58,6 +60,15 @@ export function addDevServerConfigFile(nuxt: Nuxt, serverConfigFile: string): vo
         '',
       ].join('\n'),
   });
+}
+const CONFIG_EXTENSIONS = ['.ts', '.js', '.mjs', '.cjs', '.mts', '.cts'];
+
+function isServerConfigFile(sourcePath: string, resolvedPath: string): boolean {
+  if (sourcePath === resolvedPath) {
+    return true;
+  }
+  const name = basename(sourcePath);
+  return name === SERVER_CONFIG_FILENAME || CONFIG_EXTENSIONS.some(ext => name === `${SERVER_CONFIG_FILENAME}${ext}`);
 }
 
 /**
@@ -157,7 +168,7 @@ export function addDynamicImportEntryFileWrapper(
 
   nitro.options.rollupConfig.plugins.push(
     wrapEntryWithDynamicImport({
-      resolvedSentryConfigPath: createResolver(nitro.options.rootDir).resolve(`/${serverConfigFile}`),
+      resolvedSentryConfigPath: createResolver(nitro.options.rootDir).resolve(serverConfigFile),
       experimental_entrypointWrappedFunctions: moduleOptions.experimental_entrypointWrappedFunctions,
     }),
   );
@@ -173,7 +184,7 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
     name: 'rollup-plugin-inject-sentry-server-config',
 
     buildStart() {
-      const configPath = createResolver(nitro.options.rootDir).resolve(`/${serverConfigFile}`);
+      const configPath = createResolver(nitro.options.rootDir).resolve(serverConfigFile);
 
       if (!existsSync(configPath)) {
         if (isDebug) {
@@ -193,7 +204,7 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
     resolveId(source) {
       if (source.startsWith(filePrefix)) {
         const originalFilePath = source.replace(filePrefix, '');
-        const configPath = createResolver(nitro.options.rootDir).resolve(`/${originalFilePath}`);
+        const configPath = createResolver(nitro.options.rootDir).resolve(originalFilePath);
 
         return { id: configPath };
       }
@@ -206,8 +217,10 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
  * A Rollup plugin which wraps the server entry with a dynamic `import()`. This makes it possible to initialize Sentry first
  * by using a regular `import` and load the server after that.
  * This also works with serverless `handler` functions, as it re-exports the `handler`.
+ *
+ * Only exported for testing.
  */
-function wrapEntryWithDynamicImport({
+export function wrapEntryWithDynamicImport({
   resolvedSentryConfigPath,
   experimental_entrypointWrappedFunctions,
   debug,
@@ -225,12 +238,24 @@ function wrapEntryWithDynamicImport({
   return {
     name: 'sentry-wrap-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
-      if (source.includes(`/${SERVER_CONFIG_FILENAME}`)) {
-        return { id: source, moduleSideEffects: true };
+      // `load()` emits `file://` specifiers because Node's ESM loader rejects bare Windows paths,
+      // but Rollup's resolver only understands filesystem paths.
+      const resolvable = toResolvablePath(source);
+      if (!resolvable) {
+        return null;
+      }
+      const { path: normalizedSource, wasFileUrl } = resolvable;
+
+      if (isServerConfigFile(normalizedSource, resolvedSentryConfigPath)) {
+        return { id: normalizedSource, moduleSideEffects: true };
       }
 
-      if (options.isEntry && source.includes('.mjs') && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
-        const resolution = await this.resolve(source, importer, options);
+      if (
+        options.isEntry &&
+        normalizedSource.includes('.mjs') &&
+        !normalizedSource.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
+      ) {
+        const resolution = await this.resolve(normalizedSource, importer, options);
 
         // If it cannot be resolved or is external, just return it so that Rollup can display an error
         if (!resolution || resolution?.external) return resolution;
@@ -254,24 +279,36 @@ function wrapEntryWithDynamicImport({
               )
               .concat(QUERY_END_INDICATOR)}`;
       }
+
+      // Pass isEntry:false to avoid re-entering the isEntry branch and double-wrapping
+      // (normalizedSource strips the SENTRY_WRAPPED_ENTRY query suffix).
+      if (wasFileUrl) {
+        const resolved = await this.resolve(normalizedSource, importer, { ...options, isEntry: false });
+        if (resolved) return resolved;
+        return { id: normalizedSource };
+      }
+
       return null;
     },
     load(id: string) {
       if (id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
         const entryId = removeSentryQueryFromPath(id).slice(resolutionIdPrefix.length);
+        const entryIdUrl = pathToFileURL(entryId).href;
+        const configUrl = pathToFileURL(resolvedSentryConfigPath).href;
 
+        // Use entryIdUrl so Node's runtime ESM loader receives file:// on Windows; Rollup normalizes it in resolveId.
         // Mostly useful for serverless `handler` functions
         const reExportedFunctions =
           id.includes(SENTRY_WRAPPED_FUNCTIONS) || id.includes(SENTRY_REEXPORTED_FUNCTIONS)
-            ? constructFunctionReExport(id, entryId)
+            ? constructFunctionReExport(id, entryIdUrl)
             : '';
 
         return (
           // Regular `import` of the Sentry config
-          `import ${JSON.stringify(resolvedSentryConfigPath)};\n` +
+          `import ${JSON.stringify(configUrl)};\n` +
           // Dynamic `import()` for the previous, actual entry point.
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
-          `import(${JSON.stringify(entryId)});\n` +
+          `import(${JSON.stringify(entryIdUrl)});\n` +
           `${reExportedFunctions}\n`
         );
       }

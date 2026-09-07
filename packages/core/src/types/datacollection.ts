@@ -87,6 +87,15 @@ export interface DataCollection {
   databaseQueryData?: boolean;
 
   /**
+   * Include arguments passed to tasks within queues.
+   *
+   * Structural metadata such as the messaging system, destination name, or operation is always
+   * collected.
+   * @default true
+   */
+  queues?: boolean;
+
+  /**
    * Capture local variable values in stack frames.
    *
    * Accepts a Boolean (`true` collects all variables, `false` collects none) or a `CollectBehavior` to filter which

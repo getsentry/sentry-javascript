@@ -13,6 +13,7 @@ export default [
         'src/client/index.ts',
         'src/server/index.ts',
         'src/cloudflare/index.ts',
+        'src/vite/index.ts',
       ],
       packageSpecificConfig: {
         external: ['react-router', 'react-router-dom', 'react', 'react/jsx-runtime'],

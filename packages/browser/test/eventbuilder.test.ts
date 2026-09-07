@@ -294,6 +294,15 @@ describe('eventFromUnknownInput', () => {
       }),
     );
   });
+
+  it('does not set the deprecated DOMException.code as an event tag', () => {
+    const exception = new DOMException('Permission denied', 'NotAllowedError');
+
+    const event = eventFromUnknownInput(defaultStackParser, exception);
+
+    expect(event.exception?.values?.[0]?.type).toBe('NotAllowedError');
+    expect(event.tags).toBeUndefined();
+  });
 });
 
 describe('extractMessage', () => {

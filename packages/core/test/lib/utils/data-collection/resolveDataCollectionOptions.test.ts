@@ -11,6 +11,7 @@ describe('resolveDataCollectionOptions', () => {
     graphQL: { document: true, variables: true },
     genAI: { inputs: true, outputs: true },
     databaseQueryData: true,
+    queues: true,
     stackFrameVariables: true,
     frameContextLines: 5,
   };
@@ -120,6 +121,10 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.databaseQueryData).toBe(false);
     });
 
+    it('supports turning off queue data', () => {
+      expect(resolveDataCollectionOptions({ dataCollection: { queues: false } }).queues).toBe(false);
+    });
+
     it('supports allow/deny list for stack frame variables', () => {
       expect(
         resolveDataCollectionOptions({ dataCollection: { stackFrameVariables: { allow: ['user'] } } })
@@ -147,7 +152,7 @@ describe('resolveDataCollectionOptions', () => {
     it('always returns all fields', () => {
       const result = resolveDataCollectionOptions({});
 
-      expect(Object.keys(result)).toHaveLength(10);
+      expect(Object.keys(result)).toHaveLength(11);
       expect(result).toHaveProperty('userInfo');
       expect(result).toHaveProperty('cookies');
       expect(result).toHaveProperty('httpHeaders');
@@ -162,6 +167,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result).toHaveProperty('genAI.inputs');
       expect(result).toHaveProperty('genAI.outputs');
       expect(result).toHaveProperty('databaseQueryData');
+      expect(result).toHaveProperty('queues');
       expect(result).toHaveProperty('stackFrameVariables');
       expect(result).toHaveProperty('frameContextLines');
     });

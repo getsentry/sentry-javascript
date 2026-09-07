@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 // Known React Router limitation: route.lazy hooks only work in Data Mode (createBrowserRouter).
@@ -8,9 +8,7 @@ import { APP_NAME } from '../constants';
 // Using test.fail() to auto-detect when React Router fixes this upstream.
 test.describe('server - instrumentation API lazy loading', () => {
   test.fail('should instrument lazy route loading with instrumentation API origin', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-      spansOfTrace.some(span => span.name === 'GET /performance/lazy-route' && span.is_segment),
-    );
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/lazy-route');
 
     await page.goto(`/performance/lazy-route`);
 
@@ -50,9 +48,7 @@ test.describe('server - instrumentation API lazy loading', () => {
   });
 
   test('should include loader span after lazy loading completes', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-      spansOfTrace.some(span => span.name === 'GET /performance/lazy-route' && span.is_segment),
-    );
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/lazy-route');
 
     await page.goto(`/performance/lazy-route`);
 
@@ -75,9 +71,7 @@ test.describe('server - instrumentation API lazy loading', () => {
   });
 
   test.fail('should have correct span ordering: lazy before loader', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-      spansOfTrace.some(span => span.name === 'GET /performance/lazy-route' && span.is_segment),
-    );
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/lazy-route');
 
     await page.goto(`/performance/lazy-route`);
 

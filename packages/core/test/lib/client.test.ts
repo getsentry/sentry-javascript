@@ -412,6 +412,27 @@ describe('Client', () => {
       expect(isolationScopeBreadcrumbs).toEqual([]);
     });
 
+    test('calls `beforeBreadcrumb` and discards the breadcrumb when it throws', () => {
+      const exception = new Error('beforeBreadcrumb failed');
+      const beforeBreadcrumb = vi.fn(() => {
+        throw exception;
+      });
+      const options = getDefaultTestClientOptions({ beforeBreadcrumb });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      expect(() => addBreadcrumb({ message: 'hello' })).not.toThrow();
+
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([]);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeBreadcrumb` callback threw an error, dropping the breadcrumb:',
+        exception,
+      );
+    });
+
     test('`beforeBreadcrumb` gets an access to a hint as a second argument', () => {
       const beforeBreadcrumb = vi.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
@@ -2185,11 +2206,12 @@ describe('Client', () => {
       });
     });
 
-    test('event processor sends an event and logs when it crashes synchronously', () => {
+    test('drops the event and records a client report when an event processor throws synchronously', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
       const scope = new Scope();
       const exception = new Error('sorry 1');
       scope.addEventProcessor(() => {
@@ -2198,47 +2220,223 @@ describe('Client', () => {
 
       client.captureEvent({ message: 'hello' }, {}, scope);
 
-      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
-        type: 'Error',
-        value: 'sorry 1',
-        mechanism: { type: 'internal', handled: false },
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+      expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "?" threw an error, dropping event:', exception);
+    });
+
+    test('drops the event and records a client report when an event processor rejects', async () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+      const scope = new Scope();
+      const exception = new Error('sorry 2');
+      scope.addEventProcessor(() => Promise.reject(exception));
+
+      client.captureEvent({ message: 'hello' }, {}, scope);
+
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+      expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "?" threw an error, dropping event:', exception);
+    });
+
+    test('a synchronously throwing event processor stops the processor chain', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const scope = new Scope();
+
+      const processor1 = vi.fn(event => {
+        return event;
       });
-      expect(captureExceptionSpy).toBeCalledWith(exception, {
-        data: {
-          __sentry__: true,
-        },
-        originalException: exception,
-        mechanism: { type: 'internal', handled: false },
+      const processor2 = vi.fn(() => {
+        throw new Error('sorry 3');
       });
-      expect(loggerWarnSpy).toBeCalledWith(
-        `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
+      const processor3 = vi.fn(event => {
+        return event;
+      });
+
+      scope.addEventProcessor(processor1);
+      scope.addEventProcessor(processor2);
+      scope.addEventProcessor(processor3);
+
+      client.captureEvent({ message: 'hello' }, {}, scope);
+
+      expect(processor1).toHaveBeenCalledTimes(1);
+      expect(processor2).toHaveBeenCalledTimes(1);
+      expect(processor3).toHaveBeenCalledTimes(0);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+    });
+
+    test('a rejecting event processor stops the processor chain', async () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const scope = new Scope();
+
+      const processor1 = vi.fn(async event => {
+        return event;
+      });
+      const processor2 = vi.fn(async () => {
+        throw new Error('sorry 4');
+      });
+      const processor3 = vi.fn(event => {
+        return event;
+      });
+
+      scope.addEventProcessor(processor1);
+      scope.addEventProcessor(processor2);
+      scope.addEventProcessor(processor3);
+
+      client.captureEvent({ message: 'hello' }, {}, scope);
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(processor1).toHaveBeenCalledTimes(1);
+      expect(processor2).toHaveBeenCalledTimes(1);
+      expect(processor3).toHaveBeenCalledTimes(0);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+    });
+
+    test('client-level event processor that throws on all events does not capture a new event', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+
+      const processor = vi.fn(() => {
+        throw new Error('Processor always throws');
+      });
+      client.addEventProcessor(processor);
+
+      client.captureMessage('test message');
+
+      expect(processor).toHaveBeenCalledTimes(1);
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    test('drops the event and records a client report when `beforeSend` throws', () => {
+      const exception = new Error('beforeSend failed');
+      const beforeSend = vi.fn(() => {
+        throw exception;
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      client.captureEvent({ message: 'hello' });
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSend` callback threw an error, dropping the event:',
+        exception,
       );
     });
 
-    test('event processor sends an event and logs when it crashes asynchronously', async () => {
+    test('drops the event and records a client report when `beforeSend` rejects', async () => {
+      vi.useFakeTimers();
+
+      const exception = new Error('beforeSend failed');
+      const beforeSend = vi.fn(() => Promise.reject(exception));
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      client.captureEvent({ message: 'hello' });
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'error');
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSend` callback threw an error, dropping the event:',
+        exception,
+      );
+    });
+
+    test('drops the transaction and its spans when `beforeSendTransaction` throws', () => {
+      const exception = new Error('beforeSendTransaction failed');
+      const beforeSendTransaction = vi.fn(() => {
+        throw exception;
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      client.captureEvent({
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+        ],
+      });
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'span', 3);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSendTransaction` callback threw an error, dropping the event:',
+        exception,
+      );
+    });
+
+    test('captures an internal event when the event processing pipeline itself throws', async () => {
       vi.useFakeTimers();
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
       const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
-      const scope = new Scope();
-      const exception = new Error('sorry 2');
-      scope.addEventProcessor(() => {
-        return new Promise((_resolve, reject) => {
-          reject(exception);
-        });
-      });
+      const exception = new Error('sdk bug');
+      vi.spyOn(client as any, '_prepareEvent').mockImplementation(() => Promise.reject(exception));
 
-      client.captureEvent({ message: 'hello' }, {}, scope);
-
+      client.captureEvent({ message: 'hello' });
       await vi.runOnlyPendingTimersAsync();
 
-      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
-        type: 'Error',
-        value: 'sorry 2',
-        mechanism: { type: 'internal', handled: false },
-      });
       expect(captureExceptionSpy).toBeCalledWith(exception, {
         data: {
           __sentry__: true,
@@ -2249,106 +2447,6 @@ describe('Client', () => {
       expect(loggerWarnSpy).toBeCalledWith(
         `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
       );
-    });
-
-    test('event processor sends an event and logs when it crashes synchronously in processor chain', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const scope = new Scope();
-      const exception = new Error('sorry 3');
-
-      const processor1 = vi.fn(event => {
-        return event;
-      });
-      const processor2 = vi.fn(() => {
-        throw exception;
-      });
-      const processor3 = vi.fn(event => {
-        return event;
-      });
-
-      scope.addEventProcessor(processor1);
-      scope.addEventProcessor(processor2);
-      scope.addEventProcessor(processor3);
-
-      client.captureEvent({ message: 'hello' }, {}, scope);
-
-      expect(processor1).toHaveBeenCalledTimes(1);
-      expect(processor2).toHaveBeenCalledTimes(1);
-      expect(processor3).toHaveBeenCalledTimes(0);
-
-      expect(captureExceptionSpy).toBeCalledWith(exception, {
-        data: {
-          __sentry__: true,
-        },
-        originalException: exception,
-        mechanism: { type: 'internal', handled: false },
-      });
-    });
-
-    test('event processor sends an event and logs when it crashes asynchronously in processor chain', async () => {
-      vi.useFakeTimers();
-
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const scope = new Scope();
-      const exception = new Error('sorry 4');
-
-      const processor1 = vi.fn(async event => {
-        return event;
-      });
-      const processor2 = vi.fn(async () => {
-        throw exception;
-      });
-      const processor3 = vi.fn(event => {
-        return event;
-      });
-
-      scope.addEventProcessor(processor1);
-      scope.addEventProcessor(processor2);
-      scope.addEventProcessor(processor3);
-
-      client.captureEvent({ message: 'hello' }, {}, scope);
-      await vi.runOnlyPendingTimersAsync();
-
-      expect(processor1).toHaveBeenCalledTimes(1);
-      expect(processor2).toHaveBeenCalledTimes(1);
-      expect(processor3).toHaveBeenCalledTimes(0);
-
-      expect(captureExceptionSpy).toBeCalledWith(exception, {
-        data: {
-          __sentry__: true,
-        },
-        originalException: exception,
-        mechanism: { type: 'internal', handled: false },
-      });
-    });
-
-    test('client-level event processor that throws on all events does not cause infinite recursion', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-
-      let processorCallCount = 0;
-      // Add processor at client level - this runs on ALL events including internal exceptions
-      client.addEventProcessor(() => {
-        processorCallCount++;
-        throw new Error('Processor always throws');
-      });
-
-      client.captureMessage('test message');
-
-      // Should be called once for the original message
-      // internal exception events skips event processors entirely.
-      expect(processorCallCount).toBe(1);
-
-      // Verify the processor error was captured and sent
-      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
-        type: 'Error',
-        value: 'Processor always throws',
-        mechanism: { type: 'internal', handled: false },
-      });
     });
 
     test('records events dropped due to `sampleRate` option', () => {
