@@ -6,6 +6,11 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 // only happens in the production build, so these tests are excluded from the
 // `test:dev` pass (which filters to `environment`).
 test('Instruments ioredis automatically', async ({ baseURL }) => {
+  // Dev relies on runtime injection (no build-time transform), but the dev bundle hoists the ioredis
+  // import above the inlined `Sentry.init`, so its instrumented file loads before injection is active
+  // and gets no channels (5.10.x has no native ones). mysql requires its file lazily, after init.
+  test.skip(process.env.TEST_ENV === 'development', 'ioredis loads before runtime injection is active in dev');
+
   const transactionEventPromise = waitForTransaction('nuxt-4-static', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/db-ioredis'
