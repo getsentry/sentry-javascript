@@ -135,10 +135,10 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       const missing = [...classWrappers.keys()].filter(name => !wrappedClasses.has(name));
       if (missing.length > 0) {
         this.warn?.(
-          `[sentry] Could not auto-instrument class(es) ${missing.join(', ')}: the worker entry has no ` +
-            'export naming them (a star re-export like `export * from "./do"` does not name its ' +
-            'exports). Export them by name, or wrap them manually with the matching ' +
-            '`instrument*WithSentry` helper.',
+          `[sentry] Could not auto-instrument ${missing.join(', ')}.` +
+          'The worker entry has no export matching them. ' +
+          'Star re-exports (`export * from "./do"`) are not matched.' +
+          'Export them by name or wrap them manually with corresponding `instrument*WithSentry` helpers.'
         );
       }
 
