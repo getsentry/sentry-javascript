@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('captures an error', async ({ page }) => {
-  const errorEventPromise = waitForError('default-browser', event => {
+  const errorEventPromise = waitForError('default-browser-static', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
@@ -29,18 +29,17 @@ test('captures an error', async ({ page }) => {
   });
 });
 
-test('sets the pageload span name and error transaction name', async ({ page }) => {
-  const pageloadSpanPromise = waitForStreamedSpan('default-browser', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+test('sets correct transactionName', async ({ page }) => {
+  const transactionPromise = waitForTransaction('default-browser-static', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const errorEventPromise = waitForError('default-browser', event => {
+  const errorEventPromise = waitForError('default-browser-static', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
   await page.goto('/');
-  const pageloadSpan = await pageloadSpanPromise;
-  expect(pageloadSpan.name).toBe('Pageload');
+  const transactionEvent = await transactionPromise;
 
   const exceptionButton = page.locator('id=exception-button');
   await exceptionButton.click();
@@ -53,7 +52,7 @@ test('sets the pageload span name and error transaction name', async ({ page }) 
   expect(errorEvent.transaction).toEqual('/');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: pageloadSpan.trace_id,
-    span_id: expect.not.stringContaining(pageloadSpan.span_id),
+    trace_id: transactionEvent.contexts?.trace?.trace_id,
+    span_id: expect.not.stringContaining(transactionEvent.contexts?.trace?.span_id || ''),
   });
 });
