@@ -11,6 +11,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     metrics.getMeter('nextjs-otlp').createCounter('otlp.test.count').add(1, { id });
 
+    Sentry.logger.info(`This is a log with id ${id}`);
+    Sentry.metrics.count('sentry.test.count', 1, { attributes: { id } });
     Sentry.captureException(new Error(`This is an exception with id ${id}`));
 
     span.end();

@@ -5,7 +5,9 @@ export const OTLP_RECEIVER_PORT = 3033;
 export interface CollectedSpan {
   traceId: string;
   spanId: string;
+  parentSpanId?: string;
   name: string;
+  sentryAuthHeader?: string;
 }
 
 export interface CollectedMetric {
@@ -37,11 +39,17 @@ function flattenAttributes(attributes: { key: string; value: OtlpAnyValue }[] = 
   return flattened;
 }
 
-function collectSpans(body: any): void {
+function collectSpans(body: any, sentryAuthHeader: string | undefined): void {
   for (const resourceSpan of body?.resourceSpans ?? []) {
     for (const scopeSpan of resourceSpan.scopeSpans ?? []) {
       for (const span of scopeSpan.spans ?? []) {
-        collectedSpans.push({ traceId: span.traceId, spanId: span.spanId, name: span.name });
+        collectedSpans.push({
+          traceId: span.traceId,
+          spanId: span.spanId,
+          parentSpanId: span.parentSpanId,
+          name: span.name,
+          sentryAuthHeader,
+        });
       }
     }
   }
@@ -84,7 +92,8 @@ export function startOtlpReceiver(): void {
   const server = createServer((req, res) => {
     void (async () => {
       if (req.method === 'POST' && req.url === '/v1/traces') {
-        collectSpans(await readJsonBody(req));
+        const sentryAuthHeader = req.headers['x-sentry-auth'];
+        collectSpans(await readJsonBody(req), Array.isArray(sentryAuthHeader) ? sentryAuthHeader[0] : sentryAuthHeader);
         res.writeHead(200, { 'content-type': 'application/json' }).end('{}');
         return;
       }
