@@ -1,139 +1,107 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 // Set by the `assert-command` of the `vue-3 (no Options API)` variant
 const OPTIONS_API_DISABLED = process.env.VUE_OPTIONS_API === 'false';
 
-test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span with a parameterized URL', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('vue-3', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
   await page.goto(`/users/456`);
 
-  const rootSpan = await transactionPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.segment.name.source': 'route',
-          'sentry.origin': 'auto.pageload.vue',
-          'sentry.op': 'pageload',
-          'params.id': '456',
-          'url.template': '/users/:id',
-          'url.path': '/users/456',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/456$/),
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.vue',
-      },
-    },
-    transaction: '/users/:id',
-    transaction_info: {
-      source: 'route',
+  expect(pageloadSpan).toMatchObject({
+    name: '/users/:id',
+    is_segment: true,
+    attributes: {
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
+      'sentry.op': { type: 'string', value: 'pageload' },
+      'params.id': { type: 'string', value: '456' },
+      'url.template': { type: 'string', value: '/users/:id' },
+      'url.path': { type: 'string', value: '/users/456' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/456$/) },
     },
   });
 });
 
-test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('vue-3', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a navigation span with a parameterized URL', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('vue-3', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('vue-3', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  const navigationSpanPromise = waitForStreamedSpan('vue-3', span => {
+    return span.is_segment && getSpanOp(span) === 'navigation';
   });
 
   await page.goto(`/`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
   await page.waitForTimeout(5000);
 
-  const [_, navigationTxn] = await Promise.all([page.locator('#navLink').click(), navigationTxnPromise]);
+  const [_, navigationSpan] = await Promise.all([page.locator('#navLink').click(), navigationSpanPromise]);
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.segment.name.source': 'route',
-          'sentry.origin': 'auto.navigation.vue',
-          'sentry.op': 'navigation',
-          'params.id': '123',
-          'url.template': '/users/:id',
-          'url.path': '/users/123',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123$/),
-        },
-        op: 'navigation',
-        origin: 'auto.navigation.vue',
-      },
-    },
-    transaction: '/users/:id',
-    transaction_info: {
-      source: 'route',
+  expect(navigationSpan).toMatchObject({
+    name: '/users/:id',
+    is_segment: true,
+    attributes: {
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'sentry.origin': { type: 'string', value: 'auto.navigation.vue' },
+      'sentry.op': { type: 'string', value: 'navigation' },
+      'params.id': { type: 'string', value: '123' },
+      'url.template': { type: 'string', value: '/users/:id' },
+      'url.path': { type: 'string', value: '/users/123' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123$/) },
     },
   });
 });
 
-test('sends a pageload transaction with a nested route URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span with a nested route URL', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('vue-3', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
   await page.goto(`/categories/123`);
 
-  const rootSpan = await transactionPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.segment.name.source': 'route',
-          'sentry.origin': 'auto.pageload.vue',
-          'sentry.op': 'pageload',
-          'params.id': '123',
-          'url.template': '/categories/:id',
-          'url.path': '/categories/123',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/categories\/123$/),
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.vue',
-      },
-    },
-    transaction: '/categories/:id',
-    transaction_info: {
-      source: 'route',
+  expect(pageloadSpan).toMatchObject({
+    name: '/categories/:id',
+    is_segment: true,
+    attributes: {
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
+      'sentry.op': { type: 'string', value: 'pageload' },
+      'params.id': { type: 'string', value: '123' },
+      'url.template': { type: 'string', value: '/categories/:id' },
+      'url.path': { type: 'string', value: '/categories/123' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/categories\/123$/) },
     },
   });
 });
 
-test('sends a pageload transaction with a route name as transaction name if available', async ({ page }) => {
-  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span with a route name as span name if available', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('vue-3', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
   await page.goto(`/about`);
 
-  const rootSpan = await transactionPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.segment.name.source': 'custom',
-          'sentry.origin': 'auto.pageload.vue',
-          'sentry.op': 'pageload',
-          'navigation.route.id': 'AboutView',
-          'url.path': '/about',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/about$/),
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.vue',
-      },
-    },
-    transaction: 'AboutView',
-    transaction_info: {
-      source: 'custom',
+  expect(pageloadSpan).toMatchObject({
+    name: 'AboutView',
+    is_segment: true,
+    attributes: {
+      'sentry.segment.name.source': { type: 'string', value: 'custom' },
+      'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
+      'sentry.op': { type: 'string', value: 'pageload' },
+      'navigation.route.id': { type: 'string', value: 'AboutView' },
+      'url.path': { type: 'string', value: '/about' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/about$/) },
     },
   });
 });
@@ -147,55 +115,49 @@ test('sends a pageload transaction with a route name as transaction name if avai
     route: '/',
     routeDescription: 'a route with a synchronously mounted component',
     // `HomeView` is missing from `trackComponents`, so the root spans are the only UI spans.
-    expectedUiSpanDescriptions: ['Application Render', 'Vue <Root>'],
+    expectedUiSpanNames: ['Application Render', 'Vue <Root>'],
   },
   {
     route: '/components',
     routeDescription: 'a route with an async component',
-    expectedUiSpanDescriptions: [
-      'Application Render',
-      'Vue <ComponentMainView>',
-      'Vue <ComponentOneView>',
-      'Vue <Root>',
-    ],
+    expectedUiSpanNames: ['Application Render', 'Vue <ComponentMainView>', 'Vue <ComponentOneView>', 'Vue <Root>'],
   },
-].forEach(({ route, routeDescription, expectedUiSpanDescriptions }) => {
+].forEach(({ route, routeDescription, expectedUiSpanNames }) => {
   test(`sends an application render span and a root component span on ${routeDescription}`, async ({ page }) => {
     // Vue compiles `app.mixin()` down to a no-op when the Options API is disabled, so the SDK creates no UI spans at all.
     test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');
 
-    const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
+    const spansPromise = collectStreamedSpans('vue-3', spans => {
       return (
-        transactionEvent.contexts?.trace?.op === 'pageload' &&
-        transactionEvent.contexts?.trace?.data?.['url.path'] === route
+        spans.some(
+          span => span.is_segment && getSpanOp(span) === 'pageload' && span.attributes['url.path']?.value === route,
+        ) && expectedUiSpanNames.every(name => spans.some(span => span.name === name))
       );
     });
 
     await page.goto(route);
 
-    const rootSpan = await transactionPromise;
-    const uiSpans = (rootSpan.spans || []).filter(span => span.origin === 'auto.ui.vue');
+    const spans = await spansPromise;
+    const uiSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ui.vue');
 
-    expect(uiSpans.map(span => span.description).sort()).toEqual(expectedUiSpanDescriptions);
+    expect(uiSpans.map(span => span.name).sort()).toEqual(expectedUiSpanNames);
 
-    const applicationRenderSpan = uiSpans.find(span => span.description === 'Application Render');
+    const applicationRenderSpan = uiSpans.find(span => span.name === 'Application Render');
     expect(applicationRenderSpan).toMatchObject({
-      data: {
-        'sentry.op': 'ui.render',
-        'sentry.origin': 'auto.ui.vue',
-      },
-      op: 'ui.render',
-      origin: 'auto.ui.vue',
+      name: 'Application Render',
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'ui.render' },
+        'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      }),
     });
 
-    const rootComponentSpan = uiSpans.find(span => span.description === 'Vue <Root>');
+    const rootComponentSpan = uiSpans.find(span => span.name === 'Vue <Root>');
     expect(rootComponentSpan).toMatchObject({
-      data: {
-        'sentry.op': 'ui.mount',
-        'sentry.origin': 'auto.ui.vue',
-      },
-      op: 'ui.mount',
-      origin: 'auto.ui.vue',
+      name: 'Vue <Root>',
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'ui.mount' },
+        'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      }),
     });
   });
 });
@@ -204,90 +166,72 @@ test('sends a lifecycle span for the root and for each tracked component only', 
   // Vue compiles `app.mixin()` down to a no-op when the Options API is disabled, so the SDK creates no UI spans at all.
   test.fail(OPTIONS_API_DISABLED, 'Vue tracing is registered through app.mixin(), which needs the Options API');
 
-  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  const expectedUiSpanNames = ['Application Render', 'Vue <ComponentMainView>', 'Vue <ComponentOneView>', 'Vue <Root>'];
+
+  const spansPromise = collectStreamedSpans('vue-3', spans => {
+    return (
+      spans.some(span => span.is_segment && getSpanOp(span) === 'pageload' && span.name === '/components') &&
+      expectedUiSpanNames.every(name => spans.some(span => span.name === name))
+    );
   });
 
   await page.goto(`/components`);
 
-  const rootSpan = await transactionPromise;
+  const spans = await spansPromise;
 
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.segment.name.source': 'route',
-          'sentry.origin': 'auto.pageload.vue',
-          'sentry.op': 'pageload',
-          'url.template': '/components',
-          'url.path': '/components',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/components$/),
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.vue',
-      },
-    },
-    transaction: '/components',
-    transaction_info: {
-      source: 'route',
+  const pageloadSpan = spans.find(
+    span => span.is_segment && getSpanOp(span) === 'pageload' && span.name === '/components',
+  );
+
+  expect(pageloadSpan).toMatchObject({
+    name: '/components',
+    is_segment: true,
+    attributes: {
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
+      'sentry.op': { type: 'string', value: 'pageload' },
+      'url.template': { type: 'string', value: '/components' },
+      'url.path': { type: 'string', value: '/components' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/components$/) },
     },
   });
 
-  const uiSpans = (rootSpan.spans || []).filter(span => span.origin === 'auto.ui.vue');
-  const uiSpanDescriptions = uiSpans.map(span => span.description).sort();
+  const uiSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ui.vue');
+  const uiSpanNames = uiSpans.map(span => span.name).sort();
 
-  expect(uiSpanDescriptions).toEqual([
-    'Application Render',
-    'Vue <ComponentMainView>',
-    'Vue <ComponentOneView>',
-    'Vue <Root>',
-  ]);
+  expect(uiSpanNames).toEqual(expectedUiSpanNames);
 
-  // enabled by default
-  const applicationRenderSpan = uiSpans.find(span => span.description === 'Application Render');
+  const applicationRenderSpan = uiSpans.find(span => span.name === 'Application Render');
   expect(applicationRenderSpan).toMatchObject({
-    data: {
-      'sentry.op': 'ui.render',
-      'sentry.origin': 'auto.ui.vue',
-    },
-    op: 'ui.render',
-    origin: 'auto.ui.vue',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'ui.render' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+    }),
   });
 
-  // enabled by default
-  const rootComponentSpan = uiSpans.find(span => span.description === 'Vue <Root>');
+  const rootComponentSpan = uiSpans.find(span => span.name === 'Vue <Root>');
   expect(rootComponentSpan).toMatchObject({
-    data: {
-      'sentry.op': 'ui.mount',
-      'sentry.origin': 'auto.ui.vue',
-    },
-    op: 'ui.mount',
-    origin: 'auto.ui.vue',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'ui.mount' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+    }),
   });
 
-  // without `<>`
-  const componentMainViewSpan = uiSpans.find(span => span.description === 'Vue <ComponentMainView>');
+  const componentMainViewSpan = uiSpans.find(span => span.name === 'Vue <ComponentMainView>');
   expect(componentMainViewSpan).toMatchObject({
-    data: {
-      'sentry.op': 'ui.mount',
-      'sentry.origin': 'auto.ui.vue',
-    },
-    op: 'ui.mount',
-    origin: 'auto.ui.vue',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'ui.mount' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+    }),
   });
 
-  // with `<>`
-  const componentOneViewSpan = uiSpans.find(span => span.description === 'Vue <ComponentOneView>');
+  const componentOneViewSpan = uiSpans.find(span => span.name === 'Vue <ComponentOneView>');
   expect(componentOneViewSpan).toMatchObject({
-    data: {
-      'sentry.op': 'ui.mount',
-      'sentry.origin': 'auto.ui.vue',
-    },
-    op: 'ui.mount',
-    origin: 'auto.ui.vue',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'ui.mount' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+    }),
   });
 
-  // `ComponentTwoView` renders on this route but is absent from `trackComponents`
-  // not tracked
-  expect(uiSpanDescriptions).not.toContain('Vue <ComponentTwoView>');
+  expect(uiSpanNames).not.toContain('Vue <ComponentTwoView>');
 });
