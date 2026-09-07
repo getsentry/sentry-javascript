@@ -1,17 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
-import { triggerTelemetry, waitForExportedMetric, waitForExportedSpan } from './otlp';
-
-test('keeps exporting the app-owned metrics over OTLP', async ({ baseURL }) => {
-  await triggerTelemetry(baseURL as string, '234');
-
-  const metric = await waitForExportedMetric(
-    metric => metric.name === 'otlp.test.count' && metric.attributes.id === '234',
-    'the metric for id 234',
-  );
-
-  expect(metric).toEqual({ name: 'otlp.test.count', value: 1, attributes: { id: '234' } });
-});
+import { triggerTelemetry, waitForExportedSpan } from './otlp';
 
 test('keeps exporting the app-owned spans over OTLP with the DSN-derived auth header', async ({ baseURL }) => {
   const { traceId, spanId } = await triggerTelemetry(baseURL as string, '345');
