@@ -1,9 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 const tunnelRouteMode =
   process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? (process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1' ? 'custom' : 'off');
-const useStreamedSpans = process.env.E2E_TEST_STREAMED_SPANS === '1';
 const expectedTunnelPathMatcher =
   tunnelRouteMode === 'static'
     ? '/monitor'
@@ -68,16 +67,7 @@ function pathnameMatchesTunnelRoute(pathname: string): boolean {
     : expectedTunnelPathMatcher.test(pathname);
 }
 
-// A server `http.server` transaction can arrive either as a classic transaction event (static trace
-// lifecycle) or as a Span v2 segment span (`traceLifecycle: 'stream'`). These helpers wait on whichever
-// format the current run produces, so the assertion below covers both lifecycles with one test body.
 function waitForServerHttpEvent(matchesPathname: (pathname: string) => boolean): Promise<unknown> {
-  if (useStreamedSpans) {
-    return waitForStreamedSpan('tanstackstart-react-static', span => {
-      return getSpanOp(span) === 'http.server' && matchesPathname((span.name ?? '').split(' ')[1] ?? '');
-    });
-  }
-
   return waitForTransaction('tanstackstart-react-static', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
