@@ -27,8 +27,8 @@ export function makeHttpRequest(url) {
 }
 
 /**
- * Streamed spans carry no scope data, so the specs read what the isolation scope holds from these
- * attributes on the enclosing segment span instead.
+ * Streamed spans carry no scope tags or breadcrumbs, so the specs read what the isolation scope
+ * holds from these attributes on the enclosing segment span instead.
  */
 export function reportIsolationScopeOnSpan() {
   const activeSpan = Sentry.getActiveSpan();
