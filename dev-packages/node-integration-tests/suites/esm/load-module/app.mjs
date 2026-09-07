@@ -1,4 +1,4 @@
-import { loadModule } from '@sentry/core/server';
+import { loadModule } from '@sentry/server-utils';
 
 // The default `existingModule` argument must not reference a CJS-only binding: default
 // parameters are evaluated before the function body, so a bare `module` would throw
