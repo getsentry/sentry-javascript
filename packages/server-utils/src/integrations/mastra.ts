@@ -1,8 +1,9 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { IntegrationFn } from '@sentry/core';
-import { consoleSandbox, debug, defineIntegration } from '@sentry/core';
+import { consoleSandbox, debug, defineIntegration, GLOBAL_OBJ } from '@sentry/core';
 import {
   COMMUNITY_MASTRA_SENTRY_EXPORTER_NAME,
   MASTRA_EXPORTER_BRAND,
@@ -170,8 +171,27 @@ function appRequire(): ReturnType<typeof createRequire> {
 }
 
 /**
+ * The runtime injection hook records the resolved file of each instrumented module as it loads.
+ * Unlike the CJS `require.cache`, this is populated for ESM-loaded modules too, so it is the
+ * reliable anchor for finding the app's `@mastra/observability` next to its `@mastra/core`.
+ */
+function findInjectedMastraCoreFilename(): string | undefined {
+  const url = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtimeFiles?.['@mastra/core'];
+  if (!url) {
+    return undefined;
+  }
+
+  try {
+    return url.startsWith('file:') ? fileURLToPath(url) : url;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * `@mastra/core` is already evaluated (we are in its constructor). Prefer that file so a
  * serverless/test cwd that is not the app still finds the app's `@mastra/observability`.
+ * Only sees CJS-loaded modules; ESM apps rely on {@link findInjectedMastraCoreFilename}.
  */
 function findLoadedMastraCoreFilename(): string | undefined {
   const cache = appRequire().cache;
@@ -197,11 +217,16 @@ function tryRequireObservability(parent: string): Record<string, unknown> | unde
 }
 
 /**
- * Prefer the already-loaded `@mastra/core` file, then cwd-resolved core, then cwd itself.
- * A cache hit can still fail under pnpm if that copy cannot see `@mastra/observability`.
+ * Prefer the runtime-injected `@mastra/core` file (works under ESM and CJS), then the CJS-cached
+ * copy, then cwd-resolved core, then cwd itself. A hit can still fail under pnpm if that copy
+ * cannot see `@mastra/observability`, hence the fallbacks.
  */
 function loadMastraObservability(): Record<string, unknown> {
   const parents = new Set<string>();
+  const injectedCore = findInjectedMastraCoreFilename();
+  if (injectedCore) {
+    parents.add(injectedCore);
+  }
   const loadedCore = findLoadedMastraCoreFilename();
   if (loadedCore) {
     parents.add(loadedCore);
