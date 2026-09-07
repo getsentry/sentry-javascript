@@ -1,0 +1,291 @@
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
+} from '@sentry/core';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
+import { expect, it } from 'vitest';
+import { createRunner } from '../../../runner';
+import { getSpansFromEnvelope } from '../../../spanUtils';
+
+const CLOUDFLARE_SDK = 'sentry.javascript.cloudflare';
+
+it('sends a streamed span envelope with correct envelope header', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      expect(getSpansFromEnvelope(envelope).length).toBeGreaterThan(0);
+
+      expect(envelope[0]).toEqual(
+        expect.objectContaining({
+          sent_at: expect.any(String),
+          sdk: {
+            name: CLOUDFLARE_SDK,
+            version: SDK_VERSION,
+          },
+          trace: expect.objectContaining({
+            public_key: 'public',
+            sample_rate: '1',
+            sampled: 'true',
+            trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+          }),
+        }),
+      );
+    })
+    .start(signal);
+
+  await runner.makeRequest('get', '/');
+  await runner.completed();
+});
+
+it('sends a streamed span envelope with correct spans for a manually started span with children', async ({
+  signal,
+}) => {
+  const runner = createRunner(__dirname).start(signal);
+  // Cloudflare `withSentry` wraps fetch in an http.server span (segment) around the scenario, so
+  // the trace holds five spans. Waiting for all of them rather than for the segment alone: the
+  // segment ends last but each envelope is its own request, so it can arrive before its children.
+  const spansPromise = runner.collectStreamedSpans(spansOfTrace => spansOfTrace.length === 5);
+
+  await runner.makeRequest('get', '/');
+
+  const spans = await spansPromise;
+
+  expect(spans.length).toBe(5);
+
+  const segmentSpan = spans.find(s => !!s.is_segment);
+  expect(segmentSpan).toBeDefined();
+
+  const segmentSpanId = segmentSpan!.span_id;
+  const traceId = segmentSpan!.trace_id;
+  const segmentName = segmentSpan!.name;
+
+  const parentTestSpan = spans.find(s => s.name === 'test-span');
+  expect(parentTestSpan).toBeDefined();
+  expect(parentTestSpan!.parent_span_id).toBe(segmentSpanId);
+
+  const childSpan = spans.find(s => s.name === 'test-child-span');
+  expect(childSpan).toBeDefined();
+  expect(childSpan).toEqual({
+    attributes: {
+      [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        type: 'string',
+        value: 'test-child',
+      },
+      [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
+      [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+      [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+      [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
+      [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+    },
+    name: 'test-child-span',
+    is_segment: false,
+    parent_span_id: parentTestSpan!.span_id,
+    trace_id: traceId,
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    status: 'ok',
+  });
+
+  const inactiveSpan = spans.find(s => s.name === 'test-inactive-span');
+  expect(inactiveSpan).toBeDefined();
+  expect(inactiveSpan).toEqual({
+    attributes: {
+      [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+      [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
+      [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+      [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+      [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
+      [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+    },
+    links: [
+      {
+        attributes: {
+          'sentry.link.type': {
+            type: 'string',
+            value: 'some_relation',
+          },
+        },
+        sampled: true,
+        span_id: parentTestSpan!.span_id,
+        trace_id: traceId,
+      },
+    ],
+    name: 'test-inactive-span',
+    is_segment: false,
+    parent_span_id: parentTestSpan!.span_id,
+    trace_id: traceId,
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    status: 'ok',
+  });
+
+  const manualSpan = spans.find(s => s.name === 'test-manual-span');
+  expect(manualSpan).toBeDefined();
+  expect(manualSpan).toEqual({
+    attributes: {
+      [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+      [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
+      [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+      [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+      [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
+      [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+    },
+    name: 'test-manual-span',
+    is_segment: false,
+    parent_span_id: parentTestSpan!.span_id,
+    trace_id: traceId,
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    status: 'ok',
+  });
+
+  expect(parentTestSpan).toEqual({
+    attributes: {
+      [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
+      [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
+      [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+      [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+      [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
+      [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+    },
+    name: 'test-span',
+    is_segment: false,
+    parent_span_id: segmentSpanId,
+    trace_id: traceId,
+    span_id: parentTestSpan!.span_id,
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    status: 'ok',
+  });
+
+  expect(segmentSpan).toEqual({
+    attributes: {
+      [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+      [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
+      [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+      [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+        type: 'array',
+        value: expect.arrayContaining(['SpanStreaming']),
+      },
+      [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.cloudflare' },
+      [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
+      [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.server' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+      [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'route' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+      'server.address': {
+        type: 'string',
+        value: 'localhost',
+      },
+      'url.full': {
+        type: 'string',
+        value: expect.stringMatching(/^http:\/\/localhost:.+$/),
+      },
+      'url.path': {
+        type: 'string',
+        value: '/',
+      },
+      'url.port': {
+        type: 'string',
+        value: expect.stringMatching(/^\d{4,5}$/),
+      },
+      'url.scheme': {
+        type: 'string',
+        value: 'http:',
+      },
+      'user_agent.original': {
+        type: 'string',
+        value: 'node',
+      },
+      'http.request.header.accept': {
+        type: 'string',
+        value: '*/*',
+      },
+      'http.request.header.accept_encoding': {
+        type: 'string',
+        value: 'br, gzip',
+      },
+      'http.request.header.accept_language': {
+        type: 'string',
+        value: '*',
+      },
+      'http.request.header.cf_connecting_ip': {
+        type: 'string',
+        value: '127.0.0.1',
+      },
+      'user.ip_address': {
+        type: 'string',
+        value: '127.0.0.1',
+      },
+      'http.request.header.host': {
+        type: 'string',
+        value: expect.stringMatching(/^localhost:.+$/),
+      },
+      'http.request.header.sec_fetch_mode': {
+        type: 'string',
+        value: 'cors',
+      },
+      'http.request.header.user_agent': {
+        type: 'string',
+        value: 'node',
+      },
+      'http.request.method': {
+        type: 'string',
+        value: 'GET',
+      },
+      'http.response.status_code': {
+        type: 'integer',
+        value: 200,
+      },
+      'cloud.provider': {
+        type: 'string',
+        value: 'cloudflare',
+      },
+      'culture.timezone': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'network.protocol.name': {
+        type: 'string',
+        value: 'http',
+      },
+      'network.protocol.version': {
+        type: 'string',
+        value: '1.1',
+      },
+    },
+    is_segment: true,
+    trace_id: traceId,
+    span_id: segmentSpanId,
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    status: 'ok',
+    name: 'GET /',
+  });
+});
