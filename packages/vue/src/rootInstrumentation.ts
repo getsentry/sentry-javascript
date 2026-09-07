@@ -67,8 +67,16 @@ export function instrumentAppMountWithoutMixin(app: Vue, mixins: Mixins, timeout
  */
 export function INTERNAL_extendVueRootRenderSpan(app: Vue): void {
   const instrumentation = instrumentedApps.get(app);
-  // Skip after the span ended; otherwise each call (every Nuxt `page:finish`) arms a dead timer.
-  if (instrumentation?.vm.$_sentryRootComponentSpan) {
+  const span = instrumentation?.vm.$_sentryRootComponentSpan;
+  // No span: mixin path, or the debounce already ended it.
+  if (!instrumentation || !span) {
+    return;
+  }
+
+  if (span.isRecording()) {
     maybeEndRootComponentSpan(instrumentation.vm, timestampInSeconds(), instrumentation.timeout);
+  } else {
+    // Ended externally, e.g. by a navigation cancelling the pageload. Drop the stale reference.
+    instrumentation.vm.$_sentryRootComponentSpan = undefined;
   }
 }

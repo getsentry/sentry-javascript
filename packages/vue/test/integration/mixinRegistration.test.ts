@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import type { Span } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it as baseIt, vi } from 'vitest';
@@ -381,6 +382,30 @@ describe('tracing mixin span creation', () => {
         { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
         { name: 'Application Render', op: UI_RENDER_SPAN_OP },
       ]);
+    });
+
+    it('extendVueRootRenderSpan does not re-arm the debounce for an externally ended span', ({ app, initSentry }) => {
+      disableOptionsApi(app);
+      initSentry();
+      let renderSpan: Span | undefined;
+      Sentry.getClient()?.on('spanStart', span => {
+        if (spanToJSON(span).name === 'Application Render') {
+          renderSpan = span;
+        }
+      });
+      Sentry.startSpan({ name: 'pageload' }, () => {
+        app.mount(document.createElement('div'));
+      });
+      expect(renderSpan).toBeDefined();
+      // Simulates a navigation ending the pageload and its running children before the debounce fires.
+      renderSpan?.end();
+
+      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2);
+      Sentry.INTERNAL_extendVueRootRenderSpan(app);
+      // Past the original debounce deadline, before any re-armed one could fire.
+      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2 + 10);
+
+      expect(vi.getTimerCount()).toBe(0);
     });
 
     it('attaches the Vue error handler', ({ app, initSentry }) => {
