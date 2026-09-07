@@ -74,9 +74,7 @@ import type {
 // `http.request.method_original` is not part of `@sentry/conventions`, so we keep it inline.
 const ATTR_HTTP_REQUEST_METHOD_ORIGINAL = 'http.request.method_original';
 
-// Keep ref to avoid https://github.com/nodejs/node/issues/42170 bug
-// We can replace this with _isInstrumented once we drop support for Node.js 18.18.0
-const _channelSubs: Array<unknown> = [];
+let _isInstrumented = false;
 const spanFromReq = new WeakMap<UndiciRequest, Span>();
 // Whether breadcrumbs (and span-less trace propagation) should be skipped for a given request.
 // We evaluate this at request-creation time because the active context is no longer correct by the
@@ -101,9 +99,10 @@ const propagationDecisionMap = new LRUMap<string, boolean>(100);
  */
 export function instrumentUndici(config: NodeFetchOptions = {}): void {
   // Avoid duplicate subscriptions
-  if (_channelSubs.length) {
+  if (_isInstrumented) {
     return;
   }
+  _isInstrumented = true;
 
   subscribeToChannel('undici:request:create', message => onRequestCreated(config, message as RequestMessage));
   subscribeToChannel('undici:client:sendHeaders', message =>
@@ -118,7 +117,7 @@ function subscribeToChannel(
   diagnosticChannel: string,
   onMessage: (message: unknown, name: string | symbol) => void,
 ): void {
-  _channelSubs.push(diagch.subscribe?.(diagnosticChannel, onMessage));
+  diagch.subscribe?.(diagnosticChannel, onMessage);
 }
 
 function parseRequestHeaders(request: UndiciRequest): Map<string, string | string[]> {
