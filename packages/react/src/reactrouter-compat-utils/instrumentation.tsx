@@ -754,26 +754,17 @@ export function createReactRouterV6CompatibleTracingIntegration(
 }
 
 export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, version: V6CompatibleVersion): UseRoutes {
-  // Uninstrumented fallback used when the integration has not been set up. It only calls `origUseRoutes`,
-  // so its hook usage stays stable and switching to/from the instrumented component is Rules-of-Hooks safe.
-  const UninstrumentedRoutes: React.FC<{ routes: RouteObject[]; locationArg?: Partial<Location> | string }> = ({
-    routes,
-    locationArg,
-  }) => {
-    return origUseRoutes(routes, locationArg);
-  };
-
-  const SentryRoutes: React.FC<{
-    children?: React.ReactNode;
+  // Null-rendering reporter that owns every config-dependent hook. It is mounted as a *sibling* of the
+  // routes element (never wrapping it) and only once a client config exists, so the routes element always
+  // keeps its position across the `Sentry.init()` transition and is never remounted - remounting would wipe
+  // form state and in-flight work in the host app. As a freshly mounted component, its own hook sequence
+  // stays self-consistent for its whole lifetime, so this is Rules-of-Hooks safe.
+  const RouteReporter: React.FC<{
+    config: ReactRouterConfig;
     routes: RouteObject[];
     locationArg?: Partial<Location> | string;
-  }> = (props: { children?: React.ReactNode; routes: RouteObject[]; locationArg?: Partial<Location> | string }) => {
-    // Present because the outer wrapper only renders this when config exists.
-    const config = getRouterConfig(getClient()) as ReactRouterConfig;
+  }> = ({ config, routes, locationArg }) => {
     const isMountRenderPass = React.useRef(true);
-    const { routes, locationArg } = props;
-
-    const Routes = origUseRoutes(routes, locationArg);
 
     const location = config.useLocation();
     const navigationType = config.useNavigationType();
@@ -819,20 +810,28 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
       }
     }, [navigationType, stableLocationParam]);
 
-    return Routes;
+    return null;
   };
 
-  // Outer decider - reads the client config at *render* time (so wrapping before `Sentry.init()` still
-  // works once the app renders) and itself calls no hooks, keeping the instrumented/uninstrumented switch
-  // Rules-of-Hooks safe.
+  // Reads the client config at *render* time (so wrapping before `Sentry.init()` still instruments once the
+  // app renders). `origUseRoutes` is called unconditionally (a stable hook) and its element is always
+  // rendered; instrumentation lives in the sibling `RouteReporter`, which mounts only when config exists -
+  // so config appearing after the first paint toggles a null-rendering sibling instead of swapping the
+  // wrapper's type and remounting the routes.
   const SentryRoutesWrapper: React.FC<{ routes: RouteObject[]; locationArg?: Partial<Location> | string }> = ({
     routes,
     locationArg,
   }) => {
-    if (!getRouterConfig(getClient())) {
-      return <UninstrumentedRoutes routes={routes} locationArg={locationArg} />;
-    }
-    return <SentryRoutes routes={routes} locationArg={locationArg} />;
+    const config = getRouterConfig(getClient());
+    const routesElement = origUseRoutes(routes, locationArg);
+    return (
+      <>
+        {routesElement}
+        {/* Rendered after the routes so the reporter's layout effects run *after* the (descendant) route
+            subtree has registered into `allRoutes`, matching the pre-refactor parent-after-child order. */}
+        {config ? <RouteReporter config={config} routes={routes} locationArg={locationArg} /> : null}
+      </>
+    );
   };
 
   // eslint-disable-next-line react/display-name
@@ -1398,16 +1397,23 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
   Routes: R,
   version: V6CompatibleVersion,
 ): R {
-  // Instrumented implementation. Only rendered by the outer `SentryRoutes` once a client config exists,
-  // so `getRouterConfig(...)` is present here and the router hooks are called unconditionally.
-  const InstrumentedRoutes: React.FC<P> = (props: P) => {
-    const config = getRouterConfig(getClient()) as ReactRouterConfig;
+  // Null-rendering reporter that owns every config-dependent hook. It is mounted as a *sibling* of the
+  // routes (never wrapping them) and only once a client config exists, so the route subtree always keeps
+  // the same component type across the `Sentry.init()` transition and is never remounted - remounting
+  // would wipe form state and in-flight work in the host app. As a freshly mounted component, its own hook
+  // sequence stays self-consistent for its whole lifetime, so this is Rules-of-Hooks safe.
+  const RouteReporter: React.FC<{ config: ReactRouterConfig; routeChildren: React.ReactNode }> = ({
+    config,
+    routeChildren,
+  }) => {
     const isMountRenderPass = React.useRef(true);
 
     const location = config.useLocation();
     const navigationType = config.useNavigationType();
 
-    const routes = config.createRoutesFromChildren(props.children) as RouteObject[];
+    const routes = config.createRoutesFromChildren(
+      routeChildren as Parameters<typeof config.createRoutesFromChildren>[0],
+    ) as RouteObject[];
 
     // Register this `<Routes>`'s routes in the shared set for as long as it is mounted, removing them on
     // unmount so they don't leak into later unrelated navigations (#22782). Tying add and remove to the
@@ -1447,22 +1453,27 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
       [location, navigationType],
     );
 
-    // @ts-expect-error Setting more specific React Component typing for `R` generic above
-    // will break advanced type inference done by react router params
-    return <Routes {...props} />;
+    return null;
   };
 
-  // Outer decider - reads the client config at *render* time (so wrapping before `Sentry.init()` still
-  // works once the app renders) and itself calls no hooks, keeping the instrumented/uninstrumented switch
-  // Rules-of-Hooks safe.
+  // Reads the client config at *render* time (so wrapping before `Sentry.init()` still instruments once
+  // the app renders). The routes are always rendered with the same component type; instrumentation lives in
+  // the sibling `RouteReporter`, which mounts only when config exists - so config appearing after the first
+  // paint toggles a null-rendering sibling instead of swapping the routes' type and remounting them.
   const SentryRoutes: React.FC<P> = (props: P) => {
-    if (!getRouterConfig(getClient())) {
-      // @ts-expect-error Setting more specific React Component typing for `R` generic above
-      // will break advanced type inference done by react router params
-      return <Routes {...props} />;
-    }
-
-    return <InstrumentedRoutes {...props} />;
+    const config = getRouterConfig(getClient());
+    return (
+      <>
+        {
+          // @ts-expect-error Setting more specific React Component typing for `R` generic above
+          // will break advanced type inference done by react router params
+          <Routes {...props} />
+        }
+        {/* Rendered after the routes so the reporter's layout effects run *after* the (descendant) route
+            subtree has registered into `allRoutes`, matching the pre-refactor parent-after-child order. */}
+        {config ? <RouteReporter config={config} routeChildren={props.children} /> : null}
+      </>
+    );
   };
 
   hoistNonReactStatics(SentryRoutes, Routes);
