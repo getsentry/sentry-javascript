@@ -12,8 +12,15 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT } from '@sentry/core';
 import { createRunner } from '../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
 // This test runs the `openai` SDK on the Workers runtime (with a canned
 // fetch) to verify the instrumentation works end-to-end on Cloudflare, not just
@@ -23,17 +30,17 @@ it('traces a basic chat completion request with the openai SDK', async ({ signal
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as any;
-      expect(transactionEvent.transaction).toBe('GET /');
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+      expect(segmentSpan?.name).toBe('GET /');
 
-      const container = envelope[1]?.[1]?.[1] as any;
-      expect(container).toBeDefined();
-      expect(container.items).toHaveLength(1);
+      const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
+      expect(genAiSpans).toHaveLength(1);
 
-      expect(container.items[0]).toEqual({
+      expect(genAiSpans[0]).toEqual({
         trace_id: expect.any(String),
         span_id: expect.any(String),
-        parent_span_id: expect.any(String),
+        parent_span_id: segmentSpan?.span_id,
         name: 'chat gpt-3.5-turbo',
         start_timestamp: expect.any(Number),
         end_timestamp: expect.any(Number),
@@ -61,6 +68,12 @@ it('traces a basic chat completion request with the openai SDK', async ({ signal
           [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 15, type: 'integer' },
           [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 25, type: 'integer' },
           [GEN_AI_RESPONSE_FINISH_REASONS]: { value: '["stop"]', type: 'string' },
+          [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+          [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+          [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+          [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+          [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
         },
       });
     })

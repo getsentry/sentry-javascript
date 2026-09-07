@@ -10,10 +10,17 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { createRunner } from '../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
 // These tests are not exhaustive because the instrumentation is
 // already tested in the core unit tests and we merely want to test
@@ -23,14 +30,14 @@ it('traces a basic Workers AI text generation request', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as any;
-      expect(transactionEvent.transaction).toBe('GET /');
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+      expect(segmentSpan?.name).toBe('GET /');
 
-      const container = envelope[1]?.[1]?.[1] as any;
-      expect(container).toBeDefined();
-      expect(container.items).toHaveLength(1);
+      const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
+      expect(genAiSpans).toHaveLength(1);
 
-      expect(container.items[0]).toEqual(
+      expect(genAiSpans[0]).toEqual(
         expect.objectContaining({
           name: 'chat @cf/meta/llama-3.1-8b-instruct',
           status: 'ok',
@@ -55,6 +62,12 @@ it('traces a basic Workers AI text generation request', async ({ signal }) => {
               type: 'string',
               value: 'The capital of France is Paris.',
             },
+            [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+            [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+            [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+            [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+            [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
           },
         }),
       );
@@ -68,14 +81,16 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as any;
-      expect(transactionEvent.transaction).toBe('GET /stream');
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+      // `/stream` is a raw URL, so the streamed segment name keeps the method only.
+      expect(segmentSpan?.name).toBe('GET');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/stream' });
 
-      const container = envelope[1]?.[1]?.[1] as any;
-      expect(container).toBeDefined();
-      expect(container.items).toHaveLength(1);
+      const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
+      expect(genAiSpans).toHaveLength(1);
 
-      expect(container.items[0]).toEqual(
+      expect(genAiSpans[0]).toEqual(
         expect.objectContaining({
           name: 'chat @cf/meta/llama-3.1-8b-instruct',
           status: 'ok',
@@ -100,6 +115,12 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
               type: 'string',
               value: 'The capital of France is Paris.',
             },
+            [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+            [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+            [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+            [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+            [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
           },
         }),
       );
@@ -115,8 +136,8 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
 // Sentry exactly once, with the `auto.http.cloudflare` mechanism.
 it('bubbles up Workers AI errors to be captured by the top-level handler', async ({ signal }) => {
   const runner = createRunner(__dirname)
-    // A failing run still produces a (sampled) transaction; we only care about the error event here.
-    .ignore('transaction')
+    // A failing run still streams its (sampled) spans; we only care about the error event here.
+    .ignore('span')
     .expect(envelope => {
       const errorEvent = envelope[1]?.[0]?.[1] as any;
 
