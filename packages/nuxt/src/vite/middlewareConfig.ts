@@ -1,19 +1,7 @@
-import { addServerImports, createResolver } from '@nuxt/kit';
+import { createResolver } from '@nuxt/kit';
 import type { Nitro } from 'nitropack/types';
 import * as path from 'path';
 import type { InputPluginOption } from 'rollup';
-
-/**
- * Adds a server import for the middleware instrumentation.
- */
-export function addMiddlewareImports(): void {
-  addServerImports([
-    {
-      name: 'wrapMiddlewareHandlerWithSentry',
-      from: createResolver(import.meta.url).resolve('./runtime/hooks/wrapMiddlewareHandler'),
-    },
-  ]);
-}
 
 /**
  * Adds middleware instrumentation to the Nitro build.
@@ -42,6 +30,9 @@ export function addMiddlewareInstrumentation(nitro: Nitro): void {
  */
 function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
   const middlewareFiles = new Set<string>();
+  // Imported by absolute path rather than through `#imports`: with `imports.autoImport: false`,
+  // Nuxt 5 generates an empty server `#imports` module, dropping `addServerImports` registrations.
+  const wrapperModule = createResolver(import.meta.url).resolve('./runtime/hooks/wrapMiddlewareHandler');
 
   return {
     name: 'sentry-nuxt-middleware-instrumentation',
@@ -58,7 +49,7 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
       if (middlewareFiles.has(id)) {
         const fileName = path.basename(id);
         return {
-          code: wrapMiddlewareCode(code, fileName),
+          code: wrapMiddlewareCode(code, fileName, wrapperModule),
           map: null,
         };
       }
@@ -72,15 +63,16 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
  *
  * @param originalCode The original user code of the middleware.
  * @param fileName The name of the middleware file, used for the span name and logging.
+ * @param wrapperModule Absolute path of the module exporting `wrapMiddlewareHandlerWithSentry`.
  *
  * @returns The wrapped user code of the middleware.
  */
-function wrapMiddlewareCode(originalCode: string, fileName: string): string {
+function wrapMiddlewareCode(originalCode: string, fileName: string, wrapperModule: string): string {
   // Remove common file extensions
   const cleanFileName = fileName.replace(/\.(ts|js|mjs|mts|cts)$/, '');
 
   return `
-import { wrapMiddlewareHandlerWithSentry } from '#imports';
+import { wrapMiddlewareHandlerWithSentry } from ${JSON.stringify(wrapperModule)};
 
 function defineInstrumentedEventHandler(handlerOrObject) {
   return defineEventHandler(wrapMiddlewareHandlerWithSentry(handlerOrObject, '${cleanFileName}'));
