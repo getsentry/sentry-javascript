@@ -460,8 +460,11 @@ function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, stat
 
   for (const specifier of specifiers) {
     const pair = wrapCrossModuleSpecifier(specifier, sourceLiteral, ctx, state, prelude);
-    if (pair) wrappedPairs.push(pair);
-    else kept.push(state.ms.original.slice(specifier.start, specifier.end));
+    if (pair) {
+       wrappedPairs.push(pair);
+    } else {
+       kept.push(state.ms.original.slice(specifier.start, specifier.end));
+    }
   }
 
   if (wrappedPairs.length === 0) return;
