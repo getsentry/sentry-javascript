@@ -3,7 +3,7 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 // This app wraps its routes (in `src/sentry-routes.tsx`) BEFORE `Sentry.init()` runs. That these
 // pageload/navigation spans are still emitted with parameterized route names proves the
-// `@sentry/react/router` setup is order-independent w.r.t. init - see MIGRATION.md.
+// `@sentry/react/react-router` setup is order-independent w.r.t. init - see MIGRATION.md.
 
 test('sends a pageload span with a parameterized route name (no hooks passed to the integration)', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('react-router-7-router-entry', span => {

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { reactRouterBrowserTracingIntegration } from '@sentry/react/router';
+import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';
 import * as React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Route } from 'react-router';

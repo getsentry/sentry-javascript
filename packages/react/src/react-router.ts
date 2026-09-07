@@ -24,7 +24,7 @@ type BrowserTracingOptions = Parameters<typeof browserTracingIntegration>[0];
  * directly from `react-router`, so you don't have to pass them in:
  *
  * ```ts
- * import { reactRouterBrowserTracingIntegration } from '@sentry/react/router';
+ * import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';
  *
  * Sentry.init({ integrations: [reactRouterBrowserTracingIntegration()] });
  * ```

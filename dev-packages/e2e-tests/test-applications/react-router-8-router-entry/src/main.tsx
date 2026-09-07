@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
-// The `@sentry/react/router` entry pulls the required router hooks from `react-router` itself, so
+// The `@sentry/react/react-router` entry pulls the required router hooks from `react-router` itself, so
 // `reactRouterBrowserTracingIntegration()` needs no arguments. On React Router v8 everything
 // (`BrowserRouter`, `Link`, `Routes`, `Route`) is exported from `react-router`.
-import { reactRouterBrowserTracingIntegration, wrapReactRouterRouting } from '@sentry/react/router';
+import { reactRouterBrowserTracingIntegration, wrapReactRouterRouting } from '@sentry/react/react-router';
 import * as React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';

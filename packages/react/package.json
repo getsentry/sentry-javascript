@@ -31,25 +31,25 @@
         "default": "./build/cjs/index.js"
       }
     },
-    "./router": {
+    "./react-router": {
       "react-native": {
-        "types": "./build/types/router.d.ts",
-        "default": "./build/esm/router.js"
+        "types": "./build/types/react-router.d.ts",
+        "default": "./build/esm/react-router.js"
       },
       "import": {
-        "types": "./build/types/router.d.ts",
-        "default": "./build/esm/router.js"
+        "types": "./build/types/react-router.d.ts",
+        "default": "./build/esm/react-router.js"
       },
       "require": {
-        "types": "./build/types/router.d.ts",
-        "default": "./build/cjs/router.js"
+        "types": "./build/types/react-router.d.ts",
+        "default": "./build/cjs/react-router.js"
       }
     }
   },
   "typesVersions": {
     "*": {
-      "router": [
-        "build/types/router.d.ts"
+      "react-router": [
+        "build/types/react-router.d.ts"
       ]
     }
   },

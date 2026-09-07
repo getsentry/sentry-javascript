@@ -1,4 +1,4 @@
-import { wrapReactRouterRouting } from '@sentry/react/router';
+import { wrapReactRouterRouting } from '@sentry/react/react-router';
 import { Routes } from 'react-router';
 
 // `wrapReactRouterRouting` runs here, at this module's evaluation time. Because `main.tsx` imports

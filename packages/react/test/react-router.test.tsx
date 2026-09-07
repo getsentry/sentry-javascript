@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * Tests for the `@sentry/react/router` entry point, which pulls the required React Router hooks
+ * Tests for the `@sentry/react/react-router` entry point, which pulls the required React Router hooks
  * directly from `react` / `react-router` so `reactRouterBrowserTracingIntegration()` can be used
  * without passing them in.
  */
@@ -19,7 +19,7 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../src';
 import { allRoutes } from '../src/reactrouter-compat-utils/instrumentation';
-import { reactRouterBrowserTracingIntegration, wrapReactRouterRouting } from '../src/router';
+import { reactRouterBrowserTracingIntegration, wrapReactRouterRouting } from '../src/react-router';
 
 const mockStartBrowserTracingPageLoadSpan = vi.fn();
 const mockStartBrowserTracingNavigationSpan = vi.fn();
@@ -48,7 +48,7 @@ function createMockBrowserClient(): BrowserClient {
   });
 }
 
-describe('@sentry/react/router', () => {
+describe('@sentry/react/react-router', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getCurrentScope().setClient(undefined);
