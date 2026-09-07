@@ -2174,6 +2174,7 @@ The main entry re-exported the build plugin statically, which pulled the whole b
   `any`.
 - Attribute typing and serialization were unified across the SDK.
 - The `attributes` field on the `ScopeData` type is now required. `Scope.getScopeData()` always returned it, so this only affects code that constructs `ScopeData` objects manually — add `attributes: {}` there.
+- The `attributes` field on the `SamplingContext` passed to `tracesSampler` is now required (previously optional); it is always provided by the SDK, so this only affects code that narrows or constructs `SamplingContext` objects by hand.
 - The `endTimestamp` property was removed from the `SentrySpanArguments` interface. It was never part of
   `StartSpanOptions`, so it could only be passed by ignoring TypeScript, in which case the span ended itself
   during construction. Call `span.end(timestamp)` instead.
