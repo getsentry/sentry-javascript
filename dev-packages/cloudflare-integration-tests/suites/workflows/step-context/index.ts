@@ -50,7 +50,6 @@ class StepContextTestWorkflowBase extends WorkflowEntrypoint<Env, WorkflowParams
 export const StepContextTestWorkflow = Sentry.instrumentWorkflowWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
   }),
   StepContextTestWorkflowBase,
 );
@@ -58,7 +57,6 @@ export const StepContextTestWorkflow = Sentry.instrumentWorkflowWithSentry(
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
   }),
   {
     async fetch(request, env, _ctx) {
