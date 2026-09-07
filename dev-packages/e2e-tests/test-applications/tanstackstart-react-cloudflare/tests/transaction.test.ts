@@ -1,13 +1,19 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('Sends a server function transaction with span from wrapFetchWithSentry', async ({ page }) => {
-  const transactionEventPromise = waitForTransaction('tanstackstart-react-cloudflare', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      !!transactionEvent?.transaction?.startsWith('GET /_serverFn')
-    );
-  });
+function isServerFnSegment(span: Parameters<typeof getSpanOp>[0]): boolean {
+  return (
+    !!span.is_segment &&
+    getSpanOp(span) === 'http.server' &&
+    String(span.attributes['url.path']?.value ?? '').startsWith('/_serverFn')
+  );
+}
+
+test('Sends a server function span with wrapFetchWithSentry', async ({ page }) => {
+  const spansPromise = collectStreamedSpans(
+    'tanstackstart-react-cloudflare',
+    spans => spans.some(isServerFnSegment) && spans.some(span => span.name === 'GET /_serverFn/testLog'),
+  );
 
   await page.goto('/test-serverFn');
 
@@ -15,36 +21,36 @@ test('Sends a server function transaction with span from wrapFetchWithSentry', a
 
   await page.locator('#server-fn-btn').click();
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent.contexts?.trace).toMatchObject({
-    op: 'http.server',
-    origin: 'auto.http.cloudflare',
+  const serverSegment = spans.find(isServerFnSegment);
+  expect(serverSegment?.attributes).toMatchObject({
+    'sentry.op': { type: 'string', value: 'http.server' },
+    'sentry.origin': { type: 'string', value: 'auto.http.cloudflare' },
   });
 
-  expect(transactionEvent?.spans).toHaveLength(1);
-  expect(transactionEvent?.spans).toEqual([
-    expect.objectContaining({
-      description: 'GET /_serverFn/testLog',
-      op: 'function',
-      origin: 'auto.function.tanstackstart.server',
-      data: {
-        'sentry.op': 'function',
-        'sentry.origin': 'auto.function.tanstackstart.server',
-        'tanstackstart.function.id': expect.any(String),
-        'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
-      },
-    }),
-  ]);
+  expect(spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: 'GET /_serverFn/testLog',
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'function' },
+          'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
+          'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
+        }),
+      }),
+    ]),
+  );
 });
 
-test('Sends a server function transaction for a nested server function with manual span', async ({ page }) => {
-  const transactionEventPromise = waitForTransaction('tanstackstart-react-cloudflare', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      !!transactionEvent?.transaction?.startsWith('GET /_serverFn')
-    );
-  });
+test('Sends a server function span for a nested server function with manual span', async ({ page }) => {
+  const spansPromise = collectStreamedSpans(
+    'tanstackstart-react-cloudflare',
+    spans =>
+      spans.some(isServerFnSegment) &&
+      spans.some(span => span.name === 'GET /_serverFn/testNestedLog') &&
+      spans.some(span => span.name === 'testNestedLog'),
+  );
 
   await page.goto('/test-serverFn');
 
@@ -52,48 +58,46 @@ test('Sends a server function transaction for a nested server function with manu
 
   await page.locator('#server-fn-nested-btn').click();
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent.contexts?.trace).toMatchObject({
-    op: 'http.server',
-    origin: 'auto.http.cloudflare',
+  const serverSegment = spans.find(isServerFnSegment);
+  expect(serverSegment?.attributes).toMatchObject({
+    'sentry.op': { type: 'string', value: 'http.server' },
+    'sentry.origin': { type: 'string', value: 'auto.http.cloudflare' },
   });
 
-  expect(transactionEvent?.spans).toHaveLength(2);
-  expect(transactionEvent?.spans).toEqual(
+  expect(spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: 'GET /_serverFn/testNestedLog',
-        op: 'function',
-        origin: 'auto.function.tanstackstart.server',
-        data: {
-          'sentry.op': 'function',
-          'sentry.origin': 'auto.function.tanstackstart.server',
-          'tanstackstart.function.id': expect.any(String),
-          'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
-        },
+        name: 'GET /_serverFn/testNestedLog',
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'function' },
+          'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
+          'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
+        }),
       }),
       expect.objectContaining({
-        description: 'testNestedLog',
-        origin: 'manual',
+        name: 'testNestedLog',
+        attributes: expect.objectContaining({
+          'sentry.origin': { type: 'string', value: 'manual' },
+        }),
       }),
     ]),
   );
 });
 
-test('Sends server-side transaction for page request', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('tanstackstart-react-cloudflare', transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /';
+test('Sends server-side span for page request', async ({ baseURL }) => {
+  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react-cloudflare', span => {
+    return span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/';
   });
 
   await fetch(`${baseURL}/`);
 
-  const transactionEvent = await transactionEventPromise;
+  const serverSpan = await serverSpanPromise;
 
-  expect(transactionEvent.transaction).toBe('GET /');
-  expect(transactionEvent.contexts?.trace).toMatchObject({
-    op: 'http.server',
-    origin: 'auto.http.cloudflare',
-    status: 'ok',
+  expect(serverSpan.attributes).toMatchObject({
+    'sentry.op': { type: 'string', value: 'http.server' },
+    'sentry.origin': { type: 'string', value: 'auto.http.cloudflare' },
   });
+  expect(serverSpan.status).toBe('ok');
 });
