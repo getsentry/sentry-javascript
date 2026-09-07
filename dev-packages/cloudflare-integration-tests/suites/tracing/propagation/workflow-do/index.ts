@@ -17,7 +17,6 @@ class MyDurableObjectBase extends DurableObject<Env> {
 export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   MyDurableObjectBase,
@@ -37,7 +36,6 @@ class MyWorkflowBase extends WorkflowEntrypoint<Env> {
 export const MyWorkflow = Sentry.instrumentWorkflowWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     // The workflow is itself a caller: `run` reaches the Durable Object through `this.env`.
     rpcTracePropagationBindings: ['MY_DURABLE_OBJECT'],
@@ -48,7 +46,6 @@ export const MyWorkflow = Sentry.instrumentWorkflowWithSentry(
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     rpcTracePropagationBindings: ['MY_WORKFLOW'],
   }),
