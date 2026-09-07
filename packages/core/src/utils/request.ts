@@ -348,8 +348,8 @@ function normalizeAttributeKey(key: string): string {
  * Splits a `Cookie` / `Set-Cookie` header into its name-value pairs, or returns `undefined` when it
  * holds none.
  *
- * A segment without an `=` is dropped. It would otherwise become the attribute key itself, and no
- * denylist can scrub a key.
+ * A segment without an `=` is a nameless cookie, so the bare token is its value. Dropping it keeps
+ * that value out of the attribute key, where no denylist could reach it.
  */
 function parseCookieHeader(value: string, isSetCookie: boolean): Record<string, string> | undefined {
   // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")

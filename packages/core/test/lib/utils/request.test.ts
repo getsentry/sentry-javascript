@@ -666,7 +666,7 @@ describe('request utils', () => {
       });
 
       it('drops cookie segments that are not a name=value pair', () => {
-        // The segment would become the attribute key, and keys are never scrubbed.
+        // The bare token is a nameless cookie's value, so it must not become the attribute key.
         const headers = { Cookie: 'session=abc123; theme=dark; y7Uu0Rk2QpLmXv3' };
 
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
