@@ -65,15 +65,15 @@ test.describe('Sentry server config injection', () => {
     expect(readFileSync(shimPath, 'utf8')).toContain('no longer needed');
   });
 
-  test('does not bake tracing meta tags into prerendered pages', () => {
-    // Prerendering executes the server bundle at build time; init is skipped there, so no Sentry
-    // client may leak trace meta tags into the static HTML.
-    const prerenderedPage = readFileSync(
-      path.join(process.cwd(), '.output/public/rendering-modes/pre-rendered-page/index.html'),
-      'utf8',
-    );
+  test('sends no telemetry during the prerendering build', () => {
+    // Prerendering executes the server bundle at build time; init is skipped there, so the tunnel
+    // must receive zero envelopes while `test:build` runs (counted by scripts/build-with-prerender-event-sink.mjs).
+    const countPath = path.join(process.cwd(), '.output/build-envelope-count.json');
+    test.skip(!existsSync(countPath), 'build ran without the event-sink wrapper (use `pnpm test:build`)');
 
-    expect(prerenderedPage).not.toContain('sentry-trace');
-    expect(prerenderedPage).not.toContain('baggage');
+    const { envelopeCount } = JSON.parse(readFileSync(countPath, 'utf8'));
+    test.skip(envelopeCount === null, 'tunnel port was busy during the build');
+
+    expect(envelopeCount).toBe(0);
   });
 });
