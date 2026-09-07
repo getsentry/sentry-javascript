@@ -1,20 +1,16 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 
 function isSegmentFor(path: string): (span: SerializedStreamedSpan) => boolean {
-  return span => getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === path;
+  return span => getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === path;
 }
 
 // Orchestrion force-bundles + transforms mysql/ioredis at build time, and the databases
 // are booted via docker-compose in the Playwright global setup.
 test.describe('orchestrion DB instrumentation', () => {
   test('Instruments ioredis automatically via orchestrion', async ({ baseURL }) => {
-    const spansPromise = collectStreamedSpans(
-      'create-remix-app-v2',
-      spans =>
-        spans.some(isSegmentFor('/db-ioredis')) && spans.filter(span => getSpanOp(span) === 'db.query').length >= 2,
-    );
+    const spansPromise = collectStreamedSpansUntilSegment('create-remix-app-v2', isSegmentFor('/db-ioredis'));
 
     await fetch(`${baseURL}/db-ioredis`);
 
@@ -48,10 +44,7 @@ test.describe('orchestrion DB instrumentation', () => {
   });
 
   test('Instruments mysql automatically via orchestrion', async ({ baseURL }) => {
-    const spansPromise = collectStreamedSpans(
-      'create-remix-app-v2',
-      spans => spans.some(isSegmentFor('/db-mysql')) && spans.filter(span => getSpanOp(span) === 'db').length >= 2,
-    );
+    const spansPromise = collectStreamedSpansUntilSegment('create-remix-app-v2', isSegmentFor('/db-mysql'));
 
     await fetch(`${baseURL}/db-mysql`);
 

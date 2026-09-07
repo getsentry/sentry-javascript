@@ -35,7 +35,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../../utils/sql';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -117,7 +117,7 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
   if (statement) {
     // Sanitized before summarizing, so that a string literal containing `from`/`join` can't leak a
     // value into the summary.
-    merged[DB_QUERY_SUMMARY] = _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement));
+    merged[DB_QUERY_SUMMARY] = getSqlQuerySummary(sanitizeSqlQuery(statement));
   }
 
   return merged;

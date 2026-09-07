@@ -1,44 +1,38 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
-  const serverTxnEventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
-    return txnEvent?.transaction === 'GET /server-load-fetch';
-  });
+  const serverTraceSpansPromise = collectStreamedSpansUntilSegment('sveltekit-2-svelte-5', 'GET /server-load-fetch');
 
   await page.goto('/server-load-fetch');
 
-  const serverTxnEvent = await serverTxnEventPromise;
-  const spans = serverTxnEvent.spans;
+  const serverTraceSpans = await serverTraceSpansPromise;
+  const serverSpan = serverTraceSpans.find(span => span.name === 'GET /server-load-fetch' && span.is_segment)!;
 
-  expect(serverTxnEvent).toMatchObject({
-    transaction: 'GET /server-load-fetch',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
-    contexts: {
-      trace: {
-        op: 'http.server',
-        origin: 'auto.http.sveltekit',
-      },
-    },
+  expect(serverSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'http.request.method': { value: 'GET', type: 'string' },
+    'url.path': { value: '/server-load-fetch', type: 'string' },
+    'http.request.header.accept': { value: expect.any(String), type: 'string' },
+    'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
   });
 
-  expect(spans).toEqual(
+  expect(serverTraceSpans).toEqual(
     expect.arrayContaining([
       // load span where the server load function initiates the sub request:
-      expect.objectContaining({ op: 'function', description: '/server-load-fetch' }),
+      expect.objectContaining({
+        name: '/server-load-fetch',
+        is_segment: false,
+        attributes: expect.objectContaining({ 'sentry.op': { value: 'function', type: 'string' } }),
+      }),
       // sub request span:
-      expect.objectContaining({ op: 'http.server', description: 'GET /api/users' }),
+      expect.objectContaining({
+        name: 'GET /api/users',
+        is_segment: false,
+        attributes: expect.objectContaining({ 'sentry.op': { value: 'http.server', type: 'string' } }),
+      }),
     ]),
   );
-
-  expect(serverTxnEvent.request).toEqual({
-    cookies: {},
-    headers: expect.objectContaining({
-      accept: expect.any(String),
-      'user-agent': expect.any(String),
-    }),
-    method: 'GET',
-    url: 'http://localhost:3030/server-load-fetch',
-  });
 });
