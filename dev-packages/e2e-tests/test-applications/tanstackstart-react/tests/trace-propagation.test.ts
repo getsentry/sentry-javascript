@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const usesManagedTunnelRoute =
   (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
@@ -23,19 +23,19 @@ test.describe('Trace propagation', () => {
   });
 
   test('should have trace connection between server and client', async ({ page }) => {
-    const serverTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
-      return transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /';
+    const serverSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
+      return span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/';
     });
 
-    const clientTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
-      return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
+    const clientSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
+      return span.is_segment && getSpanOp(span) === 'pageload' && span.name === '/';
     });
 
     await page.goto('/');
 
-    const serverTx = await serverTxPromise;
-    const clientTx = await clientTxPromise;
+    const serverSpan = await serverSpanPromise;
+    const clientSpan = await clientSpanPromise;
 
-    expect(clientTx.contexts?.trace?.trace_id).toBe(serverTx.contexts?.trace?.trace_id);
+    expect(clientSpan.trace_id).toBe(serverSpan.trace_id);
   });
 });
