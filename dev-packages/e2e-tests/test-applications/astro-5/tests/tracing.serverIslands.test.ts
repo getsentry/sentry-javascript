@@ -34,6 +34,9 @@ test.describe('tracing in static routes with server islands', () => {
       'sentry.op': { value: 'pageload', type: 'string' },
       'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'url.template': { value: '/server-island', type: 'string' },
+      'url.path': { value: '/server-island', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/server-island$/), type: 'string' },
     });
 
     // the pageload trace contains a resource link span for the preloaded server island request.
