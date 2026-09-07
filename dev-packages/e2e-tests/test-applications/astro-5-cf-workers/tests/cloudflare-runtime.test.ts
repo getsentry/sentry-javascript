@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test.describe('Cloudflare Runtime', () => {
   test('Should report cloudflare as the runtime in SSR error events', async ({ page }) => {
@@ -34,11 +34,29 @@ test.describe('Cloudflare Runtime', () => {
       );
     });
 
+    const transactionEventPromise = waitForTransaction('astro-5-cf-workers', transactionEvent => {
+      return transactionEvent.transaction === 'GET /api/test-error';
+    });
+
     request.get('/api/test-error').catch(() => {
       // Expected to fail
     });
 
     const errorEvent = await errorEventPromise;
+    const transactionEvent = await transactionEventPromise;
+
+    // Only the `withSentry` wrap of the Worker entry produces a request span with the Cloudflare
+    // SDK for a route that renders no page.
+    expect(transactionEvent).toMatchObject({
+      transaction: 'GET /api/test-error',
+      contexts: {
+        cloud_resource: { 'cloud.provider': 'cloudflare' },
+        runtime: { name: 'cloudflare' },
+        trace: { op: 'http.server' },
+      },
+      sdk: { name: 'sentry.javascript.cloudflare' },
+    });
+    expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
 
     expect(errorEvent.contexts?.runtime).toEqual({
       name: 'cloudflare',
