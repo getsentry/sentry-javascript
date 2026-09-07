@@ -46,6 +46,13 @@
       }
     }
   },
+  "typesVersions": {
+    "*": {
+      "router": [
+        "build/types/router.d.ts"
+      ]
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
