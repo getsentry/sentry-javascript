@@ -13,7 +13,6 @@ export default {
   async fetch(request, env, ctx) {
     const options: CloudflareOptions = {
       dsn: env.SENTRY_DSN,
-      traceLifecycle: 'static',
       tracesSampleRate: 1,
       enableOpenTelemetrySetup: true,
     };

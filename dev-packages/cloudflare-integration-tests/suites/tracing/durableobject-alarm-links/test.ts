@@ -1,51 +1,42 @@
 import { expect, it } from 'vitest';
-import type { TransactionEvent } from '@sentry/core';
+import type { SerializedStreamedSpan } from '@sentry/core';
 import { createRunner } from '../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
 it('alarm links to the trace that scheduled it via sentry.previous_trace', async ({ signal }) => {
-  let setAlarmTransaction: TransactionEvent | undefined;
-  let alarmTransaction: TransactionEvent | undefined;
+  let setAlarmSpan: SerializedStreamedSpan | undefined;
+  let alarmSpan: SerializedStreamedSpan | undefined;
   const testId = Date.now().toString();
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as TransactionEvent;
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          transaction: expect.stringContaining('/set-alarm'),
-        }),
-      );
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      // `/set-alarm` is a raw URL, so the streamed segment name keeps the method only.
+      expect(segmentSpan?.name).toBe('GET');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/set-alarm' });
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as TransactionEvent;
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          transaction: 'setAlarm',
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'rpc',
-              origin: 'auto.faas.cloudflare.durable_object',
-            }),
-          }),
-        }),
-      );
-      setAlarmTransaction = transactionEvent;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      expect(segmentSpan?.name).toBe('setAlarm');
+      expect(getSpanOp(segmentSpan!)).toBe('rpc');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.durable_object',
+      });
+      setAlarmSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as TransactionEvent;
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          type: 'transaction',
-          transaction: 'alarm',
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'function',
-              origin: 'auto.faas.cloudflare.durable_object',
-            }),
-          }),
-        }),
-      );
-      alarmTransaction = transactionEvent;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      expect(segmentSpan?.name).toBe('alarm');
+      expect(getSpanOp(segmentSpan!)).toBe('function');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.durable_object',
+      });
+      alarmSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
@@ -53,12 +44,11 @@ it('alarm links to the trace that scheduled it via sentry.previous_trace', async
   await runner.makeRequest('get', `/set-alarm?id=${testId}`);
   await runner.completed();
 
-  const traceData = alarmTransaction!.contexts?.trace?.data as Record<string, unknown> | undefined;
-  const previousTrace = traceData?.['sentry.previous_trace'] as string | undefined;
+  const previousTrace = alarmSpan?.attributes['sentry.previous_trace']?.value as string | undefined;
 
   expect(previousTrace).toBeDefined();
   expect(previousTrace).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}-[01]$/);
 
   const [linkedTraceId] = previousTrace!.split('-');
-  expect(linkedTraceId).toBe(setAlarmTransaction!.contexts?.trace?.trace_id);
+  expect(linkedTraceId).toBe(setAlarmSpan?.trace_id);
 });
