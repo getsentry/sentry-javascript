@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
-import { eventEnvelope, SHORT_UUID_MATCHER, UUID_MATCHER } from '../../expect';
+import { eventEnvelope } from '../../expect';
 import { createRunner } from '../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../spanUtils';
 
 it('Hono app captures parametrized errors (Hono SDK)', async ({ signal }) => {
   const runner = createRunner(__dirname)
@@ -43,43 +44,23 @@ it('Hono app captures parametrized errors (Hono SDK)', async ({ signal }) => {
         { includeSamplingFields: true, includeSampleRand: true, sdk: 'hono' },
       ),
     )
-
     .expect(envelope => {
-      const [, envelopeItems] = envelope;
-      const [itemHeader, itemPayload] = envelopeItems[0];
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(itemHeader.type).toBe('transaction');
-
-      expect(itemPayload).toMatchObject({
-        type: 'transaction',
-        platform: 'javascript',
-        transaction: 'GET /error/:param',
-        contexts: {
-          trace: {
-            span_id: expect.any(String),
-            trace_id: expect.any(String),
-            op: 'http.server',
-            status: 'internal_error',
-            origin: 'auto.http.cloudflare',
-          },
-        },
-        request: expect.objectContaining({
-          method: 'GET',
-          url: expect.stringContaining('/error/param-123'),
+      // The Hono route is a parametrized pattern, so the streamed segment keeps the full name.
+      expect(segmentSpan?.name).toBe('GET /error/:param');
+      // Span v2 keeps the coarse `error` status on the span and the specific one as an attribute.
+      expect(segmentSpan?.status).toBe('error');
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes).toEqual(
+        expect.objectContaining({
+          'sentry.status.message': { type: 'string', value: 'internal_error' },
+          'sentry.origin': { type: 'string', value: 'auto.http.cloudflare' },
+          'sentry.segment.name.source': { type: 'string', value: 'route' },
+          'http.request.method': { type: 'string', value: 'GET' },
+          'url.path': { type: 'string', value: '/error/param-123' },
         }),
-        breadcrumbs: [
-          {
-            timestamp: expect.any(Number),
-            category: 'console',
-            level: 'error',
-            message: 'Error: Test error from Hono app',
-            data: expect.objectContaining({
-              logger: 'console',
-              arguments: [{ message: 'Test error from Hono app', name: 'Error', stack: expect.any(String) }],
-            }),
-          },
-        ],
-      });
+      );
     })
     .unordered()
     .start(signal);
@@ -91,31 +72,20 @@ it('Hono app captures parametrized errors (Hono SDK)', async ({ signal }) => {
 it('Hono app captures parametrized names', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const [, envelopeItems] = envelope;
-      const [itemHeader, itemPayload] = envelopeItems[0];
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(itemHeader.type).toBe('transaction');
-
-      expect(itemPayload).toMatchObject({
-        type: 'transaction',
-        platform: 'javascript',
-        transaction: 'GET /hello/:name',
-        contexts: {
-          trace: {
-            span_id: SHORT_UUID_MATCHER,
-            trace_id: UUID_MATCHER,
-            op: 'http.server',
-            status: 'ok',
-            origin: 'auto.http.cloudflare',
-          },
-        },
-        request: expect.objectContaining({
-          method: 'GET',
-          url: expect.stringContaining('/hello/:name'),
+      expect(segmentSpan?.name).toBe('GET /hello/:name');
+      expect(segmentSpan?.status).toBe('ok');
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes).toEqual(
+        expect.objectContaining({
+          'sentry.origin': { type: 'string', value: 'auto.http.cloudflare' },
+          'sentry.segment.name.source': { type: 'string', value: 'route' },
+          'http.request.method': { type: 'string', value: 'GET' },
+          'url.path': { type: 'string', value: '/hello/:name' },
         }),
-      });
+      );
     })
-
     .unordered()
     .start(signal);
 
