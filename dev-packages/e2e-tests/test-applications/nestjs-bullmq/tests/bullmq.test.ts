@@ -11,14 +11,20 @@ function waitForProcessSpan(): Promise<unknown> {
  * The `/check-isolation` route reports the leaked breadcrumbs it can see as a span attribute,
  * because streamed spans carry no breadcrumbs of their own.
  */
-async function getLeakedBreadcrumbs(baseURL: string): Promise<unknown> {
+async function getLeakedBreadcrumbs(baseURL: string): Promise<string[]> {
   const segmentSpanPromise = waitForStreamedSpan(APP_NAME, span => {
     return span.is_segment && span.name === 'GET /check-isolation';
   });
 
   await fetch(`${baseURL}/check-isolation`);
 
-  return (await segmentSpanPromise).attributes['isolation_scope.leaked_breadcrumbs']?.value;
+  const attribute = (await segmentSpanPromise).attributes['isolation_scope.leaked_breadcrumbs'];
+
+  // A route that stopped reporting would make every `not.toContain` below pass for the wrong
+  // reason, so require the attribute rather than defaulting it away.
+  expect(attribute).toEqual({ type: 'array', value: expect.any(Array) });
+
+  return attribute!.value as string[];
 }
 
 test('Sends exception to Sentry on error in @Processor process method', async ({ baseURL }) => {
