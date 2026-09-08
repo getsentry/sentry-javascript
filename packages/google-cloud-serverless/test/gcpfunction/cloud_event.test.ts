@@ -312,7 +312,7 @@ describe('wrapCloudEventFunction', () => {
       const wrappedHandler = wrapCloudEventFunction(handler);
       await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
 
-      const expectedStartSapanOptions = {
+      const expectedStartSpanOptions = {
         name: 'google.cloud.pubsub.topic.v1.messagePublished',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
@@ -328,7 +328,7 @@ describe('wrapCloudEventFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(expectedStartSapanOptions, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(expectedStartSpanOptions, expect.any(Function));
       expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
 
       const scopeFunction = mockCaptureException.mock.calls[0][1];

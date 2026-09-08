@@ -7,6 +7,7 @@ import {
   GCP_FUNCTION_CONTEXT_EVENT_ID,
   GCP_FUNCTION_CONTEXT_RESOURCE,
   GCP_FUNCTION_CONTEXT_TIMESTAMP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
 import {
@@ -14,7 +15,6 @@ import {
   getClient,
   handleCallbackErrors,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
@@ -66,8 +66,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
           [FAAS_NAME]: functionName,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
-          // not yet in conventions but this attribute will also determine the span description
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
           [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: context.eventType,
           [GCP_FUNCTION_CONTEXT_EVENT_ID]: context.eventId,
           [GCP_FUNCTION_CONTEXT_RESOURCE]: context.resource,
