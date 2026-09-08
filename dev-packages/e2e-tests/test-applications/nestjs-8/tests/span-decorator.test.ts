@@ -1,7 +1,34 @@
 import { expect, test } from '@playwright/test';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 const APP_NAME = 'nestjs-8';
+
+const SPAN_ID = /^[a-f0-9]{16}$/;
+
+/** The full shape of a `@SentryTraced` span, so `toEqual` catches anything unexpected. */
+function tracedSpan(segmentSpan: SerializedStreamedSpan, name: string, op: string): Record<string, unknown> {
+  return {
+    name,
+    span_id: expect.stringMatching(SPAN_ID),
+    trace_id: segmentSpan.trace_id,
+    parent_span_id: expect.stringMatching(SPAN_ID),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    is_segment: false,
+    status: 'ok',
+    attributes: {
+      'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+      'sentry.segment.name': { type: 'string', value: segmentSpan.name },
+      'sentry.segment.id': { type: 'string', value: segmentSpan.span_id },
+      'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
+      'sentry.sdk.version': { type: 'string', value: expect.any(String) },
+      'sentry.environment': { type: 'string', value: 'qa' },
+      'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
+      'sentry.op': { type: 'string', value: op },
+    },
+  };
+}
 
 test('Trace includes span and correct value for decorated async function', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-span-decorator-async');
@@ -13,17 +40,8 @@ test('Trace includes span and correct value for decorated async function', async
 
   const spans = await spansPromise;
 
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      name: 'wait',
-      is_segment: false,
-      status: 'ok',
-      attributes: expect.objectContaining({
-        'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
-        'sentry.op': { type: 'string', value: 'wait and return a string' },
-      }),
-    }),
-  );
+  const segmentSpan = spans.find(span => span.is_segment)!;
+  expect(spans.find(span => span.name === 'wait')).toEqual(tracedSpan(segmentSpan, 'wait', 'wait and return a string'));
 });
 
 test('Trace includes span and correct value for decorated sync function', async ({ baseURL }) => {
@@ -36,16 +54,9 @@ test('Trace includes span and correct value for decorated sync function', async 
 
   const spans = await spansPromise;
 
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      name: 'getString',
-      is_segment: false,
-      status: 'ok',
-      attributes: expect.objectContaining({
-        'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
-        'sentry.op': { type: 'string', value: 'return a string' },
-      }),
-    }),
+  const segmentSpan = spans.find(span => span.is_segment)!;
+  expect(spans.find(span => span.name === 'getString')).toEqual(
+    tracedSpan(segmentSpan, 'getString', 'return a string'),
   );
 });
 
