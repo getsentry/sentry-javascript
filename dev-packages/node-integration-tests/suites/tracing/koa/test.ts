@@ -33,36 +33,36 @@ describe('koa auto-instrumentation', () => {
     test('should auto-instrument `koa` router and middleware layers.', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /',
-            spans: expect.arrayContaining([
-              // Router layer span (from `@koa/router`), carrying the matched route.
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /');
+
+            // Router layer span (from `@koa/router`), carrying the matched route.
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                description: '/',
-                op: 'router',
-                origin,
-                data: expect.objectContaining({
-                  'http.route': '/',
-                  'koa.type': 'router',
-                  'koa.name': '/',
-                  'sentry.op': 'router',
-                  'sentry.origin': origin,
+                name: '/',
+                attributes: expect.objectContaining({
+                  'http.route': { type: 'string', value: '/' },
+                  'koa.type': { type: 'string', value: 'router' },
+                  'koa.name': { type: 'string', value: '/' },
+                  'sentry.op': { type: 'string', value: 'router' },
+                  'sentry.origin': { type: 'string', value: origin },
                 }),
               }),
-              // Plain middleware span.
+            );
+
+            // Plain middleware span.
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                description: 'simpleMiddleware',
-                op: 'middleware',
-                origin,
-                data: expect.objectContaining({
-                  'koa.type': 'middleware',
-                  'koa.name': 'simpleMiddleware',
-                  'code.function.name': 'simpleMiddleware',
-                  'sentry.op': 'middleware',
-                  'sentry.origin': origin,
+                name: 'simpleMiddleware',
+                attributes: expect.objectContaining({
+                  'koa.type': { type: 'string', value: 'middleware' },
+                  'koa.name': { type: 'string', value: 'simpleMiddleware' },
+                  'code.function.name': { type: 'string', value: 'simpleMiddleware' },
+                  'sentry.op': { type: 'string', value: 'middleware' },
+                  'sentry.origin': { type: 'string', value: origin },
                 }),
               }),
-            ]),
+            );
           },
         })
         .start();
@@ -70,25 +70,24 @@ describe('koa auto-instrumentation', () => {
       await runner.completed();
     });
 
-    test('should assign a parameterized transaction name.', async () => {
+    test('should assign a parameterized segment name.', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /test-param/:id',
-            spans: expect.arrayContaining([
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /test-param/:id');
+
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                description: '/test-param/:id',
-                op: 'router',
-                origin,
-                data: expect.objectContaining({
-                  'http.route': '/test-param/:id',
-                  'koa.type': 'router',
-                  'koa.name': '/test-param/:id',
-                  'sentry.op': 'router',
-                  'sentry.origin': origin,
+                name: '/test-param/:id',
+                attributes: expect.objectContaining({
+                  'http.route': { type: 'string', value: '/test-param/:id' },
+                  'koa.type': { type: 'string', value: 'router' },
+                  'koa.name': { type: 'string', value: '/test-param/:id' },
+                  'sentry.op': { type: 'string', value: 'router' },
+                  'sentry.origin': { type: 'string', value: origin },
                 }),
               }),
-            ]),
+            );
           },
         })
         .start();
@@ -99,7 +98,11 @@ describe('koa auto-instrumentation', () => {
     test('should capture errors thrown in routes via the koa error handler.', async () => {
       const runner = createRunner()
         .unordered()
-        .expect({ transaction: { transaction: 'GET /error' } })
+        .expect({
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /error');
+          },
+        })
         .expect({ event: EXPECTED_ERROR_EVENT })
         .start();
       runner.makeRequest('get', '/error', { expectError: true });
