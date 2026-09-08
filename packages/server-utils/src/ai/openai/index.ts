@@ -59,7 +59,11 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
 /**
  * Extract request attributes from method arguments
  */
-export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
+export function extractRequestAttributes(
+  args: unknown[],
+  operationName: string,
+  recordInputs: boolean,
+): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'openai',
     [GEN_AI_OPERATION_NAME]: operationName,
@@ -69,7 +73,7 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    const availableTools = extractAvailableTools(params);
+    const availableTools = recordInputs ? extractAvailableTools(params) : undefined;
     if (availableTools) {
       attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
     }
@@ -140,7 +144,7 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
-    const requestAttributes = extractRequestAttributes(args, operationName);
+    const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
 
     const params = args[0] as Record<string, unknown> | undefined;
