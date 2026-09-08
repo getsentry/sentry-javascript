@@ -10,6 +10,7 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
+  getVercelEnv,
   GLOBAL_OBJ,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -25,7 +26,6 @@ import { VercelEdgeClient } from './client';
 import { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';
 import type { VercelEdgeOptions } from './types';
-import { getVercelEnv } from './utils/vercel';
 
 declare const process: {
   env: Record<string, string>;
@@ -76,8 +76,7 @@ export function init(options: VercelEdgeOptions = {}): Client {
     }
   }
 
-  options.environment =
-    options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
+  options.environment = options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv() || process.env.NODE_ENV;
 
   options.traceLifecycle = options.traceLifecycle ?? getTraceLifecycleFromEnv(process.env.SENTRY_TRACE_LIFECYCLE);
 

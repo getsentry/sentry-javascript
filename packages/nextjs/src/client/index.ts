@@ -7,7 +7,7 @@ import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
-import { getVercelEnv } from '../common/getVercelEnv';
+import { getClientVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
@@ -63,7 +63,7 @@ export function init(options: BrowserOptions): Client | undefined {
   }
 
   const opts = {
-    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(true) || process.env.NODE_ENV,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getClientVercelEnv() || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,

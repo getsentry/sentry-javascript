@@ -38,7 +38,7 @@ export interface SamplingContext extends CustomSamplingContext {
   name: string;
 
   /** Initial attributes that have been passed to the span being sampled. */
-  attributes?: RawAttributes<Record<string, unknown>>;
+  attributes: RawAttributes<Record<string, unknown>>;
 }
 
 /**
