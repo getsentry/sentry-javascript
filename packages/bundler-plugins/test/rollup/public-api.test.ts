@@ -154,6 +154,20 @@ describe('Hooks', () => {
       `);
     });
 
+    it('preserves source mappings when injecting after a directive prologue', () => {
+      const code = '"use strict";\nglobalThis.applicationStarted = true;';
+      const result = renderChunk(code, { fileName: 'bundle.js' });
+
+      expect(result).not.toBeNull();
+      expect(JSON.parse(result?.map.toString() ?? '')).toEqual({
+        version: 3,
+        file: 'bundle.js',
+        sources: ['bundle.js'],
+        names: [],
+        mappings: 'AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;qYACZ,UAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI',
+      });
+    });
+
     it.each([
       ['when the directive has no semicolon', '"use strict"\n'],
       ['when another directive precedes it', '"use client";\n"use strict";\n'],

@@ -1,16 +1,21 @@
 import webpack from 'webpack';
+import MagicString from 'magic-string';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import { sentryWebpackPluginFactory } from '../../src/webpack/webpack4and5';
 
-function runWebpackInjection(assetName: string, code: string, chunkFiles: string[] = [assetName]): string {
+function runWebpackSourceInjection(
+  assetName: string,
+  source: webpack.sources.Source,
+  chunkFiles: string[] = [assetName],
+): webpack.sources.Source {
   const webpackPlugin = sentryWebpackPluginFactory()({
     release: { inject: false },
     telemetry: false,
   });
   let compilationCallback!: (compilation: unknown) => void;
   let processAssets!: (assets: Record<string, webpack.sources.Source>) => void;
-  let output: webpack.sources.Source = new webpack.sources.RawSource(code);
+  let output = source;
   const compiler = {
     options: { plugins: [] as unknown[] },
     webpack: {
@@ -44,9 +49,13 @@ function runWebpackInjection(assetName: string, code: string, chunkFiles: string
 
   webpackPlugin.apply(compiler as never);
   compilationCallback(compilation);
-  processAssets({ [assetName]: new webpack.sources.RawSource(code) });
+  processAssets({ [assetName]: source });
 
-  return output.source().toString();
+  return output;
+}
+
+function runWebpackInjection(assetName: string, code: string, chunkFiles: string[] = [assetName]): string {
+  return runWebpackSourceInjection(assetName, new webpack.sources.RawSource(code), chunkFiles).source().toString();
 }
 
 describe('sentryWebpackPluginFactory', () => {
@@ -59,6 +68,23 @@ describe('sentryWebpackPluginFactory', () => {
 
     expect(context.strictModePreserved).toBe(true);
     expect(Object.keys(context._sentryDebugIds ?? {})).toHaveLength(1);
+  });
+
+  it('preserves source mappings when injecting after a directive prologue', () => {
+    const code = '"use strict";\nglobalThis.applicationStarted = true;';
+    const inputMap = new MagicString(code).generateMap({
+      source: 'application.js',
+      hires: 'boundary' as unknown as undefined,
+      includeContent: true,
+    });
+    const source = new webpack.sources.SourceMapSource(code, 'bundle.js', inputMap.toString());
+
+    const output = runWebpackSourceInjection('bundle.js', source);
+    const outputMap = output.map();
+
+    expect(outputMap?.sources).toEqual(['application.js']);
+    expect(outputMap?.sourcesContent).toEqual([code]);
+    expect(outputMap?.mappings).toBe('AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;AACZ,+YAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI');
   });
 
   it.each([
