@@ -21,10 +21,11 @@ test.describe('router basepath', () => {
     const pageloadSpan = await pageloadSpanPromise;
 
     // `onResolved` later merges the correct params in, but never clears the ones the bad initial
-    // match already set, so the stale `a`/`b`/`c` params survive on the span.
-    expect(pageloadSpan.attributes).not.toHaveProperty('url.path.parameter.a');
-    expect(pageloadSpan.attributes).not.toHaveProperty('url.path.parameter.b');
-    expect(pageloadSpan.attributes).not.toHaveProperty('url.path.parameter.c');
+    // match already set, so the stale `a`/`b`/`c` params survive on the span. Keys are passed as
+    // arrays because `toHaveProperty` would otherwise read the dots as a nested lookup.
+    expect(pageloadSpan.attributes).not.toHaveProperty(['url.path.parameter.a']);
+    expect(pageloadSpan.attributes).not.toHaveProperty(['url.path.parameter.b']);
+    expect(pageloadSpan.attributes).not.toHaveProperty(['url.path.parameter.c']);
     expect(pageloadSpan.attributes['url.path.parameter.postId']).toEqual({ type: 'string', value: '456' });
     expect(pageloadSpan.attributes['url.template']).toEqual({ type: 'string', value: '/posts/$postId' });
   });
