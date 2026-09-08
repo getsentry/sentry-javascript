@@ -1,82 +1,46 @@
 import { expect, it } from 'vitest';
-import type { Event } from '@sentry/core';
+import type { SerializedStreamedSpan } from '@sentry/core';
 import { createRunner } from '../../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../../spanUtils';
 
 it('propagates trace from WorkerEntrypoint to WorkerEntrypoint to durable object (3 levels deep)', async ({
   signal,
 }) => {
-  let mainWorkerTraceId: string | undefined;
-  let mainWorkerSpanId: string | undefined;
-  let subWorkerTraceId: string | undefined;
-  let subWorkerSpanId: string | undefined;
-  let subWorkerParentSpanId: string | undefined;
-  let doTraceId: string | undefined;
-  let doParentSpanId: string | undefined;
+  let mainWorkerSpan: SerializedStreamedSpan | undefined;
+  let subWorkerSpan: SerializedStreamedSpan | undefined;
+  let doSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      // Main worker HTTP server transaction
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /chain',
-        }),
-      );
-      mainWorkerTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      mainWorkerSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      // Main worker HTTP server segment span
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      // `/chain` is a raw URL, so the streamed segment name keeps the method only.
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/chain' });
+      mainWorkerSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      // Sub-worker HTTP server transaction (from service binding fetch)
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /call-do',
-        }),
-      );
-      subWorkerTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      subWorkerSpanId = transactionEvent.contexts?.trace?.span_id as string;
-      subWorkerParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      // Sub-worker HTTP server segment span (from service binding fetch)
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/call-do' });
+      subWorkerSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      // Durable Object RPC transaction
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'rpc',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.faas.cloudflare.durable_object',
-              }),
-              origin: 'auto.faas.cloudflare.durable_object',
-            }),
-          }),
-          transaction: 'computeAnswer',
-        }),
-      );
-      doTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      doParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      // Durable Object RPC segment span
+      expect(segmentSpan?.name).toBe('computeAnswer');
+      expect(getSpanOp(segmentSpan!)).toBe('rpc');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.durable_object',
+      });
+      doSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
@@ -86,20 +50,13 @@ it('propagates trace from WorkerEntrypoint to WorkerEntrypoint to durable object
 
   await runner.completed();
 
-  // All three transactions should share the same trace_id
-  expect(mainWorkerTraceId).toBeDefined();
-  expect(subWorkerTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(mainWorkerTraceId).toBe(subWorkerTraceId);
-  expect(subWorkerTraceId).toBe(doTraceId);
+  // All three segment spans should share the same trace_id
+  expect(mainWorkerSpan?.trace_id).toBeDefined();
+  expect(subWorkerSpan?.trace_id).toBe(mainWorkerSpan?.trace_id);
+  expect(doSpan?.trace_id).toBe(subWorkerSpan?.trace_id);
 
   // Verify the parent-child relationships form a chain:
   // Main WorkerEntrypoint -> Sub WorkerEntrypoint -> DO
-  expect(mainWorkerSpanId).toBeDefined();
-  expect(subWorkerParentSpanId).toBeDefined();
-  expect(subWorkerParentSpanId).toBe(mainWorkerSpanId);
-
-  expect(subWorkerSpanId).toBeDefined();
-  expect(doParentSpanId).toBeDefined();
-  expect(doParentSpanId).toBe(subWorkerSpanId);
+  expect(subWorkerSpan?.parent_span_id).toBe(mainWorkerSpan?.span_id);
+  expect(doSpan?.parent_span_id).toBe(subWorkerSpan?.span_id);
 });

@@ -1,133 +1,71 @@
 import { expect, it } from 'vitest';
-import type { Event } from '@sentry/core';
+import type { SerializedStreamedSpan } from '@sentry/core';
 import { createRunner } from '../../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../../spanUtils';
 
 it('propagates trace from worker to durable object', async ({ signal }) => {
-  let workerTraceId: string | undefined;
-  let workerSpanId: string | undefined;
-  let doTraceId: string | undefined;
-  let doParentSpanId: string | undefined;
+  let workerSpan: SerializedStreamedSpan | undefined;
+  let doSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /hello',
-        }),
-      );
-      doTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      doParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      // `/hello` is a raw URL, so the streamed segment name keeps the method only.
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/hello' });
+      doSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /',
-        }),
-      );
-      workerTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      workerSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      expect(segmentSpan?.name).toBe('GET /');
+      workerSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
   await runner.makeRequest('get', '/');
   await runner.completed();
 
-  expect(workerTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(workerTraceId).toBe(doTraceId);
-
-  expect(workerSpanId).toBeDefined();
-  expect(doParentSpanId).toBeDefined();
-  expect(doParentSpanId).toBe(workerSpanId);
+  expect(workerSpan?.trace_id).toBeDefined();
+  expect(doSpan?.trace_id).toBe(workerSpan?.trace_id);
+  expect(doSpan?.parent_span_id).toBe(workerSpan?.span_id);
 });
 
 it('propagates trace from queue handler to durable object', async ({ signal }) => {
-  let queueTraceId: string | undefined;
-  let queueSpanId: string | undefined;
-  let doTraceId: string | undefined;
-  let doParentSpanId: string | undefined;
+  let queueSpan: SerializedStreamedSpan | undefined;
+  let doSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /hello',
-        }),
-      );
-      doTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      doParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/hello' });
+      doSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'queue.process',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.faas.cloudflare.queue',
-              }),
-              origin: 'auto.faas.cloudflare.queue',
-            }),
-          }),
-          transaction: 'process my-queue',
-        }),
-      );
-      queueTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      queueSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      expect(segmentSpan?.name).toBe('process my-queue');
+      expect(getSpanOp(segmentSpan!)).toBe('queue.process');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.queue',
+      });
+      queueSpan = segmentSpan;
     })
-    // Also expect the fetch transaction from the /queue/send request
+    // Also expect the fetch span from the /queue/send request
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /queue/send',
-        }),
-      );
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/queue/send' });
     })
     .unordered()
     .start(signal);
@@ -135,72 +73,41 @@ it('propagates trace from queue handler to durable object', async ({ signal }) =
   await runner.makeRequest('get', '/queue/send');
   await runner.completed();
 
-  expect(queueTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(queueTraceId).toBe(doTraceId);
-
-  expect(queueSpanId).toBeDefined();
-  expect(doParentSpanId).toBeDefined();
-  expect(doParentSpanId).toBe(queueSpanId);
+  expect(queueSpan?.trace_id).toBeDefined();
+  expect(doSpan?.trace_id).toBe(queueSpan?.trace_id);
+  expect(doSpan?.parent_span_id).toBe(queueSpan?.span_id);
 });
 
 it('propagates trace from scheduled handler to durable object', async ({ signal }) => {
-  let scheduledTraceId: string | undefined;
-  let scheduledSpanId: string | undefined;
-  let doTraceId: string | undefined;
-  let doParentSpanId: string | undefined;
+  let scheduledSpan: SerializedStreamedSpan | undefined;
+  let doSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .withWranglerArgs('--test-scheduled')
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /hello',
-        }),
-      );
-      doTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      doParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/hello' });
+      doSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'function',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.faas.cloudflare.scheduled',
-              }),
-              origin: 'auto.faas.cloudflare.scheduled',
-            }),
-          }),
-        }),
-      );
-      scheduledTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      scheduledSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('function');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.scheduled',
+      });
+      scheduledSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
   await runner.makeRequest('get', '/__scheduled?cron=*+*+*+*+*');
   await runner.completed();
 
-  expect(scheduledTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(scheduledTraceId).toBe(doTraceId);
-
-  expect(scheduledSpanId).toBeDefined();
-  expect(doParentSpanId).toBeDefined();
-  expect(doParentSpanId).toBe(scheduledSpanId);
+  expect(scheduledSpan?.trace_id).toBeDefined();
+  expect(doSpan?.trace_id).toBe(scheduledSpan?.trace_id);
+  expect(doSpan?.parent_span_id).toBe(scheduledSpan?.span_id);
 });
