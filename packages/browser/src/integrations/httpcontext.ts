@@ -6,7 +6,7 @@ import {
 } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { filterCollectedUrl } from '@sentry/core';
-import { URL_FULL } from '@sentry/conventions/attributes';
+import { URL_FULL, USER_AGENT_ORIGINAL } from '@sentry/conventions/attributes';
 
 /**
  * Collects information about HTTP request headers and
@@ -40,9 +40,8 @@ export const httpContextIntegration = defineIntegration(() => {
         ...(Object.keys(headers).length > 0 ? { headers } : { headers: undefined }),
       };
     },
-    processSegmentSpan(span, client) {
-      const spanOp = span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP];
 
+    processSpan(span, client) {
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
         return;
@@ -57,12 +56,23 @@ export const httpContextIntegration = defineIntegration(() => {
         client.getDataCollectionOptions().httpHeaders.request,
       );
 
+      // The document URL and referer describe where the trace started, so they only belong on the segment span.
+      // The user agent applies to every span, hence this hook handles both cases instead of `processSegmentSpan`.
+      const isSegmentSpan = span.is_segment;
+
       safeSetSpanJSONAttributes(span, {
-        // Coerce empty string to undefined so the helper's nullish check drops it,
-        // rather than writing an empty `url.full` attribute onto the span.
-        [URL_FULL]: spanOp !== 'http.client' ? filterCollectedUrl(reqData.url) : undefined,
-        'http.request.header.user_agent': headers['User-Agent'],
-        'http.request.header.referer': headers['Referer'],
+        // This attribute is used by the "Filter out events from legacy browsers" feature on the Sentry backend.
+        // Therefore, it's set on every span.
+        [USER_AGENT_ORIGINAL]: headers['User-Agent'],
+        ...(isSegmentSpan && {
+          // Coerce empty string to undefined so the helper's nullish check drops it,
+          // rather than writing an empty `url.full` attribute onto the span.
+          [URL_FULL]:
+            span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.client'
+              ? filterCollectedUrl(reqData.url)
+              : undefined,
+          'http.request.header.referer': headers['Referer'],
+        }),
       });
     },
   };
