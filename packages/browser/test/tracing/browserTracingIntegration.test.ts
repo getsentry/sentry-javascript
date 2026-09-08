@@ -772,9 +772,6 @@ describe('browserTracingIntegration', () => {
 
   describe('pagehide', () => {
     it('ends the active idle span so its root is not stranded on a frozen page', () => {
-      // `registerBackgroundTabDetection` waits for `visibilitychange`, which on a same-tab
-      // navigation fires after `pagehide` has already frozen the document into the bfcache. A root
-      // ended there can never be sent, while its children have been streaming all along.
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -795,7 +792,31 @@ describe('browserTracingIntegration', () => {
       expect(json.attributes?.['sentry.idle_span_finish_reason']).toBe('documentHidden');
     });
 
-    it('does nothing when there is no active idle span', () => {
+    it('flushes after ending the span, so the segment span is in the buffer when it drains', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span = getActiveSpan()!;
+
+      let endTimestampWhenFlushed: number | undefined;
+      const flushSpy = vi.spyOn(client, 'flush').mockImplementation(() => {
+        endTimestampWhenFlushed = spanToJSON(span).end_timestamp;
+        return Promise.resolve(true);
+      });
+
+      WINDOW.dispatchEvent(new Event('pagehide'));
+
+      expect(flushSpy).toHaveBeenCalled();
+      expect(endTimestampWhenFlushed).toBeDefined();
+    });
+
+    it('ends no span when there is no active idle span', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,

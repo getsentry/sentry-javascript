@@ -563,16 +563,20 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         }
       });
 
-      // `pagehide` is the last moment a document can still send. `registerBackgroundTabDetection`
-      // waits for `visibilitychange`, which on a same-tab navigation fires *after* `pagehide` has
-      // already frozen the page into the bfcache, so a root span ended there can never leave. Its
-      // children have been streamed all along, so missing this point produces a rootless trace.
+      // `pagehide` is the last moment a document leaving the page can still send. We cannot rely on
+      // `registerBackgroundTabDetection`, which ends the span on `visibilitychange`: the client's own
+      // `visibilitychange` flush is registered first and its deferring microtask runs after that
+      // listener but before background tab detection's, so the buffer is still empty when it drains.
+      // The segment span is buffered right after with nothing left to flush it, and the children have
+      // been streamed all along, which leaves a rootless trace. Ending and flushing together here
+      // keeps this self-contained instead of depending on that ordering.
       WINDOW.addEventListener?.('pagehide', () => {
         const activeSpan = getActiveIdleSpan(client);
         if (activeSpan && !spanToJSON(activeSpan).end_timestamp) {
           activeSpan.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'documentHidden');
           activeSpan.end();
         }
+        void client.flush();
       });
     },
 
