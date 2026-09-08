@@ -1,50 +1,49 @@
-import type { TransactionEvent } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
-
-// The Durable Object, reached from inside the entrypoint, emits an `http.server`
-// transaction whose only children are the two
-// `auto.db.cloudflare.durable_object` storage spans (`get` + `put`) — present
-// only when the class was auto-instrumented.
-function expectDurableObjectTransaction(transactionEvent: TransactionEvent): void {
-  expect(transactionEvent.contexts?.trace?.op).toBe('http.server');
-  expect(transactionEvent.contexts?.trace?.origin).toBe('auto.http.cloudflare');
-  expect(transactionEvent.spans).toEqual([
-    expect.objectContaining({
-      op: 'db',
-      description: 'durable_object_storage_get',
-      origin: 'auto.db.cloudflare.durable_object',
-    }),
-    expect.objectContaining({
-      op: 'db',
-      description: 'durable_object_storage_put',
-      origin: 'auto.db.cloudflare.durable_object',
-    }),
-  ]);
-}
-
-function expectPlainTransaction(name: string) {
-  return (transactionEvent: TransactionEvent): void => {
-    expect(transactionEvent.contexts?.trace?.op).toBe('http.server');
-    expect(transactionEvent.contexts?.trace?.origin).toBe('auto.http.cloudflare');
-    expect(transactionEvent.transaction).toBe(name);
-    expect(transactionEvent.spans).toHaveLength(0);
-  };
-}
+import { getSpanOp } from '../../../spanUtils';
 
 // A single request fans out through the whole auto-wrapped chain: default
 // handler (`/chain`) → self-bound `CounterEntrypoint` (`/work`) → `Counter`
-// Durable Object. All three transactions arrive only if the build-time transform
-// wrapped the default export, the entrypoint, and the DO — and it proves a DO
-// invoked from *within* an auto-instrumented entrypoint is itself instrumented.
+// Durable Object. All three segment spans arrive only if the build-time
+// transform wrapped the default export, the entrypoint, and the DO — and it
+// proves a DO invoked from *within* an auto-instrumented entrypoint is itself
+// instrumented.
+//
+// Every route here is a raw URL, so the streamed segment names keep the method
+// only and each hop is identified by its `url.path` attribute.
 it('auto-instruments a Durable Object invoked from within a WorkerEntrypoint', async ({ signal }) => {
-  const runner = createRunner(__dirname)
-    .unordered()
-    .expect(envelope => expectPlainTransaction('GET /chain')(envelope[1]?.[0]?.[1] as TransactionEvent))
-    .expect(envelope => expectPlainTransaction('GET /work')(envelope[1]?.[0]?.[1] as TransactionEvent))
-    .expect(envelope => expectDurableObjectTransaction(envelope[1]?.[0]?.[1] as TransactionEvent))
-    .start(signal);
+  const runner = createRunner(__dirname).start(signal);
+
+  // Each hop streams from its own isolate, so the three segment spans of the trace arrive in
+  // separate envelopes.
+  const spansPromise = runner.collectStreamedSpans(
+    spansOfTrace => spansOfTrace.filter(span => span.is_segment).length === 3,
+  );
 
   await runner.makeRequest('get', '/chain');
-  await runner.completed();
+
+  const spans = await spansPromise;
+  const chainSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/chain');
+  const entrypointSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/work');
+  const durableObjectSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/increment');
+
+  expect(getSpanOp(chainSpan!)).toBe('http.server');
+  expect(chainSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+
+  expect(getSpanOp(entrypointSpan!)).toBe('http.server');
+  expect(entrypointSpan?.parent_span_id).toBe(chainSpan?.span_id);
+
+  expect(getSpanOp(durableObjectSpan!)).toBe('http.server');
+  expect(durableObjectSpan?.parent_span_id).toBe(entrypointSpan?.span_id);
+
+  // The `auto.db.cloudflare.durable_object` storage pair (`get` + `put`) is the fingerprint of an
+  // instrumented Durable Object.
+  expect(
+    spans
+      .filter(span => span.parent_span_id === durableObjectSpan?.span_id)
+      .map(span => ({ name: span.name, op: getSpanOp(span), origin: span.attributes['sentry.origin']?.value })),
+  ).toEqual([
+    { name: 'durable_object_storage_get', op: 'db', origin: 'auto.db.cloudflare.durable_object' },
+    { name: 'durable_object_storage_put', op: 'db', origin: 'auto.db.cloudflare.durable_object' },
+  ]);
 });
