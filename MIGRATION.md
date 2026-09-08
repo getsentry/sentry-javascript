@@ -246,6 +246,12 @@ User IP address inference, which was previously gated on `sendDefaultPii`, is no
 `dataCollection.userInfo`. An explicit `requestDataIntegration({ include: { ip: true } })` overrides
 `dataCollection.userInfo: false` for data collected by that integration.
 
+#### Astro client IP
+
+`trackClientIp` no longer defaults to `false`. When you leave it unset, `handleRequest` now follows
+`dataCollection.userInfo`, which defaults to `true`, so Astro apps that set neither option start
+reporting `user.ip_address`. Pass `trackClientIp: false` to keep the v10 behaviour.
+
 #### Remix action form data
 
 `captureActionFormDataKeys` is an integration-level override, so it no longer requires
@@ -1303,6 +1309,41 @@ Affected SDKs: `@sentry/remix`.
 
 The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
 
+### React: Simpler React Router setup via `@sentry/react/react-router`
+
+Affected SDKs: `@sentry/react`.
+
+`@sentry/react` gained a new `@sentry/react/react-router` entry point that pulls the required React Router hooks (`useLocation`, `useNavigationType`, `matchRoutes`, `createRoutesFromChildren`) from `react-router` for you, so you no longer have to thread them through `reactRouterBrowserTracingIntegration` yourself:
+
+```diff
+- import * as Sentry from '@sentry/react';
+- import { useEffect } from 'react';
+- import { createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router';
++ import * as Sentry from '@sentry/react';
++ import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';
+
+  Sentry.init({
+    integrations: [
+-     Sentry.reactRouterBrowserTracingIntegration({
+-       useEffect,
+-       useLocation,
+-       useNavigationType,
+-       createRoutesFromChildren,
+-       matchRoutes,
+-     }),
++     reactRouterBrowserTracingIntegration(),
+    ],
+  });
+```
+
+The `wrapReactRouterRouting`, `wrapUseRoutes`, `wrapCreateBrowserRouter` and `wrapCreateMemoryRouter` helpers are re-exported from `@sentry/react/react-router` as well.
+
+This entry requires `react-router` to be resolvable — it is declared as an optional peer dependency and supports React Router v6, v7 and v8. If you are on React Router v6 with only `react-router-dom` installed, either add `react-router` as a dependency or keep importing `reactRouterBrowserTracingIntegration` from `@sentry/react` and pass the hooks explicitly.
+
+The existing `@sentry/react` API is unchanged and keeps working; passing the hooks there is now optional too (`useEffect` in particular is no longer used and can be omitted).
+
+Additionally — for **every** `@sentry/react` routing setup, not just the new entry — the order in which you add the browser tracing integration and wrap your routes no longer matters.
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs
@@ -2133,6 +2174,7 @@ The main entry re-exported the build plugin statically, which pulled the whole b
   `any`.
 - Attribute typing and serialization were unified across the SDK.
 - The `attributes` field on the `ScopeData` type is now required. `Scope.getScopeData()` always returned it, so this only affects code that constructs `ScopeData` objects manually — add `attributes: {}` there.
+- The `attributes` field on the `SamplingContext` passed to `tracesSampler` is now required (previously optional); it is always provided by the SDK, so this only affects code that narrows or constructs `SamplingContext` objects by hand.
 - The `endTimestamp` property was removed from the `SentrySpanArguments` interface. It was never part of
   `StartSpanOptions`, so it could only be passed by ignoring TypeScript, in which case the span ended itself
   during construction. Call `span.end(timestamp)` instead.
