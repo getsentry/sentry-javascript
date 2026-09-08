@@ -3,12 +3,19 @@
 /* eslint-disable import/export */
 import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
 import type { EventProcessor } from '@sentry/core';
-import { applySdkMetadata, debug, getClient, getGlobalScope, getRootSpan, GLOBAL_OBJ } from '@sentry/core';
+import {
+  applySdkMetadata,
+  debug,
+  getClient,
+  getGlobalScope,
+  getRootSpan,
+  getVercelEnv,
+  GLOBAL_OBJ,
+} from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
-import { getVercelEnv } from '../common/getVercelEnv';
 import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
