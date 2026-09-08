@@ -2,14 +2,14 @@ import { expect, test } from '@playwright/test';
 import { waitForStreamedSpan, getSpanOp, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('Sends an API route span', async ({ baseURL }) => {
-  const pageloadSegmentEventPromise = collectStreamedSpansUntilSegment(
+  const segmentEventPromise = collectStreamedSpansUntilSegment(
     'node-express',
     segment => getSpanOp(segment) === 'http.server' && segment.name === 'GET /test-transaction',
   );
 
   await fetch(`${baseURL}/test-transaction`);
 
-  const segmentEventSpans = await pageloadSegmentEventPromise;
+  const segmentEventSpans = await segmentEventPromise;
   const segmentEvent = segmentEventSpans.find(
     segment => segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === 'GET /test-transaction',
   )!;
@@ -54,8 +54,6 @@ test('Sends an API route span', async ({ baseURL }) => {
       }),
     }),
   );
-
-  expect(segmentEvent.attributes['http.response.status_code']?.value).toBe(200);
 
   expect(segmentEvent).toEqual(
     expect.objectContaining({

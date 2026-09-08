@@ -41,11 +41,10 @@ test('Sends correct error event', async ({ baseURL }) => {
 
   // The error is attached to the same trace as the request segment, and to a
   // span in that segment.
-  const segmentTrace = segmentEvent;
-  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentTrace?.trace_id);
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentEvent.trace_id);
 
   const segmentSpanIds = [
-    segmentTrace?.span_id,
+    segmentEvent.span_id,
     ...segmentEventSpans
       .filter(span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segmentEvent.span_id)
       .map(span => span.span_id),
