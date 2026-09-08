@@ -3,7 +3,7 @@ import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
 
 it('two consecutive invocations get different isolation scopes', async ({ signal }) => {
-  const runner = createRunner(__dirname).ignore('transaction', 'span').start(signal);
+  const runner = createRunner(__dirname).ignore('span').start(signal);
 
   await runner.makeRequestAndWaitForEnvelope('get', '/scope?seed=1', (envelope: Envelope) => {
     const event = envelope[1]?.[0]?.[1] as Event;
@@ -23,7 +23,7 @@ it('two consecutive invocations get different isolation scopes', async ({ signal
 });
 
 it('a nested direct call within one invocation shares the same isolation scope', async ({ signal }) => {
-  const runner = createRunner(__dirname).ignore('transaction', 'span').start(signal);
+  const runner = createRunner(__dirname).ignore('span').start(signal);
 
   await runner.makeRequestAndWaitForEnvelope('get', '/nested', (envelope: Envelope) => {
     const event = envelope[1]?.[0]?.[1] as Event;
@@ -51,7 +51,7 @@ it('a nested direct call within one invocation shares the same isolation scope',
 });
 
 it('a nested call into another instrumented handler shares the same isolation scope', async ({ signal }) => {
-  const runner = createRunner(__dirname).ignore('transaction', 'span').start(signal);
+  const runner = createRunner(__dirname).ignore('span').start(signal);
 
   await runner.makeRequestAndWaitForEnvelope('get', '/reentrant', (envelope: Envelope) => {
     const event = envelope[1]?.[0]?.[1] as Event;
