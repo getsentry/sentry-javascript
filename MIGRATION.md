@@ -53,7 +53,6 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **React:** dropped React 16 (minimum is now 17).
 - **Astro:** dropped Astro 3 (minimum is now 4).
 - **React Router (framework mode):** minimum is now 7.15.
-- **Remix:** dropped `@remix-run/node` v1 (minimum is now v2).
 - **Fastify:** dropped Fastify 3.0 through 3.20 (minimum is now 3.21).
 
 ### AWS Lambda Layer Changes
@@ -1696,8 +1695,8 @@ import { withSentryConfig } from '@sentry/nextjs/config';
 
 The no-op `withSentryConfig` passthroughs that the client and edge builds exported were removed along with it.
 
-The following long-deprecated top-level options in `withSentryConfig` / the `sentry` config were removed. Most of them
-moved under the `webpack` option in v10; use the replacement listed below instead:
+The following top-level options in `withSentryConfig` / the `sentry` config were removed. They were deprecated in
+10.30.0, when most of them moved under the `webpack` option; use the replacement listed below instead:
 
 | Removed option                          | Replacement                                                             |
 | --------------------------------------- | ----------------------------------------------------------------------- |
