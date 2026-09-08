@@ -1,5 +1,5 @@
 import * as SentryCore from '@sentry/core';
-import * as serverUtils from '@sentry/server-utils';
+import * as serverUtils from '@sentry/server-utils/no-diagnostic-channels';
 import { HTTPError } from 'h3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureErrorHook } from '../../../src/runtime/hooks/captureErrorHook';
@@ -16,7 +16,7 @@ vi.mock('@sentry/core', async importOriginal => {
   };
 });
 
-vi.mock('@sentry/server-utils', () => ({
+vi.mock('@sentry/server-utils/no-diagnostic-channels', () => ({
   flushIfServerless: vi.fn(),
 }));
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadModule } from '../../../src/utils/node';
+import { loadModule } from '../../src/utils/loadModule';
 
 // vitest's `module` shim has no `require`, so tests hand in an explicit CJS-like module object.
 const cjsModule = { require };

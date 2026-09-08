@@ -1,6 +1,6 @@
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
-import * as serverUtils from '@sentry/server-utils';
+import * as serverUtils from '@sentry/server-utils/no-diagnostic-channels';
 import * as SentryNode from '@sentry/node';
 import {
   createTransport,
