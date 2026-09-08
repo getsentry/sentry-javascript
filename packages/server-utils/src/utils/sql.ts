@@ -1,7 +1,13 @@
 const MAX_SUMMARY_LENGTH = 255;
 
-const TABLE_NAME_CHARS = /[^\s(,;)]+/;
-const TABLE_NAME = TABLE_NAME_CHARS.source;
+// A single identifier: quoted (`"..."`, `'...'`, or MySQL backticks) or bare. The quoted forms have
+// to be matched as a unit, otherwise an identifier containing a space or a dot is cut in half.
+const IDENTIFIER = '(?:"[^"]*"|\'[^\']*\'|`[^`]*`|[^\\s(,;).\'"`]+)';
+
+// A table reference can be schema-qualified (`"public"."User"`, `db.schema.table`), with each part
+// quoted independently. The whole qualified name is the summary target, since the schema is what
+// distinguishes two same-named tables.
+const TABLE_NAME = `${IDENTIFIER}(?:\\.${IDENTIFIER})*`;
 
 const DDL_RE = new RegExp(
   `^\\s*(?<operation>(?:CREATE|DROP)\\s+(?:TABLE|INDEX)|ALTER\\s+TABLE)(?:\\s+IF\\s+(?:NOT\\s+)?EXISTS)?\\s+(?<table>${TABLE_NAME})`,
@@ -27,8 +33,8 @@ const SELECT_RE = /^\s*\(?\s*(?<operation>SELECT)\b/i;
 const PRAGMA_RE = /^\s*(?<operation>PRAGMA)\s+(?<command>\S+)/i;
 
 const TOKEN_RE = /\b(?:FROM|JOIN)\s+|\(\s*(SELECT)\b|\b(?:UNION|INTERSECT|EXCEPT|MINUS)\s+(?:ALL\s+)?(SELECT)\b/gi;
-const QUOTED_OR_PLAIN_TABLE_RE = /^(?:"[^"]*"|'[^']*'|[^\s(,;)]+)/;
-const COMMA_TABLE_RE = /^\s*,\s*((?:"[^"]*"|'[^']*'|[^\s(,;)]+))/;
+const TABLE_REF_RE = new RegExp(`^${TABLE_NAME}`);
+const COMMA_TABLE_RE = new RegExp(`^\\s*,\\s*(${TABLE_NAME})`);
 const SUBQUERY_SELECT_RE = /^\(\s*(SELECT)\b/i;
 
 /**
@@ -117,7 +123,7 @@ function extractTableNames(sql: string): string[] {
       continue;
     }
 
-    const tableMatch = QUOTED_OR_PLAIN_TABLE_RE.exec(rest);
+    const tableMatch = TABLE_REF_RE.exec(rest);
     if (!tableMatch) continue;
     tables.push(tableMatch[0]);
 
