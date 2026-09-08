@@ -72,6 +72,33 @@ const HttpLive = HttpRouter.serve(Routes).pipe(
 NodeRuntime.runMain(Layer.launch(HttpLive));
 ```
 
+## Continuing external traces
+
+The tracer ignores `Tracer.externalSpan` parents by default, so Sentry's own
+trace continuation stays in charge. This includes the parent that
+`@effect/platform` builds from an incoming `traceparent` or `b3` header. To
+continue the trace of an external span instead, provide
+`SentryEffectExternalSpanLayer`. Next to the tracer layer it applies to every
+span in the runtime, including the HTTP server spans. On Effect v4, replace the
+`Layer.setTracer` line with the `Layer.succeed` call from the example above.
+
+```typescript
+const SentryLive = Layer.mergeAll(
+  Sentry.effectLayer({ dsn: '__DSN__', tracesSampleRate: 1.0 }),
+  Layer.setTracer(Sentry.SentryEffectTracer),
+  Sentry.SentryEffectExternalSpanLayer,
+);
+```
+
+Provided to a single effect, it applies to that effect only:
+
+```typescript
+const processJob = handleMessage(message).pipe(
+  Effect.withSpan('process-job', { parent: Tracer.externalSpan(message.trace) }),
+  Effect.provide(Sentry.SentryEffectExternalSpanLayer),
+);
+```
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/effect/)
