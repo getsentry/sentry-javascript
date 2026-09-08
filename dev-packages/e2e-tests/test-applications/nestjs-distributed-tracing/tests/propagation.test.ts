@@ -59,9 +59,17 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   expect(data.headers?.['sentry-trace']).toEqual(`${traceId}-${outgoingHttpSpan!.span_id}-1`);
   expectBaggage(data.headers?.['baggage'], traceId);
 
-  expect(outboundSegmentSpan).toMatchObject({
+  // A segment span also carries the scope contexts and the SDK's integration list, which vary by
+  // machine, so only the request-specific attributes are pinned here. Leaving `parent_span_id` out
+  // of `toEqual` is what asserts this span starts the trace.
+  expect(outboundSegmentSpan).toEqual({
     name: 'GET /test-outgoing-http/:id',
     status: 'ok',
+    span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    trace_id: traceId,
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    is_segment: true,
     attributes: expect.objectContaining({
       'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
       'sentry.op': { type: 'string', value: 'http.server' },
@@ -76,13 +84,17 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'server.port': { type: 'integer', value: 3030 },
     }),
   });
-  expect(outboundSegmentSpan.parent_span_id).toBeUndefined();
 
   // The inbound request continues the trace, hanging off the outgoing client span
-  expect(inboundSegmentSpan).toMatchObject({
+  expect(inboundSegmentSpan).toEqual({
     name: 'GET /test-inbound-headers/:id',
     status: 'ok',
+    span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    trace_id: traceId,
     parent_span_id: outgoingHttpSpan!.span_id,
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    is_segment: true,
     attributes: expect.objectContaining({
       'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
       'sentry.op': { type: 'string', value: 'http.server' },
@@ -125,9 +137,15 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   expect(data.headers?.['sentry-trace']).toEqual(`${traceId}-${outgoingFetchSpan!.span_id}-1`);
   expectBaggage(data.headers?.['baggage'], traceId);
 
-  expect(outboundSegmentSpan).toMatchObject({
+  // Leaving `parent_span_id` out of `toEqual` asserts this span starts the trace.
+  expect(outboundSegmentSpan).toEqual({
     name: 'GET /test-outgoing-fetch/:id',
     status: 'ok',
+    span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    trace_id: traceId,
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    is_segment: true,
     attributes: expect.objectContaining({
       'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
       'sentry.op': { type: 'string', value: 'http.server' },
@@ -138,10 +156,15 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     }),
   });
 
-  expect(inboundSegmentSpan).toMatchObject({
+  expect(inboundSegmentSpan).toEqual({
     name: 'GET /test-inbound-headers/:id',
     status: 'ok',
+    span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    trace_id: traceId,
     parent_span_id: outgoingFetchSpan!.span_id,
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    is_segment: true,
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'http.server' },
       'http.route': { type: 'string', value: '/test-inbound-headers/:id' },

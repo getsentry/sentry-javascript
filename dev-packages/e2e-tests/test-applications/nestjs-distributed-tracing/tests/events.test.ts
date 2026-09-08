@@ -33,14 +33,25 @@ test('Event emitter', async () => {
     ],
   });
 
-  expect(successEventSpan).toMatchObject({
+  // A segment span also carries the scope contexts and the SDK's integration list, which vary by
+  // machine, so only the event-handler attributes are pinned here.
+  expect(successEventSpan).toEqual({
+    name: 'event myEvent.pass',
+    span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+    parent_span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
     is_segment: true,
     status: 'ok',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'function' },
       'sentry.origin': { type: 'string', value: 'auto.event.nestjs' },
       'sentry.segment.name.source': { type: 'string', value: 'custom' },
+      'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+      'sentry.segment.name': { type: 'string', value: 'event myEvent.pass' },
+      'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
+      'sentry.environment': { type: 'string', value: 'qa' },
     }),
   });
 });
