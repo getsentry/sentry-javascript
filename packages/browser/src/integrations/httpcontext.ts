@@ -56,15 +56,11 @@ export const httpContextIntegration = defineIntegration(() => {
         client.getDataCollectionOptions().httpHeaders.request,
       );
 
-      // The document URL and referer describe where the trace started, so they only belong on the segment span.
-      // The user agent applies to every span, hence this hook handles both cases instead of `processSegmentSpan`.
-      const isSegmentSpan = span.is_segment;
-
       safeSetSpanJSONAttributes(span, {
         // This attribute is used by the "Filter out events from legacy browsers" feature on the Sentry backend.
         // Therefore, it's set on every span.
         [USER_AGENT_ORIGINAL]: headers['User-Agent'],
-        ...(isSegmentSpan && {
+        ...(span.is_segment && {
           // Coerce empty string to undefined so the helper's nullish check drops it,
           // rather than writing an empty `url.full` attribute onto the span.
           [URL_FULL]:
