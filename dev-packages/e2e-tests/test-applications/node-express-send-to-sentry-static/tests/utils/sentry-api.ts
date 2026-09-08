@@ -13,8 +13,11 @@ export const EVENT_POLLING_OPTIONS = { timeout: 180_000, intervals: [5_000] };
  */
 export interface TraceItem {
   event_id?: string;
+  /** On spans this is the event id of the transaction the span belongs to. */
+  transaction_id?: string;
   event_type?: 'span' | 'error' | 'occurrence' | 'uptime_check';
   op?: string;
+  is_transaction?: boolean;
   children?: TraceItem[];
   errors?: TraceItem[];
   occurrences?: TraceItem[];
@@ -64,6 +67,6 @@ export async function findErrorInTrace(traceId: string, eventId: string): Promis
   return flattenTrace(await fetchTrace(traceId)).find(item => item.event_type === 'error' && item.event_id === eventId);
 }
 
-export async function findSpanInTrace(traceId: string, op: string): Promise<TraceItem | undefined> {
-  return flattenTrace(await fetchTrace(traceId)).find(item => item.op === op);
+export async function findTransactionInTrace(traceId: string, eventId: string): Promise<TraceItem | undefined> {
+  return flattenTrace(await fetchTrace(traceId)).find(item => item.is_transaction && item.transaction_id === eventId);
 }

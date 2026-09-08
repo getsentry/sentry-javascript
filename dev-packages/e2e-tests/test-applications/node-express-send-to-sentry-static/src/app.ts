@@ -1,10 +1,12 @@
 import * as Sentry from '@sentry/node';
 
-let lastSpanTraceId: string | undefined;
+let lastTransactionId: string | undefined;
+let lastTransactionTraceId: string | undefined;
 let lastErrorTraceId: string | undefined;
 
 Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep traces
+  traceLifecycle: 'static',
+  environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
   tracesSampleRate: 1,
@@ -12,11 +14,10 @@ Sentry.init({
     lastErrorTraceId = event.contexts?.trace?.trace_id;
     return event;
   },
-  beforeSendSpan(span) {
-    if (span.name === 'test-span') {
-      lastSpanTraceId = span.trace_id;
-    }
-    return span;
+  beforeSendTransaction(event) {
+    lastTransactionId = event.event_id;
+    lastTransactionTraceId = event.contexts?.trace?.trace_id;
+    return event;
   },
 });
 
@@ -33,16 +34,17 @@ app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
-app.get('/test-span', function (req, res) {
+app.get('/test-transaction', function (req, res) {
   Sentry.withActiveSpan(null, async () => {
-    Sentry.startSpan({ name: 'test-span', op: 'e2e-test' }, () => {
-      Sentry.startSpan({ name: 'test-child-span' }, () => undefined);
+    Sentry.startSpan({ name: 'test-transaction', op: 'e2e-test' }, () => {
+      Sentry.startSpan({ name: 'test-span' }, () => undefined);
     });
 
     await Sentry.flush();
 
     res.send({
-      traceId: lastSpanTraceId,
+      transactionId: lastTransactionId,
+      traceId: lastTransactionTraceId,
     });
   });
 });
