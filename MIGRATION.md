@@ -1156,14 +1156,7 @@ Note that v10.30.0 deprecated a top-level `reactComponentAnnotation` in favour o
 
 On Turbopack, component annotation requires Next.js 16+. The SDK now warns at build time if annotation is enabled on an older Next.js version, where it previously did nothing silently.
 
-**Default `environment` on Vercel no longer has a `vercel-` prefix:** On Vercel, `@sentry/nextjs` and `@sentry/vercel-edge` now default `environment` to the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) instead of `vercel-production` / `vercel-preview`. Update alert rules, dashboards and saved searches that reference the old names, or keep them by setting `environment` explicitly:
-
-```js
-// use NEXT_PUBLIC_VERCEL_ENV in the client config
-Sentry.init({
-  environment: process.env.VERCEL_ENV ? `vercel-${process.env.VERCEL_ENV}` : undefined,
-});
-```
+**Default `environment` on Vercel no longer has a `vercel-` prefix:** On Vercel, the SDK now defaults `environment` to the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) instead of `vercel-production` / `vercel-preview`. Update alert rules, dashboards and saved searches that reference the old names, or keep them by setting `environment` explicitly.
 
 **Vercel AI no longer supported on Edge runtime:** We now rely on diagnostics channels for our Vercel AI instrumentation, which does not work on the Edge runtime. Because of this, monitoring of the `ai` package is no longer supported on Edge. Note that Edge is deprecated.
 
@@ -1700,7 +1693,7 @@ The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin 
 
 ### Bundler plugins: Vercel deploys use the plain Vercel environment name
 
-Deploys that the bundler plugins create automatically on Vercel now use the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) as their environment instead of `vercel-production` / `vercel-preview`. This matches the new default runtime `environment` of `@sentry/nextjs` and `@sentry/vercel-edge`, and the `production` default of all other SDKs. If your events use a different environment, set `release.deploy.env` to the same value, or set `release.deploy` to `false` to opt out.
+Deploys that the bundler plugins create automatically on Vercel now use the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) as their environment instead of `vercel-production` / `vercel-preview`. This matches the new default runtime `environment` of `@sentry/nextjs`, and the `production` default of all other SDKs. If your events use a different environment, set `release.deploy.env` to the same value, or set `release.deploy` to `false` to opt out.
 
 ### Removed `unstable_` bundler plugin options
 
