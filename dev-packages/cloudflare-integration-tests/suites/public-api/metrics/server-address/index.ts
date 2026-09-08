@@ -7,7 +7,6 @@ interface Env {
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     release: '1.0.0',
     environment: 'test',
     serverName: 'mi-servidor.com',
