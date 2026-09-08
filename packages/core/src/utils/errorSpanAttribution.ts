@@ -4,7 +4,7 @@ import type { TraceContext } from '../types/context';
 import type { Event, EventHint } from '../types/event';
 import type { Span } from '../types/span';
 import { isPrimitive } from './is';
-import { spanToTraceContext } from './spanUtils';
+import { spanIsSampled, spanToTraceContext } from './spanUtils';
 
 /**
  * The trace context of the span an error escaped, keyed by the error itself.
@@ -27,13 +27,15 @@ function toWeakMapKey(error: unknown): object | undefined {
  * the span that actually failed instead of whichever span happens to be active at capture time.
  *
  * The first span to see the error wins: as an error unwinds through nested spans, the innermost
- * one is the one that failed. Non-recording spans are skipped because they are never sent, so
- * their span id would point at a span that does not exist.
+ * one is the one that failed. Unsampled spans are skipped because they are never sent, so their
+ * span id would point at a span that does not exist. Sampling rather than `isRecording()` is what
+ * matters here: a span ended before the error escaped it, which is the norm for `startSpanManual`,
+ * has stopped recording but is still sent.
  */
 export function recordEscapedErrorSpan(error: unknown, span: Span): void {
   const key = toWeakMapKey(error);
 
-  if (!key || !span.isRecording() || escapedSpanTraceContexts.has(key)) {
+  if (!key || !spanIsSampled(span) || escapedSpanTraceContexts.has(key)) {
     return;
   }
 

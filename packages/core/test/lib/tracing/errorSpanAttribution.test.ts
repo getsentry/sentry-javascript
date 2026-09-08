@@ -7,6 +7,7 @@ import {
   setCurrentClient,
   startNewTrace,
   startSpan,
+  startSpanManual,
 } from '../../../src';
 import type { Event } from '../../../src/types/event';
 import type { TestClientOptions } from '../../mocks/client';
@@ -296,5 +297,31 @@ describe('error span attribution', () => {
     await client.flush();
 
     expect(events[0]?.contexts?.trace).toEqual(expect.objectContaining({ trace_id: traceId, span_id: innerSpanId }));
+  });
+  // `startSpanManual` ends the span inside the callback, so by the time the error unwinds past it
+  // the span has stopped recording. It is still sampled and still sent, so it is still the span
+  // the error escaped.
+  it('attributes an error to a span that was ended before the error escaped it', async () => {
+    let innerSpanId: string | undefined;
+
+    startSpan({ name: 'outer' }, () => {
+      try {
+        startSpanManual({ name: 'inner' }, span => {
+          innerSpanId = span.spanContext().spanId;
+          try {
+            throw new Error('inner failed');
+          } finally {
+            span.end();
+          }
+        });
+      } catch (error) {
+        captureException(error);
+      }
+    });
+
+    await client.flush();
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.contexts?.trace?.span_id).toBe(innerSpanId);
   });
 });
