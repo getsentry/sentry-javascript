@@ -4,8 +4,11 @@
 
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BrowserClient } from '../../src/client';
 import * as helpers from '../../src/helpers';
 import { INTEGRATION_NAME, registerWebWorker, webWorkerIntegration } from '../../src/integrations/webWorker';
+import { defaultStackParser } from '../../src/stack-parsers';
+import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 // Mock @sentry/core
 vi.mock('@sentry/core', async importActual => {
@@ -510,6 +513,92 @@ describe('registerWebWorker', () => {
       _sentryModuleMetadata: rawMetadata,
     });
   });
+
+  describe('error forwarding', () => {
+    // registerWebWorker raises this globally, so every test in here has to put it back.
+    const originalStackTraceLimit = Error.stackTraceLimit;
+
+    afterEach(() => {
+      Error.stackTraceLimit = originalStackTraceLimit;
+    });
+
+    function getListener(type: string): (event: unknown) => void {
+      const call = mockWorkerSelf.addEventListener.mock.calls.find(([eventType]) => eventType === type);
+      return call![1];
+    }
+
+    it('raises the stack trace limit so forwarded stacks are not truncated', () => {
+      Error.stackTraceLimit = 10;
+
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      expect(Error.stackTraceLimit).toBe(50);
+    });
+
+    it('forwards an uncaught error with its stack and kind "error"', () => {
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      const error = new Error('boom');
+      getListener('error')({ error, message: 'Uncaught Error: boom' });
+
+      expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+        _sentryMessage: true,
+        _sentryWorkerError: {
+          reason: error,
+          filename: undefined,
+          kind: 'error',
+        },
+      });
+    });
+
+    it('falls back to the event message when there is no error object', () => {
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      getListener('error')({ error: null, message: 'Uncaught Error: boom' });
+
+      expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+        _sentryMessage: true,
+        _sentryWorkerError: expect.objectContaining({
+          reason: 'Uncaught Error: boom',
+          kind: 'error',
+        }),
+      });
+    });
+
+    it('tags forwarded rejections with kind "unhandledrejection"', () => {
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      const reason = new Error('rejected');
+      getListener('unhandledrejection')({ reason });
+
+      expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+        _sentryMessage: true,
+        _sentryWorkerError: {
+          reason,
+          filename: undefined,
+          kind: 'unhandledrejection',
+        },
+      });
+    });
+
+    it('describes a non-cloneable reason instead of throwing out of the error handler', () => {
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      mockWorkerSelf.postMessage.mockImplementationOnce(() => {
+        throw new DOMException('could not be cloned', 'DataCloneError');
+      });
+
+      expect(() => getListener('error')({ error: () => {} })).not.toThrow();
+
+      expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+        _sentryMessage: true,
+        _sentryWorkerError: expect.objectContaining({
+          reason: 'Worker error with non-cloneable reason: [object Function]',
+          kind: 'error',
+        }),
+      });
+    });
+  });
 });
 
 describe('registerWebWorker and webWorkerIntegration', () => {
@@ -612,5 +701,120 @@ describe('registerWebWorker and webWorkerIntegration', () => {
       'Error at \n /worker-3-file1.js': 'worker-3-debug-1',
       'Error at \n /worker-3-file2.js': 'worker-3-debug-2',
     });
+  });
+});
+
+describe('forwarded worker errors', () => {
+  let client: BrowserClient;
+  let captureEventSpy: ReturnType<typeof vi.spyOn>;
+  let messageHandler: (event: any) => void;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    client = new BrowserClient({
+      ...getDefaultBrowserClientOptions(),
+      stackParser: defaultStackParser,
+    });
+    SentryCore.setCurrentClient(client);
+    client.init();
+    captureEventSpy = vi.spyOn(client, 'captureEvent');
+
+    const mockWorker = { addEventListener: vi.fn(), postMessage: vi.fn() };
+    const integration = webWorkerIntegration({ worker: mockWorker as any });
+    integration.setupOnce!();
+    messageHandler = mockWorker.addEventListener.mock.calls[0]![1];
+  });
+
+  function forward(workerError: Record<string, unknown>): void {
+    messageHandler({
+      data: { _sentryMessage: true, _sentryWorkerError: workerError },
+      stopImmediatePropagation: vi.fn(),
+    });
+  }
+
+  function capturedEvent(): SentryCore.Event {
+    return captureEventSpy.mock.lastCall![0] as SentryCore.Event;
+  }
+
+  it('captures a forwarded error with the onerror mechanism', () => {
+    const error = new Error('boom');
+
+    forward({ reason: error, filename: 'http://localhost/worker.js', kind: 'error' });
+
+    expect(captureEventSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'error' }),
+      expect.objectContaining({
+        originalException: error,
+        mechanism: { handled: false, type: 'auto.browser.web_worker.onerror' },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('captures a forwarded rejection with the onunhandledrejection mechanism', () => {
+    const reason = new Error('rejected');
+
+    forward({ reason, kind: 'unhandledrejection' });
+
+    expect(captureEventSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        mechanism: { handled: false, type: 'auto.browser.web_worker.onunhandledrejection' },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('treats a payload without kind as a rejection, for workers on an older SDK', () => {
+    forward({ reason: new Error('rejected') });
+
+    expect(captureEventSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        mechanism: { handled: false, type: 'auto.browser.web_worker.onunhandledrejection' },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('does not apply promise-rejection wording to a thrown primitive', () => {
+    forward({ reason: 'just a string', kind: 'error' });
+
+    expect(capturedEvent().exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'Error',
+        value: 'just a string',
+      }),
+    );
+  });
+
+  it('keeps promise-rejection wording for a rejected primitive', () => {
+    forward({ reason: 'just a string', kind: 'unhandledrejection' });
+
+    expect(capturedEvent().exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'UnhandledRejection',
+        value: 'Non-Error promise rejection captured with value: just a string',
+      }),
+    );
+  });
+
+  it('parses the forwarded stack into frames, including wasm frames', () => {
+    const error = new Error('divide by zero');
+    error.stack = [
+      'RuntimeError: divide by zero',
+      '    at trigger_crash (http://localhost:8080/maze.wasm:wasm-function[36]:0x2877)',
+      '    at runStepGame (http://localhost:8080/worker.js:12:9)',
+    ].join('\n');
+
+    forward({ reason: error, kind: 'error' });
+
+    expect(capturedEvent().exception?.values?.[0]?.stacktrace?.frames).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ filename: 'http://localhost:8080/maze.wasm:wasm-function[36]:0x2877' }),
+        expect.objectContaining({ filename: 'http://localhost:8080/worker.js' }),
+      ]),
+    );
   });
 });
