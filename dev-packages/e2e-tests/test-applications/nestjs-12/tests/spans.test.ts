@@ -76,6 +76,18 @@ function nestMiddlewareSpan(
   };
 }
 
+/**
+ * Two specs hit each interceptor route, and `collectStreamedSpans` resolves with any trace that
+ * satisfies the predicate - including one left over from the spec before. Each request therefore
+ * carries a marker that tells its own trace apart. `url.query` keeps it out of the span name.
+ */
+function collectSpansOfRequest(segmentName: string, spec: string): Promise<SerializedStreamedSpan[]> {
+  return collectStreamedSpansUntilSegment(
+    APP_NAME,
+    span => span.name === segmentName && span.attributes['url.query']?.value === `spec=${spec}`,
+  );
+}
+
 test('Sends streamed spans for an API route', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-transaction');
 
@@ -263,9 +275,9 @@ test('API route trace includes nest pipe span for invalid request', async ({ bas
 test('API route trace includes nest interceptor spans before route execution. Spans created in and after interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-interceptor-instrumentation');
+  const spansPromise = collectSpansOfRequest('GET /test-interceptor-instrumentation', 'interceptor-before-route');
 
-  const response = await fetch(`${baseURL}/test-interceptor-instrumentation`);
+  const response = await fetch(`${baseURL}/test-interceptor-instrumentation?spec=interceptor-before-route`);
   expect(response.status).toBe(200);
 
   const spans = await spansPromise;
@@ -299,9 +311,9 @@ test('API route trace includes nest interceptor spans before route execution. Sp
 test('API route trace includes exactly one nest interceptor span after route execution. Spans created in controller and in interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-interceptor-instrumentation');
+  const spansPromise = collectSpansOfRequest('GET /test-interceptor-instrumentation', 'interceptor-after-route');
 
-  const response = await fetch(`${baseURL}/test-interceptor-instrumentation`);
+  const response = await fetch(`${baseURL}/test-interceptor-instrumentation?spec=interceptor-after-route`);
   expect(response.status).toBe(200);
 
   const spans = await spansPromise;
@@ -327,9 +339,12 @@ test('API route trace includes exactly one nest interceptor span after route exe
 test('API route trace includes nest async interceptor spans before route execution. Spans created in and after async interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-async-interceptor-instrumentation');
+  const spansPromise = collectSpansOfRequest(
+    'GET /test-async-interceptor-instrumentation',
+    'async-interceptor-before-route',
+  );
 
-  const response = await fetch(`${baseURL}/test-async-interceptor-instrumentation`);
+  const response = await fetch(`${baseURL}/test-async-interceptor-instrumentation?spec=async-interceptor-before-route`);
   expect(response.status).toBe(200);
 
   const spans = await spansPromise;
@@ -355,9 +370,12 @@ test('API route trace includes nest async interceptor spans before route executi
 test('API route trace includes exactly one nest async interceptor span after route execution. Spans created in controller and in async interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-async-interceptor-instrumentation');
+  const spansPromise = collectSpansOfRequest(
+    'GET /test-async-interceptor-instrumentation',
+    'async-interceptor-after-route',
+  );
 
-  const response = await fetch(`${baseURL}/test-async-interceptor-instrumentation`);
+  const response = await fetch(`${baseURL}/test-async-interceptor-instrumentation?spec=async-interceptor-after-route`);
   expect(response.status).toBe(200);
 
   const spans = await spansPromise;
