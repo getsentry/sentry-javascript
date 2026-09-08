@@ -145,7 +145,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   const cloudflareConfig = getCloudflareRuntimeConfig();
 
   const opts: NodeOptions = {
-    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv() || process.env.NODE_ENV,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
     // Next.js emits its own OpenTelemetry spans, so it defaults to registering the Sentry tracer

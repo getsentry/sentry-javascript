@@ -163,7 +163,7 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     }
   }
 
-  const vercelEnv = getVercelEnv(false);
+  const vercelEnv = getVercelEnv();
   if (options.release.deploy === undefined && process.env['VERCEL'] && vercelEnv) {
     options.release.deploy = {
       env: vercelEnv,
