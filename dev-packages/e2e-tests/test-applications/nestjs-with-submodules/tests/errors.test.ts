@@ -129,7 +129,7 @@ test('Does not send exception to Sentry if user-defined global exception filter 
 
   await spansPromise;
 
-  (await fetch(`${baseURL}/flush`)).text();
+  await fetch(`${baseURL}/flush`);
 
   expect(errorEventOccurred).toBe(false);
 });
@@ -160,7 +160,7 @@ test('Does not send exception to Sentry if user-defined local exception filter a
 
   await spansPromise;
 
-  (await fetch(`${baseURL}/flush`)).text();
+  await fetch(`${baseURL}/flush`);
 
   expect(errorEventOccurred).toBe(false);
 });
@@ -188,7 +188,7 @@ test('Does not send expected exception to Sentry if exception is thrown in modul
 
   await spansPromise;
 
-  (await fetch(`${baseURL}/flush`)).text();
+  await fetch(`${baseURL}/flush`);
 
   expect(errorEventOccurred).toBe(false);
 });
@@ -221,7 +221,7 @@ test('Global specific exception filter registered in main module is applied and 
 
   await spansPromise;
 
-  (await fetch(`${baseURL}/flush`)).text();
+  await fetch(`${baseURL}/flush`);
 
   expect(errorEventOccurred).toBe(false);
 });
@@ -254,7 +254,7 @@ test('Local specific exception filter registered in main module is applied and e
 
   await spansPromise;
 
-  (await fetch(`${baseURL}/flush`)).text();
+  await fetch(`${baseURL}/flush`);
 
   expect(errorEventOccurred).toBe(false);
 });
