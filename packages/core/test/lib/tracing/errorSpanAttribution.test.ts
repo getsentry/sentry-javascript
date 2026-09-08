@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  addEventProcessor,
   captureException,
   getActiveSpan,
   setAsyncContextStrategy,
@@ -241,5 +242,59 @@ describe('error span attribution', () => {
     const traceContext = events[0]?.contexts?.trace;
     expect(traceContext?.trace_id).toBeDefined();
     expect(events[0]?.sdkProcessingMetadata?.dynamicSamplingContext?.trace_id).toBe(traceContext?.trace_id);
+  });
+  // Attribution used to happen once the event was fully assembled, which left event processors
+  // looking at the span that was active at capture time.
+  it('has attributed the error before event processors run', async () => {
+    let seenSpanId: string | undefined;
+    let innerSpanId: string | undefined;
+
+    addEventProcessor(event => {
+      if (!event.type) {
+        seenSpanId = event.contexts?.trace?.span_id;
+      }
+      return event;
+    });
+
+    startSpan({ name: 'outer' }, () => {
+      try {
+        startSpan({ name: 'inner' }, innerSpan => {
+          innerSpanId = innerSpan.spanContext().spanId;
+          throw new Error('inner failed');
+        });
+      } catch (error) {
+        captureException(error);
+      }
+    });
+
+    await client.flush();
+
+    expect(seenSpanId).toBe(innerSpanId);
+  });
+
+  it('leaves the event with a complete trace context when nothing is active at capture time', async () => {
+    let innerSpanId: string | undefined;
+    let traceId: string | undefined;
+    let caught: unknown;
+
+    startSpan({ name: 'outer' }, outerSpan => {
+      traceId = outerSpan.spanContext().traceId;
+
+      try {
+        startSpan({ name: 'inner' }, innerSpan => {
+          innerSpanId = innerSpan.spanContext().spanId;
+          throw new Error('inner failed');
+        });
+      } catch (error) {
+        caught = error;
+      }
+    });
+
+    expect(getActiveSpan()).toBeUndefined();
+    captureException(caught);
+
+    await client.flush();
+
+    expect(events[0]?.contexts?.trace).toEqual(expect.objectContaining({ trace_id: traceId, span_id: innerSpanId }));
   });
 });

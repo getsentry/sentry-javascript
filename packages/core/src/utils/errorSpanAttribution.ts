@@ -1,3 +1,5 @@
+import { getTraceContextFromScope } from '../currentScopes';
+import type { Scope } from '../scope';
 import type { TraceContext } from '../types/context';
 import type { Event, EventHint } from '../types/event';
 import type { Span } from '../types/span';
@@ -46,12 +48,21 @@ export function recordEscapedErrorSpan(error: unknown, span: Span): void {
  * derived from the root span of the trace the event is already on. Rewriting the trace id here
  * would leave the envelope header and body naming different traces.
  */
-export function applyEscapedErrorSpanToEvent(event: Event, hint: EventHint): void {
+export function applyEscapedErrorSpanToEvent(event: Event, hint: EventHint, scope: Scope | undefined): void {
   const key = toWeakMapKey(hint.originalException);
   const traceContext = key && escapedSpanTraceContexts.get(key);
-  const eventTraceContext = event.contexts?.trace;
 
-  if (!traceContext || !eventTraceContext || eventTraceContext.trace_id !== traceContext.trace_id) {
+  if (!traceContext) {
+    return;
+  }
+
+  // An error captured with no active span has no trace context yet: the scope's is merged in
+  // further downstream. Resolve the trace the event will end up on the same way that merge does,
+  // so the check below still knows which trace we are on.
+  const eventTraceContext = event.contexts?.trace;
+  const eventTraceId = eventTraceContext?.trace_id ?? (scope && getTraceContextFromScope(scope).trace_id);
+
+  if (eventTraceId !== traceContext.trace_id) {
     return;
   }
 
@@ -59,8 +70,7 @@ export function applyEscapedErrorSpanToEvent(event: Event, hint: EventHint): voi
     ...event.contexts,
     trace: {
       ...eventTraceContext,
-      span_id: traceContext.span_id,
-      parent_span_id: traceContext.parent_span_id,
+      ...traceContext,
     },
   };
 }
