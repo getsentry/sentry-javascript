@@ -8,6 +8,8 @@ import { CHANNELS } from '../../../src/orchestrion/channels';
 const observabilityFrom = vi.hoisted(() => ({
   parent: undefined as string | undefined,
   cache: {} as NodeJS.Dict<NodeModule>,
+  injectedCoreUrl: 'file:///app/node_modules/@mastra/core/dist/mastra-abc123.js',
+  injectedCore: '/app/node_modules/@mastra/core/dist/mastra-abc123.js',
   loadedCore: '/app/node_modules/@mastra/core/dist/index.js',
   cwdCore: '/cwd/node_modules/@mastra/core/index.js',
   cwd: `${process.cwd()}/noop.js`,
@@ -57,6 +59,39 @@ describe('mastraIntegration observability resolve', () => {
 
   afterEach(() => {
     delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+  });
+
+  it('loads @mastra/observability from the runtime-injected @mastra/core file (ESM path)', () => {
+    // No CJS cache entry — mirrors an ESM app, where the loaded module never reaches `require.cache`.
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = {
+      runtime: ['@mastra/core'],
+      runtimeFiles: { '@mastra/core': observabilityFrom.injectedCoreUrl },
+    };
+    const registerExporter = vi.fn();
+
+    tracingChannel(CHANNELS.MASTRA_CONSTRUCTOR).end.publish({
+      self: { registerExporter },
+      arguments: [],
+    });
+
+    expect(observabilityFrom.parent).toBe(observabilityFrom.injectedCore);
+    expect(registerExporter).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything());
+  });
+
+  it('prefers the runtime-injected file over the CJS-cached copy', () => {
+    observabilityFrom.cache[observabilityFrom.loadedCore] = {} as NodeModule;
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = {
+      runtime: ['@mastra/core'],
+      runtimeFiles: { '@mastra/core': observabilityFrom.injectedCoreUrl },
+    };
+    const registerExporter = vi.fn();
+
+    tracingChannel(CHANNELS.MASTRA_CONSTRUCTOR).end.publish({
+      self: { registerExporter },
+      arguments: [],
+    });
+
+    expect(observabilityFrom.parent).toBe(observabilityFrom.injectedCore);
   });
 
   it('loads @mastra/observability from a loaded @mastra/core file, not cwd', () => {
