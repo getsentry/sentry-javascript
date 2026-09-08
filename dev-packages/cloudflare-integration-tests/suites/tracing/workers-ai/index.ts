@@ -12,7 +12,6 @@ const aiBinding = new MockAi();
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     // Responses only. Asserting that prompts are *absent* is what makes this suite fail if the
     // binding is ever wrapped before the SDK is initialized again, since the fallback collects both.

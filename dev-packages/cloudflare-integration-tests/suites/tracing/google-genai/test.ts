@@ -18,8 +18,15 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT } from '@sentry/core';
 import { createRunner } from '../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
 // This test runs the `@google/genai` SDK on the Workers runtime (with a
 // canned global fetch) to verify the instrumentation works end-to-end on
@@ -29,15 +36,15 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as any;
-      expect(transactionEvent.transaction).toBe('GET /');
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+      expect(segmentSpan?.name).toBe('GET /');
 
-      const container = envelope[1]?.[1]?.[1] as any;
-      expect(container).toBeDefined();
-      expect(container.items).toHaveLength(3);
+      const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
+      expect(genAiSpans).toHaveLength(3);
 
       const byName = (name: string): SerializedStreamedSpan =>
-        container.items.find((span: SerializedStreamedSpan) => span.name === name);
+        genAiSpans.find(span => span.name === name) as SerializedStreamedSpan;
 
       expect(byName('chat gemini-1.5-pro')).toEqual({
         trace_id: expect.any(String),
@@ -77,6 +84,12 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_USAGE_INPUT_TOKENS]: { value: 8, type: 'integer' },
           [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 12, type: 'integer' },
           [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 20, type: 'integer' },
+          [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+          [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+          [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+          [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+          [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
         },
       });
 
@@ -106,6 +119,12 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 12, type: 'integer' },
           [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 20, type: 'integer' },
           [GEN_AI_RESPONSE_TEXT]: { value: 'Hello from Google GenAI!', type: 'string' },
+          [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+          [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+          [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+          [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+          [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
         },
       });
 
@@ -125,6 +144,12 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_OPERATION_NAME]: { value: 'embeddings', type: 'string' },
           [GEN_AI_REQUEST_MODEL]: { value: 'text-embedding-004', type: 'string' },
           [GEN_AI_EMBEDDINGS_INPUT]: { value: 'Hello world', type: 'string' },
+          [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+          [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+          [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+          [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+          [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
         },
       });
     })

@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
-import type { Event } from '@sentry/core';
 import { createRunner } from '../../../runner';
+import type { SerializedStreamedSpan } from '@sentry/core';
+import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
 type EchoedHeaders = {
   sentryTrace: string | null;
@@ -13,56 +14,26 @@ type EchoedHeaders = {
 
 const SENTRY_TRACE_HEADER_RE = /^[0-9a-f]{32}-[0-9a-f]{16}-[01]$/;
 
-type ScenarioPath = '/via-init' | '/via-request' | '/via-request-and-init' | '/with-preset-sentry-baggage';
+function startStubFetchScenario(signal: AbortSignal) {
+  let mainSpan: SerializedStreamedSpan | undefined;
+  let doSpan: SerializedStreamedSpan | undefined;
 
-function startStubFetchScenario(path: ScenarioPath, signal: AbortSignal) {
-  let mainTraceId: string | undefined;
-  let mainSpanId: string | undefined;
-  let doTraceId: string | undefined;
-  let doParentSpanId: string | undefined;
-
-  const traceBase = {
-    op: 'http.server',
-    data: expect.objectContaining({
-      'sentry.origin': 'auto.http.cloudflare',
-    }),
-    origin: 'auto.http.cloudflare',
-  };
-
+  // The worker and the Durable Object stream their spans from separate isolates, so each one
+  // arrives in its own envelope.
   const { makeRequest, completed } = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
-      const parentSpanId = transactionEvent.contexts?.trace?.parent_span_id;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining(traceBase),
-          }),
-          transaction: `GET ${path}`,
-        }),
-      );
-      expect(parentSpanId).toBeUndefined();
-
-      mainTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      mainSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.parent_span_id).toBeUndefined();
+      mainSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
-      const parentSpanId = transactionEvent.contexts?.trace?.parent_span_id;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining(traceBase),
-          }),
-          transaction: `GET ${path}`,
-        }),
-      );
-      expect(parentSpanId).toBeDefined();
-
-      doTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      doParentSpanId = parentSpanId as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.parent_span_id).toBeDefined();
+      doSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
@@ -71,18 +42,20 @@ function startStubFetchScenario(path: ScenarioPath, signal: AbortSignal) {
     makeRequest,
     async completedWithTraceCheck(): Promise<void> {
       await completed();
-      expect(mainTraceId).toBeDefined();
-      expect(doTraceId).toBeDefined();
-      expect(mainTraceId).toBe(doTraceId);
-      expect(mainSpanId).toBeDefined();
-      expect(doParentSpanId).toBeDefined();
-      expect(doParentSpanId).toBe(mainSpanId);
+
+      // Both routes are raw URLs, so the streamed segment name keeps the method only.
+      expect(mainSpan?.name).toBe('GET');
+      expect(doSpan?.name).toBe('GET');
+      expect(mainSpan?.attributes['sentry.origin']?.value).toBe('auto.http.cloudflare');
+      expect(doSpan?.attributes['sentry.origin']?.value).toBe('auto.http.cloudflare');
+      expect(doSpan?.trace_id).toBe(mainSpan?.trace_id);
+      expect(doSpan?.parent_span_id).toBe(mainSpan?.span_id);
     },
   };
 }
 
 it('stub.fetch: headers in init (URL string + init)', async ({ signal }) => {
-  const { makeRequest, completedWithTraceCheck } = startStubFetchScenario('/via-init', signal);
+  const { makeRequest, completedWithTraceCheck } = startStubFetchScenario(signal);
   const body = await makeRequest<EchoedHeaders>('get', '/via-init');
   await completedWithTraceCheck();
 
@@ -95,7 +68,7 @@ it('stub.fetch: headers in init (URL string + init)', async ({ signal }) => {
 });
 
 it('stub.fetch: headers on Request (URL from incoming request)', async ({ signal }) => {
-  const { makeRequest, completedWithTraceCheck } = startStubFetchScenario('/via-request', signal);
+  const { makeRequest, completedWithTraceCheck } = startStubFetchScenario(signal);
   const body = await makeRequest<EchoedHeaders>('get', '/via-request');
   await completedWithTraceCheck();
 
@@ -108,7 +81,7 @@ it('stub.fetch: headers on Request (URL from incoming request)', async ({ signal
 });
 
 it('stub.fetch: Request + init — only init headers are sent', async ({ signal }) => {
-  const { makeRequest, completedWithTraceCheck } = startStubFetchScenario('/via-request-and-init', signal);
+  const { makeRequest, completedWithTraceCheck } = startStubFetchScenario(signal);
   const body = await makeRequest<EchoedHeaders>('get', '/via-request-and-init');
   await completedWithTraceCheck();
 
@@ -121,7 +94,7 @@ it('stub.fetch: Request + init — only init headers are sent', async ({ signal 
 });
 
 it('stub.fetch: does not append SDK baggage when the Request already includes Sentry baggage', async ({ signal }) => {
-  const { makeRequest, completedWithTraceCheck } = startStubFetchScenario('/with-preset-sentry-baggage', signal);
+  const { makeRequest, completedWithTraceCheck } = startStubFetchScenario(signal);
   const body = await makeRequest<EchoedHeaders>('get', '/with-preset-sentry-baggage');
   await completedWithTraceCheck();
 
