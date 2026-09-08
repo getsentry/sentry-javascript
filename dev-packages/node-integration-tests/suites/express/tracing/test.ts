@@ -1,6 +1,14 @@
+import type { SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { assertSentryTransaction } from '../../../utils/assertions';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+
+function findSegmentSpan(container: SerializedStreamedSpanContainer): SerializedStreamedSpan | undefined {
+  return container.items.find(item => item.is_segment);
+}
+
+function findExpressSpan(container: SerializedStreamedSpanContainer, type: string): SerializedStreamedSpan | undefined {
+  return container.items.find(item => item.attributes['express.type']?.value === type);
+}
 
 describe('express tracing', () => {
   afterAll(() => {
@@ -8,42 +16,47 @@ describe('express tracing', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('should create and send transactions for Express routes and spans for middlewares.', async () => {
+    test('should create and send segment spans for Express routes and spans for middlewares.', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            contexts: {
-              trace: {
-                span_id: expect.stringMatching(/[a-f\d]{16}/),
-                trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                data: {
-                  'url.full': expect.stringMatching(/\/test\/express$/),
-                  'http.response.status_code': 200,
-                },
-                op: 'http.server',
-                status: 'ok',
-              },
-            },
-            spans: expect.arrayContaining([
-              expect.objectContaining({
-                data: expect.objectContaining({
-                  'express.name': 'corsMiddleware',
-                  'express.type': 'middleware',
-                }),
-                description: 'corsMiddleware',
-                op: 'middleware',
-                origin: 'auto.http.express',
+          span: container => {
+            const serverSpan = findSegmentSpan(container);
+
+            expect(serverSpan).toMatchObject({
+              name: 'GET /test/express',
+              span_id: expect.stringMatching(/[a-f\d]{16}/),
+              trace_id: expect.stringMatching(/[a-f\d]{32}/),
+              status: 'ok',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+                'url.full': { type: 'string', value: expect.stringMatching(/\/test\/express$/) },
+                'http.response.status_code': { type: 'integer', value: 200 },
               }),
+            });
+
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                data: expect.objectContaining({
-                  'express.name': '/test/express',
-                  'express.type': 'request_handler',
+                name: 'corsMiddleware',
+                attributes: expect.objectContaining({
+                  'express.name': { type: 'string', value: 'corsMiddleware' },
+                  'express.type': { type: 'string', value: 'middleware' },
+                  'sentry.op': { type: 'string', value: 'middleware' },
+                  'sentry.origin': { type: 'string', value: 'auto.http.express' },
                 }),
-                description: '/test/express',
-                op: 'handler',
-                origin: 'auto.http.express',
               }),
-            ]),
+            );
+
+            expect(container.items).toContainEqual(
+              expect.objectContaining({
+                name: '/test/express',
+                attributes: expect.objectContaining({
+                  'express.name': { type: 'string', value: '/test/express' },
+                  'express.type': { type: 'string', value: 'request_handler' },
+                  'sentry.op': { type: 'string', value: 'handler' },
+                  'sentry.origin': { type: 'string', value: 'auto.http.express' },
+                }),
+              }),
+            );
           },
         })
         .start();
@@ -51,21 +64,17 @@ describe('express tracing', () => {
       await runner.completed();
     });
 
-    test('names router and request handler spans after their route when span streaming is enabled', async () => {
+    test('names router and request handler spans after their route', async () => {
       const runner = createRunner()
-        .withEnv({ STREAMED: 'true' })
         .expect({
           span: container => {
-            const spanFor = (type: string): (typeof container.items)[number] | undefined =>
-              container.items.find(item => item.attributes['express.type']?.value === type);
-
-            const handlerSpan = spanFor('request_handler');
+            const handlerSpan = findExpressSpan(container, 'request_handler');
             expect(handlerSpan?.name).toBe('/test/router/user/:id');
             // The name has to stay in step with the attribute it comes from.
             expect(handlerSpan?.attributes['http.route']?.value).toBe('/test/router/user/:id');
             expect(handlerSpan?.attributes['sentry.op']?.value).toBe('handler');
 
-            const routerSpan = spanFor('router');
+            const routerSpan = findExpressSpan(container, 'router');
             expect(routerSpan?.name).toBe('/test/router/user');
 
             // Spans of other layer types keep their names.
@@ -82,26 +91,22 @@ describe('express tracing', () => {
       await runner.completed();
     });
 
-    test('should set a correct transaction name for routes specified in RegEx', async () => {
+    test('should set a correct segment name for routes specified in RegEx', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /\\/test\\/regex/',
-            transaction_info: {
-              source: 'route',
-            },
-            contexts: {
-              trace: {
-                trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                span_id: expect.stringMatching(/[a-f\d]{16}/),
-                data: {
-                  'url.full': expect.stringMatching(/\/test\/regex$/),
-                  'http.response.status_code': 200,
-                },
-                op: 'http.server',
-                status: 'ok',
-              },
-            },
+          span: container => {
+            expect(findSegmentSpan(container)).toMatchObject({
+              name: 'GET /\\/test\\/regex/',
+              span_id: expect.stringMatching(/[a-f\d]{16}/),
+              trace_id: expect.stringMatching(/[a-f\d]{32}/),
+              status: 'ok',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+                'sentry.segment.name.source': { type: 'string', value: 'route' },
+                'url.full': { type: 'string', value: expect.stringMatching(/\/test\/regex$/) },
+                'http.response.status_code': { type: 'integer', value: 200 },
+              }),
+            });
           },
         })
         .start();
@@ -112,12 +117,11 @@ describe('express tracing', () => {
     test('nests a sub-router route handler span under the router span', async () => {
       const runner = createRunner()
         .expect({
-          transaction: transaction => {
-            expect(transaction.transaction).toBe('GET /test/router/user/:id');
+          span: container => {
+            expect(findSegmentSpan(container)?.name).toBe('GET /test/router/user/:id');
 
-            const spans = transaction.spans || [];
-            const routerSpan = spans.find(span => span.data?.['express.type'] === 'router');
-            const handlerSpan = spans.find(span => span.data?.['express.type'] === 'request_handler');
+            const routerSpan = findExpressSpan(container, 'router');
+            const handlerSpan = findExpressSpan(container, 'request_handler');
 
             expect(routerSpan).toBeDefined();
             expect(handlerSpan).toBeDefined();
@@ -126,7 +130,7 @@ describe('express tracing', () => {
             expect(handlerSpan?.parent_span_id).toBe(routerSpan?.span_id);
 
             // The handler delays its response by ~100ms (see scenario).
-            const routerDurationMs = ((routerSpan?.timestamp ?? 0) - (routerSpan?.start_timestamp ?? 0)) * 1000;
+            const routerDurationMs = ((routerSpan?.end_timestamp ?? 0) - (routerSpan?.start_timestamp ?? 0)) * 1000;
 
             // The router span stays open until the response finishes, so it spans the
             // whole sub-stack it dispatched (~the 100ms handler delay).
@@ -141,13 +145,12 @@ describe('express tracing', () => {
     test('keeps the parameter in a route mounted under a parameterized sub-router path', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
+          span: container => {
+            const serverSpan = findSegmentSpan(container);
             // The `:version` parameter must be preserved — using the concrete value
             // (`/test/version/v1/user`) would explode route cardinality.
-            transaction: 'GET /test/version/:version/user',
-            transaction_info: {
-              source: 'route',
-            },
+            expect(serverSpan?.name).toBe('GET /test/version/:version/user');
+            expect(serverSpan?.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
           },
         })
         .start();
@@ -158,66 +161,95 @@ describe('express tracing', () => {
     test('handles root page correctly', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /',
-            contexts: {
-              trace: {
+          span: container => {
+            expect(findSegmentSpan(container)).toMatchObject({
+              name: 'GET /',
+              span_id: expect.stringMatching(/[a-f\d]{16}/),
+              trace_id: expect.stringMatching(/[a-f\d]{32}/),
+              status: 'ok',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+                'http.response.status_code': { type: 'integer', value: 200 },
+                'http.request.method': { type: 'string', value: 'GET' },
+                'url.full': { type: 'string', value: expect.stringMatching(/\/$/) },
+                'http.route': { type: 'string', value: '/' },
+                'url.path': { type: 'string', value: '/' },
+              }),
+            });
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/');
+      await runner.completed();
+    });
+
+    // With span streaming, child spans are sent as they end, before the response status code is
+    // known, so `ignoreStatusCodes` has no effect and these routes are captured like any other.
+    test.each([
+      { status_code: 401, url: '/401', status_message: 'unauthenticated', name: 'GET /401', source: 'route' },
+      { status_code: 402, url: '/402', status_message: 'invalid_argument', name: 'GET /402', source: 'route' },
+      { status_code: 403, url: '/403', status_message: 'permission_denied', name: 'GET /403', source: 'route' },
+      // Without a matching route the name must not carry the URL path.
+      { status_code: 404, url: '/does-not-exist', status_message: 'not_found', name: 'GET', source: 'url' },
+    ])(
+      'handles %s route correctly',
+      async ({
+        status_code,
+        url,
+        status_message,
+        name,
+        source,
+      }: {
+        status_code: number;
+        url: string;
+        status_message: string;
+        name: string;
+        source: string;
+      }) => {
+        const runner = createRunner()
+          .expect({
+            span: container => {
+              expect(findSegmentSpan(container)).toMatchObject({
+                name,
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                data: {
-                  'http.response.status_code': 200,
-                  'http.request.method': 'GET',
-                  'url.full': expect.stringMatching(/\/$/),
-                  'http.route': '/',
-                  'url.path': '/',
-                },
-                op: 'http.server',
-                status: 'ok',
-              },
+                status: 'error',
+                attributes: expect.objectContaining({
+                  'sentry.op': { type: 'string', value: 'http.server' },
+                  'sentry.segment.name.source': { type: 'string', value: source },
+                  'sentry.status.message': { type: 'string', value: status_message },
+                  'http.response.status_code': { type: 'integer', value: status_code },
+                  'http.request.method': { type: 'string', value: 'GET' },
+                  'url.full': { type: 'string', value: expect.stringMatching(url) },
+                  'url.path': { type: 'string', value: url },
+                }),
+              });
             },
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/');
-      await runner.completed();
-    });
-
-    test.each(['/401', '/402', '/403', '/does-not-exist'])('ignores %s route by default', async (url: string) => {
-      const runner = createRunner()
-        .expect({
-          // No transaction is sent for the 401, 402, 403, 404 routes
-          transaction: {
-            transaction: 'GET /',
-          },
-        })
-        .start();
-      runner.makeRequest('get', url, { expectError: true });
-      runner.makeRequest('get', '/');
-      await runner.completed();
-    });
+          })
+          .start();
+        runner.makeRequest('get', url, { expectError: true });
+        await runner.completed();
+      },
+    );
 
     test.each([['array1'], ['array5']])(
-      'should set a correct transaction name for routes consisting of arrays of routes for %p',
+      'should set a correct segment name for routes consisting of arrays of routes for %p',
       async (segment: string) => {
-        const runner = await createRunner()
+        const runner = createRunner()
           .expect({
-            transaction: {
-              transaction: 'GET /test/array1,/\\/test\\/array[2-9]/',
-              transaction_info: {
-                source: 'route',
-              },
-              contexts: {
-                trace: {
-                  trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                  span_id: expect.stringMatching(/[a-f\d]{16}/),
-                  data: {
-                    'url.full': expect.stringMatching(`/test/${segment}$`),
-                    'http.response.status_code': 200,
-                  },
-                  op: 'http.server',
-                  status: 'ok',
-                },
-              },
+            span: container => {
+              expect(findSegmentSpan(container)).toMatchObject({
+                name: 'GET /test/array1,/\\/test\\/array[2-9]/',
+                span_id: expect.stringMatching(/[a-f\d]{16}/),
+                trace_id: expect.stringMatching(/[a-f\d]{32}/),
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  'sentry.op': { type: 'string', value: 'http.server' },
+                  'sentry.segment.name.source': { type: 'string', value: 'route' },
+                  'url.full': { type: 'string', value: expect.stringMatching(`/test/${segment}$`) },
+                  'http.response.status_code': { type: 'integer', value: 200 },
+                }),
+              });
             },
           })
           .start();
@@ -236,25 +268,21 @@ describe('express tracing', () => {
       ['arr/requiredPath/optionalPath/'],
       ['arr/requiredPath/optionalPath/lastParam'],
     ])('should handle more complex regexes in route arrays correctly for %p', async (segment: string) => {
-      const runner = await createRunner()
+      const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /test/arr/:id,/\\/test\\/arr\\d*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?/',
-            transaction_info: {
-              source: 'route',
-            },
-            contexts: {
-              trace: {
-                trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                span_id: expect.stringMatching(/[a-f\d]{16}/),
-                data: {
-                  'url.full': expect.stringMatching(`/test/${segment}$`),
-                  'http.response.status_code': 200,
-                },
-                op: 'http.server',
-                status: 'ok',
-              },
-            },
+          span: container => {
+            expect(findSegmentSpan(container)).toMatchObject({
+              name: 'GET /test/arr/:id,/\\/test\\/arr\\d*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?/',
+              span_id: expect.stringMatching(/[a-f\d]{16}/),
+              trace_id: expect.stringMatching(/[a-f\d]{32}/),
+              status: 'ok',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+                'sentry.segment.name.source': { type: 'string', value: 'route' },
+                'url.full': { type: 'string', value: expect.stringMatching(`/test/${segment}$`) },
+                'http.response.status_code': { type: 'integer', value: 200 },
+              }),
+            });
           },
         })
         .start();
@@ -266,20 +294,17 @@ describe('express tracing', () => {
       test('correctly captures JSON request data', async () => {
         const runner = createRunner()
           .expect({
-            transaction: {
-              transaction: 'POST /test-post',
-              request: {
-                url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/),
-                method: 'POST',
-                headers: {
-                  'user-agent': expect.stringContaining(''),
-                  'content-type': 'application/json',
-                },
-                data: JSON.stringify({
-                  foo: 'bar',
-                  other: 1,
+            span: container => {
+              expect(findSegmentSpan(container)).toMatchObject({
+                name: 'POST /test-post',
+                attributes: expect.objectContaining({
+                  'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/) },
+                  'http.request.method': { type: 'string', value: 'POST' },
+                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content_type': { type: 'string', value: 'application/json' },
+                  'http.request.body.data': { type: 'string', value: JSON.stringify({ foo: 'bar', other: 1 }) },
                 }),
-              },
+              });
             },
           })
           .start();
@@ -296,17 +321,17 @@ describe('express tracing', () => {
       test('correctly captures plain text request data', async () => {
         const runner = createRunner()
           .expect({
-            transaction: {
-              transaction: 'POST /test-post',
-              request: {
-                url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/),
-                method: 'POST',
-                headers: {
-                  'user-agent': expect.stringContaining(''),
-                  'content-type': 'text/plain',
-                },
-                data: 'some plain text',
-              },
+            span: container => {
+              expect(findSegmentSpan(container)).toMatchObject({
+                name: 'POST /test-post',
+                attributes: expect.objectContaining({
+                  'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/) },
+                  'http.request.method': { type: 'string', value: 'POST' },
+                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content_type': { type: 'string', value: 'text/plain' },
+                  'http.request.body.data': { type: 'string', value: 'some plain text' },
+                }),
+              });
             },
           })
           .start();
@@ -321,17 +346,17 @@ describe('express tracing', () => {
       test('correctly captures text buffer request data', async () => {
         const runner = createRunner()
           .expect({
-            transaction: {
-              transaction: 'POST /test-post',
-              request: {
-                url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/),
-                method: 'POST',
-                headers: {
-                  'user-agent': expect.stringContaining(''),
-                  'content-type': 'application/octet-stream',
-                },
-                data: 'some plain text in buffer',
-              },
+            span: container => {
+              expect(findSegmentSpan(container)).toMatchObject({
+                name: 'POST /test-post',
+                attributes: expect.objectContaining({
+                  'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/) },
+                  'http.request.method': { type: 'string', value: 'POST' },
+                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content_type': { type: 'string', value: 'application/octet-stream' },
+                  'http.request.body.data': { type: 'string', value: 'some plain text in buffer' },
+                }),
+              });
             },
           })
           .start();
@@ -346,18 +371,18 @@ describe('express tracing', () => {
       test('correctly captures non-text buffer request data', async () => {
         const runner = createRunner()
           .expect({
-            transaction: {
-              transaction: 'POST /test-post',
-              request: {
-                url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/),
-                method: 'POST',
-                headers: {
-                  'user-agent': expect.stringContaining(''),
-                  'content-type': 'application/octet-stream',
-                },
-                // This is some non-ascii string representation
-                data: expect.any(String),
-              },
+            span: container => {
+              expect(findSegmentSpan(container)).toMatchObject({
+                name: 'POST /test-post',
+                attributes: expect.objectContaining({
+                  'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/) },
+                  'http.request.method': { type: 'string', value: 'POST' },
+                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content_type': { type: 'string', value: 'application/octet-stream' },
+                  // This is some non-ascii string representation
+                  'http.request.body.data': { type: 'string', value: expect.any(String) },
+                }),
+              });
             },
           })
           .start();
@@ -374,20 +399,22 @@ describe('express tracing', () => {
       test('correctly ignores request data', async () => {
         const runner = createRunner()
           .expect({
-            transaction: e => {
-              assertSentryTransaction(e, {
-                transaction: 'POST /test-post-ignore-body',
-                request: {
-                  url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post-ignore-body$/),
-                  method: 'POST',
-                  headers: {
-                    'user-agent': expect.stringContaining(''),
-                    'content-type': 'application/octet-stream',
+            span: container => {
+              const serverSpan = findSegmentSpan(container);
+              expect(serverSpan).toMatchObject({
+                name: 'POST /test-post-ignore-body',
+                attributes: expect.objectContaining({
+                  'url.full': {
+                    type: 'string',
+                    value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post-ignore-body$/),
                   },
-                },
+                  'http.request.method': { type: 'string', value: 'POST' },
+                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content_type': { type: 'string', value: 'application/octet-stream' },
+                }),
               });
               // Ensure the request body has been ignored
-              expect(e).have.property('request').that.does.not.have.property('data');
+              expect(serverSpan?.attributes['http.request.body.data']).toBeUndefined();
             },
           })
           .start();
@@ -399,64 +426,5 @@ describe('express tracing', () => {
         await runner.completed();
       });
     });
-  });
-
-  describe('filter status codes', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-filterStatusCode.mjs',
-      'instrument-filterStatusCode.mjs',
-      (createRunner, test) => {
-        // We opt-out of the default [401, 404] filtering in order to test how these spans are handled
-        test.each([
-          { status_code: 401, url: '/401', status: 'unauthenticated' },
-          { status_code: 402, url: '/402', status: 'invalid_argument' },
-          { status_code: 403, url: '/403', status: 'permission_denied' },
-          { status_code: 404, url: '/does-not-exist', status: 'not_found' },
-        ])(
-          'handles %s route correctly',
-          async ({ status_code, url, status }: { status_code: number; url: string; status: string }) => {
-            const runner = createRunner()
-              .expect({
-                transaction: {
-                  transaction: `GET ${url}`,
-                  contexts: {
-                    trace: {
-                      span_id: expect.stringMatching(/[a-f\d]{16}/),
-                      trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': status_code,
-                        'http.request.method': 'GET',
-                        'url.full': expect.stringMatching(url),
-                        'url.path': url,
-                      },
-                      op: 'http.server',
-                      status,
-                    },
-                  },
-                },
-              })
-              .start();
-            runner.makeRequest('get', url, { expectError: true });
-            await runner.completed();
-          },
-        );
-
-        test('filters defined status codes', async () => {
-          const runner = createRunner()
-            .expect({
-              transaction: {
-                transaction: 'GET /',
-              },
-            })
-            .start();
-          await runner.makeRequest('get', '/499', { expectError: true });
-          await runner.makeRequest('get', '/300', { expectError: true });
-          await runner.makeRequest('get', '/399', { expectError: true });
-          await runner.makeRequest('get', '/');
-          await runner.completed();
-        });
-      },
-    );
   });
 });
