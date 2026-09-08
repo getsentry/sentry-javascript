@@ -1,14 +1,27 @@
-import { createResolver } from '@nuxt/kit';
+import { addServerImports, createResolver } from '@nuxt/kit';
 import type { Nitro } from 'nitropack/types';
 import * as path from 'path';
 import type { InputPluginOption } from 'rollup';
 
 /**
+ * Adds a server import for the middleware instrumentation.
+ */
+export function addMiddlewareImports(): void {
+  addServerImports([
+    {
+      name: 'wrapMiddlewareHandlerWithSentry',
+      from: createResolver(import.meta.url).resolve('./runtime/hooks/wrapMiddlewareHandler'),
+    },
+  ]);
+}
+
+/**
  * Adds middleware instrumentation to the Nitro build.
  *
  * @param nitro Nitro instance
+ * @param isNitroV3 Whether the app builds with Nitro v3 (Nuxt 5)
  */
-export function addMiddlewareInstrumentation(nitro: Nitro): void {
+export function addMiddlewareInstrumentation(nitro: Nitro, isNitroV3: boolean): void {
   nitro.hooks.hook('rollup:before', (nitro, rollupConfig) => {
     if (!rollupConfig.plugins) {
       rollupConfig.plugins = [];
@@ -18,7 +31,7 @@ export function addMiddlewareInstrumentation(nitro: Nitro): void {
       rollupConfig.plugins = [rollupConfig.plugins];
     }
 
-    rollupConfig.plugins.push(middlewareInstrumentationPlugin(nitro));
+    rollupConfig.plugins.push(middlewareInstrumentationPlugin(nitro, isNitroV3));
   });
 }
 
@@ -26,13 +39,12 @@ export function addMiddlewareInstrumentation(nitro: Nitro): void {
  * Creates a rollup plugin for the middleware instrumentation by transforming the middleware code.
  *
  * @param nitro Nitro instance
+ * @param isNitroV3 Whether the app builds with Nitro v3 (Nuxt 5)
  * @returns The rollup plugin for the middleware instrumentation.
  */
-function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
+function middlewareInstrumentationPlugin(nitro: Nitro, isNitroV3: boolean): InputPluginOption {
   const middlewareFiles = new Set<string>();
-  // Imported by absolute path rather than through `#imports`: with `imports.autoImport: false`,
-  // Nuxt 5 generates an empty server `#imports` module, dropping `addServerImports` registrations.
-  const wrapperModule = createResolver(import.meta.url).resolve('./runtime/hooks/wrapMiddlewareHandler');
+  const wrapperModule = isNitroV3 ? '#imports/server' : '#imports';
 
   return {
     name: 'sentry-nuxt-middleware-instrumentation',
@@ -63,7 +75,7 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
  *
  * @param originalCode The original user code of the middleware.
  * @param fileName The name of the middleware file, used for the span name and logging.
- * @param wrapperModule Absolute path of the module exporting `wrapMiddlewareHandlerWithSentry`.
+ * @param wrapperModule Import specifier resolving to `wrapMiddlewareHandlerWithSentry`.
  *
  * @returns The wrapped user code of the middleware.
  */
@@ -72,7 +84,7 @@ function wrapMiddlewareCode(originalCode: string, fileName: string, wrapperModul
   const cleanFileName = fileName.replace(/\.(ts|js|mjs|mts|cts)$/, '');
 
   return `
-import { wrapMiddlewareHandlerWithSentry } from ${JSON.stringify(wrapperModule)};
+import { wrapMiddlewareHandlerWithSentry } from '${wrapperModule}';
 
 function defineInstrumentedEventHandler(handlerOrObject) {
   return defineEventHandler(wrapMiddlewareHandlerWithSentry(handlerOrObject, '${cleanFileName}'));

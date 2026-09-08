@@ -21,7 +21,7 @@ import {
   DEV_SERVER_CONFIG_PATH,
 } from './vite/addServerConfig';
 import { addDatabaseInstrumentation } from './vite/databaseConfig';
-import { addMiddlewareInstrumentation } from './vite/middlewareConfig';
+import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { addStorageInstrumentation } from './vite/storageConfig';
@@ -120,6 +120,8 @@ export default defineNuxtModule<ModuleOptions>({
         addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
       }
 
+      // Preps the middleware instrumentation module.
+      addMiddlewareImports();
       addStorageInstrumentation(nuxt, !isNitroV3);
       addDatabaseInstrumentation(nuxt.options.nitro, !isNitroV3, moduleOptions);
 
@@ -190,7 +192,7 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       if (serverConfigFile) {
-        addMiddlewareInstrumentation(nitro);
+        addMiddlewareInstrumentation(nitro, isNitroV3);
 
         consoleSandbox(() => {
           const serverDir = nitro.options.output.serverDir;
