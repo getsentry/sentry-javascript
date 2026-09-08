@@ -24,6 +24,11 @@ function tracedSpan(segmentSpan: SerializedStreamedSpan, name: string, op: strin
       'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
       'sentry.sdk.version': { type: 'string', value: expect.any(String) },
       'sentry.environment': { type: 'string', value: 'qa' },
+      // CI builds the apps with a release, local runs have none. It comes from the client
+      // options, so whatever the segment span got, every other span of the trace got too.
+      ...(segmentSpan.attributes['sentry.release']
+        ? { 'sentry.release': { type: 'string', value: expect.any(String) } }
+        : {}),
       'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
       'sentry.op': { type: 'string', value: op },
     },

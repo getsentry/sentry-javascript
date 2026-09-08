@@ -23,6 +23,11 @@ function commonAttributes(segmentSpan: SerializedStreamedSpan): Record<string, u
     'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
     'sentry.sdk.version': { type: 'string', value: expect.any(String) },
     'sentry.environment': { type: 'string', value: 'qa' },
+    // CI builds the apps with a release, local runs have none. It comes from the client
+    // options, so whatever the segment span got, every other span of the trace got too.
+    ...(segmentSpan.attributes['sentry.release']
+      ? { 'sentry.release': { type: 'string', value: expect.any(String) } }
+      : {}),
   };
 }
 
