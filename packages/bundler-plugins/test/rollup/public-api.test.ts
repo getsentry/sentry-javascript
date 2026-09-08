@@ -1,6 +1,7 @@
 import { _rollupPluginInternal, sentryRollupPlugin } from '../../src/rollup';
 import { createComponentNameAnnotateHooks } from '../../src/core';
 import type { Plugin, SourceMap } from 'rollup';
+import { runInNewContext } from 'node:vm';
 import { describe, it, expect, test, beforeEach, vi } from 'vitest';
 
 const { babelCoreImportMock, transformAsyncMock, viteAnnotationModuleImportMock, viteAnnotationTransformMock } =
@@ -151,6 +152,42 @@ describe('Hooks', () => {
         ""use strict";!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79a86c07-8ecc-4367-82b0-88cf822f2d41",e._sentryDebugIdIdentifier="sentry-dbid-79a86c07-8ecc-4367-82b0-88cf822f2d41");}catch(e){}}();
         console.log("Hello world");"
       `);
+    });
+
+    it.each([
+      ['when the directive has no semicolon', '"use strict"\n'],
+      ['when another directive precedes it', '"use client";\n"use strict";\n'],
+      ['after an escaped CRLF in an earlier directive', '"not strict\\\r\n";\n"use strict";\n'],
+      ['before an identifier prefixed with an operator keyword', '"use strict"\nin$foo: ;\n'],
+    ])('preserves strict mode %s', (_description, codePrefix) => {
+      const code = `${codePrefix}globalThis.strictModePreserved = (function () { return this; })() === undefined;`;
+      const result = renderChunk(code, { fileName: 'bundle.js' });
+      const context: { strictModePreserved?: boolean; _sentryDebugIds?: Record<string, string> } = {};
+
+      expect(result).not.toBeNull();
+      runInNewContext(result?.code ?? '', context);
+
+      expect(context.strictModePreserved).toBe(true);
+      expect(Object.keys(context._sentryDebugIds ?? {})).toHaveLength(1);
+    });
+
+    it.each([
+      ['a semicolonless directive', '"use strict"'],
+      ['trailing whitespace', '"use strict"   '],
+      ['a trailing block comment', '"use strict"/* trailing */'],
+      ['a trailing line comment', '"use strict" // trailing'],
+    ])('preserves a directive at EOF with %s', (_description, code) => {
+      const result = renderChunk(code, { fileName: 'bundle.js' });
+      const context: { strictModePreserved?: boolean; _sentryDebugIds?: Record<string, string> } = {};
+
+      expect(result).not.toBeNull();
+      runInNewContext(
+        `${result?.code ?? ''}\nglobalThis.strictModePreserved = (function () { return this; })() === undefined;`,
+        context,
+      );
+
+      expect(context.strictModePreserved).toBe(true);
+      expect(Object.keys(context._sentryDebugIds ?? {})).toHaveLength(1);
     });
 
     it.each([['bundle.js'], ['bundle.mjs'], ['bundle.cjs'], ['bundle.js?foo=bar'], ['bundle.js#hash']])(
