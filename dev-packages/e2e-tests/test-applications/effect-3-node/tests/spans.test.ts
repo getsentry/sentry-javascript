@@ -52,6 +52,8 @@ test('Sends Effect spans with correct parent-child structure', async ({ baseURL 
   expect(segment.name).toBe('http.server GET');
   expect(segment.attributes['sentry.origin']?.value).toBe('auto.http.effect');
   expect(segment.attributes['sentry.sdk.name']?.value).toBe('sentry.javascript.effect');
+  // `http.server` spans carry the route in their name, so they get no `code.function.name`.
+  expect(segment.attributes['code.function.name']).toBeUndefined();
   expect(children).toHaveLength(2);
   const parent = children.find(span => span.name === 'custom-effect-span')!;
   const nested = children.find(span => span.name === 'nested-span')!;
@@ -60,6 +62,7 @@ test('Sends Effect spans with correct parent-child structure', async ({ baseURL 
   for (const child of children) {
     expect(getSpanOp(child)).toBe('function');
     expect(child.attributes['sentry.origin']?.value).toBe('auto.function.effect');
+    expect(child.attributes['code.function.name']?.value).toBe(child.name);
     expect(child.trace_id).toBe(segment.trace_id);
   }
 });

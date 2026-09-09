@@ -75,4 +75,6 @@ test('captures Effect spans with correct parent-child structure', async ({ page 
   expect(parentSpan).toBeDefined();
   expect(nestedSpan).toBeDefined();
   expect(nestedSpan?.parent_span_id).toBe(parentSpan?.span_id);
+  expect(parentSpan?.attributes['code.function.name']?.value).toBe('custom-effect-span');
+  expect(nestedSpan?.attributes['code.function.name']?.value).toBe('nested-span');
 });
