@@ -56,6 +56,16 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   expect(executeTool?.attributes?.['gen_ai.operation.name']?.value).toBe('execute_tool');
   expect(executeTool?.attributes?.['gen_ai.tool.name']?.value).toBe('get_weather');
 
+  // Inputs and outputs are recorded with the SDK's default data collection (no
+  // `dataCollection` override), for both the model call and the tool call.
+  expect(invokeAgent?.attributes?.['gen_ai.input.messages']?.value).toContain('What is the weather in Paris?');
+  expect(typeof invokeAgent?.attributes?.['gen_ai.output.messages']?.value).toBe('string');
+  expect(String(invokeAgent?.attributes?.['gen_ai.output.messages']?.value ?? '')).not.toBe('');
+
+  expect(executeTool?.attributes?.['gen_ai.tool.call.arguments']?.value).toContain('Paris');
+  // The tool returns `{ city, condition: 'Sunny', temperatureC: 22 }`.
+  expect(executeTool?.attributes?.['gen_ai.tool.call.result']?.value).toContain('Sunny');
+
   // The agent turn is captured as an http.server span on one of eve's two agent
   // request paths (the other http.server spans — health and the event stream —
   // are not in this trace).
