@@ -40,7 +40,6 @@ describe('instrumentEnv', () => {
     await db.prepare('SELECT 1').first();
 
     expect(startSpanSpy).toHaveBeenCalledWith(
-      // The numeric literal is sanitized out of the query text.
       expect.objectContaining({ name: 'SELECT ?', attributes: expect.objectContaining({ 'sentry.op': 'db.query' }) }),
       expect.any(Function),
     );

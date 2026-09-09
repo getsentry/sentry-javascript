@@ -175,10 +175,7 @@ function subscribeQuery(): void {
       const dbSystem = mapSystem(client?.driverName);
 
       const dialect = client?.driverName === 'mysql' || client?.driverName === 'mysql2' ? 'mysql' : undefined;
-      // Per OTel, `db.query.text` must not carry inline literal values (e.g. from `knex.raw`), so the
-      // sanitized form is attached rather than the raw statement.
-      const dbStatement =
-        query?.sql != null ? sanitizeSqlQuery(truncate(query.sql, MAX_QUERY_LENGTH), dialect) : undefined;
+      const dbStatement = query?.sql ? sanitizeSqlQuery(truncate(query.sql, MAX_QUERY_LENGTH), dialect) : undefined;
       const querySummary = dbStatement ? getSqlQuerySummary(dbStatement) : undefined;
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,

@@ -88,8 +88,6 @@ function instrumentMysql(): void {
       // handler with the caller's context lost. `deferSpanEnd` replays this scope onto the emitter.
       data._sentryCallerScope = getCurrentScope();
 
-      // Per OTel, `db.query.text` must not carry inline literal values, so the sanitized form is
-      // attached rather than the raw statement.
       const queryText = sql ? sanitizeSqlQuery(sql, 'mysql') : undefined;
       const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
 

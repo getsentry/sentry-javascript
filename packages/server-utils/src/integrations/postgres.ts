@@ -180,8 +180,6 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
-  // Per OTel, `db.query.text` must not carry inline literal values. `$n` placeholders survive the
-  // sanitizer, so parameterized statements pass through unchanged.
   const queryText = queryConfig?.text ? sanitizeSqlQuery(queryConfig.text) : undefined;
   const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
   const name =
