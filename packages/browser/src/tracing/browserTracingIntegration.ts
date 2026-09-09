@@ -19,8 +19,6 @@ import {
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanIsSampled,
   spanToJSON,
   timestampInSeconds,
@@ -43,7 +41,14 @@ import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integratio
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+  SENTRY_ORIGIN,
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+} from '@sentry/conventions/attributes';
 import { NAVIGATION, NAVIGATION_REDIRECT, PAGELOAD } from '@sentry/conventions/op';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
@@ -427,7 +432,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
               `[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).attributes[SENTRY_OP]}`,
             );
           // If there's an open active span, we need to finish it before creating an new one.
-          activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
+          activeSpan.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
         }
       }
@@ -553,9 +558,25 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       client.on('endPageloadSpan', () => {
         if (enableReportPageLoaded && _pageloadSpan) {
-          _pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'reportPageLoaded');
+          _pageloadSpan.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'reportPageLoaded');
           _pageloadSpan.end();
         }
+      });
+
+      // `pagehide` is the last moment a document leaving the page can still send. We cannot rely on
+      // `registerBackgroundTabDetection`, which ends the span on `visibilitychange`: the client's own
+      // `visibilitychange` flush is registered first and its deferring microtask runs after that
+      // listener but before background tab detection's, so the buffer is still empty when it drains.
+      // The segment span is buffered right after with nothing left to flush it, and the children have
+      // been streamed all along, which leaves a rootless trace. Ending and flushing together here
+      // keeps this self-contained instead of depending on that ordering.
+      WINDOW.addEventListener?.('pagehide', () => {
+        const activeSpan = getActiveIdleSpan(client);
+        if (activeSpan && !spanToJSON(activeSpan).end_timestamp) {
+          activeSpan.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'documentHidden');
+          activeSpan.end();
+        }
+        void client.flush();
       });
     },
 
@@ -594,7 +615,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
             attributes: {
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
+              [SENTRY_ORIGIN]: 'auto.pageload.browser',
             },
           });
         }
@@ -631,7 +652,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
                   : parsed?.pathname || WINDOW.location.pathname,
                 attributes: {
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+                  [SENTRY_ORIGIN]: 'auto.navigation.browser',
                 },
               },
               { url: to, isRedirect: navigationIsRedirect },
@@ -748,7 +769,6 @@ export function getServerTiming(name: string): string | undefined {
   // The cast is required for the declaration build (`build:types`), which resolves
   // `getEntriesByType('navigation')` to `PerformanceEntry[]` (no `serverTiming`). It only reads as
   // "unnecessary" to the type-aware linter, which runs with web-vitals' global augmentation applied.
-  // oxlint-disable-next-line typescript/no-unnecessary-type-assertion
   const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
   const entry = navigation?.serverTiming?.find(entry => entry.name === name);
   return entry?.description;

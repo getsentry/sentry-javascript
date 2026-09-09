@@ -770,6 +770,67 @@ describe('browserTracingIntegration', () => {
     expect(spanToJSON(pageloadSpan!).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
   });
 
+  describe('pagehide', () => {
+    it('ends the active idle span so its root is not stranded on a frozen page', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span = getActiveSpan()!;
+      expect(span).toBeDefined();
+      expect(spanToJSON(span).end_timestamp).toBeUndefined();
+
+      WINDOW.dispatchEvent(new Event('pagehide'));
+
+      const json = spanToJSON(span);
+      expect(json.end_timestamp).toBeDefined();
+      expect(json.attributes?.['sentry.idle_span_finish_reason']).toBe('documentHidden');
+    });
+
+    it('flushes after ending the span, so the segment span is in the buffer when it drains', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span = getActiveSpan()!;
+
+      let endTimestampWhenFlushed: number | undefined;
+      const flushSpy = vi.spyOn(client, 'flush').mockImplementation(() => {
+        endTimestampWhenFlushed = spanToJSON(span).end_timestamp;
+        return Promise.resolve(true);
+      });
+
+      WINDOW.dispatchEvent(new Event('pagehide'));
+
+      expect(flushSpy).toHaveBeenCalled();
+      expect(endTimestampWhenFlushed).toBeDefined();
+    });
+
+    it('ends no span when there is no active idle span', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(() => WINDOW.dispatchEvent(new Event('pagehide'))).not.toThrow();
+      expect(getActiveSpan()).toBeUndefined();
+    });
+  });
+
   describe('startBrowserTracingNavigationSpan', () => {
     it('works without integration setup', () => {
       const client = new BrowserClient(
