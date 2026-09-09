@@ -724,7 +724,7 @@ describe('sanitizeSqlQuery', () => {
     it.each([
       ["SELECT * FROM [t WHERE email = 'jane@example.com' AND x = [a]]", 'mssql' as const],
       ['SELECT * FROM "t WHERE email = \'jane@example.com\' AND x = a""', 'standard' as const],
-      ['SELECT * FROM `t WHERE email = \'jane@example.com\' AND x = a``', 'mysql' as const],
+      ["SELECT * FROM `t WHERE email = 'jane@example.com' AND x = a``", 'mysql' as const],
     ])('drops an identifier left open by an escaped closer in %p (%s)', (input, dialect) => {
       expect(sanitizeSqlQuery(input, dialect)).toBe('SELECT * FROM ?');
     });
