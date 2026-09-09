@@ -51,6 +51,11 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     return warnSpy.mock.calls.map(([message]) => String(message)).filter(m => m.includes('was bundled into'));
   }
 
+  /** The isolated per-module failure warnings only (a transform failure that is not a stripped transformer). */
+  function moduleFailureWarnings(): string[] {
+    return warnSpy.mock.calls.map(([message]) => String(message)).filter(m => m.includes('Could not instrument'));
+  }
+
   /** The callback the registration handed to tracing-hooks. */
   function diagnosticsCallback(): DiagnosticsCallback {
     const [callback] = setDiagnosticsHookMock.mock.lastCall ?? [];
@@ -84,6 +89,47 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     expect(bundlingWarnings()).toHaveLength(1);
     expect(bundlingWarnings()[0]).toContain('mysql2');
     expect(bundlingWarnings()[0]).toContain('docs.sentry.io');
+    // The underlying error is surfaced so the warning is self-diagnosing.
+    expect(bundlingWarnings()[0]).toContain('parse is not a function');
+  });
+
+  it('reports a non-stripped transform TypeError as an isolated failure, not bundling', () => {
+    registerDiagnosticsChannelInjection();
+
+    // `transform is not a function` (a config operator not registered at runtime) is not the
+    // stripped-parser fingerprint, so even as the first and only failing module it must not be
+    // blamed on bundling.
+    diagnosticsCallback()({ moduleName: 'lib-op-missing', error: new TypeError('transform is not a function') });
+
+    expect(bundlingWarnings()).toEqual([]);
+    expect(moduleFailureWarnings()).toHaveLength(1);
+    expect(moduleFailureWarnings()[0]).toContain('lib-op-missing');
+    expect(moduleFailureWarnings()[0]).toContain('transform is not a function');
+  });
+
+  it('treats a stripped-parser error as isolated once another module has been instrumented', () => {
+    registerDiagnosticsChannelInjection();
+    const onDiagnostics = diagnosticsCallback();
+
+    // A successful transform proves the transformer works, so a later `parse is not a function`
+    // cannot be a tree-shaken transformer — it is isolated to that module.
+    onDiagnostics({ moduleName: 'lib-ok' });
+    onDiagnostics({ moduleName: 'lib-guarded', error: new TypeError('parse is not a function') });
+
+    expect(bundlingWarnings()).toEqual([]);
+    expect(moduleFailureWarnings()).toHaveLength(1);
+    expect(moduleFailureWarnings()[0]).toContain('lib-guarded');
+  });
+
+  it('warns once per module for isolated failures', () => {
+    registerDiagnosticsChannelInjection();
+    const onDiagnostics = diagnosticsCallback();
+
+    onDiagnostics({ moduleName: 'lib-dup', error: new TypeError('transform is not a function') });
+    onDiagnostics({ moduleName: 'lib-dup', error: new TypeError('transform is not a function') });
+    onDiagnostics({ moduleName: 'lib-other', error: new TypeError('transform is not a function') });
+
+    expect(moduleFailureWarnings()).toHaveLength(2);
   });
 
   it('stays quiet for transform failures that are not a stripped transformer', () => {
