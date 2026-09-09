@@ -1,19 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test.describe('Cache Instrumentation', () => {
   const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
   const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
 
   async function collectCacheSpans() {
-    const spans = await collectStreamedSpans('nuxt-4', spans =>
-      spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/cache-test'),
+    const spans = await collectStreamedSpansUntilSegment(
+      'nuxt-4',
+      span => span.attributes['url.path']?.value === '/api/cache-test',
     );
-    const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/cache-test');
 
-    return spans.filter(
-      span => span.trace_id === rootSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nuxt',
-    );
+    return spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.cache.nuxt');
   }
 
   test('instruments cachedFunction and cachedEventHandler calls and creates spans with correct attributes', async ({

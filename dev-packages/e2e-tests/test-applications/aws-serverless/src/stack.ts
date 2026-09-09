@@ -52,7 +52,7 @@ export class LocalLambdaStack extends Stack {
       const functionName = `Npm${lambdaDir}`;
 
       const lambdaPath = path.resolve(LAMBDA_FUNCTIONS_DIR, lambdaDir);
-      const packageLockPath = path.join(lambdaPath, 'package-lock.json');
+      const lockfilePath = path.join(lambdaPath, 'pnpm-lock.yaml');
       const nodeModulesPath = path.join(lambdaPath, 'node_modules');
 
       // `dir` is the package directory under `packages/`; `name` is the published npm name.
@@ -81,8 +81,8 @@ export class LocalLambdaStack extends Stack {
 
       console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
 
-      if (fs.existsSync(packageLockPath)) {
-        fs.rmSync(packageLockPath);
+      if (fs.existsSync(lockfilePath)) {
+        fs.rmSync(lockfilePath);
       }
 
       if (fs.existsSync(nodeModulesPath)) {
@@ -91,10 +91,20 @@ export class LocalLambdaStack extends Stack {
 
       const packageJson = {
         dependencies,
+        pnpm: {
+          overrides: dependencies,
+        },
       };
 
       fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
-      execFileSync('npm', ['install', '--install-links', '--prefix', lambdaPath], { stdio: 'inherit' });
+      execFileSync(
+        'pnpm',
+        ['install', '--offline', '--prod', '--ignore-scripts', '--no-frozen-lockfile', '--config.node-linker=hoisted'],
+        {
+          cwd: lambdaPath,
+          stdio: 'inherit',
+        },
+      );
 
       if (!process.env.NODE_VERSION) {
         throw new Error('[LocalLambdaStack] NODE_VERSION is not set');
@@ -113,7 +123,6 @@ export class LocalLambdaStack extends Stack {
               SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
-              SENTRY_TRACE_LIFECYCLE: 'static',
               NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
             },
           },

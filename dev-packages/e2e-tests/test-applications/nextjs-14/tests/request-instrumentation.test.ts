@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('Should send a fetch span', async ({ page }) => {
   // The fetch spans are children of the segment span, which ends last.
-  const spansPromise = collectStreamedSpans('nextjs-14', spans =>
-    spans.some(span => span.name === 'GET /request-instrumentation' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-14', 'GET /request-instrumentation');
 
   await page.goto(`/request-instrumentation`);
 

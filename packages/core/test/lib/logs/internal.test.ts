@@ -389,7 +389,7 @@ describe('_INTERNAL_captureLog', () => {
     expect(() => _INTERNAL_captureLog({ level: 'info', message: 'test message' }, scope)).not.toThrow();
 
     expect(beforeSendLog).toHaveBeenCalled();
-    expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'log_item', 1);
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'log_item', 1);
     expect(debugErrorSpy).toHaveBeenCalledWith(
       'The `beforeSendLog` callback threw an error, dropping the log:',
       exception,

@@ -3,7 +3,9 @@ import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import type { OpenAiProviderMetadata, ProviderMetadata } from './vercel-ai-attributes';
 
@@ -68,8 +70,29 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
     setAttributeIfDefined(attributes, 'gen_ai.usage.input_tokens.cache_miss', metadata.deepseek.promptCacheMissTokens);
   }
 
+  // Google (v5 uses 'google', v6 Vertex AI uses 'vertex'). Gemini reports its reasoning ("thoughts")
+  // tokens separately from the candidate output count, so the SDK's `outputTokens` covers only the
+  // visible answer. Recompute output from `candidatesTokenCount + thoughtsTokenCount` rather than
+  // adding onto the existing value, which stays correct on `ai` v6+ where `outputTokens` already
+  // folds reasoning in. `candidatesTokenCount` is omitted when the response is truncated during
+  // thinking, which means no candidate tokens, so it counts as zero. Reasoning is a subset of
+  // output per the conventions, so it is only written alongside the output it belongs to.
+  const googleUsage = (metadata.google ?? metadata.vertex)?.usageMetadata;
+  if (googleUsage && typeof googleUsage.thoughtsTokenCount === 'number' && googleUsage.thoughtsTokenCount > 0) {
+    attributes[GEN_AI_USAGE_OUTPUT_TOKENS] = (googleUsage.candidatesTokenCount ?? 0) + googleUsage.thoughtsTokenCount;
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_TOTAL_TOKENS, googleUsage.totalTokenCount);
+    setAttributeIfDefined(attributes, GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, googleUsage.thoughtsTokenCount);
+  }
+
   return attributes;
 }
+
+/**
+ * Usage attributes derived from `providerMetadata`, which describes only the last step of a call.
+ * They must not be written onto a span that reports usage aggregated across steps
+ * (`gen_ai.invoke_agent`), where they would replace the aggregate with one step's figures.
+ */
+export const LAST_STEP_ONLY_USAGE_KEYS = new Set<string>([GEN_AI_USAGE_OUTPUT_TOKENS, GEN_AI_USAGE_TOTAL_TOKENS]);
 
 /**
  * Sets an attribute only if the value is not null or undefined.

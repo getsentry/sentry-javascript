@@ -97,7 +97,7 @@ export function registerDiagnosticsChannelInjection(): void {
   // we build against, hence the cast.
   const mod = Module as NodeModule;
 
-  setDiagnosticsHook(({ moduleName, error }): void => {
+  setDiagnosticsHook(({ url, moduleName, error }): void => {
     if (error) {
       // A stripped transformer surfaces as a `TypeError` (`parse`/`generate` are `undefined`) and
       // costs the user this module's instrumentation, so it is worth an always-on warning. Every
@@ -110,6 +110,9 @@ export function registerDiagnosticsChannelInjection(): void {
       GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = GLOBAL_OBJ.__SENTRY_ORCHESTRION__ || {};
       GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime = GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime || [];
       GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtime.push(moduleName);
+      // Record the module's resolved file so integrations can anchor dependency resolution on the
+      // app's actual copy, even under ESM (where the CJS `require.cache` never sees the module).
+      (GLOBAL_OBJ.__SENTRY_ORCHESTRION__.runtimeFiles ??= {})[moduleName] = url;
       // Tell channel integrations their module just loaded, so they subscribe
       // now. They hold off at `init()` to avoid claiming channel slots for
       // modules that never load, because Node caps channels in use at 1024.

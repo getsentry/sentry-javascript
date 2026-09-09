@@ -55,7 +55,7 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "dependencies": {
-    "fflate": "0.8.2"
+    "fflate": "0.8.3"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"

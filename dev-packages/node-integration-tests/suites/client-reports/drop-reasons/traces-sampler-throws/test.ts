@@ -14,7 +14,7 @@ test('records a client report and no error event when tracesSampler throws', asy
           {
             category: 'span',
             quantity: 1,
-            reason: 'sample_rate',
+            reason: 'callback_error',
           },
         ],
       },

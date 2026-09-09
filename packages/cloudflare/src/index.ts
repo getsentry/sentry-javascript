@@ -106,11 +106,13 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { instrumentPostgresJsSql, trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { instrumentPostgresJsSql } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './durableobject';
+export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';

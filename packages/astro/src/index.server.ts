@@ -94,6 +94,8 @@ export {
   openAIIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
   parameterize,
   pinoIntegration,
   postgresIntegration,
