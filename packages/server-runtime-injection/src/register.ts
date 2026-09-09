@@ -55,27 +55,36 @@ const warnedModuleFailures = new Set<string>();
  * self-diagnosing rather than asserting a cause the reader can't check (`debug: true` still logs
  * the full error and stack).
  *
- * - The transform pipeline itself is gone → `TypeError: parse is not a function` /
- *   `generate is not a function`. That is the fingerprint of a bundler inlining and tree-shaking
- *   `@sentry/server-runtime-injection`, which strips its vendored meriyah `parse` / astring
- *   `generate`: it fails EVERY module the same way and is app-wide, with an actionable build fix.
- *   Those are module-level imports, so the same bundler renames them while merging modules (esbuild
- *   emits `parse2`/`generate3`), hence the numeric-suffix tolerance. (As a second guard, a
- *   transformer that has already instrumented something is provably not stripped.)
+ * - The transform pipeline itself is gone → a bare `TypeError: <name> is not a function`. That is
+ *   the fingerprint of a bundler inlining and tree-shaking `@sentry/server-runtime-injection`,
+ *   which drops its vendored meriyah `parse` / astring `generate` (both module-level imports): it
+ *   fails EVERY module the same way and is app-wide, with an actionable build fix. The identifier is
+ *   NOT matched, because the same bundle renames it beyond recognition — esbuild deconflicts to
+ *   `parse2`, rollup/vite to `parse$1`, and production minifiers to a short opaque `n` — so we match
+ *   the *shape* (a bare `<ident> is not a function`) plus the fact that nothing was ever
+ *   instrumented (a transformer that has already instrumented something is provably not stripped).
  * - Any other transform `TypeError` (e.g. `transform is not a function`, from a config whose
- *   operator is not registered at runtime — `transform` is a local, not a stripped import) is not a
- *   bundling problem — even when it is the first module to load — so it gets a scoped message that
- *   points at reporting it, not changing the build.
+ *   operator is not registered at runtime — `transform` is a local dispatch, not a stripped import,
+ *   so an unbundled install throws with its real, unmangled name) is not a bundling problem — even
+ *   when it is the first module to load — so it gets a scoped message that points at reporting it,
+ *   not changing the build. A member-expression failure (`x.y is not a function`) is likewise an
+ *   ordinary per-module bug, not a stripped top-level binding, so the bare-identifier anchor
+ *   excludes it.
  */
 function warnTransformFailed(moduleName: string, error: unknown): void {
   const reason = error instanceof Error ? error.message : String(error);
 
-  // Only the parser/generator primitives going missing means the transformer was stripped; a
-  // non-empty `runtime` list (something was already instrumented) proves it was not.
-  const pipelineStripped = /\b(?:parse|generate)\d* is not a function\b/.test(reason);
+  // A stripped pipeline throws `<ident> is not a function` for a *bare* identifier (the renamed
+  // `parse`/`generate` binding); the anchors exclude member-expression failures like `x.y is ...`.
+  const barePrimitiveMissing = /^[\w$]+ is not a function$/.test(reason);
+  // The operator dispatch is a local, only missing when a config operator is unregistered, and an
+  // unbundled install reads it under its real name — never a stripped-transformer symptom.
+  const isolatedOperatorFailure = reason === 'transform is not a function';
+  // A non-empty `runtime` list (something was already instrumented) proves the pipeline works.
   const nothingInstrumentedYet = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime?.length ?? 0) === 0;
+  const pipelineStripped = barePrimitiveMissing && !isolatedOperatorFailure && nothingInstrumentedYet;
 
-  if (!(pipelineStripped && nothingInstrumentedYet)) {
+  if (!pipelineStripped) {
     if (warnedModuleFailures.has(moduleName)) {
       return;
     }

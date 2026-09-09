@@ -36,12 +36,14 @@ vi.mock('@sentry/core', async importOriginal => {
 });
 
 import { GLOBAL_OBJ } from '@sentry/core';
-import { registerDiagnosticsChannelInjection } from '../src/register';
+import type * as RegisterModule from '../src/register';
 
 type DiagnosticsCallback = (event: { moduleName: string; error?: unknown }) => void;
 
 describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
+  // Re-imported per test (see `beforeEach`) so the one-warning-per-process module state is fresh.
+  let registerDiagnosticsChannelInjection: typeof RegisterModule.registerDiagnosticsChannelInjection;
 
   /**
    * The bundling warnings only. Registration itself can warn for unrelated reasons in this
@@ -69,8 +71,11 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
     setDiagnosticsHookMock.mockClear();
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    // The one-warning-per-process flag is module state, so each test needs a fresh module.
+    // The one-warning-per-process flags are module state, so each test needs a fresh module — hence
+    // the dynamic re-import below rather than a static top-level one (`resetModules` cannot refresh
+    // an already-bound static import).
     vi.resetModules();
+    ({ registerDiagnosticsChannelInjection } = await import('../src/register'));
   });
 
   afterEach(() => {
@@ -84,7 +89,7 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
 
     // A tree-shaken chain: the vendored `parse`/`generate` are `undefined`, so the transform throws
     // a TypeError. The bundler that stripped them also renames these module-level imports while
-    // merging modules — esbuild emits `parse3` — so the fingerprint has to tolerate the suffix.
+    // merging modules — esbuild emits `parse3` — so the fingerprint must not hinge on the name.
     onDiagnostics({ moduleName: 'mysql2', error: new TypeError('parse3 is not a function') });
     onDiagnostics({ moduleName: 'pg', error: new TypeError('parse3 is not a function') });
 
@@ -93,6 +98,33 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     expect(bundlingWarnings()[0]).toContain('docs.sentry.io');
     // The underlying error is surfaced so the warning is self-diagnosing.
     expect(bundlingWarnings()[0]).toContain('parse3 is not a function');
+  });
+
+  it.each([
+    // Rollup/Vite deconflict merged bindings with a `$N` suffix, not a bare number.
+    ['rollup/vite `$N` suffix', 'generate$1 is not a function'],
+    // Production minifiers rename the stripped import to a short opaque identifier.
+    ['minified short name', 'e is not a function'],
+  ])('detects a tree-shaken transformer whose primitive was renamed (%s)', (_label, reason) => {
+    registerDiagnosticsChannelInjection();
+
+    diagnosticsCallback()({ moduleName: 'mysql2', error: new TypeError(reason) });
+
+    expect(bundlingWarnings()).toHaveLength(1);
+    expect(bundlingWarnings()[0]).toContain('mysql2');
+    expect(bundlingWarnings()[0]).toContain(reason);
+  });
+
+  it('treats a member-expression TypeError as an isolated failure, not bundling', () => {
+    registerDiagnosticsChannelInjection();
+
+    // `x.y is not a function` is an ordinary per-module bug, not a stripped bare top-level binding,
+    // so even as the first failing module it must not be blamed on bundling.
+    diagnosticsCallback()({ moduleName: 'lib-member', error: new TypeError('node.foo is not a function') });
+
+    expect(bundlingWarnings()).toEqual([]);
+    expect(moduleFailureWarnings()).toHaveLength(1);
+    expect(moduleFailureWarnings()[0]).toContain('lib-member');
   });
 
   it('reports a non-stripped transform TypeError as an isolated failure, not bundling', () => {
