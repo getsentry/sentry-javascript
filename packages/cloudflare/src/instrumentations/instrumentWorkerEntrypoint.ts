@@ -2,6 +2,7 @@ import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
 import { RPC } from '@sentry/conventions/op';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../client';
+import { markAsInstrumented } from '../instrument';
 import { getFinalOptions } from '../options';
 import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from '../types';
 import { instrumentContext } from '../utils/instrumentContext';
@@ -152,7 +153,7 @@ export function instrumentWorkerEntrypoint<
   // each time, breaking scope isolation for concurrent requests
   setAsyncLocalStorageAsyncContextStrategy();
 
-  return new Proxy(WorkerEntrypointClass, {
+  const InstrumentedClass = new Proxy(WorkerEntrypointClass, {
     construct(target, [ctx, env]) {
       const context = instrumentContext(ctx);
       const options = getFinalOptions(optionsCallback(env), env);
@@ -228,4 +229,7 @@ export function instrumentWorkerEntrypoint<
       return proxy;
     },
   });
+  // Recognizable for `_INTERNAL_wrapUnlessInstrumented`, so auto-instrumentation never nests wrappers.
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }

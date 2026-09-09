@@ -13,7 +13,7 @@ import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
 import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
-import { startSpan } from '../tracing/trace';
+import { startSpanManual } from '../tracing/trace';
 import type { IntegrationFn } from '../types/integration';
 import type { WebFetchHeaders } from '../types/webfetchapi';
 import { debug } from '../utils/debug-logger';
@@ -291,7 +291,9 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
             // transactions.
             `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`;
 
-      return startSpan(
+      // The span is ended by hand once the wrapped promise settles, so `startSpanManual` is used to keep
+      // `startSpan`'s automatic end from ending it a second time.
+      return startSpanManual(
         {
           name,
           attributes: {
@@ -474,7 +476,8 @@ function instrumentPostgRESTFilterBuilder(
           attributes['db.body'] = bodyPayload;
         }
 
-        return startSpan(
+        // Same as the auth wrapper above: the span is ended by hand, so avoid the automatic second end.
+        return startSpanManual(
           {
             name,
             attributes,

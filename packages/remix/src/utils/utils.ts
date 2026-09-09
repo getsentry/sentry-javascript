@@ -70,19 +70,23 @@ export function convertRemixRouteIdToPath(routeId: string): string {
       continue;
     }
 
+    // A trailing underscore opts a segment out of layout nesting without appearing in the URL,
+    // so it has to be dropped before the segment is turned into a path segment.
+    const pathSegment = segment.endsWith('_') ? segment.slice(0, -1) : segment;
+
     // Handle splat routes (catch-all)
     // Remix accesses splat params via params["*"] at runtime
-    if (segment === '$') {
+    if (pathSegment === '$') {
       pathSegments.push(':*');
       continue;
     }
 
     // Handle dynamic segments (prefixed with $)
-    if (segment.startsWith('$')) {
-      const paramName = segment.substring(1);
+    if (pathSegment.startsWith('$')) {
+      const paramName = pathSegment.substring(1);
       pathSegments.push(`:${paramName}`);
     } else {
-      pathSegments.push(segment);
+      pathSegments.push(pathSegment);
     }
   }
 

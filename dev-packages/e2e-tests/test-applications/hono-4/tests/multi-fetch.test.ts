@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import {
+  waitForError,
+  waitForStreamedSpan,
+  getSpanOp,
+  collectStreamedSpansUntilSegment,
+} from '@sentry-internal/test-utils';
 import { APP_NAME } from './constants';
 
 const STOREFRONT = '/test-multi-fetch/storefront';
@@ -7,12 +12,14 @@ const INVENTORY = '/test-multi-fetch/inventory';
 
 test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
   test.describe('single internal fetch', () => {
-    test('returns enriched product data and creates transaction with parameterized route', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${STOREFRONT}/product/:productId`
-        );
-      });
+    test('returns enriched product data and creates span with parameterized route', async ({ baseURL }) => {
+      const segmentPromise = waitForStreamedSpan(
+        APP_NAME,
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/product/:productId`,
+      );
 
       const response = await fetch(`${baseURL}${STOREFRONT}/product/self-watering-plant`);
       expect(response.status).toBe(200);
@@ -28,48 +35,55 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       );
       expect(body.source).toBe('storefront');
 
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`GET ${STOREFRONT}/product/:productId`);
-      expect(transaction.contexts?.trace?.op).toBe('http.server');
+      const segment = await segmentPromise;
+      expect(segment.name).toBe(`GET ${STOREFRONT}/product/:productId`);
+      expect(getSpanOp(segment)).toBe('http.server');
     });
 
     test('creates storefrontAuth middleware span', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${STOREFRONT}/product/:productId`
-        );
-      });
+      const segmentPromise = collectStreamedSpansUntilSegment(
+        APP_NAME,
+        segment => getSpanOp(segment) === 'http.server' && segment.name === `GET ${STOREFRONT}/product/:productId`,
+      );
 
       const response = await fetch(`${baseURL}${STOREFRONT}/product/solar-powered-cyberdeck`);
       expect(response.status).toBe(200);
 
-      const transaction = await transactionPromise;
-      const spans = transaction.spans || [];
-
-      const middlewareSpan = spans.find(
-        (span: { description?: string; op?: string }) =>
-          span.op === 'middleware' && span.description === 'storefrontAuth',
+      const segmentSpans = await segmentPromise;
+      const segment = segmentSpans.find(
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/product/:productId`,
+      )!;
+      const spans = segmentSpans.filter(
+        span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
       );
+
+      const middlewareSpan = spans.find(span => getSpanOp(span) === 'middleware' && span.name === 'storefrontAuth');
 
       expect(middlewareSpan).toEqual(
         expect.objectContaining({
-          description: 'storefrontAuth',
-          op: 'middleware',
-          origin: 'auto.middleware.hono',
+          name: 'storefrontAuth',
+          attributes: expect.objectContaining({
+            'sentry.op': { value: 'middleware', type: 'string' },
+            'sentry.origin': { value: 'auto.middleware.hono', type: 'string' },
+          }),
         }),
       );
-      expect(middlewareSpan?.status).not.toBe('internal_error');
+      expect(middlewareSpan?.status).not.toBe('error');
     });
   });
 
   test.describe('parallel internal fetches', () => {
     test('aggregates data from two concurrent .request() calls', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' &&
-          event.transaction === `GET ${STOREFRONT}/compare/:productId1/:productId2`
-        );
-      });
+      const segmentPromise = waitForStreamedSpan(
+        APP_NAME,
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/compare/:productId1/:productId2`,
+      );
 
       const response = await fetch(`${baseURL}${STOREFRONT}/compare/self-watering-plant/solar-powered-cyberdeck`);
       expect(response.status).toBe(200);
@@ -80,19 +94,20 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       expect(body.items[1].productId).toBe('solar-powered-cyberdeck');
       expect(body.priceDifference).toBe(2500);
 
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`GET ${STOREFRONT}/compare/:productId1/:productId2`);
+      const segment = await segmentPromise;
+      expect(segment.name).toBe(`GET ${STOREFRONT}/compare/:productId1/:productId2`);
     });
   });
 
   test.describe('sequential chained fetches', () => {
     test('composes data from item lookup followed by stock check', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' &&
-          event.transaction === `GET ${STOREFRONT}/product/:productId/availability`
-        );
-      });
+      const segmentPromise = waitForStreamedSpan(
+        APP_NAME,
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/product/:productId/availability`,
+      );
 
       const response = await fetch(`${baseURL}${STOREFRONT}/product/self-watering-plant/availability`);
       expect(response.status).toBe(200);
@@ -100,18 +115,19 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       const body = await response.json();
       expect(body).toEqual({ product: 'Self-Watering Plant', available: true, quantity: 5 });
 
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`GET ${STOREFRONT}/product/:productId/availability`);
-      expect(transaction.contexts?.trace?.op).toBe('http.server');
+      const segment = await segmentPromise;
+      expect(segment.name).toBe(`GET ${STOREFRONT}/product/:productId/availability`);
+      expect(getSpanOp(segment)).toBe('http.server');
     });
 
     test('reports out-of-stock item as unavailable', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' &&
-          event.transaction === `GET ${STOREFRONT}/product/:productId/availability`
-        );
-      });
+      const segmentPromise = waitForStreamedSpan(
+        APP_NAME,
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/product/:productId/availability`,
+      );
 
       const response = await fetch(`${baseURL}${STOREFRONT}/product/solar-powered-cyberdeck/availability`);
       expect(response.status).toBe(200);
@@ -119,7 +135,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       const body = await response.json();
       expect(body).toEqual({ product: 'Solar-Powered Cyberdeck', available: false, quantity: 0 });
 
-      await transactionPromise;
+      await segmentPromise;
     });
   });
 
@@ -129,12 +145,13 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
         return event.exception?.values?.[0]?.value === 'Failed to fetch product: nonexistent';
       });
 
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' &&
-          event.transaction === `GET ${STOREFRONT}/product-or-throw/:productId`
-        );
-      });
+      const segmentPromise = waitForStreamedSpan(
+        APP_NAME,
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/product-or-throw/:productId`,
+      );
 
       const response = await fetch(`${baseURL}${STOREFRONT}/product-or-throw/nonexistent`);
       expect(response.status).toBe(500);
@@ -144,9 +161,9 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(expect.objectContaining({ handled: false }));
       expect(errorEvent.transaction).toBe(`GET ${STOREFRONT}/product-or-throw/:productId`);
 
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`GET ${STOREFRONT}/product-or-throw/:productId`);
-      expect(transaction.contexts?.trace?.status).toBe('internal_error');
+      const segment = await segmentPromise;
+      expect(segment.name).toBe(`GET ${STOREFRONT}/product-or-throw/:productId`);
+      expect(segment?.status).toBe('error');
     });
 
     test('error event includes request data', async ({ baseURL }) => {
@@ -167,10 +184,14 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
   });
 
   test.describe('inventory sub-app direct access', () => {
-    test('creates its own transaction when accessed directly via HTTP', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${INVENTORY}/item/:productId`;
-      });
+    test('creates its own span when accessed directly via HTTP', async ({ baseURL }) => {
+      const segmentPromise = waitForStreamedSpan(
+        APP_NAME,
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${INVENTORY}/item/:productId`,
+      );
 
       const response = await fetch(`${baseURL}${INVENTORY}/item/self-watering-plant`);
       expect(response.status).toBe(200);
@@ -178,57 +199,73 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       const body = await response.json();
       expect(body).toEqual(expect.objectContaining({ productId: 'self-watering-plant', name: 'Self-Watering Plant' }));
 
-      const transaction = await transactionPromise;
-      expect(transaction.transaction).toBe(`GET ${INVENTORY}/item/:productId`);
-      expect(transaction.contexts?.trace?.op).toBe('http.server');
+      const segment = await segmentPromise;
+      expect(segment.name).toBe(`GET ${INVENTORY}/item/:productId`);
+      expect(getSpanOp(segment)).toBe('http.server');
     });
   });
 
   test.describe('trace propagation through internal .request() calls', () => {
     test('single internal fetch produces an internal-request child span', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' && event.transaction === `GET ${STOREFRONT}/product/:productId`
-        );
-      });
+      const segmentPromise = collectStreamedSpansUntilSegment(
+        APP_NAME,
+        segment => getSpanOp(segment) === 'http.server' && segment.name === `GET ${STOREFRONT}/product/:productId`,
+      );
 
       await fetch(`${baseURL}${STOREFRONT}/product/self-watering-plant`);
 
-      const transaction = await transactionPromise;
-      const traceId = transaction.contexts?.trace?.trace_id;
-      const spans = transaction.spans || [];
+      const segmentSpans = await segmentPromise;
+      const segment = segmentSpans.find(
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/product/:productId`,
+      )!;
+      const traceId = segment?.trace_id;
+      const spans = segmentSpans.filter(
+        span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
+      );
 
       const internalRequestSpans = spans.filter(
-        (s: { origin?: string }) => s.origin === 'auto.http.hono.internal_request',
+        s => s.attributes['sentry.origin']?.value === 'auto.http.hono.internal_request',
       );
 
       expect(internalRequestSpans).toHaveLength(1);
       expect(internalRequestSpans[0]).toEqual(
         expect.objectContaining({
-          op: 'http.server',
-          origin: 'auto.http.hono.internal_request',
           trace_id: traceId,
+          attributes: expect.objectContaining({
+            'sentry.op': { value: 'http.server', type: 'string' },
+            'sentry.origin': { value: 'auto.http.hono.internal_request', type: 'string' },
+          }),
         }),
       );
-      expect(internalRequestSpans[0]?.description).toContain('GET /item/self-watering-plant');
+      expect(internalRequestSpans[0].name).toContain('GET /item/self-watering-plant');
     });
 
     test('parallel internal fetches produce two sibling internal-request spans', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' &&
-          event.transaction === `GET ${STOREFRONT}/compare/:productId1/:productId2`
-        );
-      });
+      const segmentPromise = collectStreamedSpansUntilSegment(
+        APP_NAME,
+        segment =>
+          getSpanOp(segment) === 'http.server' && segment.name === `GET ${STOREFRONT}/compare/:productId1/:productId2`,
+      );
 
       await fetch(`${baseURL}${STOREFRONT}/compare/self-watering-plant/solar-powered-cyberdeck`);
 
-      const transaction = await transactionPromise;
-      const traceId = transaction.contexts?.trace?.trace_id;
-      const spans = transaction.spans || [];
+      const segmentSpans = await segmentPromise;
+      const segment = segmentSpans.find(
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/compare/:productId1/:productId2`,
+      )!;
+      const traceId = segment?.trace_id;
+      const spans = segmentSpans.filter(
+        span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
+      );
 
       const internalRequestSpans = spans.filter(
-        (s: { origin?: string }) => s.origin === 'auto.http.hono.internal_request',
+        s => s.attributes['sentry.origin']?.value === 'auto.http.hono.internal_request',
       );
 
       expect(internalRequestSpans).toHaveLength(2);
@@ -238,26 +275,33 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
       expect(internalRequestSpans[0]?.trace_id).toBe(traceId);
       expect(internalRequestSpans[1]?.trace_id).toBe(traceId);
 
-      expect(internalRequestSpans[0]?.origin).toBe('auto.http.hono.internal_request');
-      expect(internalRequestSpans[1]?.origin).toBe('auto.http.hono.internal_request');
+      expect(internalRequestSpans[0].attributes['sentry.origin']?.value).toBe('auto.http.hono.internal_request');
+      expect(internalRequestSpans[1].attributes['sentry.origin']?.value).toBe('auto.http.hono.internal_request');
     });
 
     test('sequential chained fetches produce two ordered internal-request spans', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' &&
-          event.transaction === `GET ${STOREFRONT}/product/:productId/availability`
-        );
-      });
+      const segmentPromise = collectStreamedSpansUntilSegment(
+        APP_NAME,
+        segment =>
+          getSpanOp(segment) === 'http.server' && segment.name === `GET ${STOREFRONT}/product/:productId/availability`,
+      );
 
       await fetch(`${baseURL}${STOREFRONT}/product/self-watering-plant/availability`);
 
-      const transaction = await transactionPromise;
-      const traceId = transaction.contexts?.trace?.trace_id;
-      const spans = transaction.spans || [];
+      const segmentSpans = await segmentPromise;
+      const segment = segmentSpans.find(
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/product/:productId/availability`,
+      )!;
+      const traceId = segment?.trace_id;
+      const spans = segmentSpans.filter(
+        span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
+      );
 
       const internalRequestSpans = spans
-        .filter((s: { origin?: string }) => s.origin === 'auto.http.hono.internal_request')
+        .filter(s => s.attributes['sentry.origin']?.value === 'auto.http.hono.internal_request')
         .sort(
           (a: { start_timestamp?: number }, b: { start_timestamp?: number }) =>
             (a.start_timestamp ?? 0) - (b.start_timestamp ?? 0),
@@ -267,7 +311,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
 
       // Sequential: second span starts at or after first span ends (with tolerance for clock precision)
       expect(internalRequestSpans[1].start_timestamp).toBeGreaterThanOrEqual(
-        internalRequestSpans[0].timestamp! - 0.001,
+        internalRequestSpans[0].end_timestamp! - 0.001,
       );
 
       expect(internalRequestSpans[0]?.trace_id).toBe(traceId);
@@ -275,24 +319,31 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
     });
 
     test('internal-request span has no error status for internal 4xx HTTPException', async ({ baseURL }) => {
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' &&
-          event.transaction === `GET ${STOREFRONT}/product-or-throw/:productId`
-        );
-      });
+      const segmentPromise = collectStreamedSpansUntilSegment(
+        APP_NAME,
+        segment =>
+          getSpanOp(segment) === 'http.server' && segment.name === `GET ${STOREFRONT}/product-or-throw/:productId`,
+      );
 
       await fetch(`${baseURL}${STOREFRONT}/product-or-throw/ghost`);
 
-      const transaction = await transactionPromise;
-      const spans = transaction.spans || [];
+      const segmentSpans = await segmentPromise;
+      const segment = segmentSpans.find(
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/product-or-throw/:productId`,
+      )!;
+      const spans = segmentSpans.filter(
+        span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
+      );
 
       const internalRequestSpans = spans.filter(
-        (s: { origin?: string }) => s.origin === 'auto.http.hono.internal_request',
+        s => s.attributes['sentry.origin']?.value === 'auto.http.hono.internal_request',
       );
 
       expect(internalRequestSpans).toHaveLength(1);
-      expect(internalRequestSpans[0]?.status).not.toBe('internal_error');
+      expect(internalRequestSpans[0]?.status).not.toBe('error');
     });
 
     test('error from failed internal fetch is correlated with the storefront trace', async ({ baseURL }) => {
@@ -300,18 +351,19 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
         return event.exception?.values?.[0]?.value === 'Failed to fetch product: ghost';
       });
 
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return (
-          event.contexts?.trace?.op === 'http.server' &&
-          event.transaction === `GET ${STOREFRONT}/product-or-throw/:productId`
-        );
-      });
+      const segmentPromise = waitForStreamedSpan(
+        APP_NAME,
+        segment =>
+          segment.is_segment &&
+          getSpanOp(segment) === 'http.server' &&
+          segment.name === `GET ${STOREFRONT}/product-or-throw/:productId`,
+      );
 
       await fetch(`${baseURL}${STOREFRONT}/product-or-throw/ghost`);
 
-      const [errorEvent, transaction] = await Promise.all([errorPromise, transactionPromise]);
+      const [errorEvent, segment] = await Promise.all([errorPromise, segmentPromise]);
 
-      expect(errorEvent.contexts?.trace?.trace_id).toBe(transaction.contexts?.trace?.trace_id);
+      expect(errorEvent.contexts?.trace?.trace_id).toBe(segment?.trace_id);
       expect(errorEvent.contexts?.trace?.span_id).toBeDefined();
     });
   });

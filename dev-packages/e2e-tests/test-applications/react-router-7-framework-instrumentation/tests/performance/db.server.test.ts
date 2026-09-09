@@ -1,14 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 // Same spans in both runs, from two injectors: the build-time transform in the server bundle, and
 // the runtime hook in `react-router dev`, where the drivers stay on Node's own loader.
 test.describe('server - orchestrion db instrumentation', () => {
   test('instruments ioredis automatically via orchestrion', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-      spansOfTrace.some(span => span.name === 'GET /performance/db-ioredis' && span.is_segment),
-    );
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/db-ioredis');
 
     await page.goto('/performance/db-ioredis');
 
@@ -73,9 +71,7 @@ test.describe('server - orchestrion db instrumentation', () => {
   // Under span streaming the mysql span name is the query summary, so both queries below are named
   // `SELECT`. `db.query.text` is what tells them apart.
   test('instruments mysql automatically via orchestrion', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-      spansOfTrace.some(span => span.name === 'GET /performance/db-mysql' && span.is_segment),
-    );
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/db-mysql');
 
     await page.goto('/performance/db-mysql');
 
