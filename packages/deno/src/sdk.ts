@@ -104,7 +104,6 @@ export function init(options: DenoOptions = {}): Client {
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
-    defaultIntegrations,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({ ...options, defaultIntegrations }),
     transport: options.transport || makeFetchTransport,
