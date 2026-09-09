@@ -10,6 +10,14 @@ const APP = 'node-eve';
 // either one, depending on eve's workflow scheduling.
 const EVE_AGENT_PATH = /(\/eve\/v1\/session|\/\.well-known\/workflow\/v1\/flow)/;
 
+// The agent turn is served by a POST to one of eve's two agent paths. Requiring
+// POST keeps the GET spans (health, the event stream) out even though
+// EVE_AGENT_PATH also matches the stream path.
+const isAgentServerSpan = (span: { attributes?: Record<string, { value?: unknown }> }): boolean =>
+  getSpanOp(span) === 'http.server' &&
+  span.attributes?.['http.request.method']?.value === 'POST' &&
+  EVE_AGENT_PATH.test(String(span.attributes?.['url.path']?.value ?? ''));
+
 test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_tool) for an eve turn', async ({
   baseURL,
 }) => {
@@ -18,13 +26,7 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
       spans.some(span => getSpanOp(span) === op),
     ),
   );
-  const httpServerSpanPromise = waitForStreamedSpans(APP, spans =>
-    spans.some(
-      span =>
-        getSpanOp(span) === 'http.server' &&
-        EVE_AGENT_PATH.test(String(span.attributes?.['url.path']?.value ?? '')),
-    ),
-  );
+  const httpServerSpanPromise = waitForStreamedSpans(APP, spans => spans.some(isAgentServerSpan));
 
   await runAgentTurn(baseURL!, 'What is the weather in Paris?');
 
@@ -52,11 +54,7 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   // request paths (the other http.server spans — health and the event stream —
   // are filtered out).
   const allSpans = await httpServerSpanPromise;
-  const agentServerSpans = allSpans.filter(
-    span =>
-      getSpanOp(span) === 'http.server' &&
-      EVE_AGENT_PATH.test(String(span.attributes?.['url.path']?.value ?? '')),
-  );
+  const agentServerSpans = allSpans.filter(isAgentServerSpan);
   expect(agentServerSpans.length).toBeGreaterThanOrEqual(1);
 
   for (const span of agentServerSpans) {

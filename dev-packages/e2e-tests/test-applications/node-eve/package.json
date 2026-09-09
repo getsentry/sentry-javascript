@@ -14,6 +14,7 @@
     "start:orchestrion": "NODE_OPTIONS='--import=@sentry/node/import' pnpm start",
     "clean": "npx rimraf node_modules .eve .output pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
+    "test:build-orchestrion": "USE_ORCHESTRION=1 pnpm test:build",
     "test:build-latest": "pnpm install && pnpm add eve@latest ai@latest && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:assert-orchestrion": "USE_ORCHESTRION=1 pnpm test:assert",
@@ -50,6 +51,7 @@
         "label": "node-eve (latest)"
       },
       {
+        "build-command": "pnpm test:build-orchestrion",
         "assert-command": "pnpm test:assert-orchestrion",
         "label": "node-eve (orchestrion)"
       }
