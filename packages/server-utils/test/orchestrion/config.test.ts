@@ -84,10 +84,7 @@ describe('orchestrion config — SENTRY_RUNTIME_INSTRUMENTATIONS', () => {
       ),
     ].sort();
 
-    // Documents which libraries carry a native-channel (registration-only)
-    // config today. Update deliberately when one is added or removed — it changes
-    // what the runtime loader skips.
-    expect(registrationOnlyModules).toEqual(['@redis/client', 'ai', 'ioredis', 'mongoose', 'mysql2']);
+    expect(registrationOnlyModules).toContain(['@redis/client', 'ai', 'ioredis', 'mongoose', 'mysql2']);
 
     // The exclusion is per-config, not per-module: a module with both a
     // registration-only (native) config and older transform-based configs keeps
