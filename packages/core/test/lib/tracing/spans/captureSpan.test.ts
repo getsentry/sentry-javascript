@@ -507,8 +507,7 @@ describe('captureSpan', () => {
       expect(beforeSendSpan).not.toHaveBeenCalled();
     });
 
-    it('logs a warning if the beforeSendSpan callback returns null', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    it('keeps the span if the beforeSendSpan callback returns null', () => {
       const beforeSendSpan = vi.fn(() => null as unknown as StreamedSpanJSON);
 
       const client = new TestClient(
@@ -522,16 +521,17 @@ describe('captureSpan', () => {
         }),
       );
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
-      span.end();
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+        span.end();
+        return span;
+      });
 
-      captureSpan(span, client);
+      const serialized = captureSpan(span, client);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
-      );
-
-      consoleWarnSpy.mockRestore();
+      expect(serialized.span_id).toBe(span.spanContext().spanId);
+      expect(serialized.name).toBe('my-span');
     });
 
     it('keeps the span and logs an error if the beforeSendSpan callback throws', () => {
