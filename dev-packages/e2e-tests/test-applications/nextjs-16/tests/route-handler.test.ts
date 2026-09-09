@@ -16,7 +16,7 @@ test('Should create a span for node route handlers', async ({ request }) => {
 
   expect(routehandlerSpan.status).toBe('ok');
   expect(getSpanOp(routehandlerSpan)).toBe('http.server');
-  expect(routehandlerSpan.attributes['http.request.header.x-charly']?.value).toBe('gomez');
+  expect(routehandlerSpan.attributes['http.request.header.x-charly']?.value).toEqual(['gomez']);
 });
 
 test('Should create a span for edge route handlers', async ({ request }) => {
@@ -34,7 +34,7 @@ test('Should create a span for edge route handlers', async ({ request }) => {
 
   expect(routehandlerSpan.status).toBe('ok');
   expect(getSpanOp(routehandlerSpan)).toBe('http.server');
-  expect(routehandlerSpan.attributes['http.request.header.x-charly']?.value).toBe('gomez');
+  expect(routehandlerSpan.attributes['http.request.header.x-charly']?.value).toEqual(['gomez']);
 });
 
 test('Should report an error with a parameterized span name for a throwing route handler', async ({ request }) => {

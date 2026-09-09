@@ -58,11 +58,11 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       'sentry.sdk.name': { value: 'sentry.javascript.astro', type: 'string' },
       'url.full': { value: expect.stringContaining('/test-ssr'), type: 'string' },
       // demonstrates that the request data integration can extract headers
-      'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec-fetch-mode': { value: 'navigate', type: 'string' },
-      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
+      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
+      'http.request.header.sec-fetch-mode': { value: ['navigate'], type: 'array' },
+      'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
     });
   });
 });
@@ -143,11 +143,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/user-page/myUsername123'), type: 'string' },
-      'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec-fetch-mode': { value: 'navigate', type: 'string' },
-      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
+      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
+      'http.request.header.sec-fetch-mode': { value: ['navigate'], type: 'array' },
+      'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
     });
 
     // HTTP client span - with span streaming only the domain is kept in the name, the URL lives in
@@ -166,11 +166,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/api/user/myUsername123.json'), type: 'string' },
-      'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept-encoding': { value: 'gzip, deflate', type: 'string' },
-      'http.request.header.accept-language': { value: '*', type: 'string' },
-      'http.request.header.sec-fetch-mode': { value: 'cors', type: 'string' },
-      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
+      'http.request.header.accept-encoding': { value: ['gzip, deflate'], type: 'array' },
+      'http.request.header.accept-language': { value: ['*'], type: 'array' },
+      'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
+      'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
     });
   });
 
@@ -201,11 +201,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/catchAll/hell0/whatever-do'), type: 'string' },
-      'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec-fetch-mode': { value: 'navigate', type: 'string' },
-      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
+      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
+      'http.request.header.sec-fetch-mode': { value: ['navigate'], type: 'array' },
+      'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
     });
   });
 });
@@ -236,11 +236,11 @@ test.describe('parametrized vs static paths', () => {
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/user-page/settings'), type: 'string' },
-      'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec-fetch-mode': { value: 'navigate', type: 'string' },
-      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
+      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
+      'http.request.header.sec-fetch-mode': { value: ['navigate'], type: 'array' },
+      'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
     });
   });
 

@@ -20,8 +20,8 @@ test('server pageload request span has nested request span for sub request', asy
     'http.route': { value: '/server-load-fetch', type: 'string' },
     'sveltekit.tracing.original_name': { value: 'sveltekit.handle.root', type: 'string' },
     'url.full': { value: 'https://localhost:3030/server-load-fetch', type: 'string' },
-    'http.request.header.accept': { value: expect.any(String), type: 'string' },
-    'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
+    'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
+    'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
   });
 
   const spans = getSegmentChildSpans(serverTraceSpans, serverSpan);

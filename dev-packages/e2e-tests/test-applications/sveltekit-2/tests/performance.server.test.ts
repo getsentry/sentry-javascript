@@ -52,11 +52,11 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
   const serverSpan = await serverSpanPromise;
 
   expect(serverSpan.attributes).toMatchObject({
-    'http.request.header.user-agent': { value: 'Custom-SvelteKit-Agent/1.0', type: 'string' },
-    'http.request.header.content-type': { value: 'application/json', type: 'string' },
-    'http.request.header.x-test-header': { value: 'sveltekit-test-value', type: 'string' },
-    'http.request.header.accept': { value: 'application/json', type: 'string' },
-    'http.request.header.x-framework': { value: 'SvelteKit', type: 'string' },
-    'http.request.header.x-request-id': { value: 'sveltekit-123', type: 'string' },
+    'http.request.header.user-agent': { value: ['Custom-SvelteKit-Agent/1.0'], type: 'array' },
+    'http.request.header.content-type': { value: ['application/json'], type: 'array' },
+    'http.request.header.x-test-header': { value: ['sveltekit-test-value'], type: 'array' },
+    'http.request.header.accept': { value: ['application/json'], type: 'array' },
+    'http.request.header.x-framework': { value: ['SvelteKit'], type: 'array' },
+    'http.request.header.x-request-id': { value: ['sveltekit-123'], type: 'array' },
   });
 });

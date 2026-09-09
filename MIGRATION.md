@@ -798,6 +798,8 @@ On server-side HTTP spans, the `content-length` header is now always reported as
 
 The `http.request.header.<key>`/`http.response.header.<key>` attributes now write the header name lowercased as previously but no longer replaces dashes (`-`) with underscores (`_`). For example, the SDK now sets `http.request.header.user-agent` rather than `http.request.header.user_agent`. The same applies to the cookie names in `http.request.header.cookie.<name>` and `http.request.header.set-cookie.<name>`.
 
+Furthermore, the values of `http.request.header.<key>`/`http.response.header.<key>` are now string arrays instead of single strings, as mandated by the semantic conventions. Headers that were sent multiple times previously had their values joined into one string with a semicolon (`;`); they now yield one array entry per value. For example, the SDK now sets `http.request.header.accept-encoding` to `['gzip', 'deflate']` rather than `'gzip;deflate'`, and `http.request.header.user-agent` to `['Mozilla/5.0 ...']` rather than `'Mozilla/5.0 ...'`. The cookie attributes (`http.request.header.cookie.<name>`/`http.request.header.set-cookie.<name>`) continue to hold a single string, since a cookie only ever has one value.
+
 #### Network attributes
 
 Network-related span attributes now use the current Sentry semantic conventions, aligned across SDKs. If you query, transform, or alert on the legacy `net.*` fields, update those references:
