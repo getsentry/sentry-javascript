@@ -65,7 +65,7 @@ const router = HttpRouter.empty.pipe(
         }),
       );
       return yield* HttpServerResponse.json({ status: 'ok' });
-    }),
+    }).pipe(Effect.provide(Sentry.SentryEffectExternalSpanLayer)),
   ),
 
   HttpRouter.get(
