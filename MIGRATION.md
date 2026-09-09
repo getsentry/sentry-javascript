@@ -575,6 +575,34 @@ Sentry.init({
 });
 ```
 
+### Web vitals are reported per soft navigation
+
+Affected SDKs: All SDKs running in the browser.
+
+`webVitalsIntegration` (auto-registered by `browserTracingIntegration`) now reports its own set of LCP, CLS and INP for every soft navigation the browser detects through the [Soft Navigations API](https://developer.chrome.com/docs/web-platform/soft-navigations-experiment), attributed to the navigation span it belongs to.
+
+This also changes how the initial page load is measured. Previously a page reported a single set of vitals that accumulated over the whole page lifetime. Now the page load's vitals are finalized at the first soft navigation, so **expect the values reported for page loads to drop** on apps that do client-side routing, most noticeably for CLS and INP. Aggregates such as p75s will shift after upgrading.
+
+Reporting per soft navigation requires span streaming (`traceLifecycle: 'stream'`, the default) and is ignored in browsers without support for the Soft Navigations API (Chromium 151+). Navigations the browser does not detect as soft navigations (programmatic navigations, navigations that never paint) report no vitals at all, so coverage is lower than for page loads.
+
+To keep the previous behaviour of one set of vitals for the whole page lifetime:
+
+```js
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration({ webVitals: { softNavigations: false } })],
+});
+```
+
+### CLS and LCP no longer report intermediate values
+
+Affected SDKs: All SDKs running in the browser.
+
+With soft navigation reporting enabled (the default, see above), the SDK no longer subscribes to every intermediate CLS and LCP update. `web-vitals` reports once per navigation, with the final value.
+
+This is required for per-navigation values to be correct: `web-vitals` skips any report with a zero delta, including the forced report at a navigation boundary, so subscribing to all changes means the page load never receives its final value.
+
+The visible effect is in Session Replay, which records `web-vital` breadcrumbs from the same instrumentation. Replays now contain one LCP and one CLS entry per navigation instead of one per intermediate update. Where soft navigation reporting is disabled or unsupported, the previous behaviour is unchanged.
+
 ### `DOMException.code` is no longer set as a tag
 
 Affected SDKs: All SDKs running in the browser.
