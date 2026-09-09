@@ -351,6 +351,7 @@ test.describe('TraceMethod Decorator', () => {
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_method_decorator' },
           'code.function.name': { type: 'string', value: 'ngOnInit' },
+          'sentry.description': { type: 'string', value: '<ngOnInit>' },
         }),
       }),
     );
@@ -383,11 +384,11 @@ test.describe('TraceMethod Decorator', () => {
     expect(ngAfterViewInitSpan).toBeDefined();
     expect(ngAfterViewInitSpan).toEqual(
       expect.objectContaining({
-        name: 'ngAfterViewInit',
+        name: 'Function execution',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_method_decorator' },
-          'code.function.name': { type: 'string', value: 'ngAfterViewInit' },
+          'sentry.description': { type: 'string', value: '<unnamed>' },
         }),
       }),
     );

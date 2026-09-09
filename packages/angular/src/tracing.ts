@@ -40,6 +40,7 @@ import {
   stripUrlQueryAndFragment,
   timestampInSeconds,
   filterCollectedUrl,
+  FUNCTION_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -405,11 +406,12 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
     descriptor.value = function (...args: unknown[]): ReturnType<typeof originalMethod> {
       const now = timestampInSeconds();
 
-      const methodName = options?.name || String(propertyKey) || 'Function execution';
+      const methodName = options?.name;
       const description = `<${methodName ?? 'unnamed'}>`;
 
       const client = getClient();
-      const name = client && hasSpanStreamingEnabled(client) ? methodName : description;
+      const hasSpanStreaming = client && hasSpanStreamingEnabled(client);
+      const name = hasSpanStreaming ? methodName || FUNCTION_SPAN_NAME_FALLBACK : description;
 
       runOutsideAngular(() => {
         startInactiveSpan({
@@ -421,7 +423,7 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
             // override description inference by Relay to preserve the original (transaction-based) description.
             // sentry-conventions can't map the special case with the angle brackets.
-            [SENTRY_DESCRIPTION]: description,
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
             [CODE_FUNCTION_NAME]: methodName,
           },
         }).end(now);
