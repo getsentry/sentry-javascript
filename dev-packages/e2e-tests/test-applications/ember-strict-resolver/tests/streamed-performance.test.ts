@@ -17,3 +17,23 @@ test('names the transition span with the low cardinality fallback', async ({ pag
   expect(transitionSpan.name).toBe('Router');
   expect(transitionSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ui.ember' });
 });
+
+test('names route hook spans after the hook and keeps the route as the description', async ({ page }) => {
+  const modelSpanPromise = waitForStreamedSpan(
+    'ember-strict-resolver',
+    span =>
+      getSpanOp(span) === 'function' &&
+      span.attributes['code.function.name']?.value === 'model' &&
+      span.attributes['sentry.description']?.value === 'slow-loading-route.index',
+  );
+
+  await page.goto('/tracing');
+  await page.getByText('Transition to slow loading route').click();
+
+  const modelSpan = await modelSpanPromise;
+
+  expect(modelSpan.name).toBe('model');
+  expect(modelSpan.attributes['code.function.name']).toEqual({ type: 'string', value: 'model' });
+  expect(modelSpan.attributes['sentry.description']).toEqual({ type: 'string', value: 'slow-loading-route.index' });
+  expect(modelSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ui.ember' });
+});

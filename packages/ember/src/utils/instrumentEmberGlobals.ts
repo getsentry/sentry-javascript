@@ -1,7 +1,7 @@
 import { subscribe } from '@ember/instrumentation';
 import { scheduleOnce } from '@ember/runloop';
 import { SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
-import { UI_MOUNT, UI_RENDER, UI_TASK, FUNCTION } from '@sentry/conventions/op';
+import { UI_MOUNT, UI_RENDER, UI_TASK } from '@sentry/conventions/op';
 import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
@@ -193,7 +193,9 @@ function _instrumentComponents(config: {
         },
 
         after(_name: string, _timestamp: number, payload: object) {
-          _processComponentRenderAfter(payload as Payload, beforeComponentDefinitionEntries, FUNCTION, 0);
+          // TODO: Use the `UI_RESOLVE` const from `@sentry/conventions/op` once the op is released.
+          // See https://github.com/getsentry/sentry-conventions/pull/633
+          _processComponentRenderAfter(payload as Payload, beforeComponentDefinitionEntries, 'ui.resolve', 0);
         },
       });
     }
