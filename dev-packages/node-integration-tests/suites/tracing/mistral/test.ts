@@ -19,17 +19,20 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
 const PROVIDER = 'mistral';
 const ORIGIN = 'auto.ai.mistral';
 
+// ESM-only: `@mistralai/mistralai` v2 ships no CJS build, so CJS consumers load it via `require(esm)`,
+// whose auto-instrumentation is inconsistent across Node versions. The SDK's native mode is ESM, so we
+// only run the suite there.
 describe('Mistral integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-chat.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates chat spans with genAI recording disabled', async () => {
       await createRunner()
         .expect({
@@ -69,7 +72,7 @@ describe('Mistral integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-chat.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('records chat inputs and outputs with PII enabled', async () => {
       await createRunner()
         .expect({
@@ -89,7 +92,7 @@ describe('Mistral integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-chat.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('records chat inputs and outputs with explicit integration options', async () => {
       await createRunner()
         .expect({
@@ -105,7 +108,7 @@ describe('Mistral integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates embeddings spans', async () => {
       await createRunner()
         .expect({
@@ -131,7 +134,7 @@ describe('Mistral integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('records embeddings input with PII enabled', async () => {
       await createRunner()
         .expect({
@@ -148,7 +151,7 @@ describe('Mistral integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-agents.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-agents.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates invoke_agent spans', async () => {
       await createRunner()
         .expect({
@@ -179,7 +182,7 @@ describe('Mistral integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-agents.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-agents.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('records agent inputs and outputs with PII enabled', async () => {
       await createRunner()
         .expect({

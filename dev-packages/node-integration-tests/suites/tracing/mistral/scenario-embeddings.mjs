@@ -7,15 +7,16 @@ function startMockServer() {
   app.use(express.json());
 
   app.post('/v1/embeddings', (req, res) => {
-    const { model } = req.body;
+    const { model, inputs } = req.body;
 
     if (model === 'error-model') {
       res.status(404).set('x-request-id', 'mock-request-123').end('Model not found');
       return;
     }
 
+    // Distinct id per call shape so tests can target the single-input span unambiguously.
     res.send({
-      id: 'embd-mock123',
+      id: Array.isArray(inputs) ? 'embd-mock-multi' : 'embd-mock123',
       object: 'list',
       model,
       data: [{ object: 'embedding', embedding: [0.1, 0.2, 0.3], index: 0 }],
