@@ -171,8 +171,7 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
           return {
             loader: 'js',
             pluginName,
-            // Keep the side-effect-only stub in its own ESM scope so it cannot change an entry point's strictness.
-            contents: `${staticInjectionCode.code()}\nexport {};`,
+            contents: staticInjectionCode.code(),
           };
         });
       }
