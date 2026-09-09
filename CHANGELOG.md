@@ -4,7 +4,32 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @halillusion. Thank you for your contribution!
+## 10.74.0
+
+- feat(v10): Streamline isolation scope handling & reset in isolation scopes ([#24152](https://github.com/getsentry/sentry-javascript/pull/24152))
+- fix(server-utils): Include Gemini reasoning tokens in Vercel AI token usage ([#23433](https://github.com/getsentry/sentry-javascript/pull/23433))
+- fix(v10/browser): Set `user_agent.original` on all spans for consistent filtering ([#24226](https://github.com/getsentry/sentry-javascript/pull/24226))
+- fix(v10/cloudflare): Auto-instrument classes re-exported from the worker entry ([#24181](https://github.com/getsentry/sentry-javascript/pull/24181))
+- fix(v10/core): Guard `loadModule` default parameter against ESM scope ([#24154](https://github.com/getsentry/sentry-javascript/pull/24154))
+- fix(v10/core): Match wrapped Facebook Mobile browser errors in `DEFAULT_IGNORE_ERRORS` ([#23877](https://github.com/getsentry/sentry-javascript/pull/23877))
+- fix(v10/core): Resolve MCP capture policy per operation ([#23796](https://github.com/getsentry/sentry-javascript/pull/23796))
+- fix(v10/nextjs): Fix SDK import crashing under jsdom/happy-dom ([#23906](https://github.com/getsentry/sentry-javascript/pull/23906))
+- fix(v10/nextjs): Keep the Pages Router runtime out of App Router client bundles ([#24223](https://github.com/getsentry/sentry-javascript/pull/24223))
+- fix(v10/nextjs): Register Vercel AI span processors on Next.js ([#23773](https://github.com/getsentry/sentry-javascript/pull/23773))
+- fix(v10/nuxt): Windows file:// for import-in-the-middle hook and isAbsolute for C:\ ([#24026](https://github.com/getsentry/sentry-javascript/pull/24026))
+- fix(v10/profiling-node): Bump @sentry/node-cpu-profiler to 2.4.4 ([#24238](https://github.com/getsentry/sentry-javascript/pull/24238))
+- fix(v10/sveltekit): Handle SvelteKit 3 error kinds in handleErrorWithSentry ([#23995](https://github.com/getsentry/sentry-javascript/pull/23995))
+- fix(v10/sveltekit): Read Cloudflare execution context from platform.ctx ([#23994](https://github.com/getsentry/sentry-javascript/pull/23994))
+- fix(v10/sveltekit): Read SvelteKit config from the Vite plugin ([#23998](https://github.com/getsentry/sentry-javascript/pull/23998))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- test(e2e): Assert Next.js Cloudflare worker bundle stays free of orchestrion bundler plugins ([#23910](https://github.com/getsentry/sentry-javascript/pull/23910))
+
+</details>
+
+Work in this release was contributed by @halillusion and @zkasuran. Thank you for your contributions!
 
 ## 10.73.0
 
