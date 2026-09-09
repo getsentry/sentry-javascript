@@ -57,19 +57,22 @@ const warnedModuleFailures = new Set<string>();
  *
  * - The transform pipeline itself is gone → `TypeError: parse is not a function` /
  *   `generate is not a function`. That is the fingerprint of a bundler inlining and tree-shaking
- *   `@sentry/server-runtime-injection`, which strips its vendored meriyah/astring parser: it fails
- *   EVERY module the same way and is app-wide, with an actionable build fix. (As a second guard, a
+ *   `@sentry/server-runtime-injection`, which strips its vendored meriyah `parse` / astring
+ *   `generate`: it fails EVERY module the same way and is app-wide, with an actionable build fix.
+ *   Those are module-level imports, so the same bundler renames them while merging modules (esbuild
+ *   emits `parse2`/`generate3`), hence the numeric-suffix tolerance. (As a second guard, a
  *   transformer that has already instrumented something is provably not stripped.)
  * - Any other transform `TypeError` (e.g. `transform is not a function`, from a config whose
- *   operator is not registered at runtime) is not a bundling problem — even when it is the first
- *   module to load — so it gets a scoped message that points at reporting it, not changing the build.
+ *   operator is not registered at runtime — `transform` is a local, not a stripped import) is not a
+ *   bundling problem — even when it is the first module to load — so it gets a scoped message that
+ *   points at reporting it, not changing the build.
  */
 function warnTransformFailed(moduleName: string, error: unknown): void {
   const reason = error instanceof Error ? error.message : String(error);
 
   // Only the parser/generator primitives going missing means the transformer was stripped; a
   // non-empty `runtime` list (something was already instrumented) proves it was not.
-  const pipelineStripped = /\b(?:parse|generate) is not a function\b/.test(reason);
+  const pipelineStripped = /\b(?:parse|generate)\d* is not a function\b/.test(reason);
   const nothingInstrumentedYet = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtime?.length ?? 0) === 0;
 
   if (!(pipelineStripped && nothingInstrumentedYet)) {

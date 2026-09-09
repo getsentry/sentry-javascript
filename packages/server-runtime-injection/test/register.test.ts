@@ -82,15 +82,17 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     registerDiagnosticsChannelInjection();
     const onDiagnostics = diagnosticsCallback();
 
-    // A tree-shaken chain: `parse`/`generate` are `undefined`, so the transform throws a TypeError.
-    onDiagnostics({ moduleName: 'mysql2', error: new TypeError('parse is not a function') });
-    onDiagnostics({ moduleName: 'pg', error: new TypeError('parse is not a function') });
+    // A tree-shaken chain: the vendored `parse`/`generate` are `undefined`, so the transform throws
+    // a TypeError. The bundler that stripped them also renames these module-level imports while
+    // merging modules — esbuild emits `parse3` — so the fingerprint has to tolerate the suffix.
+    onDiagnostics({ moduleName: 'mysql2', error: new TypeError('parse3 is not a function') });
+    onDiagnostics({ moduleName: 'pg', error: new TypeError('parse3 is not a function') });
 
     expect(bundlingWarnings()).toHaveLength(1);
     expect(bundlingWarnings()[0]).toContain('mysql2');
     expect(bundlingWarnings()[0]).toContain('docs.sentry.io');
     // The underlying error is surfaced so the warning is self-diagnosing.
-    expect(bundlingWarnings()[0]).toContain('parse is not a function');
+    expect(bundlingWarnings()[0]).toContain('parse3 is not a function');
   });
 
   it('reports a non-stripped transform TypeError as an isolated failure, not bundling', () => {
