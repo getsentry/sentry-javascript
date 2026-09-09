@@ -8,6 +8,7 @@ import { LANGCHAIN_INTEGRATION_NAME } from '../ai/langchain/constants';
 import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../ai/langchain/embeddings';
 import type { LangChainOptions } from '../ai/langchain/types';
 import { _INTERNAL_mergeLangChainCallbackHandler } from '../ai/langchain/utils';
+import { MISTRAL_INTEGRATION_NAME } from '../ai/mistral/constants';
 import { OPENAI_INTEGRATION_NAME } from '../ai/openai/constants';
 import { CHANNELS } from '../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../orchestrion/config/langchain';
@@ -21,7 +22,12 @@ const INTEGRATION_NAME = LANGCHAIN_INTEGRATION_NAME;
 
 // LangChain drives the underlying AI provider SDKs itself, so while it's active those providers must
 // not also instrument, or every call would produce two spans (mirrors the OTel path's skip list).
-const SKIPPED_PROVIDERS = [OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION_NAME, GOOGLE_GENAI_INTEGRATION_NAME];
+const SKIPPED_PROVIDERS = [
+  OPENAI_INTEGRATION_NAME,
+  ANTHROPIC_AI_INTEGRATION_NAME,
+  GOOGLE_GENAI_INTEGRATION_NAME,
+  MISTRAL_INTEGRATION_NAME,
+];
 
 // The chat-model channels carry the live args array of `invoke(input, options)` / `_streamIterator(input, options)`.
 interface RunnableChannelContext {
