@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Captures an error thrown in a route handler', async ({ baseURL, request }) => {
   const errorEventPromise = waitForError('elysia-bun', event => {
@@ -47,13 +47,13 @@ test('Error event includes request metadata', async ({ baseURL, request }) => {
 });
 
 test('Does not capture errors for 4xx responses', async ({ baseURL, request }) => {
-  const transactionPromise = waitForTransaction('elysia-bun', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-4xx';
+  const spanPromise = waitForStreamedSpan('elysia-bun', span => {
+    return getSpanOp(span) === 'http.server' && span.name === 'GET /test-4xx' && span.is_segment;
   });
 
   const response = await request.get(`${baseURL}/test-4xx`);
-  // Wait for the transaction to ensure the request was processed
-  await transactionPromise;
+  // Wait for the segment span to ensure the request was processed
+  await spanPromise;
 
   expect(response.status()).toBe(400);
 });

@@ -84,3 +84,20 @@ export function ensureInstrumented<T>(original: T, instrumentFn: (original: T) =
 
   return instrumented;
 }
+
+/**
+ * Applies `wrap` to `Class` unless `Class` is already an instrumented wrapper.
+ *
+ * Emitted by the Vite auto-instrumentation transform for classes the worker entry only re-exports:
+ * such a class may already be hand-wrapped with `instrument*WithSentry` in the module it comes
+ * from, which the build cannot see. Wrapping again would nest two proxies and instrument the same
+ * work twice, duplicated child spans, so the hand-wrapped class is returned as-is. Not part of the
+ * public API, hand-written wrapper calls are deliberately left untouched by this guard.
+ */
+export function _INTERNAL_wrapUnlessInstrumented<C>(
+  wrap: (optionsCallback: (env: never) => unknown, Class: C) => C,
+  optionsCallback: (env: never) => unknown,
+  Class: C,
+): C {
+  return getInstrumented(Class) === Class ? Class : wrap(optionsCallback, Class);
+}

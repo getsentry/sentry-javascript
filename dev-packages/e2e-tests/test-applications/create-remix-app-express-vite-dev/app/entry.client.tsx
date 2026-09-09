@@ -14,7 +14,6 @@ declare global {
 }
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: window.ENV.SENTRY_DSN,
   integrations: [

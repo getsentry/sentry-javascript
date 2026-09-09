@@ -1,9 +1,7 @@
 /**
- * Returns an environment setting value determined by Vercel's `VERCEL_ENV` environment variable.
- *
- * @param isClient Flag to indicate whether to use the `NEXT_PUBLIC_` prefixed version of the environment variable.
+ * Browser counterpart of `getVercelEnv` from `@sentry/core`, reading the `NEXT_PUBLIC_` variants that Next.js exposes
+ * to the client. The variables must be referenced statically so Next.js can inline them at build time.
  */
-export function getVercelEnv(isClient: boolean): string | undefined {
-  const vercelEnvVar = isClient ? process.env.NEXT_PUBLIC_VERCEL_ENV : process.env.VERCEL_ENV;
-  return vercelEnvVar ? `vercel-${vercelEnvVar}` : undefined;
+export function getClientVercelEnv(): string | undefined {
+  return process.env.NEXT_PUBLIC_VERCEL_TARGET_ENV || process.env.NEXT_PUBLIC_VERCEL_ENV || undefined;
 }

@@ -15,24 +15,6 @@ export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export { flushIfServerless } from './utils/flushIfServerless';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
-/* oxlint-disable typescript/no-deprecated -- deprecated Express exports, kept until the next major */
-export { patchExpressModule } from './integrations/express/index';
-export type { ExpressMiddleware, ExpressErrorMiddleware } from './integrations/express/types';
-/* oxlint-enable typescript/no-deprecated */
-export {
-  instrumentPostgresJsSql,
-  _reconstructQuery as _INTERNAL_reconstructPostgresQuery,
-  _buildConnectionContext as _INTERNAL_buildPostgresConnectionContext,
-  _getConnectionAttributes as _INTERNAL_getConnectionAttributes,
-  _getOperationName as _INTERNAL_getPostgresOperationName,
-} from './integrations/postgresjs';
-export type { PostgresConnectionContext } from './integrations/postgresjs';
-export {
-  getSqlQuerySummary as _INTERNAL_getSqlQuerySummary,
-  sanitizeSqlQuery as _INTERNAL_sanitizeSqlQuery,
-} from './utils/sql';
-export type { SqlDialect } from './utils/sql';
-
 export { patchHttpModuleClient } from './integrations/http/client-patch';
 export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';
 export { getHttpServerSubscriptions, isStaticAssetRequest } from './integrations/http/server-subscription';

@@ -23,8 +23,9 @@ Version 11 of the Sentry JavaScript SDK primarily focuses on better OpenTelemetr
 
 Since some of these changes are not caught by TypeScript or other tooling, we recommend reading through this entire guide before upgrading. For an early overview see [#22056 "What's coming in v11"](https://github.com/getsentry/sentry-javascript/issues/22056).
 
-Version 11 of the SDK is compatible with Sentry self-hosted versions 24.4.2 or higher (unchanged from v10).
-Lower versions may continue to work, but may not support all features.
+Version 11 of the SDK is compatible with Sentry self-hosted versions 26.4.2 or higher. Lower versions may continue to
+work, but are not supported. For the best experience we recommend updating your self-hosted Sentry to the latest
+version.
 
 ## 1. Version Support Changes:
 
@@ -52,7 +53,6 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **React:** dropped React 16 (minimum is now 17).
 - **Astro:** dropped Astro 3 (minimum is now 4).
 - **React Router (framework mode):** minimum is now 7.15.
-- **Remix:** dropped `@remix-run/node` v1 (minimum is now v2).
 - **Fastify:** dropped Fastify 3.0 through 3.20 (minimum is now 3.21).
 
 ### AWS Lambda Layer Changes
@@ -186,6 +186,7 @@ We've replaced `sendDefaultPii` with `dataCollection`, which controls each categ
 | `urlQueryParams`      | `true`                             | `true`               |
 | `genAI`               | inputs + outputs not collected     | inputs + outputs     |
 | `databaseQueryData`   | `false`                            | `true`               |
+| `queues`              | not collected                      | `true`               |
 | `stackFrameVariables` | `true`                             | `true`               |
 | `frameContextLines`   | `7`                                | `5`                  |
 
@@ -221,6 +222,7 @@ Sentry.init({
     urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     genAI: { inputs: false, outputs: false },
     databaseQueryData: false,
+    queues: false,
     graphQL: { document: false, variables: false },
   },
 });
@@ -242,6 +244,12 @@ default sensitive-value denylist is applied.
 User IP address inference, which was previously gated on `sendDefaultPii`, is now controlled by
 `dataCollection.userInfo`. An explicit `requestDataIntegration({ include: { ip: true } })` overrides
 `dataCollection.userInfo: false` for data collected by that integration.
+
+#### Astro client IP
+
+`trackClientIp` no longer defaults to `false`. When you leave it unset, `handleRequest` now follows
+`dataCollection.userInfo`, which defaults to `true`, so Astro apps that set neither option start
+reporting `user.ip_address`. Pass `trackClientIp: false` to keep the v10 behaviour.
 
 #### Remix action form data
 
@@ -567,6 +575,12 @@ Sentry.init({
 });
 ```
 
+### `DOMException.code` is no longer set as a tag
+
+Affected SDKs: All SDKs running in the browser.
+
+Events created from a `DOMException` no longer carry a `DOMException.code` tag. The `code` property is deprecated and has been replaced by `DOMException.name`, which is already available as the exception type. If you have searches or alert rules keyed on the tag, switch them to `error.type`.
+
 ### `attachStacktrace` defaults to `true`
 
 Affected SDKs: All SDKs.
@@ -779,6 +793,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 - Legacy messaging (`messaging.*`) span attributes on the AMQP instrumentation were replaced by their current semantic-convention equivalents: `messaging.destination.name`, `messaging.rabbitmq.destination.routing_key`, `messaging.message.id`, `messaging.message.conversation_id`, `messaging.operation.name`, `network.protocol.name`, `network.protocol.version`, and `url.full`. `messaging.destination_kind` is no longer emitted.
 - The database span attributes `db.system`, `db.name`, `db.operation`, `db.statement` and `db.mongodb.collection` were renamed to `db.system.name`, `db.namespace`, `db.operation.name`, `db.query.text` and `db.collection.name`.
 - Mongoose spans report `db.system.name: 'mongodb'` instead of `'mongoose'`. Mongoose is an ODM, not a database system.
+- SQL query spans carry a new `db.query.summary` attribute holding the [summary](https://opentelemetry.io/docs/specs/semconv/database/database-spans/#generating-a-summary-of-the-query) of the sanitized statement (`SELECT "User"`). It is set in both trace lifecycles, so it is available whether or not the span is [named after it](#span-name-changes).
 - The Redis and ioredis instrumentations no longer emit `db.connection_string`. The connection is described by `server.address` and `server.port` instead.
 
 #### GenAI attributes
@@ -940,103 +955,86 @@ With [span streaming](#span-streaming-is-now-the-default) enabled (the default),
 
 If you [opt out of span streaming](#opting-out-of-span-streaming), span names remain unchanged.
 
+Two things hold throughout this section:
+
+- Names that were already low cardinality mostly did not change, and are identical in both trace lifecycles (for example, a parameterized route in a pageload span like `/users/:id/details`).
+- Every attribute named below is set in **both** trace lifecycles, so whatever a name no longer carries stays available on an attribute either way.
+
 The following span names were adjusted:
 
-| Span op                                                                  | Before                                                                                                                                                       | After                                                                                                                                                                                                           |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                                                  | The parameterized route, or `Pageload` if the SDK has none                                                                                                                                                      |
-| `navigation`                                                             | The parameterized route, or the raw URL path if the SDK couldn't resolve one (`/users/123`)                                                                  | The parameterized route, or `Navigation` if the SDK has none                                                                                                                                                    |
-| `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one (`GET /users/123`)                                                         | `GET /users/:id` when a route is known, otherwise just the request method (`GET`)                                                                                                                               |
-| `http.client`, `http.client.stream`                                      | The request method and sanitized URL (`GET https://api.example.com/users/123`)                                                                               | The request method and the domain (`GET api.example.com`), or just the method if there is no domain (`GET`)                                                                                                     |
-| `router`                                                                 | Framework-specific, sometimes containing the raw URL (`/users/123`, `SvelteKit Route Change`)                                                                | The span's `http.route`, or `Router` if the SDK has none                                                                                                                                                        |
-| `handler`                                                                | Framework-specific, often carrying the request method (`GET /users/:id`, `route-handler`, `getUser`)                                                         | The span's `http.route`, or `Request handler` if the SDK has none                                                                                                                                               |
-| `graphql`                                                                | The graphql phase and, for operations, the operation name (`query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`)                                  | The operation type, or the processing type where there is none (`GraphQL query`, `GraphQL parse`, `GraphQL resolve`)                                                                                            |
-| `gen_ai.chat`, `gen_ai.embeddings`, `gen_ai.generate_content`            | `{operation} {model}`, or `{operation} unknown` if the model is missing (`chat unknown`)                                                                     | `{operation} {model}`, or `{operation}` if the model is missing (`chat`)                                                                                                                                        |
-| `gen_ai.invoke_agent`                                                    | The LangChain chain name, prefixed with `chain` rather than the operation (`chain format_prompt`)                                                            | `{operation} {name}`, where the name is the span's `gen_ai.agent.name`, `gen_ai.pipeline.name` or `gen_ai.function_id`, in that order (`invoke_agent format_prompt`), or `{operation}` if the span carries none |
-| `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources (`/assets/app.js`)                                                                   | The resource domain (`cdn.example.com`), or `Resource` if the SDK has none                                                                                                                                      |
-| `mcp.server`                                                             | The method and its target, including the resource URI (`resources/read file:///docs/api.md`)                                                                 | The method alone for resource methods (`resources/read`). Tool and prompt names are unchanged (`tools/call get-weather`)                                                                                        |
-| `mcp.notification.client_to_server`, `mcp.notification.server_to_client` | The notification method name (`notifications/tools/list_changed`)                                                                                            | The notification method name, or `MCP notification` if the message carries none                                                                                                                                 |
-| `queue.publish`                                                          | Integration-specific (`publish my-exchange`, `send my-topic`)                                                                                                | The messaging operation type and the destination (`send my-exchange`), or just the operation type when the destination has no name (`send`)                                                                     |
-| `queue.process`                                                          | Integration-specific, sometimes containing per-message data (`my-queue process`, `order.created.12345 process`)                                              | The messaging operation type and the destination (`process my-exchange`), or just the operation type when the destination has no name (`process`)                                                               |
-| `queue.receive`                                                          | The kafkajs operation name (`poll my-topic`)                                                                                                                 | The messaging operation type and the destination (`receive my-topic`)                                                                                                                                           |
-| `cache.get`, `cache.put`, `cache.remove`                                 | The cache key(s) (`user:123`), or for dataloader the operation and loader name (`dataloader.load usersLoader`)                                               | The cache operation (`cache.get`, `cache.put`, `cache.remove`)                                                                                                                                                  |
-| `db.query` (redis, ioredis)                                              | The serialized command, with its arguments redacted (`set test-key [1 other arguments]`), or `redis-<command>` on the diagnostics-channel path (`redis-SET`) | The operation and the connection (`SET localhost:6379`), the operation and the redis function for `FCALL`/`FCALL_RO` (`fcall my_func`), or `redis` when the SDK knows neither                                   |
-| `db` (mongoose)                                                          | `mongoose.<Model>.<operation>` (`mongoose.BlogPost.findOne`)                                                                                                 | The operation and the collection (`findOne blogposts`), the database namespace when there is no collection, or `mongodb` when the SDK has neither                                                               |
+| Span op                                                                  | Before                                                                                                    | Example                                                                        | After                                                                                                                                                                               | Example                                                |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one                              | `/users/:id`, `/users/123`                                                     | The parameterized route, or `Pageload` if the SDK has none                                                                                                                          | `/users/:id`, `Pageload`                               |
+| `navigation`, `navigation.redirect`                                      | The parameterized route, or the raw URL path if the SDK couldn't resolve one                              | `/users/:id`, `/users/123`                                                     | The parameterized route, or `Navigation` if the SDK has none                                                                                                                        | `/users/:id`, `Navigation`                             |
+| `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources                                   | `/assets/app.js`                                                               | The resource domain, or `Resource` if the SDK has none                                                                                                                              | `cdn.example.com`, `Resource`                          |
+| `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one                         | `GET /users/:id`, `GET /users/123`                                             | The request method and route when one is known, otherwise just the method                                                                                                           | `GET /users/:id`, `GET`                                |
+| `http.client`, `http.client.stream`                                      | The request method and sanitized URL                                                                      | `GET https://api.example.com/users/123`                                        | The request method and the domain, or just the method if there is no domain                                                                                                         | `GET api.example.com`, `GET`                           |
+| `router`                                                                 | Framework-specific, sometimes containing the raw URL                                                      | `/users/123`, `SvelteKit Route Change`                                         | The span's `http.route`, or `Router` if the SDK has none                                                                                                                            | `/users/:id`, `Router`                                 |
+| `handler`                                                                | Framework-specific, often carrying the request method                                                     | `GET /users/:id`, `route-handler`, `getUser`                                   | The span's `http.route`, or `Request handler` if the SDK has none                                                                                                                   | `/users/:id`, `Request handler`                        |
+| `function.gcp`                                                           | The request method and path for HTTP functions, otherwise the trigger's event or trigger type             | `POST /users`, `google.pubsub.topic.publish`, `firebase.function.http.request` | The function name, or `Serverless function execution` if the SDK cannot resolve one                                                                                                 | `myFunction`, `Serverless function execution`          |
+| `function.aws`                                                           | The Lambda function name                                                                                  | `my-function`                                                                  | Unchanged, except that the SDK now falls back to `Serverless function execution` if it cannot resolve the function name                                                             | `my-function`, `Serverless function execution`         |
+| `graphql`                                                                | The graphql phase and, for operations, the operation name                                                 | `query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`                | The operation type, or the processing type where there is none                                                                                                                      | `GraphQL query`, `GraphQL parse`, `GraphQL resolve`    |
+| `gen_ai.chat`, `gen_ai.embeddings`, `gen_ai.generate_content`            | `{operation} {model}`, or `{operation} unknown` if the model is missing                                   | `chat gpt-4`, `chat unknown`                                                   | `{operation} {model}`, or `{operation}` if the model is missing                                                                                                                     | `chat gpt-4`, `chat`                                   |
+| `gen_ai.invoke_agent`                                                    | The LangChain chain name, prefixed with `chain` rather than the operation                                 | `chain format_prompt`, `chain unknown_chain`                                   | `{operation} {name}`, where the name is the span's `gen_ai.agent.name`, `gen_ai.pipeline.name` or `gen_ai.function_id`, in that order, or `{operation}` if the span carries none    | `invoke_agent format_prompt`, `invoke_agent`           |
+| `mcp.server`                                                             | The method and its target, including the resource URI                                                     | `resources/read file:///docs/api.md`, `tools/call get-weather`                 | The method alone for resource methods. Tool and prompt names are unchanged                                                                                                          | `resources/read`, `tools/call get-weather`             |
+| `mcp.notification.client_to_server`, `mcp.notification.server_to_client` | The notification method name                                                                              | `notifications/tools/list_changed`                                             | The notification method name, or `MCP notification` if the message carries none                                                                                                     | `notifications/tools/list_changed`, `MCP notification` |
+| `queue.publish`                                                          | Integration-specific                                                                                      | `publish my-exchange`, `send my-topic`                                         | The messaging operation type and the destination, or just the operation type when the destination has no name                                                                       | `send my-exchange`, `send`                             |
+| `queue.process`                                                          | Integration-specific, sometimes containing per-message data                                               | `my-queue process`, `order.created.12345 process`                              | The messaging operation type and the destination, or just the operation type when the destination has no name                                                                       | `process my-queue`, `process`                          |
+| `queue.receive`                                                          | The kafkajs operation name                                                                                | `poll my-topic`                                                                | The messaging operation type and the destination                                                                                                                                    | `receive my-topic`                                     |
+| `cache.*`                                                                | The cache key(s), or for dataloader the operation and loader name                                         | `user:123`, `dataloader.load usersLoader`                                      | The cache operation                                                                                                                                                                 | `cache.get`, `cache.put`, `cache.remove`               |
+| `db`, `db.query` (SQL)                                                   | The statement the driver ran                                                                              | `SELECT * FROM "User" WHERE id = $1`                                           | A summary of it, or, where there is no statement, the next template the driver can fill: the operation and table, the namespace, the database system, and `Database operation` last | `SELECT "User"`, `postgresql`                          |
+| `db` (mongodb)                                                           | The serialized command, or `mongodb.<operation>` where there is none                                      | `mongodb.find`                                                                 | The operation and the collection, the database namespace when there is no collection, or `mongodb` when the SDK has neither                                                         | `find users`, `mongodb`                                |
+| `db` (mongoose)                                                          | `mongoose.<Model>.<operation>`                                                                            | `mongoose.BlogPost.findOne`                                                    | The operation and the collection, the database namespace when there is no collection, or `mongodb` when the SDK has neither                                                         | `findOne blogposts`                                    |
+| `db` (supabase)                                                          | The query builder call and the table, or `auth <method>` for auth calls                                   | `select(...) from(users)`, `auth signInWithPassword`                           | The operation and the table, or the dotted auth method                                                                                                                              | `select users`, `auth.signInWithPassword`              |
+| `db.query` (redis, ioredis)                                              | The serialized command, with its arguments redacted, or `redis-<command>` on the diagnostics-channel path | `set test-key [1 other arguments]`, `redis-SET`                                | The operation and the connection, the operation and the redis function for `FCALL`/`FCALL_RO`, or `redis` when the SDK knows neither                                                | `SET localhost:6379`, `fcall my_func`, `redis`         |
 
-`navigation.redirect` spans are started through the same code path as navigation spans, so they get the same names.
+#### Serverless function spans
 
-Resolved low-cardinality values are kept in both lifecycles: a known model stays in the name (`chat gpt-4`).
+`function.gcp` spans are named after the function, which the SDK reads from the `FUNCTION_TARGET` or
+`K_SERVICE` environment variable. This covers `@sentry/google-cloud-serverless` and the firebase
+functions integration in `@sentry/node`.
 
-LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain` — update any `ignoreSpans` filters matching the old names. The chain name remains available on `gen_ai.pipeline.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
+Whatever the name no longer carries stays on the span as an attribute:
 
-Resource spans now also carry a `url.domain` attribute holding that domain. The full URL remains available on `url.full`.
+- `faas.name` — the function name the span is named after.
+- `gcp.function.context.*` — the fields of the trigger event, including the event type the span used to be named after.
+- `http.request.method` and `url.path` — for HTTP-triggered functions, the method and path the span used to be named after.
 
-`http.server` requests that resolve to a route are **unchanged** — those names were already low cardinality. Only requests the SDK cannot parameterize are affected.
+`function.aws` spans in `@sentry/aws-serverless` were already named after the Lambda function, so
+their names are unchanged. The only new behaviour is the fallback: if neither the invocation context
+nor the `AWS_LAMBDA_FUNCTION_NAME` environment variable yields a function name, the span is named
+`Serverless function execution` instead of carrying an empty name. These spans continue to carry the
+function name on `faas.name`, the request URL on `url.full`, and the invocation details on
+`aws.lambda.*` and `aws.cloudwatch.logs.*`. Their `sentry.segment.name.source` is now `component`
+rather than `custom`, matching the other FaaS spans: the name comes from the function, not from the
+user. This applies in both trace lifecycles.
 
-Outgoing requests never resolve to a route, so **every** `http.client` name changes: the path, query and fragment are dropped and only the domain is kept. The full URL remains available on `url.full`, and outgoing request spans now also carry a `url.domain` attribute holding that domain.
+#### Filtering and sampling
 
-A request with no domain to fall back on — a data URL, or a relative URL that the SDK cannot resolve against a page origin — is named after the method alone.
+When span streaming is enabled (i.e. by default) `ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name:
 
-Some consequences to be aware of:
+- An unresolved pageload or navigation span might be named `Pageload`/`Navigation` and may receive its resolved route name later, so filters matching a URL path no longer apply to it.
+- Browser `resource.*` names now only hold the domain the resource was loaded from, not the entire URL.
+- A database query span is named after its summary from the start, so filters matching a full SQL statement no longer apply.
 
-The graphql operation name and the resolver field path are supplied by the client, so they are no longer part of a span name. They remain available on the `graphql.operation.name` and `graphql.field.path` attributes.
-
-Because a low-cardinality name cannot say which part of request processing a span covers, every graphql span now carries a `graphql.processing.type` attribute (`parse`, `validate`, `execute` or `resolve`). Use it to tell parse, validate and resolve spans apart. The attribute is set in both trace lifecycles.
-
-For the same reason, `useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`). The operations are still recorded on that span's `sentry.graphql.operation` attribute, as long as the option stays enabled (the default). Disabling it skips both, as before.
-
-Resource URIs are unbounded, so they are no longer part of an `mcp.server` span name. The URI remains available on the `mcp.resource.uri` attribute.
-
-Because the URL path is gone from `http.client` names, `graphqlClientIntegration` no longer appends the operation to the outgoing request span name (`POST https://api.example.com/graphql (query GetUser)` becomes `POST api.example.com`). Outgoing GraphQL request spans now carry the operation on the `graphql.operation.name` and `graphql.operation.type` attributes instead, and it also stays on the request breadcrumb's `graphql.operation` data.
-
-Only the Express, Koa and Hapi integrations resolve a route template for `router` spans. Angular, Ember and SvelteKit have none when the span starts, so their router spans are named `Router`.
-
-The Express, Fastify, Hapi and Elysia integrations resolve a route template for `handler` spans. NestJS has none when the span starts, so its request handler spans are named `Request handler`. The handler function name is no longer part of these span names. It stays on an attribute: `nestjs.callback` for NestJS, and `code.function.name` for Elysia, which now sets it on its handler spans. Elysia request handler spans also carry `http.route` now. Both attributes are set in both trace lifecycles.
-
-A mongoose span's name is built from `db.collection.name`, so it holds the collection (`blogposts`) rather than the model (`BlogPost`). The related [`db.system.name` change](#messaging-and-database-attributes) from `mongoose` to `mongodb` applies in both trace lifecycles.
-
-Messaging span names now read `<operation type> <destination>` in every integration. The amqplib, kafkajs and NestJS BullMQ integrations used their own word order or verb, so their names change: `my-queue process` became `process my-queue`, amqplib's `publish` became `send`, and the kafkajs batch span's `poll` became `receive`. Cloudflare Queues and the kafkajs producer already matched the conventions, so their names are the same in both trace lifecycles. The operation name an integration reports upstream stays on `messaging.operation.name`.
-
-Cache keys are unbounded, so they are no longer part of a cache span name. They remain available on the `cache.key` attribute, and every cache span now also carries a `cache.operation` attribute (`get`, `put`, `remove`) — the value the name is built from. That attribute is set in both trace lifecycles. This affects the redis/ioredis cache spans (`cachePrefixes`), the Nuxt and Nitro storage spans, and the dataloader spans.
-
-A Redis command whose key matches `cachePrefixes` now starts as a `cache.*` span instead of being converted from a `db.query` span at response time. `ignoreSpans` is evaluated at span start, so filters can match these spans by their cache op and name. A failed cache command reports as a cache span too, where it previously stayed a `db.query` span.
-
-A dataloader span no longer carries the loader's `name` either (`dataloader.load usersLoader` becomes `cache.get`), because the cache conventions have no slot for it in the name. It is reported on the `db.collection.name` attribute instead — a loader batches one entity type, so it is the closest thing dataloader has to a collection — and that attribute is set in both trace lifecycles. Unnamed loaders do not set it.
-
-Redis has no SQL statement to summarize and no collection to pair a command with, so redis and ioredis `db.query` spans are named after the operation and the connection instead of the command that was sent. The command and its arguments remain available on `db.query.text`, redacted as before. `MULTI`/`PIPELINE` batch spans are unchanged — they were already named after their operation, which they now also report on `db.operation.name`. `db.namespace` is deliberately not used in the name: for redis it is the numeric database index, which says nothing about what the command did.
-
-`FCALL` and `FCALL_RO` call a redis function, the one redis construct the conventions model as a stored procedure, so those spans are named after the function and report it on a new `db.stored_procedure.name` attribute, set in both trace lifecycles. node-redis and ioredis redact arguments before publishing them on their diagnostics channels, so a redacted function name is left off both the name and the attribute.
-
-Relatedly, and in **both** trace lifecycles: node-redis clients now always report the connection they use. node-redis v4 wrote its `localhost:6379` defaults back into `client.options` and v5 does not, so an identically configured client used to report `server.address`/`server.port` on v4 and neither on v5. The SDK now fills in the same defaults node-redis itself publishes on its diagnostics channel, and a client connected over a unix socket reports its path as `server.address` and no port.
-
-AWS SQS `SendMessage`, `SendMessageBatch` and `ReceiveMessage`, and SNS `Publish`, are messaging spans (e.g. `queue.publish`) rather than `rpc` ones now. Every other command on those clients, such as `DeleteMessage`, stays `rpc`. Their names follow the messaging conventions too, so the operation comes first (`my-queue receive` becomes `receive my-queue`, `my-topic send` becomes `send my-topic`). A streamed SNS `Publish` to a platform endpoint is named `send`, because the endpoint ARN it used to carry ends in a per-device id (`endpoint/GCM/myapp/<uuid> send`). The full ARN remains on `messaging.destination.name`.
-
-An amqplib span's destination is the exchange it uses, or the routing key when it uses the default exchange. RabbitMQ binds every queue to the default exchange under a key equal to the queue's own name, so `sendToQueue` spans are named after their queue (`send my-queue`) instead of dropping the destination. `messaging.destination.name` reports the same value, and the routing key remains on `messaging.rabbitmq.destination.routing_key` in full.
-
-Because a name built from an operation type has to be able to say which operation it means, the NestJS BullMQ, AWS SNS and AWS SQS `SendMessage` spans now carry the `messaging.operation.type` attribute they name themselves after. The other messaging integrations already set it. The attribute is set in both trace lifecycles.
-
-Child spans of a service or root span carry its name in their `sentry.segment.name` attribute, so that changes with it. If you group or filter spans by segment name in dashboards or alerts, update those references. The same applies to `ui.action.click` spans, which are named after the current route.
-
-`ignoreSpans` is evaluated when a span **starts**, at which point a span might not yet have its final name. For example, an unresolved pageload or navigation span is named `'Pageload'`/`'Navigation'` and might receive its final, resolved route name later.
-`ignoreSpans` filters matching a URL path no longer apply to them.
-Another example where filters might need adjustments are `resource.*` spans where their name now only includes the domain the resource was taken from.
-Likewise, filters matching `chat unknown` no longer apply to a streamed chat span (`'chat'`).
-
-Match on attributes instead:
+Match on attributes instead, for example:
 
 ```js
 Sentry.init({
   // Before
-  ignoreSpans: ['/health'],
+  ignoreSpans: ['/health', 'SELECT * FROM health_check'],
 
   // After
-  ignoreSpans: [{ name: 'Pageload', attributes: { 'sentry.op': 'pageload', 'url.path': '/health' } }],
+  ignoreSpans: [
+    { attributes: { 'sentry.op': 'pageload', 'url.path': '/health' } },
+    { attributes: { 'db.query.text': 'SELECT * FROM health_check' } },
+  ],
 });
 ```
 
-The same applies to `tracesSampler`, which also runs at span start. A web framework matches the route
-_after_ that point, so an `http.server` span is named `GET` when your rule is evaluated — never
-`GET /health`. Name-based rules stop matching **silently**: no error, no warning, just unexpected quota
+The same applies to `tracesSampler`, which also runs prior to span start. A web framework like Express matches the route
+_after_ that point, so an `http.server` span is named `GET` when your rule is evaluated and not `GET /health`.
+Name-based rules stop matching **silently**: no error, no warning, just unexpected quota
 usage. No route attribute is set at that point either, so match on `url.path`:
 
 ```js
@@ -1050,12 +1048,71 @@ Sentry.init({
 });
 ```
 
-On `@sentry/nextjs` the incoming-request span comes from Next.js' own OpenTelemetry instrumentation, so
-match on `url.full` or `http.target` if `url.path` is absent. `normalizedRequest.url` is also available on
-the sampling context.
+#### HTTP spans
 
-Error grouping is **not** affected by the `http.server` change: the scope's transaction name still holds
-the full `${method} ${path}`.
+`http.server` requests that resolve to a route are **unchanged**, because those names were already low cardinality. Only requests the SDK cannot parameterize are affected.
+
+Outgoing requests never resolve to a route, so **every** `http.client` name changes: the path, query and fragment are dropped and only the domain is kept. The full URL remains available on `url.full`, and outgoing request spans now also carry a `url.domain` attribute. A request with no domain to fall back on, such as a data URL or a relative URL that the SDK cannot resolve against a page origin, is named after the HTTP method alone.
+
+#### Routing and request handler spans
+
+Only the Express, Koa and Hapi integrations resolve a route template for `router` spans.
+
+The Express, Fastify, Hapi and Elysia integrations resolve a route template for `handler` spans.
+
+NestJS has no route template when the span starts, so its request handler spans are named `Request handler`.
+
+The handler function name stays on an attribute: `nestjs.callback` for NestJS, and `code.function.name` for Elysia, which now sets it on its handler spans. Elysia request handler spans also carry `http.route` now.
+
+#### GraphQL spans
+
+The graphql operation name and the resolver field path are no longer part of a span name. They remain available on the `graphql.operation.name` and `graphql.field.path` attributes.
+Every graphql span now carries a `graphql.processing.type` attribute (`parse`, `validate`, `execute` or `resolve`).
+
+`useOperationNameForRootSpan` no longer renames the enclosing root span (`GET /graphql` stays `GET /graphql`, instead of becoming `GET /graphql (query GetUser)`).
+The operations are still recorded on that span's `sentry.graphql.operation` attribute, as long as the option stays enabled (the default). Disabling it skips both, as before.
+
+Because the URL path is gone from `http.client` names, `graphqlClientIntegration` no longer appends the operation to the outgoing request span name (`POST https://api.example.com/graphql (query GetUser)` becomes `POST api.example.com`). Outgoing GraphQL request spans now carry the operation on the `graphql.operation.name` and `graphql.operation.type` attributes instead, and it also stays on the request breadcrumb's `graphql.operation` data.
+
+#### AI spans
+
+LangChain agent spans now lead with the operation, like LangGraph and Vercel AI ones: `chain format_prompt` becomes `invoke_agent format_prompt`, and a chain the SDK cannot name becomes `invoke_agent` rather than `chain unknown_chain`.
+The chain name remains available on `gen_ai.pipeline.name`. LangGraph agent names and Vercel AI `functionId`s are unchanged.
+
+#### MCP spans
+
+URIs are no longer part of an `mcp.server` span name. The URI remains available on the `mcp.resource.uri` attribute.
+
+#### Messaging spans
+
+Messaging span names now read `<operation type> <destination>` in every integration. The amqplib, kafkajs and NestJS BullMQ span names change: `my-queue process` became `process my-queue`, amqplib's `publish` became `send`, and the kafkajs batch span's `poll` became `receive`. The operation name is recorded on the `messaging.operation.name` attribute.
+
+An amqplib span's destination is the exchange it uses, or the routing key when it uses the default exchange. RabbitMQ binds every queue to the default exchange under a key equal to the queue's own name, so `sendToQueue` spans are named after their queue (`send my-queue`) instead of dropping the destination. `messaging.destination.name` reports the same value, and the routing key remains on `messaging.rabbitmq.destination.routing_key` in full.
+
+AWS SQS `SendMessage`, `SendMessageBatch` and `ReceiveMessage`, and SNS `Publish`, are messaging spans (e.g. `queue.publish`) rather than `rpc` ones now. Every other command on those clients, such as `DeleteMessage`, stays `rpc`. Their names follow the messaging conventions too, so the operation comes first (`my-queue receive` becomes `receive my-queue`, `my-topic send` becomes `send my-topic`). A streamed SNS `Publish` to a platform endpoint is named `send`, because the endpoint ARN it used to carry ends in a per-device id (`endpoint/GCM/myapp/<uuid> send`). The full ARN remains on `messaging.destination.name`.
+
+Because a name built from an operation type has to be able to say which operation it means, the NestJS BullMQ, AWS SNS and AWS SQS `SendMessage` spans now carry the `messaging.operation.type` attribute they name themselves after. The other messaging integrations already set it.
+
+#### Cache spans
+
+Cache keys are no longer part of a cache span name. They remain available on the `cache.key` attribute, and every cache span now also carries a `cache.operation` attribute (`get`, `put`, `remove`), which is the value the name is built from. This affects the redis/ioredis cache spans (with `cachePrefixes` set on the redis integration), the Nuxt and Nitro storage spans, and the dataloader spans.
+
+A Redis command whose key matches `cachePrefixes` now starts as a `cache.*` span instead of being converted from a `db.query` span at response time. `ignoreSpans` is evaluated at span start, so filters can match these spans by their cache op and name. A failed cache command reports as a cache span too, where it previously stayed a `db.query` span.
+For the Redis cache integration, the `maxCacheKeyLength` option no longer has an effect if span streaming is enabled, as it only affected the span name based on the cache key.
+
+A dataloader span no longer carries the loader's `name` either (`dataloader.load usersLoader` becomes `cache.get`). The loader `name` is reported on the `db.collection.name` attribute instead.
+
+#### Database spans
+
+The `pg`, `postgres.js`, `mysql`, `mysql2`, `knex`, `tedious`, Prisma, Nitro `db0` and Cloudflare D1 instrumentations all name their query spans the same way. SQL query spans are named after the summary of the statement rather than the statement itself. A statement that touches no table (`SELECT NOW()`) summarizes to the bare operation (`SELECT`). The full, sanitized statement remains available on `db.query.text`, and the summary on the new [`db.query.summary` attribute](#messaging-and-database-attributes).
+
+Supabase query spans drop the builder call from the name (`select(...) from(users)` becomes `select users`); the query modifiers stay on the `db.query` attribute. Supabase auth spans are named after the method they call (`auth signInWithPassword` becomes `auth.signInWithPassword`, `auth (admin) createUser` becomes `auth.admin.createUser`). An auth call has neither a table nor a namespace to build a name from.
+
+A mongoose span's name is built from `db.collection.name`, so it holds the collection (`blogposts`) rather than previously the model (`BlogPost`). The related [`db.system.name` change](#messaging-and-database-attributes) from `mongoose` to `mongodb` applies here too.
+
+Redis has no statement to summarize so redis and ioredis `db.query` spans are named after the operation and the connection instead of the command that was sent. The command and its arguments remain available on `db.query.text`.
+
+Connect and pool spans keep their names: `pg.connect`, `pg-pool.connect`, `mysql2.connect`, `redis-connect` and `generic-pool.acquire` remain unchanged.
 
 ### AI integrations no longer trace non-inference operations
 
@@ -1121,6 +1178,8 @@ Note that v10.30.0 deprecated a top-level `reactComponentAnnotation` in favour o
 
 On Turbopack, component annotation requires Next.js 16+. The SDK now warns at build time if annotation is enabled on an older Next.js version, where it previously did nothing silently.
 
+**Default `environment` on Vercel no longer has a `vercel-` prefix:** On Vercel, the SDK now defaults `environment` to the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) instead of `vercel-production` / `vercel-preview`. Update alert rules, dashboards and saved searches that reference the old names, or keep them by setting `environment` explicitly.
+
 **Vercel AI no longer supported on Edge runtime:** We now rely on diagnostics channels for our Vercel AI instrumentation, which does not work on the Edge runtime. Because of this, monitoring of the `ai` package is no longer supported on Edge. Note that Edge is deprecated.
 
 ### Cloudflare: `nodejs_compat` compatibility flag is now required
@@ -1167,6 +1226,34 @@ The experimental opt-in this replaces was removed:
 Affected SDKs: `@sentry/cloudflare`.
 
 Calls to rate limiter bindings (`env.MY_RATE_LIMITER.limit()`) no longer create a span. The removed span had the op `rpc`, the origin `auto.faas.cloudflare.rate_limit`, and the attribute `rpc.service: cloudflare.rate_limit`. Remove any dashboard, alert, or `ignoreSpans` entry that references it.
+
+### `@sentry/nuxt`: the server config is bundled, `--import` is no longer needed
+
+The SDK now bundles `sentry.server.config.ts` into the Nitro server build, where it initializes itself when the server starts. Instrumentation happens at build time, so preloading the config file is no longer necessary.
+
+Remove the `--import` flag from your production start command:
+
+```bash
+# before
+node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
+
+# after
+node .output/server/index.mjs
+```
+
+Old start commands keep working: the SDK still emits a file at the old path, but it only prints a reminder that the flag can be removed. If you preload a file that calls `Sentry.init` yourself, that init wins and the bundled one is skipped.
+
+The same applies in development. Remove the `NODE_OPTIONS` preload:
+
+```bash
+# before
+NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev
+
+# after
+nuxt dev
+```
+
+Since no preload is needed anymore, the `autoInjectServerSentry` option (`'top-level-import'` and `'experimental_dynamic-import'`) and `experimental_entrypointWrappedFunctions` are deprecated. Remove them from your `sentry` module options as the default behavior replaces both. They will be deleted in the next major version.
 
 ### `@sentry/ember` is now a v2 addon with manual setup
 
@@ -1260,9 +1347,70 @@ Affected SDKs: `@sentry/react-router`.
 + import { sentryOnBuildEnd } from '@sentry/react-router/vite';
 ```
 
+### Remix: Vite plugin moved to `@sentry/remix/vite`
+
+Affected SDKs: `@sentry/remix`.
+
+`sentryRemixVitePlugin` is no longer available from the main `@sentry/remix` entry point. Import it from the dedicated subpath instead:
+
+```diff
+// vite.config.ts
+- import { sentryRemixVitePlugin } from '@sentry/remix';
++ import { sentryRemixVitePlugin } from '@sentry/remix/vite';
+```
+
+The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
+
+### React: Simpler React Router setup via `@sentry/react/react-router`
+
+Affected SDKs: `@sentry/react`.
+
+`@sentry/react` gained a new `@sentry/react/react-router` entry point that pulls the required React Router hooks (`useLocation`, `useNavigationType`, `matchRoutes`, `createRoutesFromChildren`) from `react-router` for you, so you no longer have to thread them through `reactRouterBrowserTracingIntegration` yourself:
+
+```diff
+- import * as Sentry from '@sentry/react';
+- import { useEffect } from 'react';
+- import { createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router';
++ import * as Sentry from '@sentry/react';
++ import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';
+
+  Sentry.init({
+    integrations: [
+-     Sentry.reactRouterBrowserTracingIntegration({
+-       useEffect,
+-       useLocation,
+-       useNavigationType,
+-       createRoutesFromChildren,
+-       matchRoutes,
+-     }),
++     reactRouterBrowserTracingIntegration(),
+    ],
+  });
+```
+
+The `wrapReactRouterRouting`, `wrapUseRoutes`, `wrapCreateBrowserRouter` and `wrapCreateMemoryRouter` helpers are re-exported from `@sentry/react/react-router` as well.
+
+This entry requires `react-router` to be resolvable — it is declared as an optional peer dependency and supports React Router v6, v7 and v8. If you are on React Router v6 with only `react-router-dom` installed, either add `react-router` as a dependency or keep importing `reactRouterBrowserTracingIntegration` from `@sentry/react` and pass the hooks explicitly.
+
+The existing `@sentry/react` API is unchanged and keeps working; passing the hooks there is now optional too (`useEffect` in particular is no longer used and can be omitted).
+
+Additionally — for **every** `@sentry/react` routing setup, not just the new entry — the order in which you add the browser tracing integration and wrap your routes no longer matters.
+
 ## 3. Removed APIs
 
 ### `@sentry/core` / All SDKs
+
+- `@sentry/core` now exports only isomorphic code. Browser-only exports live on `@sentry/core/browser` and server-only exports on `@sentry/core/server`, and neither subpath re-exports the shared surface any more. This keeps server-only code (HTTP instrumentation, ANR, postgres and sql helpers) out of browser bundles. Most of these APIs are also re-exported by the platform SDKs (`@sentry/node`, `@sentry/browser`, ...), which is unchanged, so this only affects code importing straight from `@sentry/core`. TypeScript reports it as `has no exported member`.
+
+```js
+// before
+import { loadModule, trpcMiddleware } from '@sentry/core';
+import type { BrowserClientReplayOptions } from '@sentry/core';
+
+// after
+import { loadModule, trpcMiddleware } from '@sentry/core/server';
+import type { BrowserClientReplayOptions } from '@sentry/core/browser';
+```
 
 - The internal, deprecated `addAutoIpAddressToUser` export was removed.
 - `Scope.clear()` was removed. To reset scope state, re-initialize the SDK or run your code in a fresh scope via `withScope`/`withIsolationScope`.
@@ -1570,8 +1718,8 @@ import { withSentryConfig } from '@sentry/nextjs/config';
 
 The no-op `withSentryConfig` passthroughs that the client and edge builds exported were removed along with it.
 
-The following long-deprecated top-level options in `withSentryConfig` / the `sentry` config were removed. Most of them
-moved under the `webpack` option in v10; use the replacement listed below instead:
+The following top-level options in `withSentryConfig` / the `sentry` config were removed. They were deprecated in
+10.30.0, when most of them moved under the `webpack` option; use the replacement listed below instead:
 
 | Removed option                          | Replacement                                                             |
 | --------------------------------------- | ----------------------------------------------------------------------- |
@@ -1592,6 +1740,10 @@ moved under the `webpack` option in v10; use the replacement listed below instea
 ### Meta-framework build options
 
 The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
+
+### Bundler plugins: Vercel deploys use the plain Vercel environment name
+
+Deploys that the bundler plugins create automatically on Vercel now use the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) as their environment instead of `vercel-production` / `vercel-preview`. This matches the new default runtime `environment` of `@sentry/nextjs`, and the `production` default of all other SDKs. If your events use a different environment, set `release.deploy.env` to the same value, or set `release.deploy` to `false` to opt out.
 
 ### Removed `unstable_` bundler plugin options
 
@@ -1645,11 +1797,7 @@ public/instrument.server.ts
 sentry.server.config.ts
 ```
 
-After the rename, the SDK also emits `.output/server/sentry.server.config.mjs` for you to preload:
-
-```bash
-node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
-```
+After the rename, the SDK bundles the file into the Nitro server build and initializes itself at server startup. See ["the server config is bundled"](#sentrynuxt-the-server-config-is-bundled---import-is-no-longer-needed) above: the `--import` preload is no longer needed.
 
 The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
 
@@ -2078,6 +2226,7 @@ The main entry re-exported the build plugin statically, which pulled the whole b
   `any`.
 - Attribute typing and serialization were unified across the SDK.
 - The `attributes` field on the `ScopeData` type is now required. `Scope.getScopeData()` always returned it, so this only affects code that constructs `ScopeData` objects manually — add `attributes: {}` there.
+- The `attributes` field on the `SamplingContext` passed to `tracesSampler` is now required (previously optional); it is always provided by the SDK, so this only affects code that narrows or constructs `SamplingContext` objects by hand.
 - The `endTimestamp` property was removed from the `SentrySpanArguments` interface. It was never part of
   `StartSpanOptions`, so it could only be passed by ignoring TypeScript, in which case the span ended itself
   during construction. Call `span.end(timestamp)` instead.
