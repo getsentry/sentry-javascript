@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.0.0",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
   },

@@ -22,7 +22,7 @@
     "@babel/plugin-proposal-decorators": "^8.0.2",
     "@cloudflare/vite-plugin": "^1.47.0",
     "@cloudflare/workers-types": "^5.20260727.1",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^26.1.2",
     "@types/ws": "^8.18.1",

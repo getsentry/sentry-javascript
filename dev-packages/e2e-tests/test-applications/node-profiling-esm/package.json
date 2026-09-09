@@ -10,7 +10,7 @@
     "test:assert": "pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@sentry/profiling-node": "file:../../packed/sentry-profiling-node-packed.tgz",

@@ -16,7 +16,7 @@
     "react-router": "^7"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@react-router/dev": "^7",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/mysql": "^2.15.26",

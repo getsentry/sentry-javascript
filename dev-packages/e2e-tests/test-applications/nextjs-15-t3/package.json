@@ -28,7 +28,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.0",
