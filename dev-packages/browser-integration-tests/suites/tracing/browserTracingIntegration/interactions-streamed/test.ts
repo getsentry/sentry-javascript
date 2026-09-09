@@ -14,6 +14,7 @@ import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -61,7 +62,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: expect.any(String),
       },
-      'http.request.header.user_agent': {
+      [USER_AGENT_ORIGINAL]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -136,6 +137,10 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
         type: 'string',
         value: 'ui.interaction.click',
+      },
+      [USER_AGENT_ORIGINAL]: {
+        type: 'string',
+        value: expect.any(String),
       },
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
         type: 'string',

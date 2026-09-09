@@ -4,6 +4,9 @@ import type { StreamedSpanJSON } from '@sentry/core';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 import { BrowserClient } from '../../src/client';
 
+const USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+
 describe('httpContextIntegration', () => {
   globalThis.navigator = {
     userAgent:
@@ -24,6 +27,7 @@ describe('httpContextIntegration', () => {
     const integration = httpContextIntegration();
 
     const span: Partial<StreamedSpanJSON> = {
+      is_segment: true,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       },
@@ -31,14 +35,13 @@ describe('httpContextIntegration', () => {
 
     const browserClient = new BrowserClient(getDefaultBrowserClientOptions());
 
-    integration.processSegmentSpan!(span as StreamedSpanJSON, browserClient);
+    integration.processSpan!(span as StreamedSpanJSON, browserClient);
 
     expect(span.attributes).not.toHaveProperty('url.full');
     expect(span.attributes).toEqual({
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       'http.request.header.referer': 'https://example.com',
-      'http.request.header.user_agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'user_agent.original': USER_AGENT,
     });
   });
 
@@ -46,6 +49,7 @@ describe('httpContextIntegration', () => {
     const integration = httpContextIntegration();
 
     const span: Partial<StreamedSpanJSON> = {
+      is_segment: true,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       },
@@ -53,14 +57,30 @@ describe('httpContextIntegration', () => {
 
     const browserClient = new BrowserClient(getDefaultBrowserClientOptions());
 
-    integration.processSegmentSpan!(span as StreamedSpanJSON, browserClient);
+    integration.processSpan!(span as StreamedSpanJSON, browserClient);
 
     expect(span.attributes).toEqual({
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       'http.request.header.referer': 'https://example.com',
-      'http.request.header.user_agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'user_agent.original': USER_AGENT,
       'url.full': 'https://example.com',
+    });
+  });
+
+  it('only attaches the user agent to non-segment spans', () => {
+    const integration = httpContextIntegration();
+
+    const span: Partial<StreamedSpanJSON> = {
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
+      },
+    };
+
+    integration.processSpan!(span as StreamedSpanJSON, new BrowserClient(getDefaultBrowserClientOptions()));
+
+    expect(span.attributes).toEqual({
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
+      'user_agent.original': USER_AGENT,
     });
   });
 });
