@@ -149,23 +149,62 @@ function truncate(summary: string): string {
 }
 
 let integerLiteralRE: RegExp | undefined;
+let mssqlIntegerLiteralRE: RegExp | undefined;
+
+/**
+ * The lookbehind keeps `$n` and `?n` parameter placeholders out of the match. T-SQL has neither,
+ * and `$1000` there is a money literal, so `$` only guards a placeholder outside `mssql`.
+ *
+ * Lazy init: constructing a lookbehind at module scope evaluates it on import and crashes
+ * Safari <16.4 browser bundles that reach this file via the core barrel.
+ */
+function getIntegerLiteralRE(dialect: SqlDialect): RegExp {
+  if (dialect === 'mssql') {
+    if (!mssqlIntegerLiteralRE) {
+      mssqlIntegerLiteralRE = new RegExp('(?<!\\?)-?\\b\\d+\\b', 'g');
+    }
+    return mssqlIntegerLiteralRE;
+  }
+  if (!integerLiteralRE) {
+    integerLiteralRE = new RegExp('(?<![$?])-?\\b\\d+\\b', 'g');
+  }
+  return integerLiteralRE;
+}
 
 /**
  * SQL dialect variants that matter for finding the end of a string literal:
- * - `standard` (PostgreSQL, SQLite, SQL Server): `"` quotes identifiers, `''` is the only
- *   in-string escape, and PostgreSQL's `$$…$$` dollar quoting opens a literal.
+ * - `standard` (PostgreSQL, SQLite): `"` quotes identifiers, `''` is the only in-string escape,
+ *   and PostgreSQL's `$$…$$` dollar quoting opens a literal.
  * - `mysql`: `"` quotes a string literal unless `ANSI_QUOTES` is set, and `\` escapes the next
  *   character unless `NO_BACKSLASH_ESCAPES` is set. Both default to off, and mysql/mysql2 escape
  *   inlined values with backslashes, so this is the mode their statements arrive in.
+ * - `mssql`: `[...]` quotes an identifier, so a `'` inside one is part of the name. `"` quotes
+ *   one too, unless the connection sets `QUOTED_IDENTIFIER OFF`, which tedious leaves on.
  */
-export type SqlDialect = 'standard' | 'mysql';
+export type SqlDialect = 'standard' | 'mysql' | 'mssql';
+
+/**
+ * Maps a driver or `db.system.name` value to the dialect its statements are written in. Callers
+ * report different spellings for one engine: knex uses the driver name, Prisma the provider name,
+ * and OTel the semantic-convention name.
+ */
+export function toSqlDialect(system: unknown): SqlDialect | undefined {
+  if (system === 'mysql' || system === 'mysql2' || system === 'mariadb') {
+    return 'mysql';
+  }
+  if (system === 'mssql' || system === 'sqlserver' || system === 'microsoft.sql_server') {
+    return 'mssql';
+  }
+  return undefined;
+}
 
 // Sticky, so the scanner can test one position without slicing the query on every `$`.
 const DOLLAR_QUOTE_RE = /\$(?:[A-Za-z_]\w*)?\$/y;
 
 /**
- * Returns the index just past the run's closing `delimiter`, or the end of the query if the run is
- * never closed — an unterminated literal must swallow the remainder rather than let it through.
+ * Returns the index just past the run's closing `delimiter`, or -1 if the run never closes. The
+ * caller cannot derive that from the index alone: a query ending in `[a]]` consumed a doubled
+ * delimiter, not a closing one.
  *
  * A doubled delimiter (`''`) escapes itself in every dialect; backslash escapes are dialect- and
  * context-dependent, so the caller decides.
@@ -182,7 +221,7 @@ function findQuotedRunEnd(sql: string, start: number, delimiter: string, backsla
       i++;
     }
   }
-  return sql.length;
+  return -1;
 }
 
 /**
@@ -219,8 +258,9 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
 
     // In a dollar-quoted body (`$$body$$`, `$tag$body$tag$`) nothing has syntax meaning. Read the
     // previous character from the query, not from `out`, where a dropped comment would leave `$$`
-    // looking like part of an identifier. MySQL has no dollar quoting and allows `$` in names.
-    if (!isMysql && char === '$' && !isIdentifierChar(sql[i - 1])) {
+    // looking like part of an identifier. Of the `standard` engines only PostgreSQL has dollar
+    // quoting. SQLite `$name` parameters do not match the tag pattern, apart from the rare `$a$b`.
+    if (dialect === 'standard' && char === '$' && !isIdentifierChar(sql[i - 1])) {
       const tag = matchDollarQuoteTag(sql, i);
       if (tag) {
         const bodyEnd = sql.indexOf(tag, i + tag.length);
@@ -230,20 +270,23 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       }
     }
 
-    // Quoted identifiers: backticks in MySQL, double quotes everywhere else
-    if (char === '`' || (char === '"' && !isMysql)) {
-      const runEnd = findQuotedRunEnd(sql, i, char, false);
-      out += sql.slice(i, runEnd);
-      i = runEnd;
+    const identifierCloser = getIdentifierCloser(char, dialect);
+    if (identifierCloser) {
+      const runEnd = findQuotedRunEnd(sql, i, identifierCloser, false);
+      // A run that never closes is not an identifier, so it collapses instead of being copied out.
+      // Copying would carry every literal in the rest of the statement through unlexed.
+      out += runEnd === -1 ? '?' : sql.slice(i, runEnd);
+      i = runEnd === -1 ? sql.length : runEnd;
       continue;
     }
 
     if (char === "'" || (char === '"' && isMysql)) {
       // A prefix like `X'1A'`, `B'01'`, `N'…'` or PostgreSQL's `E'a\nb'` is part of the literal, so it has
       // to collapse into the same `?` instead of being left behind as a bare identifier.
-      const prefix = char === "'" ? getLiteralPrefix(out, isMysql) : undefined;
+      const prefix = char === "'" ? getLiteralPrefix(out, dialect) : undefined;
       out = prefix ? out.slice(0, -1) : out;
-      i = findQuotedRunEnd(sql, i, char, isMysql || prefix === 'E');
+      const runEnd = findQuotedRunEnd(sql, i, char, isMysql || prefix === 'E');
+      i = runEnd === -1 ? sql.length : runEnd;
       out += '?';
       continue;
     }
@@ -253,6 +296,21 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
   }
 
   return out;
+}
+
+/**
+ * Returns the character that closes an identifier opened by `char`, or undefined if `char` opens
+ * none. SQL Server brackets close on `]`, and `]]` escapes a `]` inside the name, which is the same
+ * doubling rule `findQuotedRunEnd` applies to quotes.
+ */
+function getIdentifierCloser(char: string, dialect: SqlDialect): string | undefined {
+  if (char === '`') {
+    return '`';
+  }
+  if (char === '"' && dialect !== 'mysql') {
+    return '"';
+  }
+  return char === '[' && dialect === 'mssql' ? ']' : undefined;
 }
 
 /** Whether `char` can appear inside an identifier. `undefined` (start of query) counts as a break. */
@@ -271,7 +329,7 @@ function matchDollarQuoteTag(sql: string, start: number): string | undefined {
  * hex/binary literals, `N` for a national-character literal (SQL Server, MySQL), or `E` for a
  * PostgreSQL escape string (which honors backslash escapes).
  */
-function getLiteralPrefix(out: string, isMysql: boolean): 'X' | 'B' | 'N' | 'E' | undefined {
+function getLiteralPrefix(out: string, dialect: SqlDialect): 'X' | 'B' | 'N' | 'E' | undefined {
   // A prefix only counts when it stands alone — the `X` in `MAX'...'` belongs to the identifier
   if (isIdentifierChar(out.slice(-2, -1))) {
     return undefined;
@@ -281,7 +339,7 @@ function getLiteralPrefix(out: string, isMysql: boolean): 'X' | 'B' | 'N' | 'E' 
   if (prefix === 'X' || prefix === 'B' || prefix === 'N') {
     return prefix;
   }
-  return prefix === 'E' && !isMysql ? 'E' : undefined;
+  return prefix === 'E' && dialect === 'standard' ? 'E' : undefined;
 }
 
 /**
@@ -300,13 +358,6 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
     return 'Unknown SQL Query';
   }
 
-  // Lazy init: constructing this at module scope would evaluate the lookbehind
-  // on import and crash Safari <16.4 browser bundles that reach this file via
-  // the core barrel. Building it on first call keeps the cost off the import path.
-  if (!integerLiteralRE) {
-    integerLiteralRE = new RegExp('(?<![$?])-?\\b\\d+\\b', 'g');
-  }
-
   return (
     // Strip comments and string literals first: everything below is a regex that cannot tell
     // whether it is looking at SQL syntax or at a user-supplied value.
@@ -323,7 +374,7 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
       .replace(/-?\b\d+\.?\d*[eE][+-]?\d+\b/g, '?') // Scientific notation
       .replace(/-?\b\d+\.\d+\b/g, '?') // Decimals
       .replace(/-?\.\d+\b/g, '?') // Decimals starting with dot
-      .replace(integerLiteralRE, '?') // Integers (NOT $n placeholders)
+      .replace(getIntegerLiteralRE(dialect), '?') // Integers (NOT parameter placeholders)
       // Collapse IN clauses for cardinality (both ? and $n variants)
       .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
       .replace(/\bIN\b\s*\(\s*\$\d+(?:\s*,\s*\$\d+)*\s*\)/gi, 'IN ($?)')
