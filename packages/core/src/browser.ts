@@ -4,13 +4,6 @@
  * @module
  */
 
-export {
-  startSpan,
-  startInactiveSpan,
-  startSpanManual,
-  _INTERNAL_ensureBrowserSpanStreaming,
-} from './tracing/browserSpanApi';
-
 export { startIdleSpan } from './tracing/idleSpan';
 
 export type { XhrBreadcrumbData, XhrBreadcrumbHint } from './types/breadcrumb';

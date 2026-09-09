@@ -18,7 +18,7 @@ import {
   browserPerformanceTimeOrigin,
   getSpanDescendants,
 } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/core/browser';
+import { startInactiveSpan } from '@sentry/browser-utils';
 import { JSDOM } from 'jsdom';
 import { TextDecoder, TextEncoder } from 'util';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

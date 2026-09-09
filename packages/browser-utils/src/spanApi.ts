@@ -1,14 +1,14 @@
-import type { Client } from '../client';
-import { getClient } from '../currentScopes';
-import { spanStreamingIntegration } from '../integrations/spanStreaming';
-import type { Span } from '../types/span';
-import type { StartSpanOptions } from '../types/startSpanOptions';
-import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
+import type { Span, StartSpanOptions } from '@sentry/core';
+/* oxlint-disable sdk/no-unguarded-span-apis -- This module IS the guarded browser variant: each wrapper
+   installs `spanStreamingIntegration` via `ensureBrowserSpanStreaming` before delegating to the
+   plain core API, which is exactly what browser-facing code is meant to go through. */
 import {
   startInactiveSpan as coreStartInactiveSpan,
   startSpan as coreStartSpan,
   startSpanManual as coreStartSpanManual,
-} from './trace';
+} from '@sentry/core';
+/* oxlint-enable sdk/no-unguarded-span-apis */
+import { ensureBrowserSpanStreaming } from './ensureBrowserSpanStreaming';
 
 /**
  * Browser variants of the span-start APIs.
@@ -19,34 +19,13 @@ import {
  * the `__SENTRY_TRACING__` flag.
  */
 
-const clientsWithIntegration = new WeakSet<Client>();
-
-/**
- * Lazily install the browser span streaming integration.
- *
- * Defaults to the current client; pass one explicitly from integration hooks, where the client being
- * set up isn't necessarily the current one.
- *
- * @internal
- */
-export function _INTERNAL_ensureBrowserSpanStreaming(client: Client | undefined = getClient()): void {
-  // The `WeakSet` is an allocation optimization, not a semantic gate — `addIntegration()` is already
-  // idempotent by integration name, including against a user-supplied instance.
-  if (!client || clientsWithIntegration.has(client) || !hasSpanStreamingEnabled(client)) {
-    return;
-  }
-
-  clientsWithIntegration.add(client);
-  client.addIntegration(spanStreamingIntegration());
-}
-
 /**
  * Wraps a function with a span and finishes the span after the function is done.
  *
  * See {@link startSpan} in `@sentry/core` for details.
  */
 export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) => T): T {
-  _INTERNAL_ensureBrowserSpanStreaming();
+  ensureBrowserSpanStreaming();
   return coreStartSpan(options, callback);
 }
 
@@ -56,7 +35,7 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
  * See {@link startSpanManual} in `@sentry/core` for details.
  */
 export function startSpanManual<T>(options: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
-  _INTERNAL_ensureBrowserSpanStreaming();
+  ensureBrowserSpanStreaming();
   return coreStartSpanManual(options, callback);
 }
 
@@ -66,6 +45,6 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
  * See {@link startInactiveSpan} in `@sentry/core` for details.
  */
 export function startInactiveSpan(options: StartSpanOptions): Span {
-  _INTERNAL_ensureBrowserSpanStreaming();
+  ensureBrowserSpanStreaming();
   return coreStartInactiveSpan(options);
 }

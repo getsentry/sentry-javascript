@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { createTransport, getMainCarrier, resolvedSyncPromise } from '@sentry/core';
-import { startIdleSpan, startInactiveSpan, startSpan, startSpanManual } from '@sentry/core/browser';
+import { startInactiveSpan, startSpan, startSpanManual } from '@sentry/browser-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserOptions } from '../../src';
 import { browserTracingIntegration, init } from '../../src';
@@ -46,7 +46,6 @@ describe('span streaming wiring', () => {
   it.each([
     ['startSpan', () => startSpan({ name: 'test' }, () => {})],
     ['startInactiveSpan', () => startInactiveSpan({ name: 'test' }).end()],
-    ['startIdleSpan', () => startIdleSpan({ name: 'test' })],
     ['startSpanManual', () => startSpanManual({ name: 'test' }, () => {})],
   ])('installs the integration when the first span is started via %s', (_, startTestSpan) => {
     const client = initSdk();

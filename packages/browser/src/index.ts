@@ -71,7 +71,7 @@ export {
   metrics,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/core/browser';
+export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/browser-utils';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';

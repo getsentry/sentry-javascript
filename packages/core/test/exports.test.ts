@@ -3,38 +3,32 @@ import * as browserEntry from '../src/browser';
 import * as rootEntry from '../src/index';
 import { spanStreamingIntegration } from '../src/integrations/spanStreaming';
 import * as serverEntry from '../src/server';
-import * as browserSpanApi from '../src/tracing/browserSpanApi';
 import {
   startInactiveSpan as plainStartInactiveSpan,
   startSpan as plainStartSpan,
   startSpanManual as plainStartSpanManual,
 } from '../src/tracing/trace';
 
-// The span-start APIs exist in two variants under the same name: the plain ones (`./tracing/trace`)
-// and the browser ones (`./tracing/browserSpanApi`) that install `spanStreamingIntegration` before
-// starting the span. The isomorphic root entry disambiguates to the plain variant with explicit
-// re-exports — if someone adds another `export *` that also carries one of these names, or drops the
-// explicit re-export, the root entry silently flips to the wrong variant (or fails to link). The
-// browser entry serves the guarded variant, and the server entry is disjoint from the isomorphic
-// surface, so it deliberately does not re-export these APIs at all.
+// The isomorphic span-start APIs (`startSpan`, `startInactiveSpan`, `startSpanManual`) live only on the
+// root entry, which serves the plain variant from `./tracing/trace`. The guarded browser variant - the
+// one that installs `spanStreamingIntegration` before starting a span - lives in `@sentry/browser-utils`,
+// not here, so none of core's platform entries re-export these APIs. If someone adds another `export *`
+// that carries one of these names, the root entry could silently flip to a different variant (or fail to
+// link), which is what this guards against.
 describe('entry point resolution', () => {
   const cases = [
-    ['startSpan', plainStartSpan, browserSpanApi.startSpan],
-    ['startInactiveSpan', plainStartInactiveSpan, browserSpanApi.startInactiveSpan],
-    ['startSpanManual', plainStartSpanManual, browserSpanApi.startSpanManual],
+    ['startSpan', plainStartSpan],
+    ['startInactiveSpan', plainStartInactiveSpan],
+    ['startSpanManual', plainStartSpanManual],
   ] as const;
 
   it.each(cases)('`%s`: the root entry serves the plain variant', (name, plain) => {
     expect(rootEntry[name]).toBe(plain);
   });
 
-  it.each(cases)('`%s`: the browser entry serves the browser variant', (name, plain, browser) => {
-    expect(browserEntry[name]).toBe(browser);
-    expect(browserEntry[name]).not.toBe(plain);
-  });
-
-  it.each(cases)('`%s`: the server entry does not re-export the isomorphic API', name => {
+  it.each(cases)('`%s`: the platform entries do not re-export the isomorphic API', name => {
     expect(serverEntry).not.toHaveProperty(name);
+    expect(browserEntry).not.toHaveProperty(name);
   });
 
   // `spanStreamingIntegration` is isomorphic and lives only on the root entry. The platform entries

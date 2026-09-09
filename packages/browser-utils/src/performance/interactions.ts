@@ -18,6 +18,7 @@ import {
 } from '@sentry/core';
 import { startIdleSpan } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
+import { ensureBrowserSpanStreaming } from '../ensureBrowserSpanStreaming';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
 import { isBotUserAgent } from '../isBotUserAgent';
@@ -65,6 +66,10 @@ const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
       if (isBotUserAgent()) {
         return;
       }
+
+      // Interaction spans are started through `startIdleSpan`, which - unlike the guarded `startSpan`
+      // APIs - does not install span streaming itself, so we ensure it here.
+      ensureBrowserSpanStreaming(client);
 
       const latestRoute: RouteInfo = { name: undefined, source: undefined };
       // The pageload/navigation span that is currently in progress, if any. Clicks that happen while one
