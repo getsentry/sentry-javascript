@@ -356,7 +356,7 @@ test.describe('TraceMethod Decorator', () => {
     expect(ngInitSpan).toBeDefined();
     expect(ngInitSpan).toEqual(
       expect.objectContaining({
-        name: '<ngOnInit>',
+        name: 'ngOnInit',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_method_decorator' },
@@ -393,7 +393,7 @@ test.describe('TraceMethod Decorator', () => {
     expect(ngAfterViewInitSpan).toBeDefined();
     expect(ngAfterViewInitSpan).toEqual(
       expect.objectContaining({
-        name: '<unnamed>',
+        name: 'ngAfterViewInit',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_method_decorator' },
