@@ -22,7 +22,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { sanitizeSqlQueryWithSummary } from '../utils/sql';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { pgModuleNames } from '../orchestrion/config/pg';
@@ -180,8 +180,7 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
-  const queryText = queryConfig?.text ? sanitizeSqlQuery(queryConfig.text) : undefined;
-  const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
+  const { queryText, querySummary } = sanitizeSqlQueryWithSummary(queryConfig?.text);
   const name =
     client && hasSpanStreamingEnabled(client)
       ? querySummary || params.database || DB_SYSTEM_POSTGRESQL
