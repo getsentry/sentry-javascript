@@ -29,6 +29,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'openAIIntegration', modules: ['openai'] },
   { exportName: 'anthropicAIIntegration', modules: ['@anthropic-ai/sdk'] },
   { exportName: 'googleGenAIIntegration', modules: ['@google/genai'] },
+  { exportName: 'mistralAIIntegration', modules: ['@mistralai/mistralai'] },
   { exportName: 'vercelAIIntegration', modules: ['ai'] },
   {
     exportName: 'langChainIntegration',

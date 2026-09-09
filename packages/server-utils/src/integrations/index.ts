@@ -18,6 +18,7 @@ import { vercelAIIntegration } from './vercel-ai';
 import { openAIIntegration } from './openai';
 import { anthropicAIIntegration } from './anthropic';
 import { googleGenAIIntegration } from './google-genai';
+import { mistralAIIntegration } from './mistral';
 import { postgresJsIntegration } from './postgres-js';
 import { firebaseIntegration } from './firebase';
 import { expressIntegration } from './express';
@@ -53,6 +54,7 @@ export function getTracingIntegrations(): Integration[] {
     openAIIntegration(),
     anthropicAIIntegration(),
     googleGenAIIntegration(),
+    mistralAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
   ];
