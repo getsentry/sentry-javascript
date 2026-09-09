@@ -99,6 +99,15 @@ const processJob = handleMessage(message).pipe(
 );
 ```
 
+## Incoming requests
+
+On an `@effect/platform` HTTP server, the tracer continues the trace of an
+incoming request from its `sentry-trace` and `baggage` headers, the same way
+the Node SDK does, so the dynamic sampling context and the
+`strictTraceContinuation` option apply. A `traceparent` or `b3` header is used
+when there is no `sentry-trace` header. `SentryEffectExternalSpanLayer` has no
+effect on these server spans.
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/effect/)

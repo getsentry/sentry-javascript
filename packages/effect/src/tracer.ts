@@ -5,6 +5,7 @@ import type { Span, StartSpanOptions } from '@sentry/core';
 import {
   _INTERNAL_safeMathRandom,
   addNonEnumerableProperty,
+  continueTrace,
   getActiveSpan,
   getCurrentScope,
   getDefaultCurrentScope,
@@ -250,8 +251,34 @@ interface FiberLike {
   readonly currentSpan?: EffectTracer.AnySpan | undefined;
   /** Reads a reference with its default. Only Effect v4 fibers have it. */
   readonly getRef?: <A>(ref: Context.Reference<A>) => A;
+  /** The services of the fiber. Only Effect v4 fibers have it. */
+  readonly context?: Context.Context<never>;
   /** The services of the fiber. Only Effect v3 fibers have it. */
   readonly currentContext?: Context.Context<never>;
+}
+
+interface HttpServerRequestLike {
+  readonly headers: Readonly<Record<string, string | undefined>>;
+}
+
+/**
+ * The request service the HTTP server puts into the fiber context before its tracer middleware starts the
+ * `http.server` span: `@effect/platform` on Effect v3, `effect/unstable/http` on v4. Looked up by key, so
+ * the tracer depends on neither package.
+ */
+const HttpServerRequestKey = isEffectV4
+  ? Context.Service<never, HttpServerRequestLike>('effect/http/HttpServerRequest')
+  : (Context as unknown as EffectV3Context).GenericTag<never, HttpServerRequestLike>(
+      '@effect/platform/HttpServerRequest',
+    );
+
+function getRequestHeaders(fiber: FiberLike): HttpServerRequestLike['headers'] | undefined {
+  const context = fiber.context ?? fiber.currentContext;
+  if (context === undefined) {
+    return undefined;
+  }
+
+  return Option.getOrUndefined(Context.getOption(context, HttpServerRequestKey))?.headers;
 }
 
 /**
@@ -289,6 +316,11 @@ function withFiberContext<X>(fiber: FiberLike, execution: () => X): X {
  * Starts the Sentry span for an Effect span, rooted or parented the way Effect asked for.
  *
  * - A parent this tracer created becomes the Sentry parent.
+ * - The `http.server` span of an Effect HTTP server continues the trace of the incoming request from its
+ *   `sentry-trace` and `baggage` headers through `continueTrace`, like a request in the Node SDK, so the
+ *   dynamic sampling context and the `strictTraceContinuation` checks apply. The parent Effect parsed from
+ *   a `traceparent` or `b3` header is the fallback without `sentry-trace`. A server span under a foreign
+ *   active Sentry span keeps nesting under it, because that span already continued the trace.
  * - Any other parent (`Tracer.externalSpan` bridging a trace this SDK did not start, such as an
  *   OpenTelemetry span of another app in the same process or persisted trace state) is ignored unless
  *   {@link SentryEffectExternalSpanLayer} is provided, so a span joins a foreign trace only when the user
@@ -308,14 +340,30 @@ function startSentrySpan(
   startInactiveSpan: StartInactiveSpan,
   options: StartSpanOptions,
   parent: Option.Option<EffectTracer.AnySpan>,
+  kind: EffectTracer.SpanKind,
   newTraceForRootSpans: boolean,
 ): Span {
+  if (Option.isSome(parent) && isSentrySpan(parent.value)) {
+    return startInactiveSpan({ ...options, parentSpan: parent.value.sentrySpan });
+  }
+
+  const activeSpan = getActiveSpan();
+  const foreignActiveSpan = activeSpan && !isEffectSpan(activeSpan) ? activeSpan : undefined;
+
+  if (kind === 'server' && foreignActiveSpan === undefined && currentFiber !== undefined) {
+    const headers = getRequestHeaders(currentFiber);
+    if (headers !== undefined) {
+      const externalParent = Option.getOrUndefined(parent);
+      const sentryTrace =
+        headers['sentry-trace'] ??
+        (externalParent && `${externalParent.traceId}-${externalParent.spanId}-${externalParent.sampled ? '1' : '0'}`);
+
+      return continueTrace({ sentryTrace, baggage: headers['baggage'] }, () => startInactiveSpan(options));
+    }
+  }
+
   if (Option.isSome(parent)) {
     const parentSpan = parent.value;
-
-    if (isSentrySpan(parentSpan)) {
-      return startInactiveSpan({ ...options, parentSpan: parentSpan.sentrySpan });
-    }
 
     if (currentFiber !== undefined && continuesExternalSpans(currentFiber)) {
       return withScope(scope => {
@@ -335,9 +383,8 @@ function startSentrySpan(
     }
   }
 
-  const activeSpan = getActiveSpan();
-  if (activeSpan && !isEffectSpan(activeSpan)) {
-    return startInactiveSpan({ ...options, parentSpan: activeSpan });
+  if (foreignActiveSpan !== undefined) {
+    return startInactiveSpan({ ...options, parentSpan: foreignActiveSpan });
   }
 
   // A scope the user forked (`continueTrace`, `withScope`, an isolation scope) carries its own trace id.
@@ -374,6 +421,7 @@ function createSentrySpan(
       },
     },
     parent,
+    kind,
     newTraceForRootSpans,
   );
   markEffectSpan(newSpan);

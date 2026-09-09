@@ -101,3 +101,34 @@ test('Continues the trace of a Tracer.externalSpan parent with the external span
     parent_span_id: '0987654321fedcba',
   });
 });
+
+test('Continues the trace of incoming sentry-trace and baggage headers', async ({ baseURL }) => {
+  const traceId = '1234567890abcdef1234567890abcdef';
+  const parentSpanId = 'abcdef1234567890';
+
+  const spanPromise = waitForStreamedSpan('effect-3-node', span => span.is_segment && span.trace_id === traceId);
+
+  await fetch(`${baseURL}/test-success`, {
+    headers: {
+      'sentry-trace': `${traceId}-${parentSpanId}-1`,
+      baggage: `sentry-trace_id=${traceId},sentry-public_key=public,sentry-sample_rate=1,sentry-sampled=true`,
+    },
+  });
+
+  const span = await spanPromise;
+  expect(span.name).toBe('http.server GET');
+  expect(span.parent_span_id).toBe(parentSpanId);
+});
+
+test('Continues the trace of an incoming traceparent header', async ({ baseURL }) => {
+  const traceId = '0123456789abcdef0123456789abcdef';
+  const parentSpanId = '0123456789abcdef';
+
+  const spanPromise = waitForStreamedSpan('effect-3-node', span => span.is_segment && span.trace_id === traceId);
+
+  await fetch(`${baseURL}/test-success`, { headers: { traceparent: `00-${traceId}-${parentSpanId}-01` } });
+
+  const span = await spanPromise;
+  expect(span.name).toBe('http.server GET');
+  expect(span.parent_span_id).toBe(parentSpanId);
+});

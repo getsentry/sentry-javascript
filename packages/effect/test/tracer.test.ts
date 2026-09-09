@@ -4,6 +4,7 @@ import * as sentryCoreBrowser from '@sentry/core/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { ServerRuntimeClient } from '@sentry/core/server';
 import { Effect } from 'effect';
+import * as Context from 'effect/Context';
 import * as Tracer from 'effect/Tracer';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { SentryEffectTracer as clientTracer } from '../src/client/tracer';
@@ -302,6 +303,85 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
 
       expect(sentryCore.spanToJSON(span).trace_id).toBe(traceId);
       expect(sentryCore.spanIsSampled(span)).toBe(false);
+    });
+
+    const HttpServerRequest = Context.Service<never, { headers: Record<string, string> }>(
+      'effect/http/HttpServerRequest',
+    );
+
+    it('continues the incoming sentry-trace and baggage headers on a server span', () => {
+      const span = run(
+        Effect.withSpan('http.server GET', { kind: 'server' })(currentSentrySpan).pipe(
+          Effect.provideService(HttpServerRequest, {
+            headers: {
+              'sentry-trace': `${traceId}-${spanId}-1`,
+              baggage: `sentry-trace_id=${traceId},sentry-public_key=public,sentry-sample_rate=0.5,sentry-sampled=true`,
+            },
+          }),
+        ),
+      );
+
+      expect(sentryCore.spanToJSON(span)).toMatchObject({ trace_id: traceId, parent_span_id: spanId });
+      expect(sentryCore.spanIsSampled(span)).toBe(true);
+      expect(sentryCore.getDynamicSamplingContextFromSpan(span)).toMatchObject({
+        trace_id: traceId,
+        public_key: 'public',
+        sample_rate: '0.5',
+        sampled: 'true',
+      });
+    });
+
+    it('continues the traceparent parent Effect parsed for a server span without a sentry-trace header', () => {
+      const parent = Tracer.externalSpan({ traceId, spanId, sampled: true });
+      const span = run(
+        Effect.withSpan('http.server GET', { kind: 'server', parent })(currentSentrySpan).pipe(
+          Effect.provideService(HttpServerRequest, { headers: {} }),
+        ),
+      );
+
+      expect(sentryCore.spanToJSON(span)).toMatchObject({ trace_id: traceId, parent_span_id: spanId });
+    });
+
+    it('starts a new trace for a server span without trace headers', () => {
+      const span = run(
+        Effect.withSpan('http.server GET', { kind: 'server' })(currentSentrySpan).pipe(
+          Effect.provideService(HttpServerRequest, { headers: {} }),
+        ),
+      );
+
+      expect(sentryCore.spanToJSON(span).parent_span_id).toBeUndefined();
+      expect(sentryCore.spanToJSON(span).trace_id).not.toBe(
+        sentryCore.getCurrentScope().getPropagationContext().traceId,
+      );
+    });
+
+    it('starts a new trace for a server span when strict trace continuation rejects the traceparent parent', () => {
+      Object.assign(sentryCore.getClient()!.getOptions(), { orgId: '123', strictTraceContinuation: true });
+      const parent = Tracer.externalSpan({ traceId, spanId, sampled: true });
+      const span = run(
+        Effect.withSpan('http.server GET', { kind: 'server', parent })(currentSentrySpan).pipe(
+          Effect.provideService(HttpServerRequest, { headers: {} }),
+          Effect.provide(SentryEffectExternalSpanLayer),
+        ),
+      );
+
+      expect(sentryCore.spanToJSON(span).trace_id).not.toBe(traceId);
+      expect(sentryCore.spanToJSON(span).parent_span_id).toBeUndefined();
+    });
+
+    it('nests a server span under a foreign active Sentry span instead of continuing the headers', () => {
+      sentryCore.startSpan({ name: 'http.server' }, request => {
+        const span = run(
+          Effect.withSpan('http.server GET', { kind: 'server' })(currentSentrySpan).pipe(
+            Effect.provideService(HttpServerRequest, { headers: { 'sentry-trace': `${traceId}-${spanId}-1` } }),
+          ),
+        );
+
+        expect(sentryCore.spanToJSON(span)).toMatchObject({
+          trace_id: request.spanContext().traceId,
+          parent_span_id: request.spanContext().spanId,
+        });
+      });
     });
 
     it('does not nest a root: true span under the enclosing Effect span', () => {
