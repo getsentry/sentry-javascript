@@ -9,13 +9,11 @@ argument-hint: <provider-name>
 ## Decision Tree
 
 ```
-Does the AI SDK have native OpenTelemetry support?
-|- YES -> Does it emit OTel spans automatically?
-|   |- YES (like Vercel AI) -> Pattern 1: OTel Span Processors
-|   +- NO -> Pattern 2: Orchestrion Instrumentation (wrap client)
-+- NO -> Does the SDK provide hooks/callbacks?
-    |- YES (like LangChain) -> Pattern 3: Callback/Hook Based
-    +- NO -> Pattern 4: Client Wrapping
+Does the SDK publish its own `diagnostics_channel` telemetry?
+|- YES (ai >= 7) -> Pattern 1: Native tracing channel
++- NO -> Does the SDK expose callback/exporter hooks?
+    |- YES (LangChain, Mastra) -> Pattern 3: Callback/Exporter
+    +- NO (OpenAI, Anthropic, Google GenAI, ai < 7) -> Pattern 2: Orchestrion-injected channels
 ```
 
 ## Placement
@@ -49,32 +47,45 @@ Cloudflare-only client wrapping (Workers AI) is the exception: it is applied in 
 ## Token Accumulation
 
 - **Child spans:** Set tokens directly from API response via `setTokenUsageAttributes()`
-- **Parent spans (`invoke_agent`):** Accumulate from children using event processor (see `ai/vercel-ai/`)
+- **Parent spans (`invoke_agent`):** Accumulate inside the channel subscriber as usage/finish chunks arrive, then set on the open parent span before ending it (see `integrations/vercel-ai/vercel-ai-dc-subscriber.ts`). There is no event processor doing this rollup.
 
-## Pattern 1: OTel Span Processors
+## Pattern 1: Native Tracing Channel
 
-**Use when:** SDK emits OTel spans automatically (Vercel AI)
+**Use when:** the SDK publishes to `diagnostics_channel` itself (`ai` >= 7 publishes `ai:telemetry`)
 
-1. Create `add{Provider}Processors()` in `packages/server-utils/src/ai/{provider}/index.ts` — registers `spanStart` listener + event processor
-2. Wire it up in `packages/server-utils/src/integrations/{provider}.ts` and register in `getTracingIntegrations()`
+1. Write the subscriber in `packages/server-utils/src/integrations/{provider}/{provider}-dc-subscriber.ts` — read the channel payloads, open spans, set gen_ai attributes
+2. Subscribe from the integration's `setupOnce()`, wrapped in `waitForTracingChannelBinding()` so it waits for the async-context binding:
 
-Reference: `packages/server-utils/src/ai/vercel-ai/` + `packages/server-utils/src/integrations/vercel-ai/`
+```ts
+setupOnce() {
+  if (!dc.tracingChannel) return;
+  waitForTracingChannelBinding(() => {
+    subscribe{Provider}TracingChannel(dc.tracingChannel, options);
+  });
+}
+```
 
-## Pattern 2: Orchestrion Instrumentation (Client Wrapping)
+Subscribing is a no-op on SDK versions that never publish, so it is always safe to call.
 
-**Use when:** SDK has no native telemetry of its own (OpenAI, Anthropic, Google GenAI)
+Reference: `packages/server-utils/src/integrations/vercel-ai/vercel-ai-dc-subscriber.ts`
 
-1. Create the span-building logic in `packages/server-utils/src/ai/{provider}/index.ts`
-2. Declare the module/method targets in `packages/server-utils/src/orchestrion/config/{provider}.ts`
-3. In `packages/server-utils/src/integrations/{provider}.ts`, call `invokeOrchestrionInstrumentation()` and bind the resulting `diagnostics_channel` tracing channels to spans via `bindTracingChannelToSpan()`. Check `_INTERNAL_shouldSkipAiProviderWrapping()` for LangChain compatibility.
+## Pattern 2: Orchestrion-Injected Channels
 
-Patching goes through orchestrion + Node `diagnostics_channel`, not OTel instrumentation packages.
+**Use when:** the SDK has no telemetry of its own (OpenAI, Anthropic, Google GenAI, `ai` < 7)
 
-Reference: `packages/server-utils/src/integrations/openai.ts` + `packages/server-utils/src/ai/openai/`
+Orchestrion injects `diagnostics_channel` tracing channels into the target module's functions at load time; we then subscribe to those injected channels. This replaced the old OTel instrumentation packages — there is no `@opentelemetry/instrumentation-*` dependency in this path.
 
-## Pattern 3: Callback/Hook Based
+1. Create the span-building/attribute logic in `packages/server-utils/src/ai/{provider}/`
+2. Declare the module, version range, and methods to inject in `packages/server-utils/src/orchestrion/config/{provider}.ts`
+3. In `packages/server-utils/src/integrations/{provider}.ts`, call `invokeOrchestrionInstrumentation(client, {provider}ModuleNames, fn, [options])` from `setup(client)`, and bind each injected channel to a span with `bindTracingChannelToSpan()`. Check `_INTERNAL_shouldSkipAiProviderWrapping()` for LangChain compatibility.
 
-**Use when:** SDK provides lifecycle hooks (LangChain, LangGraph)
+Reference: `packages/server-utils/src/integrations/openai.ts` + `packages/server-utils/src/orchestrion/config/openai.ts`
+
+**A provider can need both patterns.** `vercelAIIntegration` subscribes to the native `ai:telemetry` channel for `ai` >= 7 _and_ runs orchestrion injection for `ai` v4-v6, in the same integration.
+
+## Pattern 3: Callback/Exporter
+
+**Use when:** SDK provides lifecycle hooks or an exporter interface (LangChain, LangGraph, Mastra)
 
 1. Create `create{Provider}CallbackHandler()` in `packages/server-utils/src/ai/{provider}/index.ts` — implement the SDK's callback/exporter interface, create spans in the callbacks
 2. In `packages/server-utils/src/integrations/{provider}.ts`, auto-inject the handler by patching the relevant methods, and call `_INTERNAL_skipAiProviderWrapping()` to disable the underlying AI provider wrapping
@@ -114,8 +125,9 @@ Reference: `packages/server-utils/src/ai/langchain/`, and `packages/server-utils
 
 ## Reference Implementations
 
-- **Pattern 1 (Span Processors):** `packages/server-utils/src/ai/vercel-ai/`
-- **Pattern 2 (Client Wrapping):** `packages/server-utils/src/ai/openai/` + `packages/server-utils/src/integrations/openai.ts`
-- **Pattern 3 (Callback/Hooks):** `packages/server-utils/src/ai/langchain/`, `packages/server-utils/src/ai/mastra/`
+- **Pattern 1 (Native channel):** `packages/server-utils/src/integrations/vercel-ai/vercel-ai-dc-subscriber.ts`
+- **Pattern 2 (Orchestrion channels):** `packages/server-utils/src/integrations/openai.ts` + `packages/server-utils/src/orchestrion/config/openai.ts`
+- **Pattern 3 (Callback/Exporter):** `packages/server-utils/src/ai/langchain/`, `packages/server-utils/src/ai/mastra/`
+- **Both patterns at once:** `packages/server-utils/src/integrations/vercel-ai/index.ts`
 
 **When in doubt, follow the pattern of the most similar existing integration.**
