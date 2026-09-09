@@ -94,7 +94,7 @@ type WebpackReplaceSource = WebpackSource & {
   insert: (position: number, value: string) => void;
 };
 
-const WEBPACK_JAVASCRIPT_ASSET_REGEX = /\.(?:js|ts|jsx|tsx|mjs|cjs)(?:\?[^?]*)?(?:#[^#]*)?$/;
+const WEBPACK_JAVASCRIPT_ASSET_REGEX = /\.(?:js|ts|jsx|tsx|mjs|cjs|mts|cts)(?:\?[^?]*)?(?:#[^#]*)?$/;
 
 type WebpackCompiler = {
   options: {

@@ -105,7 +105,7 @@ describe('sentryWebpackPluginFactory', () => {
     expect(Object.keys(context._sentryDebugIds ?? {})).toHaveLength(1);
   });
 
-  it.each(['.ts', '.tsx', '.jsx'])('injects into a %s asset', extension => {
+  it.each(['.ts', '.tsx', '.jsx', '.mts', '.cts'])('injects into a %s asset', extension => {
     const output = runWebpackInjection(`bundle${extension}`, 'globalThis.bundleLoaded = true;');
     const context: { _sentryDebugIds?: Record<string, string> } = {};
 
