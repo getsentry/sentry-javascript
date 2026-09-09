@@ -1,73 +1,67 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
-test('Transaction includes span and correct value for decorated async function', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-12', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-span-decorator-async'
-    );
-  });
+const APP_NAME = 'nestjs-12';
+
+const SPAN_ID = /^[a-f0-9]{16}$/;
+
+/** The full shape of a `@SentryTraced` span, so `toEqual` catches anything unexpected. */
+function tracedSpan(segmentSpan: SerializedStreamedSpan, name: string, op: string): Record<string, unknown> {
+  return {
+    name,
+    span_id: expect.stringMatching(SPAN_ID),
+    trace_id: segmentSpan.trace_id,
+    parent_span_id: expect.stringMatching(SPAN_ID),
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
+    is_segment: false,
+    status: 'ok',
+    attributes: {
+      'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+      'sentry.segment.name': { type: 'string', value: segmentSpan.name },
+      'sentry.segment.id': { type: 'string', value: segmentSpan.span_id },
+      'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
+      'sentry.sdk.version': { type: 'string', value: expect.any(String) },
+      'sentry.environment': { type: 'string', value: 'qa' },
+      // CI builds the apps with a release, local runs have none. It comes from the client
+      // options, so whatever the segment span got, every other span of the trace got too.
+      ...(segmentSpan.attributes['sentry.release']
+        ? { 'sentry.release': { type: 'string', value: expect.any(String) } }
+        : {}),
+      'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
+      'sentry.op': { type: 'string', value: op },
+    },
+  };
+}
+
+test('Trace includes span and correct value for decorated async function', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-span-decorator-async');
 
   const response = await fetch(`${baseURL}/test-span-decorator-async`);
   const body = await response.json();
 
   expect(body.result).toEqual('test');
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent.spans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        data: {
-          'sentry.origin': 'auto.function.nestjs.sentry_traced',
-          'sentry.op': 'wait and return a string',
-        },
-        description: 'wait',
-        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        start_timestamp: expect.any(Number),
-        status: 'ok',
-        op: 'wait and return a string',
-        origin: 'auto.function.nestjs.sentry_traced',
-      }),
-    ]),
-  );
+  const segmentSpan = spans.find(span => span.is_segment)!;
+  expect(spans.find(span => span.name === 'wait')).toEqual(tracedSpan(segmentSpan, 'wait', 'wait and return a string'));
 });
 
-test('Transaction includes span and correct value for decorated sync function', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-12', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-span-decorator-sync'
-    );
-  });
+test('Trace includes span and correct value for decorated sync function', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-span-decorator-sync');
 
   const response = await fetch(`${baseURL}/test-span-decorator-sync`);
   const body = await response.json();
 
   expect(body.result).toEqual('test');
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent.spans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        data: {
-          'sentry.origin': 'auto.function.nestjs.sentry_traced',
-          'sentry.op': 'return a string',
-        },
-        description: 'getString',
-        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        start_timestamp: expect.any(Number),
-        status: 'ok',
-        op: 'return a string',
-        origin: 'auto.function.nestjs.sentry_traced',
-      }),
-    ]),
+  const segmentSpan = spans.find(span => span.is_segment)!;
+  expect(spans.find(span => span.name === 'getString')).toEqual(
+    tracedSpan(segmentSpan, 'getString', 'return a string'),
   );
 });
 

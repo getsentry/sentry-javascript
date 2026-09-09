@@ -16,7 +16,7 @@ export function sampleSpan(
   options: Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler'>,
   samplingContext: SamplingContext,
   sampleRand: number,
-): [sampled: boolean, sampleRate?: number, localSampleRateWasApplied?: boolean] {
+): [sampled: boolean, sampleRate?: number, localSampleRateWasApplied?: boolean, dropReason?: 'callback_error'] {
   // nothing to do if span recording is not enabled
   if (!hasSpansEnabled(options)) {
     return [false];
@@ -24,7 +24,9 @@ export function sampleSpan(
 
   const resolved = resolveSampleRate(options, samplingContext);
   if (!resolved) {
-    return [false];
+    // `hasSpansEnabled` guarantees either `tracesSampleRate` or `tracesSampler` is set, so the only way to end up
+    // without a sample rate is a throwing `tracesSampler` with nothing to fall back to.
+    return [false, undefined, undefined, 'callback_error'];
   }
   const [sampleRate, localSampleRateWasApplied] = resolved;
 

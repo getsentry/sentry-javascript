@@ -8,7 +8,7 @@ import type { Integration } from '../types/integration';
 import type { Log, SerializedLog } from '../types/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
-import { safeCallback } from '../utils/safeCallback';
+import { CALLBACK_ERROR, safeCallback } from '../utils/safeCallback';
 import { getCombinedScopeData } from '../utils/scopeData';
 import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
@@ -144,13 +144,17 @@ export function _INTERNAL_captureLog(
   client.emit('beforeCaptureLog', processedLog);
 
   const log = beforeSendLog
-    ? safeCallback(
+    ? safeCallback<Log | null | typeof CALLBACK_ERROR>(
         DEBUG_BUILD ? 'The `beforeSendLog` callback threw an error, dropping the log:' : '',
         // We need to wrap this in `consoleSandbox` to avoid recursive calls to `beforeSendLog`
         () => consoleSandbox(() => beforeSendLog(processedLog)),
-        () => null,
+        () => CALLBACK_ERROR,
       )
     : processedLog;
+  if (log === CALLBACK_ERROR) {
+    client.recordDroppedEvent('callback_error', 'log_item', 1);
+    return;
+  }
   if (!log) {
     client.recordDroppedEvent('before_send', 'log_item', 1);
     DEBUG_BUILD && debug.warn('beforeSendLog returned null, log will not be captured.');

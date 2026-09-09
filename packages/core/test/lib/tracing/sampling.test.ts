@@ -38,11 +38,16 @@ describe('sampleSpan', () => {
       expect(debugErrorSpy).toHaveBeenCalledWith(expectedMessage, exception);
     });
 
-    it('does not sample when there is nothing to fall back to', () => {
+    it('does not sample and reports a `callback_error` drop when there is nothing to fall back to', () => {
       const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
       const debugWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
 
-      expect(sampleSpan({ tracesSampler }, { name: 'test', attributes: {} }, 0.5)).toEqual([false]);
+      expect(sampleSpan({ tracesSampler }, { name: 'test', attributes: {} }, 0.5)).toEqual([
+        false,
+        undefined,
+        undefined,
+        'callback_error',
+      ]);
       expect(debugErrorSpy).toHaveBeenCalledWith(expectedMessage, exception);
       expect(debugWarnSpy).not.toHaveBeenCalled();
     });
