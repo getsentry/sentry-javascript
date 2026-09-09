@@ -83,6 +83,12 @@ export const ROUTER_SPAN_NAME_FALLBACK = 'Router';
 export const REQUEST_HANDLER_SPAN_NAME_FALLBACK = 'Request handler';
 
 /**
+ * Fallback name for serverless function execution spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#faas-serverless-function-execution
+ */
+export const SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK = 'Serverless function execution';
+
+/**
  * The `cache.operation` attribute value each cache op carries. Cache span names are
  * `cache.{{cache.operation}}`, so the op constant itself doubles as the low-cardinality span name.
  * @see https://getsentry.github.io/sentry-conventions/names/#cache
