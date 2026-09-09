@@ -135,7 +135,6 @@ export {
   instrumentCreateReactAgent,
   vercelAIIntegration,
   eveConversationHook,
-  type EveConversationHookOptions,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

@@ -11,7 +11,7 @@ interface EveHookContext {
 
 type EveHookHandler = (event: unknown, context: EveHookContext) => void;
 
-export interface EveConversationHookOptions {
+interface EveConversationHookOptions {
   /**
    * Derive the Sentry conversation id from the eve hook context. Defaults to the durable session id
    * (`ctx.session.id`), which is stable across every turn of a session and so groups them into one
