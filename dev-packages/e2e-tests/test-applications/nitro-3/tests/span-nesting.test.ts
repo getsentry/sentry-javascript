@@ -1,20 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 
-// Streamed spans arrive across several envelopes (a child can flush before its segment),
-// so accumulate until the segment span has arrived and filter by its trace.
-async function collectNestingSpans() {
-  const spans = await collectStreamedSpans('nitro-3', spans =>
-    spans.some(span => span.is_segment && span.name === 'GET /api/test-nesting'),
-  );
-  const segmentSpan = spans.find(span => span.is_segment && span.name === 'GET /api/test-nesting');
-  return spans.filter(span => span.trace_id === segmentSpan?.trace_id);
+function collectNestingSpans() {
+  return collectStreamedSpansUntilSegment('nitro-3', 'GET /api/test-nesting');
 }
 
 test('Span nesting: all spans share the same trace_id', async ({ request }) => {
-  const spansPromise = collectStreamedSpans('nitro-3', spans =>
-    spans.some(span => span.is_segment && span.name === 'GET /api/test-nesting'),
-  );
+  const spansPromise = collectNestingSpans();
 
   await request.get('/api/test-nesting');
 

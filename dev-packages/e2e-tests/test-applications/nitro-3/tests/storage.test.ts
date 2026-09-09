@@ -1,17 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
-// Streamed spans arrive across several envelopes (a child can flush before its segment),
-// so accumulate until the segment span has arrived and filter by its trace.
 async function collectStorageSpans(route: string) {
-  const spans = await collectStreamedSpans('nitro-3', spans =>
-    spans.some(span => span.is_segment && span.attributes['url.path']?.value === route),
-  );
-  const segmentSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === route);
+  const spans = await collectStreamedSpansUntilSegment('nitro-3', span => span.attributes['url.path']?.value === route);
 
-  return spans.filter(
-    span => span.trace_id === segmentSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nitro',
-  );
+  return spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.cache.nitro');
 }
 
 test.describe('Storage Instrumentation', () => {

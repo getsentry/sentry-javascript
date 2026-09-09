@@ -1,21 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test.describe('Cache Instrumentation', () => {
   const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
   const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
 
-  // Streamed spans arrive across several envelopes (a child can flush before its segment),
-  // so accumulate until the segment span has arrived and filter by its trace.
   async function collectCacheSpans() {
-    const spans = await collectStreamedSpans('nitro-3', spans =>
-      spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/test-cache'),
+    const spans = await collectStreamedSpansUntilSegment(
+      'nitro-3',
+      span => span.attributes['url.path']?.value === '/api/test-cache',
     );
-    const segmentSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/test-cache');
 
-    return spans.filter(
-      span => span.trace_id === segmentSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nitro',
-    );
+    return spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.cache.nitro');
   }
 
   test('instruments cachedFunction and cachedHandler calls and creates spans with correct attributes', async ({
