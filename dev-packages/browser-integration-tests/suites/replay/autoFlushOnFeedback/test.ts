@@ -4,18 +4,16 @@ import { getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 /*
- * In this test we want to verify that replay events are automatically flushed when user feedback is submitted via API / opening the widget.
- * We emulate this by firing the feedback events directly, which should trigger an immediate flush of any
- * buffered replay events, rather than waiting for the normal flush delay.
+ * In this test we want to verify that replay is frozen when the feedback widget opens and flushed on submission.
+ * We emulate this by firing the feedback lifecycle events directly.
  */
-sentryTest('replay events are flushed automatically on feedback events', async ({ getLocalTestUrl, page }) => {
+sentryTest('replay is frozen on feedback open and flushed on submit', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
-  const reqPromise2 = waitForReplayRequest(page, 2);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -23,23 +21,31 @@ sentryTest('replay events are flushed automatically on feedback events', async (
   const replayEvent0 = getReplayEvent(await reqPromise0);
   expect(replayEvent0).toEqual(getExpectedReplayEvent());
 
-  // Trigger one mouse click
-  void page.locator('#something').click();
-
-  // Open the feedback widget which should trigger an immediate flush
+  await page.locator('#something').click();
   await page.locator('#open').click();
 
-  // This should be flushed immediately due to feedback widget being opened
+  const isPaused = await page.evaluate(() => {
+    // @ts-expect-error - Replay is not typed on window
+    return window.Replay._replay.isPaused();
+  });
+  expect(isPaused).toBe(true);
+
+  await page.locator('#submit').click();
+
   const replayEvent1 = getReplayEvent(await reqPromise1);
-  expect(replayEvent1).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [] }));
+  const { breadcrumbs, ...replayEventWithoutBreadcrumbs } = replayEvent1;
+  expect(replayEventWithoutBreadcrumbs).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [] }));
+  expect(breadcrumbs).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ category: 'ui.click', message: 'body > button#something' }),
+      expect.objectContaining({ category: 'ui.click', message: 'body > button#open' }),
+    ]),
+  );
 
-  // trigger another click
-  void page.locator('#something').click();
-
-  // Send feedback via API which should trigger another immediate flush
-  await page.locator('#send').click();
-
-  // This should be flushed immediately due to feedback being sent
-  const replayEvent2 = getReplayEvent(await reqPromise2);
-  expect(replayEvent2).toEqual(getExpectedReplayEvent({ segment_id: 2, urls: [] }));
+  await page.locator('#close').click();
+  const isResumed = await page.evaluate(() => {
+    // @ts-expect-error - Replay is not typed on window
+    return !window.Replay._replay.isPaused();
+  });
+  expect(isResumed).toBe(true);
 });
