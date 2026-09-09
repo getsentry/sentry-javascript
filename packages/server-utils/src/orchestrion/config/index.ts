@@ -35,8 +35,6 @@ import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
 
-import { MODULE_REGISTRATION_TRANSFORM } from './registration-only';
-
 /**
  * The orchestrion code-transform configs. Every instrumentable library is here
  * so the transform is all-or-nothing: whenever orchestrion is enabled, all of
@@ -82,38 +80,6 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...tediousConfig,
   ...vercelAiConfig,
 ];
-
-/**
- * The subset of {@link SENTRY_INSTRUMENTATIONS} the RUNTIME loader
- * (`@sentry/server-runtime-injection`'s `register`, reached via `--import` or
- * `Sentry.init()`) can actually apply.
- *
- * Registration-only configs (native-channel libraries such as `ai` v7,
- * `ioredis`, `@redis/client`, `mysql2`, `mongoose`) carry the custom
- * `MODULE_REGISTRATION_TRANSFORM` operator. That operator is wired into the
- * BUNDLER plugins only (see `orchestrion/bundler/moduleInjectedTransform.ts`,
- * applied via `bundler/options.ts`'s `customTransforms`); the runtime loader's
- * `initialize()` receives no custom transforms. Attempting one of these at
- * runtime therefore throws `TypeError: transform is not a function`, which the
- * loader misreports as the always-on "`@sentry/server-runtime-injection` was
- * bundled ... loads uninstrumented" warning even though nothing is wrong.
- *
- * Excluding them at runtime is correct, not just a way to silence the warning:
- * these libraries publish their own tracing channels, and their integrations
- * subscribe through `setupOnce()` / `waitForTracingChannelBinding`,
- * independently of the module-injected snippet. That snippet only fires
- * `orchestrion.module-injected`, which drives the `setup()` /
- * `invokeOrchestrionInstrumentation` path; for a native-channel version that
- * path subscribes to the injected `orchestrion:*` channels the library never
- * publishes — a no-op. So running these at runtime would add no spans. The
- * snippet earns its keep only on the BUNDLER path — notably bundler-only SDKs
- * (e.g. `@sentry/cloudflare`) that discover a loaded module via that event to
- * instantiate its integration factory. `@sentry/node` registers its
- * integrations statically, so it does not need it.
- */
-export const SENTRY_RUNTIME_INSTRUMENTATIONS: InstrumentationConfig[] = SENTRY_INSTRUMENTATIONS.filter(
-  config => config.transform !== MODULE_REGISTRATION_TRANSFORM,
-);
 
 /**
  * The unique set of package names instrumented by `SENTRY_INSTRUMENTATIONS`
