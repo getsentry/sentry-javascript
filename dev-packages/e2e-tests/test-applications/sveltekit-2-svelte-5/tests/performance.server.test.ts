@@ -16,7 +16,7 @@ test('server pageload request span has nested request span for sub request', asy
     'http.request.method': { value: 'GET', type: 'string' },
     'url.path': { value: '/server-load-fetch', type: 'string' },
     'http.request.header.accept': { value: expect.any(String), type: 'string' },
-    'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+    'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
   });
 
   expect(serverTraceSpans).toEqual(

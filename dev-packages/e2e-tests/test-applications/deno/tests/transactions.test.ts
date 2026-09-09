@@ -41,11 +41,11 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: '*/*',
     },
-    'http.request.header.accept_encoding': {
+    'http.request.header.accept-encoding': {
       type: 'string',
       value: 'gzip, deflate',
     },
-    'http.request.header.accept_language': {
+    'http.request.header.accept-language': {
       type: 'string',
       value: '*',
     },
@@ -57,11 +57,11 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: expect.stringMatching(/^localhost:\d+$/),
     },
-    'http.request.header.sec_fetch_mode': {
+    'http.request.header.sec-fetch-mode': {
       type: 'string',
       value: 'cors',
     },
-    'http.request.header.user_agent': {
+    'http.request.header.user-agent': {
       type: 'string',
       value: 'node',
     },
@@ -69,7 +69,7 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: 'GET',
     },
-    'http.response.header.content_type': {
+    'http.response.header.content-type': {
       type: 'string',
       value: 'application/json',
     },
