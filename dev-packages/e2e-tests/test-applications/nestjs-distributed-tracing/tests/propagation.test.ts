@@ -30,6 +30,48 @@ function expectBaggage(rawBaggage: string | undefined, traceId: string): void {
   );
 }
 
+/**
+ * The transport-level attributes every `http.server` segment span in this app carries. Kept together
+ * so each spec below pins the same set the transaction-based specs did.
+ */
+function serverRequestAttributes(): Record<string, unknown> {
+  return {
+    'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+    'sentry.op': { type: 'string', value: 'http.server' },
+    'sentry.segment.name.source': { type: 'string', value: 'route' },
+    'sentry.kind': { type: 'string', value: 'server' },
+    'http.request.method': { type: 'string', value: 'GET' },
+    'http.response.status_code': { type: 'integer', value: 200 },
+    'http.response.status_text': { type: 'string', value: 'OK' },
+    'url.scheme': { type: 'string', value: 'http' },
+    'server.address': { type: 'string', value: 'localhost' },
+    'server.port': { type: 'integer', value: 3030 },
+    'client.address': { type: 'string', value: '::1' },
+    'client.port': { type: 'integer', value: expect.any(Number) },
+    'network.transport': { type: 'string', value: 'tcp' },
+    'network.local.address': { type: 'string', value: expect.any(String) },
+    'network.local.port': { type: 'integer', value: expect.any(Number) },
+    'network.peer.address': { type: 'string', value: expect.any(String) },
+    'network.peer.port': { type: 'integer', value: expect.any(Number) },
+    'network.protocol.name': { type: 'string', value: 'http' },
+    'network.protocol.version': { type: 'string', value: '1.1' },
+  };
+}
+
+/** The headers the spec's own `fetch` sends, which the app records on the inbound span. */
+function testRequestHeaderAttributes(): Record<string, unknown> {
+  return {
+    'user_agent.original': { type: 'string', value: expect.any(String) },
+    'http.request.header.accept': { type: 'string', value: '*/*' },
+    'http.request.header.accept_encoding': { type: 'string', value: 'gzip, deflate' },
+    'http.request.header.accept_language': { type: 'string', value: '*' },
+    'http.request.header.connection': { type: 'string', value: 'keep-alive' },
+    'http.request.header.host': { type: 'string', value: expect.any(String) },
+    'http.request.header.sec_fetch_mode': { type: 'string', value: 'cors' },
+    'http.request.header.user_agent': { type: 'string', value: 'node' },
+  };
+}
+
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
 
@@ -71,17 +113,12 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     end_timestamp: expect.any(Number),
     is_segment: true,
     attributes: expect.objectContaining({
-      'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
-      'sentry.op': { type: 'string', value: 'http.server' },
-      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      ...serverRequestAttributes(),
+      ...testRequestHeaderAttributes(),
       'sentry.sample_rate': { type: 'integer', value: 1 },
-      'sentry.kind': { type: 'string', value: 'server' },
-      'http.request.method': { type: 'string', value: 'GET' },
       'http.route': { type: 'string', value: '/test-outgoing-http/:id' },
-      'http.response.status_code': { type: 'integer', value: 200 },
       'url.full': { type: 'string', value: `http://localhost:3030/test-outgoing-http/${id}` },
-      'server.address': { type: 'string', value: 'localhost' },
-      'server.port': { type: 'integer', value: 3030 },
+      'url.path': { type: 'string', value: `/test-outgoing-http/${id}` },
     }),
   });
 
@@ -96,12 +133,12 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     end_timestamp: expect.any(Number),
     is_segment: true,
     attributes: expect.objectContaining({
-      'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
-      'sentry.op': { type: 'string', value: 'http.server' },
-      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      ...serverRequestAttributes(),
       'http.route': { type: 'string', value: '/test-inbound-headers/:id' },
-      'http.response.status_code': { type: 'integer', value: 200 },
       'url.full': { type: 'string', value: `http://localhost:3030/test-inbound-headers/${id}` },
+      'url.path': { type: 'string', value: `/test-inbound-headers/${id}` },
+      'http.request.header.connection': { type: 'string', value: 'keep-alive' },
+      'http.request.header.host': { type: 'string', value: expect.any(String) },
       'http.request.header.sentry_trace': {
         type: 'string',
         value: expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
@@ -147,12 +184,12 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     end_timestamp: expect.any(Number),
     is_segment: true,
     attributes: expect.objectContaining({
-      'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
-      'sentry.op': { type: 'string', value: 'http.server' },
-      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      ...serverRequestAttributes(),
+      ...testRequestHeaderAttributes(),
+      'sentry.sample_rate': { type: 'integer', value: 1 },
       'http.route': { type: 'string', value: '/test-outgoing-fetch/:id' },
-      'http.response.status_code': { type: 'integer', value: 200 },
       'url.full': { type: 'string', value: `http://localhost:3030/test-outgoing-fetch/${id}` },
+      'url.path': { type: 'string', value: `/test-outgoing-fetch/${id}` },
     }),
   });
 
@@ -166,10 +203,10 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     end_timestamp: expect.any(Number),
     is_segment: true,
     attributes: expect.objectContaining({
-      'sentry.op': { type: 'string', value: 'http.server' },
+      ...serverRequestAttributes(),
       'http.route': { type: 'string', value: '/test-inbound-headers/:id' },
-      'http.response.status_code': { type: 'integer', value: 200 },
       'url.full': { type: 'string', value: `http://localhost:3030/test-inbound-headers/${id}` },
+      'url.path': { type: 'string', value: `/test-inbound-headers/${id}` },
     }),
   });
 });
