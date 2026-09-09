@@ -407,7 +407,7 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
       const now = timestampInSeconds();
 
       const methodName = options?.name;
-      const description = `<${methodName ?? 'unnamed'}>`;
+      const description = `<${methodName || 'unnamed'}>`;
 
       const client = getClient();
       const hasSpanStreaming = client && hasSpanStreamingEnabled(client);
@@ -424,7 +424,7 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
             // override description inference by Relay to preserve the original (transaction-based) description.
             // sentry-conventions can't map the special case with the angle brackets.
             ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
-            [CODE_FUNCTION_NAME]: methodName,
+            [CODE_FUNCTION_NAME]: methodName || String(propertyKey),
           },
         }).end(now);
       });
