@@ -4,10 +4,8 @@ import { JSDOM } from 'jsdom';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import Router from 'next/router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  pagesRouterInstrumentNavigation,
-  pagesRouterInstrumentPageLoad,
-} from '../../src/client/routing/pagesRouterRoutingInstrumentation';
+import { pagesRouterInstrumentPageLoad } from '../../src/client/routing/pagesRouterRoutingInstrumentation';
+import { pagesRouterInstrumentNavigation } from '../../src/client/routing/pagesRouterNavigationInstrumentation';
 import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const globalObject = WINDOW as typeof WINDOW & {

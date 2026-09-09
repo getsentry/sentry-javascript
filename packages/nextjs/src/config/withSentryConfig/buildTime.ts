@@ -2,6 +2,7 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
+import { hasOnlyAppRouterPages } from './pagesRouterDetection';
 
 /**
  * Adds Sentry-related build-time variables to `nextConfig.env`.
@@ -11,11 +12,13 @@ import type { NextConfigObject, SentryBuildOptions } from '../types';
  * @param userNextConfig - The user's Next.js config object
  * @param userSentryOptions - The Sentry build options passed to `withSentryConfig`
  * @param releaseName - The resolved release name, if any
+ * @param projectDir - The Next.js project root
  */
 export function setUpBuildTimeVariables(
   userNextConfig: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
   releaseName: string | undefined,
+  projectDir: string = process.cwd(),
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
@@ -69,6 +72,11 @@ export function setUpBuildTimeVariables(
 
   if (releaseName) {
     buildTimeVariables._sentryRelease = releaseName;
+  }
+
+  // See `client/routing/nextRoutingInstrumentation.ts`.
+  if (hasOnlyAppRouterPages(projectDir)) {
+    buildTimeVariables._sentryHasPagesRouter = 'false';
   }
 
   if (typeof userNextConfig.env === 'object') {
