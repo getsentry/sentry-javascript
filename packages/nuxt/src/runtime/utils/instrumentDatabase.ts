@@ -237,8 +237,8 @@ function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string }) 
 }
 
 function createBreadcrumb(query: string): void {
-  // The breadcrumb carries the same query text as the span, so it is sanitized the same way.
-  const queryText = sanitizeSqlQuery(query);
+  // The breadcrumb carries the same query text as the span, so it is sanitized and guarded the same way.
+  const queryText = query ? sanitizeSqlQuery(query) : undefined;
   addBreadcrumb({
     category: 'query',
     message: queryText,
