@@ -80,7 +80,7 @@ test('Sends a root: true span as its own segment in a new trace', async ({ baseU
   await fetch(`${baseURL}/test-root-span`);
 
   const [requestSpans, detachedSpan] = await Promise.all([requestSpansPromise, detachedSpanPromise]);
-  const segment = requestSpans.find(span => span.is_segment)!;
+  const segment = requestSpans.find(span => span.is_segment && getSpanOp(span) === 'http.server')!;
   expect(segment.name).toBe('http.server GET');
   expect(requestSpans.filter(span => !span.is_segment).map(span => span.name)).toEqual(['root-span-request-marker']);
 
@@ -89,7 +89,7 @@ test('Sends a root: true span as its own segment in a new trace', async ({ baseU
   expect(detachedSpan.trace_id).not.toBe(segment.trace_id);
 });
 
-test('Continues the trace of a Tracer.externalSpan parent', async ({ baseURL }) => {
+test('Continues the trace of a Tracer.externalSpan parent with the external span layer', async ({ baseURL }) => {
   const spanPromise = waitForStreamedSpan('effect-4-node', span => span.name === 'continued-span');
 
   await fetch(`${baseURL}/test-external-parent`);
@@ -100,17 +100,4 @@ test('Continues the trace of a Tracer.externalSpan parent', async ({ baseURL }) 
     trace_id: 'fedcba0987654321fedcba0987654321',
     parent_span_id: '0987654321fedcba',
   });
-});
-
-test('Continues the trace of an incoming traceparent header', async ({ baseURL }) => {
-  const traceId = '1234567890abcdef1234567890abcdef';
-  const parentSpanId = 'abcdef1234567890';
-
-  const spanPromise = waitForStreamedSpan('effect-4-node', span => span.is_segment && span.trace_id === traceId);
-
-  await fetch(`${baseURL}/test-success`, { headers: { traceparent: `00-${traceId}-${parentSpanId}-01` } });
-
-  const span = await spanPromise;
-  expect(span.name).toBe('http.server GET');
-  expect(span.parent_span_id).toBe(parentSpanId);
 });

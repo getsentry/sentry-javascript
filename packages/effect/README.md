@@ -72,6 +72,33 @@ const HttpLive = HttpRouter.serve(Routes).pipe(
 NodeRuntime.runMain(Layer.launch(HttpLive));
 ```
 
+## Continuing external spans
+
+The tracer ignores `Tracer.externalSpan` parents by default. Such a parent
+bridges a trace the SDK did not start, for example an OpenTelemetry span of
+another app in the same process, or trace state persisted with a queue message.
+To continue the trace of an external span, provide
+`SentryEffectExternalSpanLayer`. Next to the tracer layer it applies to every
+span in the runtime. On Effect v4, replace the `Layer.setTracer` line with the
+`Layer.succeed` call from the example above.
+
+```typescript
+const SentryLive = Layer.mergeAll(
+  Sentry.effectLayer({ dsn: '__DSN__', tracesSampleRate: 1.0 }),
+  Layer.setTracer(Sentry.SentryEffectTracer),
+  Sentry.SentryEffectExternalSpanLayer,
+);
+```
+
+Provided to a single effect, it applies to that effect only:
+
+```typescript
+const processJob = handleMessage(message).pipe(
+  Effect.withSpan('process-job', { parent: Tracer.externalSpan(message.trace) }),
+  Effect.provide(Sentry.SentryEffectExternalSpanLayer),
+);
+```
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/effect/)

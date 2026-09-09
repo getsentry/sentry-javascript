@@ -70,7 +70,7 @@ const Routes = Layer.mergeAll(
         }),
       );
       return yield* HttpServerResponse.json({ status: 'ok' });
-    }),
+    }).pipe(Effect.provide(Sentry.SentryEffectExternalSpanLayer)),
   ),
 
   HttpRouter.add(
