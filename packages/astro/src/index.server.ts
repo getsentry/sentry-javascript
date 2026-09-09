@@ -184,6 +184,7 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   metrics,
+  eveConversationHook,
 } from '@sentry/node';
 
 export { init } from './server/sdk';
