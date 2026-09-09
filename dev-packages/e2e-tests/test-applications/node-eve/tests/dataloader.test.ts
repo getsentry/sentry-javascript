@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { runAgentTurn } from './utils';
 
 const APP = 'node-eve';
@@ -20,11 +20,14 @@ const isDataloaderSpan = (span: { attributes?: Record<string, { value?: unknown 
 test('captures orchestrion-instrumented dataloader spans (requires the --import bootstrap)', async ({ baseURL }) => {
   test.fail(!useOrchestrion, 'orchestrion module instrumentation needs NODE_OPTIONS=--import=@sentry/node/import');
 
-  // With orchestrion, wait for the dataloader span itself. Without it, that span
-  // never arrives, so anchor on the (always-present) tool-execution span and let
-  // the assertion below fail fast rather than time out.
-  const spansPromise = waitForStreamedSpans(APP, spans =>
-    useOrchestrion ? spans.some(isDataloaderSpan) : spans.some(span => getSpanOp(span) === 'gen_ai.execute_tool'),
+  // Accumulate the workflow trace's spans across envelopes. With orchestrion we
+  // wait for the dataloader span itself; without it that span never arrives, so
+  // anchor on the (always-present) tool-execution span and let the assertion
+  // below fail fast rather than time out.
+  const spansPromise = collectStreamedSpans(APP, spansOfTrace =>
+    useOrchestrion
+      ? spansOfTrace.some(isDataloaderSpan)
+      : spansOfTrace.some(span => getSpanOp(span) === 'gen_ai.execute_tool'),
   );
 
   await runAgentTurn(baseURL!, 'Count items: apple, banana, cherry');

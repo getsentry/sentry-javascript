@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { runAgentTurn } from './utils';
 
 const APP = 'node-eve';
@@ -21,20 +21,26 @@ const isAgentServerSpan = (span: { attributes?: Record<string, { value?: unknown
 test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_tool) for an eve turn', async ({
   baseURL,
 }) => {
-  const genAiSpansPromise = waitForStreamedSpans(APP, spans =>
-    ['gen_ai.invoke_agent', 'gen_ai.generate_content', 'gen_ai.execute_tool'].every(op =>
-      spans.some(span => getSpanOp(span) === op),
-    ),
+  // The gen_ai spans and the agent http.server span share one trace, but the
+  // still-open invoke_agent parent flushes on a timer in a separate envelope
+  // from its completed children. `collectStreamedSpans` accumulates a trace's
+  // spans across envelopes (unlike `waitForStreamedSpans`, which sees one
+  // envelope at a time), so we wait until the whole trace has arrived.
+  const traceSpansPromise = collectStreamedSpans(
+    APP,
+    spansOfTrace =>
+      ['gen_ai.invoke_agent', 'gen_ai.generate_content', 'gen_ai.execute_tool'].every(op =>
+        spansOfTrace.some(span => getSpanOp(span) === op),
+      ) && spansOfTrace.some(isAgentServerSpan),
   );
-  const httpServerSpanPromise = waitForStreamedSpans(APP, spans => spans.some(isAgentServerSpan));
 
   await runAgentTurn(baseURL!, 'What is the weather in Paris?');
 
-  const genAiSpans = await genAiSpansPromise;
+  const traceSpans = await traceSpansPromise;
 
-  const invokeAgent = genAiSpans.find(span => getSpanOp(span) === 'gen_ai.invoke_agent');
-  const generateContent = genAiSpans.find(span => getSpanOp(span) === 'gen_ai.generate_content');
-  const executeTool = genAiSpans.find(span => getSpanOp(span) === 'gen_ai.execute_tool');
+  const invokeAgent = traceSpans.find(span => getSpanOp(span) === 'gen_ai.invoke_agent');
+  const generateContent = traceSpans.find(span => getSpanOp(span) === 'gen_ai.generate_content');
+  const executeTool = traceSpans.find(span => getSpanOp(span) === 'gen_ai.execute_tool');
 
   expect(invokeAgent?.attributes?.['sentry.origin']?.value).toBe('auto.vercelai.channel');
   expect(invokeAgent?.attributes?.['gen_ai.operation.name']?.value).toBe('invoke_agent');
@@ -52,9 +58,8 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
 
   // The agent turn is captured as an http.server span on one of eve's two agent
   // request paths (the other http.server spans — health and the event stream —
-  // are filtered out).
-  const allSpans = await httpServerSpanPromise;
-  const agentServerSpans = allSpans.filter(isAgentServerSpan);
+  // are not in this trace).
+  const agentServerSpans = traceSpans.filter(isAgentServerSpan);
   expect(agentServerSpans.length).toBeGreaterThanOrEqual(1);
 
   for (const span of agentServerSpans) {

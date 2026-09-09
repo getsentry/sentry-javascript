@@ -13,8 +13,12 @@ if (useOrchestrion) {
   startCommand = `${startCommand}:orchestrion`;
 }
 
-const config = getPlaywrightConfig({
-  startCommand,
-});
+const config = getPlaywrightConfig(
+  { startCommand },
+  // Each test drives a real OpenRouter tool-calling turn (two model calls) and
+  // then waits for the streamed spans to flush, which does not fit the default
+  // 30s test timeout when the provider is slow.
+  { timeout: 90_000 },
+);
 
 export default config;
