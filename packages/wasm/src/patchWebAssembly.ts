@@ -2,8 +2,6 @@ import { getWasmSourceUrl, patchWasmResponseBodyReaders } from './patchWasmRespo
 
 export type RegisterModuleCallback = (module: WebAssembly.Module, url: string) => void;
 
-let nonStreamingPatched = false;
-
 /**
  * Patches the WebAssembly streaming APIs so that every compiled module gets
  * registered as a debug image under the URL of the response it was compiled
@@ -87,12 +85,6 @@ function registerFromBufferSource(
  * Patches the non-streaming web assembly runtime.
  */
 function patchNonStreamingWebAssembly(registerModule: RegisterModuleCallback): void {
-  if (nonStreamingPatched) {
-    return;
-  }
-
-  nonStreamingPatched = true;
-
   // Double-cast, because the overloaded native signature (buffer vs. module
   // first argument) cannot be widened to a pass-through shape in one step.
   const origInstantiate = WebAssembly.instantiate as unknown as (
@@ -118,8 +110,14 @@ function patchNonStreamingWebAssembly(registerModule: RegisterModuleCallback): v
 /**
  * Patches the web assembly runtime.
  *
- * Every patch is guarded on its own: a missing or frozen global must neither throw out of
- * `Sentry.init()` / `registerWebWorkerWasm()` nor keep the remaining patches from installing.
+ * Failures are swallowed in two distinct phases. At install time `tryPatch` isolates each patch, so
+ * a missing or frozen global neither throws out of `Sentry.init()` / `registerWebWorkerWasm()` nor
+ * keeps the remaining patches from installing. At call time `registerSafely`,
+ * `registerFromBufferSource` and `tagResponseSource` run inside the caller's own promise chain,
+ * where a throw would reject the user's `WebAssembly` call or an unrelated response body read.
+ *
+ * Callers are expected to patch once per realm: `wasmIntegration` runs from `setupOnce`, which core
+ * invokes a single time, and `registerWebWorkerWasm` is a one-shot call inside a worker.
  */
 export function patchWebAssembly(registerModule: RegisterModuleCallback): void {
   tryPatch(() => patchWasmResponseBodyReaders());
@@ -133,9 +131,4 @@ function tryPatch(patch: () => void): void {
   } catch {
     // see patchWebAssembly()
   }
-}
-
-/** @internal */
-export function _resetNonStreamingPatchForTests(): void {
-  nonStreamingPatched = false;
 }

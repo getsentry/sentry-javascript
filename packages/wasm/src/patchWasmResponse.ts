@@ -8,10 +8,13 @@ import { fill } from '@sentry/core';
  * This module patches `Response.prototype.arrayBuffer` and `bytes` so that when wasm is fetched
  * and then loaded from bytes, we can map the resulting `ArrayBuffer` back to the fetch URL via
  * `getWasmSourceUrl()` and register the module in `patchNonStreamingWebAssembly`.
+ *
+ * Every response body is tagged, not only the wasm-looking ones. A tag is read back solely after a
+ * `WebAssembly` compile already succeeded, so tagging a non-wasm buffer can never be observed,
+ * whereas guessing from content type or file extension would silently drop modules served as
+ * `application/octet-stream` or from extension-less URLs.
  */
 const wasmSourceUrls = new WeakMap<ArrayBuffer, string>();
-
-let responseReadersPatched = false;
 
 /**
  * Resolves a wasm source buffer back to its fetch URL, when known.
@@ -38,16 +41,6 @@ function toArrayBuffer(source: unknown): ArrayBuffer | undefined {
   return undefined;
 }
 
-function looksLikeWasmResponse(response: Response): boolean {
-  const contentType = response.headers.get('content-type');
-  if (contentType?.includes('application/wasm')) {
-    return true;
-  }
-
-  const { url } = response;
-  return Boolean(url && /\.wasm(?:\?|#|$)/i.test(url));
-}
-
 /**
  * Runs inside the caller's `arrayBuffer()` / `bytes()` promise chain, so it must never throw:
  * a failure here would reject a body read that has nothing to do with wasm.
@@ -55,7 +48,7 @@ function looksLikeWasmResponse(response: Response): boolean {
 function tagResponseSource(response: Response, source: unknown): void {
   try {
     const buffer = toArrayBuffer(source);
-    if (buffer && response.url && looksLikeWasmResponse(response)) {
+    if (buffer && response.url) {
       wasmSourceUrls.set(buffer, response.url);
     }
   } catch {
@@ -67,11 +60,9 @@ function tagResponseSource(response: Response, source: unknown): void {
  * Patches Response body readers so wasm bytes remember their fetch URL.
  */
 export function patchWasmResponseBodyReaders(): void {
-  if (responseReadersPatched || typeof Response === 'undefined') {
+  if (typeof Response === 'undefined') {
     return;
   }
-
-  responseReadersPatched = true;
 
   fill(Response.prototype, 'arrayBuffer', (original: (this: Response) => Promise<ArrayBuffer>) => {
     return function arrayBuffer(this: Response): Promise<ArrayBuffer> {
@@ -92,9 +83,4 @@ export function patchWasmResponseBodyReaders(): void {
       });
     };
   });
-}
-
-/** @internal */
-export function _resetResponsePatchForTests(): void {
-  responseReadersPatched = false;
 }

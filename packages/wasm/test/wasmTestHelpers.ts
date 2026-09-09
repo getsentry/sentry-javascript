@@ -1,6 +1,3 @@
-import { _resetResponsePatchForTests } from '../src/patchWasmResponse';
-import { _resetNonStreamingPatchForTests } from '../src/patchWebAssembly';
-
 export type SavedWasmGlobals = {
   instantiate: typeof WebAssembly.instantiate;
   compile: typeof WebAssembly.compile;
@@ -34,6 +31,4 @@ export function restoreWasmGlobals(saved: SavedWasmGlobals): void {
   if (saved.bytes) {
     Response.prototype.bytes = saved.bytes;
   }
-  _resetNonStreamingPatchForTests();
-  _resetResponsePatchForTests();
 }
