@@ -35,6 +35,7 @@ import { LOG_PREFIX, HTTP_ON_CLIENT_REQUEST } from './constants';
 import type { ClientSubscriptionName } from './constants';
 import { getClient, getCurrentScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
+import { isSentryRequestUrl } from '../../utils/isSentryRequestUrl';
 import { doubleWrapWarning } from './double-wrap-warning';
 
 type ChannelListener = (message: unknown, name: string | symbol) => void;
@@ -64,9 +65,20 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
     } = options;
 
     const { request } = data as { request: HttpClientRequest };
+    const requestUrl = getRequestUrlFromClientRequest(request);
+
+    // The suppression check above only works while the suppression is readable, which it is not when
+    // the SDK does not own the OpenTelemetry setup: `suppressTracing()` writes to an OpenTelemetry
+    // context that no registered context manager propagates. Recognizing the SDK's own requests by
+    // their URL holds either way, and it has to: instrumenting them makes each envelope send record
+    // a dropped-span outcome, which the `beforeExit` client report flush then sends as another
+    // envelope, keeping the process alive forever.
+    if (isSentryRequestUrl(requestUrl, getClient())) {
+      return;
+    }
 
     // check if request is ignored. if so, we do nothing at all.
-    if (options.ignoreOutgoingRequests?.(getRequestUrlFromClientRequest(request), request)) {
+    if (options.ignoreOutgoingRequests?.(requestUrl, request)) {
       return;
     }
 
