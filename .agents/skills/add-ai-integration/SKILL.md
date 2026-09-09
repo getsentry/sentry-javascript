@@ -29,20 +29,27 @@ Cloudflare-only client wrapping (Workers AI) is the exception: it is applied in 
 ## Span Hierarchy
 
 - `gen_ai.invoke_agent` — parent/pipeline spans (chains, agents, orchestration)
-- `gen_ai.chat`, `gen_ai.generate_text`, etc. — child spans (actual LLM calls)
+- `gen_ai.chat`, `gen_ai.generate_content`, `gen_ai.embeddings`, `gen_ai.execute_tool` — child spans (actual LLM/tool calls)
+
+Do not hand-write the op string. Derive it with `getGenAiSpanOp(operationName)` from `ai/core/utils.ts`, and take the constants from `@sentry/conventions/op` (`GEN_AI_CHAT`, `GEN_AI_GENERATE_CONTENT`, `GEN_AI_EMBEDDINGS`, `GEN_AI_EXECUTE_TOOL`, `GEN_AI_HANDOFF`, `GEN_AI_INVOKE_AGENT`, `GEN_AI_RERANK` — that is the full set). An operation with no convention op (currently only `unknown`) falls back to the generic `function` op; the raw name is still preserved on `gen_ai.operation.name`.
 
 ## Shared Utilities (`packages/server-utils/src/ai/core/`)
 
-- `gen-ai-attributes.ts` — OTel Semantic Convention attribute constants. **Always use these, never hardcode.**
+- Attribute keys come from `@sentry/conventions/attributes` — import them there directly at the call site. **Never hardcode attribute strings.**
+- `gen-ai-attributes.ts` — only the gap-fillers: attributes with no `@sentry/conventions` equivalent, Sentry-internal meta attributes, and keys we intentionally emit differently. Check conventions first; add here only if it genuinely has no equivalent.
 - `utils.ts` — `setTokenUsageAttributes()`, `buildMethodPath()`, `resolveAIRecordingOptions()`, `getGenAiSpanOp()`, `endStreamSpan()`, `extractSystemInstructions()`
 - Only use attributes from [Sentry Gen AI Conventions](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/).
 
 ## Streaming
 
-- **Non-streaming:** `startSpan()`, set attributes from response
-- **Streaming:** `startSpanManual()`, accumulate state via async generator or event listeners, set `GEN_AI_RESPONSE_STREAMING_ATTRIBUTE: true`, call `span.end()` in finally block
-- Detect via `params.stream === true`
-- References: `ai/openai/streaming.ts` (async generator), `ai/anthropic-ai/streaming.ts` (event listeners)
+How the span is opened depends on the path:
+
+- **Channel path** (Patterns 1 & 2 — how auto-instrumentation actually runs): build the span with `startInactiveSpan()` inside the `getSpan` callback of `bindTracingChannelToSpan()` and let the binding own its lifecycle. For a streamed call, return `true` from the `deferSpanEnd` option to hand span-ending ownership to the stream wrapper; non-streaming results end through the normal `beforeSpanEnd` path. Detect the stream from the **result shape** (async-iterable, or the SDK's stream object), not from `params.stream` — see `wrapStreamResult()` in `integrations/openai.ts` and `integrations/anthropic.ts`.
+- **Manual client wrapping** (`instrumentOpenAiClient()`, `instrumentAnthropicAiClient()`, ... in `ai/{provider}/index.ts`, the public manual-instrumentation API): non-streaming uses `startSpan()`; streaming uses `startSpanManual()` and detects via `params.stream === true` (or a method that always streams).
+
+Either way, do not set streaming response attributes by hand. Accumulate into a `StreamResponseState` and call `endStreamSpan(span, state, recordOutputs)` from `ai/core/utils.ts` — in a `finally` for an async generator, or from the stream's terminal event for a listener-based stream. It sets `GEN_AI_RESPONSE_STREAMING`, response id/model, token usage, finish reasons, output text and tool calls, and ends the span.
+
+References: `ai/openai/streaming.ts` (`instrumentStream`, async generator), `ai/anthropic-ai/streaming.ts` (`instrumentMessageStream`, event listeners)
 
 ## Token Accumulation
 
@@ -107,9 +114,9 @@ Reference: `packages/server-utils/src/ai/langchain/`, and `packages/server-utils
 
 ## Key Rules
 
-1. Respect `dataCollection.genAI` for recording input and output messages
+1. Gate input/output message recording behind `resolveAIRecordingOptions()`, which resolves the integration's `recordInputs`/`recordOutputs` against the client's `dataCollection.genAI` settings. Never read `dataCollection.genAI` directly.
 2. Set `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.{provider}'` (alphanumerics, `_`, `.` only)
-3. Gate input/output message recording behind `resolveAIRecordingOptions()`
+3. **Do not truncate message payloads.** The `enableTruncation` flag and all AI truncation/media-stripping logic were removed in v11 (#23045); recorded messages are serialized with `stringify()` and set on the span as-is. Nothing downstream caps them either — `maxValueLength` only applies to `request.url` and exception values, and event normalization limits depth/breadth, not string length. Size limiting is handled server-side, so it is not a contributor concern.
 4. `gen_ai.invoke_agent` for parent ops, `gen_ai.chat` for child ops
 
 ## Checklist
@@ -118,9 +125,9 @@ Reference: `packages/server-utils/src/ai/langchain/`, and `packages/server-utils
 - [ ] Added to `getTracingIntegrations()` in correct order (LangChain first)
 - [ ] Exported from `packages/server-utils/src/index.ts` and re-exported from the supported runtime packages
 - [ ] E2E tests added and verifying auto-instrumentation
-- [ ] Only used attributes from [Sentry Gen AI Conventions](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/)
-- [ ] JSDoc says "enabled by default" or "not enabled by default"
-- [ ] Documented how to disable (if auto-enabled)
+- [ ] Only used attributes from [Sentry Gen AI Conventions](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/), with span ops derived via `getGenAiSpanOp()`
+- [ ] Input/output recording gated on `resolveAIRecordingOptions()`; no truncation logic added
+- [ ] JSDoc on the exported integration names the channels it subscribes to, the supported SDK versions, and the prerequisite (orchestrion-injected channels "require the Sentry runtime hook or bundler plugin")
 - [ ] Verified patching only happens when the target package is imported
 
 ## Reference Implementations
