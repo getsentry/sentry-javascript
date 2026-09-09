@@ -4,7 +4,7 @@
 
 import type { StackLineParser, StackLineParserFn, StackParser } from '@sentry/core';
 import { basename, createStackParser } from '@sentry/core';
-import { nodeStackLineParser } from '@sentry/core/server';
+import { nodeStackLineParser } from '@sentry/server-utils/no-diagnostic-channels';
 
 type GetModuleFn = (filename: string | undefined) => string | undefined;
 

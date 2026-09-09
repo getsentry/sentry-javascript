@@ -6,7 +6,7 @@ import {
   stripMetadataFromStackFrames,
 } from '../../src/metadata';
 import type { Event } from '../../src/types/event';
-import { nodeStackLineParser } from '../../src/utils/node-stack-trace';
+import { nodeStackLineParser } from '../mocks/nodeStackParser';
 import { createStackParser } from '../../src/utils/stacktrace';
 import { GLOBAL_OBJ } from '../../src/utils/worldwide';
 

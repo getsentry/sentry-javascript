@@ -120,4 +120,7 @@ export {
   withStreamedSpan,
   featureFlagsIntegration,
 } from '@sentry/core';
-export { trpcMiddleware } from '@sentry/core/server';
+// Import from the lean `no-diagnostic-channels` barrel rather than the full `@sentry/server-utils`
+// barrel: this cloudflare entry is bundled into edge/browser builds (e.g. Hydrogen on Oxygen), where
+// the full barrel's Node-only integrations would drag `node:` builtins into the bundle.
+export { trpcMiddleware } from '@sentry/server-utils/no-diagnostic-channels';

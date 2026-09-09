@@ -4,6 +4,7 @@ import { defineIntegration } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
 import { hapiModuleNames } from '../../orchestrion/config/hapi';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+// oxlint-disable-next-line typescript/no-deprecated
 import { attachHapiErrorHandler } from './hapi-error-handler';
 import type { HapiServer, HapiShouldHandleError } from './hapi-types';
 import { wrapExtArguments, wrapRouteArguments } from './hapi-utils';
@@ -102,6 +103,7 @@ function instrumentHapi(shouldHandleError?: HapiShouldHandleError): void {
     start(rawCtx: unknown) {
       const server = (rawCtx as HapiServerContext).self;
       if (server) {
+        // oxlint-disable-next-line typescript/no-deprecated -- internal delegation to the shared implementation
         attachHapiErrorHandler(server, shouldHandleError);
       }
     },

@@ -12,6 +12,7 @@
     "overrides": {
       "@sentry/bundler-plugins": "file:../../../../packages/bundler-plugins/sentry-bundler-plugins-10.67.0.tgz",
       "@sentry/core": "file:../../../../packages/core/sentry-core-10.67.0.tgz",
+      "@sentry/server-utils": "file:../../../../packages/server-utils/sentry-server-utils-10.67.0.tgz",
       "sentry": "file:../sentry-stub"
     }
   }

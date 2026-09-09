@@ -49,6 +49,11 @@ function isErrorEvent(event: HapiRequestEvent): boolean {
  * predicate is left untouched; when provided, it overrides whatever was set
  * before — so the integration's configured predicate wins over a prior
  * default-valued attach, regardless of ordering.
+ *
+ * @deprecated Internal. The error handler is registered automatically by the hapi
+ * instrumentation; there is no need to call this directly. It is exported only
+ * so the deprecated `setupHapiErrorHandler` can delegate to it, and will be
+ * removed in a future major version.
  */
 export function attachHapiErrorHandler(server: HapiServer, shouldHandleError?: HapiShouldHandleError): void {
   const events = server?.events as MarkedServerEvents | undefined;

@@ -106,8 +106,8 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
-export { instrumentPostgresJsSql } from '@sentry/server-utils';
+export { wrapMcpServerWithSentry } from '@sentry/core/server';
+export { instrumentPostgresJsSql, trpcMiddleware } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
@@ -138,4 +138,4 @@ export {
 
 export { instrumentWorkflowWithSentry } from './workflows';
 
-export { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+export { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/async-context';

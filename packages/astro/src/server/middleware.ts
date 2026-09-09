@@ -25,7 +25,7 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless } from '@sentry/server-utils/no-diagnostic-channels';
 import {
   captureException,
   continueTrace,
@@ -40,7 +40,7 @@ import {
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/node';
-import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
+import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils/no-diagnostic-channels';
 import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 
 type MiddlewareOptions = {

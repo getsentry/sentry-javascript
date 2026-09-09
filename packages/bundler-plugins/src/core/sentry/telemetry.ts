@@ -1,12 +1,12 @@
 import type { Client } from '@sentry/core';
-import type { ServerRuntimeClientOptions } from '@sentry/core/server';
+import type { ServerRuntimeClientOptions } from '@sentry/server-utils';
 import { applySdkMetadata } from '@sentry/core';
-import { ServerRuntimeClient } from '@sentry/core/server';
+import { ServerRuntimeClient } from '@sentry/server-utils';
 import type { NormalizedOptions } from '../options-mapping';
 import { SENTRY_SAAS_URL } from '../options-mapping';
 import { Scope } from '@sentry/core';
 import { createStackParser } from '@sentry/core';
-import { nodeStackLineParser } from '@sentry/core/server';
+import { nodeStackLineParser } from '@sentry/server-utils';
 import { makeOptionallyEnabledNodeTransport } from './transports';
 import { SentryCliAdapter } from '../cli';
 import { LIB_VERSION } from '../version';

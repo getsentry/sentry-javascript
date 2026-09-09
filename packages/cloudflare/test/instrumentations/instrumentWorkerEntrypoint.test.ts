@@ -176,7 +176,7 @@ describe('instrumentWorkerEntrypoint', () => {
   });
 
   it('Calls setAsyncLocalStorageAsyncContextStrategy outside Proxy (at instrumentation time), not inside construct', async () => {
-    const asyncModule = await import('@sentry/server-utils/no-diagnostic-channels');
+    const asyncModule = await import('@sentry/server-utils/async-context');
     const setStrategy = vi.spyOn(asyncModule, 'setAsyncLocalStorageAsyncContextStrategy');
     const mockContext = createMockExecutionContext();
     const TestClass = class extends WorkerEntrypoint {

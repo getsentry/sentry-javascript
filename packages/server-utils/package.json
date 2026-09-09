@@ -27,6 +27,11 @@
       "import": "./build/esm/index.no-diagnostic-channels.js",
       "require": "./build/cjs/index.no-diagnostic-channels.js"
     },
+    "./async-context": {
+      "types": "./build/types/index.async-context.d.ts",
+      "import": "./build/esm/index.async-context.js",
+      "require": "./build/cjs/index.async-context.js"
+    },
     "./orchestrion/config": {
       "types": "./build/types/orchestrion/config/index.d.ts",
       "import": "./build/esm/orchestrion/config/index.js",

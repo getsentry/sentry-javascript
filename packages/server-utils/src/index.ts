@@ -4,7 +4,8 @@ export * from './exports';
 export { detectOrchestrionSetup } from './orchestrion/detect';
 // oxlint-disable-next-line typescript/no-deprecated -- re-exported so the deprecated `setupKoaErrorHandler` can delegate
 export { attachKoaErrorHandler } from './integrations/koa/koa-error-handler';
-import { attachHapiErrorHandler as _attachHapiErrorHandler } from './integrations/hapi/hapi-error-handler';
+// oxlint-disable-next-line typescript/no-deprecated -- re-exported so the deprecated `setupHapiErrorHandler` can delegate
+export { attachHapiErrorHandler } from './integrations/hapi/hapi-error-handler';
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type { TracingChannelPayloadWithSpan } from './tracing-channel';
 export type { InstrumentationConfig } from './orchestrion/apmTypes';
@@ -18,11 +19,6 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
 } from './integrations/fastify';
-
-/**
- * @deprecated This is a temporary export to avoid breaking changes. It will be removed in the next major version.
- */
-export const attachHapiErrorHandler = _attachHapiErrorHandler;
 
 // Integrations
 export { prismaIntegration } from './integrations/prisma';

@@ -1,6 +1,6 @@
 import { debug, getDefaultIsolationScope, getIsolationScope, GLOBAL_OBJ, withIsolationScope } from '@sentry/core';
 import { AsyncLocalStorage } from 'async_hooks';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/async-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getInvocationState, getInvocationWaitUntil, setInvocationState } from '../../src/utils/invocationContext';
 import { withInvocationIsolationScope } from '../../src/utils/invocationScope';

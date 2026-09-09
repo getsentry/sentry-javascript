@@ -1,7 +1,7 @@
 import { trace } from '@opentelemetry/api';
 import type { TransactionEvent } from '@sentry/core';
 import { getActiveSpan, spanToJSON, startSpan } from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/async-context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { CloudflareOptions } from '../src/client';
 import { wrapRequestHandler } from '../src/request';
