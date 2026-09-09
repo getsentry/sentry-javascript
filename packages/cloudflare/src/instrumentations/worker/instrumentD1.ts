@@ -123,7 +123,7 @@ function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Respo
   addBreadcrumb({
     category: 'query',
     // The breadcrumb carries the same query text as the span, so it is sanitized the same way.
-    message: sanitizeSqlQuery(query),
+    message: query ? sanitizeSqlQuery(query) : undefined,
     data: {
       ...(d1Result ? getAttributesFromD1Response(d1Result) : {}),
       'db.operation.name': type,
@@ -132,11 +132,13 @@ function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Respo
 }
 
 function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOptions {
-  const queryText = sanitizeSqlQuery(query);
-  const querySummary = query ? getSqlQuerySummary(queryText) : undefined;
+  // Guarded so an empty query omits the attribute instead of reporting the sanitizer's fallback text.
+  const queryText = query ? sanitizeSqlQuery(query) : undefined;
+  const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
 
   const client = getClient();
-  const name = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : queryText;
+  const name =
+    client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : (queryText ?? 'cloudflare-d1');
 
   return {
     name,
@@ -173,6 +175,7 @@ function instrumentBatch(
       const queryText = statements
         .map(statement => (statement as unknown as { statement?: string }).statement ?? '')
         .filter(Boolean)
+        .map(statement => sanitizeSqlQuery(statement))
         .join('\n');
 
       return startSpan(
