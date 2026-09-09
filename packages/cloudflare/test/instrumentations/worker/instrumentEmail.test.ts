@@ -259,7 +259,9 @@ describe('instrumentEmail', () => {
       const emailMessage = createMockEmailMessage();
       await wrappedHandler.email?.(emailMessage, MOCK_ENV, createMockExecutionContext());
 
-      expect(sentryEvent.transaction).toEqual(`Handle Email ${emailMessage.to}`);
+      // The recipient is deliberately not carried over into a description: it is PII, and the span
+      // name must stay low cardinality.
+      expect(sentryEvent.transaction).toEqual('email');
       expect(sentryEvent.spans).toHaveLength(0);
       expect(sentryEvent.contexts?.trace).toEqual({
         data: {
