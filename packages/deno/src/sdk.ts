@@ -97,7 +97,7 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  * @see {@link DenoOptions} for documentation on configuration options.
  */
 export function init(options: DenoOptions = {}): Client {
-  // Computed into a local rather than written back onto `options`: the default set now
+  // Computed into a local rather than written back onto `options`: the default set
   // depends on the tracing options, so caching it on the caller's object would pin the
   // result of the first `init` for any reused options object.
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrations(options);
@@ -105,7 +105,7 @@ export function init(options: DenoOptions = {}): Client {
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup({ ...options, defaultIntegrations }),
+    integrations: getIntegrationsToSetup({ integrations: options.integrations, defaultIntegrations }),
     transport: options.transport || makeFetchTransport,
   };
 
