@@ -10,7 +10,7 @@ Sentry.init({
       enableLongAnimationFrame: false,
       instrumentPageLoad: false,
       instrumentNavigation: true,
-      enableInp: false,
+      webVitals: { ignore: ['inp'] },
       enableLongTask: true,
     }),
   ],

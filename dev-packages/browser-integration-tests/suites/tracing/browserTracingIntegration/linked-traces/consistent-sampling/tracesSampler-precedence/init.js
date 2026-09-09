@@ -9,7 +9,7 @@ Sentry.init({
     Sentry.browserTracingIntegration({
       linkPreviousTrace: 'in-memory',
       consistentTraceSampling: true,
-      enableInp: false,
+      webVitals: { ignore: ['inp'] },
     }),
   ],
   tracePropagationTargets: ['sentry-test-external.io'],
