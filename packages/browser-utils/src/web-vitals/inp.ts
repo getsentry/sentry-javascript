@@ -13,6 +13,9 @@ const LAST_INTERACTIONS: number[] = [];
 const INTERACTIONS_SPAN_MAP = new Map<number, InteractionContext>();
 
 // Map to store element names by timestamp, since we get the DOM event before the PerformanceObserver entry
+/** What `htmlTreeAsString` returns when it cannot describe the target. */
+const UNKNOWN_ELEMENT_NAME = '<unknown>';
+
 const ELEMENT_NAME_TIMESTAMP_MAP = new Map<number, string>();
 
 /**
@@ -84,6 +87,20 @@ export function registerInpInteractionListener(): void {
     const elementName = htmlTreeAsString(target);
     const timestamp = Math.round(event.timeStamp);
 
+    // Not every event of an interaction has a describable target, and one that doesn't would
+    // otherwise claim the timestamp and leave the span unnamed.
+    if (!elementName || elementName === UNKNOWN_ELEMENT_NAME) {
+      return;
+    }
+
+    // Every event of one interaction shares a timestamp, and so do the `pointerover`/`mouseover`
+    // the browser fires afterwards when a handler swaps out the element under the cursor. Those
+    // arrive last and describe the new DOM, so keeping the first usable name is what pins the entry
+    // to the element that was actually interacted with.
+    if (ELEMENT_NAME_TIMESTAMP_MAP.has(timestamp)) {
+      return;
+    }
+
     // Store the element name by timestamp so we can match it with the PerformanceEntry
     ELEMENT_NAME_TIMESTAMP_MAP.set(timestamp, elementName);
 
@@ -114,7 +131,7 @@ export function registerInpInteractionListener(): void {
       }
     }
 
-    return elementName || '<unknown>';
+    return elementName || UNKNOWN_ELEMENT_NAME;
   }
 
   const handleEntries = ({ entries }: { entries: PerformanceEntry[] }): void => {
