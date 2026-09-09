@@ -835,6 +835,27 @@ describe('sanitizeSqlQuery', () => {
   });
 });
 
+describe('sanitizeSqlQueryWithSummary', () => {
+  it('returns the sanitized statement and its summary', () => {
+    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
+      queryText: 'SELECT * FROM users WHERE email = ?',
+      querySummary: 'SELECT users',
+    });
+  });
+
+  it('passes the dialect through to the sanitizer', () => {
+    expect(sanitizeSqlQueryWithSummary('SELECT * FROM users WHERE email = "jane@example.com"', 'mysql')).toEqual({
+      queryText: 'SELECT * FROM users WHERE email = ?',
+      querySummary: 'SELECT users',
+    });
+  });
+
+  it('returns undefined for both when there is no statement', () => {
+    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({ queryText: undefined, querySummary: undefined });
+    expect(sanitizeSqlQueryWithSummary('')).toEqual({ queryText: undefined, querySummary: undefined });
+  });
+});
+
 describe('toSqlDialect', () => {
   it.each([
     ['mysql', 'mysql'],
