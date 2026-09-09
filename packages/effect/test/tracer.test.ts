@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
 import * as sentryCoreBrowser from '@sentry/core/browser';
+import { CODE_FUNCTION_NAME } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { Effect } from 'effect';
 import { afterEach, vi } from 'vitest';
@@ -198,6 +199,7 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ tracer, spanApi }) =
 
       expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.function.effect');
       expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function');
+      expect(attributes?.[CODE_FUNCTION_NAME]).toBe('my-operation');
     }),
   );
 
@@ -207,6 +209,7 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ tracer, spanApi }) =
 
       expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
       expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+      expect(attributes?.[CODE_FUNCTION_NAME]).toBeUndefined();
     }),
   );
 
@@ -216,6 +219,7 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ tracer, spanApi }) =
 
       expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
       expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.client');
+      expect(attributes?.[CODE_FUNCTION_NAME]).toBeUndefined();
     }),
   );
 

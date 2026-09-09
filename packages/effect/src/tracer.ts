@@ -1,4 +1,4 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION, HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, StartSpanOptions } from '@sentry/core';
 import { isObjectLike, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
@@ -190,12 +190,15 @@ function createSentrySpan(
   const parentSentrySpan =
     Option.isSome(parent) && isSentrySpan(parent.value) ? parent.value.sentrySpan : (getActiveSpan() ?? null);
 
+  const op = deriveOp(name);
+
   const newSpan = startInactiveSpan({
     name,
     startTime: nanosToHrTime(startTime),
     attributes: {
-      [SENTRY_OP]: deriveOp(name),
+      [SENTRY_OP]: op,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: deriveOrigin(name),
+      ...(op === FUNCTION && { [CODE_FUNCTION_NAME]: name }),
     },
     ...(parentSentrySpan ? { parentSpan: parentSentrySpan } : {}),
   });
