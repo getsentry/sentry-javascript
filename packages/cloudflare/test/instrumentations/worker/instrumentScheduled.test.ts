@@ -259,6 +259,7 @@ describe('instrumentScheduled', () => {
         data: {
           'sentry.origin': 'auto.faas.cloudflare.scheduled',
           'sentry.op': 'function',
+          'code.function.name': 'scheduled',
           'faas.cron': '0 0 0 * * *',
           'faas.time': expect.any(String),
           'faas.trigger': 'timer',

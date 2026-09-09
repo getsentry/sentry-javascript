@@ -265,6 +265,7 @@ describe('instrumentEmail', () => {
         data: {
           'sentry.origin': 'auto.faas.cloudflare.email',
           'sentry.op': 'function',
+          'code.function.name': 'email',
           'faas.trigger': 'email',
           'sentry.sample_rate': 1,
           'sentry.segment.name.source': 'task',
