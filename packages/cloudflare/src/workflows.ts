@@ -24,6 +24,7 @@ import type {
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
+import { markAsInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
@@ -199,7 +200,7 @@ export function instrumentWorkflowWithSentry<
   T extends WorkflowEntrypoint<E, P>, // WorkflowEntrypoint type
   C extends new (ctx: ExecutionContext, env: E) => T, // Constructor type of the WorkflowEntrypoint class
 >(optionsCallback: (env: E) => CloudflareOptions, WorkFlowClass: C): C {
-  return new Proxy(WorkFlowClass, {
+  const InstrumentedClass = new Proxy(WorkFlowClass, {
     construct(target: C, args: [ctx: ExecutionContext, env: E], newTarget) {
       const [ctx, env] = args;
       const context = instrumentContext(ctx);
@@ -242,4 +243,7 @@ export function instrumentWorkflowWithSentry<
       });
     },
   });
+  // Recognizable for `_INTERNAL_wrapUnlessInstrumented`, so auto-instrumentation never nests wrappers.
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }

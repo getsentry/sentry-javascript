@@ -2,12 +2,20 @@ import { AIChatAgent } from '@cloudflare/ai-chat';
 import { Agent, callable, routeAgentRequest } from 'agents';
 import { DurableObject } from 'cloudflare:workers';
 import { MyBase } from './base';
+import { ImportedAgent } from './imported-agent';
 
+export { ImportedAgent };
+export { ReExportedAgent } from './reexported-agent';
+
+// The two exports above live in their own modules — see `imported-agent.ts` and
+// `reexported-agent.ts`. They cover the shapes an entry that only aggregates
+// classes uses, where there is no local declaration for the plugin to rewrite.
+//
 // NOTE: this file deliberately contains NO `Sentry.*` calls and no import of
 // `@sentry/cloudflare`. Everything below is wrapped at build time by
 // `sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true } })`,
 // which reads wrangler.jsonc, wraps the default export with `withSentry`, and
-// picks a wrapper per class: `instrumentAgentWithSentry` for the three Agents,
+// picks a wrapper per class: `instrumentAgentWithSentry` for the five Agents,
 // `instrumentDurableObjectWithSentry` for the plain Durable Object.
 //
 // Options come from `instrument.server.ts` next to this entry.

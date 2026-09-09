@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { isObjectLike } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
@@ -377,7 +378,7 @@ export function instrumentDurableObjectWithSentry<
   T extends DurableObject<E>,
   C extends new (state: DurableObjectState, env: E) => T,
 >(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
-  return new Proxy(DurableObjectClass, {
+  const InstrumentedClass = new Proxy(DurableObjectClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
         target,
@@ -390,6 +391,9 @@ export function instrumentDurableObjectWithSentry<
       return finalizeWithRpcInstrumentation(obj, options, context, frameworkManagedMethods);
     },
   });
+  // Recognizable for `_INTERNAL_wrapUnlessInstrumented`, so auto-instrumentation never nests wrappers.
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }
 
 /**
@@ -437,7 +441,7 @@ export function instrumentAgentWithSentry<
   T extends DurableObject<E>,
   C extends new (state: DurableObjectState, env: E) => T,
 >(optionsCallback: (env: E) => CloudflareOptions, AgentClass: C): C {
-  return new Proxy(AgentClass, {
+  const InstrumentedClass = new Proxy(AgentClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
         target,
@@ -456,4 +460,6 @@ export function instrumentAgentWithSentry<
       return finalizeWithRpcInstrumentation(obj, options, context, frameworkManagedMethods);
     },
   });
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }
