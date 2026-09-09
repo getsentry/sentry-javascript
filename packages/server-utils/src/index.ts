@@ -13,6 +13,7 @@ export type { InstrumentationConfig } from './orchestrion/apmTypes';
 // `orchestrion/bundler/moduleInjectedTransform.ts`); it is a plain runtime
 // helper with no orchestrion build-time dependency.
 export { orchestrionModuleInjected } from './utils/moduleInjected';
+export { eveConversationHook, type EveConversationHookOptions } from './eve';
 export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated

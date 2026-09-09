@@ -187,6 +187,8 @@ export {
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
+  eveConversationHook,
+  type EveConversationHookOptions,
 } from '@sentry/node';
 
 export {

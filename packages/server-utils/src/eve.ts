@@ -2,8 +2,8 @@ import { setConversationId } from '@sentry/core';
 
 /**
  * The subset of eve's hook context (`HookContext` from `eve/hooks`) this helper reads. Typed
- * structurally rather than importing from `eve`, so `@sentry/node` carries no dependency on the
- * framework — the shape is checked at the `defineHook(...)` call site in the user's app instead.
+ * structurally rather than importing from `eve`, so the SDK carries no dependency on the framework —
+ * the shape is checked at the `defineHook(...)` call site in the user's app instead.
  */
 interface EveHookContext {
   session: { id: string };
