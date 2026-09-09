@@ -84,7 +84,12 @@ describe('orchestrion config — SENTRY_RUNTIME_INSTRUMENTATIONS', () => {
       ),
     ].sort();
 
-    expect(registrationOnlyModules).toContain(['@redis/client', 'ai', 'ioredis', 'mongoose', 'mysql2']);
+    // These native-channel libraries are known to use a registration-only config
+    // today. Asserted as a subset (not the exact set) so adding another such
+    // library does not break this test.
+    expect(registrationOnlyModules).toEqual(
+      expect.arrayContaining(['@redis/client', 'ai', 'ioredis', 'mongoose', 'mysql2']),
+    );
 
     // The exclusion is per-config, not per-module: a module with both a
     // registration-only (native) config and older transform-based configs keeps
