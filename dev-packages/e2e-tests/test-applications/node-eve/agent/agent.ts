@@ -13,4 +13,12 @@ export default defineAgent({
   // A direct-provider model is not in the AI Gateway catalog, so eve cannot look
   // up its context window for compaction. Provide it explicitly.
   modelContextWindowTokens: 128_000,
+  build: {
+    // `dataloader` is instrumented by Sentry via orchestrion (a module
+    // transform). Keep it external so it stays a real module the transform can
+    // hook; if eve inlined it into the server bundle it could never be
+    // instrumented. (The Vercel AI SDK needs none of this — it uses a native
+    // diagnostics channel.)
+    externalDependencies: ["dataloader"],
+  },
 });

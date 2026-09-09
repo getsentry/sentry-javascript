@@ -10,9 +10,13 @@
     "build": "EVE_TELEMETRY_DISABLED=1 eve build",
     "dev": "EVE_TELEMETRY_DISABLED=1 eve dev --no-ui --port 3030",
     "start": "EVE_TELEMETRY_DISABLED=1 eve start --port 3030",
+    "dev:orchestrion": "NODE_OPTIONS='--import=@sentry/node/import' pnpm dev",
+    "start:orchestrion": "NODE_OPTIONS='--import=@sentry/node/import' pnpm start",
     "clean": "npx rimraf node_modules .eve .output pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add eve@latest ai@latest && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:assert-orchestrion": "USE_ORCHESTRION=1 pnpm test:assert",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test"
   },
@@ -20,6 +24,7 @@
     "@openrouter/ai-sdk-provider": "^3.0.0",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "ai": "^7.0.82",
+    "dataloader": "^2.2.3",
     "eve": "^0.52.3",
     "zod": "4.5.4"
   },
@@ -38,6 +43,16 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "node-eve (latest)"
+      },
+      {
+        "assert-command": "pnpm test:assert-orchestrion",
+        "label": "node-eve (orchestrion)"
+      }
+    ]
   }
 }

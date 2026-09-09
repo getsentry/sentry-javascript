@@ -10,4 +10,9 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   tunnel: "http://localhost:3031/", // proxy server
   tracesSampleRate: 1.0,
+  // Not a default integration. It only produces spans in the "orchestrion" test
+  // variant, where the server is started with
+  // `NODE_OPTIONS=--import=@sentry/node/import` so the orchestrion module
+  // transform is registered before `dataloader` loads.
+  integrations: [Sentry.dataloaderIntegration()],
 });
