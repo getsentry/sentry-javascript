@@ -3,7 +3,7 @@
  */
 
 import '../utils/mock-internal-setTimeout';
-import type { ReplayEndEvent, ReplayStartEvent } from '@sentry/core';
+import type { FeedbackEvent, ReplayEndEvent, ReplayStartEvent } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Replay } from '../../src/integration';
@@ -105,5 +105,61 @@ describe('Integration | lifecycle hooks', () => {
     integration.start();
 
     expect(startEvents).toHaveLength(0);
+  });
+
+  it('freezes replay while the feedback widget is open and sends the frozen buffer on submit', () => {
+    integration.startBuffering();
+    const client = getClient()!;
+    const pauseSpy = vi.spyOn(replay, 'pause');
+    const resumeSpy = vi.spyOn(replay, 'resume');
+    const sendBufferedReplaySpy = vi.spyOn(replay, 'sendBufferedReplayOrFlush').mockResolvedValue();
+    const feedbackEvent: FeedbackEvent = {
+      type: 'feedback',
+      contexts: { feedback: { message: 'test', source: 'widget' } },
+    };
+
+    client.emit('openFeedbackWidget');
+    client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: true });
+
+    expect(pauseSpy).toHaveBeenCalledOnce();
+    expect(sendBufferedReplaySpy).toHaveBeenCalledWith({ continueRecording: false });
+    expect(feedbackEvent.contexts.feedback.replay_id).toBe(replay.getSessionId());
+    expect(replay.recordingMode).toBe('buffer');
+
+    client.emit('closeFeedbackWidget');
+
+    expect(resumeSpy).toHaveBeenCalledOnce();
+    expect(replay.recordingMode).toBe('buffer');
+  });
+
+  it('keeps session recording mode after feedback submission', () => {
+    integration.start();
+    const client = getClient()!;
+    const sendBufferedReplaySpy = vi.spyOn(replay, 'sendBufferedReplayOrFlush').mockResolvedValue();
+    const feedbackEvent: FeedbackEvent = {
+      type: 'feedback',
+      contexts: { feedback: { message: 'test', source: 'widget' } },
+    };
+
+    client.emit('openFeedbackWidget');
+    client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: true });
+    client.emit('closeFeedbackWidget');
+
+    expect(sendBufferedReplaySpy).toHaveBeenCalledWith({ continueRecording: false });
+    expect(replay.recordingMode).toBe('session');
+    expect(replay.isPaused()).toBe(false);
+  });
+
+  it('does not resume replay when it was already paused before the feedback widget opened', () => {
+    integration.startBuffering();
+    replay.pause();
+    const client = getClient()!;
+    const resumeSpy = vi.spyOn(replay, 'resume');
+
+    client.emit('openFeedbackWidget');
+    client.emit('closeFeedbackWidget');
+
+    expect(resumeSpy).not.toHaveBeenCalled();
+    expect(replay.isPaused()).toBe(true);
   });
 });
