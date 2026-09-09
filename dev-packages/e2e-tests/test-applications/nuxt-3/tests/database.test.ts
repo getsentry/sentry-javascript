@@ -1,10 +1,15 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 
 async function collectDbSpans() {
-  const spans = await collectStreamedSpansUntilSegment(
+  // The `/api/db-test` trace is only complete once its `db.query` children have arrived, not merely
+  // when the segment span shows up — the segment can be observed in an earlier envelope than its
+  // children, which would otherwise leave us filtering an incomplete trace and finding zero spans.
+  const spans = await collectStreamedSpans(
     'nuxt-3',
-    span => span.attributes['url.path']?.value === '/api/db-test',
+    spansOfTrace =>
+      spansOfTrace.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test') &&
+      spansOfTrace.some(span => getSpanOp(span) === 'db.query'),
   );
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test');
 
