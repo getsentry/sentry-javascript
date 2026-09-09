@@ -27,7 +27,6 @@ const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.MISTRAL_CHAT, operation: 'chat' },
   { channel: CHANNELS.MISTRAL_EMBEDDINGS, operation: 'embeddings' },
   { channel: CHANNELS.MISTRAL_AGENTS, operation: 'invoke_agent' },
-  { channel: CHANNELS.MISTRAL_FIM, operation: 'text_completion' },
 ] as const;
 
 /**
@@ -129,7 +128,7 @@ function wrapStreamResult(span: Span, data: MistralChannelContext, options: Mist
 
 /**
  * Diagnostics-channel-based Mistral integration. Subscribes to the `orchestrion:@mistralai/mistralai:*`
- * diagnostics_channels injected into the SDK's chat, embeddings, agents and fim methods, so it requires
+ * diagnostics_channels injected into the SDK's chat, embeddings and agents methods, so it requires
  * the Sentry runtime hook or bundler plugin.
  */
 export const mistralAIIntegration = defineIntegration(_mistralAIIntegration);

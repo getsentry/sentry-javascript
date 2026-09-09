@@ -196,32 +196,4 @@ describe('Mistral integration', () => {
         .completed();
     });
   });
-
-  createEsmAndCjsTests(__dirname, 'scenario-fim.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates fim text_completion spans', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            const fimSpan = container.items.find(s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'fimcmpl-mock123');
-            expect(fimSpan).toBeDefined();
-            expect(fimSpan!.name).toBe('text_completion codestral-latest');
-            expect(fimSpan!.status).toBe('ok');
-            expect(fimSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('text_completion');
-            expect(fimSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.text_completion');
-            expect(fimSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
-            expect(fimSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
-            expect(fimSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('codestral-latest');
-            expect(fimSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(15);
-
-            const fimStreamSpan = container.items.find(
-              s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'fimcmpl-stream-123',
-            );
-            expect(fimStreamSpan).toBeDefined();
-            expect(fimStreamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
 });

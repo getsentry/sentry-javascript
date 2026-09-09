@@ -33,16 +33,6 @@ export const mistralConfig = [
     module: { ...MODULE, filePath: 'esm/sdk/agents.js' },
     functionQuery: { className: 'Agents', methodName: 'stream', kind: 'Auto' as const },
   },
-  {
-    channelName: 'fim',
-    module: { ...MODULE, filePath: 'esm/sdk/fim.js' },
-    functionQuery: { className: 'Fim', methodName: 'complete', kind: 'Auto' as const },
-  },
-  {
-    channelName: 'fim',
-    module: { ...MODULE, filePath: 'esm/sdk/fim.js' },
-    functionQuery: { className: 'Fim', methodName: 'stream', kind: 'Auto' as const },
-  },
 ] satisfies InstrumentationConfig[];
 
 export const mistralModuleNames = getModuleNames(mistralConfig);
@@ -51,5 +41,4 @@ export const mistralChannels = {
   MISTRAL_CHAT: 'orchestrion:@mistralai/mistralai:chat',
   MISTRAL_EMBEDDINGS: 'orchestrion:@mistralai/mistralai:embeddings',
   MISTRAL_AGENTS: 'orchestrion:@mistralai/mistralai:agents',
-  MISTRAL_FIM: 'orchestrion:@mistralai/mistralai:fim',
 } as const;

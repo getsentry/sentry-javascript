@@ -10,6 +10,4 @@ export const MISTRAL_METHOD_REGISTRY = {
   'embeddings.create': { operation: 'embeddings' },
   'agents.complete': { operation: 'invoke_agent' },
   'agents.stream': { operation: 'invoke_agent', streaming: true },
-  'fim.complete': { operation: 'text_completion' },
-  'fim.stream': { operation: 'text_completion', streaming: true },
 } as const satisfies InstrumentedMethodRegistry;

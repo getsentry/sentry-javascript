@@ -65,14 +65,6 @@ export function addRequestAttributes(span: Span, params: Record<string, unknown>
     return;
   }
 
-  // FIM completions carry a raw `prompt` string rather than a messages array.
-  if (operationName === 'text_completion') {
-    if (typeof params.prompt === 'string' && params.prompt.length > 0) {
-      span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(params.prompt));
-    }
-    return;
-  }
-
   const src = 'messages' in params ? params.messages : undefined;
   if (!src || (Array.isArray(src) && src.length === 0)) {
     return;
