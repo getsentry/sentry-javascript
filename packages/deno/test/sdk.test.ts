@@ -66,7 +66,8 @@ Deno.test("init doesn't write the computed default integrations back onto the op
   const options = { dsn: 'https://username@domain/123' };
   init(options);
   assertEquals('defaultIntegrations' in options, false);
-  const second = init({ ...options, tracesSampleRate: 1, traceLifecycle: 'static' });
+  options.tracesSampleRate = 1;
+  const second = init(options);
   const names = second.getOptions().integrations.map(i => i.name);
   assertArrayIncludes(names, ['Graphql']);
 });
