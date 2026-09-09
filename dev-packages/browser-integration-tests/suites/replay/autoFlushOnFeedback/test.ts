@@ -33,14 +33,7 @@ sentryTest('replay is frozen on feedback open and flushed on submit', async ({ g
   await page.locator('#submit').click();
 
   const replayEvent1 = getReplayEvent(await reqPromise1);
-  const { breadcrumbs, ...replayEventWithoutBreadcrumbs } = replayEvent1;
-  expect(replayEventWithoutBreadcrumbs).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [] }));
-  expect(breadcrumbs).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ category: 'ui.click', message: 'body > button#something' }),
-      expect.objectContaining({ category: 'ui.click', message: 'body > button#open' }),
-    ]),
-  );
+  expect(replayEvent1).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [] }));
 
   await page.locator('#close').click();
   const isResumed = await page.evaluate(() => {
