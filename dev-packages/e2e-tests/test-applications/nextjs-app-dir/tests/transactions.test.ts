@@ -40,7 +40,7 @@ test('Sends a pageload span', async ({ page }) => {
     'url.path': { value: '/', type: 'string' },
     'url.template': { value: '/', type: 'string' },
     'react.version': { value: expect.any(String), type: 'string' },
-    'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+    'user_agent.original': { value: expect.any(String), type: 'string' },
   });
   expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/$/);
 });

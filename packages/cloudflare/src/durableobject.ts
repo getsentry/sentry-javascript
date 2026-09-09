@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { RPC } from '@sentry/conventions/op';
 import { isObjectLike } from '@sentry/core';
@@ -346,7 +347,7 @@ export function instrumentDurableObjectWithSentry<
   C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
   O = unknown,
 >(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O>, DurableObjectClass: C): C {
-  return new Proxy(DurableObjectClass, {
+  const InstrumentedClass = new Proxy(DurableObjectClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
         target,
@@ -359,6 +360,9 @@ export function instrumentDurableObjectWithSentry<
       return finalizeWithRpcInstrumentation(obj, options, context, frameworkManagedMethods);
     },
   });
+  // Recognizable for `_INTERNAL_wrapUnlessInstrumented`, so auto-instrumentation never nests wrappers.
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }
 
 /**
@@ -408,7 +412,7 @@ export function instrumentAgentWithSentry<
   C extends new (state: DurableObjectState, env: any) => T = new (state: DurableObjectState, env: any) => T,
   O = unknown,
 >(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O>, AgentClass: C): C {
-  return new Proxy(AgentClass, {
+  const InstrumentedClass = new Proxy(AgentClass, {
     construct(target, [ctx, env], newTarget) {
       const { obj, options, context, frameworkManagedMethods } = constructInstrumentedDurableObject(
         target,
@@ -427,4 +431,6 @@ export function instrumentAgentWithSentry<
       return finalizeWithRpcInstrumentation(obj, options, context, frameworkManagedMethods);
     },
   });
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }

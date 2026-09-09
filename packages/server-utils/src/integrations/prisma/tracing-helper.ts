@@ -35,7 +35,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import { getSqlQuerySummary, sanitizeSqlQuery, type SqlDialect } from '../../utils/sql';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -117,10 +117,21 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
   if (statement) {
     // Sanitized before summarizing, so that a string literal containing `from`/`join` can't leak a
     // value into the summary.
-    merged[DB_QUERY_SUMMARY] = _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement));
+    merged[DB_QUERY_SUMMARY] = getSqlQuerySummary(sanitizeSqlQuery(statement, getSqlDialect(merged)));
   }
 
   return merged;
+}
+
+/**
+ * The dialect the reported SQL is written in. Prisma is multi-connector, and on MySQL a `"..."` run is
+ * a string literal rather than a quoted identifier, so sanitizing it as standard SQL leaves the value
+ * in place — and a literal containing `FROM`/`JOIN` then reads as a table name in the summary.
+ */
+function getSqlDialect(attributes: SpanAttributes): SqlDialect | undefined {
+  // oxlint-disable-next-line typescript/no-deprecated
+  const system = attributes[DB_SYSTEM_NAME] ?? attributes[DB_SYSTEM];
+  return system === 'mysql' || system === 'mariadb' ? 'mysql' : undefined;
 }
 
 /**

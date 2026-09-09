@@ -1,89 +1,67 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+
+const APP_NAME = 'astro-7';
 
 test('Instruments ioredis automatically', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('astro-7', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /db-ioredis';
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /db-ioredis');
 
   await fetch(`${baseURL}/db-ioredis`);
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
+  const redisSpans = spans.filter(span => getSpanOp(span) === 'db.query');
 
-  expect(transactionEvent.contexts?.trace?.op).toEqual('http.server');
-  expect(transactionEvent.transaction).toEqual('GET /db-ioredis');
-
-  const spans = transactionEvent.spans || [];
-
-  expect(spans).toContainEqual(
+  // With span streaming `db.query.text` carries the key, so the command span is named
+  // `{db.operation.name} {server.address}:{server.port}` instead.
+  expect(redisSpans).toContainEqual(
     expect.objectContaining({
-      op: 'db.query',
-      origin: 'auto.db.redis',
-      description: 'set test-key [1 other arguments]',
       status: 'ok',
-      data: expect.objectContaining({
-        'db.system.name': 'redis',
-        'db.operation.name': 'set',
-        'db.query.text': 'set test-key [1 other arguments]',
+      attributes: expect.objectContaining({
+        'sentry.origin': { value: 'auto.db.redis', type: 'string' },
+        'db.system.name': { value: 'redis', type: 'string' },
+        'db.operation.name': { value: 'set', type: 'string' },
+        'db.query.text': { value: 'set test-key [1 other arguments]', type: 'string' },
       }),
     }),
   );
-  expect(spans).toContainEqual(
+  expect(redisSpans).toContainEqual(
     expect.objectContaining({
-      op: 'db.query',
-      origin: 'auto.db.redis',
-      description: 'get test-key',
       status: 'ok',
-      data: expect.objectContaining({
-        'db.system.name': 'redis',
-        'db.operation.name': 'get',
-        'db.query.text': 'get test-key',
+      attributes: expect.objectContaining({
+        'sentry.origin': { value: 'auto.db.redis', type: 'string' },
+        'db.system.name': { value: 'redis', type: 'string' },
+        'db.operation.name': { value: 'get', type: 'string' },
+        'db.query.text': { value: 'get test-key', type: 'string' },
       }),
     }),
   );
 });
 
 test('Instruments mysql automatically', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('astro-7', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /db-mysql';
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /db-mysql');
 
   await fetch(`${baseURL}/db-mysql`);
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
+  const mysqlSpans = spans.filter(span => getSpanOp(span) === 'db');
 
-  const spans = transactionEvent.spans || [];
+  // With span streaming the span name is the low-cardinality query summary; the statement stays in
+  // `db.query.text`.
+  const expectedQuerySpan = (query: string) =>
+    expect.objectContaining({
+      name: 'SELECT',
+      status: 'ok',
+      attributes: expect.objectContaining({
+        'sentry.origin': { value: 'auto.db.mysql', type: 'string' },
+        'db.system.name': { value: 'mysql', type: 'string' },
+        'db.query.text': { value: query, type: 'string' },
+        'db.user': { value: 'root', type: 'string' },
+        'db.connection_string': { value: expect.any(String), type: 'string' },
+        'server.address': { value: expect.any(String), type: 'string' },
+        'server.port': { value: 3306, type: 'integer' },
+      }),
+    });
 
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      op: 'db',
-      origin: 'auto.db.mysql',
-      description: 'SELECT 1 + 1 AS solution',
-      status: 'ok',
-      data: expect.objectContaining({
-        'db.system.name': 'mysql',
-        'db.query.text': 'SELECT 1 + 1 AS solution',
-        'db.user': 'root',
-        'db.connection_string': expect.any(String),
-        'server.address': expect.any(String),
-        'server.port': 3306,
-      }),
-    }),
-  );
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      op: 'db',
-      origin: 'auto.db.mysql',
-      description: 'SELECT NOW()',
-      status: 'ok',
-      data: expect.objectContaining({
-        'db.system.name': 'mysql',
-        'db.query.text': 'SELECT NOW()',
-        'db.user': 'root',
-        'db.connection_string': expect.any(String),
-        'server.address': expect.any(String),
-        'server.port': 3306,
-      }),
-    }),
-  );
+  expect(mysqlSpans).toContainEqual(expectedQuerySpan('SELECT 1 + 1 AS solution'));
+  expect(mysqlSpans).toContainEqual(expectedQuerySpan('SELECT NOW()'));
 });

@@ -101,7 +101,8 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { instrumentPostgresJsSql, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { wrapMcpServerWithSentry } from '@sentry/core/server';
+export { instrumentPostgresJsSql } from '@sentry/server-utils';
 
 export { DenoClient } from './client';
 
@@ -132,6 +133,8 @@ export {
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
   lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,

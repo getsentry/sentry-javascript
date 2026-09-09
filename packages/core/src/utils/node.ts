@@ -44,8 +44,14 @@ function dynamicRequire(mod: any, request: string): any {
  * @param existingModule module to use for requiring
  * @returns possibly required module
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function loadModule<T>(moduleName: string, existingModule: any = module): T | undefined {
+export function loadModule<T>(
+  moduleName: string,
+  // Default parameters are evaluated before the body runs, so a bare `module` would throw a
+  // ReferenceError in ESM before reaching the try/catch below that makes this helper degrade
+  // gracefully. Guard it so the ESM build resolves to `undefined` instead of crashing.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  existingModule: any = typeof module !== 'undefined' ? module : undefined,
+): T | undefined {
   let mod: T | undefined;
 
   try {

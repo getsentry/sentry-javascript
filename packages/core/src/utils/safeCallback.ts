@@ -3,6 +3,13 @@ import { debug } from './debug-logger';
 import { isThenable } from './is';
 
 /**
+ * Lets a `safeCallback` fallback signal "the callback failed" as opposed to "the callback returned `null`",
+ * so the call site can report the drop as `callback_error`. Always return it, never throw it: a thrown
+ * sentinel would have to be caught at every boundary, and some of those (e.g. `prepareEvent`) are public.
+ */
+export const CALLBACK_ERROR = Symbol.for('SentryCallbackError');
+
+/**
  * Invokes a user-provided callback (e.g. `beforeSend`, `tracesSampler`, an integration hook) so that
  * neither a synchronous throw nor a rejected promise escapes into the caller. On failure the error is
  * logged and `fallback(error)` supplies the result instead.

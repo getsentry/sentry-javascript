@@ -63,7 +63,7 @@ export function instrumentEmberAppInstanceForPerformance(
     // Somehow the router service etc. may not be fully ready/initialized yet at this point
     // Probably because we are running this before the Ember setup is necessarily completed
     // So in order to accomodate this, we fall back to starting the pageload span with the current URL and update it later
-    const routeInfo = url ? routerService.recognize(url) : undefined;
+    const routeInfo = url ? _recognizeURL(routerService, url) : undefined;
 
     activeRootSpan = startBrowserTracingPageLoadSpan(client, {
       // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
@@ -129,7 +129,7 @@ export function instrumentEmberAppInstanceForPerformance(
       const location = getRouterMain(appInstance).location;
       const url = _getLocationURL(location);
       if (url) {
-        const routeInfo = routerService.recognize(url);
+        const routeInfo = _recognizeURL(routerService, url);
         activeRootSpan.updateName(`route:${toRoute}`);
         activeRootSpan.setAttributes({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
@@ -164,7 +164,7 @@ export function instrumentEmberAppInstanceForPerformance(
 
     const url = routerService.currentURL ?? _getLocationURL(location);
     if (url) {
-      const routeInfo = routerService.recognize(url);
+      const routeInfo = _recognizeURL(routerService, url);
       // `currentURL` is the normalized route path and never includes the hash fragment, so we source
       // `url.full` from the location URL (which preserves `#/...` for hash-location apps) when available.
       const fullUrl = _getLocationURL(location) || url;
@@ -256,6 +256,23 @@ function _getRouteUrlAttributes(
     [URL_FULL]: filterCollectedUrl(getAbsoluteUrl(fullUrl), client),
     [URL_TEMPLATE]: buildUrlTemplate(path, params),
   };
+}
+
+// Only exported for testing
+export function _recognizeURL(
+  routerService: RouterService,
+  url: string,
+): ReturnType<RouterService['recognize']> | undefined {
+  // `recognize()` throws for URLs the router cannot resolve. Most notably it asserts
+  // "You must pass a url that begins with the application's rootURL" whenever the URL is not
+  // prefixed with the app's `rootURL`, which is the case under Ember's `none` location (used by
+  // `@ember/test-helpers`). Every call site already treats a missing `routeInfo` as "fall back
+  // to the URL", so degrade to that instead of throwing out of the integration's setup.
+  try {
+    return routerService.recognize(url);
+  } catch {
+    return undefined;
+  }
 }
 
 // Only exported for testing
