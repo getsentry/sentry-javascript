@@ -174,9 +174,9 @@ function subscribeQuery(): void {
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
       const dbSystem = mapSystem(client?.driverName);
 
-      const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
       const dialect = client?.driverName === 'mysql' || client?.driverName === 'mysql2' ? 'mysql' : undefined;
-      const querySummary = dbStatement ? getSqlQuerySummary(sanitizeSqlQuery(dbStatement, dialect)) : undefined;
+      const dbStatement = query?.sql ? sanitizeSqlQuery(truncate(query.sql, MAX_QUERY_LENGTH), dialect) : undefined;
+      const querySummary = dbStatement ? getSqlQuerySummary(dbStatement) : undefined;
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',

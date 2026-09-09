@@ -84,13 +84,14 @@ function subscribeQueryChannel(channelName: ChannelName): void {
     data => {
       const statement = getQueryText(data.arguments);
       const connectionAttributes = getConnectionAttributes(data.self?.config);
-      const querySummary = statement ? getSqlQuerySummary(sanitizeSqlQuery(statement, 'mysql')) : undefined;
+      const queryText = statement ? sanitizeSqlQuery(statement, 'mysql') : undefined;
+      const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
 
       const client = getClient();
       const name =
         client && hasSpanStreamingEnabled(client)
           ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
-          : (statement ?? 'mysql2.query');
+          : (queryText ?? 'mysql2.query');
 
       return startInactiveSpan({
         name,
@@ -99,7 +100,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-          [DB_QUERY_TEXT]: statement || undefined,
+          [DB_QUERY_TEXT]: queryText || undefined,
           [DB_QUERY_SUMMARY]: querySummary,
           ...connectionAttributes,
         },

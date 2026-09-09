@@ -132,7 +132,8 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const databaseName = connection[currentDatabaseSymbol];
     const sql = extractSql(request);
-    const querySummary = sql && operation !== 'callProcedure' ? getSqlQuerySummary(sanitizeSqlQuery(sql)) : undefined;
+    const queryText = sql ? sanitizeSqlQuery(sql) : undefined;
+    const querySummary = queryText && operation !== 'callProcedure' ? getSqlQuerySummary(queryText) : undefined;
 
     const attributes: SpanAttributes = {
       [SENTRY_OP]: DB,
@@ -142,7 +143,7 @@ function subscribeQuery(channelName: string, operation: string): void {
       [DB_NAMESPACE]: databaseName,
       // `>=4` uses the `authentication` object; older versions expose `userName` directly.
       [DB_USER]: connection.config?.userName ?? connection.config?.authentication?.options?.userName,
-      [DB_QUERY_TEXT]: sql,
+      [DB_QUERY_TEXT]: queryText,
       [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_DB_SQL_TABLE]: request.table,
       [SERVER_ADDRESS]: connection.config?.server,
@@ -155,7 +156,7 @@ function subscribeQuery(channelName: string, operation: string): void {
       name:
         client && hasSpanStreamingEnabled(client)
           ? querySummary || getLowCardinalitySecondarySpanName(operation, databaseName, sql, request.table)
-          : sql || getSecondarySpanName(operation, databaseName, request.table),
+          : queryText || getSecondarySpanName(operation, databaseName, request.table),
       attributes,
     });
 
