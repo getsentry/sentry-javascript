@@ -14,7 +14,7 @@ import {
   type StartSpanOptions,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
+import { getSqlQuerySummary, sanitizeSqlQuery, type SqlDialect } from '@sentry/server-utils';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
 import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
@@ -107,7 +107,7 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
     apply(target, thisArg, args: Parameters<typeof db.exec>) {
       return startSpan(
         createStartSpanOptions(args[0], metadata),
-        handleSpanStart(() => target.apply(thisArg, args), { query: args[0] }),
+        handleSpanStart(() => target.apply(thisArg, args), { query: args[0], data: metadata }),
       );
     },
   });
@@ -177,7 +177,7 @@ function instrumentPreparedStatementQueries(
     apply(target, thisArg, args: Parameters<typeof statement.get>) {
       return startSpan(
         createStartSpanOptions(query, data),
-        handleSpanStart(() => target.apply(thisArg, args), { query }),
+        handleSpanStart(() => target.apply(thisArg, args), { query, data }),
       );
     },
   });
@@ -187,7 +187,7 @@ function instrumentPreparedStatementQueries(
     apply(target, thisArg, args: Parameters<typeof statement.run>) {
       return startSpan(
         createStartSpanOptions(query, data),
-        handleSpanStart(() => target.apply(thisArg, args), { query }),
+        handleSpanStart(() => target.apply(thisArg, args), { query, data }),
       );
     },
   });
@@ -197,7 +197,7 @@ function instrumentPreparedStatementQueries(
     apply(target, thisArg, args: Parameters<typeof statement.all>) {
       return startSpan(
         createStartSpanOptions(query, data),
-        handleSpanStart(() => target.apply(thisArg, args), { query }),
+        handleSpanStart(() => target.apply(thisArg, args), { query, data }),
       );
     },
   });
@@ -210,12 +210,12 @@ function instrumentPreparedStatementQueries(
 /**
  * Creates a span start callback handler.
  */
-function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string }) {
+function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; data: DatabaseSpanData }) {
   return async (span: Span) => {
     try {
       const result = await fn();
       if (breadcrumbOpts) {
-        createBreadcrumb(breadcrumbOpts.query);
+        createBreadcrumb(breadcrumbOpts.query, breadcrumbOpts.data);
       }
 
       return result;
@@ -236,9 +236,9 @@ function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string }) 
   };
 }
 
-function createBreadcrumb(query: string): void {
+function createBreadcrumb(query: string, data: DatabaseSpanData): void {
   // The breadcrumb carries the same query text as the span, so it is sanitized and guarded the same way.
-  const queryText = query ? sanitizeSqlQuery(query) : undefined;
+  const queryText = query ? sanitizeSqlQuery(query, getSqlDialect(data)) : undefined;
   addBreadcrumb({
     category: 'query',
     message: queryText,
@@ -249,10 +249,19 @@ function createBreadcrumb(query: string): void {
 }
 
 /**
+ * db0's mysql2 connector reports `mysql2` and the dialect field plain `mysql`; both quote strings
+ * the MySQL way, so the sanitizer needs the `mysql` dialect to strip their literals.
+ */
+function getSqlDialect(data: DatabaseSpanData): SqlDialect {
+  const system = data[DB_SYSTEM_NAME];
+  return typeof system === 'string' && system.startsWith('mysql') ? 'mysql' : 'standard';
+}
+
+/**
  * Creates a start span options object.
  */
 function createStartSpanOptions(query: string, data: DatabaseSpanData): StartSpanOptions {
-  const queryText = query ? sanitizeSqlQuery(query) : undefined;
+  const queryText = query ? sanitizeSqlQuery(query, getSqlDialect(data)) : undefined;
   const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
 
   const client = getClient();
