@@ -171,7 +171,8 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
           return {
             loader: 'js',
             pluginName,
-            contents: staticInjectionCode.code(),
+            // Force the injected module to be CommonJS so it cannot make a CommonJS entry point strict.
+            contents: `${staticInjectionCode.code()}\nmodule.exports;`,
           };
         });
       }

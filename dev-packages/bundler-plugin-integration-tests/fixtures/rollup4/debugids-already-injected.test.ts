@@ -15,7 +15,7 @@ test(import.meta.url, ({ runBundler, createTempDir }) => {
     //# debugId=00000000-0000-0000-0000-000000000000
     //# sourceMappingURL=basic.js.map
     ",
-      "252e0338-8927-4f52-bd57-188131defd0f-0.js.map": "{"version":3,"file":"basic.js","sources":["../../src/basic.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"hello world\\");\\n"],"names":[],"mappings":"AAAA,CAAA,CAAA,CAAA,MAAA,CAAA,OAAA,CAAA,IAAA,CAAA,IAAA,CAAA,EAAA,CAAA;scACA,OAAO,CAAC,GAAG,CAAC,CAAA,KAAA,CAAA,KAAA,CAAa,CAAC","debugId":"252e0338-8927-4f52-bd57-188131defd0f","debug_id":"252e0338-8927-4f52-bd57-188131defd0f"}",
+      "252e0338-8927-4f52-bd57-188131defd0f-0.js.map": "{"version":3,"file":"basic.js","sources":["../../src/basic.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"hello world\\");\\n"],"names":[],"mappings":"AAAA,CAAA,CAAA,CAAA,MAAA,CAAA,OAAA,CAAA,IAAA,CAAA,IAAA,CAAA,EAAA,CAAA;;AACA,OAAO,CAAC,GAAG,CAAC,CAAA,KAAA,CAAA,KAAA,CAAa,CAAC","debugId":"252e0338-8927-4f52-bd57-188131defd0f","debug_id":"252e0338-8927-4f52-bd57-188131defd0f"}",
     }
   `);
 });

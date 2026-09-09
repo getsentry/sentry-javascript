@@ -13,7 +13,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
     console.log("I am index!");
     //# sourceMappingURL=index.js.map
     ",
-      "index.js.map": "{"version":3,"file":"index.js","sources":["../../src/import.js","../../src/index.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"I am import!\\");\\n\\nexport {};\\n","import \\"./import\\";\\n\\n// eslint-disable-next-line no-console\\nconsole.log(\\"I am index!\\");\\n"],"names":[],"mappings":"AAAA,CAAA,CAAA,CAAA,MAAA,CAAA,OAAA,CAAA,IAAA,CAAA,IAAA,CAAA,EAAA,CAAA;2aACA,OAAO,CAAC,GAAG,CAAC,CAAA,CAAA,CAAA,EAAA,CAAA,MAAA,CAAA,CAAc,CAAC;;ACC3B,CAAA,CAAA,CAAA,MAAA,CAAA,OAAA,CAAA,IAAA,CAAA,IAAA,CAAA,EAAA,CAAA;AACA,OAAO,CAAC,GAAG,CAAC,CAAA,CAAA,CAAA,EAAA,CAAA,KAAA,CAAA,CAAa,CAAC"}",
+      "index.js.map": "{"version":3,"file":"index.js","sources":["../../src/import.js","../../src/index.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"I am import!\\");\\n\\nexport {};\\n","import \\"./import\\";\\n\\n// eslint-disable-next-line no-console\\nconsole.log(\\"I am index!\\");\\n"],"names":[],"mappings":"AAAA,CAAA,CAAA,CAAA,MAAA,CAAA,OAAA,CAAA,IAAA,CAAA,IAAA,CAAA,EAAA,CAAA;;AACA,OAAO,CAAC,GAAG,CAAC,CAAA,CAAA,CAAA,EAAA,CAAA,MAAA,CAAA,CAAc,CAAC;;ACC3B,CAAA,CAAA,CAAA,MAAA,CAAA,OAAA,CAAA,IAAA,CAAA,IAAA,CAAA,EAAA,CAAA;AACA,OAAO,CAAC,GAAG,CAAC,CAAA,CAAA,CAAA,EAAA,CAAA,KAAA,CAAA,CAAa,CAAC"}",
     }
   `);
 
