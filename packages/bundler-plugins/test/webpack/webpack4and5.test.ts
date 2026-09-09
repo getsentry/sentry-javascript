@@ -8,6 +8,7 @@ function runWebpackSourceInjection(
   assetName: string,
   source: webpack.sources.Source,
   chunkFiles: string[] = [assetName],
+  chunkHash?: string,
 ): webpack.sources.Source {
   const webpackPlugin = sentryWebpackPluginFactory()({
     release: { inject: false },
@@ -33,7 +34,7 @@ function runWebpackSourceInjection(
     },
   };
   const compilation = {
-    chunks: [{ files: chunkFiles }],
+    chunks: [{ files: chunkFiles, hash: chunkHash }],
     compiler: {},
     hooks: {
       processAssets: {
@@ -84,7 +85,20 @@ describe('sentryWebpackPluginFactory', () => {
 
     expect(outputMap?.sources).toEqual(['application.js']);
     expect(outputMap?.sourcesContent).toEqual([code]);
-    expect(outputMap?.mappings).toBe('AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;AACZ,+YAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI');
+    expect(outputMap?.mappings).toBe('AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;AACZ;AAAA,UAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI');
+  });
+
+  it('derives the debug ID from the Webpack chunk hash', () => {
+    const output = runWebpackSourceInjection(
+      'bundle.js',
+      new webpack.sources.RawSource('globalThis.bundleLoaded = true;'),
+      ['bundle.js'],
+      'stable-webpack-chunk-hash',
+    )
+      .source()
+      .toString();
+
+    expect(output).toContain('sentry-dbid-1924c426-ebb3-47c2-8293-ea326e499bcc');
   });
 
   it.each([

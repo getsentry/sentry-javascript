@@ -149,7 +149,8 @@ describe('Hooks', () => {
 
       expect(result).not.toBeNull();
       expect(result?.code).toMatchInlineSnapshot(`
-        ""use strict";!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79a86c07-8ecc-4367-82b0-88cf822f2d41",e._sentryDebugIdIdentifier="sentry-dbid-79a86c07-8ecc-4367-82b0-88cf822f2d41");}catch(e){}}();
+        ""use strict";
+        !function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79a86c07-8ecc-4367-82b0-88cf822f2d41",e._sentryDebugIdIdentifier="sentry-dbid-79a86c07-8ecc-4367-82b0-88cf822f2d41");}catch(e){}}();
         console.log("Hello world");"
       `);
     });
@@ -164,7 +165,7 @@ describe('Hooks', () => {
         file: 'bundle.js',
         sources: ['bundle.js'],
         names: [],
-        mappings: 'AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;qYACZ,UAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI',
+        mappings: 'AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;;AACZ,UAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI',
       });
     });
 

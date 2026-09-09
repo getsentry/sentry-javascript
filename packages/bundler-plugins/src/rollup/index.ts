@@ -260,7 +260,7 @@ export function _rollupPluginInternal(
 
     const ms = meta?.magicString || new MagicString(code, { filename: chunk.fileName });
     const injectionPosition = getCodeInjectionPosition(code);
-    const codeToInject = injectionPosition === code.length ? `\n${injectCode.code()}` : injectCode.code();
+    const codeToInject = injectionPosition === code.length ? `\n${injectCode.code()}` : `${injectCode.code()}\n`;
 
     if (injectionPosition > 0) {
       ms.appendLeft(injectionPosition, codeToInject);

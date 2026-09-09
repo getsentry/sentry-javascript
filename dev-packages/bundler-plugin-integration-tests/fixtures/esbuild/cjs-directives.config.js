@@ -2,9 +2,13 @@ import * as esbuild from "esbuild";
 import { sentryEsbuildPlugin } from "@sentry/bundler-plugins/esbuild";
 
 await esbuild.build({
-  entryPoints: ["./src/cjs-directives.js"],
+  entryPoints: {
+    strict: "./src/strict-mode.cjs",
+    sloppy: "./src/sloppy-mode.cjs",
+  },
   bundle: true,
-  outfile: "./out/cjs-directives/static-injection.cjs",
+  outdir: "./out/cjs-directives/static-injection",
+  outExtension: { ".js": ".cjs" },
   minify: false,
   format: "cjs",
   plugins: [
@@ -17,9 +21,13 @@ await esbuild.build({
 });
 
 await esbuild.build({
-  entryPoints: ["./src/cjs-directives.js"],
+  entryPoints: {
+    strict: "./src/strict-mode.cjs",
+    sloppy: "./src/sloppy-mode.cjs",
+  },
   bundle: true,
-  outfile: "./out/cjs-directives/debug-id-injection.cjs",
+  outdir: "./out/cjs-directives/debug-id-injection",
+  outExtension: { ".js": ".cjs" },
   minify: false,
   format: "cjs",
   sourcemap: true,

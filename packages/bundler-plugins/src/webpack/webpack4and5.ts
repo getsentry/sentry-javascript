@@ -13,6 +13,7 @@ import { getCodeInjectionPosition } from '../core/get-code-injection-position';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { randomUUID } from 'node:crypto';
 
 const _req = createRequire(import.meta.url);
 
@@ -60,7 +61,11 @@ type WebpackLoaderContext = {
 };
 
 type WebpackCompilationContext = {
-  chunks: Iterable<{ files: Iterable<string> }>;
+  chunks: Iterable<{
+    files: Iterable<string>;
+    hash?: string;
+    contentHash?: { javascript?: string };
+  }>;
   compiler: {
     webpack?: {
       NormalModule?: {
@@ -267,12 +272,15 @@ export function sentryWebpackPluginFactory({
                         typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
                       const codeToInject = staticInjectionCode.clone();
                       if (sourcemapsEnabled) {
-                        codeToInject.append(getDebugIdSnippet(stringToUUID(codeString)));
+                        const hash = chunk.contentHash?.javascript ?? chunk.hash;
+                        codeToInject.append(getDebugIdSnippet(hash ? stringToUUID(hash) : randomUUID()));
                       }
 
                       const injectionPosition = getCodeInjectionPosition(codeString);
                       const injection =
-                        injectionPosition === codeString.length ? `\n${codeToInject.code()}` : codeToInject.code();
+                        injectionPosition === codeString.length
+                          ? `\n${codeToInject.code()}`
+                          : `${codeToInject.code()}\n`;
                       const updatedSource = new ReplaceSource(source);
                       updatedSource.insert(injectionPosition, injection);
                       compilation.updateAsset(assetName, updatedSource);
