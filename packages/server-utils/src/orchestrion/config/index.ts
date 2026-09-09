@@ -137,6 +137,21 @@ export function instrumentedModuleNames(instrumentations: InstrumentationConfig[
 export const INSTRUMENTED_MODULE_NAMES: string[] = instrumentedModuleNames();
 
 /**
+ * The package names the SDK instruments through the orchestrion module transform (its
+ * diagnostics-channel injection). Pass these to a server bundler's "keep external" option so the
+ * packages load through Node's module loader — the only path the transform can hook — instead of
+ * being inlined into the server bundle. A framework that has no Sentry bundler plugin (e.g. eve, via
+ * `build.externalDependencies`) is the main caller; a listed package the app doesn't use is simply
+ * ignored by the bundler.
+ *
+ * Unlike {@link INSTRUMENTED_MODULE_NAMES}, this is the plain instrumented set with no bundler-only
+ * additions — those force a helper package to be *bundled*, the opposite of keeping it external.
+ */
+export function getInstrumentedModuleNames(): string[] {
+  return uniq(SENTRY_INSTRUMENTATIONS.map(instrumentation => instrumentation.module.name));
+}
+
+/**
  * Returns `external` with any instrumented packages removed, so a bundler that
  * uses an "external" denylist (esbuild, Bun, Rollup) still bundles — and thus
  * transforms — them. Matches an exact package name (`'mysql'`) or a subpath
