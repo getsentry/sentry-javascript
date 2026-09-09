@@ -299,3 +299,16 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
       .replace(/\bIN\b\s*\(\s*\$\d+(?:\s*,\s*\$\d+)*\s*\)/gi, 'IN ($?)')
   );
 }
+
+/**
+ * Sanitizes a collected SQL statement and derives the matching `db.query.summary`, the pair the SQL
+ * integrations attach to their spans. Both come back `undefined` when there is no statement, so an
+ * empty query omits the attributes instead of reporting the sanitizer's fallback text.
+ */
+export function sanitizeSqlQueryWithSummary(
+  sqlQuery: string | undefined,
+  dialect?: SqlDialect,
+): { queryText: string | undefined; querySummary: string | undefined } {
+  const queryText = sqlQuery ? sanitizeSqlQuery(sqlQuery, dialect) : undefined;
+  return { queryText, querySummary: getSqlQuerySummary(queryText) };
+}

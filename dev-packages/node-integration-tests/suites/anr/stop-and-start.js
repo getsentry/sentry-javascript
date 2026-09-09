@@ -1,5 +1,4 @@
 const Sentry = require('@sentry/node');
-const { waitForDebuggerReady } = require('@sentry-internal/test-utils');
 
 setTimeout(() => {
   process.exit();
@@ -53,9 +52,11 @@ setTimeout(() => {
     setTimeout(() => {
       anr.startWorker();
 
-      // Wait for the restarted worker's debugger session to reconnect before blocking the event
-      // loop, otherwise on slow CI the worker isn't ready to sample and the ANR is missed entirely.
-      waitForDebuggerReady(() => {
+      // Wait for the restarted worker to reconnect its debugger session before blocking the event
+      // loop. The main-thread inspector stays open across restarts, so there is no main-thread signal
+      // that the new worker is ready; without this, on slow CI `longWork` can run before the worker
+      // is sampling and the ANR is missed entirely.
+      anr.waitUntilWorkerReady().then(() => {
         longWork();
       });
     }, 2000);

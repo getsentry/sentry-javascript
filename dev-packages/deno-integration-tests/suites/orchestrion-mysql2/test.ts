@@ -54,9 +54,9 @@ Deno.test('mysql2 instrumentation: orchestrion:mysql2:query channel produces a n
 
   const mysqlSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(mysqlSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(mysqlSpan!.description, 'SELECT 1 AS solution');
+  assertEquals(mysqlSpan!.description, 'SELECT ? AS solution');
   assertEquals(mysqlSpan!.data?.['db.system.name'], 'mysql');
-  assertEquals(mysqlSpan!.data?.['db.query.text'], 'SELECT 1 AS solution');
+  assertEquals(mysqlSpan!.data?.['db.query.text'], 'SELECT ? AS solution');
   assertEquals(mysqlSpan!.data?.['db.namespace'], 'mydb');
   assertEquals(mysqlSpan!.data?.['db.user'], 'root');
   assertEquals(mysqlSpan!.data?.['server.address'], '127.0.0.1');
