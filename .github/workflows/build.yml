@@ -1151,6 +1151,9 @@ jobs:
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
       # Used by the `node-eve` test app to make real model calls through OpenRouter
       E2E_OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY }}
+      # Used by test apps that deploy a real Cloudflare Worker, e.g. cloudflare-workers-send-to-sentry
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-optional) }}
