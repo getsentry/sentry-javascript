@@ -4,9 +4,11 @@ import {
   INSTRUMENTED_MODULE_NAMES,
   instrumentedModuleNames,
   SENTRY_INSTRUMENTATIONS,
+  SENTRY_RUNTIME_INSTRUMENTATIONS,
   withoutInstrumentedExternals,
 } from '../../src/orchestrion/config';
 import { CHANNEL_INTEGRATION_DEFINITIONS } from '../../src/orchestrion/config/channel-integration-definitions';
+import { MODULE_REGISTRATION_TRANSFORM } from '../../src/orchestrion/config/registration-only';
 
 describe('orchestrion config — scoped @hapi/hapi module', () => {
   it('includes the scoped @hapi/hapi name in INSTRUMENTED_MODULE_NAMES', () => {
@@ -53,5 +55,45 @@ describe('orchestrion config — custom instrumentations', () => {
   it('leaves custom instrumentation packages externalized when only the defaults are used', () => {
     const external = ['react', 'my-lib'];
     expect(withoutInstrumentedExternals(external)).toEqual(['react', 'my-lib']);
+  });
+});
+
+describe('orchestrion config — SENTRY_RUNTIME_INSTRUMENTATIONS', () => {
+  // The runtime loader has no custom transforms, so a registration-only config
+  // (its `transform` is the bundler-only `MODULE_REGISTRATION_TRANSFORM`) throws
+  // `transform is not a function` there. These are excluded from the runtime set;
+  // the bundler keeps the full `SENTRY_INSTRUMENTATIONS`.
+  it('drops every registration-only config and keeps the rest in order', () => {
+    // The exclusion is only meaningful if there are registration-only configs to drop.
+    const registrationOnly = SENTRY_INSTRUMENTATIONS.filter(c => c.transform === MODULE_REGISTRATION_TRANSFORM);
+    expect(registrationOnly.length).toBeGreaterThan(0);
+
+    // None survive into the runtime set...
+    expect(SENTRY_RUNTIME_INSTRUMENTATIONS.some(c => c.transform === MODULE_REGISTRATION_TRANSFORM)).toBe(false);
+
+    // ...while every other config is preserved, unchanged and in order.
+    expect(SENTRY_RUNTIME_INSTRUMENTATIONS).toEqual(
+      SENTRY_INSTRUMENTATIONS.filter(c => c.transform !== MODULE_REGISTRATION_TRANSFORM),
+    );
+  });
+
+  it('excludes only the native-channel modules, and only via their registration-only config', () => {
+    const registrationOnlyModules = [
+      ...new Set(
+        SENTRY_INSTRUMENTATIONS.filter(c => c.transform === MODULE_REGISTRATION_TRANSFORM).map(c => c.module.name),
+      ),
+    ].sort();
+
+    // Documents which libraries carry a native-channel (registration-only)
+    // config today. Update deliberately when one is added or removed — it changes
+    // what the runtime loader skips.
+    expect(registrationOnlyModules).toEqual(['@redis/client', 'ai', 'ioredis', 'mongoose', 'mysql2']);
+
+    // The exclusion is per-config, not per-module: a module with both a
+    // registration-only (native) config and older transform-based configs keeps
+    // the latter at runtime. `ai` (v7 native + v4–6 transforms) is one such case.
+    const runtimeAiConfigs = SENTRY_RUNTIME_INSTRUMENTATIONS.filter(c => c.module.name === 'ai');
+    expect(runtimeAiConfigs.length).toBeGreaterThan(0);
+    expect(runtimeAiConfigs.every(c => c.transform !== MODULE_REGISTRATION_TRANSFORM)).toBe(true);
   });
 });
