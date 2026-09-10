@@ -47,6 +47,27 @@ describe('getNitroMajorVersion', () => {
     await expect(getNitroMajorVersion(appDir)).resolves.toBe(2);
   });
 
+  it("prefers the app's own nuxt over a hoisted nuxt higher up the tree", async () => {
+    const nestedRoot = path.join(monorepoRoot, 'hoisted');
+    writePackage(path.join(nestedRoot, 'node_modules', 'nuxt'), {
+      name: 'nuxt',
+      version: '5.0.0',
+      dependencies: { nitro: '^3.0.0-beta' },
+    });
+    writePackage(path.join(nestedRoot, 'node_modules', 'nitro'), { name: 'nitro', version: '3.0.0-beta.3' });
+
+    const appDir = path.join(nestedRoot, 'app');
+    fs.mkdirSync(appDir, { recursive: true });
+    writePackage(path.join(appDir, 'node_modules', 'nuxt'), {
+      name: 'nuxt',
+      version: '4.1.0',
+      dependencies: { nitropack: '^2.12.0' },
+    });
+    writePackage(path.join(appDir, 'node_modules', 'nitropack'), { name: 'nitropack', version: '2.12.0' });
+
+    await expect(getNitroMajorVersion(appDir)).resolves.toBe(2);
+  });
+
   it('detects v2 through @nuxt/nitro-server when it depends on nitropack (Nuxt >=3.21 stable)', async () => {
     const appDir = createApp('nuxt-4-stable', {
       nuxt: { name: 'nuxt', version: '4.5.2', dependencies: { '@nuxt/nitro-server': '4.5.2' } },
