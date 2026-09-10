@@ -45,12 +45,12 @@ test('Sends an API route span', async ({ baseURL }) => {
         'http.response.status_text': { value: 'OK', type: 'string' },
         'http.route': { value: '/test-transaction', type: 'string' },
         'http.request.header.accept': { value: '*/*', type: 'string' },
-        'http.request.header.accept_encoding': { value: 'gzip, deflate', type: 'string' },
-        'http.request.header.accept_language': { value: '*', type: 'string' },
+        'http.request.header.accept-encoding': { value: 'gzip, deflate', type: 'string' },
+        'http.request.header.accept-language': { value: '*', type: 'string' },
         'http.request.header.connection': { value: 'keep-alive', type: 'string' },
         'http.request.header.host': { value: expect.any(String), type: 'string' },
-        'http.request.header.sec_fetch_mode': { value: 'cors', type: 'string' },
-        'http.request.header.user_agent': { value: 'node', type: 'string' },
+        'http.request.header.sec-fetch-mode': { value: 'cors', type: 'string' },
+        'http.request.header.user-agent': { value: 'node', type: 'string' },
       }),
     }),
   );
@@ -139,8 +139,8 @@ test('Captures request metadata', async ({ baseURL }) => {
     expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/),
   );
   expect(segmentEvent.attributes['http.request.method']?.value).toEqual('POST');
-  expect(segmentEvent.attributes['http.request.header.user_agent']?.value).toEqual(expect.stringContaining(''));
-  expect(segmentEvent.attributes['http.request.header.content_type']?.value).toEqual('application/json');
+  expect(segmentEvent.attributes['http.request.header.user-agent']?.value).toEqual(expect.stringContaining(''));
+  expect(segmentEvent.attributes['http.request.header.content-type']?.value).toEqual('application/json');
 
   expect(segmentEvent.attributes['http.request.body.data']?.value).toBe(JSON.stringify({ foo: 'bar', other: 1 }));
   expect(segmentEvent.attributes['user.ip_address']?.value).toEqual('::1');

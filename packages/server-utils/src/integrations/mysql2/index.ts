@@ -9,7 +9,7 @@ import {
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../../utils/sql';
+import { sanitizeSqlQueryWithSummary } from '../../utils/sql';
 import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
 import type { ChannelName } from '../../orchestrion/channels';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -84,8 +84,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
     data => {
       const statement = getQueryText(data.arguments);
       const connectionAttributes = getConnectionAttributes(data.self?.config);
-      const queryText = statement ? sanitizeSqlQuery(statement, 'mysql') : undefined;
-      const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
+      const { queryText, querySummary } = sanitizeSqlQueryWithSummary(statement, 'mysql');
 
       const client = getClient();
       const name =

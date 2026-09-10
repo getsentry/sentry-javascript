@@ -4,13 +4,12 @@
   </a>
 </p>
 
-# Official Sentry SDK for React Router Framework (BETA)
+# Official Sentry SDK for React Router Framework
 
 [![npm version](https://img.shields.io/npm/v/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
 
-> This SDK is currently in beta. Beta features are still in progress and may have bugs. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/) if you have any feedback or concerns.
 > This SDK is for [React Router (framework)](https://reactrouter.com/start/framework/installation). If you're using [React Router (library)](https://reactrouter.com/start/library/installation) see our
 > [React SDK here](https://docs.sentry.io/platforms/javascript/guides/react/features/react-router/v7/).
 

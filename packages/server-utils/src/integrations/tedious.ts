@@ -132,7 +132,7 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const databaseName = connection[currentDatabaseSymbol];
     const sql = extractSql(request);
-    const queryText = sql ? sanitizeSqlQuery(sql) : undefined;
+    const queryText = sql ? sanitizeSqlQuery(sql, 'mssql') : undefined;
     const querySummary = queryText && operation !== 'callProcedure' ? getSqlQuerySummary(queryText) : undefined;
 
     const attributes: SpanAttributes = {
