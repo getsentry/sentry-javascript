@@ -59,10 +59,10 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       'url.full': { value: expect.stringContaining('/test-ssr'), type: 'string' },
       // demonstrates that the request data integration can extract headers
       'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept_encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept_language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec_fetch_mode': { value: 'navigate', type: 'string' },
-      'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
+      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
+      'http.request.header.sec-fetch-mode': { value: 'navigate', type: 'string' },
+      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
     });
   });
 });
@@ -144,10 +144,10 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/user-page/myUsername123'), type: 'string' },
       'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept_encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept_language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec_fetch_mode': { value: 'navigate', type: 'string' },
-      'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
+      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
+      'http.request.header.sec-fetch-mode': { value: 'navigate', type: 'string' },
+      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
     });
 
     // HTTP client span - with span streaming only the domain is kept in the name, the URL lives in
@@ -167,10 +167,10 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/api/user/myUsername123.json'), type: 'string' },
       'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept_encoding': { value: 'gzip, deflate', type: 'string' },
-      'http.request.header.accept_language': { value: '*', type: 'string' },
-      'http.request.header.sec_fetch_mode': { value: 'cors', type: 'string' },
-      'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept-encoding': { value: 'gzip, deflate', type: 'string' },
+      'http.request.header.accept-language': { value: '*', type: 'string' },
+      'http.request.header.sec-fetch-mode': { value: 'cors', type: 'string' },
+      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
     });
   });
 
@@ -202,10 +202,10 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/catchAll/hell0/whatever-do'), type: 'string' },
       'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept_encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept_language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec_fetch_mode': { value: 'navigate', type: 'string' },
-      'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
+      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
+      'http.request.header.sec-fetch-mode': { value: 'navigate', type: 'string' },
+      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
     });
   });
 });
@@ -237,10 +237,10 @@ test.describe('parametrized vs static paths', () => {
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/user-page/settings'), type: 'string' },
       'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept_encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept_language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec_fetch_mode': { value: 'navigate', type: 'string' },
-      'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
+      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
+      'http.request.header.sec-fetch-mode': { value: 'navigate', type: 'string' },
+      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
     });
   });
 

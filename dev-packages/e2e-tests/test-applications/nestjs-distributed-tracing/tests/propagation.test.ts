@@ -63,12 +63,12 @@ function testRequestHeaderAttributes(): Record<string, unknown> {
   return {
     'user_agent.original': { type: 'string', value: expect.any(String) },
     'http.request.header.accept': { type: 'string', value: '*/*' },
-    'http.request.header.accept_encoding': { type: 'string', value: 'gzip, deflate' },
-    'http.request.header.accept_language': { type: 'string', value: '*' },
+    'http.request.header.accept-encoding': { type: 'string', value: 'gzip, deflate' },
+    'http.request.header.accept-language': { type: 'string', value: '*' },
     'http.request.header.connection': { type: 'string', value: 'keep-alive' },
     'http.request.header.host': { type: 'string', value: expect.any(String) },
-    'http.request.header.sec_fetch_mode': { type: 'string', value: 'cors' },
-    'http.request.header.user_agent': { type: 'string', value: 'node' },
+    'http.request.header.sec-fetch-mode': { type: 'string', value: 'cors' },
+    'http.request.header.user-agent': { type: 'string', value: 'node' },
   };
 }
 
@@ -139,7 +139,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'url.path': { type: 'string', value: `/test-inbound-headers/${id}` },
       'http.request.header.connection': { type: 'string', value: 'keep-alive' },
       'http.request.header.host': { type: 'string', value: expect.any(String) },
-      'http.request.header.sentry_trace': {
+      'http.request.header.sentry-trace': {
         type: 'string',
         value: expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
       },

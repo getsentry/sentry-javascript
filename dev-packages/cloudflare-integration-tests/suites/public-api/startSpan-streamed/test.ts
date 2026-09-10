@@ -229,15 +229,15 @@ it('sends a streamed span envelope with correct spans for a manually started spa
             type: 'string',
             value: '*/*',
           },
-          'http.request.header.accept_encoding': {
+          'http.request.header.accept-encoding': {
             type: 'string',
             value: 'br, gzip',
           },
-          'http.request.header.accept_language': {
+          'http.request.header.accept-language': {
             type: 'string',
             value: '*',
           },
-          'http.request.header.cf_connecting_ip': {
+          'http.request.header.cf-connecting-ip': {
             type: 'string',
             value: '127.0.0.1',
           },
@@ -249,11 +249,11 @@ it('sends a streamed span envelope with correct spans for a manually started spa
             type: 'string',
             value: expect.stringMatching(/^localhost:.+$/),
           },
-          'http.request.header.sec_fetch_mode': {
+          'http.request.header.sec-fetch-mode': {
             type: 'string',
             value: 'cors',
           },
-          'http.request.header.user_agent': {
+          'http.request.header.user-agent': {
             type: 'string',
             value: 'node',
           },
