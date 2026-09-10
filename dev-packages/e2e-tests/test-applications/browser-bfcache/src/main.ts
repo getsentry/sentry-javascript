@@ -25,6 +25,16 @@ document.getElementById('slow-interaction')?.addEventListener('click', () => {
   }
 });
 
+// A same-document navigation driven by a click, which is what the browser's soft navigation
+// heuristic looks for: an interaction, a URL change, and a paint.
+document.getElementById('soft-nav')?.addEventListener('click', () => {
+  history.pushState({}, '', `/soft-${Date.now()}`);
+  const paragraph = document.createElement('p');
+  paragraph.textContent = `soft navigation ${Math.random()}`;
+  paragraph.style.height = '120px';
+  document.getElementById('soft-nav-content')?.appendChild(paragraph);
+});
+
 (window as unknown as { Sentry: typeof Sentry }).Sentry = Sentry;
 
 // Test-only marker: lets the test distinguish a genuine bfcache restore (environment working) from a

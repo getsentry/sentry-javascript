@@ -1,7 +1,13 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import type { SerializedMetric } from '@sentry/core';
-import { collectStreamedSpans, getSpanOp, waitForMetric, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  getSpanOp,
+  hidePage,
+  waitForMetric,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 
 const PROXY_SERVER_NAME = 'browser-bfcache';
 const BFCACHE_ORIGIN = 'auto.browser.bfcache';
@@ -397,6 +403,41 @@ test.describe('the navigation span for a restore', () => {
     expect(restore.start_timestamp).toBeGreaterThan(pageload.start_timestamp + 0.4);
   });
 
+  // Redirect detection turns a navigation that follows another one closely into a child
+  // `navigation.redirect` span rather than a root navigation, and a restore starts a navigation
+  // span like any other. A soft navigation is driven by a click, which is exactly what the redirect
+  // heuristic treats as proof that a navigation was user-initiated, so the two must not collide.
+  test('a soft navigation right after a restore is not treated as a redirect', async ({ page }) => {
+    const spansPromise = collectStreamedSpans(PROXY_SERVER_NAME, spansOfTrace =>
+      spansOfTrace.some(
+        span =>
+          span.is_segment &&
+          getSpanOp(span) === 'navigation' &&
+          span.attributes?.['sentry.origin']?.value === 'auto.navigation.browser',
+      ),
+    );
+
+    await page.goto('/?tracing=1');
+    await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+
+    await restoreFromBfcache(page);
+    // No wait: the restore's idle span has to still be open, otherwise redirect detection never
+    // engages and this would pass without exercising anything.
+    await page.click('#soft-nav');
+
+    const spans = await spansPromise;
+
+    const softNavSpan = spans.find(
+      span =>
+        span.is_segment &&
+        getSpanOp(span) === 'navigation' &&
+        span.attributes?.['sentry.origin']?.value === 'auto.navigation.browser',
+    )!;
+    expect(softNavSpan.attributes?.['browser.navigation.type']).toBeUndefined();
+
+    expect(spans.filter(span => getSpanOp(span) === 'navigation.redirect')).toEqual([]);
+  });
+
   // `webVitals.bfcacheNavigations` is on by default, so the app opts into nothing for this.
   test('carries the vitals measured on the restore', async ({ page }) => {
     const spansPromise = collectStreamedSpans(
@@ -416,14 +457,8 @@ test.describe('the navigation span for a restore', () => {
     // Interacting after the restore is what gives it an INP to report.
     await page.click('#slow-interaction');
 
-    // `web-vitals` defers processing the interaction's entries to a `requestIdleCallback(...,
-    // { timeout: 1000 })`, so hiding any earlier reports an INP that is still unset. CLS is only
-    // finalized on pagehide too, unlike LCP which reports as soon as the restore paints.
-    await page.waitForTimeout(1500);
-    await page.evaluate(() => {
-      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
-      document.dispatchEvent(new Event('visibilitychange'));
-    });
+    // CLS is only finalized on pagehide, unlike LCP which reports as soon as the restore paints.
+    await hidePage(page);
 
     const spans = await spansPromise;
     const restoreSpan = spans.find(span => span.is_segment && getSpanOp(span) === 'navigation')!;
