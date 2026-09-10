@@ -28,6 +28,7 @@ import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
+import { instrumentUseCacheHandlers } from './useCacheInstrumentation';
 import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
@@ -188,6 +189,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
   applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
   const client = nodeInit(opts);
+
+  instrumentUseCacheHandlers();
 
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
