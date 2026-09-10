@@ -3,6 +3,18 @@ import { sentryEsbuildPlugin } from "@sentry/bundler-plugins/esbuild";
 
 await esbuild.build({
   entryPoints: {
+    sloppy: "./src/sloppy-mode.cjs",
+  },
+  bundle: true,
+  outdir: "./out/cjs-directives/without-plugin",
+  outExtension: { ".js": ".cjs" },
+  minify: false,
+  format: "cjs",
+  tsconfigRaw: { compilerOptions: { alwaysStrict: false } },
+});
+
+await esbuild.build({
+  entryPoints: {
     strict: "./src/strict-mode.cjs",
     sloppy: "./src/sloppy-mode.cjs",
   },
@@ -11,6 +23,7 @@ await esbuild.build({
   outExtension: { ".js": ".cjs" },
   minify: false,
   format: "cjs",
+  tsconfigRaw: { compilerOptions: { alwaysStrict: false } },
   plugins: [
     sentryEsbuildPlugin({
       telemetry: false,
@@ -31,6 +44,7 @@ await esbuild.build({
   minify: false,
   format: "cjs",
   sourcemap: true,
+  tsconfigRaw: { compilerOptions: { alwaysStrict: false } },
   plugins: [
     sentryEsbuildPlugin({
       telemetry: false,

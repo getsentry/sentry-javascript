@@ -4,6 +4,11 @@ import { test } from "./utils";
 test(import.meta.url, ({ runBundler, runFileInNode }) => {
   runBundler();
 
+  expect(JSON.parse(runFileInNode("without-plugin/sloppy.cjs"))).toEqual({
+    sloppyModePreserved: true,
+    releaseInjected: false,
+    debugIdInjected: false,
+  });
   expect(JSON.parse(runFileInNode("static-injection/strict.cjs"))).toEqual({
     strictModePreserved: true,
     releaseInjected: true,
