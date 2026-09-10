@@ -6,19 +6,16 @@ argument-hint: <provider-name>
 
 # Adding a New AI Integration
 
-## Read First
+## Conventions First
 
-Do not invent span names, ops, or attributes — they are specified elsewhere and change independently of this repo:
+Span ops and attributes are specified outside this repo. Never invent or hardcode either:
 
-- [Sentry gen_ai attributes](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/) and [gen_ai ops](https://getsentry.github.io/sentry-conventions/ops/#gen_ai) — the normative list
-- [RFC 0153: Decoupling Sentry's generative AI conventions from OpenTelemetry](https://github.com/getsentry/rfcs/blob/main/text/0153-decoupling-sentrys-generative-ai-conventions-from-open-telemetry.md) — why we diverge from OTel
-- [OTel gen-ai semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) — the upstream baseline
+- [gen_ai attributes](https://getsentry.github.io/sentry-conventions/attributes/gen_ai/) and [gen_ai ops](https://getsentry.github.io/sentry-conventions/ops/#gen_ai) — normative; import from `@sentry/conventions/attributes` and `@sentry/conventions/op`
+- [RFC 0153](https://github.com/getsentry/rfcs/blob/main/text/0153-decoupling-sentrys-generative-ai-conventions-from-open-telemetry.md) — why Sentry's gen-AI conventions diverge from the [OTel gen-ai semconv](https://opentelemetry.io/docs/specs/semconv/gen-ai/)
 
-In code: import attribute keys from `@sentry/conventions/attributes` and ops from `@sentry/conventions/op`. **Never hardcode either as a string.** Derive the op with `getGenAiSpanOp(operationName)` from `packages/server-utils/src/ai/core/utils.ts` rather than picking one by hand.
+Derive the op with `getGenAiSpanOp()` from `ai/core/utils.ts` rather than picking one by hand. `ai/core/gen-ai-attributes.ts` is for gap-fillers only — keys with no `@sentry/conventions` equivalent — so check it last, not first.
 
-`packages/server-utils/src/ai/core/gen-ai-attributes.ts` holds only gap-fillers: attributes with no `@sentry/conventions` equivalent, Sentry-internal meta attributes, and keys we intentionally emit differently. Check conventions first; add there only if it genuinely has no equivalent.
-
-## Decision Tree
+## Which Pattern
 
 ```
 Does the SDK publish its own `diagnostics_channel` telemetry?
@@ -28,82 +25,43 @@ Does the SDK publish its own `diagnostics_channel` telemetry?
     +- NO (OpenAI, Anthropic, Google GenAI, ai < 7) -> Pattern 2: Orchestrion-injected channels
 ```
 
-## Placement
+| Pattern                    | Use when                                   | Reference                                                       |
+| -------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| 1 — Native tracing channel | the SDK publishes to `diagnostics_channel` | `integrations/vercel-ai/vercel-ai-dc-subscriber.ts`             |
+| 2 — Orchestrion channels   | the SDK has no telemetry of its own        | `integrations/openai.ts` + `orchestrion/config/openai.ts`       |
+| 3 — Callback/exporter      | the SDK exposes hooks or an exporter       | `ai/langchain/`, `ai/mastra/` (exporter-shaped agent framework) |
 
-AI instrumentation lives in `packages/server-utils/`, not `packages/core/` and not the runtime packages:
+What the reference files won't tell you:
 
-- **Instrumentation logic** -> `packages/server-utils/src/ai/{provider}/`
-- **Integration** (wires it up, registered in `getTracingIntegrations()`) -> `packages/server-utils/src/integrations/{provider}.ts`
-- **Runtime packages** (`node`, `cloudflare`, `bun`, ...) re-export the integration from `@sentry/server-utils` — they do not define their own
+- Pattern 2 replaced the old OTel instrumentation packages — there is no `@opentelemetry/instrumentation-*` dependency in this path.
+- A provider can need two patterns at once: `vercelAIIntegration` subscribes to native `ai:telemetry` for `ai` >= 7 _and_ runs orchestrion injection for v4-v6.
+- Pattern 1 subscribers are safe to register unconditionally — subscribing is a no-op on SDK versions that never publish.
 
-Cloudflare-only client wrapping (Workers AI) is the exception: it is applied in `packages/cloudflare/src/instrumentations/worker/instrumentEnv.ts`, wrapping the binding from `env`.
+## Where The Code Goes
 
-## Pattern 1: Native Tracing Channel
+- **Instrumentation** -> `packages/server-utils/src/ai/{provider}/`
+- **Integration** -> `packages/server-utils/src/integrations/{provider}.ts`
+- Runtime packages (`node`, `cloudflare`, `bun`, ...) re-export from `@sentry/server-utils` — they never define their own
+- Exception: Workers AI is client-wrapped in `packages/cloudflare/src/instrumentations/worker/instrumentEnv.ts`
 
-**Use when:** the SDK publishes to `diagnostics_channel` itself (`ai` >= 7 publishes `ai:telemetry`)
+## Gotchas
 
-Write the subscriber next to the integration, and subscribe from `setupOnce()` wrapped in `waitForTracingChannelBinding()` so it waits for the async-context binding. Subscribing is a no-op on SDK versions that never publish, so it is always safe to call.
-
-Reference: `packages/server-utils/src/integrations/vercel-ai/vercel-ai-dc-subscriber.ts`
-
-## Pattern 2: Orchestrion-Injected Channels
-
-**Use when:** the SDK has no telemetry of its own (OpenAI, Anthropic, Google GenAI, `ai` < 7)
-
-Orchestrion injects tracing channels into the target module's functions at load time; we subscribe to those injected channels. This replaced the old OTel instrumentation packages — there is no `@opentelemetry/instrumentation-*` dependency in this path.
-
-1. Span-building/attribute logic in `packages/server-utils/src/ai/{provider}/`
-2. Module, version range, and methods to inject in `packages/server-utils/src/orchestrion/config/{provider}.ts`
-3. `invokeOrchestrionInstrumentation(...)` from `setup(client)` in the integration, binding each channel with `bindTracingChannelToSpan()`. Check `_INTERNAL_shouldSkipAiProviderWrapping()` for LangChain compatibility.
-
-Reference: `packages/server-utils/src/integrations/openai.ts` + `packages/server-utils/src/orchestrion/config/openai.ts`
-
-**A provider can need both patterns.** `vercelAIIntegration` subscribes to the native `ai:telemetry` channel for `ai` >= 7 _and_ runs orchestrion injection for `ai` v4-v6, in the same integration.
-
-## Pattern 3: Callback/Exporter
-
-**Use when:** the SDK provides lifecycle hooks or an exporter interface (LangChain, LangGraph, Mastra)
-
-Implement the SDK's callback/exporter interface in `packages/server-utils/src/ai/{provider}/`, auto-inject it from the integration by patching the relevant methods, and call `_INTERNAL_skipAiProviderWrapping()` to disable the underlying AI provider wrapping.
-
-Reference: `packages/server-utils/src/ai/langchain/`, and `packages/server-utils/src/ai/mastra/` for an exporter-shaped agent framework
-
-## Streaming
-
-How the span is opened depends on the path:
-
-- **Channel path** (Patterns 1 & 2 — how auto-instrumentation actually runs): build the span with `startInactiveSpan()` inside the `getSpan` callback of `bindTracingChannelToSpan()` and let the binding own its lifecycle. For a streamed call, return `true` from `deferSpanEnd` to hand span-ending ownership to the stream wrapper; non-streaming results end through the normal `beforeSpanEnd` path. Detect the stream from the **result shape** (async-iterable, or the SDK's stream object), not from `params.stream`.
-- **Manual client wrapping** (`instrumentOpenAiClient()`, `instrumentAnthropicAiClient()`, ... — the public manual-instrumentation API): non-streaming uses `startSpan()`; streaming uses `startSpanManual()` and detects via `params.stream === true`.
-
-Either way, do not set streaming response attributes by hand: accumulate into a `StreamResponseState` and call `endStreamSpan(span, state, recordOutputs)` from `ai/core/utils.ts` — in a `finally` for an async generator, or from the stream's terminal event for a listener-based stream.
-
-References: `ai/openai/streaming.ts` (async generator), `ai/anthropic-ai/streaming.ts` (event listeners), `integrations/openai.ts` and `integrations/anthropic.ts` (`wrapStreamResult()`)
-
-## Registration
-
-**Mandatory.** Patching only happens once the target package is imported (zero cost if unused).
-
-1. **Add to `getTracingIntegrations()`** in `packages/server-utils/src/integrations/index.ts` — LangChain MUST come first, so it can disable the AI provider integrations before they instrument
-2. **Export from `packages/server-utils/src/index.ts`**: integration function + options type
-3. **Re-export from the runtime packages** that support it (e.g. `packages/node/src/index.ts`, `packages/cloudflare/src/index.ts`)
-4. **Add E2E tests:** `dev-packages/node-integration-tests/suites/tracing/{provider}/`, `dev-packages/cloudflare-integration-tests/suites/tracing/{provider}/`
-
-## Key Rules
-
-1. Gate input/output message recording behind `resolveAIRecordingOptions()`, which resolves the integration's `recordInputs`/`recordOutputs` against the client's `dataCollection.genAI` settings. Never read `dataCollection.genAI` directly.
-2. Set `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.{provider}'` (alphanumerics, `_`, `.` only)
-3. **Do not truncate message payloads.** The `enableTruncation` flag and all AI truncation/media-stripping logic were removed in v11 (#23045); recorded messages are serialized with `stringify()` and set on the span as-is. Nothing downstream caps them either — `maxValueLength` only applies to `request.url` and exception values, and event normalization limits depth/breadth, not string length. Size limiting is handled server-side, so it is not a contributor concern.
-4. Set token usage on the span the SDK reports it for, via `setTokenUsageAttributes()`. Do not roll child usage up onto parent spans — tree totals are computed product-side, from the full span tree. A rollup done at serialization time is impossible anyway under span streaming: each span is snapshotted to JSON when it ends (`captureSpan()`), and no transaction event is assembled, so there is no finished tree to walk.
+1. **Detect streaming from the result shape** — an async-iterable or the SDK's stream object — not from `params.stream`. Only the manual `instrument{Provider}Client()` API keys off `params.stream === true`.
+2. **Never set streamed response attributes by hand.** Accumulate into a `StreamResponseState` and call `endStreamSpan()` (`ai/openai/streaming.ts` for an async generator, `ai/anthropic-ai/streaming.ts` for a listener-based stream).
+3. **Never truncate message payloads.** Truncation was removed in v11 (#23045) and nothing downstream caps them; size limiting is server-side.
+4. **Never roll child token usage up onto parent spans.** Tree totals are computed product-side from the full span tree.
+5. **Never read `dataCollection.genAI` directly.** Gate input/output recording on `resolveAIRecordingOptions()`.
+6. **LangChain must be registered first** in `getTracingIntegrations()`, so it can disable the provider integrations before they instrument.
+7. Set `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.{provider}'` (alphanumerics, `_`, `.` only).
 
 ## Checklist
 
-- [ ] Instrumentation in `packages/server-utils/src/ai/`, integration in `packages/server-utils/src/integrations/`
-- [ ] Added to `getTracingIntegrations()` in correct order (LangChain first)
-- [ ] Exported from `packages/server-utils/src/index.ts` and re-exported from the supported runtime packages
-- [ ] E2E tests added and verifying auto-instrumentation
-- [ ] Attributes and ops taken from `@sentry/conventions`, with the op derived via `getGenAiSpanOp()`
-- [ ] Input/output recording gated on `resolveAIRecordingOptions()`; no truncation logic added
-- [ ] JSDoc on the exported integration names the channels it subscribes to, the supported SDK versions, and the prerequisite (orchestrion-injected channels "require the Sentry runtime hook or bundler plugin")
-- [ ] Verified patching only happens when the target package is imported
+- [ ] Instrumentation in `src/ai/`, integration in `src/integrations/`, registered in `getTracingIntegrations()` (LangChain first)
+- [ ] Exported from `packages/server-utils/src/index.ts`, re-exported from the supported runtime packages
+- [ ] E2E tests in `dev-packages/node-integration-tests/suites/tracing/{provider}/` (and `cloudflare-integration-tests/` if supported)
+- [ ] Ops and attributes from `@sentry/conventions`, op derived via `getGenAiSpanOp()`
+- [ ] Recording gated on `resolveAIRecordingOptions()`; no truncation, no token rollup
+- [ ] JSDoc names the channels subscribed to, the supported SDK versions, and — for Pattern 2 — that it requires the Sentry runtime hook or bundler plugin
+- [ ] Patching happens only once the target package is imported (zero cost if unused)
 
 **When in doubt, follow the pattern of the most similar existing integration.**
