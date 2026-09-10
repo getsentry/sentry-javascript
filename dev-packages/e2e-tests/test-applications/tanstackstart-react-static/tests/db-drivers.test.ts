@@ -67,11 +67,11 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
     expect.objectContaining({
       op: 'db',
       origin: 'auto.db.mysql',
-      description: 'SELECT 1 + 1 AS solution',
+      description: 'SELECT ? + ? AS solution',
       status: 'ok',
       data: expect.objectContaining({
         'db.system.name': 'mysql',
-        'db.query.text': 'SELECT 1 + 1 AS solution',
+        'db.query.text': 'SELECT ? + ? AS solution',
         'db.user': 'root',
         'db.connection_string': expect.any(String),
         'server.address': expect.any(String),
