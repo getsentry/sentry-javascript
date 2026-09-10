@@ -91,18 +91,13 @@ export function instrumentXHR(): void {
           };
           triggerHandlers('xhr', handlerData);
 
-          // The handlers above are the last ones that can read `virtualError.stack`. While that stack stays
-          // unformatted, V8 holds on to the raw frames and every raw frame keeps its receiver alive. For a
-          // request opened from the `readystatechange` callback of the previous one, that receiver is the
-          // previous XMLHttpRequest, so the whole chain of requests would stay reachable from the one currently
-          // in flight.
+          // An unformatted stack keeps its raw frames, and each frame keeps its receiver alive. For a request
+          // opened from the previous one's `readystatechange` callback that receiver is the previous
+          // XMLHttpRequest, so holding on would chain every completed request to the one still in flight.
           virtualError = undefined;
 
-          // In the `addEventListener` branch below, this handler is the only
-          // `readystatechange` listener we add, so detach it once the request is
-          // done to avoid pinning the XMLHttpRequest per HTTP call on long-lived
-          // pages. In the `onreadystatechange` proxy branch the handler isn't
-          // registered via `addEventListener`, so this is a harmless no-op there.
+          // In the `addEventListener` branch below this is the only `readystatechange` listener we add, so
+          // detach it once the request is done. It's a no-op in the `onreadystatechange` proxy branch.
           xhrOpenThisArg.removeEventListener('readystatechange', onreadystatechangeHandler);
         }
       };

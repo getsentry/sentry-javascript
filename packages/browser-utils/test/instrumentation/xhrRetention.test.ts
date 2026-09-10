@@ -4,9 +4,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { instrumentXHR } from '../../src/instrumentation/xhr';
 import { WINDOW } from '../../src/types';
 
-// This lives in its own file on purpose: instrumentation handlers are registered in a module-level
-// registry that is never torn down, and a handler from another test would hold on to the requests
-// this one needs to see collected.
+// Own file on purpose: instrumentation handlers live in a module-level registry that is never torn
+// down, so a handler from another test would retain the requests this one needs to see collected.
 
 const win = WINDOW as typeof WINDOW & { XMLHttpRequest?: typeof XMLHttpRequest };
 const originalXMLHttpRequest = win.XMLHttpRequest;
@@ -35,8 +34,8 @@ class MockXMLHttpRequest {
   public dispatch(): void {
     // the SDK detaches its own listener while it runs, so iterate over a copy
     for (const listener of this._listeners.slice()) {
-      // the browser invokes readystatechange listeners with the request as `this`, which is what
-      // puts the request into the stack frames of anything the listener calls
+      // the browser calls listeners with the request as `this`, which is what puts the request into
+      // the stack frames of anything the listener calls
       listener.call(this);
     }
   }
@@ -56,8 +55,8 @@ describe('instrumentXHR memory retention', () => {
     instrumentXHR();
 
     let firstRequest: WeakRef<MockXMLHttpRequest> | undefined;
-    // the request that never finishes stands in for the one in flight, which the browser keeps
-    // alive as a pending activity and which therefore roots the chain
+    // the request that never finishes stands in for the in-flight one, which the browser roots as a
+    // pending activity
     let inFlightRequest: MockXMLHttpRequest | undefined;
 
     const openRequest = (remaining: number): void => {
