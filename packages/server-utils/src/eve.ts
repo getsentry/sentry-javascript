@@ -17,7 +17,7 @@ interface EveConversationHookOptions {
    * (`ctx.session.id`), which is stable across every turn of a session and so groups them into one
    * conversation.
    */
-  getConversationId?: (context: EveHookContext) => string | undefined;
+  getConversationId?: (context: EveHookContext) => string | null | undefined;
 }
 
 /**
@@ -46,13 +46,11 @@ interface EveConversationHookOptions {
 export function eveConversationHook(options: EveConversationHookOptions = {}): {
   events: Record<'turn.started' | 'step.started', EveHookHandler>;
 } {
-  const resolveConversationId = options.getConversationId ?? (context => context.session.id);
+  const { getConversationId } = options;
 
   const setConversationIdFromContext: EveHookHandler = (_event, context) => {
-    const conversationId = resolveConversationId(context);
-    if (conversationId) {
-      setConversationId(conversationId);
-    }
+    const conversationId = getConversationId ? getConversationId(context) : context.session.id;
+    setConversationId(conversationId);
   };
 
   return {
