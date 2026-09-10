@@ -2,6 +2,8 @@ import type { Scope } from '../../scope';
 import { debug } from '../../utils/debug-logger';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { HttpIncomingMessage } from './types';
+import { FILTERED_VALUE } from '../../utils/data-collection/filtering-snippets';
+import { filterCollectedHttpBodyString } from '../../utils/data-collection/filterHttpBody';
 import { getMaxBodyByteLength, type MaxRequestBodySize } from '../../utils/request';
 
 /**
@@ -19,6 +21,7 @@ export function patchRequestToCaptureBody(
 ): void {
   let bodyByteLength = 0;
   const chunks: Buffer[] = [];
+  let chunksDropped = false;
 
   DEBUG_BUILD && debug.log(integrationName, 'Patching request.on');
 
@@ -48,11 +51,13 @@ export function patchRequestToCaptureBody(
                 if (bodyByteLength < maxBodySize) {
                   chunks.push(bufferifiedChunk);
                   bodyByteLength += bufferifiedChunk.byteLength;
-                } else if (DEBUG_BUILD) {
-                  debug.log(
-                    integrationName,
-                    `Dropping request body chunk because maximum body length of ${maxBodySize}b is exceeded.`,
-                  );
+                } else {
+                  chunksDropped = true;
+                  DEBUG_BUILD &&
+                    debug.log(
+                      integrationName,
+                      `Dropping request body chunk because maximum body length of ${maxBodySize}b is exceeded.`,
+                    );
                 }
               } catch {
                 DEBUG_BUILD && debug.error(integrationName, 'Encountered error while storing body chunk.');
@@ -92,7 +97,10 @@ export function patchRequestToCaptureBody(
 
     req.on('end', () => {
       try {
-        const body = Buffer.concat(chunks).toString('utf-8');
+        const rawBody = Buffer.concat(chunks).toString('utf-8');
+        // The filter runs before truncation, because a truncated JSON body no longer parses.
+        // A capped stream is already incomplete, so its prefix is filtered without a parse attempt.
+        const body = rawBody && (chunksDropped ? FILTERED_VALUE : filterCollectedHttpBodyString(rawBody));
         if (body) {
           // Using Buffer.byteLength here, because the body may contain characters that are not 1 byte long
           const bodyByteLength = Buffer.byteLength(body, 'utf-8');

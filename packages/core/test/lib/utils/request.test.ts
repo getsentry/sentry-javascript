@@ -1095,6 +1095,18 @@ describe('request utils', () => {
       expect(scope.capturedData).toBe(jsonBody);
     });
 
+    it('filters sensitive keys in a JSON body', async () => {
+      const request = createMockRequest({
+        body: JSON.stringify({ colour: 'blue', api_token: 'abc' }),
+        contentType: 'application/json',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBe('{"colour":"blue","api_token":"[Filtered]"}');
+    });
+
     it('captures form-urlencoded body', async () => {
       const request = createMockRequest({
         body: 'username=test&password=secret',
@@ -1104,10 +1116,10 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('username=test&password=secret');
+      expect(scope.capturedData).toBe('username=test&password=[Filtered]');
     });
 
-    it('captures text/plain body', async () => {
+    it('filters a text/plain body, which has no keys to scrub by', async () => {
       const request = createMockRequest({
         body: 'Hello, World!',
         contentType: 'text/plain',
@@ -1116,10 +1128,10 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('Hello, World!');
+      expect(scope.capturedData).toBe('[Filtered]');
     });
 
-    it('captures text/html body', async () => {
+    it('filters a text/html body, which has no keys to scrub by', async () => {
       const request = createMockRequest({
         body: '<html><body>Test</body></html>',
         contentType: 'text/html',
@@ -1128,10 +1140,10 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('<html><body>Test</body></html>');
+      expect(scope.capturedData).toBe('[Filtered]');
     });
 
-    it('captures application/xml body', async () => {
+    it('filters an application/xml body, which has no keys to scrub by', async () => {
       const request = createMockRequest({
         body: '<root><item>value</item></root>',
         contentType: 'application/xml',
@@ -1140,10 +1152,10 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('<root><item>value</item></root>');
+      expect(scope.capturedData).toBe('[Filtered]');
     });
 
-    it('captures application/graphql body', async () => {
+    it('filters an application/graphql body, which has no keys to scrub by', async () => {
       const request = createMockRequest({
         body: 'query { user { name } }',
         contentType: 'application/graphql',
@@ -1152,7 +1164,7 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('query { user { name } }');
+      expect(scope.capturedData).toBe('[Filtered]');
     });
 
     it('skips non-textual content types', async () => {
@@ -1221,10 +1233,10 @@ describe('request utils', () => {
     });
 
     it('truncates body when it exceeds small size limit (1000 bytes)', async () => {
-      const largeBody = 'x'.repeat(2000);
+      const largeBody = `{"note":"${'x'.repeat(2000)}"}`;
       const request = createMockRequest({
         body: largeBody,
-        contentType: 'text/plain',
+        contentType: 'application/json',
       });
       const scope = createMockScope();
 
@@ -1235,10 +1247,10 @@ describe('request utils', () => {
     });
 
     it('truncates body when it exceeds medium size limit (10000 bytes)', async () => {
-      const largeBody = 'x'.repeat(20000);
+      const largeBody = `{"note":"${'x'.repeat(20000)}"}`;
       const request = createMockRequest({
         body: largeBody,
-        contentType: 'text/plain',
+        contentType: 'application/json',
       });
       const scope = createMockScope();
 
@@ -1249,10 +1261,10 @@ describe('request utils', () => {
     });
 
     it('does not truncate body within small size limit', async () => {
-      const smallBody = 'x'.repeat(500);
+      const smallBody = `{"note":"${'x'.repeat(500)}"}`;
       const request = createMockRequest({
         body: smallBody,
-        contentType: 'text/plain',
+        contentType: 'application/json',
       });
       const scope = createMockScope();
 
@@ -1275,10 +1287,10 @@ describe('request utils', () => {
     });
 
     it('captures body with always size limit', async () => {
-      const largeBody = 'x'.repeat(50000);
+      const largeBody = `{"note":"${'x'.repeat(50000)}"}`;
       const request = createMockRequest({
         body: largeBody,
-        contentType: 'text/plain',
+        contentType: 'application/json',
       });
       const scope = createMockScope();
 

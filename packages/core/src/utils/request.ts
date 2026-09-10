@@ -7,6 +7,7 @@ import type { RequestEventData } from '../types/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types/webfetchapi';
 import { debug } from './debug-logger';
 import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from './data-collection/filtering-snippets';
+import { filterCollectedHttpBody, filterCollectedHttpBodyString } from './data-collection/filterHttpBody';
 import { filterKeyValueData } from './data-collection/filterKeyValueData';
 import { safeUnref } from './timer';
 import { getUrlQuery } from './url';
@@ -158,16 +159,19 @@ export async function captureBodyFromWinterCGRequest(
       safeUnref(setTimeout(() => resolve(null), 2000));
     });
 
-    const body = await Promise.race([bodyPromise, timeoutPromise]);
+    const rawBody = await Promise.race([bodyPromise, timeoutPromise]);
 
-    if (body === null) {
+    if (rawBody === null) {
       DEBUG_BUILD && debug.log('Timeout reading request body');
       return;
     }
 
-    if (!body) {
+    if (!rawBody) {
       return;
     }
+
+    // The filter runs before truncation, because a truncated JSON body no longer parses.
+    const body = filterCollectedHttpBodyString(rawBody);
 
     // Using TextEncoder to get byte length for UTF-8 strings
     const encoder = new TextEncoder();
@@ -227,7 +231,7 @@ export function httpRequestToRequestData(request: {
 
   // This is non-standard, but may be sometimes set
   // It may be overwritten later by our own body handling
-  const data = (request as PolymorphicRequest).body || undefined;
+  const data = filterCollectedHttpBody((request as PolymorphicRequest).body || undefined);
 
   // This is non-standard, but may be set on e.g. Next.js or Express requests
   const cookies = (request as PolymorphicRequest).cookies;

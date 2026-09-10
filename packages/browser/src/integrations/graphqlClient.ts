@@ -52,6 +52,15 @@ interface GraphQLOperation {
 
 const INTEGRATION_NAME = 'GraphQLClient' as const;
 
+// Matches the Int, Float, String, and BlockString literals in a document, the same set the
+// server-side GraphQL integration redacts from the parsed AST. Names, enums, and booleans stay.
+const GRAPHQL_LITERAL_RE = /"""[\s\S]*?"""|"(?:[^"\\\n]|\\.)*"|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b/g;
+
+/** Replaces every literal value in a raw GraphQL document, since literals can carry user data. */
+export function _redactGraphqlDocument(document: string): string {
+  return document.replace(GRAPHQL_LITERAL_RE, match => (match.startsWith('"') ? '"*"' : '*'));
+}
+
 const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
   return {
     name: INTEGRATION_NAME,
@@ -103,7 +112,7 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
 
         // Handle standard requests - capture the query document when enabled via dataCollection (default true)
         if (isStandardRequest(graphqlBody) && client.getDataCollectionOptions().graphQL.document === true) {
-          span.setAttribute(GRAPHQL_DOCUMENT, graphqlBody.query);
+          span.setAttribute(GRAPHQL_DOCUMENT, _redactGraphqlDocument(graphqlBody.query));
         }
 
         // Handle persisted operations - capture hash for debugging
@@ -140,7 +149,7 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
           data['graphql.operation'] = operationInfo;
 
           if (isStandardRequest(graphqlBody) && client.getDataCollectionOptions().graphQL.document === true) {
-            data[GRAPHQL_DOCUMENT] = graphqlBody.query;
+            data[GRAPHQL_DOCUMENT] = _redactGraphqlDocument(graphqlBody.query);
           }
 
           if (isPersistedRequest(graphqlBody)) {
