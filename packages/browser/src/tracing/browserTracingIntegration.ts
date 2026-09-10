@@ -711,6 +711,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
                 // Deliberately no `startTime`: the span starts now, at the restore. The
                 // `PerformanceNavigationTiming` entry still describes the original document load and
                 // would date the span to before the page was frozen.
+                //
+                // TODO(routing): resolve the parameterized route via the route provider (#23551) and set
+                // the source from it. No router event fires on a restore, so in a framework app this is
+                // the only navigation span still named from a raw pathname.
                 name: hasSpanStreamingEnabled(client)
                   ? NAVIGATION_SPAN_NAME_FALLBACK
                   : WINDOW.location?.pathname || '/',
