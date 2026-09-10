@@ -661,7 +661,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
              * only be caused in certain development environments where the usage of a hot module reloader is causing
              * errors.
              */
-            if (from === undefined && startingUrl?.indexOf(to) !== -1) {
+            if (from === undefined && startingUrl !== undefined && startingUrl.indexOf(to) !== -1) {
               startingUrl = undefined;
               return;
             }
