@@ -1,98 +1,82 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('ember-vite', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span with a parameterized URL', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('ember-vite', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
   await page.goto(`/`);
 
-  const rootSpan = await transactionPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'pageload',
-        origin: 'auto.pageload.ember',
-      },
-    },
-    transaction: 'route:index',
-    transaction_info: {
-      source: 'route',
+  expect(pageloadSpan).toMatchObject({
+    name: 'route:index',
+    is_segment: true,
+    attributes: {
+      'sentry.op': { type: 'string', value: 'pageload' },
+      'sentry.origin': { type: 'string', value: 'auto.pageload.ember' },
     },
   });
 });
 
-test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-vite', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a navigation span with a parameterized URL', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('ember-vite', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-vite', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  const navigationSpanPromise = waitForStreamedSpan('ember-vite', span => {
+    return span.is_segment && getSpanOp(span) === 'navigation';
   });
 
   await page.goto(`/`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
-  const [_, navigationTxn] = await Promise.all([page.getByText('Tracing').click(), navigationTxnPromise]);
+  const [_, navigationSpan] = await Promise.all([page.getByText('Tracing').click(), navigationSpanPromise]);
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.ember',
-      },
-    },
-    transaction: 'route:tracing',
-    transaction_info: {
-      source: 'route',
+  expect(navigationSpan).toMatchObject({
+    name: 'route:tracing',
+    is_segment: true,
+    attributes: {
+      'sentry.op': { type: 'string', value: 'navigation' },
+      'sentry.origin': { type: 'string', value: 'auto.navigation.ember' },
     },
   });
 });
 
-test('sends a navigation transaction even if the pageload span is still active', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-vite', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a navigation span even if the pageload span is still active', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('ember-vite', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-vite', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  const navigationSpanPromise = waitForStreamedSpan('ember-vite', span => {
+    return span.is_segment && getSpanOp(span) === 'navigation';
   });
 
   await page.goto(`/`);
 
   // immediately navigate to a different route
-  const [_, pageloadTxn, navigationTxn] = await Promise.all([
+  const [_, pageloadSpan, navigationSpan] = await Promise.all([
     page.getByText('Tracing').click(),
-    pageloadTxnPromise,
-    navigationTxnPromise,
+    pageloadSpanPromise,
+    navigationSpanPromise,
   ]);
 
-  expect(pageloadTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'pageload',
-        origin: 'auto.pageload.ember',
-      },
-    },
-    transaction: 'route:index',
-    transaction_info: {
-      source: 'route',
+  expect(pageloadSpan).toMatchObject({
+    name: 'route:index',
+    is_segment: true,
+    attributes: {
+      'sentry.op': { type: 'string', value: 'pageload' },
+      'sentry.origin': { type: 'string', value: 'auto.pageload.ember' },
     },
   });
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.ember',
-      },
-    },
-    transaction: 'route:tracing',
-    transaction_info: {
-      source: 'route',
+  expect(navigationSpan).toMatchObject({
+    name: 'route:tracing',
+    is_segment: true,
+    attributes: {
+      'sentry.op': { type: 'string', value: 'navigation' },
+      'sentry.origin': { type: 'string', value: 'auto.navigation.ember' },
     },
   });
 });
