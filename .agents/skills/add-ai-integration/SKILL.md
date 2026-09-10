@@ -33,7 +33,6 @@ Does the SDK publish its own `diagnostics_channel` telemetry?
 
 What the reference files won't tell you:
 
-- Pattern 2 replaced the old OTel instrumentation packages — there is no `@opentelemetry/instrumentation-*` dependency in this path.
 - A provider can need two patterns at once: `vercelAIIntegration` subscribes to native `ai:telemetry` for `ai` >= 7 _and_ runs orchestrion injection for v4-v6.
 - Pattern 1 subscribers are safe to register unconditionally — subscribing is a no-op on SDK versions that never publish.
 
