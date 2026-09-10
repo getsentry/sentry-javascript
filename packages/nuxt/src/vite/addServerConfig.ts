@@ -108,7 +108,7 @@ export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro
  * Registers a Nitro plugin that statically imports the Sentry server config, so the SDK initializes
  * at server startup without a `node --import` preload.
  */
-export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string): void {
+export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLegacyNitro: boolean): void {
   const configPath = createResolver(nuxt.options.rootDir).resolve(serverConfigFile);
 
   // `Sentry.init` reads these flags, and a statement above the config import would not survive
@@ -134,13 +134,16 @@ export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string): voi
 
   addServerPlugin(configPluginTemplate.dst);
 
-  // Nitro treeshakes side-effect-only imports outside its runtime dir, which would silently drop
+  // Nitro v2 treeshakes side-effect-only imports outside its runtime dir, which would silently drop
   // the top-level `Sentry.init` and the flag assignments.
-  nuxt.options.nitro.moduleSideEffects = [
-    ...(nuxt.options.nitro.moduleSideEffects ?? []),
-    configPath,
-    runtimeFlagsTemplate.dst,
-  ];
+  // Nitro v3 dropped the option and keeps both.
+  if (isLegacyNitro) {
+    nuxt.options.nitro.moduleSideEffects = [
+      ...(nuxt.options.nitro.moduleSideEffects ?? []),
+      configPath,
+      runtimeFlagsTemplate.dst,
+    ];
+  }
 
   nuxt.hook('nitro:config', nitroConfig => {
     // Early skip for explicitly configured Cloudflare presets. The authoritative check runs on

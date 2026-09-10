@@ -162,7 +162,7 @@ describe('addServerConfigPlugin', () => {
   it('registers a plugin that evaluates the runtime flags before the config', () => {
     const { nuxt } = createFakeNuxt();
 
-    addServerConfigPlugin(nuxt, APP_CONFIG);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
 
     expect(templateContents('sentry-server-config-plugin.mjs')).toBe(
       `import ${JSON.stringify(flagsDst)};\nimport ${JSON.stringify(APP_CONFIG)};\nexport default () => {};\n`,
@@ -173,7 +173,7 @@ describe('addServerConfigPlugin', () => {
   it('derives the runtime flags from the build-time `import.meta` values', () => {
     const { nuxt } = createFakeNuxt();
 
-    addServerConfigPlugin(nuxt, APP_CONFIG);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
 
     const contents = templateContents('sentry-runtime-flags.mjs');
     expect(contents).toContain('globalThis.__SENTRY_NUXT_DEV_MODE__ = import.meta.dev === true;');
@@ -184,14 +184,23 @@ describe('addServerConfigPlugin', () => {
     const { nuxt } = createFakeNuxt();
     nuxt.options.nitro.moduleSideEffects = ['unenv/polyfill/'];
 
-    addServerConfigPlugin(nuxt, APP_CONFIG);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
 
     expect(nuxt.options.nitro.moduleSideEffects).toEqual(['unenv/polyfill/', APP_CONFIG, flagsDst]);
   });
 
+  it('leaves `moduleSideEffects` alone on Nitro v3, which no longer supports the option', () => {
+    const { nuxt } = createFakeNuxt();
+    nuxt.options.nitro.moduleSideEffects = ['unenv/polyfill/'];
+
+    addServerConfigPlugin(nuxt, APP_CONFIG, false);
+
+    expect(nuxt.options.nitro.moduleSideEffects).toEqual(['unenv/polyfill/']);
+  });
+
   it('inlines the config and both templates so the dev bundle transpiles them', () => {
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
     const nitroConfig: NitroConfig = { externals: { inline: ['@sentry/'] } };
 
     hooks['nitro:config']!(nitroConfig);
@@ -201,7 +210,7 @@ describe('addServerConfigPlugin', () => {
 
   it('moves its plugin to the front when other modules registered plugins first', () => {
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
     const nitroConfig: NitroConfig = { plugins: ['other-module-plugin.mjs', pluginDst] };
 
     hooks['nitro:config']!(nitroConfig);
@@ -211,7 +220,7 @@ describe('addServerConfigPlugin', () => {
 
   it('removes the plugin for explicitly configured Cloudflare presets', () => {
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
     const nitroConfig: NitroConfig = { preset: 'cloudflare_module', plugins: ['other-plugin.mjs', pluginDst] };
 
     hooks['nitro:config']!(nitroConfig);
@@ -225,7 +234,7 @@ describe('addServerConfigPlugin', () => {
     // after `nitro:config` ran, so the authoritative check uses `nitro:init`.
     const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
     const nitro = { options: { preset: 'cloudflare_pages', plugins: ['other-plugin.mjs', pluginDst] } };
 
     hooks['nitro:init']!(nitro as never);
@@ -237,7 +246,7 @@ describe('addServerConfigPlugin', () => {
 
   it('keeps the plugin when the resolved preset is not Cloudflare', () => {
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
     const nitro = { options: { preset: 'node-server', plugins: ['other-plugin.mjs', pluginDst] } };
 
     hooks['nitro:init']!(nitro as never);
