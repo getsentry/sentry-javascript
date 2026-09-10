@@ -45,13 +45,9 @@ test('reports a hit on a genuine back/forward-cache restore', async ({ page }) =
 
 test('reports a miss with notRestoredReasons when an unload listener blocks bfcache', async ({ page }) => {
   const missPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'miss'));
-  const unloadReasonPromise = waitForMetric(
-    PROXY_SERVER_NAME,
-    metric =>
-      metric.name === 'browser.bfcache.not_restored' && attr(metric, 'browser.bfcache.reason') === 'unload-listener',
-  );
-  // Chrome reports a privacy-masked reason alongside the real one. It's a top-frame reason here, so
-  // the integration must frame it positionally (`top`) and pass the value through untouched.
+  // An unload listener still makes the page ineligible, but from Chromium 151 on the only reason
+  // Chrome hands out for it is the privacy-masked one. It's a top-frame reason, so the integration
+  // must frame it positionally (`top`) and pass the value through untouched.
   const maskedReasonPromise = waitForMetric(
     PROXY_SERVER_NAME,
     metric => metric.name === 'browser.bfcache.not_restored' && attr(metric, 'browser.bfcache.reason') === 'masked',
@@ -82,12 +78,9 @@ test('reports a miss with notRestoredReasons when an unload listener blocks bfca
   expect(attr(miss, 'browser.bfcache.not_restored_reason_count')).toBeGreaterThanOrEqual(1);
   expect(attr(miss, 'sentry.origin')).toBe(BFCACHE_ORIGIN);
 
-  const unloadReason = await unloadReasonPromise;
-  expect(attr(unloadReason, 'browser.bfcache.frame')).toBe('top');
-  expect(attr(unloadReason, 'sentry.origin')).toBe(BFCACHE_ORIGIN);
-
   const maskedReason = await maskedReasonPromise;
   expect(attr(maskedReason, 'browser.bfcache.frame')).toBe('top');
+  expect(attr(maskedReason, 'sentry.origin')).toBe(BFCACHE_ORIGIN);
 
   const reloadDuration = await reloadDurationPromise;
   expect(reloadDuration.type).toBe('distribution');
@@ -218,15 +211,23 @@ test('reports a child-frame reason when an ineligible iframe blocks the top page
     PROXY_SERVER_NAME,
     metric =>
       metric.name === 'browser.bfcache.not_restored' &&
-      attr(metric, 'browser.bfcache.reason') === 'unload-listener' &&
+      attr(metric, 'browser.bfcache.reason') === 'idbversionchangeevent' &&
       attr(metric, 'browser.bfcache.frame') === 'child',
   );
 
-  await page.goto('/?botch=iframe-unload');
+  await page.goto('/?botch=iframe-blocked');
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
   await page.waitForFunction(() => (window as unknown as { __iframeLoaded?: boolean }).__iframeLoaded === true, {
     timeout: 5000,
   });
+  // Only proceed once the child frame's version upgrade is actually blocked.
+  await page.waitForFunction(
+    () => {
+      const frame = document.querySelector('iframe') as HTMLIFrameElement | null;
+      return (frame?.contentWindow as unknown as { __idbBlocked?: boolean } | undefined)?.__idbBlocked === true;
+    },
+    { timeout: 5000 },
+  );
 
   await page.click('#to-page-2');
   await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');

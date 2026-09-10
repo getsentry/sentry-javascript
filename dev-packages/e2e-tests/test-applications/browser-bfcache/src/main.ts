@@ -35,7 +35,8 @@ window.addEventListener(
 const botch = new URLSearchParams(window.location.search).get('botch');
 
 if (botch === 'unload') {
-  // An `unload` listener is the canonical, version-stable bfcache blocker.
+  // An `unload` listener still makes the page ineligible, though the reason Chrome reports for it
+  // has changed across versions.
   window.addEventListener('unload', () => {});
 }
 
@@ -79,11 +80,11 @@ if (botch === 'indexeddb') {
   });
 }
 
-if (botch === 'iframe-clean' || botch === 'iframe-unload') {
-  // Embed a same-origin child frame. A clean child keeps the top page eligible (hit); a child with an
-  // unload listener makes the whole top page ineligible, and the reason comes from the child frame.
+if (botch === 'iframe-clean' || botch === 'iframe-blocked') {
+  // Embed a same-origin child frame. A clean child keeps the top page eligible (hit); a child that
+  // blocks makes the whole top page ineligible, and the reason comes from the child frame.
   const iframe = document.createElement('iframe');
-  iframe.src = botch === 'iframe-unload' ? '/iframe.html?blocker=unload' : '/iframe.html';
+  iframe.src = botch === 'iframe-blocked' ? '/iframe.html?blocker=indexeddb' : '/iframe.html';
   const w = window as unknown as { __iframeLoaded?: boolean };
   w.__iframeLoaded = false;
   iframe.addEventListener('load', () => {
