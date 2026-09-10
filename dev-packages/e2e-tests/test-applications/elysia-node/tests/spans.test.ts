@@ -217,5 +217,5 @@ test('Captures request metadata for POST requests', async ({ baseURL, request })
 
   expect(segmentEvent.attributes['http.request.method']?.value).toEqual('POST');
   expect(segmentEvent.attributes['url.full']?.value).toEqual(expect.stringContaining('/test-post'));
-  expect(segmentEvent.attributes['http.request.header.content_type']?.value).toEqual('application/json');
+  expect(segmentEvent.attributes['http.request.header.content-type']?.value).toEqual('application/json');
 });
