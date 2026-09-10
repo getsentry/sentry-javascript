@@ -79,7 +79,7 @@ export interface DataCollection {
   };
 
   /**
-   * Include data associated with database queries. This controls collection of query parameters, inline literal values within query text, mutation/request bodies, and returned result data.
+   * Include data associated with database queries. This controls collection of bound query parameters, data payloads for write operations, and returned result data.
    *
    * Sanitized or parameterized DB statements (`db.query.text`) are **not** controlled by this property. Structural metadata such as the database system, query summary, operation name, or the table being acted upon is also **always** collected.
    * @default true

@@ -31,6 +31,7 @@ import {
   startBrowserTracingPageLoadSpan,
 } from '../../src/tracing/browserTracingIntegration';
 import { PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE } from '../../src/tracing/linkedTraces';
+import * as webVitalsModule from '../../src/integrations/webVitals';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 
@@ -201,6 +202,61 @@ describe('browserTracingIntegration', () => {
     client.init();
 
     expect(client.getIntegrationByName('WebVitals')).toBeDefined();
+  });
+
+  it('does not auto-register when the user supplies their own webVitalsIntegration', () => {
+    const webVitalsSpy = vi.spyOn(webVitalsModule, 'webVitalsIntegration');
+    const userWebVitals = webVitalsModule.webVitalsIntegration({ softNavigations: false });
+    webVitalsSpy.mockClear();
+
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(), userWebVitals],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(webVitalsSpy).not.toHaveBeenCalled();
+  });
+
+  it('forwards webVitals options to the auto-registered integration', () => {
+    const webVitalsSpy = vi.spyOn(webVitalsModule, 'webVitalsIntegration');
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration({ webVitals: { softNavigations: false } })],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(webVitalsSpy).toHaveBeenCalledWith(expect.objectContaining({ softNavigations: false }));
+  });
+
+  it.each([
+    ['leaves the ignore list alone when INP is enabled', {}, []],
+    // oxlint-disable-next-line typescript/no-deprecated
+    ['appends inp to the ignore list when disabled', { enableInp: false }, ['inp']],
+    [
+      'keeps user-provided entries when appending inp',
+      // oxlint-disable-next-line typescript/no-deprecated
+      { enableInp: false, webVitals: { ignore: ['cls' as const] } },
+      ['cls', 'inp'],
+    ],
+  ])('enableInp %s', (_name, options, expected) => {
+    const webVitalsSpy = vi.spyOn(webVitalsModule, 'webVitalsIntegration');
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        integrations: [browserTracingIntegration(options)],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    expect(webVitalsSpy).toHaveBeenCalledWith(expect.objectContaining({ ignore: expected }));
   });
 
   it('works with tracing disabled', () => {
@@ -768,6 +824,67 @@ describe('browserTracingIntegration', () => {
 
     expect(spanToJSON(pageloadSpan!).name).toBe('changed');
     expect(spanToJSON(pageloadSpan!).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('custom');
+  });
+
+  describe('pagehide', () => {
+    it('ends the active idle span so its root is not stranded on a frozen page', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span = getActiveSpan()!;
+      expect(span).toBeDefined();
+      expect(spanToJSON(span).end_timestamp).toBeUndefined();
+
+      WINDOW.dispatchEvent(new Event('pagehide'));
+
+      const json = spanToJSON(span);
+      expect(json.end_timestamp).toBeDefined();
+      expect(json.attributes?.['sentry.idle_span_finish_reason']).toBe('documentHidden');
+    });
+
+    it('flushes after ending the span, so the segment span is in the buffer when it drains', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const span = getActiveSpan()!;
+
+      let endTimestampWhenFlushed: number | undefined;
+      const flushSpy = vi.spyOn(client, 'flush').mockImplementation(() => {
+        endTimestampWhenFlushed = spanToJSON(span).end_timestamp;
+        return Promise.resolve(true);
+      });
+
+      WINDOW.dispatchEvent(new Event('pagehide'));
+
+      expect(flushSpy).toHaveBeenCalled();
+      expect(endTimestampWhenFlushed).toBeDefined();
+    });
+
+    it('ends no span when there is no active idle span', () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      expect(() => WINDOW.dispatchEvent(new Event('pagehide'))).not.toThrow();
+      expect(getActiveSpan()).toBeUndefined();
+    });
   });
 
   describe('startBrowserTracingNavigationSpan', () => {

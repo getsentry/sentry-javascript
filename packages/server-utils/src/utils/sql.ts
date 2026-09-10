@@ -149,19 +149,62 @@ function truncate(summary: string): string {
 }
 
 let integerLiteralRE: RegExp | undefined;
+let mssqlIntegerLiteralRE: RegExp | undefined;
+
+/**
+ * The lookbehind keeps `$n` and `?n` parameter placeholders out of the match. T-SQL has neither,
+ * and `$1000` there is a money literal, so `$` only guards a placeholder outside `mssql`.
+ *
+ * Lazy init: constructing a lookbehind at module scope evaluates it on import and crashes
+ * Safari <16.4 browser bundles that reach this file via the core barrel.
+ */
+function getIntegerLiteralRE(dialect: SqlDialect): RegExp {
+  if (dialect === 'mssql') {
+    if (!mssqlIntegerLiteralRE) {
+      mssqlIntegerLiteralRE = new RegExp('(?<!\\?)-?\\b\\d+\\b', 'g');
+    }
+    return mssqlIntegerLiteralRE;
+  }
+  if (!integerLiteralRE) {
+    integerLiteralRE = new RegExp('(?<![$?])-?\\b\\d+\\b', 'g');
+  }
+  return integerLiteralRE;
+}
 
 /**
  * SQL dialect variants that matter for finding the end of a string literal:
- * - `standard` (PostgreSQL, SQLite): `"` quotes identifiers and `''` is the only in-string escape.
+ * - `standard` (PostgreSQL, SQLite): `"` quotes identifiers, `''` is the only in-string escape,
+ *   and PostgreSQL's `$$…$$` dollar quoting opens a literal.
  * - `mysql`: `"` quotes a string literal unless `ANSI_QUOTES` is set, and `\` escapes the next
  *   character unless `NO_BACKSLASH_ESCAPES` is set. Both default to off, and mysql/mysql2 escape
  *   inlined values with backslashes, so this is the mode their statements arrive in.
+ * - `mssql`: `[...]` quotes an identifier, so a `'` inside one is part of the name. `"` quotes
+ *   one too, unless the connection sets `QUOTED_IDENTIFIER OFF`, which tedious leaves on.
  */
-export type SqlDialect = 'standard' | 'mysql';
+export type SqlDialect = 'standard' | 'mysql' | 'mssql';
 
 /**
- * Returns the index just past the run's closing `delimiter`, or the end of the query if the run is
- * never closed — an unterminated literal must swallow the remainder rather than let it through.
+ * Maps a driver or `db.system.name` value to the dialect its statements are written in. Callers
+ * report different spellings for one engine: knex uses the driver name, Prisma the provider name,
+ * and OTel the semantic-convention name. An engine we do not know about is lexed as `standard`.
+ */
+export function toSqlDialect(system: unknown): SqlDialect {
+  if (system === 'mysql' || system === 'mysql2' || system === 'mariadb') {
+    return 'mysql';
+  }
+  if (system === 'mssql' || system === 'sqlserver' || system === 'microsoft.sql_server') {
+    return 'mssql';
+  }
+  return 'standard';
+}
+
+// Sticky, so the scanner can test one position without slicing the query on every `$`.
+const DOLLAR_QUOTE_RE = /\$(?:[A-Za-z_]\w*)?\$/y;
+
+/**
+ * Returns the index just past the run's closing `delimiter`, or -1 if the run never closes. The
+ * caller cannot derive that from the index alone: a query ending in `[a]]` consumed a doubled
+ * delimiter, not a closing one.
  *
  * A doubled delimiter (`''`) escapes itself in every dialect; backslash escapes are dialect- and
  * context-dependent, so the caller decides.
@@ -178,7 +221,7 @@ function findQuotedRunEnd(sql: string, start: number, delimiter: string, backsla
       i++;
     }
   }
-  return sql.length;
+  return -1;
 }
 
 /**
@@ -213,20 +256,37 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       continue;
     }
 
-    // Quoted identifiers: backticks in MySQL, double quotes everywhere else
-    if (char === '`' || (char === '"' && !isMysql)) {
-      const runEnd = findQuotedRunEnd(sql, i, char, false);
-      out += sql.slice(i, runEnd);
-      i = runEnd;
+    // In a dollar-quoted body (`$$body$$`, `$tag$body$tag$`) nothing has syntax meaning. Read the
+    // previous character from the query, not from `out`, where a dropped comment would leave `$$`
+    // looking like part of an identifier. Of the `standard` engines only PostgreSQL has dollar
+    // quoting. SQLite `$name` parameters do not match the tag pattern, apart from the rare `$a$b`.
+    if (dialect === 'standard' && char === '$' && !isIdentifierChar(sql[i - 1])) {
+      const tag = matchDollarQuoteTag(sql, i);
+      if (tag) {
+        const bodyEnd = sql.indexOf(tag, i + tag.length);
+        i = bodyEnd === -1 ? sql.length : bodyEnd + tag.length;
+        out += '?';
+        continue;
+      }
+    }
+
+    const identifierCloser = getIdentifierCloser(char, dialect);
+    if (identifierCloser) {
+      const runEnd = findQuotedRunEnd(sql, i, identifierCloser, false);
+      // A run that never closes is not an identifier, so it collapses instead of being copied out.
+      // Copying would carry every literal in the rest of the statement through unlexed.
+      out += runEnd === -1 ? '?' : sql.slice(i, runEnd);
+      i = runEnd === -1 ? sql.length : runEnd;
       continue;
     }
 
     if (char === "'" || (char === '"' && isMysql)) {
-      // A prefix like `X'1A'`, `B'01'` or PostgreSQL's `E'a\nb'` is part of the literal, so it has
+      // A prefix like `X'1A'`, `B'01'`, `N'…'` or PostgreSQL's `E'a\nb'` is part of the literal, so it has
       // to collapse into the same `?` instead of being left behind as a bare identifier.
-      const prefix = char === "'" ? getLiteralPrefix(out, isMysql) : undefined;
+      const prefix = char === "'" ? getLiteralPrefix(out, dialect) : undefined;
       out = prefix ? out.slice(0, -1) : out;
-      i = findQuotedRunEnd(sql, i, char, isMysql || prefix === 'E');
+      const runEnd = findQuotedRunEnd(sql, i, char, isMysql || prefix === 'E');
+      i = runEnd === -1 ? sql.length : runEnd;
       out += '?';
       continue;
     }
@@ -239,28 +299,56 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
 }
 
 /**
- * Returns the literal-prefix character immediately before a `'`, if there is one: `X`/`B` for
- * hex/binary literals, or `E` for a PostgreSQL escape string (which honors backslash escapes).
+ * Returns the character that closes an identifier opened by `char`, or undefined if `char` opens
+ * none. SQL Server brackets close on `]`, and `]]` escapes a `]` inside the name, which is the same
+ * doubling rule `findQuotedRunEnd` applies to quotes.
  */
-function getLiteralPrefix(out: string, isMysql: boolean): 'X' | 'B' | 'E' | undefined {
+function getIdentifierCloser(char: string, dialect: SqlDialect): string | undefined {
+  if (char === '`') {
+    return '`';
+  }
+  if (char === '"' && dialect !== 'mysql') {
+    return '"';
+  }
+  return char === '[' && dialect === 'mssql' ? ']' : undefined;
+}
+
+/** Whether `char` can appear inside an identifier. `undefined` (start of query) counts as a break. */
+function isIdentifierChar(char: string | undefined): boolean {
+  return char !== undefined && /[\w$]/.test(char);
+}
+
+/** Returns the opening dollar-quote tag at `start` (`$$` or `$tag$`), or undefined if there is none. */
+function matchDollarQuoteTag(sql: string, start: number): string | undefined {
+  DOLLAR_QUOTE_RE.lastIndex = start;
+  return DOLLAR_QUOTE_RE.exec(sql)?.[0];
+}
+
+/**
+ * Returns the literal-prefix character immediately before a `'`, if there is one: `X`/`B` for
+ * hex/binary literals, `N` for a national-character literal (SQL Server, MySQL), or `E` for a
+ * PostgreSQL escape string (which honors backslash escapes).
+ */
+function getLiteralPrefix(out: string, dialect: SqlDialect): 'X' | 'B' | 'N' | 'E' | undefined {
   // A prefix only counts when it stands alone — the `X` in `MAX'...'` belongs to the identifier
-  if (/[\w$]/.test(out.slice(-2, -1))) {
+  if (isIdentifierChar(out.slice(-2, -1))) {
     return undefined;
   }
 
   const prefix = out.slice(-1).toUpperCase();
-  if (prefix === 'X' || prefix === 'B') {
+  if (prefix === 'X' || prefix === 'B' || prefix === 'N') {
     return prefix;
   }
-  return prefix === 'E' && !isMysql ? 'E' : undefined;
+  return prefix === 'E' && dialect === 'standard' ? 'E' : undefined;
 }
 
 /**
  * Sanitize SQL query as per the OTEL semantic conventions
  * https://opentelemetry.io/docs/specs/semconv/database/database-spans/#sanitization-of-dbquerytext
  *
- * PostgreSQL $n placeholders are preserved per OTEL spec - they're parameterized queries,
- * not sensitive literals. Only actual values (strings, numbers, booleans) are sanitized.
+ * Parameter placeholders survive: PostgreSQL `$n`, SQLite `?n`, and named forms like `:name` and
+ * `@name`. Per the OTEL spec they mark a parameterized query, so only values (strings, numbers,
+ * booleans) are sanitized.
  *
  * Pass `dialect` when the statement comes from a driver whose literals are not standard-quoted;
  * see {@link SqlDialect}.
@@ -268,13 +356,6 @@ function getLiteralPrefix(out: string, isMysql: boolean): 'X' | 'B' | 'E' | unde
 export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDialect = 'standard'): string {
   if (!sqlQuery) {
     return 'Unknown SQL Query';
-  }
-
-  // Lazy init: constructing this at module scope would evaluate the lookbehind
-  // on import and crash Safari <16.4 browser bundles that reach this file via
-  // the core barrel. Building it on first call keeps the cost off the import path.
-  if (!integerLiteralRE) {
-    integerLiteralRE = new RegExp('(?<!\\$)-?\\b\\d+\\b', 'g');
   }
 
   return (
@@ -293,9 +374,22 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
       .replace(/-?\b\d+\.?\d*[eE][+-]?\d+\b/g, '?') // Scientific notation
       .replace(/-?\b\d+\.\d+\b/g, '?') // Decimals
       .replace(/-?\.\d+\b/g, '?') // Decimals starting with dot
-      .replace(integerLiteralRE, '?') // Integers (NOT $n placeholders)
+      .replace(getIntegerLiteralRE(dialect), '?') // Integers (NOT parameter placeholders)
       // Collapse IN clauses for cardinality (both ? and $n variants)
       .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
       .replace(/\bIN\b\s*\(\s*\$\d+(?:\s*,\s*\$\d+)*\s*\)/gi, 'IN ($?)')
   );
+}
+
+/**
+ * Sanitizes a collected SQL statement and derives the matching `db.query.summary`, the pair the SQL
+ * integrations attach to their spans. Both come back `undefined` when there is no statement, so an
+ * empty query omits the attributes instead of reporting the sanitizer's fallback text.
+ */
+export function sanitizeSqlQueryWithSummary(
+  sqlQuery: string | undefined,
+  dialect?: SqlDialect,
+): { queryText: string | undefined; querySummary: string | undefined } {
+  const queryText = sqlQuery ? sanitizeSqlQuery(sqlQuery, dialect) : undefined;
+  return { queryText, querySummary: getSqlQuerySummary(queryText) };
 }

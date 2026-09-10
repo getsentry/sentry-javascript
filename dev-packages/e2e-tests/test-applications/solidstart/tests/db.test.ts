@@ -64,7 +64,7 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
           getSpanOp(span) === 'http.server' &&
           String(span.attributes['url.path']?.value ?? '').includes('db-mysql'),
       ) &&
-      spans.some(span => span.attributes['db.query.text']?.value === 'SELECT 1 + 1 AS solution') &&
+      spans.some(span => span.attributes['db.query.text']?.value === 'SELECT ? + ? AS solution') &&
       spans.some(span => span.attributes['db.query.text']?.value === 'SELECT NOW()'),
   );
 
@@ -73,7 +73,7 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
   const spans = await spansPromise;
   const mysqlSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.db.mysql');
 
-  const firstQuery = mysqlSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT 1 + 1 AS solution');
+  const firstQuery = mysqlSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT ? + ? AS solution');
   expect(firstQuery).toBeDefined();
   expect(firstQuery!.name).toBe('SELECT');
   expect(firstQuery!.status).toBe('ok');
@@ -81,7 +81,7 @@ test('Instruments mysql automatically via build-time orchestrion', async ({ base
     'sentry.op': { type: 'string', value: 'db' },
     'sentry.origin': { type: 'string', value: 'auto.db.mysql' },
     'db.system.name': { type: 'string', value: 'mysql' },
-    'db.query.text': { type: 'string', value: 'SELECT 1 + 1 AS solution' },
+    'db.query.text': { type: 'string', value: 'SELECT ? + ? AS solution' },
     'db.user': { type: 'string', value: 'root' },
     'db.connection_string': { type: 'string', value: expect.any(String) },
     'server.address': { type: 'string', value: expect.any(String) },

@@ -265,7 +265,7 @@ function getAbsoluteUrl({
 /**
  * Converts incoming HTTP request or response headers to OpenTelemetry span attributes following semantic conventions.
  * Header names are converted to the format: http.<request|response>.header.<key>
- * where <key> is the header name in lowercase with dashes converted to underscores.
+ * where <key> is the header name in lowercase.
  *
  * @param lifecycle - The lifecycle of the headers, either 'request' or 'response'
  *
@@ -307,11 +307,10 @@ export function httpHeadersToSpanAttributes(
           const parsed = parseCookieHeader(value, lowerKey === 'set-cookie');
           const filtered = filterKeyValueData(parsed, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS);
           for (const [cookieKey, cookieValue] of Object.entries(filtered)) {
-            spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}.${normalizeAttributeKey(cookieKey)}`] =
-              cookieValue;
+            spanAttributes[`${prefix}${lowerKey}.${cookieKey}`] = cookieValue;
           }
         } else {
-          spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}`] = FILTERED_VALUE;
+          spanAttributes[`${prefix}${lowerKey}`] = FILTERED_VALUE;
         }
       } else {
         if (headerBehavior === false) {
@@ -329,7 +328,7 @@ export function httpHeadersToSpanAttributes(
     if (headerBehavior !== false) {
       const filtered = filterKeyValueData(regularHeaders, headerBehavior);
       for (const [headerKey, headerValue] of Object.entries(filtered)) {
-        spanAttributes[`${prefix}${normalizeAttributeKey(headerKey)}`] = headerValue;
+        spanAttributes[`${prefix}${headerKey}`] = headerValue;
       }
     }
   } catch {
@@ -337,10 +336,6 @@ export function httpHeadersToSpanAttributes(
   }
 
   return spanAttributes;
-}
-
-function normalizeAttributeKey(key: string): string {
-  return key.replace(/-/g, '_');
 }
 
 function parseCookieHeader(value: string, isSetCookie: boolean): Record<string, string> {
