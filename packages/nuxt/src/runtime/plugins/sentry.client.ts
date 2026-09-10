@@ -1,5 +1,5 @@
 import { getClient, GLOBAL_OBJ } from '@sentry/core';
-import { browserTracingIntegration, vueIntegration } from '@sentry/vue';
+import { browserTracingIntegration, INTERNAL_extendVueRootRenderSpan, vueIntegration } from '@sentry/vue';
 import { defineNuxtPlugin, isNuxtError } from 'nuxt/app';
 import type { GlobalObjWithIntegrationOptions } from '../../client/vueIntegration';
 import { reportNuxtError } from '../utils';
@@ -62,6 +62,12 @@ export default defineNuxtPlugin({
             attachErrorHandler: false,
           }),
         );
+
+        // Without these hooks the root render span ends at the root component's mount, before the
+        // page's `<Suspense>` boundary resolves. Both hooks are no-ops on the mixin path (Options
+        // API enabled), which keeps its historical span boundaries.
+        nuxtApp.hook('app:suspense:resolve', () => INTERNAL_extendVueRootRenderSpan(vueApp));
+        nuxtApp.hook('page:finish', () => INTERNAL_extendVueRootRenderSpan(vueApp));
       }
     });
 
