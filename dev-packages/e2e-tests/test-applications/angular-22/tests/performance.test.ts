@@ -398,6 +398,7 @@ test.describe('TraceMethod Decorator', () => {
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_method_decorator' },
           'sentry.description': { type: 'string', value: '<unnamed>' },
+          'code.function.name': { type: 'string', value: 'ngAfterViewInit' },
         }),
       }),
     );
