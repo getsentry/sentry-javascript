@@ -128,7 +128,7 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
  * a string literal rather than a quoted identifier, so sanitizing it as standard SQL leaves the value
  * in place — and a literal containing `FROM`/`JOIN` then reads as a table name in the summary.
  */
-function getSqlDialect(attributes: SpanAttributes): SqlDialect | undefined {
+function getSqlDialect(attributes: SpanAttributes): SqlDialect {
   // oxlint-disable-next-line typescript/no-deprecated
   const system = attributes[DB_SYSTEM_NAME] ?? attributes[DB_SYSTEM];
   return toSqlDialect(system);

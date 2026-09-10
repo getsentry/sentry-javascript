@@ -186,16 +186,16 @@ export type SqlDialect = 'standard' | 'mysql' | 'mssql';
 /**
  * Maps a driver or `db.system.name` value to the dialect its statements are written in. Callers
  * report different spellings for one engine: knex uses the driver name, Prisma the provider name,
- * and OTel the semantic-convention name.
+ * and OTel the semantic-convention name. An engine we do not know about is lexed as `standard`.
  */
-export function toSqlDialect(system: unknown): SqlDialect | undefined {
+export function toSqlDialect(system: unknown): SqlDialect {
   if (system === 'mysql' || system === 'mysql2' || system === 'mariadb') {
     return 'mysql';
   }
   if (system === 'mssql' || system === 'sqlserver' || system === 'microsoft.sql_server') {
     return 'mssql';
   }
-  return undefined;
+  return 'standard';
 }
 
 // Sticky, so the scanner can test one position without slicing the query on every `$`.

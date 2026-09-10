@@ -868,8 +868,8 @@ describe('toSqlDialect', () => {
     expect(toSqlDialect(system)).toBe(expected);
   });
 
-  it.each(['postgresql', 'sqlite', 'oracle', '', undefined])('returns undefined for %j', system => {
-    expect(toSqlDialect(system)).toBeUndefined();
+  it.each(['postgresql', 'sqlite', 'oracle', '', undefined])('falls back to standard for %j', system => {
+    expect(toSqlDialect(system)).toBe('standard');
   });
 });
 
