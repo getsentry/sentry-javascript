@@ -93,7 +93,7 @@ References: `ai/openai/streaming.ts` (async generator), `ai/anthropic-ai/streami
 1. Gate input/output message recording behind `resolveAIRecordingOptions()`, which resolves the integration's `recordInputs`/`recordOutputs` against the client's `dataCollection.genAI` settings. Never read `dataCollection.genAI` directly.
 2. Set `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'auto.ai.{provider}'` (alphanumerics, `_`, `.` only)
 3. **Do not truncate message payloads.** The `enableTruncation` flag and all AI truncation/media-stripping logic were removed in v11 (#23045); recorded messages are serialized with `stringify()` and set on the span as-is. Nothing downstream caps them either — `maxValueLength` only applies to `request.url` and exception values, and event normalization limits depth/breadth, not string length. Size limiting is handled server-side, so it is not a contributor concern.
-4. Set token usage on the span the SDK reports it for, via `setTokenUsageAttributes()`. Do not add cross-span rollup — totals over a span tree are computed product-side, and summing in the SDK does not survive span streaming.
+4. Set token usage on the span the SDK reports it for, via `setTokenUsageAttributes()`. Do not roll child usage up onto parent spans — tree totals are computed product-side, from the full span tree. A rollup done at serialization time is impossible anyway under span streaming: each span is snapshotted to JSON when it ends (`captureSpan()`), and no transaction event is assembled, so there is no finished tree to walk.
 
 ## Checklist
 
