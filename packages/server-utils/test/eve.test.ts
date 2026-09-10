@@ -40,13 +40,16 @@ describe('eveConversationHook', () => {
     expect(setConversationId).toHaveBeenCalledWith('conv-xyz');
   });
 
-  test('does not set a conversation id when the resolver returns nothing', () => {
+  test.each([
+    ['undefined', undefined],
+    ['null', null],
+  ])('unsets the conversation id when the resolver returns %s', (_label, returnValue) => {
     const setConversationId = vi.spyOn(SentryCore, 'setConversationId').mockImplementation(() => undefined);
 
-    eveConversationHook({ getConversationId: () => undefined }).events['turn.started'](undefined, {
+    eveConversationHook({ getConversationId: () => returnValue }).events['turn.started'](undefined, {
       session: { id: 'xyz' },
     });
 
-    expect(setConversationId).not.toHaveBeenCalled();
+    expect(setConversationId).toHaveBeenCalledWith(returnValue);
   });
 });
