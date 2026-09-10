@@ -946,8 +946,21 @@ describe('browserTracingIntegration', () => {
       expect(secondTraceId).not.toBe(firstTraceId);
     });
 
-    it('does not start a span when navigation instrumentation is off', () => {
+    // The framework integrations all pass `instrumentNavigation: false` to the base integration so they
+    // can own history spans, and none of them handle a restore. Gating on it would ship this to plain
+    // `@sentry/browser` only.
+    it('starts a span even when history instrumentation is off', () => {
       initClient({ instrumentNavigation: false });
+
+      firePageShow(true);
+
+      expect(spanToJSON(getActiveSpan()!).attributes).toEqual(
+        expect.objectContaining({ [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache' }),
+      );
+    });
+
+    it('does not start a span when bfcache restore instrumentation is off', () => {
+      initClient({ instrumentBfcacheRestore: false });
 
       firePageShow(true);
 

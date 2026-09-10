@@ -96,6 +96,19 @@ export interface BrowserTracingOptions {
   instrumentNavigation: boolean;
 
   /**
+   * If a navigation span should be created when the page is restored from the back/forward cache.
+   *
+   * This is deliberately independent of {@link BrowserTracingOptions.instrumentNavigation}: a restore
+   * is not a history change, and the framework integrations that own their own navigation spans turn
+   * that option off without ever handling a restore. The point of this span is trace hygiene, keeping
+   * everything after the restore off the trace the page had before it was frozen, so it is worth
+   * having even where history instrumentation is not.
+   *
+   * Default: true
+   */
+  instrumentBfcacheRestore: boolean;
+
+  /**
    * Flag spans where tabs moved to background with "cancelled". Browser background tab timing is
    * not suited towards doing precise measurements of operations. By default, we recommend that this option
    * be enabled as background transactions can mess up your statistics in nondeterministic ways.
@@ -264,6 +277,7 @@ export interface BrowserTracingOptions {
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   ...TRACING_DEFAULTS,
   instrumentNavigation: true,
+  instrumentBfcacheRestore: true,
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
@@ -321,6 +335,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     ignoreResourceSpans,
     instrumentPageLoad,
     instrumentNavigation,
+    instrumentBfcacheRestore,
     detectRedirects,
     linkPreviousTrace,
     consistentTraceSampling,
@@ -673,12 +688,14 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
               { url: to, isRedirect: navigationIsRedirect },
             );
           });
+        }
 
-          // A bfcache restore resurrects the frozen document, so there is no document load and no
-          // usable history event: `popstate` either doesn't fire or is swallowed because the URL is
-          // unchanged from when the page was frozen. Without a span of its own, everything after the
-          // restore joins the trace the page had before it was frozen, separated by however long it
-          // sat in the cache.
+        // A bfcache restore resurrects the frozen document, so there is no document load and no
+        // usable history event: `popstate` either doesn't fire or is swallowed because the URL is
+        // unchanged from when the page was frozen. Without a span of its own, everything after the
+        // restore joins the trace the page had before it was frozen, separated by however long it
+        // sat in the cache.
+        if (instrumentBfcacheRestore) {
           WINDOW.addEventListener?.('pageshow', (event: PageTransitionEvent) => {
             if (!event.persisted) {
               return;
