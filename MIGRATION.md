@@ -1710,6 +1710,9 @@ Note that `ignoreStatusCodes` is itself [deprecated](#ignorestatuscodes-is-depre
 
 ### `@sentry/react-router`
 
+`@sentry/react-router` is now out of beta. With this, the SDK fully relies on React Router's instrumentation API for
+tracing loaders and actions.
+
 - The deprecated server wrappers `wrapServerLoader` and `wrapServerAction` were removed. Loaders and
   actions are instrumented automatically via the instrumentation API - export
   `instrumentations = [Sentry.createSentryServerInstrumentation()]` from your `entry.server.tsx`
