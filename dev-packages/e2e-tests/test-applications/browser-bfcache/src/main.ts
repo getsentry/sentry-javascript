@@ -16,6 +16,15 @@ Sentry.init({
   tunnel: 'http://localhost:3031',
 });
 
+// INP only considers interactions whose duration clears the threshold `web-vitals` observes at
+// (40ms), and a synthetic click is far quicker than that, so block long enough to be measured.
+document.getElementById('slow-interaction')?.addEventListener('click', () => {
+  const start = performance.now();
+  while (performance.now() - start < 120) {
+    /* block the main thread */
+  }
+});
+
 (window as unknown as { Sentry: typeof Sentry }).Sentry = Sentry;
 
 // Test-only marker: lets the test distinguish a genuine bfcache restore (environment working) from a

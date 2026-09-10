@@ -603,6 +603,20 @@ This is required for per-navigation values to be correct: `web-vitals` skips any
 
 The visible effect is in Session Replay, which records `web-vital` breadcrumbs from the same instrumentation. Replays now contain one LCP and one CLS entry per navigation instead of one per intermediate update. Where soft navigation reporting is disabled or unsupported, the previous behaviour is unchanged.
 
+### Back/forward-cache restores report their own web vitals
+
+Affected SDKs: All SDKs running in the browser.
+
+A page restored from the back/forward cache now reports its own LCP, CLS and INP, against the navigation span `browserTracingIntegration` starts for the restore and tagged `browser.navigation.type: bfcache`.
+
+A restore is near-instant by construction, so these are a distinct population from page load vitals rather than more samples of the same thing. Read them through that attribute; pooling them with page loads will pull aggregates down. Set `webVitals: { bfcacheNavigations: false }` to leave restores unmeasured.
+
+```js
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration({ webVitals: { bfcacheNavigations: false } })],
+});
+```
+
 ### `DOMException.code` is no longer set as a tag
 
 Affected SDKs: All SDKs running in the browser.

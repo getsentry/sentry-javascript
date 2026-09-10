@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import type { SerializedMetric } from '@sentry/core';
-import { getSpanOp, waitForMetric, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForMetric, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const PROXY_SERVER_NAME = 'browser-bfcache';
 const BFCACHE_ORIGIN = 'auto.browser.bfcache';
@@ -395,5 +395,53 @@ test.describe('the navigation span for a restore', () => {
     // Both timestamps come from the page's own clock, so this stays free of host/browser skew. The
     // 500ms spent on page 2 is the floor for the gap.
     expect(restore.start_timestamp).toBeGreaterThan(pageload.start_timestamp + 0.4);
+  });
+
+  // `webVitals.bfcacheNavigations` is on by default, so the app opts into nothing for this.
+  test('carries the vitals measured on the restore', async ({ page }) => {
+    const spansPromise = collectStreamedSpans(
+      PROXY_SERVER_NAME,
+      spansOfTrace =>
+        spansOfTrace.some(span => span.is_segment && getSpanOp(span) === 'navigation') &&
+        spansOfTrace.some(span => getSpanOp(span) === 'ui.webvital.lcp') &&
+        spansOfTrace.some(span => getSpanOp(span) === 'ui.webvital.cls') &&
+        spansOfTrace.some(span => getSpanOp(span) === 'ui.interaction.click'),
+    );
+
+    await page.goto('/?tracing=1');
+    await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+
+    await restoreFromBfcache(page);
+
+    // Interacting after the restore is what gives it an INP to report.
+    await page.click('#slow-interaction');
+
+    // `web-vitals` defers processing the interaction's entries to a `requestIdleCallback(...,
+    // { timeout: 1000 })`, so hiding any earlier reports an INP that is still unset. CLS is only
+    // finalized on pagehide too, unlike LCP which reports as soon as the restore paints.
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    const spans = await spansPromise;
+    const restoreSpan = spans.find(span => span.is_segment && getSpanOp(span) === 'navigation')!;
+    const lcpSpan = spans.find(span => getSpanOp(span) === 'ui.webvital.lcp')!;
+    const clsSpan = spans.find(span => getSpanOp(span) === 'ui.webvital.cls')!;
+    const inpSpan = spans.find(span => getSpanOp(span) === 'ui.interaction.click')!;
+
+    expect(restoreSpan.attributes).toMatchObject({
+      'browser.navigation.type': { type: 'string', value: 'bfcache' },
+    });
+
+    // All three hang off the restore itself. They also carry the `bfcache` navigation type, so the
+    // one reported first must not become the parent of the ones reported later.
+    for (const vital of [lcpSpan, clsSpan, inpSpan]) {
+      expect(vital.parent_span_id).toBe(restoreSpan.span_id);
+      expect(vital.attributes).toMatchObject({
+        'browser.navigation.type': { type: 'string', value: 'bfcache' },
+      });
+    }
   });
 });
