@@ -17,8 +17,9 @@ export function filterCookies(cookieString: string, behavior: CollectBehavior): 
   try {
     const parsed = parseCookie(cookieString);
 
+    // A non-empty string we cannot parse may still hold a session token, so it counts as sensitive.
     if (Object.keys(parsed).length === 0) {
-      return {};
+      return cookieString ? FILTERED : {};
     }
 
     return filterKeyValueData(parsed, behavior, SENSITIVE_COOKIE_NAME_SNIPPETS);

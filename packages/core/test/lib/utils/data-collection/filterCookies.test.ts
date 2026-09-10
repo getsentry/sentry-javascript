@@ -78,8 +78,9 @@ describe('filterCookies', () => {
       expect(filterCookies('', true)).toEqual({});
     });
 
-    it('returns empty record for string with no key-value pairs', () => {
-      expect(filterCookies(';;;', true)).toEqual({});
+    it('filters the whole string when no key-value pairs can be extracted', () => {
+      expect(filterCookies(';;;', true)).toBe('[Filtered]');
+      expect(filterCookies('opaque-session-blob', true)).toBe('[Filtered]');
     });
   });
 
