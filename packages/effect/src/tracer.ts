@@ -1,9 +1,23 @@
+/* oxlint-disable max-lines */
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION, HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, StartSpanOptions } from '@sentry/core';
-import { isObjectLike, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
-import type * as Context from 'effect/Context';
+import {
+  _INTERNAL_safeMathRandom,
+  addNonEnumerableProperty,
+  getActiveSpan,
+  getCurrentScope,
+  getDefaultCurrentScope,
+  isObjectLike,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startNewTrace,
+  withActiveSpan,
+  withScope,
+} from '@sentry/core';
+import * as Context from 'effect/Context';
 import * as Exit from 'effect/Exit';
+import type * as EffectLayer from 'effect/Layer';
+import { succeed as succeedLayer } from 'effect/Layer';
 import * as Option from 'effect/Option';
 import * as EffectTracer from 'effect/Tracer';
 
@@ -13,6 +27,20 @@ function deriveOrigin(name: string): string {
   }
 
   return 'auto.function.effect';
+}
+
+const EFFECT_SPAN_SYMBOL = Symbol.for('@sentry/effect.EffectSpan');
+
+function markEffectSpan(span: Span): void {
+  addNonEnumerableProperty(span, EFFECT_SPAN_SYMBOL, true);
+}
+
+/**
+ * Whether this tracer created the span. A brand rather than an attribute check, because an unsampled
+ * span keeps no attributes.
+ */
+function isEffectSpan(span: Span): boolean {
+  return (span as { [EFFECT_SPAN_SYMBOL]?: boolean })[EFFECT_SPAN_SYMBOL] === true;
 }
 
 /**
@@ -171,37 +199,11 @@ class SentrySpanWrapper implements SentrySpanLike {
 }
 
 /**
- * The client and the server entry differ only in which `startInactiveSpan` they hand to
- * {@link makeSentryTracer}: the browser one from `@sentry/core`, which installs the span
- * streaming integration on first use, and the plain one from `@sentry/core`, which does not. Nothing
- * else about the tracer is platform-specific.
+ * The client and the server entry hand different `startInactiveSpan` functions to
+ * {@link makeSentryTracer}: the browser one from `@sentry/core/browser`, which installs the span
+ * streaming integration on first use, and the plain one from `@sentry/core`, which does not.
  */
 export type StartInactiveSpan = (options: StartSpanOptions) => Span;
-
-function createSentrySpan(
-  startInactiveSpan: StartInactiveSpan,
-  name: string,
-  parent: Option.Option<EffectTracer.AnySpan>,
-  context: Context.Context<never>,
-  links: ReadonlyArray<EffectTracer.SpanLink>,
-  startTime: bigint,
-  kind: EffectTracer.SpanKind,
-): SentrySpanLike {
-  const parentSentrySpan =
-    Option.isSome(parent) && isSentrySpan(parent.value) ? parent.value.sentrySpan : (getActiveSpan() ?? null);
-
-  const newSpan = startInactiveSpan({
-    name,
-    startTime: nanosToHrTime(startTime),
-    attributes: {
-      [SENTRY_OP]: deriveOp(name),
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: deriveOrigin(name),
-    },
-    ...(parentSentrySpan ? { parentSpan: parentSentrySpan } : {}),
-  });
-
-  return new SentrySpanWrapper(name, parent, context, links, startTime, kind, newSpan);
-}
 
 // Check if we're running Effect v4 by checking the Exit/Cause structure
 // In v4, causes have a 'reasons' array
@@ -220,7 +222,170 @@ const isEffectV4 = (() => {
   }
 })();
 
-const makeSentryTracerV3 = (startInactiveSpan: StartInactiveSpan): EffectTracer.Tracer => {
+const EXTERNAL_SPAN_KEY = '@sentry/effect/ExternalSpan';
+
+interface EffectV3Context {
+  GenericTag<Identifier, Service>(key: string): Context.Key<Identifier, Service>;
+}
+
+/**
+ * Whether the tracer continues the trace of a `Tracer.externalSpan` parent. Effect v4 has no `FiberRef`
+ * and v3 has no `Context.Reference`, so the flag is a plain service in both. The cast is safe: the tracer
+ * reads it with `getRef` only on a v4 fiber, where it is a reference, and with `Context.getOption` on v3.
+ */
+const ExternalSpanFlag = (
+  isEffectV4
+    ? Context.Reference<boolean>(EXTERNAL_SPAN_KEY, { defaultValue: () => false })
+    : (Context as unknown as EffectV3Context).GenericTag<never, boolean>(EXTERNAL_SPAN_KEY)
+) as Context.Reference<boolean>;
+
+/**
+ * Makes the tracer continue the trace of a `Tracer.externalSpan` parent instead of ignoring it. Provide it
+ * next to the tracer layer to continue every external span in the runtime, which includes the parent
+ * `@effect/platform` builds from an incoming `traceparent` or `b3` header, or provide it to a single effect
+ * with `Effect.provide` to continue only that one.
+ */
+export const SentryEffectExternalSpanLayer: EffectLayer.Layer<never> = succeedLayer(ExternalSpanFlag, true);
+
+interface FiberLike {
+  readonly currentSpan?: EffectTracer.AnySpan | undefined;
+  /** Reads a reference with its default. Only Effect v4 fibers have it. */
+  readonly getRef?: <A>(ref: Context.Reference<A>) => A;
+  /** The services of the fiber. Only Effect v3 fibers have it. */
+  readonly currentContext?: Context.Context<never>;
+}
+
+/**
+ * The fiber whose operation is being evaluated. Effect hands the fiber to the `context` hook but not to
+ * `span`, which runs synchronously inside it, so the hook keeps the fiber here for that extent.
+ */
+let currentFiber: FiberLike | undefined;
+
+function continuesExternalSpans(fiber: FiberLike): boolean {
+  if (fiber.getRef) {
+    return fiber.getRef(ExternalSpanFlag);
+  }
+
+  return (
+    fiber.currentContext !== undefined &&
+    Option.getOrElse(Context.getOption(fiber.currentContext, ExternalSpanFlag), () => false)
+  );
+}
+
+function withFiberContext<X>(fiber: FiberLike, execution: () => X): X {
+  const previousFiber = currentFiber;
+  currentFiber = fiber;
+  try {
+    const currentSpan = fiber.currentSpan;
+    if (currentSpan === undefined || !isSentrySpan(currentSpan)) {
+      return execution();
+    }
+    return withActiveSpan(currentSpan.sentrySpan, execution);
+  } finally {
+    currentFiber = previousFiber;
+  }
+}
+
+/**
+ * Starts the Sentry span for an Effect span, rooted or parented the way Effect asked for.
+ *
+ * - A parent this tracer created becomes the Sentry parent.
+ * - Any other parent (`Tracer.externalSpan` from incoming trace headers or persisted trace state, or a
+ *   span from another Effect tracer) is ignored unless {@link SentryEffectExternalSpanLayer} is provided,
+ *   so Sentry's own trace continuation with its org id and `strictTraceContinuation` checks stays in
+ *   charge. The span then nests where Effect would have put it without the `parent` option: under the
+ *   fiber's current span, or parentless. With the layer, the span continues that trace: it is a root span
+ *   whose `parent_span_id` is the external span. No dynamic sampling context is frozen, so the SDK builds
+ *   one from the client the way it does for a head-of-trace span.
+ * - Without a parent, the span nests under a foreign active Sentry span (an `http.server` span from the
+ *   Node SDK, a pageload in the browser) but never under a span this tracer created: Effect's own parent
+ *   tracking is authoritative for those, so an active one is an enclosing `root: true` span or a span
+ *   leaked from another fiber through the async context. Effect reports `root: true` for every
+ *   parentless span, so the flag adds nothing and is not consulted.
+ * - A root span starts a new trace when `newTraceForRootSpans` is set, unless the user set up the
+ *   current scope (`Sentry.continueTrace`, `Sentry.withScope`, an HTTP request's isolation scope).
+ */
+function startSentrySpan(
+  startInactiveSpan: StartInactiveSpan,
+  options: StartSpanOptions,
+  parent: Option.Option<EffectTracer.AnySpan>,
+  newTraceForRootSpans: boolean,
+): Span {
+  if (Option.isSome(parent)) {
+    const parentSpan = parent.value;
+
+    if (isSentrySpan(parentSpan)) {
+      return startInactiveSpan({ ...options, parentSpan: parentSpan.sentrySpan });
+    }
+
+    if (currentFiber !== undefined && continuesExternalSpans(currentFiber)) {
+      return withScope(scope => {
+        scope.setPropagationContext({
+          traceId: parentSpan.traceId,
+          parentSpanId: parentSpan.spanId,
+          sampled: parentSpan.sampled,
+          sampleRand: _INTERNAL_safeMathRandom(),
+        });
+        return withActiveSpan(null, () => startInactiveSpan(options));
+      });
+    }
+
+    const enclosingSpan = currentFiber?.currentSpan;
+    if (enclosingSpan !== undefined && isSentrySpan(enclosingSpan)) {
+      return startInactiveSpan({ ...options, parentSpan: enclosingSpan.sentrySpan });
+    }
+  }
+
+  const activeSpan = getActiveSpan();
+  if (activeSpan && !isEffectSpan(activeSpan)) {
+    return startInactiveSpan({ ...options, parentSpan: activeSpan });
+  }
+
+  // A scope the user forked (`continueTrace`, `withScope`, an isolation scope) carries its own trace id.
+  // The scopes this tracer forks in `context()` clone the propagation context they were forked from, so
+  // even when one leaks into another fiber through the async context it still carries the process-wide
+  // trace id of the default scope.
+  const isProcessTrace =
+    getCurrentScope().getPropagationContext().traceId === getDefaultCurrentScope().getPropagationContext().traceId;
+  if (newTraceForRootSpans && isProcessTrace) {
+    return startNewTrace(() => startInactiveSpan(options));
+  }
+
+  return withActiveSpan(null, () => startInactiveSpan(options));
+}
+
+function createSentrySpan(
+  startInactiveSpan: StartInactiveSpan,
+  newTraceForRootSpans: boolean,
+  name: string,
+  parent: Option.Option<EffectTracer.AnySpan>,
+  context: Context.Context<never>,
+  links: ReadonlyArray<EffectTracer.SpanLink>,
+  startTime: bigint,
+  kind: EffectTracer.SpanKind,
+): SentrySpanLike {
+  const newSpan = startSentrySpan(
+    startInactiveSpan,
+    {
+      name,
+      startTime: nanosToHrTime(startTime),
+      attributes: {
+        [SENTRY_OP]: deriveOp(name),
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: deriveOrigin(name),
+      },
+    },
+    parent,
+    newTraceForRootSpans,
+  );
+  markEffectSpan(newSpan);
+
+  return new SentrySpanWrapper(name, parent, context, links, startTime, kind, newSpan);
+}
+
+const makeSentryTracerV3 = (
+  startInactiveSpan: StartInactiveSpan,
+  newTraceForRootSpans: boolean,
+): EffectTracer.Tracer => {
   // Effect v3 API: span(name, parent, context, links, startTime, kind)
   return EffectTracer.make({
     span(
@@ -231,25 +396,25 @@ const makeSentryTracerV3 = (startInactiveSpan: StartInactiveSpan): EffectTracer.
       startTime: bigint,
       kind: EffectTracer.SpanKind,
     ) {
-      return createSentrySpan(startInactiveSpan, name, parent, context, links, startTime, kind);
+      return createSentrySpan(startInactiveSpan, newTraceForRootSpans, name, parent, context, links, startTime, kind);
     },
-    context(execution: () => unknown, fiber: { currentSpan?: EffectTracer.AnySpan }) {
-      const currentSpan = fiber.currentSpan;
-      if (currentSpan === undefined || !isSentrySpan(currentSpan)) {
-        return execution();
-      }
-      return withActiveSpan(currentSpan.sentrySpan, execution);
+    context(execution: () => unknown, fiber: FiberLike) {
+      return withFiberContext(fiber, execution);
     },
   } as unknown as EffectTracer.Tracer);
 };
 
-const makeSentryTracerV4 = (startInactiveSpan: StartInactiveSpan): EffectTracer.Tracer => {
+const makeSentryTracerV4 = (
+  startInactiveSpan: StartInactiveSpan,
+  newTraceForRootSpans: boolean,
+): EffectTracer.Tracer => {
   const EFFECT_EVALUATE = '~effect/Effect/evaluate' as const;
 
   return EffectTracer.make({
     span(options) {
       return createSentrySpan(
         startInactiveSpan,
+        newTraceForRootSpans,
         options.name,
         options.parent,
         options.annotations,
@@ -259,11 +424,7 @@ const makeSentryTracerV4 = (startInactiveSpan: StartInactiveSpan): EffectTracer.
       );
     },
     context(primitive, fiber) {
-      const currentSpan = fiber.currentSpan;
-      if (currentSpan === undefined || !isSentrySpan(currentSpan)) {
-        return primitive[EFFECT_EVALUATE](fiber);
-      }
-      return withActiveSpan(currentSpan.sentrySpan, () => primitive[EFFECT_EVALUATE](fiber));
+      return withFiberContext(fiber, () => primitive[EFFECT_EVALUATE](fiber));
     },
   });
 };
@@ -273,7 +434,17 @@ const makeSentryTracerV4 = (startInactiveSpan: StartInactiveSpan): EffectTracer.
  *
  * Use the `SentryEffectTracer` exported from `@sentry/effect` rather than calling this directly — the
  * client and server entries each bind the right `startInactiveSpan` for their platform.
+ *
+ * `newTraceForRootSpans` is the one behavioural difference between the platforms: Effect gives every
+ * parentless span a fresh trace id, and on a long-lived server nothing else forks the propagation
+ * context, so the server tracer follows Effect and starts a new trace. In the browser the page trace is
+ * the intended home of every span, so the client tracer keeps parentless spans in it.
  */
-export function makeSentryTracer(startInactiveSpan: StartInactiveSpan): EffectTracer.Tracer {
-  return isEffectV4 ? makeSentryTracerV4(startInactiveSpan) : makeSentryTracerV3(startInactiveSpan);
+export function makeSentryTracer(
+  startInactiveSpan: StartInactiveSpan,
+  newTraceForRootSpans: boolean,
+): EffectTracer.Tracer {
+  return isEffectV4
+    ? makeSentryTracerV4(startInactiveSpan, newTraceForRootSpans)
+    : makeSentryTracerV3(startInactiveSpan, newTraceForRootSpans);
 }
