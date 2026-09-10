@@ -845,6 +845,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 - The `fs_error` span attribute on `file` spans was replaced by `error.type`. The value changed from the full error message to just the syscall's error code instead (`ENOENT`).
 - The Cloudflare-specific `sentry.cloudflare_tracer` span attribute is no longer set. `@sentry/cloudflare` now creates spans through the shared `SentryTracerProvider`, so spans emitted via `@opentelemetry/api` no longer carry a marker distinguishing them from other Sentry spans.
 - The `url.path.params.<key>` attribute was removed from the TanStack Router (library) integration. The replacement is `url.path.parameter.<key>` and holds the same values.
+- The `navigation.route.id` attribute set by the Vue Router instrumentation was renamed to `router.navigation.route.id`. It holds the same value (the matched route's name). The attribute moved to the `router.*` namespace to separate client-side router navigations from browser navigations.
 
 #### Attribute constants
 
