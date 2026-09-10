@@ -42,7 +42,7 @@ export function instrumentXHR(): void {
       //       have a stack trace. If you are using HttpClient integration,
       //       this is the expected behavior, as we are using this virtual error to capture
       //       the location of your XHR call, and group your HttpClient events accordingly.
-      const virtualError = new Error();
+      let virtualError: Error | undefined = new Error();
 
       const startTimestamp = timestampInSeconds() * 1000;
 
@@ -91,12 +91,18 @@ export function instrumentXHR(): void {
           };
           triggerHandlers('xhr', handlerData);
 
+          // The handlers above are the last ones that can read `virtualError.stack`. While that stack stays
+          // unformatted, V8 holds on to the raw frames and every raw frame keeps its receiver alive. For a
+          // request opened from the `readystatechange` callback of the previous one, that receiver is the
+          // previous XMLHttpRequest, so the whole chain of requests would stay reachable from the one currently
+          // in flight.
+          virtualError = undefined;
+
           // In the `addEventListener` branch below, this handler is the only
           // `readystatechange` listener we add, so detach it once the request is
-          // done to avoid pinning the XMLHttpRequest and its captured
-          // `virtualError` per HTTP call on long-lived pages. In the
-          // `onreadystatechange` proxy branch the handler isn't registered via
-          // `addEventListener`, so this is a harmless no-op there.
+          // done to avoid pinning the XMLHttpRequest per HTTP call on long-lived
+          // pages. In the `onreadystatechange` proxy branch the handler isn't
+          // registered via `addEventListener`, so this is a harmless no-op there.
           xhrOpenThisArg.removeEventListener('readystatechange', onreadystatechangeHandler);
         }
       };
