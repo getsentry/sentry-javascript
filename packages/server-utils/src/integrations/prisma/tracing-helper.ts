@@ -35,7 +35,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import { getSqlQuerySummary, sanitizeSqlQuery, type SqlDialect } from '../../utils/sql';
+import { getSqlQuerySummary, sanitizeSqlQuery, type SqlDialect, toSqlDialect } from '../../utils/sql';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -128,10 +128,10 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
  * a string literal rather than a quoted identifier, so sanitizing it as standard SQL leaves the value
  * in place — and a literal containing `FROM`/`JOIN` then reads as a table name in the summary.
  */
-function getSqlDialect(attributes: SpanAttributes): SqlDialect | undefined {
+function getSqlDialect(attributes: SpanAttributes): SqlDialect {
   // oxlint-disable-next-line typescript/no-deprecated
   const system = attributes[DB_SYSTEM_NAME] ?? attributes[DB_SYSTEM];
-  return system === 'mysql' || system === 'mariadb' ? 'mysql' : undefined;
+  return toSqlDialect(system);
 }
 
 /**

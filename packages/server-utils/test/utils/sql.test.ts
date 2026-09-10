@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getSqlQuerySummary, sanitizeSqlQuery, sanitizeSqlQueryWithSummary } from '../../src/utils/sql';
+import { getSqlQuerySummary, sanitizeSqlQuery, sanitizeSqlQueryWithSummary, toSqlDialect } from '../../src/utils/sql';
 
 describe('getSqlQuerySummary', () => {
   it.each([undefined, ''])('returns undefined for %j', input => {
@@ -679,6 +679,26 @@ describe('sanitizeSqlQuery', () => {
     });
   });
 
+  describe("dialect: 'mssql'", () => {
+    it.each([
+      // `[...]` quotes an identifier, so a `'` inside one belongs to the name
+      ["SELECT * FROM [dbo].[user's] WHERE email = 'jane@example.com'", "SELECT * FROM [dbo].[user's] WHERE email = ?"],
+      // `]]` escapes a `]` inside the name
+      ['SELECT [a]]b] FROM [t] WHERE c = 1', 'SELECT [a]]b] FROM [t] WHERE c = ?'],
+      ['SELECT * FROM [dbo].[Customer Orders] WHERE id = @P1', 'SELECT * FROM [dbo].[Customer Orders] WHERE id = @P1'],
+      ["INSERT INTO [dbo].[users] ([name]) VALUES (N'Jane')", 'INSERT INTO [dbo].[users] ([name]) VALUES (?)'],
+      // T-SQL has no `E'...'` escape strings, so the `E` stays an identifier
+      ["SELECT * FROM t WHERE a = E'x'", 'SELECT * FROM t WHERE a = E?'],
+      // ... and no dollar quoting, where `$` is an ordinary identifier character
+      ['SELECT * FROM t WHERE a = $$x$$', 'SELECT * FROM t WHERE a = $$x$$'],
+      // `$n` is a money literal here, not the placeholder it is in PostgreSQL
+      ['SELECT * FROM t WHERE price = $1000', 'SELECT * FROM t WHERE price = $?'],
+      ['SELECT * FROM t WHERE price = $10.50', 'SELECT * FROM t WHERE price = $?'],
+    ])('sanitizes %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input, 'mssql')).toBe(expected);
+    });
+  });
+
   describe('unterminated literals swallow the rest of the statement', () => {
     it.each([
       ["SELECT * FROM t WHERE a = 'jane@example.com AND b = 2", 'standard' as const],
@@ -688,6 +708,25 @@ describe('sanitizeSqlQuery', () => {
       ["SELECT * FROM t WHERE a = 'jane@example.com AND b = 2", 'mysql' as const],
     ])('drops the unterminated value in %p (%s)', (input, dialect) => {
       expect(sanitizeSqlQuery(input, dialect)).toBe('SELECT * FROM t WHERE a = ?');
+    });
+
+    // An unterminated identifier quote is the same hazard: the rest of the statement is not a
+    // name, so copying it through would carry the literals in it out unlexed.
+    it.each([
+      ["SELECT * FROM [users WHERE email = 'jane@example.com'", 'mssql' as const],
+      ["SELECT * FROM \"users WHERE email = 'jane@example.com'", 'standard' as const],
+      ["SELECT * FROM `users WHERE email = 'jane@example.com'", 'mysql' as const],
+    ])('drops the unterminated identifier in %p (%s)', (input, dialect) => {
+      expect(sanitizeSqlQuery(input, dialect)).toBe('SELECT * FROM ?');
+    });
+
+    // The run ends on a doubled closer, which escapes the character rather than closing the name
+    it.each([
+      ["SELECT * FROM [t WHERE email = 'jane@example.com' AND x = [a]]", 'mssql' as const],
+      ['SELECT * FROM "t WHERE email = \'jane@example.com\' AND x = a""', 'standard' as const],
+      ["SELECT * FROM `t WHERE email = 'jane@example.com' AND x = a``", 'mysql' as const],
+    ])('drops an identifier left open by an escaped closer in %p (%s)', (input, dialect) => {
+      expect(sanitizeSqlQuery(input, dialect)).toBe('SELECT * FROM ?');
     });
   });
 
@@ -768,7 +807,7 @@ describe('sanitizeSqlQuery', () => {
         'INSERT INTO users (name, email) VALUES (?, ?)',
       ],
     ])('sanitizes SQL Server statement %p', (input, expected) => {
-      expect(sanitizeSqlQuery(input)).toBe(expected);
+      expect(sanitizeSqlQuery(input, 'mssql')).toBe(expected);
     });
   });
 
@@ -787,11 +826,50 @@ describe('sanitizeSqlQuery', () => {
       ['standard' as const, 'INSERT INTO t (c) VALUES ($tag$select from s3cret-token$tag$)', 's3cret-token'],
       ['standard' as const, "SELECT * FROM users WHERE name = N'from ACME'", 'ACME'],
       ['standard' as const, String.raw`UPDATE t SET a = E'x\'y from Z' WHERE id = 5`, 'from Z'],
+      ['mssql' as const, "SELECT * FROM [dbo].[users] WHERE note = 'from bob@secret.com'", 'bob@secret.com'],
     ])('strips the value out of %s statement %p', (dialect, input, value) => {
       const sanitized = sanitizeSqlQuery(input, dialect);
       expect(sanitized).not.toContain(value);
       expect(getSqlQuerySummary(sanitized)).not.toContain(value);
     });
+  });
+});
+
+describe('sanitizeSqlQueryWithSummary', () => {
+  it('returns the sanitized statement and its summary', () => {
+    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
+      queryText: 'SELECT * FROM users WHERE email = ?',
+      querySummary: 'SELECT users',
+    });
+  });
+
+  it('passes the dialect through to the sanitizer', () => {
+    expect(sanitizeSqlQueryWithSummary('SELECT * FROM users WHERE email = "jane@example.com"', 'mysql')).toEqual({
+      queryText: 'SELECT * FROM users WHERE email = ?',
+      querySummary: 'SELECT users',
+    });
+  });
+
+  it('returns undefined for both when there is no statement', () => {
+    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({ queryText: undefined, querySummary: undefined });
+    expect(sanitizeSqlQueryWithSummary('')).toEqual({ queryText: undefined, querySummary: undefined });
+  });
+});
+
+describe('toSqlDialect', () => {
+  it.each([
+    ['mysql', 'mysql'],
+    ['mysql2', 'mysql'],
+    ['mariadb', 'mysql'],
+    ['mssql', 'mssql'],
+    ['sqlserver', 'mssql'],
+    ['microsoft.sql_server', 'mssql'],
+  ])('maps %j to %j', (system, expected) => {
+    expect(toSqlDialect(system)).toBe(expected);
+  });
+
+  it.each(['postgresql', 'sqlite', 'oracle', '', undefined])('falls back to standard for %j', system => {
+    expect(toSqlDialect(system)).toBe('standard');
   });
 });
 
@@ -812,6 +890,13 @@ describe('sanitizeSqlQueryWithSummary', () => {
     expect(sanitizeSqlQueryWithSummary(input, dialect)).toEqual({
       queryText: 'SELECT * FROM users WHERE email = ?',
       querySummary: 'SELECT users',
+    });
+  });
+
+  it('passes the mssql dialect through, so a quote inside a bracketed name stays part of the name', () => {
+    expect(sanitizeSqlQueryWithSummary("SELECT * FROM [users] WHERE [email] = 'jane@example.com'", 'mssql')).toEqual({
+      queryText: 'SELECT * FROM [users] WHERE [email] = ?',
+      querySummary: 'SELECT [users]',
     });
   });
 
