@@ -1,0 +1,7 @@
+node_modules
+.mastra
+.data
+*.tsbuildinfo
+results.junit.xml
+test-results
+playwright-report

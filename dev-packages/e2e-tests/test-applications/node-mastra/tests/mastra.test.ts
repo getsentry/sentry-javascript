@@ -1,0 +1,112 @@
+import { expect, test } from '@playwright/test';
+import { collectStreamedSpans, getSpanOp, SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { runAgentTurn } from './utils';
+
+const APP = 'node-mastra';
+
+const attrValue = (span: SerializedStreamedSpan, key: string): unknown => span.attributes?.[key]?.value;
+
+const MASTRA_ORIGIN = 'auto.ai.mastra';
+const isOp =
+  (op: string) =>
+  (span: SerializedStreamedSpan): boolean =>
+    getSpanOp(span) === op;
+const isGenAiSpan = (span: SerializedStreamedSpan): boolean => String(getSpanOp(span) ?? '').startsWith('gen_ai.');
+const describeSpan = (span: SerializedStreamedSpan): { op: string | undefined; name?: string; origin: unknown } => ({
+  op: getSpanOp(span),
+  name: span.name,
+  origin: attrValue(span, 'sentry.origin'),
+});
+
+test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs/outputs and conversation id', async ({
+  baseURL,
+}) => {
+  const thread = `e2e-thread-${Date.now()}`;
+
+  // The agent run, its model call and the tool call all land in one trace. The
+  // parent `invoke_agent` span can flush in a separate envelope from its
+  // children, so accumulate the trace's spans across envelopes until every
+  // expected gen_ai op has arrived. Match on op alone (not origin), so a
+  // double-instrumented span is collected too and caught by the assertions below.
+  const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
+    ['gen_ai.invoke_agent', 'gen_ai.chat', 'gen_ai.execute_tool'].every(op => spansOfTrace.some(isOp(op))),
+  );
+
+  await runAgentTurn(baseURL!, 'What is the weather in Paris?', { thread, resource: 'e2e-user' });
+
+  const traceSpans = await traceSpansPromise;
+
+  // No double instrumentation - ensure there are no gen ai spans with another origin
+  expect(
+    traceSpans
+      .filter(span => isGenAiSpan(span) && attrValue(span, 'sentry.origin') !== MASTRA_ORIGIN)
+      .map(describeSpan),
+  ).toEqual([]);
+
+  const invokeAgent = traceSpans.find(isOp('gen_ai.invoke_agent'));
+  const chat = traceSpans.find(isOp('gen_ai.chat'));
+  const executeTool = traceSpans.find(isOp('gen_ai.execute_tool'));
+
+  // Agent span.
+  expect(attrValue(invokeAgent!, 'gen_ai.operation.name')).toBe('invoke_agent');
+  expect(attrValue(invokeAgent!, 'gen_ai.agent.name')).toBe('weatherAgent');
+
+  // Model span. The request model is the id passed to `openrouter(...)`; the
+  // provider string is asserted loosely because it depends on the AI SDK
+  // provider, not on Sentry.
+  expect(attrValue(chat!, 'gen_ai.operation.name')).toBe('chat');
+  expect(String(attrValue(chat!, 'gen_ai.request.model') ?? '')).toContain('gpt-4o-mini');
+  expect(attrValue(chat!, 'gen_ai.provider.name')).toBeTruthy();
+  expect(typeof attrValue(chat!, 'gen_ai.usage.input_tokens')).toBe('number');
+  expect(typeof attrValue(chat!, 'gen_ai.usage.output_tokens')).toBe('number');
+  expect(typeof attrValue(chat!, 'gen_ai.usage.total_tokens')).toBe('number');
+
+  // Tool span.
+  expect(attrValue(executeTool!, 'gen_ai.operation.name')).toBe('execute_tool');
+  expect(attrValue(executeTool!, 'gen_ai.tool.name')).toBe('get_weather');
+
+  // Inputs and outputs (recorded with the SDK's default data collection).
+  expect(String(attrValue(invokeAgent!, 'gen_ai.input.messages') ?? '')).toContain('Paris');
+  expect(String(attrValue(invokeAgent!, 'gen_ai.output.messages') ?? '')).not.toBe('');
+  expect(String(attrValue(executeTool!, 'gen_ai.tool.call.arguments') ?? '')).toContain('Paris');
+  // NOTE: current behavior — the tool *arguments* are captured, but the tool
+  // *result* is not. Mastra does not populate `output` on the exported
+  // `tool_call` span at export time (the exporter maps `span.output` to
+  // `gen_ai.tool.call.result`), so it comes through empty even though the tool
+  // returns `{ city, condition: 'Sunny', temperatureC: 22 }`. Asserting the
+  // empty value documents the gap; if Mastra starts emitting tool output this
+  // will fail and should become `.toContain('Sunny')`. Follow-up: capture tool
+  // results for the Mastra integration.
+  expect(String(attrValue(executeTool!, 'gen_ai.tool.call.result') ?? '')).toBe('');
+
+  // Conversation id: the exporter maps Mastra's `metadata.threadId` to
+  // `gen_ai.conversation.id` on every mapped span.
+  expect(attrValue(invokeAgent!, 'gen_ai.conversation.id')).toBe(thread);
+  expect(attrValue(chat!, 'gen_ai.conversation.id')).toBe(thread);
+  expect(attrValue(executeTool!, 'gen_ai.conversation.id')).toBe(thread);
+});
+
+test('records a bubbled-up Mastra tool error on the span', async ({ baseURL }) => {
+  // This asserts the *current* behavior: when a tool throws, Mastra reports it as
+  // `errorInfo` and the Sentry exporter reflects that on the tool span (error
+  // status + `error.type`). It does NOT (today) surface as a captured Sentry
+  // error/issue: the exporter deliberately leaves `captureException` to the app,
+  // and nothing here re-captures the bubbled-up error. Whether the SDK should
+  // capture such errors automatically is a follow-up — see
+  // https://github.com/getsentry/sentry-javascript (Mastra integration).
+  const erroredToolSpanPromise = collectStreamedSpans(APP, spansOfTrace =>
+    spansOfTrace.some(span => isOp('gen_ai.execute_tool')(span) && Boolean(attrValue(span, 'error.type'))),
+  );
+
+  await runAgentTurn(baseURL!, 'Please call the tool that triggers a failure now.');
+
+  const spans = await erroredToolSpanPromise;
+  const erroredTool = spans.find(span => isOp('gen_ai.execute_tool')(span) && Boolean(attrValue(span, 'error.type')));
+
+  // The errored tool span comes from the Mastra exporter (no double instrumentation).
+  expect(attrValue(erroredTool!, 'sentry.origin')).toBe(MASTRA_ORIGIN);
+  expect(attrValue(erroredTool!, 'gen_ai.tool.name')).toBe('fail_now');
+  // The error is recorded on the span (status + type), not as a separate issue.
+  expect(attrValue(erroredTool!, 'error.type')).toBeTruthy();
+  expect(erroredTool!.status).not.toBe('ok');
+});
