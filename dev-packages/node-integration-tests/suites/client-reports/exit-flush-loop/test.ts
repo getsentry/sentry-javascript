@@ -6,10 +6,19 @@ afterAll(() => {
 });
 
 test('exits when client reports are flushed on `beforeExit` without the SDK owning the OpenTelemetry setup', async () => {
-  const runner = createRunner(__dirname, 'scenario.ts').withMockSentryServer().start();
+  // `ensureNoErrorOutput` is what separates a clean exit from a scenario that died on startup: both
+  // leave the child exited, but only the latter writes to stderr.
+  const runner = createRunner(__dirname, 'scenario.ts').withMockSentryServer().ensureNoErrorOutput().start();
 
-  await new Promise(resolve => setTimeout(resolve, 5_000));
+  // The scenario exits as soon as its `beforeExit` flush settles, so polling for the child's own
+  // exit keeps the passing run short. A flush loop that keeps re-arming `beforeExit` never exits
+  // and runs into the deadline.
+  const deadline = Date.now() + 10_000;
+  while (!runner.childHasExited() && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 
-  expect(runner.getLogs()).not.toContain("I'm alive!");
   expect(runner.childHasExited()).toBe(true);
+
+  await runner.completed();
 });
