@@ -1,5 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BROWSER_NAVIGATION_ID } from '@sentry/conventions/attributes';
 
 const windowListeners = vi.hoisted(() => new Map<string, (event: unknown) => void>());
 const performanceHandlers = vi.hoisted(() => new Map<string, (data: { entries: unknown[] }) => void>());
@@ -59,8 +60,7 @@ describe('soft navigation correlation', () => {
   });
 
   it('correlates a soft navigation to the navigation span its interaction triggered', async () => {
-    const { getNavigationSpanForMetric, SOFT_NAVIGATION_ID_ATTRIBUTE, startSoftNavigationCorrelation } =
-      await loadSoftNavs();
+    const { getNavigationSpanForMetric, startSoftNavigationCorrelation } = await loadSoftNavs();
     const { client, startSpan } = createMockClient();
 
     startSoftNavigationCorrelation(client as never);
@@ -72,7 +72,7 @@ describe('soft navigation correlation', () => {
     performanceHandlers.get('event')?.({ entries: [{ duration: 8, startTime: 1234, interactionId: 42 }] });
     performanceHandlers.get('soft-navigation')?.({ entries: [{ navigationId: 7, interactionId: 42 }] });
 
-    expect(navigationSpan.setAttribute).toHaveBeenCalledWith(SOFT_NAVIGATION_ID_ATTRIBUTE, 7);
+    expect(navigationSpan.setAttribute).toHaveBeenCalledWith(BROWSER_NAVIGATION_ID, 7);
     expect(getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7 })).toBe(navigationSpan);
   });
 

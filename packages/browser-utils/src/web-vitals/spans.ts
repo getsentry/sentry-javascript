@@ -20,7 +20,8 @@ import {
   addLcpInstrumentationHandler,
 } from '../instrumentation/performanceObserver';
 import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
-import { BROWSER_NAVIGATION_TYPE_ATTRIBUTE, _emitWebVitalSpan } from './emitSpan';
+import { BROWSER_NAVIGATION_TYPE } from '@sentry/conventions/attributes';
+import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
 import type { WebVitalReportEvent } from './reportEvents';
 import { listenForWebVitalReportEvents } from './reportEvents';
@@ -69,7 +70,7 @@ function trackWebVitalPerNavigation<M extends WebVitalMetric>(
   // it has long ended and is no longer what is active.
   let bfcacheNavigationSpan: Span | undefined;
   client.on('spanStart', span => {
-    if (spanToJSON(span).attributes?.[BROWSER_NAVIGATION_TYPE_ATTRIBUTE] === 'bfcache') {
+    if (spanToJSON(span).attributes?.[BROWSER_NAVIGATION_TYPE] === 'bfcache') {
       bfcacheNavigationSpan = span;
     }
   });
