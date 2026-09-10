@@ -1,6 +1,7 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import type { SerializedMetric } from '@sentry/core';
-import { waitForMetric } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForMetric, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const PROXY_SERVER_NAME = 'browser-bfcache';
 const BFCACHE_ORIGIN = 'auto.browser.bfcache';
@@ -328,4 +329,70 @@ test('does not treat an ordinary forward navigation as a restore', async ({ page
     () => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true,
   );
   expect(restored).toBe(false);
+});
+
+// The navigation span for a restore lives in `browserTracingIntegration`, not in the metrics
+// integration above, so these run against `?tracing=1` (see `src/main.ts`).
+test.describe('the navigation span for a restore', () => {
+  async function restoreFromBfcache(page: Page): Promise<void> {
+    await page.click('#to-page-2');
+    await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
+    await page.waitForTimeout(500);
+
+    // Renderer-initiated, because Playwright's CDP `goBack` bypasses bfcache.
+    await page.evaluate(() => history.back());
+    await page.waitForFunction(
+      () => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true,
+      {
+        timeout: 5000,
+      },
+    );
+  }
+
+  test('is a navigation segment marked as a bfcache restore', async ({ page }) => {
+    const restorePromise = waitForStreamedSpan(
+      PROXY_SERVER_NAME,
+      span => span.is_segment && getSpanOp(span) === 'navigation',
+    );
+
+    await page.goto('/?tracing=1');
+    await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+
+    await restoreFromBfcache(page);
+
+    expect(await restorePromise).toMatchObject({
+      is_segment: true,
+      attributes: {
+        'sentry.op': { type: 'string', value: 'navigation' },
+        'sentry.origin': { type: 'string', value: 'auto.navigation.browser.bfcache' },
+        'browser.navigation.type': { type: 'string', value: 'bfcache' },
+      },
+    });
+  });
+
+  // `PerformanceNavigationTiming` is not replaced on a restore and still describes the original
+  // document load, so a span dated from it would start before the page was frozen. The same goes for
+  // the performance entries folded in when the span ends: they all predate the restore, and are only
+  // kept from dragging the start timestamp back by a guard keyed on the `navigation` op.
+  test('starts at the restore, not at the original document load', async ({ page }) => {
+    const pageloadPromise = waitForStreamedSpan(
+      PROXY_SERVER_NAME,
+      span => span.is_segment && getSpanOp(span) === 'pageload',
+    );
+    const restorePromise = waitForStreamedSpan(
+      PROXY_SERVER_NAME,
+      span => span.is_segment && getSpanOp(span) === 'navigation',
+    );
+
+    await page.goto('/?tracing=1');
+    await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+    const pageload = await pageloadPromise;
+
+    await restoreFromBfcache(page);
+    const restore = await restorePromise;
+
+    // Both timestamps come from the page's own clock, so this stays free of host/browser skew. The
+    // 500ms spent on page 2 is the floor for the gap.
+    expect(restore.start_timestamp).toBeGreaterThan(pageload.start_timestamp + 0.4);
+  });
 });

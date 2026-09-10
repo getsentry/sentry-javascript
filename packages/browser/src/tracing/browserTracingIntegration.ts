@@ -28,6 +28,7 @@ import {
 import { _INTERNAL_ensureBrowserSpanStreaming, startIdleSpan, startInactiveSpan } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
+  BROWSER_NAVIGATION_TYPE_ATTRIBUTE,
   addPerformanceEntries,
   getLocationHref,
   isBotUserAgent,
@@ -93,6 +94,19 @@ export interface BrowserTracingOptions {
    * Default: true
    */
   instrumentNavigation: boolean;
+
+  /**
+   * If a navigation span should be created when the page is restored from the back/forward cache.
+   *
+   * This is deliberately independent of {@link BrowserTracingOptions.instrumentNavigation}: a restore
+   * is not a history change, and the framework integrations that own their own navigation spans turn
+   * that option off without ever handling a restore. The point of this span is trace hygiene, keeping
+   * everything after the restore off the trace the page had before it was frozen, so it is worth
+   * having even where history instrumentation is not.
+   *
+   * Default: true
+   */
+  instrumentBfcacheRestore: boolean;
 
   /**
    * Flag spans where tabs moved to background with "cancelled". Browser background tab timing is
@@ -263,6 +277,7 @@ export interface BrowserTracingOptions {
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   ...TRACING_DEFAULTS,
   instrumentNavigation: true,
+  instrumentBfcacheRestore: true,
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
@@ -320,6 +335,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     ignoreResourceSpans,
     instrumentPageLoad,
     instrumentNavigation,
+    instrumentBfcacheRestore,
     detectRedirects,
     linkPreviousTrace,
     consistentTraceSampling,
@@ -645,7 +661,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
              * only be caused in certain development environments where the usage of a hot module reloader is causing
              * errors.
              */
-            if (from === undefined && startingUrl?.indexOf(to) !== -1) {
+            if (from === undefined && startingUrl !== undefined && startingUrl.indexOf(to) !== -1) {
               startingUrl = undefined;
               return;
             }
@@ -670,6 +686,47 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
                 },
               },
               { url: to, isRedirect: navigationIsRedirect },
+            );
+          });
+        }
+
+        // A bfcache restore resurrects the frozen document, so there is no document load and no
+        // usable history event: `popstate` either doesn't fire or is swallowed because the URL is
+        // unchanged from when the page was frozen. Without a span of its own, everything after the
+        // restore joins the trace the page had before it was frozen, separated by however long it
+        // sat in the cache.
+        if (instrumentBfcacheRestore) {
+          WINDOW.addEventListener?.('pageshow', (event: PageTransitionEvent) => {
+            if (!event.persisted) {
+              return;
+            }
+
+            // A navigation has happened, so the pageload guard in the history handler above must not
+            // suppress the next one.
+            startingUrl = undefined;
+
+            startBrowserTracingNavigationSpan(
+              client,
+              {
+                // Deliberately no `startTime`: the span starts now, at the restore. The
+                // `PerformanceNavigationTiming` entry still describes the original document load and
+                // would date the span to before the page was frozen.
+                //
+                // TODO(routing): resolve the parameterized route via the route provider (#23551) and set
+                // the source from it. No router event fires on a restore, so in a framework app this is
+                // the only navigation span still named from a raw pathname.
+                name: hasSpanStreamingEnabled(client)
+                  ? NAVIGATION_SPAN_NAME_FALLBACK
+                  : WINDOW.location?.pathname || '/',
+                attributes: {
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+                  [SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache',
+                  // A bfcache restore is near-instant, so these spans would otherwise drag
+                  // navigation duration percentiles down with no way to tell them apart.
+                  [BROWSER_NAVIGATION_TYPE_ATTRIBUTE]: 'bfcache',
+                },
+              },
+              { url: WINDOW.location?.href },
             );
           });
         }
