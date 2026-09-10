@@ -152,12 +152,16 @@ let integerLiteralRE: RegExp | undefined;
 
 /**
  * SQL dialect variants that matter for finding the end of a string literal:
- * - `standard` (PostgreSQL, SQLite): `"` quotes identifiers and `''` is the only in-string escape.
+ * - `standard` (PostgreSQL, SQLite, SQL Server): `"` quotes identifiers, `''` is the only
+ *   in-string escape, and PostgreSQL's `$$…$$` dollar quoting opens a literal.
  * - `mysql`: `"` quotes a string literal unless `ANSI_QUOTES` is set, and `\` escapes the next
  *   character unless `NO_BACKSLASH_ESCAPES` is set. Both default to off, and mysql/mysql2 escape
  *   inlined values with backslashes, so this is the mode their statements arrive in.
  */
 export type SqlDialect = 'standard' | 'mysql';
+
+// Sticky, so the scanner can test one position without slicing the query on every `$`.
+const DOLLAR_QUOTE_RE = /\$(?:[A-Za-z_]\w*)?\$/y;
 
 /**
  * Returns the index just past the run's closing `delimiter`, or the end of the query if the run is
@@ -213,6 +217,19 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       continue;
     }
 
+    // In a dollar-quoted body (`$$body$$`, `$tag$body$tag$`) nothing has syntax meaning. Read the
+    // previous character from the query, not from `out`, where a dropped comment would leave `$$`
+    // looking like part of an identifier. MySQL has no dollar quoting and allows `$` in names.
+    if (!isMysql && char === '$' && !isIdentifierChar(sql[i - 1])) {
+      const tag = matchDollarQuoteTag(sql, i);
+      if (tag) {
+        const bodyEnd = sql.indexOf(tag, i + tag.length);
+        i = bodyEnd === -1 ? sql.length : bodyEnd + tag.length;
+        out += '?';
+        continue;
+      }
+    }
+
     // Quoted identifiers: backticks in MySQL, double quotes everywhere else
     if (char === '`' || (char === '"' && !isMysql)) {
       const runEnd = findQuotedRunEnd(sql, i, char, false);
@@ -222,7 +239,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
     }
 
     if (char === "'" || (char === '"' && isMysql)) {
-      // A prefix like `X'1A'`, `B'01'` or PostgreSQL's `E'a\nb'` is part of the literal, so it has
+      // A prefix like `X'1A'`, `B'01'`, `N'…'` or PostgreSQL's `E'a\nb'` is part of the literal, so it has
       // to collapse into the same `?` instead of being left behind as a bare identifier.
       const prefix = char === "'" ? getLiteralPrefix(out, isMysql) : undefined;
       out = prefix ? out.slice(0, -1) : out;
@@ -238,18 +255,30 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
   return out;
 }
 
+/** Whether `char` can appear inside an identifier. `undefined` (start of query) counts as a break. */
+function isIdentifierChar(char: string | undefined): boolean {
+  return char !== undefined && /[\w$]/.test(char);
+}
+
+/** Returns the opening dollar-quote tag at `start` (`$$` or `$tag$`), or undefined if there is none. */
+function matchDollarQuoteTag(sql: string, start: number): string | undefined {
+  DOLLAR_QUOTE_RE.lastIndex = start;
+  return DOLLAR_QUOTE_RE.exec(sql)?.[0];
+}
+
 /**
  * Returns the literal-prefix character immediately before a `'`, if there is one: `X`/`B` for
- * hex/binary literals, or `E` for a PostgreSQL escape string (which honors backslash escapes).
+ * hex/binary literals, `N` for a national-character literal (SQL Server, MySQL), or `E` for a
+ * PostgreSQL escape string (which honors backslash escapes).
  */
-function getLiteralPrefix(out: string, isMysql: boolean): 'X' | 'B' | 'E' | undefined {
+function getLiteralPrefix(out: string, isMysql: boolean): 'X' | 'B' | 'N' | 'E' | undefined {
   // A prefix only counts when it stands alone — the `X` in `MAX'...'` belongs to the identifier
-  if (/[\w$]/.test(out.slice(-2, -1))) {
+  if (isIdentifierChar(out.slice(-2, -1))) {
     return undefined;
   }
 
   const prefix = out.slice(-1).toUpperCase();
-  if (prefix === 'X' || prefix === 'B') {
+  if (prefix === 'X' || prefix === 'B' || prefix === 'N') {
     return prefix;
   }
   return prefix === 'E' && !isMysql ? 'E' : undefined;
@@ -259,8 +288,9 @@ function getLiteralPrefix(out: string, isMysql: boolean): 'X' | 'B' | 'E' | unde
  * Sanitize SQL query as per the OTEL semantic conventions
  * https://opentelemetry.io/docs/specs/semconv/database/database-spans/#sanitization-of-dbquerytext
  *
- * PostgreSQL $n placeholders are preserved per OTEL spec - they're parameterized queries,
- * not sensitive literals. Only actual values (strings, numbers, booleans) are sanitized.
+ * Parameter placeholders survive: PostgreSQL `$n`, SQLite `?n`, and named forms like `:name` and
+ * `@name`. Per the OTEL spec they mark a parameterized query, so only values (strings, numbers,
+ * booleans) are sanitized.
  *
  * Pass `dialect` when the statement comes from a driver whose literals are not standard-quoted;
  * see {@link SqlDialect}.
@@ -274,7 +304,7 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
   // on import and crash Safari <16.4 browser bundles that reach this file via
   // the core barrel. Building it on first call keeps the cost off the import path.
   if (!integerLiteralRE) {
-    integerLiteralRE = new RegExp('(?<!\\$)-?\\b\\d+\\b', 'g');
+    integerLiteralRE = new RegExp('(?<![$?])-?\\b\\d+\\b', 'g');
   }
 
   return (
