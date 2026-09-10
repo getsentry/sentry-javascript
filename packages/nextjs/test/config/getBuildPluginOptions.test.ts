@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getBuildPluginOptions } from '../../src/config/getBuildPluginOptions';
 import type { SentryBuildOptions } from '../../src/config/types';
 
@@ -11,6 +11,14 @@ vi.mock('fs', async importOriginal => {
 describe('getBuildPluginOptions', () => {
   const mockReleaseName = 'test-release-1.0.0';
   const mockDistDirAbsPath = '/path/to/.next';
+
+  function mockExistingDirectories(existingDirectories: string[]): void {
+    vi.mocked(fs.existsSync).mockImplementation(p => existingDirectories.includes(String(p)));
+  }
+
+  afterEach(() => {
+    vi.mocked(fs.existsSync).mockReset();
+  });
 
   describe('basic functionality', () => {
     it('returns correct build plugin options with minimal configuration for after-production-compile-webpack', () => {
@@ -273,6 +281,8 @@ describe('getBuildPluginOptions', () => {
     });
 
     it('configures after-production-compile-turbopack build correctly', () => {
+      mockExistingDirectories(['/path/to/.next/static/chunks']);
+
       const result = getBuildPluginOptions({
         sentryBuildOptions: baseSentryOptions,
         releaseName: mockReleaseName,
@@ -302,8 +312,8 @@ describe('getBuildPluginOptions', () => {
       expect(result.reactComponentAnnotation).toBeUndefined();
     });
 
-    it('includes the immutable chunks directory in after-production-compile-turbopack assets when it exists', () => {
-      vi.mocked(fs.existsSync).mockImplementationOnce(p => p === '/path/to/.next/static/immutable/chunks');
+    it('includes both chunk directories in after-production-compile-turbopack assets when both exist', () => {
+      mockExistingDirectories(['/path/to/.next/static/chunks', '/path/to/.next/static/immutable/chunks']);
 
       const result = getBuildPluginOptions({
         sentryBuildOptions: baseSentryOptions,
@@ -320,7 +330,7 @@ describe('getBuildPluginOptions', () => {
     });
 
     it('does not include the immutable chunks directory in after-production-compile-turbopack assets when it does not exist', () => {
-      vi.mocked(fs.existsSync).mockReturnValueOnce(false);
+      mockExistingDirectories(['/path/to/.next/static/chunks']);
 
       const result = getBuildPluginOptions({
         sentryBuildOptions: baseSentryOptions,
@@ -330,6 +340,32 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server', '/path/to/.next/static/chunks']);
+    });
+
+    it('does not include the static chunks directory in after-production-compile-turbopack assets when only the immutable chunks directory exists', () => {
+      mockExistingDirectories(['/path/to/.next/static/immutable/chunks']);
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-turbopack',
+      });
+
+      expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server', '/path/to/.next/static/immutable/chunks']);
+    });
+
+    it('only includes the server directory in after-production-compile-turbopack assets when no chunk directory exists', () => {
+      mockExistingDirectories([]);
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-turbopack',
+      });
+
+      expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server']);
     });
   });
 
@@ -1053,6 +1089,7 @@ describe('getBuildPluginOptions', () => {
 
     it('handles complex nested path structures', () => {
       const complexPath = '/very/deep/nested/path/with/multiple/segments/.next';
+      mockExistingDirectories([`${complexPath}/static/chunks`]);
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
