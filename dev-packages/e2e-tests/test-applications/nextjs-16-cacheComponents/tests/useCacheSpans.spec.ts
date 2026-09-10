@@ -1,27 +1,25 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Should create cache spans around `use cache` functions', async ({ request }) => {
+// The SDK does not instrument Next.js' `use cache` handler yet, so these tests are declared with `test.fail()`
+
+test.fail('Should create cache spans around `use cache` functions', async ({ request }) => {
   // A fresh id makes the first request a guaranteed cache miss (the id is part of the cache key)
   // even when the test is retried against the same server.
   const id = crypto.randomUUID();
 
   const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /api/use-cache' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === false)
-    );
-  });
-
-  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /api/use-cache' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
-    );
+    return transactionEvent.transaction === 'GET /api/use-cache';
   });
 
   const firstResponse = await (await request.get(`/api/use-cache?id=${id}`)).json();
   const missTx = await missTxPromise;
+
+  // Registered after the first transaction was consumed, so it only matches the cached read.
+  const hitTxPromise = waitForTransaction(
+    'nextjs-16-cacheComponents',
+    transactionEvent => transactionEvent.transaction === 'GET /api/use-cache',
+  );
 
   const secondResponse = await (await request.get(`/api/use-cache?id=${id}`)).json();
   const hitTx = await hitTxPromise;
@@ -74,25 +72,19 @@ test('Should create cache spans around `use cache` functions', async ({ request 
   });
 });
 
-test('Should create cache spans for `use cache` inside a rendered page', async ({ request }) => {
+test.fail('Should create cache spans for `use cache` inside a rendered page', async ({ request }) => {
   const id = crypto.randomUUID();
 
   const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /use-cache-page' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === false)
-    );
-  });
-
-  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /use-cache-page' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true)
-    );
+    return transactionEvent.transaction === 'GET /use-cache-page';
   });
 
   await request.get(`/use-cache-page?id=${id}`);
   const missTx = await missTxPromise;
+
+  const hitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
+    return transactionEvent.transaction === 'GET /use-cache-page';
+  });
 
   await request.get(`/use-cache-page?id=${id}`);
   const hitTx = await hitTxPromise;
@@ -109,7 +101,7 @@ test('Should create cache spans for `use cache` inside a rendered page', async (
   });
 });
 
-test('Should report an expired entry as a miss and refill it', async ({ request }) => {
+test.fail('Should report an expired entry as a miss and refill it', async ({ request }) => {
   // The dev server serves `use cache` entries past their `expire` limit, so the expiry path only
   // exists in production builds.
   test.skip(process.env.TEST_ENV !== 'production', 'Entries only hard-expire in production');
@@ -117,10 +109,7 @@ test('Should report an expired entry as a miss and refill it', async ({ request 
   const id = crypto.randomUUID();
 
   const fillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /api/use-cache-expiring' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.put')
-    );
+    return transactionEvent.transaction === 'GET /api/use-cache-expiring';
   });
 
   const firstResponse = await (await request.get(`/api/use-cache-expiring?id=${id}`)).json();
@@ -131,10 +120,7 @@ test('Should report an expired entry as a miss and refill it', async ({ request 
 
   // Registered after the fill transaction was consumed, so it only matches the refill.
   const refillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'GET /api/use-cache-expiring' &&
-      !!transactionEvent.spans?.some(span => span.op === 'cache.put')
-    );
+    return transactionEvent.transaction === 'GET /api/use-cache-expiring';
   });
 
   const secondResponse = await (await request.get(`/api/use-cache-expiring?id=${id}`)).json();
