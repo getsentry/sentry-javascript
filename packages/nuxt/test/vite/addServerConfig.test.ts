@@ -208,6 +208,18 @@ describe('addServerConfigPlugin', () => {
     expect(nitroConfig.externals?.inline).toEqual(['@sentry/', APP_CONFIG, pluginDst, flagsDst]);
   });
 
+  it('leaves `externals` alone on Nitro v3, which has no such option', () => {
+    const { nuxt, hooks } = createFakeNuxt();
+    addServerConfigPlugin(nuxt, APP_CONFIG, false);
+    const nitroConfig: NitroConfig = { plugins: ['other-module-plugin.mjs'] };
+
+    hooks['nitro:config']!(nitroConfig);
+
+    expect(nitroConfig.externals).toBeUndefined();
+    // Plugin ordering is not Nitro-version specific and still applies.
+    expect(nitroConfig.plugins).toEqual([pluginDst, 'other-module-plugin.mjs']);
+  });
+
   it('moves its plugin to the front when other modules registered plugins first', () => {
     const { nuxt, hooks } = createFakeNuxt();
     addServerConfigPlugin(nuxt, APP_CONFIG, true);

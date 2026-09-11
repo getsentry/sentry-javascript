@@ -160,10 +160,13 @@ export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLe
 
     // The Nitro v2 dev bundle would otherwise externalize these files, making Node load the raw
     // `.ts` config — which needs type stripping (Node >= 22.18). Inlining keeps them transpiled.
-    const externals = (nitroConfig.externals ??= {});
-    const inline = externals.inline;
-    const existingInline = Array.isArray(inline) ? inline : inline ? [inline] : [];
-    externals.inline = [...existingInline, configPath, configPluginTemplate.dst, runtimeFlagsTemplate.dst];
+    // Nitro v3 has no `externals` option; its dev server runs the config through Vite's transform.
+    if (isLegacyNitro) {
+      const externals = (nitroConfig.externals ??= {});
+      const inline = externals.inline;
+      const existingInline = Array.isArray(inline) ? inline : inline ? [inline] : [];
+      externals.inline = [...existingInline, configPath, configPluginTemplate.dst, runtimeFlagsTemplate.dst];
+    }
   });
 
   // On Cloudflare the SDK is set up through `sentryCloudflareNitroPlugin`; the Node SDK config
