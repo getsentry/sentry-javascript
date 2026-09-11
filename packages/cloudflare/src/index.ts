@@ -125,6 +125,7 @@ export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,

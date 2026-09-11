@@ -45,6 +45,7 @@ export { SentryMastraExporter } from './ai/mastra';
 export { lruMemoizerIntegration } from './integrations/lru-memoizer';
 export { mongoIntegration } from './integrations/mongodb';
 export { mongooseIntegration } from './integrations/mongoose';
+export { mistralAIIntegration } from './integrations/mistral';
 export { mysqlIntegration } from './integrations/mysql';
 export { mysql2Integration } from './integrations/mysql2';
 export { openAIIntegration } from './integrations/openai';
