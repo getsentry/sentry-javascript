@@ -7,7 +7,7 @@ import {
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
-import type { PropagationContext, RawAttributes, Span } from '@sentry/core';
+import type { Client, PropagationContext, RawAttributes, Span } from '@sentry/core';
 import {
   isObjectLike,
   Scope,
@@ -111,6 +111,7 @@ export function maybeEnhanceServerComponentSpanName(
   activeSpan: Span,
   spanAttributes: RawAttributes<Record<string, unknown>>,
   rootSpanAttributes: RawAttributes<Record<string, unknown>>,
+  client: Client,
 ): void {
   if (!isResolveSegmentSpan(spanAttributes)) {
     return;
@@ -124,9 +125,8 @@ export function maybeEnhanceServerComponentSpanName(
     segment,
     route: typeof route === 'string' ? route : '',
   });
-  const client = getClient();
 
-  activeSpan.updateName(client && hasSpanStreamingEnabled(client) ? enhancedName : enhancedDescription);
+  activeSpan.updateName(hasSpanStreamingEnabled(client) ? enhancedName : enhancedDescription);
   activeSpan.setAttributes({
     [SENTRY_NEXTJS_SSR_FUNCTION_TYPE]: segment === PAGE_SEGMENT ? 'Page' : 'Layout',
     [SENTRY_NEXTJS_SSR_FUNCTION_ROUTE]: route as string | undefined,

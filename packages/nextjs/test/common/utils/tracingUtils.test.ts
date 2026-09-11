@@ -43,6 +43,7 @@ function enhance(segment: string, route: string | null = '/nested-layout/[dynami
     span as unknown as Span,
     resolveSegmentAttributes(segment) as never,
     (route === null ? {} : { [HTTP_ROUTE]: route }) as never,
+    SentryCore.getClient()!,
   );
   return span;
 }
@@ -60,6 +61,7 @@ describe('maybeEnhanceServerComponentSpanName', () => {
       span as unknown as Span,
       { [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest' } as never,
       {} as never,
+      SentryCore.getClient()!,
     );
 
     expect(span.name).toBeUndefined();
