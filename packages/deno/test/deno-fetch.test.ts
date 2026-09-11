@@ -43,10 +43,13 @@ Deno.test({
 
     const abortController = new AbortController();
     let receivedHeaders: Headers | undefined;
-    const server = Deno.serve({ port: 0, signal: abortController.signal, onListen() {}, hostname: '127.0.0.1' }, request => {
-      receivedHeaders = request.headers;
-      return new Response('ok');
-    });
+    const server = Deno.serve(
+      { port: 0, signal: abortController.signal, onListen() {}, hostname: '127.0.0.1' },
+      request => {
+        receivedHeaders = request.headers;
+        return new Response('ok');
+      },
+    );
 
     try {
       const url = `http://127.0.0.1:${server.addr.port}/downstream`;
