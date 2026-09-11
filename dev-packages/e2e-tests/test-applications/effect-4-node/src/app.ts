@@ -2,6 +2,8 @@ import * as Sentry from '@sentry/effect';
 import { NodeHttpServer, NodeRuntime } from '@effect/platform-node';
 import * as Effect from 'effect/Effect';
 import * as Cause from 'effect/Cause';
+import * as Data from 'effect/Data';
+import * as ErrorReporter from 'effect/ErrorReporter';
 import * as Layer from 'effect/Layer';
 import * as Logger from 'effect/Logger';
 import * as Tracer from 'effect/Tracer';
@@ -22,8 +24,61 @@ const SentryLive = Layer.mergeAll(
   Layer.succeed(References.MinimumLogLevel, 'Debug'),
 );
 
+class NotFoundError extends Data.TaggedError('NotFoundError')<{ readonly id: string }> {
+  readonly [ErrorReporter.ignore] = true;
+}
+
+class RateLimitError extends Data.TaggedError('RateLimitError')<{ readonly retryAfter: number }> {
+  readonly [ErrorReporter.severity] = 'Warn' as const;
+  readonly [ErrorReporter.attributes] = { retryAfter: this.retryAfter };
+}
+
+function loadUser(id: string): Effect.Effect<never, Error> {
+  return Effect.fail(new Error(`User ${id} could not be loaded`));
+}
+
 const Routes = Layer.mergeAll(
   HttpRouter.add('GET', '/test-success', HttpServerResponse.json({ version: 'v1' })),
+
+  HttpRouter.add(
+    'GET',
+    '/test-error-reporter/unhandled/:id',
+    Effect.gen(function* () {
+      const params = yield* HttpRouter.params;
+      yield* loadUser(params.id ?? 'unknown');
+      return HttpServerResponse.empty();
+    }),
+  ),
+
+  HttpRouter.add(
+    'GET',
+    '/test-error-reporter/handled',
+    Effect.gen(function* () {
+      yield* Effect.fail(new Error('Handled after reporting'));
+      return HttpServerResponse.empty();
+    }).pipe(
+      Effect.withErrorReporting,
+      Effect.catch(() => HttpServerResponse.json({ recovered: true })),
+    ),
+  ),
+
+  HttpRouter.add(
+    'GET',
+    '/test-error-reporter/ignored',
+    Effect.gen(function* () {
+      yield* Effect.fail(new NotFoundError({ id: 'missing' }));
+      return HttpServerResponse.empty();
+    }),
+  ),
+
+  HttpRouter.add(
+    'GET',
+    '/test-error-reporter/annotated',
+    Effect.gen(function* () {
+      yield* Effect.fail(new RateLimitError({ retryAfter: 60 }));
+      return HttpServerResponse.empty();
+    }),
+  ),
 
   HttpRouter.add(
     'GET',
