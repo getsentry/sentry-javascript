@@ -16,9 +16,21 @@ describe('getTransactionName', () => {
       id: 'routes/blog.$slug',
       path: '/blog/:slug',
     },
+    {
+      id: 'routes/concerts_.mine',
+      path: '/concerts/mine',
+    },
   ];
 
   describe('route parameterization', () => {
+    it('should not leak a trailing underscore into the transaction name', () => {
+      const url = new URL('http://localhost/concerts/mine');
+      const [name, source] = getTransactionName(mockRoutes, url);
+
+      expect(name).toBe('/concerts/mine');
+      expect(source).toBe('route');
+    });
+
     it('should return parameterized path for matched dynamic routes', () => {
       const url = new URL('http://localhost/user/123');
       const [name, source] = getTransactionName(mockRoutes, url);
@@ -147,6 +159,21 @@ describe('convertRemixRouteIdToPath', () => {
 
     it('should handle multiple pathless layouts', () => {
       expect(convertRemixRouteIdToPath('routes/_auth._layout.login')).toBe('/login');
+    });
+  });
+
+  describe('trailing underscore routes', () => {
+    it('should strip a trailing underscore from static segments', () => {
+      expect(convertRemixRouteIdToPath('routes/concerts_.mine')).toBe('/concerts/mine');
+      expect(convertRemixRouteIdToPath('routes/app_.projects.$id.roadmap')).toBe('/app/projects/:id/roadmap');
+    });
+
+    it('should strip a trailing underscore from dynamic segments', () => {
+      expect(convertRemixRouteIdToPath('routes/app.projects.$id_.roadmap')).toBe('/app/projects/:id/roadmap');
+    });
+
+    it('should still skip segments that also start with an underscore', () => {
+      expect(convertRemixRouteIdToPath('routes/_auth_.login')).toBe('/login');
     });
   });
 

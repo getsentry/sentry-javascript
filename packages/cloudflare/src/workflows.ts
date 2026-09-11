@@ -25,6 +25,7 @@ import type {
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from './client';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
+import { markAsInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
@@ -231,7 +232,7 @@ export function instrumentWorkflowWithSentry<
   ) => T, // Constructor type of the WorkflowEntrypoint class
   O = unknown,
 >(optionsCallback: (env: ResolveEnv<C, E>) => StrictCloudflareOptions<O>, WorkFlowClass: C): C {
-  return new Proxy(WorkFlowClass, {
+  const InstrumentedClass = new Proxy(WorkFlowClass, {
     // oxlint-disable-next-line typescript/no-explicit-any
     construct(target: C, args: [ctx: ExecutionContext, env: any], newTarget) {
       const [ctx, env] = args;
@@ -275,4 +276,7 @@ export function instrumentWorkflowWithSentry<
       });
     },
   });
+  // Recognizable for `_INTERNAL_wrapUnlessInstrumented`, so auto-instrumentation never nests wrappers.
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }

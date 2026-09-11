@@ -18,7 +18,7 @@ const client = new DenoClient({
   dsn: 'https://username@domain/123',
   tracesSampleRate: 1,
   traceLifecycle: 'static',
-  integrations: getDefaultIntegrations({}),
+  integrations: getDefaultIntegrations({ tracesSampleRate: 1 }),
   stackParser: createStackParser(nodeStackLineParser()),
   beforeSendTransaction(event) {
     const spans = event.spans ?? [];

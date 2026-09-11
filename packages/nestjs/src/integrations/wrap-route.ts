@@ -1,4 +1,10 @@
-import { HTTP_REQUEST_METHOD, HTTP_ROUTE, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
 import { FUNCTION, HANDLER } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import {
@@ -107,6 +113,7 @@ export function wrapRequestContextHandler(
       component: NESTJS_COMPONENT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
       [SENTRY_OP]: FUNCTION,
+      [CODE_FUNCTION_NAME]: spanName,
       [AttributeNames.TYPE]: NestType.REQUEST_CONTEXT,
       [AttributeNames.CONTROLLER]: instanceName,
       [AttributeNames.CALLBACK]: callbackName,

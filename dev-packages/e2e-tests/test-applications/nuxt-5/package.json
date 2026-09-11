@@ -12,18 +12,22 @@
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:dev": "bash ./nuxt-start-dev-server.bash && TEST_ENV=development playwright test environment",
+    "test:dev": "TEST_ENV=development playwright test environment",
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitro@npm:nitro-nightly@latest && pnpm install --force && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "//": [
     "Currently, we need to install the latest version of Nitro and the Nuxt nightlies as those contain Nuxt v5",
-    "TODO: remove nitro from dependencies"
+    "TODO: remove nitro from dependencies",
+    "Nuxt generates `fetch.server.mjs` as a virtual module that imports `ofetch`, and since a virtual id is neither absolute nor on disk, Vite resolves from its `root` (the srcDir) instead of the importer's folder.",
+    "This fails because `ofetch` is a dependency of `nuxt` rather than the app, so pnpm leaves it in `.pnpm/`",
+    "TODO: remove ofetch from dependencies: https://github.com/getsentry/sentry-javascript/pull/24283#issuecomment-5615854158"
   ],
   "dependencies": {
     "@pinia/nuxt": "^0.11.3",
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
+    "ofetch": "^2.0.0-alpha.3",
     "nitro": "latest",
     "nuxt": "npm:nuxt-nightly@5x",
     "vue": "^3.5.41"

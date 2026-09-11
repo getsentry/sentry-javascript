@@ -34,6 +34,9 @@ test.describe('tracing in static routes with server islands', () => {
       'sentry.op': { value: 'pageload', type: 'string' },
       'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
+      'url.template': { value: '/server-island', type: 'string' },
+      'url.path': { value: '/server-island', type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/server-island$/), type: 'string' },
     });
 
     // the pageload trace contains a resource link span for the preloaded server island request.
@@ -53,10 +56,10 @@ test.describe('tracing in static routes with server islands', () => {
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept_encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept_language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec_fetch_mode': { value: 'cors', type: 'string' },
-      'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
+      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
+      'http.request.header.sec-fetch-mode': { value: 'cors', type: 'string' },
+      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
     });
 
     // unfortunately, the server island trace id is not the same as the client pageload trace id
