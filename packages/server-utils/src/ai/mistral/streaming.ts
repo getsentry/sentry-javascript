@@ -31,7 +31,7 @@ function processToolCalls(toolCalls: MistralToolCall[], state: StreamingState): 
         function: { name: toolCall.function.name, arguments: toolCall.function.arguments ?? '' },
       };
     } else if (toolCall.function.arguments && existing.function) {
-      existing.function.arguments = `${existing.function.arguments ?? ''}${toolCall.function.arguments}`;
+      existing.function.arguments = `${existing.function.arguments}${toolCall.function.arguments}`;
     }
   }
 }
@@ -49,11 +49,13 @@ function processChunk(chunk: MistralCompletionChunk, state: StreamingState, reco
   }
 
   for (const choice of chunk.choices ?? []) {
-    if (recordOutputs && typeof choice.delta?.content === 'string' && choice.delta.content) {
-      state.responseTexts.push(choice.delta.content);
-    }
-    if (recordOutputs && choice.delta?.toolCalls) {
-      processToolCalls(choice.delta.toolCalls, state);
+    if (recordOutputs) {
+      if (typeof choice.delta?.content === 'string' && choice.delta.content) {
+        state.responseTexts.push(choice.delta.content);
+      }
+      if (choice.delta?.toolCalls) {
+        processToolCalls(choice.delta.toolCalls, state);
+      }
     }
     if (choice.finishReason) {
       state.finishReasons.push(choice.finishReason);
@@ -83,10 +85,8 @@ export async function* instrumentStream<T>(
 
   try {
     for await (const event of stream) {
-      const chunk =
-        event && typeof event === 'object' && 'data' in event
-          ? (event as { data: MistralCompletionChunk }).data
-          : (event as unknown as MistralCompletionChunk);
+      // Mistral streams `CompletionEvent` objects that wrap the chunk under `data`.
+      const chunk = (event as { data?: MistralCompletionChunk })?.data;
       if (chunk && typeof chunk === 'object') {
         processChunk(chunk, state, recordOutputs);
       }
