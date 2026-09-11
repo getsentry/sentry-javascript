@@ -99,14 +99,15 @@ test('Should create cache spans for `use cache` inside a rendered page', async (
 
   expect(missTx.spans?.some(span => span.op === 'cache.put')).toBe(true);
 
-  const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get');
-  expect(hitGetSpan).toMatchObject({
-    origin: 'auto.cache.nextjs',
-    data: expect.objectContaining({
-      'cache.hit': true,
-      'cache.operation': 'get',
-    }),
-  });
+  // A render can read more than one cache entry, so look at every hit instead of the first `cache.get`.
+  const hitGetSpans = hitTx.spans?.filter(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true) ?? [];
+  expect(hitGetSpans.length).toBeGreaterThan(0);
+  for (const hitGetSpan of hitGetSpans) {
+    expect(hitGetSpan).toMatchObject({
+      origin: 'auto.cache.nextjs',
+      data: expect.objectContaining({ 'cache.operation': 'get' }),
+    });
+  }
 });
 
 test('Should report an expired entry as a miss and refill it', async ({ request }) => {
