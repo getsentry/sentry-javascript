@@ -1,11 +1,16 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { defineAgent } from 'eve';
 
+const apiKey = process.env.E2E_OPENROUTER_API_KEY;
+if (!apiKey) {
+  throw new Error('E2E_OPENROUTER_API_KEY is not set');
+}
+
 // We call OpenRouter directly (rather than the default Vercel AI Gateway) so the
 // e2e test needs only a single OpenRouter key. eve resolves this authored
 // `LanguageModel` at runtime.
 const openrouter = createOpenRouter({
-  apiKey: process.env.E2E_OPENROUTER_API_KEY,
+  apiKey,
 });
 
 const useOrchestrion = process.env.USE_ORCHESTRION === '1';
