@@ -110,8 +110,8 @@ export function patchFrames(
       match = frame.filename.match(PARSER_REGEX) as null | [string, string, string];
     }
 
-    // `<url>:wasm-function[N]:0xADDR` — address is still in filename (JS parser did not split it).
-    // `<url>` is usually the fetch URL (`http://…/app.wasm`); Chrome may instead use `wasm://wasm/<file>-<hash>`.
+    // `<url>` is the fetch URL, or `wasm://wasm/<name>-<hash>` when Chrome
+    // compiled the module from bytes.
     if (match) {
       let index = getImage(match[1]);
       let workerImageIndex = getWorkerImage(match[1]);
@@ -145,23 +145,6 @@ export function patchFrames(
       } else if (workerImageIndex >= 0) {
         const mainThreadImagesCount = getImages().length;
         frame.addr_mode = `rel:${existingImagesOffset + mainThreadImagesCount + workerImageIndex}`;
-        hasAtLeastOneWasmFrameWithImage = true;
-      }
-    } else {
-      // Bare `wasm://wasm/<file>-<hash>` — JS parser already set `instruction_addr`.
-      const unique = uniqueImageForSyntheticFilename(frame.filename, getImages(), WINDOW._sentryWasmImages || []);
-      if (unique && frame.instruction_addr) {
-        frame.filename = unique.codeFile;
-        frame.platform = 'native';
-        if (applicationKey) {
-          frame.module_metadata = {
-            ...frame.module_metadata,
-            [`${BUNDLER_PLUGIN_APP_KEY_PREFIX}${applicationKey}`]: true,
-          };
-        }
-        frame.addr_mode = unique.worker
-          ? `rel:${existingImagesOffset + getImages().length + unique.index}`
-          : `rel:${existingImagesOffset + unique.index}`;
         hasAtLeastOneWasmFrameWithImage = true;
       }
     }

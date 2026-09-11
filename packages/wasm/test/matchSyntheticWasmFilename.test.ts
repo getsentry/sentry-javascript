@@ -1,4 +1,3 @@
-import type { DebugImage } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import {
   fileBasename,
@@ -7,12 +6,13 @@ import {
   uniqueHitByDebugId,
   uniqueImageForSyntheticFilename,
 } from '../src/matchSyntheticWasmFilename';
+import type { RegisteredWasmImage } from '../src/registry';
 
 const DEMO_BG_URL = 'http://localhost:8080/web/assets/rust/demo_bg.wasm';
 const DEBUG_ID_A = 'aaa00000000000000000000000000000';
 const DEBUG_ID_B = 'bbb00000000000000000000000000000';
 
-function wasmImage(overrides: Partial<Extract<DebugImage, { type: 'wasm' }>> & { moduleName?: string }): DebugImage {
+function wasmImage(overrides: Partial<RegisteredWasmImage>): RegisteredWasmImage {
   return {
     type: 'wasm',
     code_id: 'aaa',
@@ -28,8 +28,12 @@ describe('syntheticModuleName()', () => {
     expect(syntheticModuleName('wasm://wasm/demo.wasm-000197f6')).toBe('demo.wasm');
   });
 
-  it('returns a hash-only label unchanged', () => {
-    expect(syntheticModuleName('wasm://wasm/0bee4c4e')).toBe('0bee4c4e');
+  it('returns undefined for a hash-only label', () => {
+    expect(syntheticModuleName('wasm://wasm/0bee4c4e')).toBeUndefined();
+  });
+
+  it('keeps a hex-looking module name that carries a hash suffix', () => {
+    expect(syntheticModuleName('wasm://wasm/ed25519-000197f6')).toBe('ed25519');
   });
 
   it('returns undefined for a fetch URL', () => {
@@ -119,23 +123,38 @@ describe('uniqueImageForSyntheticFilename()', () => {
     });
   });
 
-  it('falls back to the fetch filename when stored moduleName does not match the stack', () => {
+  it('does not guess from the fetch filename when the stored moduleName differs from the stack', () => {
     const image = wasmImage({ moduleName: 'crate' });
 
-    expect(uniqueImageForSyntheticFilename('wasm://wasm/demo.wasm-000197f6', [image], [])).toEqual({
+    expect(uniqueImageForSyntheticFilename('wasm://wasm/demo.wasm-000197f6', [image], [])).toBeUndefined();
+  });
+
+  it('keeps a name-section hit when another image only aliases the stack by filename', () => {
+    const pageImages = [
+      wasmImage({ moduleName: 'demo.wasm', debug_id: DEBUG_ID_A }),
+      wasmImage({
+        moduleName: 'crate',
+        code_id: 'bbb',
+        debug_id: DEBUG_ID_B,
+        code_file: 'http://localhost:8080/web/assets/vendor/demo.wasm',
+      }),
+    ];
+
+    expect(uniqueImageForSyntheticFilename('wasm://wasm/demo.wasm-000197f6', pageImages, [])).toEqual({
       index: 0,
       worker: false,
       codeFile: DEMO_BG_URL,
     });
   });
 
-  it('does not match when neither moduleName nor the fetch filename aliases the stack', () => {
-    const image = wasmImage({
-      moduleName: 'crate',
-      code_file: 'http://localhost:8080/web/assets/other.wasm',
-    });
+  it('matches a hex-looking module name', () => {
+    const image = wasmImage({ moduleName: 'ed25519', code_file: 'http://localhost:8080/ed25519_bg.wasm' });
 
-    expect(uniqueImageForSyntheticFilename('wasm://wasm/demo.wasm-000197f6', [image], [])).toBeUndefined();
+    expect(uniqueImageForSyntheticFilename('wasm://wasm/ed25519-000197f6', [image], [])).toEqual({
+      index: 0,
+      worker: false,
+      codeFile: 'http://localhost:8080/ed25519_bg.wasm',
+    });
   });
 
   it('does not map a hash-only wasm:// label', () => {

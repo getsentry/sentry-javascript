@@ -166,9 +166,8 @@ describe('patchFrames() with worker images', () => {
 
     const frames: StackFrame[] = [
       {
-        filename: 'wasm://wasm/maze.split.wasm-000197f6',
+        filename: 'wasm://wasm/maze.split.wasm-000197f6:wasm-function[10]:0x283d',
         function: 'trigger_crash_divzero',
-        instruction_addr: '0x283d',
         in_app: true,
       },
     ];
@@ -194,9 +193,8 @@ describe('patchFrames() with worker images', () => {
 
     const frames: StackFrame[] = [
       {
-        filename: 'wasm://wasm/maze.split.wasm-000197f6',
+        filename: 'wasm://wasm/maze.split.wasm-000197f6:wasm-function[10]:0x283d',
         function: 'trigger_crash_divzero',
-        instruction_addr: '0x283d',
         in_app: true,
       },
     ];
@@ -222,9 +220,8 @@ describe('patchFrames() with worker images', () => {
 
     const frames: StackFrame[] = [
       {
-        filename: 'wasm://wasm/demo.wasm-000197f6',
+        filename: 'wasm://wasm/demo.wasm-000197f6:wasm-function[10]:0x283d',
         function: 'trigger_crash_divzero',
-        instruction_addr: '0x283d',
         in_app: true,
       },
     ];

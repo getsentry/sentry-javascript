@@ -1,15 +1,15 @@
-import type { DebugImage } from '@sentry/core';
 import type { RegisteredWasmImage } from './registry';
 
 /**
  * Maps Chrome `wasm://wasm/<name>-<hash>` frames to a registered `code_file`.
  *
- * Prefer the wasm `name` section (`moduleName`). If that section is missing or
- * does not match the stack label, guess from the fetch URL basename (including
- * wasm-bindgen `_bg.wasm` → `.wasm`). Hits are accepted only when every
- * candidate shares one `debug_id`.
+ * V8 builds the label from the wasm `name` section, so an image with a parsed
+ * `moduleName` matches on that name only. Images without one are guessed from
+ * the fetch URL basename (including wasm-bindgen `_bg.wasm` → `.wasm`). Hits
+ * are accepted only when every candidate shares one `debug_id`.
  *
- * Hash-only `wasm://wasm/<id>` is not mapped (see #23781).
+ * Hash-only `wasm://wasm/<hash>` labels carry no name and are not mapped
+ * (see #23781).
  *
  * Fetch-URL frames (`http://…/file.wasm:wasm-function[…]`) still use exact
  * `code_file` lookup in `patchFrames`, not this matcher.
@@ -33,22 +33,26 @@ export function fileBasename(url: string): string | undefined {
 }
 
 /**
- * Chrome's module label without the `wasm://wasm/` prefix or trailing isolate hash.
- * `wasm://wasm/demo.wasm-000197f6` → `demo.wasm`. Hash-only `wasm://wasm/0bee4c4e` → `0bee4c4e`.
+ * Module name from Chrome's label: `wasm://wasm/demo.wasm-000197f6` → `demo.wasm`.
+ *
+ * V8 appends the `-<hash>` suffix only after a module name. A label without
+ * it is hash-only and yields `undefined`, so a hex-looking module name such
+ * as `ed25519` is still returned.
  */
 export function syntheticModuleName(filename: string): string | undefined {
   const body = filename.match(/^wasm:\/\/wasm\/(.+)$/i)?.[1];
   if (!body) {
     return undefined;
   }
-  return body.replace(/-[0-9a-fA-F]{6,16}$/, '');
+  const name = body.replace(/-[0-9a-fA-F]{6,16}$/, '');
+  return name === body ? undefined : name;
 }
 
 /**
  * Fetch filename plus known packaging aliases.
  *
  * wasm-bindgen writes `foo_bg.wasm` next to `foo.js` but the stack label is often
- * `foo.wasm`. Used when the name section is missing or does not match.
+ * `foo.wasm`. Used only for images without a parsed name section.
  */
 export function namesForRegisteredWasm(codeFile: string): string[] {
   const basename = fileBasename(codeFile);
@@ -64,20 +68,11 @@ export function namesForRegisteredWasm(codeFile: string): string[] {
   return names;
 }
 
-export function registeredWasmMatchesSyntheticName(codeFile: string, syntheticName: string): boolean {
-  return namesForRegisteredWasm(codeFile).includes(syntheticName);
-}
-
-function wasmNameSectionName(image: DebugImage): string | undefined {
-  const moduleName = (image as RegisteredWasmImage).moduleName;
-  return typeof moduleName === 'string' && moduleName.length > 0 ? moduleName : undefined;
-}
-
-export function imageMatchesSyntheticName(image: DebugImage, syntheticName: string): boolean {
-  if (wasmNameSectionName(image) === syntheticName) {
-    return true;
+function imageMatchesSyntheticName(image: RegisteredWasmImage, syntheticName: string): boolean {
+  if (image.moduleName) {
+    return image.moduleName === syntheticName;
   }
-  return typeof image.code_file === 'string' && registeredWasmMatchesSyntheticName(image.code_file, syntheticName);
+  return namesForRegisteredWasm(image.code_file).includes(syntheticName);
 }
 
 /**
@@ -89,28 +84,20 @@ export function uniqueHitByDebugId<T extends { debugId: string }>(hits: T[]): T 
   return debugIds.size === 1 ? hits[0] : undefined;
 }
 
-/**
- * Chrome's isolate hash is not a debug_id and is not on `WebAssembly.Module`.
- * `wasm://wasm/<hex>` with no module name must not pick an image (see #23781).
- */
-function isHashOnlySyntheticName(name: string): boolean {
-  return /^[0-9a-fA-F]{6,16}$/.test(name);
-}
-
 export function uniqueImageForSyntheticFilename(
   filename: string,
-  pageImages: ReadonlyArray<DebugImage>,
-  workerImages: ReadonlyArray<DebugImage>,
+  pageImages: ReadonlyArray<RegisteredWasmImage>,
+  workerImages: ReadonlyArray<RegisteredWasmImage>,
 ): SyntheticWasmImageHit | undefined {
   const name = syntheticModuleName(filename);
-  if (!name || isHashOnlySyntheticName(name)) {
+  if (!name) {
     return undefined;
   }
 
   const hits: Hit[] = [];
-  const consider = (images: ReadonlyArray<DebugImage>, worker: boolean): void => {
+  const consider = (images: ReadonlyArray<RegisteredWasmImage>, worker: boolean): void => {
     images.forEach((image, index) => {
-      if (image.type === 'wasm' && typeof image.code_file === 'string' && imageMatchesSyntheticName(image, name)) {
+      if (imageMatchesSyntheticName(image, name)) {
         hits.push({ index, worker, codeFile: image.code_file, debugId: image.debug_id });
       }
     });

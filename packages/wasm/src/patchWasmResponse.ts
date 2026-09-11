@@ -44,14 +44,26 @@ function toArrayBuffer(source: unknown): ArrayBuffer | undefined {
 }
 
 /**
+ * Synthetic responses (`new Response(...)`) have no URL and nothing to tag,
+ * so their body reads are passed through untouched.
+ */
+function responseUrl(response: Response): string | undefined {
+  try {
+    return response.url || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Runs inside the caller's `arrayBuffer()` / `bytes()` promise chain, so it must never throw:
  * a failure here would reject a body read that has nothing to do with wasm.
  */
-function tagResponseSource(response: Response, source: unknown): void {
+function tagResponseSource(source: unknown, url: string): void {
   try {
     const buffer = toArrayBuffer(source);
-    if (buffer && response.url) {
-      wasmSourceUrls.set(buffer, response.url);
+    if (buffer) {
+      wasmSourceUrls.set(buffer, url);
     }
   } catch {
     // see above
@@ -71,8 +83,12 @@ export function patchWasmResponseBodyReaders(): void {
   fill(Response.prototype, 'arrayBuffer', (original: (this: Response) => Promise<ArrayBuffer>) => {
     return function arrayBuffer(this: Response): Promise<ArrayBuffer> {
       const bufferPromise: Promise<ArrayBuffer> = original.call(this);
+      const url = responseUrl(this);
+      if (!url) {
+        return bufferPromise;
+      }
       return bufferPromise.then(buffer => {
-        tagResponseSource(this, buffer);
+        tagResponseSource(buffer, url);
         return buffer;
       });
     };
@@ -81,8 +97,12 @@ export function patchWasmResponseBodyReaders(): void {
   fill(Response.prototype, 'bytes', (original: (this: Response) => Promise<Uint8Array>) => {
     return function bytes(this: Response): Promise<Uint8Array> {
       const bytesPromise: Promise<Uint8Array> = original.call(this);
+      const url = responseUrl(this);
+      if (!url) {
+        return bytesPromise;
+      }
       return bytesPromise.then(bytes => {
-        tagResponseSource(this, bytes);
+        tagResponseSource(bytes, url);
         return bytes;
       });
     };

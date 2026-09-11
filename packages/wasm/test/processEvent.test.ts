@@ -61,9 +61,8 @@ describe('processEvent()', () => {
               stacktrace: {
                 frames: [
                   {
-                    filename: 'wasm://wasm/maze.split.wasm-000197f6',
+                    filename: 'wasm://wasm/maze.split.wasm-000197f6:wasm-function[10]:0x283d',
                     function: 'trigger_crash_divzero',
-                    instruction_addr: '0x283d',
                     in_app: true,
                   },
                 ],
@@ -104,9 +103,8 @@ describe('processEvent()', () => {
               stacktrace: {
                 frames: [
                   {
-                    filename: 'wasm://wasm/maze.split.wasm-000197f6',
+                    filename: 'wasm://wasm/maze.split.wasm-000197f6:wasm-function[10]:0x283d',
                     function: 'trigger_crash_divzero',
-                    instruction_addr: '0x283d',
                     in_app: true,
                   },
                 ],
@@ -155,9 +153,8 @@ describe('processEvent()', () => {
               stacktrace: {
                 frames: [
                   {
-                    filename: 'wasm://wasm/app.wasm-abc123',
+                    filename: 'wasm://wasm/app.wasm-abc123:wasm-function[10]:0x10',
                     function: 'run',
-                    instruction_addr: '0x10',
                     in_app: true,
                   },
                 ],
@@ -202,9 +199,8 @@ describe('processEvent()', () => {
               stacktrace: {
                 frames: [
                   {
-                    filename: 'wasm://wasm/app.wasm-abc123',
+                    filename: 'wasm://wasm/app.wasm-abc123:wasm-function[10]:0x10',
                     function: 'run',
-                    instruction_addr: '0x10',
                     in_app: true,
                   },
                 ],
@@ -234,9 +230,8 @@ describe('processEvent()', () => {
               stacktrace: {
                 frames: [
                   {
-                    filename: 'wasm://wasm/demo.wasm-000197f6',
+                    filename: 'wasm://wasm/demo.wasm-000197f6:wasm-function[10]:0x283d',
                     function: 'trigger_crash_divzero',
-                    instruction_addr: '0x283d',
                     in_app: true,
                   },
                 ],
@@ -281,9 +276,8 @@ describe('processEvent()', () => {
               stacktrace: {
                 frames: [
                   {
-                    filename: 'wasm://wasm/demo.wasm-000197f6',
+                    filename: 'wasm://wasm/demo.wasm-000197f6:wasm-function[10]:0x283d',
                     function: 'trigger_crash_divzero',
-                    instruction_addr: '0x283d',
                     in_app: true,
                   },
                 ],
@@ -331,9 +325,8 @@ describe('processEvent()', () => {
               stacktrace: {
                 frames: [
                   {
-                    filename: 'wasm://wasm/demo.wasm-000197f6',
+                    filename: 'wasm://wasm/demo.wasm-000197f6:wasm-function[10]:0x10',
                     function: 'run',
-                    instruction_addr: '0x10',
                     in_app: true,
                   },
                 ],
@@ -369,9 +362,8 @@ describe('processEvent()', () => {
               stacktrace: {
                 frames: [
                   {
-                    filename: 'wasm://wasm/0bee4c4e',
+                    filename: 'wasm://wasm/0bee4c4e:wasm-function[10]:0x10',
                     function: 'run',
-                    instruction_addr: '0x10',
                     in_app: true,
                   },
                 ],
