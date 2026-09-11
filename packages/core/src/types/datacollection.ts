@@ -11,6 +11,14 @@ export type CollectBehavior = boolean | { allow: string[] } | { deny: string[] }
 export type HttpBodyCollectionTarget = 'incomingRequest' | 'outgoingRequest' | 'incomingResponse' | 'outgoingResponse';
 
 /**
+ * Controls HTTP header collection per direction.
+ */
+export interface HttpHeadersCollection {
+  request?: CollectBehavior;
+  response?: CollectBehavior;
+}
+
+/**
  * Controls what data the SDK collects and sends to Sentry.
  *
  * All fields are optional. Omitted fields use the documented defaults.
@@ -30,12 +38,11 @@ export interface DataCollection {
 
   /**
    * Controls HTTP header collection for requests and responses.
+   *
+   * Accepts a `CollectBehavior` applied to both directions, or `{ request, response }` to control each independently.
    * @default { request: true, response: true }
    */
-  httpHeaders?: {
-    request?: CollectBehavior;
-    response?: CollectBehavior;
-  };
+  httpHeaders?: CollectBehavior | HttpHeadersCollection;
 
   /**
    * Which HTTP body types to collect. An omitted value collects all body types valid for the
@@ -112,9 +119,9 @@ export interface DataCollection {
 /**
  * Fully resolved `DataCollection` with all defaults applied.
  */
-// todo(v11): change `Omit<DataCollection, 'queryParams'>` to just `DataCollection`
-export type ResolvedDataCollection = Required<Omit<DataCollection, 'queryParams'>> & {
-  httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
+// todo(v11): change `Omit<DataCollection, 'queryParams' | 'httpHeaders'>` to `Omit<DataCollection, 'httpHeaders'>`
+export type ResolvedDataCollection = Required<Omit<DataCollection, 'queryParams' | 'httpHeaders'>> & {
+  httpHeaders: Required<HttpHeadersCollection>;
   graphQL: Required<NonNullable<DataCollection['graphQL']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;
 };

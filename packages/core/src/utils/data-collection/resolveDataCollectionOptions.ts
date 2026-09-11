@@ -1,4 +1,9 @@
-import type { DataCollection, ResolvedDataCollection } from '../../types/datacollection';
+import type {
+  CollectBehavior,
+  DataCollection,
+  HttpHeadersCollection,
+  ResolvedDataCollection,
+} from '../../types/datacollection';
 import { defaultPiiToCollectionOptions } from './defaultPiiToCollectionOptions';
 
 const DEFAULTS: ResolvedDataCollection = {
@@ -13,6 +18,28 @@ const DEFAULTS: ResolvedDataCollection = {
   stackFrameVariables: true,
   frameContextLines: 5,
 };
+
+function isCollectBehavior(value: CollectBehavior | HttpHeadersCollection): value is CollectBehavior {
+  return typeof value === 'boolean' || 'allow' in value || 'deny' in value;
+}
+
+function resolveHttpHeaders(
+  httpHeaders: DataCollection['httpHeaders'],
+  base: ResolvedDataCollection,
+): ResolvedDataCollection['httpHeaders'] {
+  if (httpHeaders === undefined) {
+    return { ...base.httpHeaders };
+  }
+
+  if (isCollectBehavior(httpHeaders)) {
+    return { request: httpHeaders, response: httpHeaders };
+  }
+
+  return {
+    request: httpHeaders.request ?? base.httpHeaders.request,
+    response: httpHeaders.response ?? base.httpHeaders.response,
+  };
+}
 
 /**
  * Resolves the effective `DataCollection` configuration from client options.
@@ -39,10 +66,7 @@ export function resolveDataCollectionOptions(options: {
   return {
     userInfo: dc.userInfo ?? base.userInfo,
     cookies: dc.cookies ?? base.cookies,
-    httpHeaders: {
-      request: dc.httpHeaders?.request ?? base.httpHeaders.request,
-      response: dc.httpHeaders?.response ?? base.httpHeaders.response,
-    },
+    httpHeaders: resolveHttpHeaders(dc.httpHeaders, base),
     httpBodies: dc.httpBodies ?? base.httpBodies,
     // oxlint-disable-next-line typescript/no-deprecated
     urlQueryParams: dc.urlQueryParams ?? dc.queryParams ?? base.urlQueryParams,

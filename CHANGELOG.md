@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- feat(core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders` ([#24336](https://github.com/getsentry/sentry-javascript/pull/24336)). Passing `true`, `false`, `{ allow: [...] }` or `{ deny: [...] }` now applies to both request and response headers; `{ request, response }` still controls each direction independently.
+
 ## 10.74.0
 
 - feat(v10): Streamline isolation scope handling & reset in isolation scopes ([#24152](https://github.com/getsentry/sentry-javascript/pull/24152))
