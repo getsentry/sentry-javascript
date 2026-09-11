@@ -3,6 +3,7 @@ import type { Span } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_shouldSkipAiProviderWrapping,
+  _INTERNAL_skipAiProviderWrapping,
   getMainCarrier,
   setCurrentClient,
   spanToStaticSpanJSON,
@@ -10,6 +11,8 @@ import {
 } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../../../src/ai/anthropic-ai/constants';
 import { createFlueInstrumentation } from '../../../../src/ai/flue';
+import { MAX_TRACKED_FLUE_SPANS } from '../../../../src/ai/flue/constants';
+import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../../../src/ai/google-genai/constants';
 import type { FlueInstrumentation, FlueObservation } from '../../../../src/ai/flue/types';
 import { OPENAI_INTEGRATION_NAME } from '../../../../src/ai/openai/constants';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
@@ -116,6 +119,29 @@ describe('createFlueInstrumentation', () => {
 
     await withAgent(() => undefined);
     expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
+  });
+
+  // The guard has to hold for every provider, not just the first: another integration may have
+  // registered a skip for one of them already, which would otherwise short-circuit the rest.
+  it('applies the skip to every provider when only some are already registered', async () => {
+    _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
+
+    await withAgent(() => undefined);
+
+    expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(true);
+    expect(_INTERNAL_shouldSkipAiProviderWrapping(GOOGLE_GENAI_INTEGRATION_NAME)).toBe(true);
+  });
+
+  // A turn whose stream is abandoned never emits the settled `turn` that would remove it, so the
+  // tracker is capped. Eviction has to end the span it drops, or it is never sent.
+  it('ends the oldest chat span when the turn tracker overflows', async () => {
+    await withAgent(() => {
+      for (let i = 0; i <= MAX_TRACKED_FLUE_SPANS; i++) {
+        instrumentation.observe({ type: 'turn_start', turnId: `turn_${i}`, operationId: 'op_1' }, {});
+      }
+    });
+
+    expect(endedSpans.filter(span => spanToStaticSpanJSON(span).data['sentry.op'] === 'gen_ai.chat')).toHaveLength(1);
   });
 
   it('names agent spans `invoke_agent {name}` and sets the gen_ai op', async () => {
