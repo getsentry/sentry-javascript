@@ -53,7 +53,7 @@ export function wrapServerRouteWithSentry<T extends RequestEvent>(
         return wrappingTarget.apply(thisArg, args);
       }
 
-      const routeId = event.route?.id;
+      const routeId = event.route?.id ?? undefined;
       const httpMethod = event.request.method;
       const methodAndRoute = `${httpMethod} ${routeId || 'Server Route'}`;
 
@@ -73,7 +73,7 @@ export function wrapServerRouteWithSentry<T extends RequestEvent>(
               [CODE_FUNCTION_NAME]: httpMethod,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [HTTP_REQUEST_METHOD]: httpMethod,
-              ...(routeId && { [HTTP_ROUTE]: routeId }),
+              [HTTP_ROUTE]: routeId,
               // Relay infers the description from `code.function.name`, which would drop the route.
               ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: methodAndRoute }),
             },
