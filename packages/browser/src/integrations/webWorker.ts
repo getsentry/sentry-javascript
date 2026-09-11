@@ -40,6 +40,8 @@ interface SerializedWorkerError {
   kind?: WorkerErrorKind;
   /** Structured clone resets any name outside the built-in set to `Error`. */
   name?: string;
+  /** Script the error was thrown in, which can differ from the worker script. */
+  url?: string;
   lineno?: number;
   colno?: number;
 }
@@ -211,7 +213,7 @@ function handleForwardedWorkerError(workerError: SerializedWorkerError): void {
 
   const { stackParser, attachStacktrace } = client.getOptions();
 
-  const { reason: error, kind, name, filename, lineno, colno } = workerError;
+  const { reason: error, kind, name, filename, url, lineno, colno } = workerError;
   // Older workers only ever forwarded rejections and send no `kind`.
   const isUnhandledRejection = kind !== 'error';
 
@@ -227,7 +229,7 @@ function handleForwardedWorkerError(workerError: SerializedWorkerError): void {
       : eventFromUnknownInput(stackParser, error, undefined, attachStacktrace, isUnhandledRejection);
 
   if (!isUnhandledRejection) {
-    _enhanceEventWithInitialFrame(event, filename, lineno, colno);
+    _enhanceEventWithInitialFrame(event, url ?? filename, lineno, colno);
   }
 
   event.level = 'error';
@@ -330,14 +332,15 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
   // Uncaught errors bubble to the parent, but the propagated ErrorEvent
   // carries no error object. Forwarding the object keeps the real stack.
   self.addEventListener('error', (event: unknown) => {
-    const { error, message, lineno, colno } = event as {
+    const { error, message, filename, lineno, colno } = event as {
       error?: unknown;
       message?: string;
+      filename?: string;
       lineno?: number;
       colno?: number;
     };
 
-    forward({ kind: 'error', reason: error ?? message, lineno, colno });
+    forward({ kind: 'error', reason: error ?? message, url: filename, lineno, colno });
   });
 
   // Unhandled rejections do not bubble to the parent thread at all.

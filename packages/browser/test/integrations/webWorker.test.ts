@@ -418,6 +418,7 @@ describe('registerWebWorker', () => {
     addEventListener: ReturnType<typeof vi.fn>;
     _sentryDebugIds?: Record<string, string>;
     _sentryModuleMetadata?: Record<string, any>;
+    location?: { href?: string };
   };
 
   // registerWebWorker raises this globally, so every test has to put it back.
@@ -551,16 +552,24 @@ describe('registerWebWorker', () => {
     it('forwards an uncaught error with its location, name and kind "error"', () => {
       registerWebWorker({ self: mockWorkerSelf as any });
 
+      mockWorkerSelf.location = { href: 'http://localhost/worker.js' };
       const error = new Error('boom');
-      trigger('error', { error, message: 'Uncaught Error: boom', lineno: 12, colno: 9 });
+      trigger('error', {
+        error,
+        message: 'Uncaught Error: boom',
+        filename: 'http://localhost/chunk.js',
+        lineno: 12,
+        colno: 9,
+      });
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
         _sentryWorkerError: {
           reason: error,
-          filename: undefined,
+          filename: 'http://localhost/worker.js',
           kind: 'error',
           name: 'Error',
+          url: 'http://localhost/chunk.js',
           lineno: 12,
           colno: 9,
         },
@@ -900,20 +909,22 @@ describe('forwarded worker errors', () => {
     });
   });
 
-  it('adds a frame from the error location when a message-only error has no stack', () => {
+  it.each([
+    ['the script that threw', 'http://localhost/chunk.js', 'http://localhost/chunk.js'],
+    ['the worker script when the event has no url', undefined, 'http://localhost/worker.js'],
+  ])('adds a frame at %s when a message-only error has no stack', (_, url, frameFilename) => {
     forward({
       reason: 'Uncaught Error: boom',
       kind: 'error',
       filename: 'http://localhost/worker.js',
+      url,
       lineno: 12,
       colno: 9,
     });
 
     expectCapturedException({
       value: 'Uncaught Error: boom',
-      stacktrace: {
-        frames: [expect.objectContaining({ filename: 'http://localhost/worker.js', lineno: 12, colno: 9 })],
-      },
+      stacktrace: { frames: [expect.objectContaining({ filename: frameFilename, lineno: 12, colno: 9 })] },
     });
   });
 
