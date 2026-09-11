@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, hidePage, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-17-static', async transactionEvent => {
@@ -76,17 +76,8 @@ test('sends an INP span', async ({ page }) => {
 
   await page.click('#exception-button');
 
-  // web-vitals defers processing the interaction's event entries to a
-  // `requestIdleCallback(..., { timeout: 1000 })`. Chromium only runs that on the timeout here, so
-  // hiding the page any earlier forces a report before the interaction has been processed and no
-  // INP is emitted at all.
-  await page.waitForTimeout(1500);
-
   // Page hide to trigger INP
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
+  await hidePage(page);
 
   const inpSpan = await inpSpanPromise;
 
