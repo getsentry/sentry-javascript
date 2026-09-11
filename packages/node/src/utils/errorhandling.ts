@@ -4,10 +4,22 @@ import type { NodeClient } from '../sdk/client';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
+let isShuttingDown = false;
+
 /**
  * @hidden
  */
 export function logAndExitProcess(error: unknown): void {
+  // A second failure while we are already shutting down must not re-enter.
+  // The console.error below writes to stderr; when that stream is a broken
+  // pipe the write throws EPIPE, which surfaces as another uncaught
+  // exception and lands back here, recursing until the heap is exhausted.
+  if (isShuttingDown) {
+    global.process.exit(1);
+    return;
+  }
+  isShuttingDown = true;
+
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
     console.error(error);
