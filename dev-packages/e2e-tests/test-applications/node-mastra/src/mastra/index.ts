@@ -56,12 +56,6 @@ export const mastra = new Mastra({
     port: 4111,
     apiRoutes: [runRoute, dataloaderRoute],
   },
-  bundler: {
-    // `dataloader` must stay a real module so it can be instrumented. `@mastra/core`
-    // is forced external too (diagnostic): if Mastra inlined it, the orchestrion
-    // runtime hook could never transform its constructor.
-    externals: ['dataloader', '@mastra/core', '@sentry/node'],
-  },
 });
 
 /**
