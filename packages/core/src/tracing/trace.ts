@@ -14,6 +14,7 @@ import type { StartSpanOptions } from '../types/startSpanOptions';
 import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
+import { recordEscapedErrorSpan } from '../utils/errorSpanAttribution';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
@@ -495,7 +496,7 @@ function _startRootSpan(
   const currentPropagationContext = scope.getPropagationContext();
   const _isTracingSuppressed = isTracingSuppressed(scope);
 
-  const [sampled, sampleRate, localSampleRateWasApplied] = _isTracingSuppressed
+  const [sampled, sampleRate, localSampleRateWasApplied, dropReason] = _isTracingSuppressed
     ? [false]
     : sampleSpan(
         options,
@@ -522,7 +523,7 @@ function _startRootSpan(
 
   if (!sampled && client && !_isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-    client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
+    client.recordDroppedEvent(dropReason || 'sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
 
   setCapturedScopesOnSpan(rootSpan, scope, isolationScope);
@@ -670,7 +671,9 @@ function runCallback<T>(span: Span, makeSpanActive: boolean, callback: () => T, 
   return wrapper(() =>
     handleCallbackErrors(
       () => callback(),
-      () => {
+      error => {
+        recordEscapedErrorSpan(error, span);
+
         // Only update the span status if it hasn't been changed yet, and the span is not yet finished
         const { status } = spanToStaticSpanJSON(span);
         if (span.isRecording() && status === 'ok') {

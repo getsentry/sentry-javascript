@@ -1,8 +1,16 @@
 import * as Sentry from '@sentry/browser';
 
+// Tracing is opt-in per test via `?tracing=1`. The metric tests were written against a client with no
+// pageload/navigation spans, and turning tracing on for all of them would put a pageload span's
+// transaction name on the scope, which is the value those tests assert the metric falls back to.
+const tracing = new URLSearchParams(window.location.search).get('tracing') === '1';
+
 Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
-  integrations: [Sentry.bfcacheMetricsIntegration()],
+  integrations: tracing
+    ? [Sentry.bfcacheMetricsIntegration(), Sentry.browserTracingIntegration()]
+    : [Sentry.bfcacheMetricsIntegration()],
+  ...(tracing && { tracesSampleRate: 1 }),
   release: 'e2e-test',
   environment: 'qa',
   tunnel: 'http://localhost:3031',

@@ -134,6 +134,8 @@ export {
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
   lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,

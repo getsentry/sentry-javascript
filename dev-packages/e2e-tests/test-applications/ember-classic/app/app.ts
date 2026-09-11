@@ -7,7 +7,6 @@ import config from './config/environment';
 
 Sentry.init({
   dsn: config.sentryDsn,
-  traceLifecycle: 'static',
   tracesSampleRate: 1,
   replaysSessionSampleRate: 1,
   replaysOnErrorSampleRate: 1,

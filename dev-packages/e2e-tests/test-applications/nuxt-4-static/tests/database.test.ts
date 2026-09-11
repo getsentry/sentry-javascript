@@ -120,9 +120,9 @@ test.describe('database integration', () => {
 
     expect(dbSpan).toBeDefined();
     expect(dbSpan?.op).toBe('db.query');
-    expect(dbSpan?.description).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
+    expect(dbSpan?.description).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
     expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(dbSpan?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
+    expect(dbSpan?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
     expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
   });
 
@@ -180,8 +180,8 @@ test.describe('database integration', () => {
 
     expect(dbBreadcrumb).toBeDefined();
     expect(dbBreadcrumb?.category).toBe('query');
-    expect(dbBreadcrumb?.message).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
-    expect(dbBreadcrumb?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
+    expect(dbBreadcrumb?.message).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
+    expect(dbBreadcrumb?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
   });
 
   test('multiple database operations in single request create multiple spans', async ({ request }) => {

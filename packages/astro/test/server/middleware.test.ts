@@ -46,6 +46,29 @@ describe('sentryMiddleware', () => {
   });
   const setSDKProcessingMetadataMock = vi.fn();
 
+  const DATA_COLLECTION_DEFAULTS = {
+    userInfo: false,
+    cookies: true,
+    httpHeaders: { request: true, response: true },
+    httpBodies: [],
+    urlQueryParams: true,
+    graphQL: { document: true, variables: true },
+    genAI: { inputs: true, outputs: true },
+    databaseQueryData: true,
+    stackFrameVariables: true,
+    frameContextLines: 5,
+  };
+
+  function mockClientWith(dataCollection: Partial<typeof DATA_COLLECTION_DEFAULTS>): void {
+    vi.spyOn(SentryNode, 'getClient').mockImplementation(
+      () =>
+        ({
+          getOptions: () => ({}),
+          getDataCollectionOptions: () => ({ ...DATA_COLLECTION_DEFAULTS, ...dataCollection }),
+        }) as unknown as Client,
+    );
+  }
+
   beforeEach(() => {
     vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(() => {
       return {
@@ -56,24 +79,7 @@ describe('sentryMiddleware', () => {
       } as any;
     });
     vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
-    vi.spyOn(SentryNode, 'getClient').mockImplementation(
-      () =>
-        ({
-          getOptions: () => ({}),
-          getDataCollectionOptions: () => ({
-            userInfo: false,
-            cookies: true,
-            httpHeaders: { request: true, response: true },
-            httpBodies: [],
-            urlQueryParams: true,
-            graphQL: { document: true, variables: true },
-            genAI: { inputs: true, outputs: true },
-            databaseQueryData: true,
-            stackFrameVariables: true,
-            frameContextLines: 5,
-          }),
-        }) as unknown as Client,
-    );
+    mockClientWith({ userInfo: false });
     vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(
       () => `
     <meta name="sentry-trace" content="123">
@@ -304,6 +310,48 @@ describe('sentryMiddleware', () => {
       // @ts-expect-error, a partial ctx object is fine here
       await middleware(ctx, async () => {
         expect(SentryCore.getIsolationScope().getScopeData().user).toEqual({ ip_address: '192.168.0.1' });
+        return nextResult;
+      });
+    });
+
+    it('attaches the client IP when `trackClientIp` is unset and `dataCollection.userInfo` is on', async () => {
+      mockClientWith({ userInfo: true });
+      const middleware = handleRequest();
+      const ctx = {
+        ...DYNAMIC_REQUEST_CONTEXT,
+      };
+
+      // @ts-expect-error, a partial ctx object is fine here
+      await middleware(ctx, async () => {
+        expect(SentryCore.getIsolationScope().getScopeData().user?.ip_address).toBe('192.168.0.1');
+        return nextResult;
+      });
+    });
+
+    it('does not attach a client IP when `trackClientIp` is unset and `dataCollection.userInfo` is off', async () => {
+      mockClientWith({ userInfo: false });
+      const middleware = handleRequest();
+      const ctx = {
+        ...DYNAMIC_REQUEST_CONTEXT,
+      };
+
+      // @ts-expect-error, a partial ctx object is fine here
+      await middleware(ctx, async () => {
+        expect(SentryCore.getIsolationScope().getScopeData().user?.ip_address).toBeUndefined();
+        return nextResult;
+      });
+    });
+
+    it('lets `trackClientIp=false` win over `dataCollection.userInfo`', async () => {
+      mockClientWith({ userInfo: true });
+      const middleware = handleRequest({ trackClientIp: false });
+      const ctx = {
+        ...DYNAMIC_REQUEST_CONTEXT,
+      };
+
+      // @ts-expect-error, a partial ctx object is fine here
+      await middleware(ctx, async () => {
+        expect(SentryCore.getIsolationScope().getScopeData().user?.ip_address).toBeUndefined();
         return nextResult;
       });
     });

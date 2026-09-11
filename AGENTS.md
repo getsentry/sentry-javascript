@@ -68,12 +68,13 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 ## Architecture
 
-- `packages/types/` is **deprecated — never modify it**. Types live in
-  `packages/core/`.
-- An AI provider integration spans three places: core instrumentation in
-  `packages/core/src/tracing/{provider}/`, the Node integration in
-  `packages/node/src/integrations/tracing/{provider}/`, and the edge
-  runtime in `packages/cloudflare/src/integrations/tracing/{provider}.ts`.
+- Types live in `packages/core/`. The `@sentry/types` package is gone.
+- An AI provider integration spans two places, both in
+  `packages/server-utils/`: the gen-AI instrumentation logic in
+  `src/ai/{provider}/`, and the integration that wires it up in
+  `src/integrations/{provider}.ts`, registered in `getTracingIntegrations()`.
+  Runtime packages (`node`, `cloudflare`, ...) re-export from
+  `@sentry/server-utils` rather than defining their own.
 
 ## Linting & Formatting
 

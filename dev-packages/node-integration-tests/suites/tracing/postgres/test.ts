@@ -159,11 +159,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           data: expect.objectContaining({
             'db.system.name': 'postgresql',
             'db.namespace': 'tests',
-            'db.query.text': 'SELECT 1 AS foo',
+            'db.query.text': 'SELECT ? AS foo',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
-          description: 'SELECT 1 AS foo',
+          description: 'SELECT ? AS foo',
           op: 'db',
           status: 'ok',
           origin: QUERY_ORIGIN,
@@ -220,11 +220,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           data: expect.objectContaining({
             'db.system.name': 'postgresql',
             'db.namespace': 'tests',
-            'db.query.text': 'SELECT 1 AS connect_then',
+            'db.query.text': 'SELECT ? AS connect_then',
             'sentry.origin': QUERY_ORIGIN,
             'sentry.op': 'db',
           }),
-          description: 'SELECT 1 AS connect_then',
+          description: 'SELECT ? AS connect_then',
           op: 'db',
           status: 'ok',
           origin: QUERY_ORIGIN,
@@ -247,7 +247,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             transaction: txn => {
               const descriptions = txn.spans?.map(span => span.description) ?? [];
               // The unparented connect + query must not have produced spans
-              expect(descriptions).not.toContain('SELECT 1 AS unparented');
+              expect(descriptions).not.toContain('SELECT ? AS unparented');
               expect(descriptions.find(name => name?.includes('connect'))).toBeUndefined();
               // Only the parented query is instrumented
               expect(txn).toMatchObject({
@@ -257,11 +257,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                     data: expect.objectContaining({
                       'db.system.name': 'postgresql',
                       'db.namespace': 'tests',
-                      'db.query.text': 'SELECT 2 AS parented',
+                      'db.query.text': 'SELECT ? AS parented',
                       'sentry.origin': QUERY_ORIGIN,
                       'sentry.op': 'db',
                     }),
-                    description: 'SELECT 2 AS parented',
+                    description: 'SELECT ? AS parented',
                     op: 'db',
                     status: 'ok',
                     origin: QUERY_ORIGIN,
@@ -424,11 +424,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             data: expect.objectContaining({
               'db.system.name': 'postgresql',
               'db.namespace': 'tests',
-              'db.query.text': 'SELECT 1 AS foo',
+              'db.query.text': 'SELECT ? AS foo',
               'sentry.origin': ORIGIN,
               'sentry.op': 'db',
             }),
-            description: 'SELECT 1 AS foo',
+            description: 'SELECT ? AS foo',
             op: 'db',
             status: 'ok',
             origin: ORIGIN,
@@ -491,7 +491,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                 .expect({
                   transaction: txn => {
                     const descriptions = txn.spans?.map(span => span.description) ?? [];
-                    expect(descriptions).not.toContain('SELECT 1 AS unparented');
+                    expect(descriptions).not.toContain('SELECT ? AS unparented');
                     expect(descriptions.find(name => name?.includes('connect'))).toBeUndefined();
                     expect(txn).toMatchObject({
                       transaction: 'Test Transaction',
@@ -499,11 +499,11 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                         expect.objectContaining({
                           data: expect.objectContaining({
                             'db.system.name': 'postgresql',
-                            'db.query.text': 'SELECT 2 AS parented',
+                            'db.query.text': 'SELECT ? AS parented',
                             'sentry.origin': ORIGIN,
                             'sentry.op': 'db',
                           }),
-                          description: 'SELECT 2 AS parented',
+                          description: 'SELECT ? AS parented',
                           op: 'db',
                           status: 'ok',
                           origin: ORIGIN,

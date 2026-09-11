@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../../src/utils/sql';
+import { getSqlQuerySummary, sanitizeSqlQuery, sanitizeSqlQueryWithSummary, toSqlDialect } from '../../src/utils/sql';
 
 describe('getSqlQuerySummary', () => {
   it.each([undefined, ''])('returns undefined for %j', input => {
@@ -209,6 +209,40 @@ describe('getSqlQuerySummary', () => {
       ],
       ['SELECT * FROM "song list", \'artists\'', 'SELECT "song list" \'artists\''],
     ])('%j => %j', (input, expected) => {
+      expect(getSqlQuerySummary(input)).toBe(expected);
+    });
+  });
+
+  describe('quoted and schema-qualified table names', () => {
+    it.each([
+      ['SELECT * FROM "public"."User"', 'SELECT "public"."User"'],
+      ['DELETE FROM "public"."User"', 'DELETE "public"."User"'],
+      ['INSERT INTO "public"."User" (name) VALUES (?)', 'INSERT "public"."User"'],
+      ['UPDATE "public"."User" SET name = ?', 'UPDATE "public"."User"'],
+      ['CREATE TABLE "public"."User" (id INTEGER)', 'CREATE TABLE "public"."User"'],
+      ['SELECT * FROM public.User', 'SELECT public.User'],
+      ['SELECT * FROM `mydb`.`users`', 'SELECT `mydb`.`users`'],
+      ['SELECT * FROM "catalog"."public"."User"', 'SELECT "catalog"."public"."User"'],
+      ['SELECT * FROM "public".User', 'SELECT "public".User'],
+      ['SELECT * FROM public."User"', 'SELECT public."User"'],
+    ])('keeps the whole qualified name: %j => %j', (input, expected) => {
+      expect(getSqlQuerySummary(input)).toBe(expected);
+    });
+
+    it('keeps schema-qualified JOIN targets distinguishable', () => {
+      expect(getSqlQuerySummary('SELECT * FROM "public"."A" JOIN "public"."B" ON "A".id = "B"."a_id"')).toBe(
+        'SELECT "public"."A" "public"."B"',
+      );
+    });
+
+    it.each([
+      ['SELECT * FROM "my table"', 'SELECT "my table"'],
+      ['INSERT INTO "my table" (id) VALUES (?)', 'INSERT "my table"'],
+      ['UPDATE "my table" SET id = ?', 'UPDATE "my table"'],
+      ['DELETE FROM "my table"', 'DELETE "my table"'],
+      ['CREATE TABLE "my table" (id INTEGER)', 'CREATE TABLE "my table"'],
+      ['SELECT * FROM "my schema"."my table"', 'SELECT "my schema"."my table"'],
+    ])('does not split identifiers containing spaces: %j => %j', (input, expected) => {
       expect(getSqlQuerySummary(input)).toBe(expected);
     });
   });
@@ -581,20 +615,300 @@ describe('sanitizeSqlQuery', () => {
     });
   });
 
+  describe("dialect: 'standard'", () => {
+    it.each([
+      // `"..."` quotes an identifier, so it survives as a summary target
+      ['SELECT * FROM "User" WHERE "email" = \'jane@example.com\'', 'SELECT * FROM "User" WHERE "email" = ?'],
+      ['SELECT "col""umn" FROM t WHERE a = 1', 'SELECT "col""umn" FROM t WHERE a = ?'],
+      // PostgreSQL reads `#` as a bitwise operator, not a comment
+      ['SELECT * FROM t WHERE a # 1 = 2', 'SELECT * FROM t WHERE a # ? = ?'],
+      // `\` is an ordinary character, so the literal ends at the next quote
+      [String.raw`SELECT * FROM t WHERE path = 'C:\' AND b = 2`, 'SELECT * FROM t WHERE path = ? AND b = ?'],
+      // dollar-quoted strings (PostgreSQL), tagged and untagged
+      ["SELECT * FROM t WHERE a = $$O'Brien$$", 'SELECT * FROM t WHERE a = ?'],
+      ['SELECT * FROM t WHERE a = $tag$secret$tag$ AND b = $1', 'SELECT * FROM t WHERE a = ? AND b = $1'],
+      ['SELECT $$a$$, $$b$$ FROM t', 'SELECT ?, ? FROM t'],
+      // a `$` inside an identifier does not open a dollar quote, even when a dropped comment is
+      // what separates the two
+      ['SELECT a$$b FROM t WHERE c = 1', 'SELECT a$$b FROM t WHERE c = ?'],
+      ['SELECT a /* c */ $$secret$$ FROM t', 'SELECT a ? FROM t'],
+      ['SELECT a/* c */$$secret$$ FROM t', 'SELECT a? FROM t'],
+      // `$name` is a SQLite parameter placeholder, not a dollar quote
+      ['INSERT INTO t (a, b) VALUES ($name, $email)', 'INSERT INTO t (a, b) VALUES ($name, $email)'],
+      // national-character literals collapse with their prefix: `N'...'` in SQL Server (which
+      // requires the uppercase N) and in MySQL (which takes either case)
+      ["SELECT * FROM t WHERE name = N'Jane'", 'SELECT * FROM t WHERE name = ?'],
+      ["SELECT * FROM t WHERE name = n'Jane'", 'SELECT * FROM t WHERE name = ?'],
+      // ... unless the `N` belongs to the identifier before it. `MIN'x'` parses in no dialect. It
+      // guards against a name ending in N eating the quote after it.
+      ["SELECT MIN'x' FROM t", 'SELECT MIN? FROM t'],
+    ])('sanitizes %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input)).toBe(expected);
+      expect(sanitizeSqlQuery(input, 'standard')).toBe(expected);
+    });
+
+    // Known limit: SQLite reads `"..."` as a string when the name matches no column
+    // (`SQLITE_DQS`), and only the schema tells that apart from an identifier. Drivers that bind
+    // their values never emit this shape.
+    it('leaves a SQLite double-quoted string in place', () => {
+      expect(sanitizeSqlQuery('SELECT * FROM t WHERE a = "jane@example.com"')).toBe(
+        'SELECT * FROM t WHERE a = "jane@example.com"',
+      );
+    });
+  });
+
+  describe('dialect divergence', () => {
+    it.each([
+      // [input, standard, mysql]
+      ['SELECT * FROM t WHERE name = "Jane"', 'SELECT * FROM t WHERE name = "Jane"', 'SELECT * FROM t WHERE name = ?'],
+      ['SELECT * FROM t WHERE a = 1 # 2', 'SELECT * FROM t WHERE a = ? # ?', 'SELECT * FROM t WHERE a = ?'],
+      [
+        String.raw`SELECT * FROM t WHERE a = 'x\' AND b = 'Jane'`,
+        'SELECT * FROM t WHERE a = ? AND b = ?',
+        // MySQL reads `\'` as an escaped quote, so the literal runs to the quote before `Jane` and
+        // swallows the statement text. The server lexes it the same way, which leaves `Jane` a bare
+        // token here, not the value it looks like.
+        'SELECT * FROM t WHERE a = ?Jane?',
+      ],
+      // MySQL has no dollar quoting and allows `$` in identifiers, so it leaves `$...$` alone
+      ['SELECT $col$x FROM t WHERE a = 1', 'SELECT ?', 'SELECT $col$x FROM t WHERE a = ?'],
+      ['SELECT `a` FROM t WHERE b = 1', 'SELECT `a` FROM t WHERE b = ?', 'SELECT `a` FROM t WHERE b = ?'],
+    ])('%p sanitizes to %p (standard) and %p (mysql)', (input, standard, mysql) => {
+      expect(sanitizeSqlQuery(input, 'standard')).toBe(standard);
+      expect(sanitizeSqlQuery(input, 'mysql')).toBe(mysql);
+    });
+  });
+
+  describe("dialect: 'mssql'", () => {
+    it.each([
+      // `[...]` quotes an identifier, so a `'` inside one belongs to the name
+      ["SELECT * FROM [dbo].[user's] WHERE email = 'jane@example.com'", "SELECT * FROM [dbo].[user's] WHERE email = ?"],
+      // `]]` escapes a `]` inside the name
+      ['SELECT [a]]b] FROM [t] WHERE c = 1', 'SELECT [a]]b] FROM [t] WHERE c = ?'],
+      ['SELECT * FROM [dbo].[Customer Orders] WHERE id = @P1', 'SELECT * FROM [dbo].[Customer Orders] WHERE id = @P1'],
+      ["INSERT INTO [dbo].[users] ([name]) VALUES (N'Jane')", 'INSERT INTO [dbo].[users] ([name]) VALUES (?)'],
+      // T-SQL has no `E'...'` escape strings, so the `E` stays an identifier
+      ["SELECT * FROM t WHERE a = E'x'", 'SELECT * FROM t WHERE a = E?'],
+      // ... and no dollar quoting, where `$` is an ordinary identifier character
+      ['SELECT * FROM t WHERE a = $$x$$', 'SELECT * FROM t WHERE a = $$x$$'],
+      // `$n` is a money literal here, not the placeholder it is in PostgreSQL
+      ['SELECT * FROM t WHERE price = $1000', 'SELECT * FROM t WHERE price = $?'],
+      ['SELECT * FROM t WHERE price = $10.50', 'SELECT * FROM t WHERE price = $?'],
+    ])('sanitizes %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input, 'mssql')).toBe(expected);
+    });
+  });
+
+  describe('unterminated literals swallow the rest of the statement', () => {
+    it.each([
+      ["SELECT * FROM t WHERE a = 'jane@example.com AND b = 2", 'standard' as const],
+      ["SELECT * FROM t WHERE a = N'jane@example.com AND b = 2", 'standard' as const],
+      ['SELECT * FROM t WHERE a = $$jane@example.com AND b = 2', 'standard' as const],
+      ['SELECT * FROM t WHERE a = "jane@example.com AND b = 2', 'mysql' as const],
+      ["SELECT * FROM t WHERE a = 'jane@example.com AND b = 2", 'mysql' as const],
+    ])('drops the unterminated value in %p (%s)', (input, dialect) => {
+      expect(sanitizeSqlQuery(input, dialect)).toBe('SELECT * FROM t WHERE a = ?');
+    });
+
+    // An unterminated identifier quote is the same hazard: the rest of the statement is not a
+    // name, so copying it through would carry the literals in it out unlexed.
+    it.each([
+      ["SELECT * FROM [users WHERE email = 'jane@example.com'", 'mssql' as const],
+      ["SELECT * FROM \"users WHERE email = 'jane@example.com'", 'standard' as const],
+      ["SELECT * FROM `users WHERE email = 'jane@example.com'", 'mysql' as const],
+    ])('drops the unterminated identifier in %p (%s)', (input, dialect) => {
+      expect(sanitizeSqlQuery(input, dialect)).toBe('SELECT * FROM ?');
+    });
+
+    // The run ends on a doubled closer, which escapes the character rather than closing the name
+    it.each([
+      ["SELECT * FROM [t WHERE email = 'jane@example.com' AND x = [a]]", 'mssql' as const],
+      ['SELECT * FROM "t WHERE email = \'jane@example.com\' AND x = a""', 'standard' as const],
+      ["SELECT * FROM `t WHERE email = 'jane@example.com' AND x = a``", 'mysql' as const],
+    ])('drops an identifier left open by an escaped closer in %p (%s)', (input, dialect) => {
+      expect(sanitizeSqlQuery(input, dialect)).toBe('SELECT * FROM ?');
+    });
+  });
+
+  describe('representative statements per driver', () => {
+    it.each([
+      // pg / postgres-js: parameterized text passes through unchanged
+      [
+        'SELECT "User"."id" FROM "public"."User" WHERE "User"."email" = $1 AND "User"."age" > $2 LIMIT $3',
+        'SELECT "User"."id" FROM "public"."User" WHERE "User"."email" = $1 AND "User"."age" > $2 LIMIT $3',
+      ],
+      // pg: values inlined by the caller instead of bound
+      [
+        "SELECT * FROM users WHERE email = 'jane@example.com' AND created_at > '2024-01-01' ORDER BY id DESC LIMIT 10",
+        'SELECT * FROM users WHERE email = ? AND created_at > ? ORDER BY id DESC LIMIT ?',
+      ],
+      [
+        "UPDATE accounts SET balance = balance - 42.50, note = 'rent for jane' WHERE owner_email = 'jane@example.com'",
+        'UPDATE accounts SET balance = balance - ?, note = ? WHERE owner_email = ?',
+      ],
+      [
+        "DELETE FROM sessions WHERE token = 'sk_live_abc123' OR expires_at < NOW() - INTERVAL '7 days'",
+        'DELETE FROM sessions WHERE token = ? OR expires_at < NOW() - INTERVAL ?',
+      ],
+    ])('sanitizes PostgreSQL statement %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input)).toBe(expected);
+    });
+
+    it.each([
+      // mysql/mysql2 escape inlined values with backslashes and quote identifiers with backticks
+      [
+        "SELECT * FROM `users` WHERE `email` = 'o\\'brien@example.com' AND `active` = 1",
+        'SELECT * FROM `users` WHERE `email` = ? AND `active` = ?',
+      ],
+      [
+        "INSERT INTO `users` (`name`, `bio`) VALUES ('Jane', 'says \\\"hi\\\" a lot')",
+        'INSERT INTO `users` (`name`, `bio`) VALUES (?, ?)',
+      ],
+      [
+        'SELECT * FROM `users` WHERE `id` = ? AND `status` = ?',
+        'SELECT * FROM `users` WHERE `id` = ? AND `status` = ?',
+      ],
+      [
+        'UPDATE `orders` SET `note` = "customer said: don\'t ship" WHERE `id` = 7',
+        'UPDATE `orders` SET `note` = ? WHERE `id` = ?',
+      ],
+    ])('sanitizes MySQL statement %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input, 'mysql')).toBe(expected);
+    });
+
+    it.each([
+      // SQLite (D1, Nitro/Nuxt): `?`, `?n` and named placeholders survive, inlined values do not
+      [
+        "INSERT INTO users (name, email) VALUES ('Jane', 'jane@example.com')",
+        'INSERT INTO users (name, email) VALUES (?, ?)',
+      ],
+      [
+        'INSERT OR REPLACE INTO users (id, email) VALUES (?1, ?2)',
+        'INSERT OR REPLACE INTO users (id, email) VALUES (?1, ?2)',
+      ],
+      [
+        'SELECT * FROM users WHERE email = :email AND age > @minAge',
+        'SELECT * FROM users WHERE email = :email AND age > @minAge',
+      ],
+      ['PRAGMA table_info(users)', 'PRAGMA table_info(users)'],
+    ])('sanitizes SQLite statement %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input)).toBe(expected);
+    });
+
+    it.each([
+      // tedious (SQL Server): `@P1` placeholders survive, `N'...'` literals do not
+      [
+        'SELECT [id], [email] FROM [dbo].[users] WHERE [email] = @P1 AND [age] > @P2',
+        'SELECT [id], [email] FROM [dbo].[users] WHERE [email] = @P1 AND [age] > @P2',
+      ],
+      ["SELECT TOP 10 * FROM users WHERE email = N'jane@example.com'", 'SELECT TOP ? * FROM users WHERE email = ?'],
+      [
+        "INSERT INTO users (name, email) VALUES (N'Jane', N'jane@example.com')",
+        'INSERT INTO users (name, email) VALUES (?, ?)',
+      ],
+    ])('sanitizes SQL Server statement %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input, 'mssql')).toBe(expected);
+    });
+  });
+
   describe('regression: values must not survive as summary targets', () => {
     // A literal that survives sanitization and happens to contain `from`/`join`/`select` is read
     // as a table name by getSqlQuerySummary, which puts it in `db.query.summary` and — with span
     // streaming — in the span name.
     it.each([
-      ['SELECT * FROM users WHERE name = "from bob@secret.com"', 'bob@secret.com'],
-      ['SELECT * FROM users WHERE bio = "i come from Berlin and join clubs"', 'Berlin'],
-      ['INSERT INTO t (c) VALUES ("select from s3cret-token")', 's3cret-token'],
-      [String.raw`SELECT * FROM users WHERE name = 'O\'Brien from ACME'`, 'ACME'],
-      [String.raw`UPDATE t SET a = 'x\'y from Z' WHERE id = 5`, 'from Z'],
-    ])('strips the value out of %p', (input, value) => {
-      const sanitized = sanitizeSqlQuery(input, 'mysql');
+      ['mysql' as const, 'SELECT * FROM users WHERE name = "from bob@secret.com"', 'bob@secret.com'],
+      ['mysql' as const, 'SELECT * FROM users WHERE bio = "i come from Berlin and join clubs"', 'Berlin'],
+      ['mysql' as const, 'INSERT INTO t (c) VALUES ("select from s3cret-token")', 's3cret-token'],
+      ['mysql' as const, String.raw`SELECT * FROM users WHERE name = 'O\'Brien from ACME'`, 'ACME'],
+      ['mysql' as const, String.raw`UPDATE t SET a = 'x\'y from Z' WHERE id = 5`, 'from Z'],
+      ['standard' as const, "SELECT * FROM users WHERE name = 'from bob@secret.com'", 'bob@secret.com'],
+      ['standard' as const, 'SELECT * FROM users WHERE bio = $$i come from Berlin and join clubs$$', 'Berlin'],
+      ['standard' as const, 'INSERT INTO t (c) VALUES ($tag$select from s3cret-token$tag$)', 's3cret-token'],
+      ['standard' as const, "SELECT * FROM users WHERE name = N'from ACME'", 'ACME'],
+      ['standard' as const, String.raw`UPDATE t SET a = E'x\'y from Z' WHERE id = 5`, 'from Z'],
+      ['mssql' as const, "SELECT * FROM [dbo].[users] WHERE note = 'from bob@secret.com'", 'bob@secret.com'],
+    ])('strips the value out of %s statement %p', (dialect, input, value) => {
+      const sanitized = sanitizeSqlQuery(input, dialect);
       expect(sanitized).not.toContain(value);
       expect(getSqlQuerySummary(sanitized)).not.toContain(value);
     });
+  });
+});
+
+describe('sanitizeSqlQueryWithSummary', () => {
+  it('returns the sanitized statement and its summary', () => {
+    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
+      queryText: 'SELECT * FROM users WHERE email = ?',
+      querySummary: 'SELECT users',
+    });
+  });
+
+  it('passes the dialect through to the sanitizer', () => {
+    expect(sanitizeSqlQueryWithSummary('SELECT * FROM users WHERE email = "jane@example.com"', 'mysql')).toEqual({
+      queryText: 'SELECT * FROM users WHERE email = ?',
+      querySummary: 'SELECT users',
+    });
+  });
+
+  it('returns undefined for both when there is no statement', () => {
+    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({ queryText: undefined, querySummary: undefined });
+    expect(sanitizeSqlQueryWithSummary('')).toEqual({ queryText: undefined, querySummary: undefined });
+  });
+});
+
+describe('toSqlDialect', () => {
+  it.each([
+    ['mysql', 'mysql'],
+    ['mysql2', 'mysql'],
+    ['mariadb', 'mysql'],
+    ['mssql', 'mssql'],
+    ['sqlserver', 'mssql'],
+    ['microsoft.sql_server', 'mssql'],
+  ])('maps %j to %j', (system, expected) => {
+    expect(toSqlDialect(system)).toBe(expected);
+  });
+
+  it.each(['postgresql', 'sqlite', 'oracle', '', undefined])('falls back to standard for %j', system => {
+    expect(toSqlDialect(system)).toBe('standard');
+  });
+});
+
+describe('sanitizeSqlQueryWithSummary', () => {
+  it('returns the sanitized statement and its summary', () => {
+    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
+      queryText: 'SELECT * FROM users WHERE email = ?',
+      querySummary: 'SELECT users',
+    });
+  });
+
+  it.each([
+    ['mysql' as const, 'SELECT * FROM users WHERE email = "jane@example.com"'],
+    ['standard' as const, "SELECT * FROM users WHERE email = 'jane@example.com'"],
+    ['standard' as const, 'SELECT * FROM users WHERE email = $$jane@example.com$$'],
+    ['standard' as const, "SELECT * FROM users WHERE email = N'jane@example.com'"],
+  ])('passes the %s dialect through to the sanitizer: %p', (dialect, input) => {
+    expect(sanitizeSqlQueryWithSummary(input, dialect)).toEqual({
+      queryText: 'SELECT * FROM users WHERE email = ?',
+      querySummary: 'SELECT users',
+    });
+  });
+
+  it('passes the mssql dialect through, so a quote inside a bracketed name stays part of the name', () => {
+    expect(sanitizeSqlQueryWithSummary("SELECT * FROM [users] WHERE [email] = 'jane@example.com'", 'mssql')).toEqual({
+      queryText: 'SELECT * FROM [users] WHERE [email] = ?',
+      querySummary: 'SELECT [users]',
+    });
+  });
+
+  it('derives the summary from the sanitized statement, not the raw one', () => {
+    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE bio = 'from secret_table'")).toEqual({
+      queryText: 'SELECT * FROM users WHERE bio = ?',
+      querySummary: 'SELECT users',
+    });
+  });
+
+  it('returns undefined for both when there is no statement', () => {
+    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({ queryText: undefined, querySummary: undefined });
+    expect(sanitizeSqlQueryWithSummary('')).toEqual({ queryText: undefined, querySummary: undefined });
   });
 });
