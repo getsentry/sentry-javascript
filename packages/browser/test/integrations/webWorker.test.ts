@@ -5,6 +5,7 @@
 import * as SentryCore from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { isError } from '@sentry/core';
 import { BrowserClient } from '../../src/client';
 import * as helpers from '../../src/helpers';
 import { INTEGRATION_NAME, registerWebWorker, webWorkerIntegration } from '../../src/integrations/webWorker';
@@ -628,7 +629,7 @@ describe('registerWebWorker', () => {
         mockWorkerSelf.postMessage.mockImplementation(message => structuredClone(message));
       });
 
-      it('retries with a fresh error that keeps message and stack but drops the cause', () => {
+      it('retries with a plain copy that keeps message and stack but drops the cause', () => {
         registerWebWorker({ self: mockWorkerSelf as any });
 
         const error = new Error('boom') as Error & { cause?: unknown };
@@ -641,9 +642,30 @@ describe('registerWebWorker', () => {
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
           _sentryWorkerError: expect.objectContaining({
-            reason: expect.objectContaining({ message: 'boom', stack: error.stack }),
+            reason: { message: 'boom', stack: error.stack },
+            plainError: true,
             name: 'Error',
             kind: 'error',
+          }),
+        });
+      });
+
+      it('sends only plain data when the browser cannot clone errors at all', () => {
+        registerWebWorker({ self: mockWorkerSelf as any });
+        mockWorkerSelf.postMessage.mockImplementation(message => {
+          if (isError(message._sentryWorkerError?.reason)) {
+            throw new DOMException('could not be cloned', 'DataCloneError');
+          }
+        });
+
+        const error = new Error('boom');
+        trigger('error', { error });
+
+        expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+          _sentryMessage: true,
+          _sentryWorkerError: expect.objectContaining({
+            reason: { message: 'boom', stack: error.stack },
+            plainError: true,
           }),
         });
       });
@@ -658,7 +680,8 @@ describe('registerWebWorker', () => {
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
           _sentryWorkerError: expect.objectContaining({
-            reason: expect.objectContaining({ message: 'wasm exception', stack: exception.stack }),
+            reason: { message: 'wasm exception', stack: exception.stack },
+            plainError: true,
             name: 'WebAssembly.Exception',
           }),
         });
@@ -673,6 +696,7 @@ describe('registerWebWorker', () => {
           _sentryMessage: true,
           _sentryWorkerError: expect.objectContaining({
             reason: { retry: '[Function: retry]' },
+            plainError: false,
             kind: 'unhandledrejection',
           }),
         });
@@ -906,6 +930,20 @@ describe('forwarded worker errors', () => {
           expect.objectContaining({ filename: 'http://localhost:8080/worker.js' }),
         ]),
       },
+    });
+  });
+
+  it('rebuilds an error from a plain copy and restores its name', () => {
+    const stack = ['RuntimeError: divide by zero', '    at runStepGame (http://localhost:8080/worker.js:12:9)'].join(
+      '\n',
+    );
+
+    forward({ reason: { message: 'divide by zero', stack }, plainError: true, name: 'RuntimeError', kind: 'error' });
+
+    expectCapturedException({
+      type: 'RuntimeError',
+      value: 'divide by zero',
+      stacktrace: { frames: [expect.objectContaining({ filename: 'http://localhost:8080/worker.js', lineno: 12 })] },
     });
   });
 

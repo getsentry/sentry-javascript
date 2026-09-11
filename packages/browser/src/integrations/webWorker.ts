@@ -44,6 +44,8 @@ interface SerializedWorkerError {
   url?: string;
   lineno?: number;
   colno?: number;
+  /** Set when `reason` is a plain `{ message, stack }` copy of an error that did not clone. */
+  plainError?: boolean;
 }
 
 interface WebWorkerIntegrationOptions {
@@ -213,9 +215,11 @@ function handleForwardedWorkerError(workerError: SerializedWorkerError): void {
 
   const { stackParser, attachStacktrace } = client.getOptions();
 
-  const { reason: error, kind, name, filename, url, lineno, colno } = workerError;
+  const { reason, kind, name, filename, url, lineno, colno, plainError } = workerError;
   // Older workers only ever forwarded rejections and send no `kind`.
   const isUnhandledRejection = kind !== 'error';
+
+  const error = plainError && isPlainObject(reason) ? errorFromPlain(reason) : reason;
 
   if (name && isError(error) && error.name !== name) {
     addNonEnumerableProperty(error, 'name', name);
@@ -354,8 +358,10 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
 
 /**
  * `postMessage` structured-clones the reason. A `DataCloneError` must never
- * escape the worker's own error handler, so the forward is retried with a
- * cloneable stand-in that keeps as much of the original as possible.
+ * escape the worker's own error handler, so the forward is retried with
+ * plain data. The page suppresses the bubbled copy of every error once the
+ * worker has announced itself, so the retry must clone in every browser,
+ * including ones that cannot clone `Error` at all.
  */
 function postSerializedWorkerError(
   self: MinimalDedicatedWorkerGlobalScope,
@@ -368,28 +374,27 @@ function postSerializedWorkerError(
     });
     return;
   } catch {
-    // Not cloneable, fall through and send a stand-in instead.
+    // Not cloneable, fall through and send plain data instead.
   }
 
   const { reason } = serializedError;
-  // A fresh Error keeps message and stack but drops the `cause` that blocked
-  // the clone. `normalize` only produces cloneable output for everything else.
-  const cloneableReason = isError(reason) ? cloneableErrorFrom(reason) : normalize(reason);
+  const plainError = isError(reason);
+  const plainReason = plainError ? { message: extractMessage(reason), stack: reason.stack } : normalize(reason);
 
   try {
     self.postMessage({
       _sentryMessage: true,
-      _sentryWorkerError: { ...serializedError, reason: cloneableReason },
+      _sentryWorkerError: { ...serializedError, reason: plainReason, plainError },
     });
   } catch {
     // Dropping the forward is better than throwing out of the worker's error handler.
   }
 }
 
-function cloneableErrorFrom(error: Error): Error {
-  const clone = new Error(extractMessage(error));
-  clone.stack = error.stack;
-  return clone;
+function errorFromPlain(plain: Record<string, unknown>): Error {
+  const error = new Error(String(plain.message));
+  error.stack = typeof plain.stack === 'string' ? plain.stack : undefined;
+  return error;
 }
 
 function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
