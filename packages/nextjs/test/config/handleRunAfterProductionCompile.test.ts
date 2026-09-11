@@ -740,4 +740,46 @@ describe('stripSourceMappingURLComments', () => {
       expect(content).not.toContain('sourceMappingURL');
     }
   });
+
+  it('does not modify minified files with a sourceMappingURL marker inside a string literal', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'minified.js');
+    const originalContent = `const worker = 'self.onmessage = () => {};\\n//# sourceMappingURL=worker.js.map\\n'; use(worker);`;
+    await fs.promises.writeFile(filePath, originalContent);
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe(originalContent);
+  });
+
+  it('does not modify files ending with a template literal containing a sourceMappingURL marker', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'template.js');
+    const originalContent = 'const s = `line1\n//# sourceMappingURL=worker.js.map`;';
+    await fs.promises.writeFile(filePath, originalContent);
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe(originalContent);
+  });
+
+  it('strips sourceMappingURL comment from files consisting only of the comment', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'comment-only.js');
+    await fs.promises.writeFile(filePath, '//# sourceMappingURL=comment-only.js.map');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('');
+  });
+
+  it('strips sourceMappingURL comment with a data: URI', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'inline.js');
+    await fs.promises.writeFile(filePath, 'var a = 1;\n//# sourceMappingURL=data:application/json;base64,eyJ2IjozfQ==');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('var a = 1;');
+  });
 });

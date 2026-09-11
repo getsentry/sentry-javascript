@@ -137,8 +137,8 @@ async function warnAboutUncoveredSourcemaps(
   }
 }
 
-const SOURCEMAPPING_URL_COMMENT_REGEX = /\n?\/\/[#@] sourceMappingURL=[^\n]+$/;
-const CSS_SOURCEMAPPING_URL_COMMENT_REGEX = /\n?\/\*[#@] sourceMappingURL=[^\n]+\*\/$/;
+const SOURCEMAPPING_URL_COMMENT_REGEX = /(?:^|\n)\/\/[#@] sourceMappingURL=[^\s'"`]+$/;
+const CSS_SOURCEMAPPING_URL_COMMENT_REGEX = /(?:^|\n)\/\*[#@] sourceMappingURL=[^\n]+\*\/$/;
 
 /**
  * Strips sourceMappingURL comments from all JS/MJS/CJS/CSS files in the given directory.
