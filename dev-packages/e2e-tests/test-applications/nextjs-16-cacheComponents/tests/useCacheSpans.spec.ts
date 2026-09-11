@@ -111,9 +111,9 @@ test('Should create cache spans for `use cache` inside a rendered page', async (
 });
 
 test('Should report an expired entry as a miss and refill it', async ({ request }) => {
-  // The dev server serves `use cache` entries past their `expire` limit, so the expiry path only
-  // exists in production builds.
-  test.skip(process.env.TEST_ENV !== 'production', 'Entries only hard-expire in production');
+  // `next dev` keeps every entry for at least 5 minutes, even when its `expire` is shorter. So in
+  // dev, the delayed request below still gets the cached value, and the entry never expires here.
+  test.skip(process.env.TEST_ENV !== 'production', 'Entries are only discarded at `expire` in production');
 
   const id = crypto.randomUUID();
 
