@@ -251,6 +251,50 @@ describe('wrapMethodWithSentry', () => {
       );
     });
 
+    it('sets code.function.name on function spans', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const handler = vi.fn().mockResolvedValue('result');
+      const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
+        options: {},
+        context: createMockContext(),
+        spanName: 'fetch',
+        spanOp: 'function',
+      };
+
+      const wrapped = wrapMethodWithSentry(options, handler, 'fetch');
+      await wrapped();
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({ 'code.function.name': 'fetch' }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('does not set code.function.name on spans with a different op', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const handler = vi.fn().mockResolvedValue('result');
+      const options = {
+        origin: 'auto.faas.cloudflare.durable_object',
+        options: {},
+        context: createMockContext(),
+        spanName: 'fetch',
+        spanOp: 'test-op',
+      };
+
+      const wrapped = wrapMethodWithSentry(options, handler, 'fetch');
+      await wrapped();
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({ 'code.function.name': expect.anything() }),
+        }),
+        expect.any(Function),
+      );
+    });
+
     it('does not create span when spanName is not provided', async () => {
       const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
       const handler = vi.fn().mockResolvedValue('result');
