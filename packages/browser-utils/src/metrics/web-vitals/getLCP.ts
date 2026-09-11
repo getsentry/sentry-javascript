@@ -58,6 +58,9 @@ export const onLCP = (onReport: (metric: LCPMetric) => void, opts: ReportOpts = 
       }
 
       for (const entry of entries) {
+        // Upstream has this guard too; a patched PerformanceObserver can yield nullish entries.
+        if (!entry) continue;
+
         lcpEntryManager._processEntry(entry);
 
         // Only report if the page wasn't hidden prior to LCP.
