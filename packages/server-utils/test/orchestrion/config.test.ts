@@ -4,9 +4,11 @@ import {
   INSTRUMENTED_MODULE_NAMES,
   instrumentedModuleNames,
   SENTRY_INSTRUMENTATIONS,
+  SENTRY_RUNTIME_INSTRUMENTATIONS,
   withoutInstrumentedExternals,
 } from '../../src/orchestrion/config';
 import { CHANNEL_INTEGRATION_DEFINITIONS } from '../../src/orchestrion/config/channel-integration-definitions';
+import { MODULE_REGISTRATION_TRANSFORM } from '../../src/orchestrion/config/registration-only';
 
 describe('orchestrion config — scoped @hapi/hapi module', () => {
   it('includes the scoped @hapi/hapi name in INSTRUMENTED_MODULE_NAMES', () => {
@@ -53,5 +55,53 @@ describe('orchestrion config — custom instrumentations', () => {
   it('leaves custom instrumentation packages externalized when only the defaults are used', () => {
     const external = ['react', 'my-lib'];
     expect(withoutInstrumentedExternals(external)).toEqual(['react', 'my-lib']);
+  });
+});
+
+describe('orchestrion config — SENTRY_RUNTIME_INSTRUMENTATIONS', () => {
+  // The runtime loader has no custom transforms, so a registration-only config
+  // (its `transform` is the bundler-only `MODULE_REGISTRATION_TRANSFORM`) throws
+  // `transform is not a function` there. These are excluded from the runtime set;
+  // the bundler keeps the full `SENTRY_INSTRUMENTATIONS`.
+  it('only keeps configs the transform-less runtime loader can actually apply', () => {
+    // The filter is only meaningful if some configs carry a custom transform to drop.
+    expect(SENTRY_INSTRUMENTATIONS.some(c => c.transform)).toBe(true);
+
+    // The invariant: the runtime loader registers no custom transforms, so any config
+    // carrying one (not just MODULE_REGISTRATION_TRANSFORM) throws there. Every runtime
+    // config must therefore be transform-less — this is what we need to hold even if a
+    // future feature adds a different named transform.
+    expect(SENTRY_RUNTIME_INSTRUMENTATIONS.every(c => !c.transform)).toBe(true);
+  });
+
+  it('keeps every transform-less config, dropping only the ones with a custom transform', () => {
+    // Nothing the runtime can apply is lost: each transform-less config from the full
+    // set survives (by reference), and the runtime set adds nothing extra.
+    for (const config of SENTRY_INSTRUMENTATIONS.filter(c => !c.transform)) {
+      expect(SENTRY_RUNTIME_INSTRUMENTATIONS).toContain(config);
+    }
+    expect(SENTRY_RUNTIME_INSTRUMENTATIONS).toHaveLength(SENTRY_INSTRUMENTATIONS.filter(c => !c.transform).length);
+  });
+
+  it('excludes only the native-channel modules, and only via their registration-only config', () => {
+    const registrationOnlyModules = [
+      ...new Set(
+        SENTRY_INSTRUMENTATIONS.filter(c => c.transform === MODULE_REGISTRATION_TRANSFORM).map(c => c.module.name),
+      ),
+    ].sort();
+
+    // These native-channel libraries are known to use a registration-only config
+    // today. Asserted as a subset (not the exact set) so adding another such
+    // library does not break this test.
+    expect(registrationOnlyModules).toEqual(
+      expect.arrayContaining(['@redis/client', 'ai', 'ioredis', 'mongoose', 'mysql2']),
+    );
+
+    // The exclusion is per-config, not per-module: a module with both a
+    // registration-only (native) config and older transform-based configs keeps
+    // the latter at runtime. `ai` (v7 native + v4–6 transforms) is one such case.
+    const runtimeAiConfigs = SENTRY_RUNTIME_INSTRUMENTATIONS.filter(c => c.module.name === 'ai');
+    expect(runtimeAiConfigs.length).toBeGreaterThan(0);
+    expect(runtimeAiConfigs.every(c => !c.transform)).toBe(true);
   });
 });

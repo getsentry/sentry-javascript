@@ -259,6 +259,8 @@ describe('instrumentScheduled', () => {
         data: {
           'sentry.origin': 'auto.faas.cloudflare.scheduled',
           'sentry.op': 'function',
+          'sentry.description': 'Scheduled Cron 0 0 0 * * *',
+          'code.function.name': 'scheduled',
           'faas.cron': '0 0 0 * * *',
           'faas.time': expect.any(String),
           'faas.trigger': 'timer',
@@ -271,6 +273,32 @@ describe('instrumentScheduled', () => {
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
+    });
+
+    async function spanNameFor(traceLifecycle: 'static' | 'stream'): Promise<string | undefined> {
+      let spanName: string | undefined;
+
+      const handler = {
+        scheduled(_controller, _env, _context) {
+          // Read the name while the handler is in flight: the gate applies at span start.
+          const activeSpan = SentryCore.getActiveSpan();
+          spanName = activeSpan ? SentryCore.spanToJSON(SentryCore.getRootSpan(activeSpan)).name : undefined;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1, traceLifecycle }), handler);
+
+      await wrappedHandler.scheduled?.(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+
+      return spanName;
+    }
+
+    test('keeps the cron out of the span name when span streaming is enabled', async () => {
+      expect(await spanNameFor('stream')).toBe('scheduled');
+    });
+
+    test('keeps the descriptive span name when span streaming is disabled', async () => {
+      expect(await spanNameFor('static')).toBe('Scheduled Cron 0 0 0 * * *');
     });
   });
 

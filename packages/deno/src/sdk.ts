@@ -1,6 +1,7 @@
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import {
+  conversationIdIntegration,
   createStackParser,
   dedupeIntegration,
   eventFiltersIntegration,
@@ -37,6 +38,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
+    conversationIdIntegration(),
     // Deno Specific
     breadcrumbsIntegration(),
     denoContextIntegration(),
