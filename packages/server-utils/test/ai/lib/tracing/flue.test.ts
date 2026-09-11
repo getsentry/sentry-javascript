@@ -7,6 +7,7 @@ import {
   getMainCarrier,
   setCurrentClient,
   spanToStaticSpanJSON,
+  startInactiveSpan,
   startSpan,
 } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../../../src/ai/anthropic-ai/constants';
@@ -265,6 +266,36 @@ describe('createFlueInstrumentation', () => {
     await instrumentation.interceptor({ type: 'model', turnId: 'turn_1' }, {}, async () => undefined);
 
     expect(endedSpans).toHaveLength(0);
+  });
+
+  // The `model` and `tool` operations open no span of their own; they make the span `observe`
+  // already opened active, so the provider's HTTP call and the tool's own work nest inside it
+  // rather than landing beside it as siblings of the agent invocation.
+  it('makes the turn span active for the model operation it wraps', async () => {
+    await withAgent(async () => {
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
+      await instrumentation.interceptor({ type: 'model', turnId: 'turn_1' }, {}, async () => {
+        startInactiveSpan({ name: 'provider request' }).end();
+      });
+      instrumentation.observe(turn(), {});
+    });
+
+    expect(findSpan('provider request')?.parent_span_id).toBe(findSpan('chat claude-haiku-4.5')?.span_id);
+  });
+
+  it('makes the tool span active for the tool operation it wraps', async () => {
+    await withAgent(async () => {
+      instrumentation.observe(
+        { type: 'tool_start', toolCallId: 'call_1', toolName: 'get_weather', operationId: 'op_1' },
+        {},
+      );
+      await instrumentation.interceptor({ type: 'tool', toolCallId: 'call_1' }, {}, async () => {
+        startInactiveSpan({ name: 'tool work' }).end();
+      });
+      instrumentation.observe({ type: 'tool', toolCallId: 'call_1', toolName: 'get_weather', operationId: 'op_1' }, {});
+    });
+
+    expect(findSpan('tool work')?.parent_span_id).toBe(findSpan('execute_tool get_weather')?.span_id);
   });
 
   it('opens a chat span on turn_start and completes it from the settled turn', async () => {
