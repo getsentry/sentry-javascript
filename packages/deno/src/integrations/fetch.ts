@@ -82,6 +82,6 @@ const _fetchIntegration = ((options: FetchOptions = {}) => {
 
 /**
  * Instruments outgoing `fetch` requests in Deno by creating spans and attaching trace propagation headers.
- * The separate breadcrumbs integration continues to record fetch breadcrumbs.
+ * The separate breadcrumbs integration records fetch breadcrumbs.
  */
 export const fetchIntegration = defineIntegration(_fetchIntegration);

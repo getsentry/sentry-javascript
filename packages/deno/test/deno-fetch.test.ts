@@ -42,14 +42,11 @@ Deno.test({
     resetGlobals();
 
     const abortController = new AbortController();
-    let onListen: ((value: unknown) => void) | undefined;
-    const listening = new Promise(resolve => (onListen = resolve));
     let receivedHeaders: Headers | undefined;
-    const server = Deno.serve({ port: 0, signal: abortController.signal, onListen, hostname: '127.0.0.1' }, request => {
+    const server = Deno.serve({ port: 0, signal: abortController.signal, onListen() {}, hostname: '127.0.0.1' }, request => {
       receivedHeaders = request.headers;
       return new Response('ok');
     });
-    await listening;
 
     try {
       const url = `http://127.0.0.1:${server.addr.port}/downstream`;
