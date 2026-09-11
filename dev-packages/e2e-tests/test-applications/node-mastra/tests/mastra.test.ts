@@ -17,35 +17,52 @@ const describeSpan = (span: SerializedStreamedSpan): { op: string | undefined; n
   name: span.name,
   origin: attrValue(span, 'sentry.origin'),
 });
+// All tests share one app + proxy, so we scope each to its own trace by the unique
+// tool it triggers — otherwise a test could match another test's agent-run trace
+// (they all share the same gen_ai ops).
+const callsTool =
+  (toolName: string) =>
+  (span: SerializedStreamedSpan): boolean =>
+    isOp('gen_ai.execute_tool')(span) && attrValue(span, 'gen_ai.tool.name') === toolName;
 
 test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs/outputs and conversation id', async ({
   baseURL,
 }) => {
   const thread = `e2e-thread-${Date.now()}`;
 
-  // The agent run, its model call and the tool call all land in one trace. The
-  // parent `invoke_agent` span can flush in a separate envelope from its
-  // children, so accumulate the trace's spans across envelopes until every
-  // expected gen_ai op has arrived. Match on op alone (not origin), so a
-  // double-instrumented span is collected too and caught by the assertions below.
-  const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
-    ['gen_ai.invoke_agent', 'gen_ai.chat', 'gen_ai.execute_tool'].every(op => spansOfTrace.some(isOp(op))),
+  // Accumulate this turn's trace — identified by its `get_weather` tool call —
+  // across envelopes until the agent/model spans have also arrived. Tool spans are
+  // matched by op alone (not origin), so a double-instrumented span is collected
+  // too and caught by the assertions below.
+  const traceSpansPromise = collectStreamedSpans(
+    APP,
+    spansOfTrace =>
+      spansOfTrace.some(callsTool('get_weather')) &&
+      ['gen_ai.invoke_agent', 'gen_ai.chat'].every(op => spansOfTrace.some(isOp(op))),
   );
 
   await runAgentTurn(baseURL!, 'What is the weather in Paris?', { thread, resource: 'e2e-user' });
 
   const traceSpans = await traceSpansPromise;
 
-  // No double instrumentation - ensure there are no gen ai spans with another origin
+  // No double instrumentation. Mastra drives the Vercel AI SDK internally, so
+  // Sentry's vercel-ai integration could also emit spans for the same calls. The
+  // Mastra integration must be the only source of AI spans: every gen_ai span is
+  // `auto.ai.mastra`, and there must be no vercel-ai spans in the trace at all.
   expect(
     traceSpans
       .filter(span => isGenAiSpan(span) && attrValue(span, 'sentry.origin') !== MASTRA_ORIGIN)
       .map(describeSpan),
   ).toEqual([]);
+  expect(
+    traceSpans
+      .filter(span => String(attrValue(span, 'sentry.origin') ?? '').startsWith('auto.vercelai'))
+      .map(describeSpan),
+  ).toEqual([]);
 
   const invokeAgent = traceSpans.find(isOp('gen_ai.invoke_agent'));
   const chat = traceSpans.find(isOp('gen_ai.chat'));
-  const executeTool = traceSpans.find(isOp('gen_ai.execute_tool'));
+  const executeTool = traceSpans.find(callsTool('get_weather'));
 
   // Agent span.
   expect(attrValue(invokeAgent!, 'gen_ai.operation.name')).toBe('invoke_agent');
@@ -94,14 +111,17 @@ test('records a bubbled-up Mastra tool error on the span', async ({ baseURL }) =
   // and nothing here re-captures the bubbled-up error. Whether the SDK should
   // capture such errors automatically is a follow-up — see
   // https://github.com/getsentry/sentry-javascript (Mastra integration).
+  //
+  // `fail_now` is unique to this test, so its errored tool span isolates this
+  // turn's trace from the other tests sharing the proxy.
   const erroredToolSpanPromise = collectStreamedSpans(APP, spansOfTrace =>
-    spansOfTrace.some(span => isOp('gen_ai.execute_tool')(span) && Boolean(attrValue(span, 'error.type'))),
+    spansOfTrace.some(span => callsTool('fail_now')(span) && Boolean(attrValue(span, 'error.type'))),
   );
 
   await runAgentTurn(baseURL!, 'Please call the tool that triggers a failure now.');
 
   const spans = await erroredToolSpanPromise;
-  const erroredTool = spans.find(span => isOp('gen_ai.execute_tool')(span) && Boolean(attrValue(span, 'error.type')));
+  const erroredTool = spans.find(span => callsTool('fail_now')(span) && Boolean(attrValue(span, 'error.type')));
 
   // The errored tool span comes from the Mastra exporter (no double instrumentation).
   expect(attrValue(erroredTool!, 'sentry.origin')).toBe(MASTRA_ORIGIN);

@@ -5,11 +5,14 @@ import { LibSQLStore } from '@mastra/libsql';
 import { failNowTool } from '../tools/fail-now.js';
 import { getWeatherTool } from '../tools/get-weather.js';
 
+const apiKey = process.env.E2E_OPENROUTER_API_KEY;
+if (!apiKey) {
+  throw new Error('E2E_OPENROUTER_API_KEY is not set');
+}
+
 // Call OpenRouter directly (rather than the default Vercel AI Gateway) so the
 // e2e test needs only a single OpenRouter key, reusing `E2E_OPENROUTER_API_KEY`.
-const openrouter = createOpenRouter({
-  apiKey: process.env.E2E_OPENROUTER_API_KEY,
-});
+const openrouter = createOpenRouter({ apiKey });
 
 // An in-memory libsql store is enough for the test: Mastra requires a storage
 // provider before `generate(..., { memory: { thread, resource } })` is accepted,
