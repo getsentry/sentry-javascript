@@ -8,11 +8,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
+import { GEN_AI_AGENT_NAME, GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/mistral';
 import { instrumentStream } from '../ai/mistral/streaming';
 import type { MistralOptions } from '../ai/mistral/types';
-import { addResponseAttributes, getModelForSpanName } from '../ai/mistral/utils';
+import { addResponseAttributes } from '../ai/mistral/utils';
 import { CHANNELS } from '../orchestrion/channels';
 import { mistralModuleNames } from '../orchestrion/config/mistral';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -81,7 +82,9 @@ function createGenAiSpan(data: MistralChannelContext, operation: string, options
 
   const attributes = extractRequestAttributes(args, operation, recordInputs);
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
-  const model = getModelForSpanName(params, operation);
+  // Agent calls carry no model, so their span name uses the agent id (recorded as gen_ai.agent.name).
+  const model =
+    (attributes[operation === 'invoke_agent' ? GEN_AI_AGENT_NAME : GEN_AI_REQUEST_MODEL] as string) || 'unknown';
   const client = getClient();
 
   const span = startInactiveSpan({

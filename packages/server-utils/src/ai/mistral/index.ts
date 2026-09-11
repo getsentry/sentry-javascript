@@ -14,6 +14,7 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
@@ -28,7 +29,7 @@ import {
 import { MISTRAL_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { MistralOptions } from './types';
-import { addResponseAttributes, extractRequestParameters, getModelForSpanName } from './utils';
+import { addResponseAttributes, extractRequestParameters } from './utils';
 
 /**
  * Serialize tool definitions from request parameters, if present.
@@ -112,7 +113,10 @@ function instrumentMethod<T extends unknown[], R>(
     const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
 
     const params = args[0] as Record<string, unknown> | undefined;
-    const model = getModelForSpanName(params, operationName);
+    // Agent calls carry no model, so their span name uses the agent id (recorded as gen_ai.agent.name).
+    const model =
+      (requestAttributes[operationName === 'invoke_agent' ? GEN_AI_AGENT_NAME : GEN_AI_REQUEST_MODEL] as string) ||
+      'unknown';
     // `*.stream` methods are always streaming; `complete` methods stream only with `stream: true`.
     const isStreamRequested = !!instrumentedMethod.streaming || params?.stream === true;
     const client = getClient();

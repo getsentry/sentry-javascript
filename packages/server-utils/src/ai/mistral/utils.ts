@@ -20,17 +20,6 @@ import {
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 
 /**
- * The token that follows the operation in a span name. Agents have no `model` at request time,
- * so their span is named after the invoked agent id instead.
- */
-export function getModelForSpanName(params: Record<string, unknown> | undefined, operationName: string): string {
-  if (operationName === 'invoke_agent') {
-    return (params?.agentId as string) || 'unknown';
-  }
-  return (params?.model as string) || 'unknown';
-}
-
-/**
  * Turn a Mistral message content (string or content-chunk array) into a plain string.
  */
 function contentToString(content: unknown): string {
