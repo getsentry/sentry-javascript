@@ -850,11 +850,11 @@ describe('soft navigation web vitals', () => {
     const calls = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls;
     expect(calls).toHaveLength(2);
     expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
-    expect(calls[0]![0].attributes?.['browser.soft_navigation.id']).toBeUndefined();
+    expect(calls[0]![0].attributes?.['browser.navigation.id']).toBeUndefined();
     expect(calls[0]![0].attributes?.['browser.navigation.type']).toBe('navigate');
     expect(calls[0]![0].parentSpan).toBe(pageloadSpan);
     expect(calls[1]![0].attributes?.['browser.web_vital.lcp.value']).toBe(300);
-    expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
+    expect(calls[1]![0].attributes?.['browser.navigation.id']).toBe(2);
     expect(calls[1]![0].attributes?.['browser.navigation.type']).toBe('soft-navigation');
     expect(calls[1]![0].parentSpan).toBe(navigationSpan);
   });
@@ -973,7 +973,7 @@ describe('soft navigation web vitals', () => {
 
     const call = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls[0]![0];
     expect(call.attributes?.['browser.web_vital.cls.value']).toBe(0);
-    expect(call.attributes?.['browser.soft_navigation.id']).toBe(2);
+    expect(call.attributes?.['browser.navigation.id']).toBe(2);
     expect(call.parentSpan).toBe(navigationSpan);
   });
 
@@ -999,9 +999,9 @@ describe('soft navigation web vitals', () => {
     const calls = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls;
     expect(calls).toHaveLength(2);
     expect(calls[0]![0].parentSpan).toBe(pageloadSpan);
-    expect(calls[0]![0].attributes?.['browser.soft_navigation.id']).toBeUndefined();
+    expect(calls[0]![0].attributes?.['browser.navigation.id']).toBeUndefined();
     expect(calls[1]![0].parentSpan).toBe(navigationSpan);
-    expect(calls[1]![0].attributes?.['browser.soft_navigation.id']).toBe(2);
+    expect(calls[1]![0].attributes?.['browser.navigation.id']).toBe(2);
   });
 
   it('still reports INP when web-vitals has no entry to describe it', () => {
@@ -1026,7 +1026,7 @@ describe('soft navigation web vitals', () => {
     // these fast navigations are not excluded from INP aggregations.
     expect(call.attributes?.['sentry.op']).toBe('ui.interaction.click');
     expect(call.attributes?.['browser.web_vital.inp.value']).toBe(8);
-    expect(call.attributes?.['browser.soft_navigation.id']).toBe(2);
+    expect(call.attributes?.['browser.navigation.id']).toBe(2);
     expect(call.parentSpan).toBe(navigationSpan);
   });
 
