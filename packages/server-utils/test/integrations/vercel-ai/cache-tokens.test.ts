@@ -15,11 +15,6 @@ import {
 } from '../../../src/integrations/vercel-ai/vercel-ai-dc-subscriber';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
-/**
- * The AI SDK normalizes cache token counts into its usage object. `providerMetadata` carries them
- * only under a provider key, so through the AI Gateway (`gateway` key) the usage object is the only
- * source.
- */
 describe('Vercel AI SDK cache tokens', () => {
   beforeEach(() => {
     getMainCarrier().__SENTRY__ = undefined;
@@ -139,6 +134,22 @@ describe('Vercel AI SDK cache tokens', () => {
 
     expect(data[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]).toBe(81);
     expect(data[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]).toBe(21);
+  });
+
+  it('keeps the aggregated SDK counts on a root operation over last-step providerMetadata', () => {
+    const data = runSpan('generateText', {
+      usage: {
+        inputTokens: 9500,
+        inputTokenDetails: { cacheReadTokens: 8000, cacheWriteTokens: 500 },
+        outputTokens: 40,
+      },
+      providerMetadata: {
+        anthropic: { cacheReadInputTokens: 3000, cacheCreationInputTokens: 0 },
+      },
+    });
+
+    expect(data[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]).toBe(8000);
+    expect(data[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]).toBe(500);
   });
 
   it('reads the counts from a streamed model call result', () => {

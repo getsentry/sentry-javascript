@@ -572,7 +572,6 @@ export function enrichSpanOnEnd(
     if (totalTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
     }
-    // Set before the `providerMetadata` attributes below so a provider-reported count still wins.
     span.setAttributes(cacheTokenAttributes(usage));
   }
 
@@ -641,10 +640,8 @@ function tokenCount(value: unknown): number | undefined {
 }
 
 /**
- * Reads the AI SDK's own cache token counts from a usage object. v5 reports `cachedInputTokens`, v6
- * adds `inputTokenDetails`, and v7 model-call usage nests them under `inputTokens`. `providerMetadata`
- * only carries cache counts under a provider key, so through the AI Gateway (`gateway` key) these
- * normalized counts are the sole source.
+ * Cache token counts as the AI SDK normalizes them: v5 `cachedInputTokens`, v6 `inputTokenDetails`,
+ * v7 `inputTokens.{cacheRead,cacheWrite}`.
  */
 function cacheTokenAttributes(usage: Record<string, unknown>): Record<string, number> {
   const inputTokens = isObjectLike(usage.inputTokens) ? usage.inputTokens : undefined;
