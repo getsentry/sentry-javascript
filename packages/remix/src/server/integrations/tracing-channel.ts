@@ -92,7 +92,6 @@ function getRequestAttributes(request: unknown): SpanAttributes {
 function getMatchAttributes(params: RouteCallParams): SpanAttributes {
   const attributes: SpanAttributes = {};
   if (params.routeId) {
-    // `match.route.id` predates the conventions attribute and is kept so existing queries keep working.
     attributes[MATCH_ROUTE_ID] = params.routeId;
     attributes[ROUTER_NAVIGATION_ROUTE_ID] = params.routeId;
   }
