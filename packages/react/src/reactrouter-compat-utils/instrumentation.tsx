@@ -374,16 +374,14 @@ export function updateNavigationSpan(
 ): void {
   const { name: currentName, end_timestamp, attributes } = spanToJSON(activeRootSpan);
 
-  // React Router can start resolving the routes for the next location before the SDK has started
-  // that navigation's span, so the span captured for the resolution is still the previous
-  // navigation's. Renaming it would ship it under a route the user never visited on it, so a span
-  // the SDK is still tracking for a different location is left alone.
-  const client = getClient();
-  const trackedNav = client ? activeNavigationSpans.get(client) : undefined;
-  if (trackedNav?.span === activeRootSpan && trackedNav?.pathname !== location.pathname) {
+  // React Router resolves the routes for a location around the time the SDK starts that
+  // navigation's span, in either order, so the span captured for a resolution can be the previous
+  // navigation's. Renaming it would ship it under a route the user never visited on it.
+  const spanPathname = (activeRootSpan as { __sentry_navigation_pathname__?: string })?.__sentry_navigation_pathname__;
+  if (spanPathname !== undefined && spanPathname !== location.pathname) {
     DEBUG_BUILD &&
       debug.log(
-        `[React Router] Not renaming the navigation span for "${trackedNav.pathname}" with the route of "${location.pathname}"`,
+        `[React Router] Not renaming the navigation span for "${spanPathname}" with the route of "${location.pathname}"`,
       );
     return;
   }
@@ -411,6 +409,7 @@ export function updateNavigationSpan(
         (currentSource === 'route' && source === 'route' && currentNameHasWildcard)); // Route → better route (only if current has wildcard)
     if (isImprovement) {
       // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      const client = getClient();
       const isUnparameterizedStreamedNavigation = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
       activeRootSpan.updateName(isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : name);
       activeRootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
@@ -1091,6 +1090,10 @@ export function handleNavigation(opts: {
     }
 
     if (navigationSpan) {
+      // Recorded on the span itself so a late route resolution can tell whether the span it
+      // captured is the one that navigation belongs to, however far the tracked navigation has
+      // moved on by then.
+      addNonEnumerableProperty(navigationSpan, '__sentry_navigation_pathname__', location.pathname);
       // Update the map with the real span (isPlaceholder omitted, defaults to false)
       activeNavigationSpans.set(client, {
         span: navigationSpan,

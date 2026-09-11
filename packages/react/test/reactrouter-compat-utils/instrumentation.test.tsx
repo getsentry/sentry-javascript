@@ -134,6 +134,34 @@ describe('reactrouter-compat-utils/instrumentation', () => {
 
       expect(mockUpdateName).not.toHaveBeenCalled();
     });
+
+    it('should not rename a span that was started for another location', () => {
+      const spanOfPreviousNavigation = { ...mockSpan, __sentry_navigation_pathname__: '/previous' };
+
+      updateNavigationSpan(
+        spanOfPreviousNavigation as any,
+        sampleLocation,
+        sampleRoutes,
+        true,
+        makeMockConfig({ matchRoutes: mockMatchRoutes }),
+      );
+
+      expect(mockUpdateName).not.toHaveBeenCalled();
+    });
+
+    it('should rename a span that was started for this location', () => {
+      const spanOfThisNavigation = { ...mockSpan, __sentry_navigation_pathname__: sampleLocation.pathname };
+
+      updateNavigationSpan(
+        spanOfThisNavigation as any,
+        sampleLocation,
+        sampleRoutes,
+        false,
+        makeMockConfig({ matchRoutes: mockMatchRoutes }),
+      );
+
+      expect(mockUpdateName).toHaveBeenCalledWith('Test Route');
+    });
   });
 
   describe('addResolvedRoutesToParent', () => {
