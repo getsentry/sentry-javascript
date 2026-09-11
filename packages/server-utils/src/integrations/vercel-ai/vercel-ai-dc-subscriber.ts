@@ -652,8 +652,8 @@ function cacheTokenAttributes(usage: Record<string, unknown>): Record<string, nu
     asNumber(usage.cachedInputTokens);
   const cacheWrite = asNumber(inputTokens?.cacheWrite) ?? asNumber(inputTokenDetails?.cacheWriteTokens);
   return {
-    ...(cacheRead !== undefined ? { [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: cacheRead } : {}),
-    ...(cacheWrite !== undefined ? { [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: cacheWrite } : {}),
+    [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: cacheRead,
+    [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: cacheWrite,
   };
 }
 
