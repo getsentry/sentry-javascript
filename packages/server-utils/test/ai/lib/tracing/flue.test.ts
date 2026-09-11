@@ -6,6 +6,7 @@ import {
   getMainCarrier,
   setCurrentClient,
   spanToStaticSpanJSON,
+  startSpan,
 } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../../../src/ai/anthropic-ai/constants';
 import { createFlueInstrumentation } from '../../../../src/ai/flue';
@@ -13,7 +14,8 @@ import type { FlueInstrumentation, FlueObservation } from '../../../../src/ai/fl
 import { OPENAI_INTEGRATION_NAME } from '../../../../src/ai/openai/constants';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
-const AGENT_CTX = { agentName: 'Hello' };
+const AGENT_OP = { type: 'agent', operationId: 'op_1' };
+const AGENT_CTX = { agentName: 'Hello', submissionId: 'sub_1' };
 const INNER_CTX = { conversationId: 'conv_1' };
 
 /** A settled turn as Flue reports it, with the field names `ModelRequestInfo`/`ModelResponse` use. */
@@ -21,7 +23,17 @@ function turn(overrides: Partial<FlueObservation> = {}): FlueObservation {
   return {
     type: 'turn',
     turnId: 'turn_1',
-    request: { requestedModel: 'claude-haiku-4.5', providerId: 'anthropic' },
+    submissionId: 'sub_1',
+    operationId: 'op_1',
+    request: {
+      requestedModel: 'claude-haiku-4.5',
+      providerId: 'anthropic',
+      temperature: 0.7,
+      maxTokens: 1024,
+      reasoningLevel: 'high',
+      serverAddress: 'api.anthropic.com',
+      serverPort: 443,
+    },
     response: {
       responseId: 'resp_1',
       finishReason: 'stop',
@@ -67,7 +79,13 @@ describe('createFlueInstrumentation', () => {
 
   /** Run `fn` inside an agent operation, the way Flue's interceptor would. */
   function withAgent<T>(fn: () => Promise<T> | T): Promise<T> {
-    return instrumentation.interceptor({ type: 'agent' }, AGENT_CTX, async () => fn());
+    return instrumentation.interceptor(AGENT_OP, AGENT_CTX, async () => fn());
+  }
+
+  function agentSpans(): ReturnType<typeof spanToStaticSpanJSON>[] {
+    return endedSpans
+      .map(span => spanToStaticSpanJSON(span))
+      .filter(json => json.data['sentry.op'] === 'gen_ai.invoke_agent');
   }
 
   function findSpan(description: string): ReturnType<typeof spanToStaticSpanJSON> | undefined {
@@ -76,9 +94,28 @@ describe('createFlueInstrumentation', () => {
 
   // Flue drives the providers through `pi-ai`, which bundles the `openai` / `@anthropic-ai/sdk` /
   // `@google/genai` clients those integrations patch, so their spans duplicate the turn span.
-  it('skips raw provider wrapping as soon as the instrumentation is built', () => {
+  // Not at construction: if `instrument()` rejects the object, suppressing the provider
+  // integrations would leave the app with no `gen_ai.chat` spans at all.
+  it('skips raw provider wrapping on first use, not on construction', async () => {
+    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
+
+    await withAgent(() => undefined);
+
     expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
     expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(true);
+  });
+
+  // The registry is reset per client (`_setupIntegrations` clears it, and Cloudflare calls `init()`
+  // per request), so a one-shot call at construction is wiped by the next reset.
+  it('re-applies the provider skip after the registry is cleared', async () => {
+    await withAgent(() => undefined);
+    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
+
+    _INTERNAL_clearAiProviderSkips();
+    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
+
+    await withAgent(() => undefined);
+    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
   });
 
   it('names agent spans `invoke_agent {name}` and sets the gen_ai op', async () => {
@@ -91,11 +128,111 @@ describe('createFlueInstrumentation', () => {
     expect(json?.data['gen_ai.agent.name']).toBe('Hello');
   });
 
-  // The agent operation re-enters once, and only the inner context names the conversation.
-  it('lifts the conversation id off the re-entered agent operation', async () => {
-    await withAgent(() => instrumentation.interceptor({ type: 'agent' }, INNER_CTX, async () => undefined));
+  // The agent span opens before the conversation is known — the submission-scoped operation names
+  // the agent, and the conversation arrives on the observations that follow.
+  it('sets the conversation id on the agent span from the observations', async () => {
+    await withAgent(() => {
+      instrumentation.observe(
+        { type: 'turn_start', turnId: 'turn_1', operationId: 'op_1', conversationId: 'conv_1' },
+        {},
+      );
+    });
 
     expect(findSpan('invoke_agent Hello')?.data['gen_ai.conversation.id']).toBe('conv_1');
+  });
+
+  // The re-entered agent operation carries no `submissionId` and must not open a second span.
+  it('does not open a second agent span for the re-entry', async () => {
+    await withAgent(() => instrumentation.interceptor(AGENT_OP, INNER_CTX, async () => undefined));
+
+    const agentSpans = endedSpans
+      .map(span => spanToStaticSpanJSON(span))
+      .filter(json => json.data['sentry.op'] === 'gen_ai.invoke_agent');
+    expect(agentSpans).toHaveLength(1);
+  });
+
+  // A durable submission is resumed later, with nothing linking it to the request that enqueued it.
+  // Flue replays that request's `traceparent`, so the agent span should continue from it.
+  describe('trace continuation', () => {
+    const TRACE_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const CARRIER = { traceparent: `00-${TRACE_ID}-bbbbbbbbbbbbbbbb-01` };
+
+    function agentTraceId(): string | undefined {
+      return endedSpans.map(span => spanToStaticSpanJSON(span)).find(json => json.description === 'invoke_agent Hello')
+        ?.trace_id;
+    }
+
+    it('continues the trace from the replayed traceparent', async () => {
+      await instrumentation.interceptor(AGENT_OP, { ...AGENT_CTX, traceCarrier: CARRIER }, async () => undefined);
+
+      expect(agentTraceId()).toBe(TRACE_ID);
+    });
+
+    it('ignores a malformed traceparent', async () => {
+      await instrumentation.interceptor(
+        AGENT_OP,
+        { ...AGENT_CTX, traceCarrier: { traceparent: 'not-a-traceparent' } },
+        async () => undefined,
+      );
+
+      expect(agentTraceId()).not.toBe(TRACE_ID);
+    });
+
+    // An in-process dispatch is genuinely part of the surrounding trace; continuing the persisted
+    // one would detach it from the request it is actually running inside.
+    it('keeps the active trace when one is already running', async () => {
+      await startSpan({ name: 'incoming request' }, async () => {
+        await instrumentation.interceptor(AGENT_OP, { ...AGENT_CTX, traceCarrier: CARRIER }, async () => undefined);
+      });
+
+      expect(agentTraceId()).not.toBe(TRACE_ID);
+    });
+  });
+
+  // The spanned operation carries no `agentName` — only the submission wrapper does, and that opens
+  // no span. The name arrives on the observations instead.
+  it('names the agent span from the observations', async () => {
+    await instrumentation.interceptor(AGENT_OP, {}, async () => {
+      instrumentation.observe({ type: 'agent_start', operationId: 'op_1', agentName: 'Hello' }, {});
+    });
+
+    const json = findSpan('invoke_agent Hello');
+    expect(json).toBeDefined();
+    expect(json?.data['gen_ai.agent.name']).toBe('Hello');
+  });
+
+  // Delegation nests a second agent operation inside the first, in its own session. Flue defers
+  // each to a microtask, so the helper mirrors that rather than calling the interceptor directly.
+  describe('subagent delegation', () => {
+    function runNested<T>(operationId: string, ctx: Record<string, unknown>, next: () => Promise<T>): Promise<T> {
+      return Promise.resolve().then(() => instrumentation.interceptor({ type: 'agent', operationId }, ctx, next));
+    }
+
+    it('opens one agent span per invocation rather than folding the delegate into its parent', async () => {
+      await runNested('op_parent', {}, async () => {
+        instrumentation.observe({ type: 'agent_start', operationId: 'op_parent', conversationId: 'conv_parent' }, {});
+        // The tool's task delegation, then the delegate's own prompt.
+        return runNested('op_child', {}, async () => {
+          instrumentation.observe({ type: 'agent_start', operationId: 'op_child', conversationId: 'conv_child' }, {});
+        });
+      });
+
+      expect(agentSpans()).toHaveLength(2);
+    });
+
+    // Asserted on conversation rather than agent name: the observation stream reports the root
+    // agent's name for both operations, so the delegate's own name never reaches us.
+    it('keeps each invocation on its own conversation', async () => {
+      await runNested('op_parent', {}, async () => {
+        instrumentation.observe({ type: 'agent_start', operationId: 'op_parent', conversationId: 'conv_parent' }, {});
+        return runNested('op_child', {}, async () => {
+          instrumentation.observe({ type: 'agent_start', operationId: 'op_child', conversationId: 'conv_child' }, {});
+        });
+      });
+
+      // The delegate ends first, so order is inner-to-outer.
+      expect(agentSpans().map(json => json.data['gen_ai.conversation.id'])).toEqual(['conv_child', 'conv_parent']);
+    });
   });
 
   it('does not span operations other than `agent`', async () => {
@@ -106,7 +243,10 @@ describe('createFlueInstrumentation', () => {
 
   it('opens a chat span on turn_start and completes it from the settled turn', async () => {
     await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', conversationId: 'conv_1' }, {});
+      instrumentation.observe(
+        { type: 'turn_start', turnId: 'turn_1', operationId: 'op_1', conversationId: 'conv_1' },
+        {},
+      );
       instrumentation.observe(turn(), {});
     });
 
@@ -123,7 +263,7 @@ describe('createFlueInstrumentation', () => {
   // Flue computes costs itself; the provider SDKs report none.
   it('records token usage and Flue-computed cost on the chat span', async () => {
     await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1' }, {});
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
       instrumentation.observe(turn(), {});
     });
 
@@ -134,9 +274,25 @@ describe('createFlueInstrumentation', () => {
     expect(json?.data['gen_ai.cost.total_tokens']).toBe(0.001199);
   });
 
+  it('records the model-call tuning and provider endpoint', async () => {
+    await withAgent(() => {
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1', purpose: 'agent' }, {});
+      instrumentation.observe(turn(), {});
+    });
+
+    const json = findSpan('chat claude-haiku-4.5');
+    expect(json?.data['gen_ai.request.temperature']).toBe(0.7);
+    expect(json?.data['gen_ai.request.max_tokens']).toBe(1024);
+    expect(json?.data['gen_ai.request.reasoning.level']).toBe('high');
+    expect(json?.data['server.address']).toBe('api.anthropic.com');
+    expect(json?.data['server.port']).toBe(443);
+    // Distinguishes a compaction turn from a user-facing one.
+    expect(json?.data['flue.turn.purpose']).toBe('agent');
+  });
+
   it('marks a failed turn as errored', async () => {
     await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1' }, {});
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
       instrumentation.observe(turn({ isError: true }), {});
     });
 
@@ -156,7 +312,7 @@ describe('createFlueInstrumentation', () => {
     };
 
     await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1' }, {});
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
       instrumentation.observe(turn({ isError: true, response: { usage: empty } }), {});
     });
 
@@ -181,12 +337,24 @@ describe('createFlueInstrumentation', () => {
     } satisfies FlueObservation;
 
     async function record(instr: FlueInstrumentation): Promise<void> {
-      await instr.interceptor({ type: 'agent' }, AGENT_CTX, async () => {
-        instr.observe({ type: 'turn_start', turnId: 'turn_1' }, {});
+      await instr.interceptor(AGENT_OP, AGENT_CTX, async () => {
+        instr.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
         instr.observe(requestContent, {});
         instr.observe(turn({ response: { ...turn().response, output: { role: 'assistant' } } }), {});
-        instr.observe({ type: 'tool_start', toolCallId: 'c1', toolName: 'get_weather', args: { city: 'Berlin' } }, {});
-        instr.observe({ type: 'tool', toolCallId: 'c1', toolName: 'get_weather', result: 'sunny' }, {});
+        instr.observe(
+          {
+            type: 'tool_start',
+            toolCallId: 'c1',
+            toolName: 'get_weather',
+            args: { city: 'Berlin' },
+            operationId: 'op_1',
+          },
+          {},
+        );
+        instr.observe(
+          { type: 'tool', toolCallId: 'c1', toolName: 'get_weather', result: 'sunny', operationId: 'op_1' },
+          {},
+        );
       });
     }
 
@@ -215,6 +383,33 @@ describe('createFlueInstrumentation', () => {
       expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.arguments']).toBeUndefined();
     });
 
+    // The client is replaced per request on Cloudflare, so options captured once at construction
+    // would be the wrong ones for every later request.
+    it('follows the current client when it is replaced', async () => {
+      const instr = createFlueInstrumentation();
+      await record(instr);
+      expect(findSpan('chat claude-haiku-4.5')?.data['gen_ai.input.messages']).toBeDefined();
+
+      endedSpans.length = 0;
+      const strict = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          tracesSampleRate: 1,
+          traceLifecycle: 'stream',
+          dataCollection: { genAI: { inputs: false, outputs: false } },
+        }),
+      );
+      setCurrentClient(strict);
+      strict.init();
+      strict.on('spanEnd', span => endedSpans.push(span));
+
+      await record(instr);
+
+      const chat = findSpan('chat claude-haiku-4.5');
+      expect(chat).toBeDefined();
+      expect(chat?.data['gen_ai.input.messages']).toBeUndefined();
+    });
+
     it('omits outputs when recordOutputs is false but keeps inputs', async () => {
       await record(createFlueInstrumentation({ recordOutputs: false }));
 
@@ -227,8 +422,11 @@ describe('createFlueInstrumentation', () => {
 
   it('emits execute_tool spans keyed by tool call id', async () => {
     await withAgent(() => {
-      instrumentation.observe({ type: 'tool_start', toolCallId: 'call_1', toolName: 'get_weather' }, {});
-      instrumentation.observe({ type: 'tool', toolCallId: 'call_1', toolName: 'get_weather' }, {});
+      instrumentation.observe(
+        { type: 'tool_start', toolCallId: 'call_1', toolName: 'get_weather', operationId: 'op_1' },
+        {},
+      );
+      instrumentation.observe({ type: 'tool', toolCallId: 'call_1', toolName: 'get_weather', operationId: 'op_1' }, {});
     });
 
     const json = findSpan('execute_tool get_weather');
@@ -240,11 +438,44 @@ describe('createFlueInstrumentation', () => {
 
   it('marks a failed tool call as errored', async () => {
     await withAgent(() => {
-      instrumentation.observe({ type: 'tool_start', toolCallId: 'call_1', toolName: 'boom' }, {});
-      instrumentation.observe({ type: 'tool', toolCallId: 'call_1', toolName: 'boom', isError: true }, {});
+      instrumentation.observe({ type: 'tool_start', toolCallId: 'call_1', toolName: 'boom', operationId: 'op_1' }, {});
+      instrumentation.observe(
+        { type: 'tool', toolCallId: 'call_1', toolName: 'boom', isError: true, operationId: 'op_1' },
+        {},
+      );
     });
 
     expect(findSpan('execute_tool boom')?.status).toBe('internal_error');
+  });
+
+  // Two agent runs overlap on a busy server. With shared closure state the second run is mistaken
+  // for a re-entry of the first: it gets no span, and its conversation id lands on the first's span.
+  it('keeps concurrent agent runs separate', async () => {
+    const runA = instrumentation.interceptor({ type: 'agent', operationId: 'op_a' }, { agentName: 'A' }, async () => {
+      instrumentation.observe(
+        { type: 'turn_start', turnId: 'turn_a', operationId: 'op_a', conversationId: 'conv_a' },
+        {},
+      );
+      // B starts while A is still open.
+      await instrumentation.interceptor({ type: 'agent', operationId: 'op_b' }, { agentName: 'B' }, async () => {
+        instrumentation.observe(
+          { type: 'turn_start', turnId: 'turn_b', operationId: 'op_b', conversationId: 'conv_b' },
+          {},
+        );
+        instrumentation.observe(turn({ turnId: 'turn_b', operationId: 'op_b' }), {});
+      });
+      instrumentation.observe(turn({ turnId: 'turn_a', operationId: 'op_a' }), {});
+    });
+    await runA;
+
+    const agentA = findSpan('invoke_agent A');
+    const agentB = findSpan('invoke_agent B');
+    expect(agentA).toBeDefined();
+    expect(agentB).toBeDefined();
+
+    // Each run keeps its own conversation; neither is overwritten by the other.
+    expect(agentA?.data['gen_ai.conversation.id']).toBe('conv_a');
+    expect(agentB?.data['gen_ai.conversation.id']).toBe('conv_b');
   });
 
   it('ignores a settled turn or tool it never opened a span for', async () => {
@@ -258,8 +489,11 @@ describe('createFlueInstrumentation', () => {
 
   it('ends spans still open at dispose', async () => {
     await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1' }, {});
-      instrumentation.observe({ type: 'tool_start', toolCallId: 'call_1', toolName: 'get_weather' }, {});
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
+      instrumentation.observe(
+        { type: 'tool_start', toolCallId: 'call_1', toolName: 'get_weather', operationId: 'op_1' },
+        {},
+      );
     });
     // Never settled, so the span keeps the unqualified name it opened with.
     expect(findSpan('chat')).toBeUndefined();
