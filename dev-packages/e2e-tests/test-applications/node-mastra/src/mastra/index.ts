@@ -1,16 +1,9 @@
+import { startSpan } from '@sentry/node';
 import { Mastra } from '@mastra/core';
 import { registerApiRoute } from '@mastra/core/server';
 import { LibSQLStore } from '@mastra/libsql';
 import DataLoader from 'dataloader';
 import { WEATHER_AGENT, weatherAgent } from './agents/weather-agent.js';
-
-// `Sentry.init` is NOT imported here — it is preloaded via `--import ./instrument.mjs`
-// (see the `start` script). Mastra's Rollup drops a side-effect-only import of an
-// instrument module from the built entry, so init has to run as a preload, before
-// this bundle (and `@mastra/core`) load. No `@sentry/*` is imported into the bundle:
-// the preload resolves the SDK from the app root, while the bundle would resolve it
-// from `.mastra/output` — a second copy of the same version, which conflicts when a
-// bundle-created span is flushed by the preload's client.
 
 interface RunBody {
   message: string;
@@ -38,19 +31,21 @@ const runRoute = registerApiRoute('/run', {
   },
 });
 
-// Exercises orchestrion-instrumented `dataloader` directly in a route handler.
-// `dataloader`'s `load` uses `requiresParentSpan`, so it only emits a `cache.get`
-// span when a span is active. The handler runs inside the request's active
-// `http.server` span (the same active span Mastra's own spans parent to), which is
-// created by the preloaded SDK — so the dataloader span is created by that same SDK
-// copy and flushes cleanly. (Driving dataloader through the agent instead produces
-// no span: Mastra runs tools with inactive spans, so there is no active parent.)
+// Exercises the auto-instrumented `dataloader` in a route handler. `dataloader`'s
+// `load` needs an active parent span to emit a `cache.get` span — the handler runs
+// inside the request's active `http.server` span (created by the preloaded SDK), so
+// the span is created and flushed by that same SDK copy. (Driving dataloader through
+// the agent instead produces no span: Mastra runs tools with inactive spans, so
+// there is no active parent; and creating one with `startSpan` here isn't possible —
+// see the header note on the two-copies limitation.)
 const dataloaderRoute = registerApiRoute('/dataloader', {
   method: 'POST',
-  async handler(c) {
-    const loader = new DataLoader<string, number>(async keys => keys.map(key => key.length));
-    const counts = await Promise.all(['a', 'bb', 'ccc'].map(name => loader.load(name)));
-    return c.json({ counts });
+  handler(c) {
+    return startSpan({ name: 'dataloader-test', op: 'test' }, async () => {
+      const loader = new DataLoader<string, number>(async keys => keys.map(key => key.length));
+      const counts = await Promise.all(['a', 'bb', 'ccc'].map(name => loader.load(name)));
+      return c.json({ counts });
+    });
   },
 });
 
@@ -62,13 +57,21 @@ export const mastra = new Mastra({
     apiRoutes: [runRoute, dataloaderRoute],
   },
   bundler: {
-    // Force `dataloader` external. Mastra externalizes framework packages like
-    // `@mastra/core` by default (so orchestrion can hook them), but inlines small
-    // pure-JS deps like `dataloader` — and the runtime transform can only
-    // instrument a real module, not an inlined one. Keeping it external makes the
-    // orchestrion `dataloader` instrumentation work (see tests/dataloader.test.ts).
-    // `externals` is merged with Mastra's analyzed externals, so this does not
-    // affect `@mastra/core` et al. (Mirrors eve's `externalDependencies: ['dataloader']`.)
-    externals: ['dataloader'],
+    // `dataloader` must stay a real module so it can be instrumented. `@mastra/core`
+    // is forced external too (diagnostic): if Mastra inlined it, the orchestrion
+    // runtime hook could never transform its constructor.
+    externals: ['dataloader', '@mastra/core', '@sentry/node'],
   },
 });
+
+/**
+ * TODO
+ *
+ *
+ *  1. Tool result not captured — Mastra doesn't populate output on exported tool_call spans, so gen_ai.tool.call.result is empty (arguments are captured).
+  2. Bubbled-up tool errors aren't captured as issues — only reflected on the span (status + error.type); the exporter leaves captureException to the app.
+  3. Conversation id needs the nested memory: { thread, resource } API — the built-in REST endpoint's top-level threadId/resourceId don't populate tracing metadata.
+  4. Two SDK copies when creating spans from the Mastra bundle — mastra build's separate output install + preload-init means bundle-created spans (startSpan) conflict with the preload's client. Auto-instrumentation
+     is unaffected; manual Sentry span APIs in bundled Mastra code are the sharp edge. (This is why dataloader is exercised via the active http.server span, not a manual startSpan.)
+  5. dataloader/requiresParentSpan — orchestrion span-openers need an active parent; Mastra runs tools with inactive spans, so they don't emit in the agent flow.
+ */
