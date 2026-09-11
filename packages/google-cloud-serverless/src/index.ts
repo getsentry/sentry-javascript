@@ -138,7 +138,7 @@ export {
   supabaseIntegration,
   systemErrorIntegration,
   instrumentSupabaseClient,
-  instrumentMistralClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,

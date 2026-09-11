@@ -105,7 +105,7 @@ export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
 export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
-  instrumentMistralClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,

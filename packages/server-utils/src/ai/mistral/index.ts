@@ -211,6 +211,6 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * Instrument a Mistral client with Sentry tracing.
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge.
  */
-export function instrumentMistralClient<T extends object>(client: T, options?: MistralOptions): T {
+export function instrumentMistralAiClient<T extends object>(client: T, options?: MistralOptions): T {
   return createDeepProxy(client, '', resolveAIRecordingOptions(options));
 }

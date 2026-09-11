@@ -158,7 +158,7 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentMistralClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,

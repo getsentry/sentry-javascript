@@ -158,7 +158,7 @@ export {
   withScope,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentMistralClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
