@@ -1,23 +1,15 @@
-import type {
-  Client,
-  Event as SentryEvent,
-  FetchBreadcrumbData,
-  FetchBreadcrumbHint,
-  HandlerDataFetch,
-  IntegrationFn,
-} from '@sentry/core';
-import {
-  addBreadcrumb,
-  addFetchInstrumentationHandler,
-  defineIntegration,
-  getBreadcrumbLogLevelFromHttpStatusCode,
-  getClient,
-  getEventDescription,
-} from '@sentry/core';
+import type { Client, Event as SentryEvent, IntegrationFn } from '@sentry/core';
+import { addBreadcrumb, consoleSandbox, defineIntegration, getClient, getEventDescription } from '@sentry/core';
 
 interface BreadcrumbsOptions {
-  fetch: boolean;
   sentry: boolean;
+
+  /**
+   * @deprecated Fetch breadcrumbs are recorded by `fetchIntegration`. Disable them with
+   * `fetchIntegration({ breadcrumbs: false })` instead. This option no longer has any effect and
+   * will be removed in a future major version.
+   */
+  fetch: boolean;
 }
 
 const INTEGRATION_NAME = 'Breadcrumbs' as const;
@@ -27,8 +19,16 @@ const INTEGRATION_NAME = 'Breadcrumbs' as const;
  * The Deno-version does not support browser-specific APIs like dom, xhr and history.
  */
 const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
+  if ('fetch' in options) {
+    consoleSandbox(() => {
+      // oxlint-disable-next-line no-console
+      console.warn(
+        '[Sentry] `breadcrumbsIntegration({ fetch })` is deprecated and no longer has any effect. Fetch breadcrumbs are recorded by `fetchIntegration`; disable them with `fetchIntegration({ breadcrumbs: false })`.',
+      );
+    });
+  }
+
   const _options = {
-    fetch: true,
     sentry: true,
     ...options,
   };
@@ -36,9 +36,6 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      if (_options.fetch) {
-        addFetchInstrumentationHandler(_getFetchBreadcrumbHandler(client));
-      }
       if (_options.sentry) {
         client.on('beforeSendEvent', _getSentryBreadcrumbHandler(client));
       }
@@ -47,7 +44,9 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
 }) satisfies IntegrationFn;
 
 /**
- * Adds a breadcrumbs for fetch and sentry events.
+ * Adds breadcrumbs for sentry events.
+ *
+ * Fetch breadcrumbs come from `fetchIntegration`.
  *
  * Enabled by default in the Deno SDK.
  *
@@ -82,76 +81,5 @@ function _getSentryBreadcrumbHandler(client: Client): (event: SentryEvent) => vo
         event,
       },
     );
-  };
-}
-
-/**
- * Creates breadcrumbs from fetch API calls
- */
-function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFetch) => void {
-  return function _fetchBreadcrumb(handlerData: HandlerDataFetch): void {
-    if (getClient() !== client) {
-      return;
-    }
-
-    const { startTimestamp, endTimestamp } = handlerData;
-
-    // We only capture complete fetch requests
-    if (!endTimestamp) {
-      return;
-    }
-
-    if (handlerData.fetchData.url.match(/sentry_key/) && handlerData.fetchData.method === 'POST') {
-      // We will not create breadcrumbs for fetch requests that contain `sentry_key` (internal sentry requests)
-      return;
-    }
-
-    const breadcrumbData: FetchBreadcrumbData = {
-      method: handlerData.fetchData.method,
-      url: handlerData.fetchData.url,
-    };
-
-    if (handlerData.error) {
-      const hint: FetchBreadcrumbHint = {
-        data: handlerData.error,
-        input: handlerData.args,
-        startTimestamp,
-        endTimestamp,
-      };
-
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data: breadcrumbData,
-          level: 'error',
-          type: 'http',
-        },
-        hint,
-      );
-    } else {
-      const response = handlerData.response as Response | undefined;
-
-      breadcrumbData.request_body_size = handlerData.fetchData.request_body_size;
-      breadcrumbData.response_body_size = handlerData.fetchData.response_body_size;
-      breadcrumbData.status_code = response?.status;
-
-      const hint: FetchBreadcrumbHint = {
-        input: handlerData.args,
-        response,
-        startTimestamp,
-        endTimestamp,
-      };
-      const level = getBreadcrumbLogLevelFromHttpStatusCode(breadcrumbData.status_code);
-
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data: breadcrumbData,
-          type: 'http',
-          level,
-        },
-        hint,
-      );
-    }
   };
 }
