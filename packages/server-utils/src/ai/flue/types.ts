@@ -25,8 +25,13 @@ export interface FlueUsage {
 /** Mirrors `ModelRequestInfo`. */
 export interface FlueModelRequestInfo {
   requestedModel?: string;
+  /** Provider slug (`anthropic`, `openrouter`) — what `gen_ai.provider.name` wants. */
   providerId?: string;
-  providerName?: string;
+  temperature?: number;
+  maxTokens?: number;
+  reasoningLevel?: string;
+  serverAddress?: string;
+  serverPort?: number;
 }
 
 /** Mirrors `ModelRequestInput` — the content half of `ModelRequest`, on `turn_request` only. */
@@ -61,6 +66,8 @@ export interface FlueObservation {
   session?: string;
   turnId?: string;
   taskId?: string;
+  submissionId?: string;
+  operationId?: string;
   toolName?: string;
   toolCallId?: string;
   isError?: boolean;
@@ -78,10 +85,19 @@ export interface FlueExecutionOperation {
   operationId?: string;
   operationKind?: string;
   turnId?: string;
+  toolCallId?: string;
+}
+
+/** Mirrors `FlueTraceCarrier` — the W3C headers Flue persists at admission. */
+export interface FlueTraceCarrier {
+  traceparent: string;
+  tracestate?: string;
 }
 
 export interface FlueExecutionContext {
+  traceCarrier?: FlueTraceCarrier;
   agentName?: string;
+  submissionId?: string;
   conversationId?: string;
   session?: string;
   turnId?: string;
