@@ -1,4 +1,5 @@
 import type { Span } from '@sentry/core';
+import { SPAN_STATUS_ERROR } from '@sentry/core';
 import { endStreamSpan } from '../core/utils';
 import type { MistralCompletionChunk, MistralToolCall } from './types';
 
@@ -92,6 +93,9 @@ export async function* instrumentStream<T>(
       }
       yield event;
     }
+  } catch (error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    throw error;
   } finally {
     endStreamSpan(span, { ...state, toolCalls: Object.values(state.toolCalls) }, recordOutputs);
   }

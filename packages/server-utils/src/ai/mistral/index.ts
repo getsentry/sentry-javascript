@@ -117,8 +117,9 @@ function instrumentMethod<T extends unknown[], R>(
     const model =
       (requestAttributes[operationName === 'invoke_agent' ? GEN_AI_AGENT_NAME : GEN_AI_REQUEST_MODEL] as string) ||
       'unknown';
-    // `*.stream` methods are always streaming; `complete` methods stream only with `stream: true`.
-    const isStreamRequested = !!instrumentedMethod.streaming || params?.stream === true;
+    // v2 streams only through dedicated `*.stream` methods; `stream: true` on `complete` still
+    // returns a completion, so streaming is decided by the method, not the request params.
+    const isStreamRequested = !!instrumentedMethod.streaming;
     const client = getClient();
 
     const spanConfig = {
