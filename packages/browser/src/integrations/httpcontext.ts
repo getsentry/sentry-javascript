@@ -50,6 +50,7 @@ export const httpContextIntegration = defineIntegration(() => {
         reqData.headers,
         client.getDataCollectionOptions().httpHeaders.request,
       );
+      const referer = headers['Referer'];
 
       safeSetSpanJSONAttributes(span, {
         // This attribute is used by the "Filter out events from legacy browsers and crawlers" features on the Sentry backend.
@@ -61,7 +62,7 @@ export const httpContextIntegration = defineIntegration(() => {
           // Coerce empty string to undefined so the helper's nullish check drops it,
           // rather than writing an empty `url.full` attribute onto the span.
           [URL_FULL]: span.attributes?.[SENTRY_OP] !== 'http.client' ? filterCollectedUrl(reqData.url) : undefined,
-          [`${HTTP_REQUEST_HEADER_KEY_BASE}.referer`]: headers['Referer'],
+          [`${HTTP_REQUEST_HEADER_KEY_BASE}.referer`]: referer ? [referer] : undefined,
         }),
       });
     },

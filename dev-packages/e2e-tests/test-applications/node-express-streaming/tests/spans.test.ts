@@ -124,11 +124,13 @@ test.skip('Outgoing fetch spans include response headers when headersToSpanAttri
 
 test('Extracts HTTP request headers as streamed span attributes', async ({ baseURL }) => {
   const rootSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
+    const userAgent = span.attributes['http.request.header.user-agent'];
     return (
       span.name === 'GET /test-transaction' &&
       getSpanOp(span) === 'http.server' &&
       span.is_segment &&
-      span.attributes['http.request.header.user-agent']?.value === 'Custom-Agent/1.0 (Test)'
+      userAgent?.type === 'array' &&
+      userAgent.value[0] === 'Custom-Agent/1.0 (Test)'
     );
   });
 
@@ -144,9 +146,9 @@ test('Extracts HTTP request headers as streamed span attributes', async ({ baseU
 
   const rootSpan = await rootSpanPromise;
 
-  expect(rootSpan.attributes['http.request.header.user-agent']?.value).toBe('Custom-Agent/1.0 (Test)');
-  expect(rootSpan.attributes['http.request.header.content-type']?.value).toBe('application/json');
-  expect(rootSpan.attributes['http.request.header.x-custom-header']?.value).toBe('test-value');
-  expect(rootSpan.attributes['http.request.header.accept']?.value).toBe('application/json, text/plain');
-  expect(rootSpan.attributes['http.request.header.x-request-id']?.value).toBe('req-123');
+  expect(rootSpan.attributes['http.request.header.user-agent']?.value).toEqual(['Custom-Agent/1.0 (Test)']);
+  expect(rootSpan.attributes['http.request.header.content-type']?.value).toEqual(['application/json']);
+  expect(rootSpan.attributes['http.request.header.x-custom-header']?.value).toEqual(['test-value']);
+  expect(rootSpan.attributes['http.request.header.accept']?.value).toEqual(['application/json, text/plain']);
+  expect(rootSpan.attributes['http.request.header.x-request-id']?.value).toEqual(['req-123']);
 });

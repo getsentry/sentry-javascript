@@ -22,8 +22,8 @@ sentryTest('httpContextIntegration captures url, user-agent, and referer', async
     value: expect.any(String),
   });
   expect(pageloadSpan!.attributes['http.request.header.referer']).toEqual({
-    type: 'string',
-    value: 'https://sentry.io/',
+    type: 'array',
+    value: ['https://sentry.io/'],
   });
 });
 

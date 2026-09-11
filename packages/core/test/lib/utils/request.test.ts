@@ -444,7 +444,7 @@ describe('request utils', () => {
       expect(httpHeadersToSpanAttributes({}, resolveDataCollectionOptions({}))).toEqual({});
     });
 
-    it('converts single string header values to strings', () => {
+    it('wraps single string header values in an array', () => {
       const headers = {
         'Content-Type': 'application/json',
         'user-agent': 'test-agent',
@@ -453,12 +453,12 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.content-type': 'application/json',
-        'http.request.header.user-agent': 'test-agent',
+        'http.request.header.content-type': ['application/json'],
+        'http.request.header.user-agent': ['test-agent'],
       });
     });
 
-    it('handles array header values by joining with semicolons', () => {
+    it('keeps each value of an array header value as a separate entry', () => {
       const headers = {
         'custom-header': ['value1', 'value2'],
         accept: ['application/json', 'text/html'],
@@ -467,12 +467,12 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.custom-header': 'value1;value2',
-        'http.request.header.accept': 'application/json;text/html',
+        'http.request.header.custom-header': ['value1', 'value2'],
+        'http.request.header.accept': ['application/json', 'text/html'],
       });
     });
 
-    it('filters undefined values in arrays when joining', () => {
+    it('drops undefined values in arrays', () => {
       const headers = {
         'undefined-values': [undefined, undefined],
         'valid-header': 'valid-value',
@@ -481,8 +481,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.valid-header': 'valid-value',
-        'http.request.header.undefined-values': ';',
+        'http.request.header.valid-header': ['valid-value'],
+        'http.request.header.undefined-values': [],
       });
     });
 
@@ -495,11 +495,11 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.valid-header': 'valid-value',
+        'http.request.header.valid-header': ['valid-value'],
       });
     });
 
-    it('adds empty array headers as empty string', () => {
+    it('adds empty array headers as empty array', () => {
       const headers = {
         'empty-header': [],
         'valid-header': 'valid-value',
@@ -508,8 +508,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.empty-header': '',
-        'http.request.header.valid-header': 'valid-value',
+        'http.request.header.empty-header': [],
+        'http.request.header.valid-header': ['valid-value'],
       });
     });
 
@@ -524,10 +524,10 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.content-type': 'application/json',
-        'http.request.header.x-custom-header': 'custom-value',
-        'http.request.header.user-agent': 'test-agent',
-        'http.request.header.accept': 'text/html',
+        'http.request.header.content-type': ['application/json'],
+        'http.request.header.x-custom-header': ['custom-value'],
+        'http.request.header.user-agent': ['test-agent'],
+        'http.request.header.accept': ['text/html'],
       });
     });
 
@@ -547,19 +547,19 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.host': 'example.com',
-        'http.request.header.user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'http.request.header.accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'http.request.header.accept-language': 'en-US,en;q=0.5',
-        'http.request.header.accept-encoding': 'gzip, deflate',
-        'http.request.header.connection': 'keep-alive',
-        'http.request.header.upgrade-insecure-requests': '1',
-        'http.request.header.cache-control': 'no-cache',
-        'http.request.header.x-forwarded-for': '192.168.1.1',
+        'http.request.header.host': ['example.com'],
+        'http.request.header.user-agent': ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'],
+        'http.request.header.accept': ['text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'],
+        'http.request.header.accept-language': ['en-US,en;q=0.5'],
+        'http.request.header.accept-encoding': ['gzip, deflate'],
+        'http.request.header.connection': ['keep-alive'],
+        'http.request.header.upgrade-insecure-requests': ['1'],
+        'http.request.header.cache-control': ['no-cache'],
+        'http.request.header.x-forwarded-for': ['192.168.1.1'],
       });
     });
 
-    it('handles multiple values for the same header by joining with semicolons', () => {
+    it('handles multiple values for the same header', () => {
       const headers = {
         'x-random-header': ['test=abc123', 'preferences=dark-mode', 'number=three'],
         Accept: ['application/json', 'text/html'],
@@ -568,8 +568,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.x-random-header': 'test=abc123;preferences=dark-mode;number=three',
-        'http.request.header.accept': 'application/json;text/html',
+        'http.request.header.x-random-header': ['test=abc123', 'preferences=dark-mode', 'number=three'],
+        'http.request.header.accept': ['application/json', 'text/html'],
       });
     });
 
@@ -582,8 +582,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.empty-header': '',
-        'http.request.header.valid-header': 'valid-value',
+        'http.request.header.empty-header': [''],
+        'http.request.header.valid-header': ['valid-value'],
       });
     });
 
@@ -601,7 +601,7 @@ describe('request utils', () => {
       expect(result).toEqual({});
     });
 
-    it('stringifies non-string values (except null) in arrays and joins them', () => {
+    it('stringifies non-nullish, non-string values in arrays', () => {
       const headers = {
         'mixed-types': ['string-value', 123, true, null],
       } as any;
@@ -609,7 +609,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.mixed-types': 'string-value;123;true;',
+        'http.request.header.mixed-types': ['string-value', '123', 'true'],
       });
     });
 
@@ -625,7 +625,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.string-header': 'valid-value',
+        'http.request.header.string-header': ['valid-value'],
       });
     });
 
@@ -641,10 +641,10 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
         expect(result).toEqual({
-          'http.request.header.content-type': 'application/json',
+          'http.request.header.content-type': ['application/json'],
           'http.request.header.cookie.session': '[Filtered]',
-          'http.request.header.x-api-key': '[Filtered]',
-          'http.request.header.authorization': '[Filtered]',
+          'http.request.header.x-api-key': ['[Filtered]'],
+          'http.request.header.authorization': ['[Filtered]'],
         });
       });
 
@@ -710,11 +710,11 @@ describe('request utils', () => {
       it('adds a filtered cookie header when cookie header is present, but has no valid key=value pairs', () => {
         const headers1 = { Cookie: ['key', 'val'] };
         const result1 = httpHeadersToSpanAttributes(headers1, resolveDataCollectionOptions({}));
-        expect(result1).toEqual({ 'http.request.header.cookie': '[Filtered]' });
+        expect(result1).toEqual({ 'http.request.header.cookie': ['[Filtered]'] });
 
         const headers3 = { Cookie: '' };
         const result3 = httpHeadersToSpanAttributes(headers3, resolveDataCollectionOptions({}));
-        expect(result3).toEqual({ 'http.request.header.cookie': '[Filtered]' });
+        expect(result3).toEqual({ 'http.request.header.cookie': ['[Filtered]'] });
       });
 
       it.each([
@@ -747,23 +747,23 @@ describe('request utils', () => {
             },
           }),
           expected: {
-            'http.request.header.content-type': 'application/json',
-            'http.request.header.user-agent': 'Mozilla/5.0',
-            'http.request.header.x-user': '[Filtered]',
-            'http.request.header.x-forwarded-for': '[Filtered]',
-            'http.request.header.x-forwarded-host': '[Filtered]',
-            'http.request.header.x-forwarded-proto': '[Filtered]',
+            'http.request.header.content-type': ['application/json'],
+            'http.request.header.user-agent': ['Mozilla/5.0'],
+            'http.request.header.x-user': ['[Filtered]'],
+            'http.request.header.x-forwarded-for': ['[Filtered]'],
+            'http.request.header.x-forwarded-host': ['[Filtered]'],
+            'http.request.header.x-forwarded-proto': ['[Filtered]'],
           },
         },
         {
           dataCollection: resolveDataCollectionOptions({}),
           expected: {
-            'http.request.header.content-type': 'application/json',
-            'http.request.header.user-agent': 'Mozilla/5.0',
-            'http.request.header.x-user': 'my-personal-username',
-            'http.request.header.x-forwarded-for': '192.168.1.1',
-            'http.request.header.x-forwarded-host': 'example.com',
-            'http.request.header.x-forwarded-proto': 'https',
+            'http.request.header.content-type': ['application/json'],
+            'http.request.header.user-agent': ['Mozilla/5.0'],
+            'http.request.header.x-user': ['my-personal-username'],
+            'http.request.header.x-forwarded-for': ['192.168.1.1'],
+            'http.request.header.x-forwarded-host': ['example.com'],
+            'http.request.header.x-forwarded-proto': ['https'],
           },
         },
       ])('filters PII headers according to dataCollection.httpHeaders', ({ dataCollection, expected }) => {
@@ -814,31 +814,31 @@ describe('request utils', () => {
 
         // Security-sensitive headers remain redacted with permissive collection defaults.
         expect(result).toEqual({
-          'http.request.header.content-type': 'application/json',
-          'http.request.header.user-agent': 'test-agent',
-          'http.request.header.accept': 'application/json',
-          'http.request.header.host': 'example.com',
-          'http.request.header.authorization': '[Filtered]',
+          'http.request.header.content-type': ['application/json'],
+          'http.request.header.user-agent': ['test-agent'],
+          'http.request.header.accept': ['application/json'],
+          'http.request.header.host': ['example.com'],
+          'http.request.header.authorization': ['[Filtered]'],
           'http.request.header.cookie.session': '[Filtered]',
           'http.request.header.set-cookie.session': '[Filtered]',
-          'http.request.header.x-api-key': '[Filtered]',
-          'http.request.header.x-auth-token': '[Filtered]',
-          'http.request.header.x-secret': '[Filtered]',
-          'http.request.header.x-secret-key': '[Filtered]',
-          'http.request.header.www-authenticate': '[Filtered]',
-          'http.request.header.proxy-authorization': '[Filtered]',
-          'http.request.header.x-access-token': '[Filtered]',
-          'http.request.header.x-csrf': '[Filtered]',
-          'http.request.header.x-xsrf': '[Filtered]',
-          'http.request.header.x-session-token': '[Filtered]',
-          'http.request.header.x-password': '[Filtered]',
-          'http.request.header.x-private-key': '[Filtered]',
-          'http.request.header.x-forwarded-user': 'user',
-          'http.request.header.x-forwarded-authorization': '[Filtered]',
-          'http.request.header.x-jwt-token': '[Filtered]',
-          'http.request.header.x-bearer-token': '[Filtered]',
-          'http.request.header.x-sso-token': '[Filtered]',
-          'http.request.header.x-saml-token': '[Filtered]',
+          'http.request.header.x-api-key': ['[Filtered]'],
+          'http.request.header.x-auth-token': ['[Filtered]'],
+          'http.request.header.x-secret': ['[Filtered]'],
+          'http.request.header.x-secret-key': ['[Filtered]'],
+          'http.request.header.www-authenticate': ['[Filtered]'],
+          'http.request.header.proxy-authorization': ['[Filtered]'],
+          'http.request.header.x-access-token': ['[Filtered]'],
+          'http.request.header.x-csrf': ['[Filtered]'],
+          'http.request.header.x-xsrf': ['[Filtered]'],
+          'http.request.header.x-session-token': ['[Filtered]'],
+          'http.request.header.x-password': ['[Filtered]'],
+          'http.request.header.x-private-key': ['[Filtered]'],
+          'http.request.header.x-forwarded-user': ['user'],
+          'http.request.header.x-forwarded-authorization': ['[Filtered]'],
+          'http.request.header.x-jwt-token': ['[Filtered]'],
+          'http.request.header.x-bearer-token': ['[Filtered]'],
+          'http.request.header.x-sso-token': ['[Filtered]'],
+          'http.request.header.x-saml-token': ['[Filtered]'],
         });
       });
 
@@ -864,19 +864,19 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}), 'response');
 
         expect(result).toEqual({
-          'http.response.header.host': 'example.com',
-          'http.response.header.user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'http.response.header.accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'http.response.header.accept-language': 'en-US,en;q=0.5',
-          'http.response.header.accept-encoding': 'gzip, deflate',
-          'http.response.header.connection': 'keep-alive',
-          'http.response.header.upgrade-insecure-requests': '1',
-          'http.response.header.cache-control': 'no-cache',
-          'http.response.header.x-forwarded-for': '192.168.1.1',
-          'http.response.header.authorization': '[Filtered]',
-          'http.response.header.x-bearer-token': '[Filtered]',
-          'http.response.header.x-saml-token': '[Filtered]',
-          'http.response.header.x-sso-token': '[Filtered]',
+          'http.response.header.host': ['example.com'],
+          'http.response.header.user-agent': ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'],
+          'http.response.header.accept': ['text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'],
+          'http.response.header.accept-language': ['en-US,en;q=0.5'],
+          'http.response.header.accept-encoding': ['gzip, deflate'],
+          'http.response.header.connection': ['keep-alive'],
+          'http.response.header.upgrade-insecure-requests': ['1'],
+          'http.response.header.cache-control': ['no-cache'],
+          'http.response.header.x-forwarded-for': ['192.168.1.1'],
+          'http.response.header.authorization': ['[Filtered]'],
+          'http.response.header.x-bearer-token': ['[Filtered]'],
+          'http.response.header.x-saml-token': ['[Filtered]'],
+          'http.response.header.x-sso-token': ['[Filtered]'],
           'http.response.header.set-cookie.session': '[Filtered]',
           'http.response.header.cookie.session': '[Filtered]',
         });
@@ -916,10 +916,10 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc);
 
         expect(result).toEqual({
-          'http.request.header.content-type': 'application/json',
-          'http.request.header.x-request-id': 'abc-123',
-          'http.request.header.x-trace-id': '[Filtered]',
-          'http.request.header.user-agent': '[Filtered]',
+          'http.request.header.content-type': ['application/json'],
+          'http.request.header.x-request-id': ['abc-123'],
+          'http.request.header.x-trace-id': ['[Filtered]'],
+          'http.request.header.user-agent': ['[Filtered]'],
         });
       });
 
@@ -942,10 +942,10 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc);
 
         expect(result).toEqual({
-          'http.request.header.content-type': 'application/json',
-          'http.request.header.x-custom-secret': '[Filtered]',
-          'http.request.header.x-forwarded-for': '192.168.1.1',
-          'http.request.header.accept': 'text/html',
+          'http.request.header.content-type': ['application/json'],
+          'http.request.header.x-custom-secret': ['[Filtered]'],
+          'http.request.header.x-forwarded-for': ['192.168.1.1'],
+          'http.request.header.accept': ['text/html'],
         });
       });
 
@@ -982,7 +982,7 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc);
 
         expect(result).toEqual({
-          'http.request.header.content-type': 'application/json',
+          'http.request.header.content-type': ['application/json'],
         });
       });
 
@@ -1022,8 +1022,8 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc, 'response');
 
         expect(result).toEqual({
-          'http.response.header.content-type': 'application/json',
-          'http.response.header.x-custom': '[Filtered]',
+          'http.response.header.content-type': ['application/json'],
+          'http.response.header.x-custom': ['[Filtered]'],
         });
       });
 
@@ -1044,8 +1044,8 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc);
 
         expect(result).toEqual({
-          'http.request.header.authorization': '[Filtered]',
-          'http.request.header.x-request-id': 'abc-123',
+          'http.request.header.authorization': ['[Filtered]'],
+          'http.request.header.x-request-id': ['abc-123'],
         });
       });
     });

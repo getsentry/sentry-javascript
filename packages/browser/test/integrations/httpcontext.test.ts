@@ -40,7 +40,7 @@ describe('httpContextIntegration', () => {
     expect(span.attributes).not.toHaveProperty('url.full');
     expect(span.attributes).toEqual({
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-      'http.request.header.referer': 'https://example.com',
+      'http.request.header.referer': ['https://example.com'],
       'user_agent.original': USER_AGENT,
     });
   });
@@ -61,7 +61,7 @@ describe('httpContextIntegration', () => {
 
     expect(span.attributes).toEqual({
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-      'http.request.header.referer': 'https://example.com',
+      'http.request.header.referer': ['https://example.com'],
       'user_agent.original': USER_AGENT,
       'url.full': 'https://example.com',
     });
@@ -183,7 +183,7 @@ describe('httpContextIntegration', () => {
       expect(span.attributes).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         'url.full': 'https://example.com',
-        'http.request.header.referer': '[Filtered]',
+        'http.request.header.referer': ['[Filtered]'],
         'user_agent.original': USER_AGENT,
       });
     });

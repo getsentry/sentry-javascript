@@ -44,13 +44,13 @@ test('Sends an API route span', async ({ baseURL }) => {
         'server.port': { value: 3030, type: 'integer' },
         'http.response.status_text': { value: 'OK', type: 'string' },
         'http.route': { value: '/test-transaction', type: 'string' },
-        'http.request.header.accept': { value: '*/*', type: 'string' },
-        'http.request.header.accept-encoding': { value: 'gzip, deflate', type: 'string' },
-        'http.request.header.accept-language': { value: '*', type: 'string' },
-        'http.request.header.connection': { value: 'keep-alive', type: 'string' },
-        'http.request.header.host': { value: expect.any(String), type: 'string' },
-        'http.request.header.sec-fetch-mode': { value: 'cors', type: 'string' },
-        'http.request.header.user-agent': { value: 'node', type: 'string' },
+        'http.request.header.accept': { value: ['*/*'], type: 'array' },
+        'http.request.header.accept-encoding': { value: ['gzip, deflate'], type: 'array' },
+        'http.request.header.accept-language': { value: ['*'], type: 'array' },
+        'http.request.header.connection': { value: ['keep-alive'], type: 'array' },
+        'http.request.header.host': { value: [expect.any(String)], type: 'array' },
+        'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
+        'http.request.header.user-agent': { value: ['node'], type: 'array' },
       }),
     }),
   );
@@ -277,11 +277,11 @@ test('Extracts HTTP request headers as span attributes', async ({ baseURL }) => 
 
   expect(segmentEvent.attributes).toEqual(
     expect.objectContaining({
-      'http.request.header.user-agent': { value: 'Custom-Agent/1.0 (Test)', type: 'string' },
-      'http.request.header.content-type': { value: 'application/json', type: 'string' },
-      'http.request.header.x-custom-header': { value: 'test-value', type: 'string' },
-      'http.request.header.accept': { value: 'application/json, text/plain', type: 'string' },
-      'http.request.header.x-request-id': { value: 'req-123', type: 'string' },
+      'http.request.header.user-agent': { value: ['Custom-Agent/1.0 (Test)'], type: 'array' },
+      'http.request.header.content-type': { value: ['application/json'], type: 'array' },
+      'http.request.header.x-custom-header': { value: ['test-value'], type: 'array' },
+      'http.request.header.accept': { value: ['application/json, text/plain'], type: 'array' },
+      'http.request.header.x-request-id': { value: ['req-123'], type: 'array' },
     }),
   );
 });
