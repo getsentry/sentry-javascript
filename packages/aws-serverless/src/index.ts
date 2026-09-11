@@ -64,6 +64,7 @@ export {
   langGraphIntegration,
   mastraIntegration,
   SentryMastraExporter,
+  createFlueInstrumentation,
   modulesIntegration,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,

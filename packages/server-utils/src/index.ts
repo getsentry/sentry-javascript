@@ -40,6 +40,8 @@ export { kafkaIntegration } from './integrations/kafkajs';
 export { knexIntegration } from './integrations/knex';
 export { langChainIntegration } from './integrations/langchain';
 export { langGraphIntegration } from './integrations/langgraph';
+export { createFlueInstrumentation } from './ai/flue';
+export type { FlueOptions } from './ai/flue';
 export { mastraIntegration } from './integrations/mastra';
 export { SentryMastraExporter } from './ai/mastra';
 export { lruMemoizerIntegration } from './integrations/lru-memoizer';

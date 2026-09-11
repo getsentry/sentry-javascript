@@ -107,7 +107,7 @@ export {
   spanStreamingIntegration,
 } from '@sentry/core';
 export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
-export { instrumentPostgresJsSql } from '@sentry/server-utils';
+export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
