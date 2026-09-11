@@ -1,7 +1,20 @@
-import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  HTTP_ROUTE,
+  SENTRY_DESCRIPTION,
+  SENTRY_NEXTJS_SSR_FUNCTION_ROUTE,
+  SENTRY_NEXTJS_SSR_FUNCTION_TYPE,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, RawAttributes, Span } from '@sentry/core';
-import { isObjectLike, Scope, INTERNAL_setSegmentNameSourceIfSegment } from '@sentry/core';
+import {
+  isObjectLike,
+  Scope,
+  INTERNAL_setSegmentNameSourceIfSegment,
+  getClient,
+  hasSpanStreamingEnabled,
+} from '@sentry/core';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
@@ -105,12 +118,22 @@ export function maybeEnhanceServerComponentSpanName(
 
   const segment = spanAttributes[ATTR_NEXT_SEGMENT] as string;
   const route = rootSpanAttributes[HTTP_ROUTE];
-  const enhancedName = getEnhancedResolveSegmentSpanName({ segment, route: typeof route === 'string' ? route : '' });
-  activeSpan.updateName(enhancedName);
+
+  const enhancedName = segment === PAGE_SEGMENT ? 'Page' : 'Layout';
+  const enhancedDescription = getEnhancedResolveSegmentSpanName({
+    segment,
+    route: typeof route === 'string' ? route : '',
+  });
+  const client = getClient();
+
+  activeSpan.updateName(client && hasSpanStreamingEnabled(client) ? enhancedName : enhancedDescription);
   activeSpan.setAttributes({
-    'sentry.nextjs.ssr.function.type': segment === PAGE_SEGMENT ? 'Page' : 'Layout',
-    'sentry.nextjs.ssr.function.route': route as string | undefined,
+    [SENTRY_NEXTJS_SSR_FUNCTION_TYPE]: segment === PAGE_SEGMENT ? 'Page' : 'Layout',
+    [SENTRY_NEXTJS_SSR_FUNCTION_ROUTE]: route as string | undefined,
     [SENTRY_OP]: FUNCTION,
+    [SENTRY_DESCRIPTION]: enhancedDescription,
+    [CODE_FUNCTION_NAME]: enhancedName,
+    [HTTP_ROUTE]: route as string | undefined,
   });
   // Usually a child of the request root span, in which case this no-ops and the root keeps the name
   // source it got from `handleOnSpanStart` / `enhanceHandleRequestRootSpan`.
