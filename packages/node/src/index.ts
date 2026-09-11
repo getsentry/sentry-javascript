@@ -20,6 +20,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
+  createFlueInstrumentation,
   mastraIntegration,
   SentryMastraExporter,
   mongoIntegration,

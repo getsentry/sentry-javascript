@@ -86,6 +86,7 @@ export {
   langGraphIntegration,
   mastraIntegration,
   SentryMastraExporter,
+  createFlueInstrumentation,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,

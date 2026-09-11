@@ -137,6 +137,7 @@ export {
   langGraphIntegration,
   mastraIntegration,
   SentryMastraExporter,
+  createFlueInstrumentation,
   lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,
