@@ -21,7 +21,7 @@ import { bindTracingChannelToSpan } from '../tracing-channel';
 
 const INTEGRATION_NAME = 'Mistral' as const;
 
-const ORIGIN = 'auto.ai.mistral';
+const ORIGIN = 'auto.ai.mistralai';
 
 // Each instrumented channel maps to the gen_ai operation its span reports.
 const INSTRUMENTED_CHANNELS = [

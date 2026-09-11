@@ -50,9 +50,9 @@ export function extractRequestAttributes(
   recordInputs: boolean,
 ): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_PROVIDER_NAME]: 'mistral',
+    [GEN_AI_PROVIDER_NAME]: 'mistralai',
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.mistral',
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.mistralai',
   };
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {

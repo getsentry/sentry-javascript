@@ -23,8 +23,8 @@ import {
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
-const PROVIDER = 'mistral';
-const ORIGIN = 'auto.ai.mistral';
+const PROVIDER = 'mistralai';
+const ORIGIN = 'auto.ai.mistralai';
 
 // ESM-only: `@mistralai/mistralai` v2 ships no CJS build, so CJS consumers load it via `require(esm)`,
 // whose auto-instrumentation is inconsistent across Node versions. The SDK's native mode is ESM, so we
