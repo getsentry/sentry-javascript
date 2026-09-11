@@ -25,14 +25,30 @@ test('sends a pageload span with a parameterized URL', async ({ page }) => {
   });
 });
 
-test('sends a pageload span for the root route', async ({ page }) => {
+test('sends a pageload span for the root route with web vital attributes and a standalone LCP span', async ({
+  page,
+}) => {
   const pageloadSpanPromise = waitForStreamedSpan('vue-tanstack-router', span => {
     return span.is_segment && getSpanOp(span) === 'pageload';
+  });
+
+  const lcpSpanPromise = waitForStreamedSpan('vue-tanstack-router', span => {
+    return getSpanOp(span) === 'ui.webvital.lcp';
   });
 
   await page.goto(`/`);
 
   const pageloadSpan = await pageloadSpanPromise;
+
+  // LCP is only reported once the page is hidden or a navigation happens
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+
+  const lcpSpan = await lcpSpanPromise;
+
+  const webVitalNumber = { value: expect.any(Number), type: expect.stringMatching(/^(integer|double)$/) };
 
   expect(pageloadSpan).toMatchObject({
     name: '/',
@@ -44,7 +60,17 @@ test('sends a pageload span for the root route', async ({ page }) => {
       'url.template': { type: 'string', value: '/' },
       'url.path': { type: 'string', value: '/' },
       'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/$/) },
+      'browser.web_vital.ttfb.value': webVitalNumber,
+      'browser.web_vital.fp.value': webVitalNumber,
+      'browser.web_vital.fcp.value': webVitalNumber,
     },
+  });
+
+  expect(lcpSpan.attributes).toMatchObject({
+    'sentry.op': { type: 'string', value: 'ui.webvital.lcp' },
+    'sentry.origin': { type: 'string', value: 'auto.http.browser.lcp' },
+    'sentry.pageload.span_id': { type: 'string', value: pageloadSpan.span_id },
+    'browser.web_vital.lcp.value': webVitalNumber,
   });
 });
 
