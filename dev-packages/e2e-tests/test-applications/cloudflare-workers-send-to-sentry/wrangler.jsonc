@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Placeholder only: every test run deploys under a unique name, see global-setup.mjs.
+  "name": "cloudflare-workers-send-to-sentry",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  // Workers Logs keep the invocations of the last 7 days, so a failed CI run can still be inspected.
+  "observability": { "enabled": true },
+}

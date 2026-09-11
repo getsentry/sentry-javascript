@@ -18,6 +18,10 @@ current state.
 - Copy `.env.example` to `.env`
 - OPTIONAL: Fill in auth information in `.env` for an example Sentry project - you only need this to run E2E tests that
   send data to Sentry.
+- OPTIONAL: Fill in the Cloudflare credentials in `.env` - you only need this to run E2E tests that deploy a real
+  Cloudflare Worker (e.g. `cloudflare-workers-send-to-sentry`). A local run deploys a throwaway worker and deletes it
+  again afterwards; set `E2E_KEEP_WORKER=1` to keep it for debugging. CI keeps one worker per branch or PR instead, and
+  PR workers are deleted by the `cleanup-e2e-workers` workflow when the PR closes.
 - Run `yarn build:tarball` in the root of the repository (needs to be rerun after every update in /packages for the
   changes to have effect on the tests).
 
