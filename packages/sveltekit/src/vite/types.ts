@@ -4,9 +4,7 @@ import type { AutoInstrumentSelection } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
 
 /** Options for the Custom Sentry Vite plugin */
-export type CustomSentryVitePluginOptions = SentryVitePluginOptions & {
-  adapter?: SupportedSvelteKitAdapters;
-};
+export type CustomSentryVitePluginOptions = SentryVitePluginOptions;
 
 /** Options for the Sentry SvelteKit plugin */
 export type SentrySvelteKitPluginOptions = BuildTimeOptionsBase & {

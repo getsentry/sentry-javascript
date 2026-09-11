@@ -7,9 +7,9 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  isNodeEnv,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
 } from '@sentry/core';
+import { isNodeEnv } from '@sentry/core/server';
 import type { BrowserClient, browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
 import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import * as React from 'react';

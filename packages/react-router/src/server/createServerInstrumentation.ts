@@ -10,7 +10,6 @@ import {
 import { FUNCTION, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   debug,
-  flushIfServerless,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -23,6 +22,7 @@ import {
   updateSpanName,
   filterCollectedUrl,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import type { ServerInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';

@@ -1,147 +1,85 @@
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { InvokeCommand } from '@aws-sdk/client-lambda';
 import { test, expect } from './lambda-fixtures';
 
+// This app runs with `traceLifecycle: 'stream'`, the SDK default. The `aws-serverless-layer` app
+// covers the `'static'` lifecycle, so between the two both lifecycles stay under test.
+
+function assertLambdaTrace(spans: SerializedStreamedSpan[], functionName: string): void {
+  const segmentSpan = spans.find(span => span.is_segment);
+
+  // `function.aws` span names are low cardinality: the function name, never the invocation URL.
+  expect(segmentSpan?.name).toBe(functionName);
+  expect(segmentSpan?.status).toBe('ok');
+  expect(getSpanOp(segmentSpan!)).toBe('function.aws');
+
+  expect(segmentSpan?.attributes).toMatchObject({
+    'sentry.op': { value: 'function.aws', type: 'string' },
+    'sentry.origin': { value: 'auto.aws_lambda', type: 'string' },
+    'sentry.kind': { value: 'server', type: 'string' },
+    'sentry.segment.name.source': { value: 'component', type: 'string' },
+    'cloud.account.id': { value: '012345678912', type: 'string' },
+    'cloud.platform': { value: 'aws_lambda', type: 'string' },
+    'cloud.provider': { value: 'aws', type: 'string' },
+    'faas.coldstart': { value: true, type: 'boolean' },
+    'faas.execution': { value: expect.any(String), type: 'string' },
+    'faas.id': { value: `arn:aws:lambda:us-east-1:012345678912:function:${functionName}`, type: 'string' },
+    // The name the span is named after also stays on the span, so it survives a rename.
+    'faas.name': { value: functionName, type: 'string' },
+    // Streamed spans have no event contexts, so the `aws.lambda` context the transaction used to
+    // carry is stamped onto the segment span by `awsLambdaIntegration`.
+    'aws.lambda.function_name': { value: functionName, type: 'string' },
+    'aws.lambda.invoked_function_arn': {
+      value: `arn:aws:lambda:us-east-1:012345678912:function:${functionName}`,
+      type: 'string',
+    },
+    'aws.lambda.aws_request_id': { value: expect.any(String), type: 'string' },
+    'aws.cloudwatch.logs.log_group': { value: expect.any(String), type: 'string' },
+    'aws.cloudwatch.logs.log_stream': { value: expect.any(String), type: 'string' },
+  });
+
+  // shows that the Otel Http instrumentation is working
+  expect(spans).toContainEqual(
+    expect.objectContaining({
+      name: 'GET example.com',
+      parent_span_id: segmentSpan?.span_id,
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'http.client', type: 'string' },
+        'sentry.origin': { value: 'auto.http.client', type: 'string' },
+        'url.full': { value: 'http://example.com/', type: 'string' },
+      }),
+    }),
+  );
+
+  // shows that the manual span creation is working
+  expect(spans).toContainEqual(
+    expect.objectContaining({
+      name: 'manual-span',
+      parent_span_id: segmentSpan?.span_id,
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'manual', type: 'string' },
+        'sentry.origin': { value: 'manual', type: 'string' },
+      }),
+    }),
+  );
+}
+
 test.describe('NPM package', () => {
-  test('tracing in CJS works', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless', transactionEvent => {
-      return transactionEvent?.transaction === 'NpmTracingCjs';
+  for (const [label, functionName] of [
+    ['CJS', 'NpmTracingCjs'],
+    ['ESM', 'NpmTracingEsm'],
+  ] as const) {
+    test(`tracing in ${label} works`, async ({ lambdaClient }) => {
+      const spansPromise = collectStreamedSpans('aws-serverless', spansOfTrace =>
+        spansOfTrace.some(span => span.is_segment && span.name === functionName),
+      );
+
+      await lambdaClient.send(new InvokeCommand({ FunctionName: functionName, Payload: JSON.stringify({}) }));
+
+      const spans = await spansPromise;
+
+      assertLambdaTrace(spans, functionName);
     });
-
-    await lambdaClient.send(
-      new InvokeCommand({
-        FunctionName: 'NpmTracingCjs',
-        Payload: JSON.stringify({}),
-      }),
-    );
-
-    const transactionEvent = await transactionEventPromise;
-
-    // shows the SDK sent a transaction
-    expect(transactionEvent.transaction).toEqual('NpmTracingCjs'); // name should be the function name
-    expect(transactionEvent.contexts?.trace).toEqual({
-      data: {
-        'sentry.sample_rate': 1,
-        'sentry.segment.name.source': 'custom',
-        'sentry.origin': 'auto.aws_lambda',
-        'sentry.op': 'function.aws',
-        'cloud.account.id': '012345678912',
-        'cloud.platform': 'aws_lambda',
-        'cloud.provider': 'aws',
-        'faas.execution': expect.any(String),
-        'faas.id': 'arn:aws:lambda:us-east-1:012345678912:function:NpmTracingCjs',
-        'faas.name': 'NpmTracingCjs',
-        'faas.coldstart': true,
-        'sentry.kind': 'server',
-      },
-      op: 'function.aws',
-      origin: 'auto.aws_lambda',
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      status: 'ok',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    });
-
-    expect(transactionEvent.spans).toHaveLength(2);
-
-    // shows that the Otel Http instrumentation is working
-    expect(transactionEvent.spans).toContainEqual(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.client',
-          'url.full': 'http://example.com/',
-        }),
-        description: 'GET http://example.com/',
-        op: 'http.client',
-      }),
-    );
-
-    // shows that the manual span creation is working
-    expect(transactionEvent.spans).toContainEqual(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'sentry.op': 'manual',
-          'sentry.origin': 'manual',
-        }),
-        description: 'manual-span',
-        op: 'manual',
-      }),
-    );
-
-    // shows that the SDK source is correctly detected
-    expect(transactionEvent.sdk?.packages).toContainEqual(
-      expect.objectContaining({ name: 'npm:@sentry/aws-serverless' }),
-    );
-  });
-
-  test('tracing in ESM works', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless', transactionEvent => {
-      return transactionEvent?.transaction === 'NpmTracingEsm';
-    });
-
-    await lambdaClient.send(
-      new InvokeCommand({
-        FunctionName: 'NpmTracingEsm',
-        Payload: JSON.stringify({}),
-      }),
-    );
-
-    const transactionEvent = await transactionEventPromise;
-
-    // shows the SDK sent a transaction
-    expect(transactionEvent.transaction).toEqual('NpmTracingEsm'); // name should be the function name
-    expect(transactionEvent.contexts?.trace).toEqual({
-      data: {
-        'sentry.sample_rate': 1,
-        'sentry.segment.name.source': 'custom',
-        'sentry.origin': 'auto.aws_lambda',
-        'sentry.op': 'function.aws',
-        'cloud.account.id': '012345678912',
-        'cloud.platform': 'aws_lambda',
-        'cloud.provider': 'aws',
-        'faas.execution': expect.any(String),
-        'faas.id': 'arn:aws:lambda:us-east-1:012345678912:function:NpmTracingEsm',
-        'faas.name': 'NpmTracingEsm',
-        'faas.coldstart': true,
-        'sentry.kind': 'server',
-      },
-      op: 'function.aws',
-      origin: 'auto.aws_lambda',
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      status: 'ok',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    });
-
-    expect(transactionEvent.spans).toHaveLength(2);
-
-    // shows that the Otel Http instrumentation is working
-    expect(transactionEvent.spans).toContainEqual(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.client',
-          'url.full': 'http://example.com/',
-        }),
-        description: 'GET http://example.com/',
-        op: 'http.client',
-      }),
-    );
-
-    // shows that the manual span creation is working
-    expect(transactionEvent.spans).toContainEqual(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'sentry.op': 'manual',
-          'sentry.origin': 'manual',
-        }),
-        description: 'manual-span',
-        op: 'manual',
-      }),
-    );
-
-    // shows that the SDK source is correctly detected
-    expect(transactionEvent.sdk?.packages).toContainEqual(
-      expect.objectContaining({ name: 'npm:@sentry/aws-serverless' }),
-    );
-  });
+  }
 });

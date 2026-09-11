@@ -40,7 +40,7 @@ describe('instrumentEnv', () => {
     await db.prepare('SELECT 1').first();
 
     expect(startSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'SELECT 1', attributes: expect.objectContaining({ 'sentry.op': 'db.query' }) }),
+      expect.objectContaining({ name: 'SELECT ?', attributes: expect.objectContaining({ 'sentry.op': 'db.query' }) }),
       expect.any(Function),
     );
   });
@@ -245,34 +245,6 @@ describe('instrumentEnv', () => {
     expect(instrumented.MY_QUEUE).not.toBe(queue);
     instrumented.COUNTER;
     expect(instrumentDurableObjectNamespace).toHaveBeenCalledWith(doNamespace, true);
-  });
-
-  it('wraps RateLimit bindings in a proxy and forwards calls', async () => {
-    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
-    const limit = vi.fn().mockResolvedValue({ success: true });
-    const rateLimiter = { limit };
-    const env = { MY_RATE_LIMITER: rateLimiter };
-    const instrumented = instrumentEnv(env);
-
-    const wrapped = instrumented.MY_RATE_LIMITER as typeof rateLimiter;
-    // Wrapped binding is a Proxy, not the original reference
-    expect(wrapped).not.toBe(rateLimiter);
-
-    const outcome = await wrapped.limit({ key: 'user-123' });
-    expect(outcome).toEqual({ success: true });
-    expect(limit).toHaveBeenCalledTimes(1);
-    expect(startSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'rate_limit MY_RATE_LIMITER' }),
-      expect.any(Function),
-    );
-  });
-
-  it('caches the wrapped RateLimit binding across repeated access', () => {
-    const rateLimiter = { limit: vi.fn() };
-    const env = { MY_RATE_LIMITER: rateLimiter };
-    const instrumented = instrumentEnv(env);
-
-    expect(instrumented.MY_RATE_LIMITER).toBe(instrumented.MY_RATE_LIMITER);
   });
 
   describe('Workers AI bindings', () => {

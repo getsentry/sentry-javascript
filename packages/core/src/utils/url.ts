@@ -148,6 +148,20 @@ export function getUrlFragment(fragment: string | undefined): string | undefined
   return fragment?.replace(/^#/, '') || undefined;
 }
 
+/**
+ * The domain a request goes to, for the `url.domain` attribute and low-cardinality span names.
+ *
+ * Relative URLs need a `base` to resolve against — browsers have the page origin, server runtimes do
+ * not. URLs with no domain at all, such as data URLs, return `undefined`.
+ */
+export function getUrlDomain(url: string, base?: string): string | undefined {
+  try {
+    return new URL(url, base).hostname || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 type PartialRequest = {
   method?: string;
 };

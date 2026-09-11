@@ -10,7 +10,7 @@ import {
   browserTracingIntegration,
   browserProfilingIntegration,
 } from '../../src/index';
-import { debug } from '@sentry/core/browser';
+import { debug } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
 import type { BrowserClient } from '../../src/index';
 

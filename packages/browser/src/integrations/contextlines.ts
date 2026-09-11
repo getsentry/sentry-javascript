@@ -1,5 +1,5 @@
-import type { Event, IntegrationFn, StackFrame } from '@sentry/core/browser';
-import { addContextToFrame, defineIntegration, GLOBAL_OBJ, stripUrlQueryAndFragment } from '@sentry/core/browser';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
+import { addContextToFrame, defineIntegration, GLOBAL_OBJ, stripUrlQueryAndFragment } from '@sentry/core';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 

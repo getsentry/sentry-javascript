@@ -62,6 +62,15 @@ export type InternalGlobal = {
     /** Empty array signifies runtime hooked */
     runtime?: string[];
     /**
+     * The resolved `file:` URL of a transformed file for each runtime-injected
+     * module, keyed by module name (e.g. `@mastra/core`). Lets an integration
+     * anchor `createRequire` on the app's actual copy of a dependency without
+     * relying on `process.cwd()` or the CJS `require.cache` — the latter is
+     * always empty for ESM-loaded modules. Only the runtime `--import`/hook path
+     * populates this; the bundler path inlines modules and records none.
+     */
+    runtimeFiles?: Record<string, string>;
+    /**
      * Module names recorded as each bundler-transformed module loads (the
      * injected snippet calls `orchestrionModuleInjected`). The bundler plugin's
      * entry banner ensures an empty `Set` at boot, so a defined set — even
@@ -79,9 +88,10 @@ export type InternalGlobal = {
     integrations?: Map<string, () => Integration>;
     /**
      * Set once `registerDiagnosticsChannelInjection()` has run but could not
-     * install the runtime module hooks — the Node runtime lacks the required
-     * module-hook API, or registration threw. Dedupes the one-time warning and
-     * short-circuits repeat calls.
+     * install the runtime module hooks — most commonly because
+     * `@sentry/server-runtime-injection` was bundled into the app (which strips its vendored
+     * code transformer) or the Node runtime lacks the required module-hook API.
+     * Dedupes the one-time warning and short-circuits repeat calls.
      */
     runtimeUnavailable?: boolean;
   };

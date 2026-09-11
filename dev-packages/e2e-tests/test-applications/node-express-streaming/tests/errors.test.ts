@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, waitForError } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, waitForError } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-express-streaming', event => {
@@ -8,9 +8,7 @@ test('Sends correct error event', async ({ baseURL }) => {
 
   // In streaming mode there is no transaction event; the request's spans are streamed individually.
   // The root segment span flushes last, so collecting until it arrives captures the whole trace.
-  const spansPromise = collectStreamedSpans('node-express-streaming', spans =>
-    spans.some(span => span.name === 'GET /test-exception/:id' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('node-express-streaming', 'GET /test-exception/:id');
 
   await fetch(`${baseURL}/test-exception/123`);
 

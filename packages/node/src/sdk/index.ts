@@ -17,7 +17,6 @@ import {
 } from '@sentry/core';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
-import { registerDiagnosticsChannelInjection } from '@sentry/server-utils/orchestrion/register';
 import { DEBUG_BUILD } from '../debug-build';
 import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
@@ -40,10 +39,6 @@ import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
-
-// Treeshakable guard to remove all code related to runtime diagnostics-channel injection. Set to
-// `false` at build time by the Sentry bundler plugins' `bundleSizeOptimizations.excludeChannelInjection`.
-declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 
 /**
  * Get the base default integrations shared by all Node SDK default-integration sets.
@@ -134,9 +129,10 @@ function _init(
 
   applySdkMetadata(options, 'node');
 
-  // Enable debug logging before channel-injection registration below, so its failure modes (e.g. no
-  // available Node hook API, dep-resolution errors) actually surface. `getClientOptions` resolves
-  // `debug` the same way for the client; resolving it here as well keeps the two in agreement.
+  // Enable debug logging before the client is created, so failure modes during setup (e.g. the
+  // channel-injection registration finding no available Node hook API, or dep-resolution errors)
+  // actually surface. `getClientOptions` resolves `debug` the same way for the client; resolving it
+  // here as well keeps the two in agreement.
   if (envToBool(options.debug ?? process.env.SENTRY_DEBUG)) {
     if (DEBUG_BUILD) {
       debug.enable();
@@ -157,18 +153,6 @@ function _init(
     ...options,
     tracesSampleRate: getTracesSampleRate(options.tracesSampleRate),
   };
-
-  // Install the channel-based (orchestrion diagnostics-channel) instrumentation hooks by default,
-  // independent of tracing — the channel integrations also capture errors, not just spans. Opt out at
-  // runtime with `enableRuntimeChannelInjection: false`, or at build time via the bundler plugins'
-  // `bundleSizeOptimizations.excludeChannelInjection` (which tree-shakes this whole block away).
-  // Install as early as possible, before the app imports its instrumented modules.
-  if (
-    (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
-    options.enableRuntimeChannelInjection !== false
-  ) {
-    registerDiagnosticsChannelInjection();
-  }
 
   // Only use Node SDK defaults if none provided.
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(optionsWithResolvedTracing);

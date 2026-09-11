@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { getCurrentScope, makeSession, setCurrentClient } from '@sentry/core/browser';
+import { getCurrentScope, makeSession, setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';

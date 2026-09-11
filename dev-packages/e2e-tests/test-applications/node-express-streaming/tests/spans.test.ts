@@ -79,7 +79,13 @@ test('Sends streamed spans for an errored route', async ({ baseURL }) => {
 
 test('Outgoing fetch spans are streamed', async ({ baseURL }) => {
   const fetchSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return getSpanOp(span) === 'http.client' && !span.is_segment && span.name.includes('localhost:3030/test-success');
+    // A streamed name keeps only the domain, which every outgoing span here shares, so select on
+    // `url.full` and assert the name below.
+    return (
+      getSpanOp(span) === 'http.client' &&
+      !span.is_segment &&
+      String(span.attributes['url.full']?.value ?? '').includes('localhost:3030/test-success')
+    );
   });
 
   await fetch(`${baseURL}/test-outgoing-fetch`);
@@ -87,6 +93,8 @@ test('Outgoing fetch spans are streamed', async ({ baseURL }) => {
   const fetchSpan = await fetchSpanPromise;
 
   expect(fetchSpan).toBeDefined();
+  expect(fetchSpan.name).toBe('GET localhost');
+  expect(fetchSpan.attributes['url.domain']?.value).toBe('localhost');
   expect(fetchSpan.status).toBe('ok');
 });
 
@@ -96,7 +104,13 @@ test.skip('Outgoing fetch spans include response headers when headersToSpanAttri
   baseURL,
 }) => {
   const fetchSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return getSpanOp(span) === 'http.client' && !span.is_segment && span.name.includes('localhost:3030/test-success');
+    // A streamed name keeps only the domain, which every outgoing span here shares, so select on
+    // `url.full` and assert the name below.
+    return (
+      getSpanOp(span) === 'http.client' &&
+      !span.is_segment &&
+      String(span.attributes['url.full']?.value ?? '').includes('localhost:3030/test-success')
+    );
   });
 
   await fetch(`${baseURL}/test-outgoing-fetch`);
@@ -104,6 +118,7 @@ test.skip('Outgoing fetch spans include response headers when headersToSpanAttri
   const fetchSpan = await fetchSpanPromise;
 
   expect(fetchSpan).toBeDefined();
+  expect(fetchSpan.name).toBe('GET localhost');
   expect(fetchSpan.attributes['http.response.header.content-length']).toBeDefined();
 });
 
@@ -113,7 +128,7 @@ test('Extracts HTTP request headers as streamed span attributes', async ({ baseU
       span.name === 'GET /test-transaction' &&
       getSpanOp(span) === 'http.server' &&
       span.is_segment &&
-      span.attributes['http.request.header.user_agent']?.value === 'Custom-Agent/1.0 (Test)'
+      span.attributes['http.request.header.user-agent']?.value === 'Custom-Agent/1.0 (Test)'
     );
   });
 
@@ -129,9 +144,9 @@ test('Extracts HTTP request headers as streamed span attributes', async ({ baseU
 
   const rootSpan = await rootSpanPromise;
 
-  expect(rootSpan.attributes['http.request.header.user_agent']?.value).toBe('Custom-Agent/1.0 (Test)');
-  expect(rootSpan.attributes['http.request.header.content_type']?.value).toBe('application/json');
-  expect(rootSpan.attributes['http.request.header.x_custom_header']?.value).toBe('test-value');
+  expect(rootSpan.attributes['http.request.header.user-agent']?.value).toBe('Custom-Agent/1.0 (Test)');
+  expect(rootSpan.attributes['http.request.header.content-type']?.value).toBe('application/json');
+  expect(rootSpan.attributes['http.request.header.x-custom-header']?.value).toBe('test-value');
   expect(rootSpan.attributes['http.request.header.accept']?.value).toBe('application/json, text/plain');
-  expect(rootSpan.attributes['http.request.header.x_request_id']?.value).toBe('req-123');
+  expect(rootSpan.attributes['http.request.header.x-request-id']?.value).toBe('req-123');
 });

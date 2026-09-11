@@ -3,12 +3,12 @@
  */
 
 import { runInNewContext } from 'node:vm';
-import { addNonEnumerableProperty } from '@sentry/core/browser';
+import { addNonEnumerableProperty } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultStackParser } from '../src';
 import { eventFromMessage, eventFromUnknownInput, extractMessage, extractType } from '../src/eventbuilder';
 
-vi.mock('@sentry/core/browser', async requireActual => {
+vi.mock('@sentry/core', async requireActual => {
   return {
     ...((await requireActual()) as any),
     getClient() {
@@ -293,6 +293,15 @@ describe('eventFromUnknownInput', () => {
         value: 'The string did not match the expected pattern.',
       }),
     );
+  });
+
+  it('does not set the deprecated DOMException.code as an event tag', () => {
+    const exception = new DOMException('Permission denied', 'NotAllowedError');
+
+    const event = eventFromUnknownInput(defaultStackParser, exception);
+
+    expect(event.exception?.values?.[0]?.type).toBe('NotAllowedError');
+    expect(event.tags).toBeUndefined();
   });
 });
 

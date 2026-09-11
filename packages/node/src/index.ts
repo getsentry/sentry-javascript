@@ -8,6 +8,7 @@ export {
   anthropicAIIntegration,
   dataloaderIntegration,
   expressIntegration,
+  type ExpressIntegrationOptions,
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
@@ -19,6 +20,8 @@ export {
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
@@ -31,7 +34,7 @@ export {
   vercelAIIntegration,
 } from '@sentry/server-utils';
 export {
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
   instrumentOpenAiClient,
@@ -143,7 +146,6 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
-  trpcMiddleware,
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
@@ -151,10 +153,10 @@ export {
   profiler,
   consoleLoggingIntegration,
   createConsolaReporter,
-  wrapMcpServerWithSentry,
   featureFlagsIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
 
 export type {
   Breadcrumb,

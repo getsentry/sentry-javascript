@@ -3,6 +3,7 @@ import {
   getHttpSpanDetailsFromUrlObject,
   getSanitizedUrlString,
   getSanitizedUrlStringFromUrlObject,
+  getUrlDomain,
   getUrlFragment,
   getUrlQuery,
   isURLObjectRelative,
@@ -305,6 +306,20 @@ describe('getUrlQuery', () => {
     [undefined, undefined],
   ])('strips the leading ? from %s', (input, expected) => {
     expect(getUrlQuery(input)).toBe(expected);
+  });
+});
+
+describe('getUrlDomain', () => {
+  it.each([
+    ['https://somedomain.com/path?a=b#c', undefined, 'somedomain.com'],
+    ['https://user:pass@somedomain.com:8443/path', undefined, 'somedomain.com'],
+    ['/path/to/happiness', undefined, undefined],
+    ['/path/to/happiness', 'https://somedomain.com', 'somedomain.com'],
+    ['https://otherdomain.com/path', 'https://somedomain.com', 'otherdomain.com'],
+    ['data:text/plain,hello', 'https://somedomain.com', undefined],
+    ['', undefined, undefined],
+  ])('resolves %s against %s', (url, base, expected) => {
+    expect(getUrlDomain(url, base)).toBe(expected);
   });
 });
 

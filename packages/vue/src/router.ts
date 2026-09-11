@@ -1,7 +1,7 @@
 import { captureException, getAbsoluteUrl } from '@sentry/browser';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
-  NAVIGATION_ROUTE_ID,
+  ROUTER_NAVIGATION_ROUTE_ID,
   PARAMS_KEY_BASE,
   SENTRY_OP,
   URL_PATH_PARAMETER_KEY_BASE,
@@ -113,7 +113,7 @@ export function instrumentVueRouter(
     }
 
     if (to.name) {
-      attributes[NAVIGATION_ROUTE_ID] = to.name.toString();
+      attributes[ROUTER_NAVIGATION_ROUTE_ID] = to.name.toString();
     }
 
     getCurrentScope().setTransactionName(spanName);

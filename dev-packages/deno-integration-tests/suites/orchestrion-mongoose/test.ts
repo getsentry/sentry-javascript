@@ -10,7 +10,11 @@ import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('mongoose instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    traceLifecycle: 'static',
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Mongoose'), `Mongoose should be in defaults, got ${names.join(', ')}`);
 });
@@ -56,7 +60,7 @@ Deno.test('mongoose instrumentation: orchestrion:mongoose:model_save channel pro
   const mongooseSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(mongooseSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
   assertEquals(mongooseSpan!.description, 'mongoose.BlogPost.save');
-  assertEquals(mongooseSpan!.data?.['db.system.name'], 'mongoose');
+  assertEquals(mongooseSpan!.data?.['db.system.name'], 'mongodb');
   assertEquals(mongooseSpan!.data?.['db.namespace'], 'mydb');
   assertEquals(mongooseSpan!.data?.['db.collection.name'], 'blogposts');
   assertEquals(mongooseSpan!.data?.['db.operation.name'], 'save');

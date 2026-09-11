@@ -1,14 +1,6 @@
 /* eslint-disable max-lines */
-import type {
-  Client,
-  IntegrationFn,
-  RequestHookInfo,
-  ResponseHookInfo,
-  Span,
-  StartSpanOptions,
-} from '@sentry/core/browser';
+import type { Client, IntegrationFn, RequestHookInfo, ResponseHookInfo, Span, StartSpanOptions } from '@sentry/core';
 import {
-  _INTERNAL_ensureBrowserSpanStreaming,
   addNonEnumerableProperty,
   consoleSandbox,
   dateTimestampInSeconds,
@@ -27,18 +19,16 @@ import {
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanIsSampled,
   spanToJSON,
-  startIdleSpan,
-  startInactiveSpan,
   timestampInSeconds,
   TRACING_DEFAULTS,
   browserPerformanceTimeOrigin,
-} from '@sentry/core/browser';
+} from '@sentry/core';
+import { _INTERNAL_ensureBrowserSpanStreaming, startIdleSpan, startInactiveSpan } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
+  BROWSER_NAVIGATION_TYPE_ATTRIBUTE,
   addPerformanceEntries,
   getLocationHref,
   isBotUserAgent,
@@ -48,11 +38,19 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { filterCollectedUrl } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
+import type { WebVitalsOptions } from '../integrations/webVitals';
 import { WEB_VITALS_INTEGRATION_NAME, webVitalsIntegration } from '../integrations/webVitals';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { linkTraces } from './linkedTraces';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+  SENTRY_ORIGIN,
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+} from '@sentry/conventions/attributes';
 import { NAVIGATION, NAVIGATION_REDIRECT, PAGELOAD } from '@sentry/conventions/op';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
@@ -98,6 +96,19 @@ export interface BrowserTracingOptions {
   instrumentNavigation: boolean;
 
   /**
+   * If a navigation span should be created when the page is restored from the back/forward cache.
+   *
+   * This is deliberately independent of {@link BrowserTracingOptions.instrumentNavigation}: a restore
+   * is not a history change, and the framework integrations that own their own navigation spans turn
+   * that option off without ever handling a restore. The point of this span is trace hygiene, keeping
+   * everything after the restore off the trace the page had before it was frozen, so it is worth
+   * having even where history instrumentation is not.
+   *
+   * Default: true
+   */
+  instrumentBfcacheRestore: boolean;
+
+  /**
    * Flag spans where tabs moved to background with "cancelled". Browser background tab timing is
    * not suited towards doing precise measurements of operations. By default, we recommend that this option
    * be enabled as background transactions can mess up your statistics in nondeterministic ways.
@@ -124,8 +135,16 @@ export interface BrowserTracingOptions {
    * If true, Sentry will capture first input delay and add it to the corresponding transaction.
    *
    * Default: true
+   *
+   * @deprecated Use {@link BrowserTracingOptions.webVitals} instead: `webVitals: { ignore: ['inp'] }`.
    */
   enableInp: boolean;
+
+  /**
+   * Options for the `webVitalsIntegration` that is auto-registered when none is present.
+   * Ignored if you register `webVitalsIntegration` yourself.
+   */
+  webVitals?: WebVitalsOptions;
 
   /**
    * @deprecated This option is no longer used. Element timing is now tracked via the standalone
@@ -258,10 +277,12 @@ export interface BrowserTracingOptions {
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   ...TRACING_DEFAULTS,
   instrumentNavigation: true,
+  instrumentBfcacheRestore: true,
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
   enableLongAnimationFrame: true,
+  // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
   enableInp: true,
   ignoreResourceSpans: [],
   detectRedirects: true,
@@ -297,9 +318,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
 
   const {
+    // oxlint-disable-next-line typescript/no-deprecated -- still honoured until it is removed
     enableInp,
     enableLongTask,
     enableLongAnimationFrame,
+    webVitals,
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -312,6 +335,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     ignoreResourceSpans,
     instrumentPageLoad,
     instrumentNavigation,
+    instrumentBfcacheRestore,
     detectRedirects,
     linkPreviousTrace,
     consistentTraceSampling,
@@ -436,7 +460,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
               `[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).attributes[SENTRY_OP]}`,
             );
           // If there's an open active span, we need to finish it before creating an new one.
-          activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
+          activeSpan.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
         }
       }
@@ -562,9 +586,25 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
       client.on('endPageloadSpan', () => {
         if (enableReportPageLoaded && _pageloadSpan) {
-          _pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'reportPageLoaded');
+          _pageloadSpan.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'reportPageLoaded');
           _pageloadSpan.end();
         }
+      });
+
+      // `pagehide` is the last moment a document leaving the page can still send. We cannot rely on
+      // `registerBackgroundTabDetection`, which ends the span on `visibilitychange`: the client's own
+      // `visibilitychange` flush is registered first and its deferring microtask runs after that
+      // listener but before background tab detection's, so the buffer is still empty when it drains.
+      // The segment span is buffered right after with nothing left to flush it, and the children have
+      // been streamed all along, which leaves a rootless trace. Ending and flushing together here
+      // keeps this self-contained instead of depending on that ordering.
+      WINDOW.addEventListener?.('pagehide', () => {
+        const activeSpan = getActiveIdleSpan(client);
+        if (activeSpan && !spanToJSON(activeSpan).end_timestamp) {
+          activeSpan.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'documentHidden');
+          activeSpan.end();
+        }
+        void client.flush();
       });
     },
 
@@ -582,9 +622,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       // afterAllSetup so that a user-provided webVitalsIntegration - which may be ordered after
       // browserTracingIntegration in the integrations array - has already been installed.
       if (client.addIntegration && !client.getIntegrationByName?.(WEB_VITALS_INTEGRATION_NAME)) {
+        const ignore = webVitals?.ignore ?? [];
         client.addIntegration(
           webVitalsIntegration({
-            ignore: enableInp ? [] : ['inp'],
+            ...webVitals,
+            ignore: enableInp || ignore.includes('inp') ? ignore : [...ignore, 'inp'],
           }),
         );
       }
@@ -603,7 +645,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
             name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : WINDOW.location.pathname,
             attributes: {
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
+              [SENTRY_ORIGIN]: 'auto.pageload.browser',
             },
           });
         }
@@ -619,7 +661,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
              * only be caused in certain development environments where the usage of a hot module reloader is causing
              * errors.
              */
-            if (from === undefined && startingUrl?.indexOf(to) !== -1) {
+            if (from === undefined && startingUrl !== undefined && startingUrl.indexOf(to) !== -1) {
               startingUrl = undefined;
               return;
             }
@@ -640,10 +682,51 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
                   : parsed?.pathname || WINDOW.location.pathname,
                 attributes: {
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+                  [SENTRY_ORIGIN]: 'auto.navigation.browser',
                 },
               },
               { url: to, isRedirect: navigationIsRedirect },
+            );
+          });
+        }
+
+        // A bfcache restore resurrects the frozen document, so there is no document load and no
+        // usable history event: `popstate` either doesn't fire or is swallowed because the URL is
+        // unchanged from when the page was frozen. Without a span of its own, everything after the
+        // restore joins the trace the page had before it was frozen, separated by however long it
+        // sat in the cache.
+        if (instrumentBfcacheRestore) {
+          WINDOW.addEventListener?.('pageshow', (event: PageTransitionEvent) => {
+            if (!event.persisted) {
+              return;
+            }
+
+            // A navigation has happened, so the pageload guard in the history handler above must not
+            // suppress the next one.
+            startingUrl = undefined;
+
+            startBrowserTracingNavigationSpan(
+              client,
+              {
+                // Deliberately no `startTime`: the span starts now, at the restore. The
+                // `PerformanceNavigationTiming` entry still describes the original document load and
+                // would date the span to before the page was frozen.
+                //
+                // TODO(routing): resolve the parameterized route via the route provider (#23551) and set
+                // the source from it. No router event fires on a restore, so in a framework app this is
+                // the only navigation span still named from a raw pathname.
+                name: hasSpanStreamingEnabled(client)
+                  ? NAVIGATION_SPAN_NAME_FALLBACK
+                  : WINDOW.location?.pathname || '/',
+                attributes: {
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+                  [SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache',
+                  // A bfcache restore is near-instant, so these spans would otherwise drag
+                  // navigation duration percentiles down with no way to tell them apart.
+                  [BROWSER_NAVIGATION_TYPE_ATTRIBUTE]: 'bfcache',
+                },
+              },
+              { url: WINDOW.location?.href },
             );
           });
         }
@@ -757,7 +840,6 @@ export function getServerTiming(name: string): string | undefined {
   // The cast is required for the declaration build (`build:types`), which resolves
   // `getEntriesByType('navigation')` to `PerformanceEntry[]` (no `serverTiming`). It only reads as
   // "unnecessary" to the type-aware linter, which runs with web-vitals' global augmentation applied.
-  // oxlint-disable-next-line typescript/no-unnecessary-type-assertion
   const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
   const entry = navigation?.serverTiming?.find(entry => entry.name === name);
   return entry?.description;

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('should capture error with trpc context', async ({ page }) => {
   const errorEventPromise = waitForError('nextjs-15-t3', errorEvent => {
@@ -35,14 +35,14 @@ test('should capture error with trpc context', async ({ page }) => {
   });
 });
 
-test('should create transaction with trpc input for error', async ({ page }) => {
-  const trpcTransactionPromise = waitForTransaction('nextjs-15-t3', async transactionEvent => {
-    return transactionEvent?.transaction === 'POST /api/trpc/[trpc]';
+test('should create span with trpc input for error', async ({ page }) => {
+  const trpcSpanPromise = waitForStreamedSpan('nextjs-15-t3', span => {
+    return span.name === 'POST /api/trpc/[trpc]' && getSpanOp(span) === 'http.server' && span.is_segment;
   });
 
   await page.goto('/');
   await page.click('#error-button');
 
-  const trpcTransaction = await trpcTransactionPromise;
-  expect(trpcTransaction).toBeDefined();
+  const trpcSpan = await trpcSpanPromise;
+  expect(trpcSpan).toBeDefined();
 });

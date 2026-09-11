@@ -1,10 +1,11 @@
 import { URL_FULL } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { HandlerDataFetch } from '../../src';
+import type { Client, HandlerDataFetch } from '../../src';
 import { _INTERNAL_getTracingHeadersForFetchRequest, instrumentFetchRequest } from '../../src/fetch';
 import { SentryNonRecordingSpan } from '../../src/tracing/sentryNonRecordingSpan';
 import type { Span } from '../../src/types/span';
 import * as tracing from '../../src/tracing/trace';
+import * as currentScopes from '../../src/currentScopes';
 import * as spanUtils from '../../src/utils/spanUtils';
 import * as traceData from '../../src/utils/traceData';
 
@@ -494,10 +495,84 @@ describe('instrumentFetchRequest', () => {
           'sentry.op': 'http.client',
           [URL_FULL]: url,
           'server.address': 'api.example.com',
+          'url.domain': 'api.example.com',
           'url.query': 'include=profile',
           'url.fragment': 'bio',
         },
       });
+    });
+  });
+
+  describe('span name', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    function startFetchSpan(
+      traceLifecycle: 'static' | 'stream',
+      url = 'https://api.example.com/users/42?include=profile',
+      urlBase?: string,
+    ): ReturnType<typeof vi.spyOn> {
+      hasSpansEnabled.mockReturnValue(true);
+      vi.spyOn(spanUtils, 'getActiveSpan').mockReturnValue(new SentryNonRecordingSpan());
+      vi.spyOn(currentScopes, 'getClient').mockReturnValue({
+        getOptions: () => ({ traceLifecycle }),
+        getDataCollectionOptions: () => ({ urlQueryParams: true }),
+        emit: () => {},
+      } as unknown as Client);
+      const startInactiveSpanSpy = vi.spyOn(tracing, 'startInactiveSpan').mockReturnValue(new SentryNonRecordingSpan());
+
+      instrumentFetchRequest(
+        { fetchData: { url, method: 'GET' }, args: [url], startTimestamp: Date.now() },
+        () => true,
+        () => false,
+        {},
+        { spanOrigin: 'auto.http.fetch', urlBase },
+      );
+
+      return startInactiveSpanSpy;
+    }
+
+    it('drops the URL path but keeps the domain with span streaming enabled', () => {
+      expect(startFetchSpan('stream')).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET api.example.com',
+          attributes: expect.objectContaining({ 'url.domain': 'api.example.com' }),
+        }),
+      );
+    });
+
+    it('falls back to the request method for a relative URL when there is no base to resolve it against', () => {
+      expect(startFetchSpan('stream', '/users/42')).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET',
+          attributes: expect.objectContaining({ 'url.domain': undefined }),
+        }),
+      );
+    });
+
+    it('resolves a relative URL against `urlBase`', () => {
+      expect(startFetchSpan('stream', '/users/42', 'https://app.example.com')).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET app.example.com',
+          attributes: expect.objectContaining({ 'url.domain': 'app.example.com' }),
+        }),
+      );
+    });
+
+    it('falls back to the request method for a data URL, which has no domain', () => {
+      expect(startFetchSpan('stream', 'data:text/plain,hello', 'https://app.example.com')).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'GET',
+          attributes: expect.objectContaining({ 'url.domain': undefined }),
+        }),
+      );
+    });
+
+    it('keeps the sanitized URL with `traceLifecycle: "static"`', () => {
+      expect(startFetchSpan('static')).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'GET https://api.example.com/users/42' }),
+      );
     });
   });
 

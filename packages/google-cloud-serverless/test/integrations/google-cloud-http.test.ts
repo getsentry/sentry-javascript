@@ -1,5 +1,5 @@
 import { BigQuery } from '@google-cloud/bigquery';
-import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { createTransport, NodeClient, setCurrentClient } from '@sentry/node';
@@ -34,8 +34,19 @@ describe('GoogleCloudHttp tracing', () => {
     stackParser: () => [],
   });
 
+  // `traceLifecycle` defaults to `'stream'`, so `mockClient` exercises the low-cardinality names.
+  const staticClient = new NodeClient({
+    tracesSampleRate: 1.0,
+    integrations: [],
+    traceLifecycle: 'static',
+    dsn: 'https://withAWSServices@domain/123',
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
+    stackParser: () => [],
+  });
+
   const integration = googleCloudHttpIntegration();
   mockClient.addIntegration(integration);
+  staticClient.addIntegration(googleCloudHttpIntegration());
 
   beforeEach(() => {
     nock('https://www.googleapis.com')
@@ -78,32 +89,32 @@ describe('GoogleCloudHttp tracing', () => {
       const resp = await bigquery.query('SELECT true AS foo');
       expect(resp).toEqual([[{ foo: true }]]);
       expect(mockStartInactiveSpan).toBeCalledWith({
-        name: 'POST /jobs',
+        name: 'POST bigquery.googleapis.com',
         onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: HTTP_CLIENT,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
           [HTTP_REQUEST_METHOD]: 'POST',
           [SERVER_ADDRESS]: 'bigquery.googleapis.com',
+          [URL_DOMAIN]: 'bigquery.googleapis.com',
           [URL_FULL]: '/jobs',
         },
       });
       expect(mockStartInactiveSpan).toBeCalledWith({
-        name: expect.stringMatching(/^GET \/queries\/.+/),
+        name: 'GET bigquery.googleapis.com',
         onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: HTTP_CLIENT,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
           [HTTP_REQUEST_METHOD]: 'GET',
           [SERVER_ADDRESS]: 'bigquery.googleapis.com',
+          [URL_DOMAIN]: 'bigquery.googleapis.com',
           [URL_FULL]: expect.stringMatching(/^\/queries\/.+/),
         },
       });
     });
 
-    // Span names follow `METHOD scheme://host/path`, so a query string must never reach the name,
-    // whatever the caller passes as `uri`.
-    test('strips the query string from the span name', async () => {
+    async function requestDatasetsWithQueryString(): Promise<void> {
       nock('https://bigquery.googleapis.com')
         .get('/bigquery/v2/projects/project-id/datasets')
         .query(true)
@@ -115,6 +126,21 @@ describe('GoogleCloudHttp tracing', () => {
           (err: unknown) => (err ? reject(err) : resolve()),
         );
       });
+    }
+
+    // With span streaming the URI does not reach the name at all, so neither can the query string.
+    test('names the span after the method and the API endpoint', async () => {
+      await requestDatasetsWithQueryString();
+
+      expect(mockStartInactiveSpan).toBeCalledWith(expect.objectContaining({ name: 'GET bigquery.googleapis.com' }));
+    });
+
+    // Span names follow `METHOD scheme://host/path`, so a query string must never reach the name,
+    // whatever the caller passes as `uri`.
+    test('strips the query string from the span name with `traceLifecycle: "static"`', async () => {
+      setCurrentClient(staticClient);
+
+      await requestDatasetsWithQueryString();
 
       expect(mockStartInactiveSpan).toBeCalledWith(expect.objectContaining({ name: 'GET /datasets' }));
       const names = mockStartInactiveSpan.mock.calls.map(([args]) => (args as { name: string }).name);

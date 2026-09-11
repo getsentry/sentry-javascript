@@ -1,1 +1,1 @@
-export { rewriteFramesIntegration } from '@sentry/core/browser';
+export { rewriteFramesIntegration } from '@sentry/core';

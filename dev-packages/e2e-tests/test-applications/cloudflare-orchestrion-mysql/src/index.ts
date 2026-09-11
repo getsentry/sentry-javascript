@@ -20,7 +20,6 @@ interface MysqlModule {
 
 export default Sentry.withSentry(
   (env: Env) => ({
-    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     environment: 'qa',
     tunnel: 'http://localhost:3031/',

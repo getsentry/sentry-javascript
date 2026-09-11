@@ -1,12 +1,12 @@
 import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
-  flushIfServerless,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   updateSpanName,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 import { isInstrumentationApiUsed } from './serverGlobals';
 

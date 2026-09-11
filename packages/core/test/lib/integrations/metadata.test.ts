@@ -5,10 +5,10 @@ import {
   createTransport,
   GLOBAL_OBJ,
   moduleMetadataIntegration,
-  nodeStackLineParser,
   parseEnvelope,
   setCurrentClient,
 } from '../../../src';
+import { nodeStackLineParser } from '../../../src/server';
 import type { Event } from '../../../src/types/event';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 

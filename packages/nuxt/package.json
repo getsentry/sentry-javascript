@@ -56,10 +56,11 @@
     "@nuxt/kit": "^4.5.2",
     "@sentry/browser": "10.67.0",
     "@sentry/cloudflare": "10.67.0",
-    "@sentry/conventions": "^0.20.0",
+    "@sentry/conventions": "^0.23.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/bundler-plugins": "10.67.0",
+    "@sentry/server-runtime-injection": "10.67.0",
     "@sentry/server-utils": "10.67.0",
     "@sentry/vue": "10.67.0",
     "local-pkg": "^1.1.2"

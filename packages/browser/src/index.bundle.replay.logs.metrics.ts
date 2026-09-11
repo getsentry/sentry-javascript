@@ -7,7 +7,7 @@ import {
 
 export * from './index.bundle.base';
 
-export { logger, consoleLoggingIntegration, metrics } from '@sentry/core/browser';
+export { logger, consoleLoggingIntegration, metrics } from '@sentry/core';
 
 export { replayIntegration, getReplay } from '@sentry/replay';
 

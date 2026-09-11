@@ -117,6 +117,7 @@ export function getEventSpanOptions(event: string): {
       [SENTRY_OP]: FUNCTION,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
     },
+    // oxlint-disable-next-line typescript/no-deprecated
     forceTransaction: true,
   };
 }

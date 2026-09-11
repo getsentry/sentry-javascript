@@ -44,7 +44,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.20.0",
+    "@sentry/conventions": "^0.23.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/server-utils": "10.67.0"
@@ -95,7 +95,8 @@
         ],
         "outputs": [
           "{projectRoot}/build/types",
-          "{projectRoot}/*.d.ts"
+          "{projectRoot}/*.d.ts",
+          "{projectRoot}/*.d.ts.map"
         ],
         "cache": true
       }

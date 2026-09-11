@@ -1,5 +1,5 @@
-import type { IntegrationFn } from '@sentry/core/browser';
-import { debug, defineIntegration, getActiveSpan, getRootSpan, hasSpansEnabled } from '@sentry/core/browser';
+import type { IntegrationFn } from '@sentry/core';
+import { debug, defineIntegration, getActiveSpan, getRootSpan, hasSpansEnabled } from '@sentry/core';
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

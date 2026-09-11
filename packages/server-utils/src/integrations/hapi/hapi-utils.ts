@@ -14,6 +14,7 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   isObjectLike,
+  REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
@@ -122,15 +123,14 @@ export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanM
   }
 
   const client = getClient();
-  // With span streaming, span names have to be low cardinality, so router spans are named after their
-  // route alone, without the method prefix.
-  const isStreamedRouterSpan = !pluginName && !!client && hasSpanStreamingEnabled(client);
+  // With span streaming, span names have to be low cardinality, so router and request
+  // handler spans are named after their route alone, without the method prefix.
+  const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
+  const fallbackName = pluginName ? REQUEST_HANDLER_SPAN_NAME_FALLBACK : ROUTER_SPAN_NAME_FALLBACK;
 
   return {
     attributes,
-    name: isStreamedRouterSpan
-      ? route.path || ROUTER_SPAN_NAME_FALLBACK
-      : `${route.method.toUpperCase()} ${route.path}`,
+    name: isStreamedSpan ? route.path || fallbackName : `${route.method.toUpperCase()} ${route.path}`,
   };
 };
 

@@ -12,5 +12,5 @@ Sentry.init({
   enableOpenTelemetrySetup: false,
 
   // Puts the active OpenTelemetry span's trace on everything Sentry sends.
-  integrations: [Sentry.otlpIntegration()],
+  integrations: [Sentry.openTelemetryIntegration()],
 });

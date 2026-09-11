@@ -3,7 +3,6 @@ import { MIDDLEWARE } from '@sentry/conventions/op';
 import {
   captureException,
   debug,
-  flushIfServerless,
   getClient,
   httpHeadersToSpanAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -12,6 +11,7 @@ import {
   type SpanAttributes,
   startSpan,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import type {
   _ResponseMiddleware as ResponseMiddleware,
   EventHandler,

@@ -51,6 +51,37 @@ describe('express tracing', () => {
       await runner.completed();
     });
 
+    test('names router and request handler spans after their route when span streaming is enabled', async () => {
+      const runner = createRunner()
+        .withEnv({ STREAMED: 'true' })
+        .expect({
+          span: container => {
+            const spanFor = (type: string): (typeof container.items)[number] | undefined =>
+              container.items.find(item => item.attributes['express.type']?.value === type);
+
+            const handlerSpan = spanFor('request_handler');
+            expect(handlerSpan?.name).toBe('/test/router/user/:id');
+            // The name has to stay in step with the attribute it comes from.
+            expect(handlerSpan?.attributes['http.route']?.value).toBe('/test/router/user/:id');
+            expect(handlerSpan?.attributes['sentry.op']?.value).toBe('handler');
+
+            const routerSpan = spanFor('router');
+            expect(routerSpan?.name).toBe('/test/router/user');
+
+            // Spans of other layer types keep their names.
+            expect(container.items.find(item => item.name === 'corsMiddleware')?.attributes['express.type']).toEqual({
+              type: 'string',
+              value: 'middleware',
+            });
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/test/router/user/123');
+
+      await runner.completed();
+    });
+
     test('should set a correct transaction name for routes specified in RegEx', async () => {
       const runner = createRunner()
         .expect({

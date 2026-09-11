@@ -1,4 +1,5 @@
-import type { BaseTransportOptions, ClientOptions, Options, ServerRuntimeOptions } from '@sentry/core';
+import type { BaseTransportOptions, ClientOptions, Options } from '@sentry/core';
+import type { ServerRuntimeOptions } from '@sentry/core/server';
 
 /**
  * Base options for the Sentry Bun SDK.

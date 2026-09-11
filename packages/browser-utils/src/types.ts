@@ -1,4 +1,5 @@
-import type { FetchBreadcrumbHint, HandlerDataFetch, XhrBreadcrumbHint } from '@sentry/core';
+import type { FetchBreadcrumbHint, HandlerDataFetch } from '@sentry/core';
+import type { XhrBreadcrumbHint } from '@sentry/core/browser';
 import { GLOBAL_OBJ } from '@sentry/core';
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ &

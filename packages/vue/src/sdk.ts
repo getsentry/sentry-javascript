@@ -1,6 +1,6 @@
 import { getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core/browser';
+import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core';
 
 import { vueIntegration } from './integration';
 import type { Options } from './types';

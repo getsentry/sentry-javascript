@@ -1,56 +1,21 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('should create consistent parameterized transaction for i18n routes - locale: en', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return transactionEvent.transaction === '/:locale/i18n-test' && transactionEvent.contexts?.trace?.op === 'pageload';
+for (const locale of ['en', 'ar']) {
+  test(`should create consistent parameterized span for i18n routes - locale: ${locale}`, async ({ page }) => {
+    const spanPromise = waitForStreamedSpan('nextjs-15', span => {
+      return span.name === '/:locale/i18n-test' && getSpanOp(span) === 'pageload' && span.is_segment;
+    });
+
+    await page.goto(`/${locale}/i18n-test`);
+
+    const span = await spanPromise;
+
+    expect(span.name).toBe('/:locale/i18n-test');
+    expect(span.attributes).toMatchObject({
+      'sentry.op': { value: 'pageload', type: 'string' },
+      'sentry.origin': { value: 'auto.pageload.nextjs.app_router_instrumentation', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
+    });
   });
-
-  await page.goto(`/en/i18n-test`);
-
-  const transaction = await transactionPromise;
-
-  expect(transaction).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.op': 'pageload',
-          'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.segment.name.source': 'route',
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.nextjs.app_router_instrumentation',
-      },
-    },
-    transaction: '/:locale/i18n-test',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
-  });
-});
-
-test('should create consistent parameterized transaction for i18n routes - locale: ar', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return transactionEvent.transaction === '/:locale/i18n-test' && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
-
-  await page.goto(`/ar/i18n-test`);
-
-  const transaction = await transactionPromise;
-
-  expect(transaction).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.op': 'pageload',
-          'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
-          'sentry.segment.name.source': 'route',
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.nextjs.app_router_instrumentation',
-      },
-    },
-    transaction: '/:locale/i18n-test',
-    transaction_info: { source: 'route' },
-    type: 'transaction',
-  });
-});
+}

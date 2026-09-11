@@ -40,6 +40,8 @@ export { kafkaIntegration } from './integrations/kafkajs';
 export { knexIntegration } from './integrations/knex';
 export { langChainIntegration } from './integrations/langchain';
 export { langGraphIntegration } from './integrations/langgraph';
+export { mastraIntegration } from './integrations/mastra';
+export { SentryMastraExporter } from './ai/mastra';
 export { lruMemoizerIntegration } from './integrations/lru-memoizer';
 export { mongoIntegration } from './integrations/mongodb';
 export { mongooseIntegration } from './integrations/mongoose';
@@ -51,9 +53,9 @@ export { postgresJsIntegration } from './integrations/postgres-js';
 export { tediousIntegration } from './integrations/tedious';
 export { vercelAIIntegration } from './integrations/vercel-ai';
 export { expressIntegration } from './integrations/express';
+export type { ExpressIntegrationOptions } from './integrations/express/types';
 /* oxlint-disable typescript/no-deprecated -- deprecated Express error-handler exports, kept until the next major */
 export { expressErrorHandler, setupExpressErrorHandler } from './integrations/express/error-handler';
-export type { ExpressIntegrationOptions } from './integrations/express/types';
 /* oxlint-enable typescript/no-deprecated */
 export { firebaseIntegration } from './integrations/firebase';
 

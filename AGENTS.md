@@ -64,16 +64,17 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - **Omit the "Summary" heading** in PR bodies — lead with the summary text itself, no `## Summary` header.
 - Include `Fixes #<issue-number>` somewhere in the PR body so the merge auto-closes the linked issue.
 - Always open PRs as draft.
-- Include reasoning of changes in the PR description, as well as decisions that were taken during implementation. Do not explain the implementation that can be viewed in the code.
+- **Keep PR descriptions condensed** — usually a few sentences. Explain the _reasoning_: why the change is needed, and any non-obvious decisions or tradeoffs made along the way. Do **not** walk through the implementation or describe what changed file-by-file — the diff already shows that. Only go longer when the decisions genuinely warrant it.
 
 ## Architecture
 
-- `packages/types/` is **deprecated — never modify it**. Types live in
-  `packages/core/`.
-- An AI provider integration spans three places: core instrumentation in
-  `packages/core/src/tracing/{provider}/`, the Node integration in
-  `packages/node/src/integrations/tracing/{provider}/`, and the edge
-  runtime in `packages/cloudflare/src/integrations/tracing/{provider}.ts`.
+- Types live in `packages/core/`. The `@sentry/types` package is gone.
+- An AI provider integration spans two places, both in
+  `packages/server-utils/`: the gen-AI instrumentation logic in
+  `src/ai/{provider}/`, and the integration that wires it up in
+  `src/integrations/{provider}.ts`, registered in `getTracingIntegrations()`.
+  Runtime packages (`node`, `cloudflare`, ...) re-export from
+  `@sentry/server-utils` rather than defining their own.
 
 ## Linting & Formatting
 
@@ -90,7 +91,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Only use libraries already in the codebase
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
-- Comments explain **why**, never **what** — never add a comment that restates what the code does or describes the change being made; only comment when the reasoning isn't obvious from the code itself
+- **Write few comments; default to none.** Comments explain **why**, never **what** — never add a comment that restates what the code does or narrates the change being made. Only add one when the reasoning isn't clear from the code itself, or to flag a tradeoff or something that would otherwise look surprising to a reader. When in doubt, leave it out.
 - Do not use `expect(someSpy.mock.calls[0]?.[0])` or similar constructs to check what a spy was called with.
   Instead use `expect(someSpy).toHaveBeenCalledWith(...)` or derivatives for a more readable and less brittle test assertion.
 

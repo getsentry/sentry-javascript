@@ -1,7 +1,7 @@
 import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
-import type { ServerRuntimeClientOptions } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -9,20 +9,25 @@ import {
   applySdkMetadata,
   debug,
   SDK_VERSION,
-  ServerRuntimeClient,
 } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry/core/server';
 import {
   type AsyncLocalStorageLookup,
   registerPrepareSpanScope,
   type SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-runtime-injection/register';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
 
 const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitrarily
+
+// Treeshakable guard to remove all code related to runtime diagnostics-channel injection. Set to
+// `false` at build time by the Sentry bundler plugins' `bundleSizeOptimizations.excludeChannelInjection`.
+declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
@@ -82,6 +87,21 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     // Same constructor anchoring as above: every client must continue incoming (remote) traces,
     // also manually constructed ones that never run `initOtel`.
     registerPrepareSpanScope(this);
+
+    // Install the channel-based (orchestrion diagnostics-channel) instrumentation hooks here, in the
+    // constructor, so that every client installs them — not only the one built by the Node SDK's
+    // `init()`. Downstream SDKs construct a client without going through that path, and would
+    // otherwise never install the hooks. Registration is idempotent (a global marker guards it), so
+    // a second construction is harmless. The channel integrations capture errors as well as spans,
+    // so this is independent of tracing. Opt out at runtime with `enableRuntimeChannelInjection:
+    // false`, or at build time via the bundler plugins'
+    // `bundleSizeOptimizations.excludeChannelInjection` (which tree-shakes this whole block away).
+    if (
+      (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
+      options.enableRuntimeChannelInjection !== false
+    ) {
+      registerDiagnosticsChannelInjection();
+    }
   }
 
   /** @inheritDoc */

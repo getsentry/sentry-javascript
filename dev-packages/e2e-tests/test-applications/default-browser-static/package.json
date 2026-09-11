@@ -1,0 +1,41 @@
+{
+  "name": "default-browser-static-test-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
+    "@types/node": "^18.19.1",
+    "typescript": "~5.0.0"
+  },
+  "scripts": {
+    "start": "serve -s build",
+    "build": "node build.mjs",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "webpack": "^5.91.0",
+    "serve": "14.0.1",
+    "terser-webpack-plugin": "^5.3.10",
+    "html-webpack-plugin": "^5.6.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

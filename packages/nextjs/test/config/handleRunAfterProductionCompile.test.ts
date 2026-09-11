@@ -1,4 +1,4 @@
-import { loadModule } from '@sentry/core';
+import { loadModule } from '@sentry/core/server';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -11,7 +11,7 @@ import {
 } from '../../src/config/handleRunAfterProductionCompile';
 import type { SentryBuildOptions } from '../../src/config/types';
 
-vi.mock('@sentry/core', () => ({
+vi.mock('@sentry/core/server', () => ({
   loadModule: vi.fn(),
 }));
 

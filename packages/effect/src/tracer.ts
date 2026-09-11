@@ -1,5 +1,5 @@
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { FUNCTION, HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
+import { HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, StartSpanOptions } from '@sentry/core';
 import { isObjectLike, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
 import type * as Context from 'effect/Context';
@@ -7,20 +7,22 @@ import * as Exit from 'effect/Exit';
 import * as Option from 'effect/Option';
 import * as EffectTracer from 'effect/Tracer';
 
-function deriveOrigin(name: string): string {
+function deriveOrigin(name: string): string | undefined {
   if (name.startsWith('http.server') || name.startsWith('http.client')) {
     return 'auto.http.effect';
   }
 
-  return 'auto.function.effect';
+  return undefined;
 }
 
 /**
- * Effect span names are chosen by user code, so the name is the only signal available. `@effect/platform`
- * names its HTTP spans `http.server`/`http.client`, which map onto the matching Sentry ops; everything
- * else is arbitrary user work and falls back to `function`.
+ * Effect span names are chosen by whoever calls `Effect.withSpan`, so the name is the only signal
+ * available. `@effect/platform` names its HTTP spans `http.server`/`http.client`, which map onto the
+ * matching Sentry ops. Every other name comes from user code or a third-party library, whose semantics
+ * we cannot infer, so op and origin stay unset and the span keeps the core defaults: no op, and a
+ * `manual` origin.
  */
-function deriveOp(name: string): string {
+function deriveOp(name: string): string | undefined {
   if (name.startsWith('http.server')) {
     return HTTP_SERVER;
   }
@@ -29,7 +31,7 @@ function deriveOp(name: string): string {
     return HTTP_CLIENT;
   }
 
-  return FUNCTION;
+  return undefined;
 }
 
 type HrTime = [number, number];
@@ -172,7 +174,7 @@ class SentrySpanWrapper implements SentrySpanLike {
 
 /**
  * The client and the server entry differ only in which `startInactiveSpan` they hand to
- * {@link makeSentryTracer}: the browser one from `@sentry/core/browser`, which installs the span
+ * {@link makeSentryTracer}: the browser one from `@sentry/core`, which installs the span
  * streaming integration on first use, and the plain one from `@sentry/core`, which does not. Nothing
  * else about the tracer is platform-specific.
  */
@@ -190,12 +192,16 @@ function createSentrySpan(
   const parentSentrySpan =
     Option.isSome(parent) && isSentrySpan(parent.value) ? parent.value.sentrySpan : (getActiveSpan() ?? null);
 
+  const op = deriveOp(name);
+  const origin = deriveOrigin(name);
+
   const newSpan = startInactiveSpan({
     name,
     startTime: nanosToHrTime(startTime),
+    // Setting these to `undefined` would strip the core defaults instead of leaving them in place.
     attributes: {
-      [SENTRY_OP]: deriveOp(name),
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: deriveOrigin(name),
+      ...(op && { [SENTRY_OP]: op }),
+      ...(origin && { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin }),
     },
     ...(parentSentrySpan ? { parentSpan: parentSentrySpan } : {}),
   });

@@ -1,13 +1,14 @@
-import type { ClientOptions, Options, ServerRuntimeClientOptions, TracePropagationTargets } from '@sentry/core';
+import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_flushMetricsBuffer,
   applySdkMetadata,
   debug,
-  ServerRuntimeClient,
   spanIsSampled,
 } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry/core/server';
+import { ServerRuntimeClient } from '@sentry/core/server';
 import { DEBUG_BUILD } from './debug-build';
 import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';

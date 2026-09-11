@@ -1,87 +1,81 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry/core';
 
-test('Tunnel route should proxy pageload transaction to Sentry', async ({ page }) => {
-  // Wait for the pageload transaction to be sent through the tunnel
-  const pageloadTransactionPromise = waitForTransaction('nextjs-16-tunnel', async transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
+function getStringAttribute(span: SerializedStreamedSpan, key: string): string | undefined {
+  const attribute = span.attributes[key];
+  return attribute?.type === 'string' ? attribute.value : undefined;
+}
+
+test('Tunnel route should proxy pageload span to Sentry', async ({ page }) => {
+  // Wait for the pageload span to be sent through the tunnel
+  const pageloadSpanPromise = waitForStreamedSpan('nextjs-16-tunnel', span => {
+    return getSpanOp(span) === 'pageload' && span.name === '/' && span.is_segment;
   });
 
   // Navigate to the page
   await page.goto('/');
 
-  const pageloadTransaction = await pageloadTransactionPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  // Verify the pageload transaction was received successfully
-  expect(pageloadTransaction).toBeDefined();
-  expect(pageloadTransaction.transaction).toBe('/');
-  expect(pageloadTransaction.contexts?.trace?.op).toBe('pageload');
-  expect(pageloadTransaction.contexts?.trace?.status).toBe('ok');
-  expect(pageloadTransaction.type).toBe('transaction');
+  // Verify the pageload span was received successfully
+  expect(pageloadSpan).toBeDefined();
+  expect(pageloadSpan.name).toBe('/');
+  expect(getSpanOp(pageloadSpan)).toBe('pageload');
+  expect(pageloadSpan.status).toBe('ok');
 });
 
-test('Tunnel route should send multiple pageload transactions consistently', async ({ page }) => {
+test('Tunnel route should send multiple pageload spans consistently', async ({ page }) => {
   // This test verifies that the tunnel route remains consistent across multiple page loads
   // (important for Turbopack which could generate different tunnel routes for client/server)
 
   // First pageload
-  const firstPageloadPromise = waitForTransaction('nextjs-16-tunnel', async transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
+  const firstPageloadPromise = waitForStreamedSpan('nextjs-16-tunnel', span => {
+    return getSpanOp(span) === 'pageload' && span.name === '/' && span.is_segment;
   });
 
   await page.goto('/');
   const firstPageload = await firstPageloadPromise;
 
   expect(firstPageload).toBeDefined();
-  expect(firstPageload.transaction).toBe('/');
-  expect(firstPageload.contexts?.trace?.op).toBe('pageload');
-  expect(firstPageload.contexts?.trace?.status).toBe('ok');
+  expect(firstPageload.name).toBe('/');
+  expect(getSpanOp(firstPageload)).toBe('pageload');
+  expect(firstPageload.status).toBe('ok');
 
   // Second pageload (reload)
-  const secondPageloadPromise = waitForTransaction('nextjs-16-tunnel', async transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
+  const secondPageloadPromise = waitForStreamedSpan('nextjs-16-tunnel', span => {
+    return getSpanOp(span) === 'pageload' && span.name === '/' && span.is_segment;
   });
 
   await page.reload();
   const secondPageload = await secondPageloadPromise;
 
   expect(secondPageload).toBeDefined();
-  expect(secondPageload.transaction).toBe('/');
-  expect(secondPageload.contexts?.trace?.op).toBe('pageload');
-  expect(secondPageload.contexts?.trace?.status).toBe('ok');
+  expect(secondPageload.name).toBe('/');
+  expect(getSpanOp(secondPageload)).toBe('pageload');
+  expect(secondPageload.status).toBe('ok');
 });
 
 test('Tunnel requests should not create middleware or fetch spans', async ({ page }) => {
   // This test verifies that our span filtering logic works correctly
-  // The proxy runs on all routes, so we'll get a middleware transaction for `/`
-  // But we should NOT get middleware or fetch transactions for the tunnel route itself
+  // The proxy runs on all routes, so we'll get a middleware span for `/`
+  // But we should NOT get middleware or fetch spans for the tunnel route itself
 
-  const allTransactions: any[] = [];
+  // Accumulate every streamed span for the duration of the test. The callback never returns true,
+  // so this promise is deliberately left unsettled - the assertions below read the array instead.
+  const allSpans: SerializedStreamedSpan[] = [];
+  void waitForStreamedSpans('nextjs-16-tunnel', spans => {
+    allSpans.push(...spans);
+    return false;
+  });
 
-  // Collect all transactions
-  const collectPromise = (async () => {
-    // Keep collecting for 3 seconds after pageload
-    const endTime = Date.now() + 3000;
-    while (Date.now() < endTime) {
-      try {
-        const tx = await Promise.race([
-          waitForTransaction('nextjs-16-tunnel', () => true),
-          new Promise((_, reject) => setTimeout(() => reject(), 500)),
-        ]);
-        allTransactions.push(tx);
-      } catch {
-        // Timeout, continue collecting
-      }
-    }
-  })();
-
-  // Wait for pageload transaction
-  const pageloadPromise = waitForTransaction('nextjs-16-tunnel', async transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'pageload';
+  // Wait for pageload span
+  const pageloadPromise = waitForStreamedSpan('nextjs-16-tunnel', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto('/');
-  const pageloadTransaction = await pageloadPromise;
+  const pageloadSpan = await pageloadPromise;
 
   // Trigger errors to force tunnel POST requests
   await page
@@ -100,33 +94,29 @@ test('Tunnel requests should not create middleware or fetch spans', async ({ pag
       // Expected to throw
     });
 
-  // Wait for events to be sent through tunnel
-  await page.waitForTimeout(2000);
+  // Wait for events to be sent through tunnel, and for the spans they would wrongly produce to arrive
+  await page.waitForTimeout(3000);
 
-  // Continue collecting for a bit
-  await collectPromise;
+  // We should have received the pageload span
+  expect(pageloadSpan).toBeDefined();
+  expect(getSpanOp(pageloadSpan)).toBe('pageload');
 
-  // We should have received the pageload transaction
-  expect(pageloadTransaction).toBeDefined();
-  expect(pageloadTransaction.contexts?.trace?.op).toBe('pageload');
+  const middlewareSpans = allSpans.filter(span => getSpanOp(span) === 'middleware');
 
-  const middlewareTransactions = allTransactions.filter(tx => tx.contexts?.trace?.op === 'middleware');
-
-  // We WILL have a middleware transaction for GET / (the pageload)
-  // But we should NOT have middleware transactions for POST requests (tunnel route)
-  const postMiddlewareTransactions = middlewareTransactions.filter(
-    tx => tx.transaction?.includes('POST') || tx.contexts?.trace?.data?.['http.request.method'] === 'POST',
+  // We WILL have a middleware span for GET / (the pageload)
+  // But we should NOT have middleware spans for POST requests (tunnel route)
+  const postMiddlewareSpans = middlewareSpans.filter(
+    span => span.name.includes('POST') || getStringAttribute(span, 'http.request.method') === 'POST',
   );
 
-  expect(postMiddlewareTransactions).toHaveLength(0);
+  expect(postMiddlewareSpans).toHaveLength(0);
 
-  // We should NOT have any fetch transactions to Sentry ingest
-  const sentryFetchTransactions = allTransactions.filter(
-    tx =>
-      tx.contexts?.trace?.op === 'http.client' &&
-      (tx.contexts?.trace?.data?.['url.full']?.includes('sentry.io') ||
-        tx.contexts?.trace?.data?.['url.full']?.includes('ingest')),
-  );
+  // We should NOT have any fetch spans to Sentry ingest. Matched on the host attribute rather than a
+  // substring of the full URL, which would also match an arbitrary host with `sentry.io` elsewhere in it.
+  const sentryFetchSpans = allSpans.filter(span => {
+    const host = getStringAttribute(span, 'server.address') ?? '';
+    return getSpanOp(span) === 'http.client' && (host === 'sentry.io' || host.endsWith('.sentry.io'));
+  });
 
-  expect(sentryFetchTransactions).toHaveLength(0);
+  expect(sentryFetchSpans).toHaveLength(0);
 });

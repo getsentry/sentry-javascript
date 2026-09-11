@@ -3,7 +3,6 @@ import { parentPort, workerData } from 'node:worker_threads';
 import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/core';
 import {
   applyScopeDataToEvent,
-  callFrameToStackFrame,
   createEventEnvelope,
   createSessionEnvelope,
   generateSpanId,
@@ -13,8 +12,8 @@ import {
   stripSentryFramesAndReverse,
   updateSession,
   uuid4,
-  watchdogTimer,
 } from '@sentry/core';
+import { callFrameToStackFrame, watchdogTimer } from '@sentry/core/server';
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';
 import type { WorkerStartData } from './common';
@@ -287,16 +286,14 @@ if (options.captureStackTrace) {
 }
 
 function createHrTimer(): { getTimeMs: () => number; reset: VoidFunction } {
-  // TODO (v8): We can use process.hrtime.bigint() after we drop node v8
-  let lastPoll = process.hrtime();
+  let lastPoll = process.hrtime.bigint();
 
   return {
     getTimeMs: (): number => {
-      const [seconds, nanoSeconds] = process.hrtime(lastPoll);
-      return Math.floor(seconds * 1e3 + nanoSeconds / 1e6);
+      return Number((process.hrtime.bigint() - lastPoll) / 1_000_000n);
     },
     reset: (): void => {
-      lastPoll = process.hrtime();
+      lastPoll = process.hrtime.bigint();
     },
   };
 }
@@ -328,3 +325,9 @@ parentPort?.on('message', (msg: { session: Session | undefined; debugImages?: Re
 
   poll();
 });
+
+// Signal that the worker is fully set up: the inspector session (when capturing stack traces) is
+// connected to the main thread and the watchdog is armed. Consumers that restart the worker can wait
+// for this before blocking the event loop, since the main-thread inspector stays open across restarts
+// and gives no signal that the new worker has reconnected.
+parentPort?.postMessage('worker-ready');

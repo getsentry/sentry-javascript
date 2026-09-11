@@ -24,8 +24,15 @@ vi.mock('@sentry/core', async importOriginal => {
   const original = await importOriginal();
   return {
     ...original,
-    flushIfServerless: (...args: unknown[]) => flushIfServerlessSpy(...args),
     getTraceMetaTags: () => getTraceMetaTagsSpy(),
+  };
+});
+
+vi.mock('@sentry/core/server', async importOriginal => {
+  const original = await importOriginal();
+  return {
+    ...original,
+    flushIfServerless: (...args: unknown[]) => flushIfServerlessSpy(...args),
   };
 });
 

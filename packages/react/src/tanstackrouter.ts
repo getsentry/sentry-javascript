@@ -5,14 +5,14 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
-import type { Integration } from '@sentry/core/browser';
+import type { Integration } from '@sentry/core';
 import {
   filterCollectedUrl,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
 import {
   PARAMS_KEY_BASE,

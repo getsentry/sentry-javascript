@@ -16,6 +16,8 @@ import { fill } from '@sentry/core';
  */
 const wasmSourceUrls = new WeakMap<ArrayBuffer, string>();
 
+let responseReadersPatched = false;
+
 /**
  * Resolves a wasm source buffer back to its fetch URL, when known.
  */
@@ -60,9 +62,11 @@ function tagResponseSource(response: Response, source: unknown): void {
  * Patches Response body readers so wasm bytes remember their fetch URL.
  */
 export function patchWasmResponseBodyReaders(): void {
-  if (typeof Response === 'undefined') {
+  if (responseReadersPatched || typeof Response === 'undefined') {
     return;
   }
+
+  responseReadersPatched = true;
 
   fill(Response.prototype, 'arrayBuffer', (original: (this: Response) => Promise<ArrayBuffer>) => {
     return function arrayBuffer(this: Response): Promise<ArrayBuffer> {
@@ -83,4 +87,9 @@ export function patchWasmResponseBodyReaders(): void {
       });
     };
   });
+}
+
+/** @internal */
+export function _resetResponsePatchForTests(): void {
+  responseReadersPatched = false;
 }

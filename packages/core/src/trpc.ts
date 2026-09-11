@@ -103,6 +103,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
             [TRPC_PROCEDURE_PATH]: String(path),
             [TRPC_PROCEDURE_TYPE]: String(type),
           },
+          // oxlint-disable-next-line typescript/no-deprecated
           forceTransaction: !!options.forceTransaction,
         },
         async span => {

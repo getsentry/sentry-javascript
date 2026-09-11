@@ -115,6 +115,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   return startSpan(
     {
       name: spanName,
+      // oxlint-disable-next-line typescript/no-deprecated
       forceTransaction: true,
       attributes,
     },

@@ -3,8 +3,8 @@
  */
 
 import type * as BrowserUtils from '@sentry/browser-utils';
-import type { Scope, User } from '@sentry/core/browser';
-import * as SentryCore from '@sentry/core/browser';
+import type { Scope, User } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { browserSessionIntegration } from '../../src/integrations/browsersession';
 
@@ -12,7 +12,7 @@ const scopeHolder = vi.hoisted(() => ({ current: undefined as unknown as FakeIso
 
 const historyHandlers = vi.hoisted(() => ({ current: [] as Array<(data: { from?: string; to?: string }) => void> }));
 
-vi.mock('@sentry/core/browser', async importActual => {
+vi.mock('@sentry/core', async importActual => {
   const actual = (await importActual()) as typeof SentryCore;
   return {
     ...actual,

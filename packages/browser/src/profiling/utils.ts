@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Client, ContinuousThreadCpuProfile, DebugImage, ProfileChunk, Span } from '@sentry/core/browser';
+import type { Client, ContinuousThreadCpuProfile, DebugImage, ProfileChunk, Span } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
@@ -7,7 +7,7 @@ import {
   getDebugImagesForResources,
   GLOBAL_OBJ,
   uuid4,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

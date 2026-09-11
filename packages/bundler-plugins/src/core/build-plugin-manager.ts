@@ -524,6 +524,7 @@ export function createSentryBuildPluginManager(
       Only use this if you need to manually inject debug IDs into the build artifacts.
     */
     async injectDebugIds(buildArtifactPaths: string[]) {
+      // oxlint-disable-next-line typescript/no-deprecated
       await startSpan({ name: 'inject-debug-ids', scope: sentryScope, forceTransaction: true }, async () => {
         try {
           const cliInstance = new SentryCliAdapter(options);
@@ -561,6 +562,7 @@ export function createSentryBuildPluginManager(
 
       await startSpan(
         // This is `forceTransaction`ed because this span is used in dashboards in the form of indexed transactions.
+        // oxlint-disable-next-line typescript/no-deprecated
         { name: 'debug-id-sourcemap-upload', scope: sentryScope, forceTransaction: true },
         async () => {
           // If we're not using a temp folder, we must not prepare artifacts in-place (to avoid mutating user files)

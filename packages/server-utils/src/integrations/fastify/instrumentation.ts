@@ -26,7 +26,10 @@ import { HANDLER, MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   isObjectLike,
+  getClient,
   getIsolationScope,
+  hasSpanStreamingEnabled,
+  REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -178,8 +181,17 @@ function onRequest(this: any, request: any, _reply: any, hookDone: () => void): 
     setHttpServerSpanRouteAttribute(route);
   }
 
+  const client = getClient();
+  // With span streaming, span names have to be low cardinality, so request handler
+  // spans are named after their route alone, without the method prefix.
+  const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
+
   const requestSpan = startInactiveSpan({
-    name: route != null ? `${request.method} ${route}` : 'request',
+    name: isStreamedSpan
+      ? route || REQUEST_HANDLER_SPAN_NAME_FALLBACK
+      : route != null
+        ? `${request.method} ${route}`
+        : 'request',
     attributes,
   });
   request[kRequestSpan] = requestSpan;
@@ -328,9 +340,18 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
     const hookType = spanAttributes[ATTRIBUTE_FASTIFY_TYPE];
     const op = hookType === HOOK_TYPE_INSTANCE ? MIDDLEWARE : hookType === HOOK_TYPE_HANDLER ? HANDLER : undefined;
 
+    const client = getClient();
+    // With span streaming, span names have to be low cardinality, so request handler
+    // spans are named after their route.
+    const isStreamedRequestHandlerSpan = hookType === HOOK_TYPE_HANDLER && !!client && hasSpanStreamingEnabled(client);
+
     const attributeHookName = spanAttributes[ATTRIBUTE_HOOK_NAME];
 
-    const name = op && typeof attributeHookName === 'string' ? attributeHookName : `${hookName} - ${handlerName}`;
+    const name = isStreamedRequestHandlerSpan
+      ? spanAttributes[HTTP_ROUTE] || REQUEST_HANDLER_SPAN_NAME_FALLBACK
+      : op && typeof attributeHookName === 'string'
+        ? attributeHookName
+        : `${hookName} - ${handlerName}`;
 
     return startSpan(
       {

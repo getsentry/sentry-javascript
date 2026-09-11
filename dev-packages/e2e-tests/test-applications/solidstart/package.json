@@ -4,11 +4,13 @@
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
     "build": "vinxi build",
+    "dev": "vinxi dev",
     "preview": "HOST=localhost PORT=3030 vinxi start",
     "start:import": "HOST=localhost PORT=3030 node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:prod"
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:dev": "TEST_ENV=development playwright test db"
   },
   "type": "module",
   "dependencies": {

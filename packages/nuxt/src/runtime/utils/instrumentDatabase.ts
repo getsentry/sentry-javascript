@@ -3,16 +3,21 @@ import { DB_QUERY } from '@sentry/conventions/op';
 import {
   addBreadcrumb,
   captureException,
+  DB_SPAN_NAME_FALLBACK,
   debug,
-  flushIfServerless,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   type Span,
   SPAN_STATUS_ERROR,
   startSpan,
   type StartSpanOptions,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
+import { sanitizeSqlQuery, sanitizeSqlQueryWithSummary, type SqlDialect } from '@sentry/server-utils';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
+import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
@@ -70,15 +75,19 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   }
 
   const metadata: DatabaseSpanData = {
-    'db.system.name': config?.connector ?? db.dialect,
+    [DB_SYSTEM_NAME]: config?.connector ?? db.dialect,
     ...getDatabaseSpanData(config),
   };
+
+  // The connector name (e.g. `planetscale`) does not identify the SQL flavour, `db.dialect` does.
+  // MySQL reads `"..."` and `\'` as string syntax, so the sanitizer has to know about it.
+  const dialect: SqlDialect | undefined = db.dialect === 'mysql' ? 'mysql' : undefined;
 
   db.prepare = new Proxy(db.prepare, {
     apply(target, thisArg, args: Parameters<typeof db.prepare>) {
       const [query] = args;
 
-      return instrumentPreparedStatement(target.apply(thisArg, args), query, metadata);
+      return instrumentPreparedStatement(target.apply(thisArg, args), query, metadata, dialect);
     },
   });
 
@@ -87,8 +96,9 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   // https://github.com/unjs/db0/blob/main/src/database.ts#L64
   db.sql = new Proxy(db.sql, {
     apply(target, thisArg, args: Parameters<typeof db.sql>) {
-      const query = args[0]?.[0] ?? '';
-      const opts = createStartSpanOptions(query, metadata);
+      const [strings, ...values] = args;
+      const query = strings ? buildSqlTemplateQuery(strings, values) : '';
+      const opts = createStartSpanOptions(query, metadata, dialect);
 
       return startSpan(
         opts,
@@ -100,13 +110,36 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConn
   db.exec = new Proxy(db.exec, {
     apply(target, thisArg, args: Parameters<typeof db.exec>) {
       return startSpan(
-        createStartSpanOptions(args[0], metadata),
-        handleSpanStart(() => target.apply(thisArg, args), { query: args[0] }),
+        createStartSpanOptions(args[0], metadata, dialect),
+        handleSpanStart(() => target.apply(thisArg, args), { query: args[0], dialect }),
       );
     },
   });
 
   db.__sentry_instrumented__ = true;
+}
+
+/**
+ * Rebuilds the parameterized statement that db0 hands to the connector from the `.sql` template
+ * tag's arguments. Mirrors db0's own template handling: interpolated values become `?` placeholders,
+ * except values wrapped in `{}`, which db0 inlines into the statement (e.g. table names).
+ *
+ * @see https://github.com/unjs/db0/blob/main/src/template.ts
+ */
+function buildSqlTemplateQuery(strings: TemplateStringsArray, values: unknown[]): string {
+  let query = strings[0] || '';
+
+  for (let i = 1; i < strings.length; i++) {
+    const chunk = strings[i] ?? '';
+
+    if (query.endsWith('{') && chunk.startsWith('}')) {
+      query = `${query.slice(0, -1)}${values[i - 1]}${chunk.slice(1)}`;
+    } else {
+      query += `?${chunk}`;
+    }
+  }
+
+  return query.trim();
 }
 
 /**
@@ -119,16 +152,17 @@ function instrumentPreparedStatement(
   statement: PreparedStatement,
   query: string,
   data: DatabaseSpanData,
+  dialect: SqlDialect | undefined,
 ): PreparedStatement {
   // statement.bind() returns a new instance of D1PreparedStatement, so we have to patch it as well.
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.bind = new Proxy(statement.bind, {
     apply(target, thisArg, args: Parameters<typeof statement.bind>) {
-      return instrumentPreparedStatementQueries(target.apply(thisArg, args), query, data);
+      return instrumentPreparedStatementQueries(target.apply(thisArg, args), query, data, dialect);
     },
   });
 
-  return instrumentPreparedStatementQueries(statement, query, data);
+  return instrumentPreparedStatementQueries(statement, query, data, dialect);
 }
 
 /**
@@ -138,6 +172,7 @@ function instrumentPreparedStatementQueries(
   statement: PreparedStatement,
   query: string,
   data: DatabaseSpanData,
+  dialect: SqlDialect | undefined,
 ): PreparedStatement {
   if (patchedStatement.has(statement)) {
     return statement;
@@ -147,8 +182,8 @@ function instrumentPreparedStatementQueries(
   statement.get = new Proxy(statement.get, {
     apply(target, thisArg, args: Parameters<typeof statement.get>) {
       return startSpan(
-        createStartSpanOptions(query, data),
-        handleSpanStart(() => target.apply(thisArg, args), { query }),
+        createStartSpanOptions(query, data, dialect),
+        handleSpanStart(() => target.apply(thisArg, args), { query, dialect }),
       );
     },
   });
@@ -157,8 +192,8 @@ function instrumentPreparedStatementQueries(
   statement.run = new Proxy(statement.run, {
     apply(target, thisArg, args: Parameters<typeof statement.run>) {
       return startSpan(
-        createStartSpanOptions(query, data),
-        handleSpanStart(() => target.apply(thisArg, args), { query }),
+        createStartSpanOptions(query, data, dialect),
+        handleSpanStart(() => target.apply(thisArg, args), { query, dialect }),
       );
     },
   });
@@ -167,8 +202,8 @@ function instrumentPreparedStatementQueries(
   statement.all = new Proxy(statement.all, {
     apply(target, thisArg, args: Parameters<typeof statement.all>) {
       return startSpan(
-        createStartSpanOptions(query, data),
-        handleSpanStart(() => target.apply(thisArg, args), { query }),
+        createStartSpanOptions(query, data, dialect),
+        handleSpanStart(() => target.apply(thisArg, args), { query, dialect }),
       );
     },
   });
@@ -181,12 +216,12 @@ function instrumentPreparedStatementQueries(
 /**
  * Creates a span start callback handler.
  */
-function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string }) {
+function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; dialect: SqlDialect | undefined }) {
   return async (span: Span) => {
     try {
       const result = await fn();
       if (breadcrumbOpts) {
-        createBreadcrumb(breadcrumbOpts.query);
+        createBreadcrumb(breadcrumbOpts.query, breadcrumbOpts.dialect);
       }
 
       return result;
@@ -207,12 +242,14 @@ function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string }) 
   };
 }
 
-function createBreadcrumb(query: string): void {
+function createBreadcrumb(query: string, dialect: SqlDialect | undefined): void {
+  // The breadcrumb carries the same query text as the span, so it is sanitized and guarded the same way.
+  const queryText = query ? sanitizeSqlQuery(query, dialect) : undefined;
   addBreadcrumb({
     category: 'query',
-    message: query,
+    message: queryText,
     data: {
-      'db.query.text': query,
+      'db.query.text': queryText,
     },
   });
 }
@@ -220,11 +257,24 @@ function createBreadcrumb(query: string): void {
 /**
  * Creates a start span options object.
  */
-function createStartSpanOptions(query: string, data: DatabaseSpanData): StartSpanOptions {
+function createStartSpanOptions(
+  query: string,
+  data: DatabaseSpanData,
+  dialect: SqlDialect | undefined,
+): StartSpanOptions {
+  const { queryText, querySummary } = sanitizeSqlQueryWithSummary(query, dialect);
+
+  const client = getClient();
+  const name =
+    client && hasSpanStreamingEnabled(client)
+      ? querySummary || (data[DB_NAMESPACE] as string | undefined) || DB_SPAN_NAME_FALLBACK
+      : (queryText ?? DB_SPAN_NAME_FALLBACK);
+
   return {
-    name: query,
+    name,
     attributes: {
-      'db.query.text': query,
+      [DB_QUERY_TEXT]: queryText,
+      [DB_QUERY_SUMMARY]: querySummary,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
       [SENTRY_OP]: DB_QUERY,
       ...data,

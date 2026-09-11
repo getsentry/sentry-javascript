@@ -1,4 +1,5 @@
-import type { ClientOptions, Options, Scope, ServerRuntimeOptions } from '@sentry/core';
+import type { ClientOptions, Options, Scope } from '@sentry/core';
+import type { ServerRuntimeOptions } from '@sentry/core/server';
 import type { NodeTransportOptions } from './transports';
 
 /**

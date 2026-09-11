@@ -10,6 +10,7 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   hasSpanStreamingEnabled,
+  REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
@@ -301,11 +302,20 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   }
 
   const client = getClient();
-  // With span streaming, span names have to be low cardinality, so router spans are named after their route.
-  const isStreamedRouterSpan = type === 'router' && !!client && hasSpanStreamingEnabled(client);
+  // With span streaming, span names have to be low cardinality, so router
+  // and request handler spans are named after their route. A route that did
+  // not validate against the request URL can describe a different request,
+  // so those spans take the static fallback instead.
+  const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
+  const isStreamedRouterSpan = isStreamedSpan && type === 'router';
+  const isStreamedRequestHandlerSpan = isStreamedSpan && type === 'request_handler';
 
   const span = startInactiveSpan({
-    name: isStreamedRouterSpan ? matchedRoute || ROUTER_SPAN_NAME_FALLBACK : name,
+    name: isStreamedRouterSpan
+      ? matchedRoute || ROUTER_SPAN_NAME_FALLBACK
+      : isStreamedRequestHandlerSpan
+        ? matchedRoute || REQUEST_HANDLER_SPAN_NAME_FALLBACK
+        : name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       [SENTRY_OP]: EXPRESS_TYPE_TO_SPAN_OP[type],

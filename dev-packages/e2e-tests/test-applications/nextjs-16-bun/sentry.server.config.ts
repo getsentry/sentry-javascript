@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/nextjs';
 import { bunServerIntegration, fetchIntegration } from '@sentry/bun';
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`, // proxy server

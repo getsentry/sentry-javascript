@@ -42,6 +42,11 @@
       "types": "./build/types/cloudflare/index.d.ts",
       "default": "./build/esm/cloudflare/index.js"
     },
+    "./vite": {
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js",
+      "require": "./build/cjs/vite/index.js"
+    },
     "./import": {
       "import": {
         "default": "./build/import-hook.mjs"
@@ -53,10 +58,11 @@
   },
   "dependencies": {
     "@remix-run/router": "^1.23.4",
-    "@sentry/conventions": "^0.20.0",
+    "@sentry/conventions": "^0.23.0",
     "@sentry/core": "10.67.0",
     "@sentry/node": "10.67.0",
     "@sentry/react": "10.67.0",
+    "@sentry/server-runtime-injection": "10.67.0",
     "@sentry/server-utils": "10.67.0",
     "sentry": "^0.44.0",
     "yargs": "^17.6.0"
@@ -99,5 +105,18 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build/esm",
+          "{projectRoot}/build/cjs",
+          "{projectRoot}/build/npm/esm",
+          "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/import-hook.mjs"
+        ]
+      }
+    }
+  }
 }

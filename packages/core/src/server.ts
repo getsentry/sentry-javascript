@@ -1,11 +1,40 @@
 /**
- * The Sentry core SDK and integrations used by node, cloudflare,
- * bun, deno, aws lambda, and other server-side platforms, where bundle size
- * is less of an issue.
+ * Server-only utilities for Sentry SDKs.
  *
- * This export should not contain anything strictly browser-specific.
+ * @module
  */
-/* eslint-disable max-lines */
 
-export * from './shared-exports';
-export * from './server-exports';
+export type { ServerRuntimeClientOptions } from './server-runtime-client';
+export { ServerRuntimeClient } from './server-runtime-client';
+export type { ServerRuntimeOptions } from './types/options';
+export { trpcMiddleware } from './trpc';
+export { wrapMcpServerWithSentry } from './integrations/mcp-server';
+export { isNodeEnv, loadModule } from './utils/node';
+export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
+export { vercelWaitUntil } from './utils/vercelWaitUntil';
+export { flushIfServerless } from './utils/flushIfServerless';
+export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
+export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
+export { patchHttpModuleClient } from './integrations/http/client-patch';
+export { getHttpClientSubscriptions } from './integrations/http/client-subscriptions';
+export { getHttpServerSubscriptions, isStaticAssetRequest } from './integrations/http/server-subscription';
+export {
+  DEFAULT_IGNORE_STATUS_CODES,
+  processHttpServerTransactionEvent,
+} from './integrations/http/server-transaction-event';
+export { recordRequestSession } from './integrations/http/record-request-session';
+export { addOutgoingRequestBreadcrumb } from './integrations/http/add-outgoing-request-breadcrumb';
+export {
+  getRequestUrl,
+  getRequestUrlObject,
+  getRequestUrlFromClientRequest,
+  getRequestOptions,
+} from './integrations/http/get-request-url';
+export { HTTP_ON_CLIENT_REQUEST, HTTP_ON_SERVER_REQUEST } from './integrations/http/constants';
+export type {
+  HttpInstrumentationOptions,
+  HttpClientRequest,
+  HttpIncomingMessage,
+  HttpServerResponse,
+  HttpModuleExport,
+} from './integrations/http/types';

@@ -11,7 +11,14 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { isObjectLike, debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import {
+  debug,
+  getClient,
+  hasSpanStreamingEnabled,
+  isObjectLike,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startInactiveSpan,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 
@@ -117,8 +124,19 @@ function setupChannel(tracingChannel: MongooseTracingChannelFactory, channelName
     const queryText = redactMongoQuery(data.args?.pipeline ?? data.args?.filter);
     const batchSize = getBatchSize(data);
 
+    const client = getClient();
+    const target = collection || data.database;
+    const name =
+      client && hasSpanStreamingEnabled(client)
+        ? target
+          ? `${data.operation} ${target}`
+          : DB_SYSTEM_NAME_VALUE_MONGODB
+        : collection
+          ? `mongoose.${collection}.${data.operation}`
+          : `mongoose.${data.operation}`;
+
     return startInactiveSpan({
-      name: collection ? `mongoose.${collection}.${data.operation}` : `mongoose.${data.operation}`,
+      name,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB,

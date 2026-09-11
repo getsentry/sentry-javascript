@@ -1,0 +1,63 @@
+{
+  "name": "nextjs-16-standalone",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "build-webpack": "next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "copy-standalone-assets": "cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "start": "node .next/standalone/server.js",
+    "lint": "eslint",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build && pnpm copy-standalone-assets",
+    "test:build-webpack": "pnpm install && pnpm build-webpack && pnpm copy-standalone-assets",
+    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build && pnpm copy-standalone-assets",
+    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build && pnpm copy-standalone-assets",
+    "test:assert": "pnpm test:prod"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
+    "import-in-the-middle": "^2",
+    "next": "16.3.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "require-in-the-middle": "^8"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^16",
+    "typescript": "^5"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-webpack",
+        "label": "nextjs-16-standalone (webpack)",
+        "assert-command": "pnpm test:assert"
+      },
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "nextjs-16-standalone (latest, turbopack)",
+        "assert-command": "pnpm test:assert"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "nextjs-16-standalone (canary, turbopack)",
+        "assert-command": "pnpm test:assert"
+      }
+    ]
+  }
+}

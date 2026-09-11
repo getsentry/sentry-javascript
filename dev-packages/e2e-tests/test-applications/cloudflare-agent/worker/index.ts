@@ -8,7 +8,6 @@ import { MockAi } from './mocks';
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
 const sentryOptions = (env: Env) => ({
-  traceLifecycle: 'static' as const,
   dsn: env.E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`,
   tracesSampleRate: 1,

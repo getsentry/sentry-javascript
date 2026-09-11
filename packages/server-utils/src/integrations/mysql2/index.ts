@@ -1,8 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
-  _INTERNAL_getSqlQuerySummary,
-  _INTERNAL_sanitizeSqlQuery,
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
@@ -11,6 +9,7 @@ import {
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
+import { sanitizeSqlQueryWithSummary } from '../../utils/sql';
 import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
 import type { ChannelName } from '../../orchestrion/channels';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -85,15 +84,13 @@ function subscribeQueryChannel(channelName: ChannelName): void {
     data => {
       const statement = getQueryText(data.arguments);
       const connectionAttributes = getConnectionAttributes(data.self?.config);
-      const querySummary = statement
-        ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(statement, 'mysql'))
-        : undefined;
+      const { queryText, querySummary } = sanitizeSqlQueryWithSummary(statement, 'mysql');
 
       const client = getClient();
       const name =
         client && hasSpanStreamingEnabled(client)
           ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
-          : (statement ?? 'mysql2.query');
+          : (queryText ?? 'mysql2.query');
 
       return startInactiveSpan({
         name,
@@ -102,7 +99,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-          [DB_QUERY_TEXT]: statement || undefined,
+          [DB_QUERY_TEXT]: queryText || undefined,
           [DB_QUERY_SUMMARY]: querySummary,
           ...connectionAttributes,
         },

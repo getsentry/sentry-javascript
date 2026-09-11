@@ -1,4 +1,5 @@
 import * as SentryCore from '@sentry/core';
+import * as SentryCoreServer from '@sentry/core/server';
 import { HTTPError } from 'h3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureErrorHook } from '../../../src/runtime/hooks/captureErrorHook';
@@ -8,11 +9,18 @@ vi.mock('@sentry/core', async importOriginal => {
   return {
     ...(mod as any),
     captureException: vi.fn(),
-    flushIfServerless: vi.fn(),
     getClient: vi.fn(),
     getCurrentScope: vi.fn(() => ({
       setTransactionName: vi.fn(),
     })),
+  };
+});
+
+vi.mock('@sentry/core/server', async importOriginal => {
+  const mod = await importOriginal();
+  return {
+    ...(mod as any),
+    flushIfServerless: vi.fn(),
   };
 });
 
@@ -28,7 +36,7 @@ describe('captureErrorHook', () => {
     (SentryCore.getClient as any).mockReturnValue({
       getOptions: () => ({}),
     });
-    (SentryCore.flushIfServerless as any).mockResolvedValue(undefined);
+    (SentryCoreServer.flushIfServerless as any).mockResolvedValue(undefined);
   });
 
   it('should capture regular errors', async () => {
@@ -107,7 +115,7 @@ describe('captureErrorHook', () => {
 
     await captureErrorHook(error, mockErrorContext);
 
-    expect(SentryCore.flushIfServerless).toHaveBeenCalled();
+    expect(SentryCoreServer.flushIfServerless).toHaveBeenCalled();
   });
 
   it('should handle missing event in error context', async () => {

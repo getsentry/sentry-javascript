@@ -1,5 +1,6 @@
 import type { Event, IntegrationFn, MaxRequestBodySize } from '@sentry/core';
-import { debug, DEFAULT_IGNORE_STATUS_CODES, defineIntegration, processHttpServerTransactionEvent } from '@sentry/core';
+import { debug, defineIntegration } from '@sentry/core';
+import { DEFAULT_IGNORE_STATUS_CODES, processHttpServerTransactionEvent } from '@sentry/core/server';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
 
@@ -28,6 +29,11 @@ export type DenoServeIntegrationOptions = {
    * produce transaction events, so the filter does not run.
    *
    * @default `[[401, 404], [301, 303], [305, 399]]`
+   *
+   * @deprecated This option only has an effect if `traceLifecycle` is set to `'static'`. With span streaming
+   * (`traceLifecycle: 'stream'`, the default), the SDK ignores it: child spans are sent as they end, before the
+   * response status code is known, so a request's spans cannot be dropped retroactively. `ignoreStatusCodes` will be
+   * removed in v12 of the SDK.
    */
   ignoreStatusCodes?: (number | [number, number])[];
 };
@@ -87,6 +93,7 @@ const instrumentedDenoServe = (serve: typeof Deno.serve): typeof Deno.serve =>
   });
 
 const _denoServeIntegration = ((options: DenoServeIntegrationOptions = {}) => {
+  // oxlint-disable-next-line typescript/no-deprecated
   const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
   return {

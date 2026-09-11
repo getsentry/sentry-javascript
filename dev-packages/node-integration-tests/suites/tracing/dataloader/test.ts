@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -103,6 +104,7 @@ describe('dataloader auto-instrumentation', () => {
             expect(namedLoadSpan?.op).toBe(CACHE_GET_OP);
             expect(namedLoadSpan?.origin).toBe(ORIGIN);
             expect(namedLoadSpan?.status).toBe('ok');
+            expect(namedLoadSpan?.data?.['db.collection.name']).toBe('usersLoader');
           },
         })
         .start();
@@ -111,6 +113,38 @@ describe('dataloader auto-instrumentation', () => {
       await runner.makeRequest('get', '/load-many');
       await runner.makeRequest('get', '/cache-ops');
       await runner.makeRequest('get', '/named');
+      await runner.completed();
+    }, 30_000);
+
+    test('names spans after the cache operation when streamed', async () => {
+      const runner = createRunner()
+        .withEnv({ STREAMED: 'true' })
+        .expect({
+          span: (container: SerializedStreamedSpanContainer) => {
+            const namedLoadSpan = container.items.find(
+              span => span.attributes?.['db.operation.name']?.value === 'load',
+            );
+            expect(namedLoadSpan?.name).toBe('cache.get');
+            expect(namedLoadSpan?.attributes?.['sentry.op']?.value).toBe(CACHE_GET_OP);
+            expect(namedLoadSpan?.attributes?.['cache.operation']?.value).toBe('get');
+            // The loader name is no longer part of the span name, it moved to `db.collection.name`.
+            expect(namedLoadSpan?.attributes?.['db.collection.name']?.value).toBe('usersLoader');
+          },
+        })
+        .expect({
+          span: (container: SerializedStreamedSpanContainer) => {
+            for (const [operation, op] of Object.entries(CACHE_MUTATION_OPS)) {
+              const span = container.items.find(item => item.attributes?.['db.operation.name']?.value === operation);
+              expect(span, `expected a ${operation} span`).toBeDefined();
+              expect(span?.name).toBe(op);
+              expect(span?.attributes?.['sentry.op']?.value).toBe(op);
+            }
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/named');
+      await runner.makeRequest('get', '/cache-ops');
       await runner.completed();
     }, 30_000);
   });

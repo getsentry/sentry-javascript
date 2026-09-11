@@ -1,19 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
-test.describe('low-quality transaction filter', () => {
-  test('does not send a server transaction for /__manifest? requests', async ({ page }) => {
-    const serverTxns: Array<{ contexts?: { trace?: { data?: Record<string, unknown> } } }> = [];
+test.describe('low-quality span filter', () => {
+  test('does not send a server span for /__manifest? requests', async ({ page }) => {
+    const streamedSpans: SerializedStreamedSpan[] = [];
 
-    const navigationPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return (
-        transactionEvent.transaction === '/performance/ssr' && transactionEvent.contexts?.trace?.op === 'navigation'
-      );
+    const navigationPromise = waitForStreamedSpan(APP_NAME, span => {
+      return span.name === '/performance/ssr' && getSpanOp(span) === 'navigation' && span.is_segment;
     });
 
-    waitForTransaction(APP_NAME, async evt => {
-      serverTxns.push(evt);
+    waitForStreamedSpans(APP_NAME, spans => {
+      streamedSpans.push(...spans);
       return false;
     });
 
@@ -23,12 +22,13 @@ test.describe('low-quality transaction filter', () => {
 
     await navigationPromise;
 
-    // Force the server to flush any in-flight transactions before we assert
+    // Force the server to flush any in-flight spans before we assert
     await page.evaluate(() => fetch('/__sentry-flush'));
 
-    const targetIsManifest = (t: (typeof serverTxns)[number]) =>
-      typeof t.contexts?.trace?.data?.['url.path'] === 'string' &&
-      (t.contexts.trace.data['url.path'] as string).includes('/__manifest');
-    expect(serverTxns.some(targetIsManifest)).toBe(false);
+    const targetIsManifest = (span: SerializedStreamedSpan) => {
+      const urlPath = span.attributes['url.path']?.value;
+      return typeof urlPath === 'string' && urlPath.includes('/__manifest');
+    };
+    expect(streamedSpans.some(targetIsManifest)).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
-import type { Plugin, ResolvedConfig } from 'vite';
+import type { ConfigEnv, Plugin, ResolvedConfig } from 'vite';
 
 export type { Plugin as VitePlugin } from 'vite';
 import { instrumentedModuleNames } from '../config';
@@ -83,7 +83,14 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       // calls never land in a browser (`client`) bundle (where they'd throw `X is not a function`).
       return environment.config.consumer === 'server';
     },
-    config(): { ssr: { noExternal: string[] } } {
+    config(_config: unknown, env?: ConfigEnv): { ssr: { noExternal: string[] } } | null {
+      // Vite's dev SSR runner has no CommonJS interop, so an inlined `ioredis`/`mysql` throws
+      // `exports is not defined` on first import. Left external they stay on Node's loader, where
+      // the runtime hook `Sentry.init()` registers injects the same publishers.
+      if (env?.command === 'serve') {
+        return null;
+      }
+
       // Force-bundle every instrumented package so the code transform actually
       // sees its source. Vite externalizes dependencies in SSR builds by
       // default, leaving them as bare `require()`/`import` calls resolved from
@@ -104,6 +111,11 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       };
     },
     configResolved(config: ResolvedConfig): void {
+      // Nothing is force-bundled in `serve`, so an externalized module is expected there.
+      if (config.command === 'serve') {
+        return;
+      }
+
       // Explicit `ssr.external` string entries take priority over `noExternal`
       // in Vite, so they defeat the force-bundling above. (`ssr.external: true`
       // does not — `noExternal` entries still win there.)

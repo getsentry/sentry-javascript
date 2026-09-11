@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpans, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
 // FIXME: This app uses `ai@^3`, which the channel-based Vercel AI integration doesn't instrument
 // (it supports v4-v6 via the orchestrion transform and v7 via the native `ai:telemetry` channel).
 // With channel-based instrumentation now the default, no gen_ai spans are produced. Re-enable once
 // the app is upgraded to `ai@v7` (or v3 support is restored).
 test.fixme('should create AI spans with correct attributes', async ({ page }) => {
-  const aiTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return transactionEvent.transaction === 'GET /ai-test';
+  const aiSpanPromise = waitForStreamedSpan('nextjs-15', span => {
+    return span.name === 'GET /ai-test' && span.is_segment;
   });
 
   // gen_ai spans are extracted into a separate span v2 envelope item
@@ -17,11 +17,11 @@ test.fixme('should create AI spans with correct attributes', async ({ page }) =>
 
   await page.goto('/ai-test');
 
-  const aiTransaction = await aiTransactionPromise;
+  const aiSpan = await aiSpanPromise;
   const genAiSpans = await genAiSpansPromise;
 
-  expect(aiTransaction).toBeDefined();
-  expect(aiTransaction.transaction).toBe('GET /ai-test');
+  expect(aiSpan).toBeDefined();
+  expect(aiSpan.name).toBe('GET /ai-test');
 
   // We expect spans for the first 3 AI calls (4th is disabled)
   // Each generateText call should create 2 spans: one for the pipeline and one for doGenerate

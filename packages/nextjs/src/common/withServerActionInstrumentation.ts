@@ -118,6 +118,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
           return await startSpan(
             {
               name: `serverAction/${serverActionName}`,
+              // oxlint-disable-next-line typescript/no-deprecated
               forceTransaction: true,
               attributes: {
                 [SENTRY_KIND]: 'server',

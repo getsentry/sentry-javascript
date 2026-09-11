@@ -4,8 +4,15 @@ interface RecordedEvent {
   op?: string;
 }
 
+/** A streamed segment span, identified by its span id rather than an event id. */
+interface RecordedSpan {
+  spanId: string;
+  traceId: string;
+  op?: string;
+}
+
 interface Window {
-  recordedTransactions?: RecordedEvent[];
+  recordedSegmentSpans?: RecordedSpan[];
   capturedException?: RecordedEvent;
   sentryReplayId?: string;
 }

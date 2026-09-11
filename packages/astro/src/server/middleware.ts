@@ -12,7 +12,6 @@ import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  flushIfServerless,
   getIsolationScope,
   getRootSpan,
   getUrlFragment,
@@ -26,6 +25,7 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import {
   captureException,
   continueTrace,
@@ -53,7 +53,7 @@ type MiddlewareOptions = {
    *
    * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
    *
-   * @default false (recommended)
+   * @default `dataCollection.userInfo` (`true` unless disabled)
    */
   trackClientIp?: boolean;
 };
@@ -78,10 +78,7 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
 };
 
 export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler = options => {
-  const handlerOptions = {
-    trackClientIp: false,
-    ...options,
-  };
+  const handlerOptions = { ...options };
 
   return async (ctx, next) => {
     // If no Sentry client exists, just bail
@@ -209,7 +206,8 @@ async function instrumentRequestStartHttpServerSpan(
           normalizedRequest: winterCGRequestToRequestData(request),
         });
 
-        if (options.trackClientIp) {
+        // The integration option wins when set; otherwise `dataCollection.userInfo` decides.
+        if (options.trackClientIp ?? client.getDataCollectionOptions().userInfo) {
           isolationScope.setUser({ ip_address: ctx.clientAddress });
         }
 

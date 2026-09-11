@@ -1,8 +1,10 @@
 import { errorMonitor } from 'node:events';
 import http from 'node:http';
 import https from 'node:https';
-import type { HttpIncomingMessage, HttpServerResponse, IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST } from '@sentry/core';
+import type { IntegrationFn, Span } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
+import { getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST } from '@sentry/core/server';
 
 const INTEGRATION_NAME = 'BunHttpServer' as const;
 

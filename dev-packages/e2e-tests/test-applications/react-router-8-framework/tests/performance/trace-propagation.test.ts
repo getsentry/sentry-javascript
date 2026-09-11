@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('Trace propagation', () => {
@@ -18,24 +19,40 @@ test.describe('Trace propagation', () => {
   });
 
   test('should have trace connection', async ({ page }) => {
-    const serverTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /{*splat}';
-    });
-
-    const clientTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === '/';
+    // Streamed spans are buffered before they flush, so spans from an earlier page load can still be
+    // arriving here. The document advertises its own trace in the `sentry-trace` meta tag, so that is
+    // what tells this page load's spans apart rather than the op or the URL.
+    const streamedSpans: SerializedStreamedSpan[] = [];
+    void waitForStreamedSpans(APP_NAME, spans => {
+      streamedSpans.push(...spans);
+      return false;
     });
 
     await page.goto(`/`);
-    const serverTx = await serverTxPromise;
-    const clientTx = await clientTxPromise;
 
-    expect(clientTx.contexts?.trace?.trace_id).toEqual(serverTx.contexts?.trace?.trace_id);
+    const sentryTrace = await page.getAttribute('meta[name="sentry-trace"]', 'content');
+    const [traceId, handlerSpanId] = (sentryTrace ?? '').split('-');
+    expect(traceId).toMatch(/^[a-f0-9]{32}$/);
+    expect(handlerSpanId).toMatch(/^[a-f0-9]{16}$/);
 
-    const requestHandlerSpan = serverTx.spans?.find(span => span.op === 'handler');
+    // The client continues the server trace, so its pageload span hangs off the span the meta tag
+    // names. Selecting it that way, rather than by op, is what makes the trace assertion below mean
+    // something: a pageload that failed to continue the trace would have no parent at all.
+    const findClientSpan = () =>
+      streamedSpans.find(
+        span => getSpanOp(span) === 'pageload' && span.is_segment && span.parent_span_id === handlerSpanId,
+      );
+    await expect.poll(findClientSpan).toBeDefined();
+    expect(findClientSpan()!.trace_id).toBe(traceId);
 
+    const findServerSegmentSpan = () =>
+      streamedSpans.find(span => getSpanOp(span) === 'http.server' && span.is_segment && span.trace_id === traceId);
+    await expect.poll(findServerSegmentSpan).toBeDefined();
+
+    const requestHandlerSpan = streamedSpans.find(span => span.span_id === handlerSpanId);
     expect(requestHandlerSpan).toBeDefined();
-    expect(clientTx.contexts?.trace?.parent_span_id).toBe(requestHandlerSpan?.span_id);
+    expect(getSpanOp(requestHandlerSpan!)).toBe('handler');
+    expect(requestHandlerSpan!.trace_id).toBe(traceId);
   });
 
   test('should not have trace connection for prerendered pages', async ({ page }) => {

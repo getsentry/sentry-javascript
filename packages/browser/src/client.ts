@@ -1,5 +1,4 @@
 import type {
-  BrowserClientReplayOptions,
   ClientOptions,
   Event,
   EventHint,
@@ -7,8 +6,9 @@ import type {
   ParameterizedString,
   Scope,
   SeverityLevel,
-} from '@sentry/core/browser';
-import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource } from '@sentry/core/browser';
+} from '@sentry/core';
+import type { BrowserClientReplayOptions } from '@sentry/core/browser';
+import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const usesManagedTunnelRoute =
   (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
@@ -123,16 +123,16 @@ test('Does not send SSR loader error to Sentry', async ({ baseURL, page }) => {
     if (!event.type && event.exception?.values?.[0]?.value === 'Sentry SSR Test Error') {
       errorEventOccurred = true;
     }
-    return event?.transaction === 'GET /ssr-error';
+    return false;
   });
 
-  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /ssr-error';
+  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
+    return span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/ssr-error';
   });
 
   await page.goto('/ssr-error');
 
-  await transactionEventPromise;
+  await serverSpanPromise;
 
   await (await fetch(`${baseURL}/api/flush`)).text();
 

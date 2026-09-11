@@ -1,15 +1,23 @@
-import type { Client, IntegrationFn } from '@sentry/core/browser';
+import type { Client, IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
+  hasSpanStreamingEnabled,
   isObjectLike,
   isString,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
   stringMatchesSomePattern,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { getBodyString, getFetchRequestArgBody, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
-import { GRAPHQL_DOCUMENT, HTTP_METHOD, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  GRAPHQL_DOCUMENT,
+  GRAPHQL_OPERATION_NAME,
+  GRAPHQL_OPERATION_TYPE,
+  HTTP_METHOD,
+  SENTRY_OP,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
 
 interface GraphQLClientOptions {
   endpoints: Array<string | RegExp>;
@@ -83,8 +91,15 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
       const graphqlBody = getGraphQLRequestPayload(payload);
 
       if (graphqlBody) {
-        const operationInfo = _getGraphQLOperation(graphqlBody);
-        span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
+        // With span streaming the span already carries a low-cardinality name, so it must not be
+        // renamed back to one containing the URL. The operation stays reachable as an attribute.
+        if (!hasSpanStreamingEnabled(client)) {
+          span.updateName(`${httpMethod} ${httpUrl} (${_getGraphQLOperation(graphqlBody)})`);
+        }
+
+        const { operationName, operationType } = _getGraphQLOperationDetails(graphqlBody);
+        span.setAttribute(GRAPHQL_OPERATION_NAME, operationName);
+        span.setAttribute(GRAPHQL_OPERATION_TYPE, operationType);
 
         // Handle standard requests - capture the query document when enabled via dataCollection (default true)
         if (isStandardRequest(graphqlBody) && client.getDataCollectionOptions().graphQL.document === true) {
@@ -139,6 +154,24 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
 }
 
 /**
+ * The operation name and type of a GraphQL request. Persisted operations carry no query document, so
+ * their type is unknown.
+ */
+function _getGraphQLOperationDetails(requestBody: GraphQLRequestPayload): GraphQLOperation {
+  if (isPersistedRequest(requestBody)) {
+    return { operationName: requestBody.operationName, operationType: undefined };
+  }
+
+  if (isStandardRequest(requestBody)) {
+    const { query: graphqlQuery, operationName: graphqlOperationName } = requestBody;
+    const { operationName = graphqlOperationName, operationType } = parseGraphQLQuery(graphqlQuery);
+    return { operationName, operationType };
+  }
+
+  return { operationName: undefined, operationType: undefined };
+}
+
+/**
  * @param requestBody - GraphQL request
  * @returns A formatted version of the request: 'TYPE NAME' or 'TYPE' or 'persisted NAME'
  */
@@ -150,10 +183,8 @@ export function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string
 
   // Handle standard GraphQL requests
   if (isStandardRequest(requestBody)) {
-    const { query: graphqlQuery, operationName: graphqlOperationName } = requestBody;
-    const { operationName = graphqlOperationName, operationType } = parseGraphQLQuery(graphqlQuery);
-    const operationInfo = operationName ? `${operationType} ${operationName}` : `${operationType}`;
-    return operationInfo;
+    const { operationName, operationType } = _getGraphQLOperationDetails(requestBody);
+    return operationName ? `${operationType} ${operationName}` : `${operationType}`;
   }
 
   // Fallback for unknown request types

@@ -12,12 +12,10 @@ export const EVENT_POLLING_OPTIONS = { timeout: 180_000, intervals: [5_000] };
  * occurrences all share this shape and are discriminated by `event_type`.
  */
 export interface TraceItem {
+  /** On a span this is the span id. */
   event_id?: string;
-  /** On spans this is the event id of the transaction the span belongs to. */
-  transaction_id?: string;
   event_type?: 'span' | 'error' | 'occurrence' | 'uptime_check';
   op?: string;
-  is_transaction?: boolean;
   children?: TraceItem[];
   errors?: TraceItem[];
   occurrences?: TraceItem[];
@@ -67,6 +65,30 @@ export async function findErrorInTrace(traceId: string, eventId: string): Promis
   return flattenTrace(await fetchTrace(traceId)).find(item => item.event_type === 'error' && item.event_id === eventId);
 }
 
-export async function findTransactionInTrace(traceId: string, eventId: string): Promise<TraceItem | undefined> {
-  return flattenTrace(await fetchTrace(traceId)).find(item => item.is_transaction && item.transaction_id === eventId);
+let loggedTraceShape = false;
+
+/**
+ * Streamed spans never become transaction events, so the segment is matched by its op rather than by
+ * the event id of an enclosing transaction. The trace is already unique to the pageload or
+ * navigation under test, so the op identifies the segment within it.
+ */
+export async function findSpanInTrace(traceId: string, op: string): Promise<TraceItem | undefined> {
+  const items = flattenTrace(await fetchTrace(traceId));
+  const match = items.find(item => item.op === op);
+
+  // The trace endpoint's exact span shape is what this lookup depends on, so report it once when a
+  // non-empty trace does not contain the op we are waiting for.
+  if (!match && items.length && !loggedTraceShape) {
+    loggedTraceShape = true;
+    console.log(
+      `Trace ${traceId} has no "${op}" item yet. Items so far:`,
+      JSON.stringify(
+        items.map(item => ({ event_type: item.event_type, op: item.op, event_id: item.event_id })),
+        null,
+        2,
+      ),
+    );
+  }
+
+  return match;
 }

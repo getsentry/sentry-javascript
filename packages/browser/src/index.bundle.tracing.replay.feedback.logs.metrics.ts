@@ -1,4 +1,4 @@
-import { registerSpanErrorInstrumentation } from '@sentry/core/browser';
+import { registerSpanErrorInstrumentation } from '@sentry/core';
 import { feedbackAsyncIntegration } from './feedbackAsync';
 
 registerSpanErrorInstrumentation();
@@ -10,16 +10,14 @@ export {
   getRootSpan,
   getSpanDescendants,
   setMeasurement,
-  startInactiveSpan,
   startNewTrace,
-  startSpan,
-  startSpanManual,
   withActiveSpan,
   logger,
   consoleLoggingIntegration,
   metrics,
   spanStreamingIntegration,
-} from '@sentry/core/browser';
+} from '@sentry/core';
+export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/core/browser';
 
 export {
   browserTracingIntegration,
