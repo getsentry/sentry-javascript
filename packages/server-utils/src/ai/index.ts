@@ -11,3 +11,5 @@ export { instrumentWorkersAiClient } from './workers-ai';
 export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './langchain';
 export { instrumentStateGraph, instrumentStateGraphCompile, instrumentCreateReactAgent } from './langgraph';
 export { SentryMastraExporter } from './mastra';
+export { createFlueInstrumentation } from './flue';
+export type { FlueOptions } from './flue';
