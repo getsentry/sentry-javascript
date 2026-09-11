@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { CACHE_OPERATION, CACHE_TTL } from '@sentry/conventions/attributes';
+import { CACHE_ITEM_AGE, CACHE_OPERATION, CACHE_TAGS, CACHE_TTL } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
@@ -25,10 +25,6 @@ const SENTRY_CACHE_INSTRUMENTED = Symbol.for('sentry.nextjs.cacheHandlersInstrum
 const SENTRY_HANDLER_WRAPPED = Symbol.for('sentry.nextjs.wrappedCacheHandler');
 
 const CACHE_SPAN_ORIGIN = 'auto.cache.nextjs';
-
-// TODO: Not yet in `@sentry/conventions`; replace with the constants once upstreamed.
-const CACHE_ITEM_AGE = 'cache.item_age';
-const CACHE_TAGS = 'cache.tags';
 
 // Next.js' `INFINITE_CACHE` sentinel. An `expire` at or above it means "never expires", which carries no signal as a TTL attribute.
 // https://github.com/vercel/next.js/blob/ed1aab5d386d07ee2f553107dd39995251a6e44e/packages/next/src/lib/constants.ts#L43-L46
