@@ -300,8 +300,8 @@ describe('express tracing', () => {
                 attributes: expect.objectContaining({
                   'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/) },
                   'http.request.method': { type: 'string', value: 'POST' },
-                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
-                  'http.request.header.content_type': { type: 'string', value: 'application/json' },
+                  'http.request.header.user-agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content-type': { type: 'string', value: 'application/json' },
                   'http.request.body.data': { type: 'string', value: JSON.stringify({ foo: 'bar', other: 1 }) },
                 }),
               });
@@ -327,8 +327,8 @@ describe('express tracing', () => {
                 attributes: expect.objectContaining({
                   'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/) },
                   'http.request.method': { type: 'string', value: 'POST' },
-                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
-                  'http.request.header.content_type': { type: 'string', value: 'text/plain' },
+                  'http.request.header.user-agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content-type': { type: 'string', value: 'text/plain' },
                   'http.request.body.data': { type: 'string', value: 'some plain text' },
                 }),
               });
@@ -352,8 +352,8 @@ describe('express tracing', () => {
                 attributes: expect.objectContaining({
                   'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/) },
                   'http.request.method': { type: 'string', value: 'POST' },
-                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
-                  'http.request.header.content_type': { type: 'string', value: 'application/octet-stream' },
+                  'http.request.header.user-agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content-type': { type: 'string', value: 'application/octet-stream' },
                   'http.request.body.data': { type: 'string', value: 'some plain text in buffer' },
                 }),
               });
@@ -377,8 +377,8 @@ describe('express tracing', () => {
                 attributes: expect.objectContaining({
                   'url.full': { type: 'string', value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/) },
                   'http.request.method': { type: 'string', value: 'POST' },
-                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
-                  'http.request.header.content_type': { type: 'string', value: 'application/octet-stream' },
+                  'http.request.header.user-agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content-type': { type: 'string', value: 'application/octet-stream' },
                   // This is some non-ascii string representation
                   'http.request.body.data': { type: 'string', value: expect.any(String) },
                 }),
@@ -409,8 +409,8 @@ describe('express tracing', () => {
                     value: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post-ignore-body$/),
                   },
                   'http.request.method': { type: 'string', value: 'POST' },
-                  'http.request.header.user_agent': { type: 'string', value: expect.stringContaining('') },
-                  'http.request.header.content_type': { type: 'string', value: 'application/octet-stream' },
+                  'http.request.header.user-agent': { type: 'string', value: expect.stringContaining('') },
+                  'http.request.header.content-type': { type: 'string', value: 'application/octet-stream' },
                 }),
               });
               // Ensure the request body has been ignored
