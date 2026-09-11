@@ -117,3 +117,4 @@ export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';

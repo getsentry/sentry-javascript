@@ -120,6 +120,7 @@ export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { spotlightIntegration } from './integrations/spotlight';
 export {
   openTelemetryIntegration,
