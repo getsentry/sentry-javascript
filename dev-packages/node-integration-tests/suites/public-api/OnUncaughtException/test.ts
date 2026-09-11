@@ -50,11 +50,8 @@ describe('OnUncaughtException integration', () => {
   test('should exit rather than recurse when stderr is a broken pipe', async () => {
     const testScriptPath = path.resolve(__dirname, 'broken-stdio-pipe-test-script.js');
 
-    // `logAndExitProcess` writes the error to stderr before shutting down. With stderr
-    // closed that write raises EPIPE too, which comes back as another uncaught exception
-    // and re-enters the handler. Each pass used to queue another console write and another
-    // `client.close()`, so the process died of heap exhaustion instead of exiting.
-    // The small heap cap turns that into a ~1s failure rather than a ~1min one.
+    // The heap cap is what makes a regression fail in ~1s. At the default heap size the
+    // runaway recursion takes about a minute to exhaust it and just looks like a hang.
     const child = childProcess.spawn(process.execPath, ['--max-old-space-size=64', testScriptPath], {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
