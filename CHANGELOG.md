@@ -6,6 +6,7 @@
 
 Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, and @hafzism. Thank you for your contributions!
 
+- feat(core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders`. Passing `true`, `false`, `{ allow: [...] }` or `{ deny: [...] }` now applies to both request and response headers; `{ request, response }` still controls each direction independently.
 - feat(langchain)!: Emit `gen_ai.pipeline.name` instead of `langchain.chain.name` on LangChain chain spans. The attribute is omitted when the chain is unnamed.
 - feat(deno)!: Rename several default integrations to match the other SDKs ([#22404](https://github.com/getsentry/sentry-javascript/pull/22404)). The `deno*Integration` exports are kept as deprecated aliases. If you were relying on the names (for example, to disable them), then note that these have changed:
   - `DenoAmqplib` => `Amqplib`
