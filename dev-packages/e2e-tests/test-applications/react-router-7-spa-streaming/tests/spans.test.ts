@@ -56,7 +56,11 @@ test('sends an INP span', async ({ page }) => {
 
   await page.click('#exception-button');
 
-  await page.waitForTimeout(500);
+  // web-vitals defers processing the interaction's event entries to a
+  // `requestIdleCallback(..., { timeout: 1000 })`. Chromium only runs that on the timeout here, so
+  // hiding the page any earlier forces a report before the interaction has been processed and no
+  // INP is emitted at all.
+  await page.waitForTimeout(1500);
 
   // Page hide to trigger INP
   await page.evaluate(() => {

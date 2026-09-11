@@ -5,8 +5,9 @@ import path from 'path';
 import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipWASMTests } from '../../../utils/wasmHelpers';
 
-function serveWasmFixture(page: Page): Promise<void> {
-  return page.route('**/simple.wasm', (route: Route) => {
+async function serveWasmFixture(page: Page): Promise<void> {
+  // `page.route` resolves with a `Disposable` as of Playwright 1.63, so it can't be returned directly.
+  await page.route('**/simple.wasm', (route: Route) => {
     const wasmModule = fs.readFileSync(path.resolve(__dirname, '..', 'simple.wasm'));
 
     return route.fulfill({

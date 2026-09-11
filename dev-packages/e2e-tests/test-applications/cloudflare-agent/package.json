@@ -24,7 +24,7 @@
     "workers-ai-provider": "^3.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@cloudflare/vite-plugin": "^1.47.0",
     "@cloudflare/workers-types": "^5.20260727.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",

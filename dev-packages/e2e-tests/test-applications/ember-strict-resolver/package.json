@@ -14,7 +14,7 @@
     "test:assert:streamed": "E2E_TEST_TRACE_LIFECYCLE=stream pnpm run test"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@babel/core": "^7.29.0",
     "@babel/plugin-transform-typescript": "^7.28.6",
     "@babel/runtime": "^7.29.2",
