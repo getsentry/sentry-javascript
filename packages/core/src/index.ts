@@ -401,6 +401,7 @@ export type {
   CollectBehavior,
   DataCollection,
   HttpBodyCollectionTarget,
+  HttpHeadersCollection,
   ResolvedDataCollection,
 } from './types/datacollection';
 export type { ClientOptions, CoreOptions as Options } from './types/options';
