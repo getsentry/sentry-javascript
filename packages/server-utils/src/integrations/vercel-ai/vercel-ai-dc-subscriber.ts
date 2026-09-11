@@ -18,6 +18,8 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
@@ -356,6 +358,9 @@ function enrichInvokeAgentFromStream(
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
+    for (const [attribute, value] of Object.entries(cacheTokenAttributes(usage))) {
+      addTokensToSpan(span, attribute, value);
+    }
   }
 
   if (recordOutputs) {
@@ -567,6 +572,8 @@ export function enrichSpanOnEnd(
     if (totalTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
     }
+    // Set before the `providerMetadata` attributes below so a provider-reported count still wins.
+    span.setAttributes(cacheTokenAttributes(usage));
   }
 
   // Match the OTel integration: finish reasons live on the model-call (`generate_content`) span, not
@@ -631,6 +638,26 @@ function getFinishReason(result: Record<string, unknown>): string | undefined {
 /** Reads a token count that may be a plain number or a `{ total }` object (model-call usage). */
 function tokenCount(value: unknown): number | undefined {
   return asNumber(value) ?? (isObjectLike(value) ? asNumber(value.total) : undefined);
+}
+
+/**
+ * Reads the AI SDK's own cache token counts from a usage object. v5 reports `cachedInputTokens`, v6
+ * adds `inputTokenDetails`, and v7 model-call usage nests them under `inputTokens`. `providerMetadata`
+ * only carries cache counts under a provider key, so through the AI Gateway (`gateway` key) these
+ * normalized counts are the sole source.
+ */
+function cacheTokenAttributes(usage: Record<string, unknown>): Record<string, number> {
+  const inputTokens = isObjectLike(usage.inputTokens) ? usage.inputTokens : undefined;
+  const inputTokenDetails = isObjectLike(usage.inputTokenDetails) ? usage.inputTokenDetails : undefined;
+  const cacheRead =
+    asNumber(inputTokens?.cacheRead) ??
+    asNumber(inputTokenDetails?.cacheReadTokens) ??
+    asNumber(usage.cachedInputTokens);
+  const cacheWrite = asNumber(inputTokens?.cacheWrite) ?? asNumber(inputTokenDetails?.cacheWriteTokens);
+  return {
+    ...(cacheRead !== undefined ? { [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: cacheRead } : {}),
+    ...(cacheWrite !== undefined ? { [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: cacheWrite } : {}),
+  };
 }
 
 function buildOutputMessages(
