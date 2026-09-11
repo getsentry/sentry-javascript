@@ -115,6 +115,59 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.httpHeaders.response).toBe(true);
     });
 
+    it('merges nested httpHeaders partially for the response direction', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          httpHeaders: { response: { allow: ['content-type'] } },
+        },
+      });
+
+      expect(result.httpHeaders).toEqual({ request: true, response: { allow: ['content-type'] } });
+    });
+
+    it('resolves independent request and response header settings', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          httpHeaders: { request: { allow: ['x-request-id'] }, response: false },
+        },
+      });
+
+      expect(result.httpHeaders).toEqual({ request: { allow: ['x-request-id'] }, response: false });
+    });
+
+    it('treats an empty httpHeaders object as directional config with defaults', () => {
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: {} } }).httpHeaders).toEqual({
+        request: true,
+        response: true,
+      });
+    });
+
+    it('applies boolean httpHeaders shorthand to both directions', () => {
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: false } }).httpHeaders).toEqual({
+        request: false,
+        response: false,
+      });
+
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: true } }).httpHeaders).toEqual({
+        request: true,
+        response: true,
+      });
+    });
+
+    it('applies allow/deny httpHeaders shorthand to both directions', () => {
+      const deny = { deny: ['forwarded', '-ip'] };
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: deny } }).httpHeaders).toEqual({
+        request: deny,
+        response: deny,
+      });
+
+      const allow = { allow: ['content-type'] };
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: allow } }).httpHeaders).toEqual({
+        request: allow,
+        response: allow,
+      });
+    });
+
     it('merges nested genAI partially', () => {
       const result = resolveDataCollectionOptions({
         dataCollection: {
