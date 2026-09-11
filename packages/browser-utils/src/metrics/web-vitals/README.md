@@ -27,6 +27,10 @@ web-vitals only report once per pageload.
 
 ## CHANGELOG
 
+- Guard against nullish entries in `onLCP`'s `handleEntries`, matching upstream
+
+  https://github.com/getsentry/sentry-javascript/issues/24278
+
 - Bumped from Web Vitals 5.0.2 to 5.1.0
   - Remove `visibilitychange` event listeners when no longer required [#627](https://github.com/GoogleChrome/web-vitals/pull/627)
   - Register visibility-change early [#637](https://github.com/GoogleChrome/web-vitals/pull/637)
