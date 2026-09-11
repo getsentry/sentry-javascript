@@ -322,6 +322,16 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'auto.ai.openai',
             });
+
+            // PII attributes must never be recorded when `sendDefaultPii` is disabled.
+            // Asserting over every span in the envelope catches attributes leaking onto
+            // spans which are not individually inspected above.
+            for (const span of container.items) {
+              expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+              expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
+            }
           },
         })
         .start()
@@ -845,6 +855,16 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 10,
             });
+
+            // PII attributes must never be recorded when `sendDefaultPii` is disabled.
+            // Asserting over every span in the envelope catches attributes leaking onto
+            // spans which are not individually inspected above.
+            for (const span of container.items) {
+              expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+              expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
+            }
           },
         })
         .start()
