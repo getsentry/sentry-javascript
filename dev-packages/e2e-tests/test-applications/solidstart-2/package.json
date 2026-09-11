@@ -34,8 +34,7 @@
     "vitest": "^1.5.0"
   },
   "volta": {
-    "extends": "../../package.json",
-    "node": "24.15.0"
+    "extends": "../../package.json"
   },
   "engines": {
     "node": ">=24"
