@@ -79,7 +79,7 @@ function createGenAiSpan(data: MistralChannelContext, operation: string, options
 
   const { recordInputs } = resolveAIRecordingOptions(options);
 
-  const attributes = extractRequestAttributes(args, operation);
+  const attributes = extractRequestAttributes(args, operation, recordInputs);
   attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
   const model = getModelForSpanName(params, operation);
   const client = getClient();

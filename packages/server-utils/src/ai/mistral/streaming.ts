@@ -1,6 +1,6 @@
 import type { Span } from '@sentry/core';
 import { endStreamSpan } from '../core/utils';
-import type { MistralCompletionChunk } from './types';
+import type { MistralCompletionChunk, MistralToolCall } from './types';
 
 /**
  * State accumulated while consuming a Mistral event stream.
@@ -13,6 +13,27 @@ interface StreamingState {
   promptTokens: number | undefined;
   completionTokens: number | undefined;
   totalTokens: number | undefined;
+  /** Tool calls accumulated by their delta `index`; `function.arguments` arrives fragmented. */
+  toolCalls: Record<number, MistralToolCall>;
+}
+
+function processToolCalls(toolCalls: MistralToolCall[], state: StreamingState): void {
+  for (const toolCall of toolCalls) {
+    const index = toolCall.index;
+    if (index === undefined || !toolCall.function) {
+      continue;
+    }
+
+    const existing = state.toolCalls[index];
+    if (!existing) {
+      state.toolCalls[index] = {
+        ...toolCall,
+        function: { name: toolCall.function.name, arguments: toolCall.function.arguments ?? '' },
+      };
+    } else if (toolCall.function.arguments && existing.function) {
+      existing.function.arguments = `${existing.function.arguments ?? ''}${toolCall.function.arguments}`;
+    }
+  }
 }
 
 function processChunk(chunk: MistralCompletionChunk, state: StreamingState, recordOutputs: boolean): void {
@@ -30,6 +51,9 @@ function processChunk(chunk: MistralCompletionChunk, state: StreamingState, reco
   for (const choice of chunk.choices ?? []) {
     if (recordOutputs && typeof choice.delta?.content === 'string' && choice.delta.content) {
       state.responseTexts.push(choice.delta.content);
+    }
+    if (recordOutputs && choice.delta?.toolCalls) {
+      processToolCalls(choice.delta.toolCalls, state);
     }
     if (choice.finishReason) {
       state.finishReasons.push(choice.finishReason);
@@ -54,6 +78,7 @@ export async function* instrumentStream<T>(
     promptTokens: undefined,
     completionTokens: undefined,
     totalTokens: undefined,
+    toolCalls: {},
   };
 
   try {
@@ -68,6 +93,6 @@ export async function* instrumentStream<T>(
       yield event;
     }
   } finally {
-    endStreamSpan(span, { ...state, toolCalls: [] }, recordOutputs);
+    endStreamSpan(span, { ...state, toolCalls: Object.values(state.toolCalls) }, recordOutputs);
   }
 }

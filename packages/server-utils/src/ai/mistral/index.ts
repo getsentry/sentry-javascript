@@ -15,6 +15,7 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
@@ -30,9 +31,23 @@ import type { MistralOptions } from './types';
 import { addResponseAttributes, extractRequestParameters, getModelForSpanName } from './utils';
 
 /**
+ * Serialize tool definitions from request parameters, if present.
+ */
+function extractToolDefinitions(params: Record<string, unknown>): string | undefined {
+  if (!Array.isArray(params.tools) || params.tools.length === 0) {
+    return undefined;
+  }
+  return stringify(params.tools);
+}
+
+/**
  * Extract request attributes from method arguments.
  */
-export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
+export function extractRequestAttributes(
+  args: unknown[],
+  operationName: string,
+  recordInputs: boolean,
+): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'mistral',
     [GEN_AI_OPERATION_NAME]: operationName,
@@ -44,6 +59,11 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 
     if (operationName === 'invoke_agent' && typeof params.agentId === 'string') {
       attributes[GEN_AI_AGENT_NAME] = params.agentId;
+    }
+
+    const tools = recordInputs ? extractToolDefinitions(params) : undefined;
+    if (tools) {
+      attributes[GEN_AI_TOOL_DEFINITIONS] = tools;
     }
 
     Object.assign(attributes, extractRequestParameters(params));
@@ -89,7 +109,7 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
-    const requestAttributes = extractRequestAttributes(args, operationName);
+    const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
 
     const params = args[0] as Record<string, unknown> | undefined;
     const model = getModelForSpanName(params, operationName);

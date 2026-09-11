@@ -13,7 +13,9 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -193,6 +195,37 @@ describe('Mistral integration', () => {
             expect(agentSpan).toBeDefined();
             expect(agentSpan!.attributes[GEN_AI_INPUT_MESSAGES]?.value).toContain('Who is the best French painter?');
             expect(agentSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('Hello from Mistral agent!');
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('records tool definitions and tool calls (streaming + non-streaming)', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const toolSpan = container.items.find(
+              s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-tools-123',
+            );
+            expect(toolSpan).toBeDefined();
+            expect(toolSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]?.value).toContain('get_weather');
+            expect(toolSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]?.value).toContain('get_weather');
+            expect(toolSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["tool_calls"]');
+
+            const streamSpan = container.items.find(
+              s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-tools-stream-123',
+            );
+            expect(streamSpan).toBeDefined();
+            expect(streamSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]?.value).toContain('get_weather');
+            // The fragmented argument string ('{"city":' + '"Paris"}') is accumulated across chunks —
+            // both fragments present proves the join (quotes are backslash-escaped in the JSON string).
+            const streamedToolCalls = streamSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]?.value;
+            expect(streamedToolCalls).toContain('get_weather');
+            expect(streamedToolCalls).toContain('city');
+            expect(streamedToolCalls).toContain('Paris');
           },
         })
         .start()
