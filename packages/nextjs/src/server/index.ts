@@ -11,7 +11,6 @@ import {
   getRootSpan,
   getVercelEnv,
   GLOBAL_OBJ,
-  hasSpansEnabled,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
@@ -143,9 +142,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
-  if (hasSpansEnabled(options)) {
-    customDefaultIntegrations.push(nextjsUseCacheIntegration());
-  }
+  customDefaultIntegrations.push(nextjsUseCacheIntegration());
 
   // Detect if running on OpenNext/Cloudflare and get runtime config
   const cloudflareConfig = getCloudflareRuntimeConfig();

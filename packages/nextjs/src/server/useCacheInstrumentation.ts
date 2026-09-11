@@ -10,6 +10,7 @@ import {
   getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
+  hasSpansEnabled,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -279,8 +280,11 @@ export function _instrumentUseCacheHandlers(): void {
 export const nextjsUseCacheIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      _instrumentUseCacheHandlers();
+    setup(client) {
+      // The resolved client options also cover tracing enabled via `SENTRY_TRACES_SAMPLE_RATE`.
+      if (hasSpansEnabled(client.getOptions())) {
+        _instrumentUseCacheHandlers();
+      }
     },
   };
 });
