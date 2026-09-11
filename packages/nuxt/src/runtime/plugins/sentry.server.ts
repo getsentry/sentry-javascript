@@ -2,12 +2,9 @@ import { debug } from '@sentry/core';
 import type { H3Event } from 'h3';
 import type { NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
-import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { addSentryTracingMetaTags } from '../utils';
 
 export default (nitroApp => {
-  nitroApp.hooks.hook('error', sentryCaptureErrorHook);
-
   nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
     // h3 v1 (Nuxt 4): event.node.res.getHeaders(); h3 v2 (Nuxt 5): event.node is undefined
     const nodeResHeadersH3v1 = event.node?.res?.getHeaders() || {};
