@@ -2,12 +2,12 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { rollup } from 'rollup';
-import { rolldown } from 'rolldown';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sentryRollupPlugin } from '../../src/rollup';
 import { sentryVitePlugin } from '../../src/vite';
 
 const DEBUG_ID_MARKER = /sentry-dbid-([0-9a-f-]{36})/;
+const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);
 
 describe('sourcemaps.disable: "disable-upload"', () => {
   let tmpDir: string;
@@ -41,23 +41,28 @@ describe('sourcemaps.disable: "disable-upload"', () => {
     expect(chunk).toContain(`//# debugId=${debugId}`);
   });
 
-  it('stamps the emitted source map with the debug ID injected into the chunk (rolldown / vite)', async () => {
-    const outDir = path.join(tmpDir, 'dist');
-    const build = await rolldown({
-      input: entry,
-      plugins: sentryVitePlugin({ telemetry: false, sourcemaps: { disable: 'disable-upload' } }),
-    });
-    await build.write({ dir: outDir, sourcemap: true });
+  it.skipIf(NODE_MAJOR_VERSION < 20)(
+    'stamps the emitted source map with the debug ID injected into the chunk (rolldown / vite)',
+    async () => {
+      // Rolldown uses Node APIs unavailable on Node 18, so importing it must also be skipped.
+      const { rolldown } = await import('rolldown');
+      const outDir = path.join(tmpDir, 'dist');
+      const build = await rolldown({
+        input: entry,
+        plugins: sentryVitePlugin({ telemetry: false, sourcemaps: { disable: 'disable-upload' } }),
+      });
+      await build.write({ dir: outDir, sourcemap: true });
 
-    const chunk = fs.readFileSync(path.join(outDir, 'entry.js'), 'utf8');
-    const map = JSON.parse(fs.readFileSync(path.join(outDir, 'entry.js.map'), 'utf8'));
-    const debugId = chunk.match(DEBUG_ID_MARKER)?.[1];
+      const chunk = fs.readFileSync(path.join(outDir, 'entry.js'), 'utf8');
+      const map = JSON.parse(fs.readFileSync(path.join(outDir, 'entry.js.map'), 'utf8'));
+      const debugId = chunk.match(DEBUG_ID_MARKER)?.[1];
 
-    expect(debugId).toBeDefined();
-    expect(map.debug_id).toBe(debugId);
-    expect(map.debugId).toBe(debugId);
-    expect(chunk).toContain(`//# debugId=${debugId}`);
-  });
+      expect(debugId).toBeDefined();
+      expect(map.debug_id).toBe(debugId);
+      expect(map.debugId).toBe(debugId);
+      expect(chunk).toContain(`//# debugId=${debugId}`);
+    },
+  );
 
   it('stamps a hidden source map that the chunk does not reference', async () => {
     const outDir = path.join(tmpDir, 'dist');
