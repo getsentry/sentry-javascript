@@ -1003,6 +1003,7 @@ The following span names were adjusted:
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL                                                      | `/users/123`, `SvelteKit Route Change`                                         | The span's `http.route`, or `Router` if the SDK has none                                                                                                                            | `/users/:id`, `Router`                                 |
 | `handler`                                                                | Framework-specific, often carrying the request method                                                     | `GET /users/:id`, `route-handler`, `getUser`                                   | The span's `http.route`, or `Request handler` if the SDK has none                                                                                                                   | `/users/:id`, `Request handler`                        |
 | `function` (Angular `TraceMethod`)                                       | The decorator's `name` option in angle brackets                                                           | `<getUser>`, `<unnamed>`                                                       | The decorator's `name` option, or `Function execution` if it has none                                                                                                               | `Login.ngOnInit`, `getUsers`, `Function execution`     |
+| `function` (SvelteKit)                                                   | The route the wrapped function ran for, or the raw URL path if the SDK couldn't resolve one               | `/users/[id]`, `/users/123`, `GET /api/users/[id]`                             | The name of the wrapped function                                                                                                                                                    | `load`, `GET`                                          |
 | `function.gcp`                                                           | The request method and path for HTTP functions, otherwise the trigger's event or trigger type             | `POST /users`, `google.pubsub.topic.publish`, `firebase.function.http.request` | The function name, or `Serverless function execution` if the SDK cannot resolve one                                                                                                 | `myFunction`, `Serverless function execution`          |
 | `function.aws`                                                           | The Lambda function name                                                                                  | `my-function`                                                                  | Unchanged, except that the SDK now falls back to `Serverless function execution` if it cannot resolve the function name                                                             | `my-function`, `Serverless function execution`         |
 | `graphql`                                                                | The graphql phase and, for operations, the operation name                                                 | `query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`                | The operation type, or the processing type where there is none                                                                                                                      | `GraphQL query`, `GraphQL parse`, `GraphQL resolve`    |
@@ -1040,6 +1041,18 @@ function name on `faas.name`, the request URL on `url.full`, and the invocation 
 `aws.lambda.*` and `aws.cloudwatch.logs.*`. Their `sentry.segment.name.source` is now `component`
 rather than `custom`, matching the other FaaS spans: the name comes from the function, not from the
 user. This applies in both trace lifecycles.
+
+#### SvelteKit function spans
+
+The spans around `wrapLoadWithSentry`, `wrapServerLoadWithSentry` and `wrapServerRouteWithSentry` are
+named after the function they wrap (`load`, or the HTTP method a `+server.js` route handler is exported
+as) rather than after the route it ran for. The route stays on `http.route` (`url.template` for the
+client-side universal load span) and the request path on `url.path`, so `ignoreSpans` and `tracesSampler`
+rules that matched these names have to match those attributes instead.
+
+Their span description is unchanged: each span carries a `sentry.description` attribute holding the
+name it had before. The same applies to the spans SvelteKit's own tracing emits (`sveltekit.load`,
+`sveltekit.resolve`, `sveltekit.form_action`, ...), which the SDK marks as `function` spans.
 
 #### Filtering and sampling
 
