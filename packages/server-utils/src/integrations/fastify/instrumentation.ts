@@ -371,7 +371,7 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
 let _isInstrumented = false;
 
 /**
- * Set up the Fastify (>= 3.21.0 < 6) instrumentation by subscribing to the `fastify.initialization`
+ * Set up the Fastify (>= 3.21.0 < 7) instrumentation by subscribing to the `fastify.initialization`
  * diagnostics channel and synchronously instrumenting every Fastify instance as it is created.
  */
 export function instrumentFastify(): void {
