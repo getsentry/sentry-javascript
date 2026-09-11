@@ -1,6 +1,19 @@
-import { addNonEnumerableProperty, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  FUNCTION_SPAN_NAME_FALLBACK,
+  getClient,
+  hasSpanStreamingEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startSpan,
+} from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { CODE_FUNCTION_NAME, HTTP_REQUEST_METHOD, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_DESCRIPTION,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { RequestEvent } from '@sveltejs/kit';
 import { sendErrorToSentry } from './utils';
@@ -40,20 +53,29 @@ export function wrapServerRouteWithSentry<T extends RequestEvent>(
         return wrappingTarget.apply(thisArg, args);
       }
 
-      const routeId = event.route?.id;
+      const routeId = event.route?.id ?? undefined;
       const httpMethod = event.request.method;
+      const methodAndRoute = `${httpMethod} ${routeId || 'Server Route'}`;
 
       addNonEnumerableProperty(event, '__sentry_wrapped__', true);
+
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
 
       try {
         return await startSpan(
           {
-            name: `${httpMethod} ${routeId || 'Server Route'}`,
+            // With span streaming, span names have to be low cardinality, so we use the handler's
+            // function name, which for `+server.js` routes is the HTTP method it is exported as.
+            name: hasSpanStreaming ? httpMethod || FUNCTION_SPAN_NAME_FALLBACK : methodAndRoute,
             attributes: {
               [SENTRY_OP]: FUNCTION,
               [CODE_FUNCTION_NAME]: httpMethod,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [HTTP_REQUEST_METHOD]: httpMethod,
+              [HTTP_ROUTE]: routeId,
+              // Relay infers the description from `code.function.name`, which would drop the route.
+              ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: methodAndRoute }),
             },
             onlyIfParent: true,
           },
