@@ -192,12 +192,16 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ tracer, spanApi }) =
       return capturedAttributes;
     }).pipe(withSentryTracer);
 
-  it.effect('sets origin and op for regular spans', () =>
+  // A name we cannot map belongs to user code or a third-party library. Leaving op and origin unset
+  // keeps the core defaults (no op, `manual` origin) rather than claiming we instrumented the span.
+  it.effect('leaves origin and op unset for spans it cannot map', () =>
     Effect.gen(function* () {
       const attributes = yield* attributesFor('my-operation');
 
-      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.function.effect');
-      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function');
+      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBeUndefined();
+      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBeUndefined();
+      expect(attributes).not.toHaveProperty(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN);
+      expect(attributes).not.toHaveProperty(SEMANTIC_ATTRIBUTE_SENTRY_OP);
     }),
   );
 
