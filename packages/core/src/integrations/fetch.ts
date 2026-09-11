@@ -57,6 +57,35 @@ interface ClientConfig {
 }
 
 /**
+ * Upper bound on spans waiting for their request to settle.
+ *
+ * `instrumentFetchRequest` adds an entry when a request starts and deletes it when the request
+ * ends. A request whose promise never settles never reports an end, so its entry has no other way
+ * out. Without a cap those orphans accumulate for the lifetime of the process.
+ *
+ * The sweep runs once per this many starts rather than on every request, so the record holds at
+ * most twice this many entries between sweeps.
+ */
+const MAX_PENDING_SPANS = 1000;
+
+/**
+ * Drops the oldest entries once there are more than {@link MAX_PENDING_SPANS}.
+ *
+ * A record iterates integer-like keys first and every other key in insertion order. Span ids are
+ * 16 hex characters, so even an all-digit one is far above the largest array index and can never
+ * be integer-like: the entries at the head are always the oldest. Dropping one only loses the
+ * timing of a request that never finished.
+ */
+function dropOrphanedSpans(spans: Record<string, Span>): void {
+  const ids = Object.keys(spans);
+
+  for (let i = 0; i < ids.length - MAX_PENDING_SPANS; i++) {
+    // oxlint-disable-next-line typescript/no-dynamic-delete
+    delete spans[ids[i] as string];
+  }
+}
+
+/**
  * Builds an integration that instruments the global `fetch` function: creates `http.client` spans,
  * records breadcrumbs, and attaches trace propagation headers.
  *
@@ -76,6 +105,9 @@ export function createFetchIntegration({
   // Keyed by client rather than captured in the instance closure, so that a second `init()` uses its
   // own options instead of silently inheriting the first one's.
   const configs = new WeakMap<Client, ClientConfig>();
+
+  // Counting requests since the last sweep keeps `Object.keys` off the per-request path.
+  let startsSinceSweep = 0;
 
   const integration = ((options: FetchIntegrationOptions = {}) => {
     return {
@@ -98,6 +130,11 @@ export function createFetchIntegration({
             spanOrigin,
             propagateTraceparent,
           });
+
+          if (!handlerData.endTimestamp && ++startsSinceSweep >= MAX_PENDING_SPANS) {
+            startsSinceSweep = 0;
+            dropOrphanedSpans(spans);
+          }
 
           if (config.breadcrumbs) {
             createBreadcrumb(handlerData);

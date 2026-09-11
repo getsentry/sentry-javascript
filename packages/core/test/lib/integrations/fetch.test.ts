@@ -254,6 +254,25 @@ describe('createFetchIntegration', () => {
     expect(addBreadcrumbSpy).not.toHaveBeenCalled();
   });
 
+  it('bounds the pending-span record when requests never settle', () => {
+    // `instrumentFetchRequest` runs for real here, so the record the spy captured is the live one.
+    const handler = setupIntegration(fetchIntegration(), client);
+
+    // Start events only: no end event ever arrives, so nothing deletes these entries.
+    for (let i = 0; i < 5000; i++) {
+      handler({
+        fetchData: { url: `http://my-website.com/${i}`, method: 'GET' },
+        args: [`http://my-website.com/${i}`],
+        startTimestamp: Date.now(),
+      });
+    }
+
+    const pendingSpans = instrumentFetchRequestSpy.mock.calls[0]![3];
+
+    // The cap is 1000, swept once every 1000 starts, so at most 2000 entries survive.
+    expect(Object.keys(pendingSpans).length).toBeLessThanOrEqual(2000);
+  });
+
   it('uses each client own options when a second client is set up', () => {
     // `setupOnce` runs once per process, so the handler must read the options of whichever client
     // is current rather than the ones captured by the first instance.
