@@ -46,7 +46,6 @@ export function instrumentRoutePerformance<T extends RouteConstructor>(BaseRoute
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
           [SENTRY_OP]: FUNCTION,
           [CODE_FUNCTION_NAME]: hookName,
-          // A streamed span is named after the hook, so the route it belongs to only survives here.
           ...(isStreaming && { [SENTRY_DESCRIPTION]: fullRouteName }),
         },
         name: isStreaming ? hookName : fullRouteName,
