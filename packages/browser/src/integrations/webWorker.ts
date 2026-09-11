@@ -1,9 +1,23 @@
 import type { DebugImage, Integration, IntegrationFn } from '@sentry/core';
-import { captureEvent, debug, defineIntegration, getClient, isPlainObject, isPrimitive } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  captureEvent,
+  debug,
+  defineIntegration,
+  getClient,
+  isError,
+  isPlainObject,
+  isPrimitive,
+  normalize,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { eventFromUnknownInput } from '../eventbuilder';
-import { WINDOW } from '../helpers';
-import { _eventFromRejectionWithPrimitive, _getUnhandledRejectionError } from './globalhandlers';
+import { eventFromUnknownInput, extractMessage, extractType } from '../eventbuilder';
+import { ignoreNextOnError, WINDOW } from '../helpers';
+import {
+  _enhanceEventWithInitialFrame,
+  _eventFromRejectionWithPrimitive,
+  _getUnhandledRejectionError,
+} from './globalhandlers';
 
 export const INTEGRATION_NAME = 'WebWorker' as const;
 
@@ -13,13 +27,21 @@ interface WebWorkerMessage {
   _sentryModuleMetadata?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   _sentryWorkerError?: SerializedWorkerError;
   _sentryWasmImages?: Array<DebugImage>;
+  /** Sent by workers that forward uncaught errors, not only rejections. */
+  _sentryForwardsErrors?: boolean;
 }
+
+type WorkerErrorKind = 'error' | 'unhandledrejection';
 
 interface SerializedWorkerError {
   reason: unknown;
   filename?: string;
   /** Absent on workers registered by an SDK version that only forwarded rejections. */
-  kind?: 'error' | 'unhandledrejection';
+  kind?: WorkerErrorKind;
+  /** Structured clone resets any name outside the built-in set to `Error`. */
+  name?: string;
+  lineno?: number;
+  colno?: number;
 }
 
 interface WebWorkerIntegrationOptions {
@@ -112,9 +134,26 @@ export const webWorkerIntegration = defineIntegration(({ worker }: WebWorkerInte
 })) as IntegrationFn<WebWorkerIntegration>;
 
 function listenForSentryMessages(worker: Worker): void {
+  let forwardsErrors = false;
+
+  // An uncaught worker error fires `error` on the worker object and, unless
+  // cancelled, is then reported to `window.onerror` in the same task. The
+  // worker already forwarded it with a real stack, so the global handler
+  // must skip the message-only copy. Not cancelling keeps the browser's own
+  // console report.
+  worker.addEventListener('error', () => {
+    if (forwardsErrors) {
+      ignoreNextOnError();
+    }
+  });
+
   worker.addEventListener('message', event => {
     if (isSentryMessage(event.data)) {
       event.stopImmediatePropagation(); // other listeners should not receive this message
+
+      if (event.data._sentryForwardsErrors) {
+        forwardsErrors = true;
+      }
 
       // Handle debug IDs
       if (event.data._sentryDebugIds) {
@@ -172,9 +211,13 @@ function handleForwardedWorkerError(workerError: SerializedWorkerError): void {
 
   const { stackParser, attachStacktrace } = client.getOptions();
 
-  const error = workerError.reason;
+  const { reason: error, kind, name, filename, lineno, colno } = workerError;
   // Older workers only ever forwarded rejections and send no `kind`.
-  const isUnhandledRejection = workerError.kind !== 'error';
+  const isUnhandledRejection = kind !== 'error';
+
+  if (name && isError(error) && error.name !== name) {
+    addNonEnumerableProperty(error, 'name', name);
+  }
 
   // Follow same pattern as globalHandlers for each source.
   // A thrown primitive is not a rejection, so the rejection-specific wording must not apply to it.
@@ -183,14 +226,18 @@ function handleForwardedWorkerError(workerError: SerializedWorkerError): void {
       ? _eventFromRejectionWithPrimitive(error)
       : eventFromUnknownInput(stackParser, error, undefined, attachStacktrace, isUnhandledRejection);
 
+  if (!isUnhandledRejection) {
+    _enhanceEventWithInitialFrame(event, filename, lineno, colno);
+  }
+
   event.level = 'error';
 
   // Add worker-specific context
-  if (workerError.filename) {
+  if (filename) {
     event.contexts = {
       ...event.contexts,
       worker: {
-        filename: workerError.filename,
+        filename,
       },
     };
   }
@@ -256,7 +303,7 @@ interface RegisterWebWorkerOptions {
  */
 export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
   // Mirrors globalHandlersIntegration. The worker has no client of its own, so without this
-  // V8's default of 10 truncates stacks before they can be forwarded.
+  // V8's default of 10 truncates stacks before this code forwards them.
   Error.stackTraceLimit = 50;
 
   // Send debug IDs and raw module metadata to parent thread
@@ -265,51 +312,46 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
     _sentryMessage: true,
     _sentryDebugIds: self._sentryDebugIds ?? undefined,
     _sentryModuleMetadata: self._sentryModuleMetadata ?? undefined,
+    _sentryForwardsErrors: true,
   });
 
-  // Set up error handler inside the worker
-  // Uncaught errors bubble to the parent, but structured clone preserves `stack` while the
-  // propagated ErrorEvent does not, so forwarding is what gives the parent real frames
+  const forward = (serializedError: Omit<SerializedWorkerError, 'filename' | 'name'>): void => {
+    const { reason } = serializedError;
+
+    postSerializedWorkerError(self, {
+      ...serializedError,
+      filename: self.location?.href,
+      name: isError(reason) ? extractType(reason) : undefined,
+    });
+
+    DEBUG_BUILD && debug.log(`[Sentry Worker] Forwarding ${serializedError.kind} to parent`, serializedError);
+  };
+
+  // Uncaught errors bubble to the parent, but the propagated ErrorEvent
+  // carries no error object. Forwarding the object keeps the real stack.
   self.addEventListener('error', (event: unknown) => {
-    const { error, message } = event as { error?: unknown; message?: string };
-
-    const serializedError: SerializedWorkerError = {
-      reason: error ?? message,
-      filename: self.location?.href,
-      kind: 'error',
+    const { error, message, lineno, colno } = event as {
+      error?: unknown;
+      message?: string;
+      lineno?: number;
+      colno?: number;
     };
 
-    postSerializedWorkerError(self, serializedError);
-
-    DEBUG_BUILD && debug.log('[Sentry Worker] Forwarding error to parent', serializedError);
+    forward({ kind: 'error', reason: error ?? message, lineno, colno });
   });
 
-  // Set up unhandledrejection handler inside the worker
-  // Following the same pattern as globalHandlers
-  // unhandled rejections don't bubble to the parent thread, so we need to handle them here
+  // Unhandled rejections do not bubble to the parent thread at all.
   self.addEventListener('unhandledrejection', (event: unknown) => {
-    const reason = _getUnhandledRejectionError(event);
-
-    // Forward the raw reason to parent thread
-    // The parent will handle primitives vs errors the same way globalHandlers does
-    const serializedError: SerializedWorkerError = {
-      reason: reason,
-      filename: self.location?.href,
-      kind: 'unhandledrejection',
-    };
-
-    postSerializedWorkerError(self, serializedError);
-
-    DEBUG_BUILD && debug.log('[Sentry Worker] Forwarding unhandled rejection to parent', serializedError);
+    forward({ kind: 'unhandledrejection', reason: _getUnhandledRejectionError(event) });
   });
 
   DEBUG_BUILD && debug.log('[Sentry Worker] Registered worker with error and unhandled rejection handling');
 }
 
 /**
- * `postMessage` structured-clones the reason. Errors clone well (`message`, `stack` and `cause`
- * all survive), but exotic values raise `DataCloneError`, which must never escape the worker's
- * own error handler.
+ * `postMessage` structured-clones the reason. A `DataCloneError` must never
+ * escape the worker's own error handler, so the forward is retried with a
+ * cloneable stand-in that keeps as much of the original as possible.
  */
 function postSerializedWorkerError(
   self: MinimalDedicatedWorkerGlobalScope,
@@ -322,20 +364,28 @@ function postSerializedWorkerError(
     });
     return;
   } catch {
-    // Not cloneable, fall through and describe it instead.
+    // Not cloneable, fall through and send a stand-in instead.
   }
+
+  const { reason } = serializedError;
+  // A fresh Error keeps message and stack but drops the `cause` that blocked
+  // the clone. `normalize` only produces cloneable output for everything else.
+  const cloneableReason = isError(reason) ? cloneableErrorFrom(reason) : normalize(reason);
 
   try {
     self.postMessage({
       _sentryMessage: true,
-      _sentryWorkerError: {
-        ...serializedError,
-        reason: `Worker error with non-cloneable reason: ${Object.prototype.toString.call(serializedError.reason)}`,
-      },
+      _sentryWorkerError: { ...serializedError, reason: cloneableReason },
     });
   } catch {
     // Dropping the forward is better than throwing out of the worker's error handler.
   }
+}
+
+function cloneableErrorFrom(error: Error): Error {
+  const clone = new Error(extractMessage(error));
+  clone.stack = error.stack;
+  return clone;
 }
 
 function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
