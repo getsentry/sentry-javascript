@@ -8,6 +8,11 @@ import { fill } from '@sentry/core';
  * This module patches `Response.prototype.arrayBuffer` and `bytes` so that when wasm is fetched
  * and then loaded from bytes, we can map the resulting `ArrayBuffer` back to the fetch URL via
  * `getWasmSourceUrl()` and register the module in `patchNonStreamingWebAssembly`.
+ *
+ * Every response body is tagged, not only the wasm-looking ones. A tag is read back solely after a
+ * `WebAssembly` compile already succeeded, so tagging a non-wasm buffer can never be observed,
+ * whereas guessing from content type or file extension would silently drop modules served as
+ * `application/octet-stream` or from extension-less URLs.
  */
 const wasmSourceUrls = new WeakMap<ArrayBuffer, string>();
 
@@ -38,25 +43,27 @@ function toArrayBuffer(source: unknown): ArrayBuffer | undefined {
   return undefined;
 }
 
-function looksLikeWasmResponse(response: Response): boolean {
-  const contentType = response.headers.get('content-type');
-  if (contentType?.includes('application/wasm')) {
-    return true;
+/**
+ * Synthetic responses (`new Response(...)`) have no URL and nothing to tag,
+ * so their body reads are passed through untouched.
+ */
+function responseUrl(response: Response): string | undefined {
+  try {
+    return response.url || undefined;
+  } catch {
+    return undefined;
   }
-
-  const { url } = response;
-  return Boolean(url && /\.wasm(?:\?|#|$)/i.test(url));
 }
 
 /**
  * Runs inside the caller's `arrayBuffer()` / `bytes()` promise chain, so it must never throw:
  * a failure here would reject a body read that has nothing to do with wasm.
  */
-function tagResponseSource(response: Response, source: unknown): void {
+function tagResponseSource(source: unknown, url: string): void {
   try {
     const buffer = toArrayBuffer(source);
-    if (buffer && response.url && looksLikeWasmResponse(response)) {
-      wasmSourceUrls.set(buffer, response.url);
+    if (buffer) {
+      wasmSourceUrls.set(buffer, url);
     }
   } catch {
     // see above
@@ -76,8 +83,12 @@ export function patchWasmResponseBodyReaders(): void {
   fill(Response.prototype, 'arrayBuffer', (original: (this: Response) => Promise<ArrayBuffer>) => {
     return function arrayBuffer(this: Response): Promise<ArrayBuffer> {
       const bufferPromise: Promise<ArrayBuffer> = original.call(this);
+      const url = responseUrl(this);
+      if (!url) {
+        return bufferPromise;
+      }
       return bufferPromise.then(buffer => {
-        tagResponseSource(this, buffer);
+        tagResponseSource(buffer, url);
         return buffer;
       });
     };
@@ -86,8 +97,12 @@ export function patchWasmResponseBodyReaders(): void {
   fill(Response.prototype, 'bytes', (original: (this: Response) => Promise<Uint8Array>) => {
     return function bytes(this: Response): Promise<Uint8Array> {
       const bytesPromise: Promise<Uint8Array> = original.call(this);
+      const url = responseUrl(this);
+      if (!url) {
+        return bytesPromise;
+      }
       return bytesPromise.then(bytes => {
-        tagResponseSource(this, bytes);
+        tagResponseSource(bytes, url);
         return bytes;
       });
     };
