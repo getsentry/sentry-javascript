@@ -36,6 +36,7 @@ test('Sends a server function span with wrapFetchWithSentry', async ({ page }) =
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
+          'tanstackstart.function.id': { type: 'string', value: expect.any(String) },
           'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
         }),
       }),
@@ -73,6 +74,7 @@ test('Sends a server function span for a nested server function with manual span
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
+          'tanstackstart.function.id': { type: 'string', value: expect.any(String) },
           'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
         }),
       }),
