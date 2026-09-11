@@ -1,4 +1,4 @@
-import type { Span } from '@sentry/core';
+import type { LRUMap, Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan, stringify } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
@@ -32,7 +32,7 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp } from '../core/utils';
-import { FLUE_ORIGIN } from './constants';
+import { FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { FlueModelRequestInfo, FlueObservation, FlueUsage } from './types';
 
 /**
@@ -49,13 +49,36 @@ export function sentryTraceFromTraceparent(traceparent: string): string | undefi
   return `${traceId}-${spanId}-${parseInt(flags, 16) % 2 === 1 ? '1' : '0'}`;
 }
 
-export function startTurnSpan(observation: FlueObservation, turnSpans: Map<string, Span>): void {
+/**
+ * Turn and tool spans, keyed by the id of the work they cover. Bounded, because the key is only
+ * removed when the matching end observation arrives and an abandoned stream never emits one.
+ */
+export type SpanTracker = LRUMap<string, Span>;
+
+/**
+ * Store a span under `key`. Callers only reach this with a key the tracker does not hold, so the
+ * one span at risk of being dropped without `end()` is the oldest entry, which `LRUMap.set` silently
+ * evicts once the tracker is full.
+ */
+function trackSpan(tracker: SpanTracker, key: string, span: Span): void {
+  if (tracker.size >= MAX_TRACKED_FLUE_SPANS) {
+    const oldestKey = tracker.keys()[0];
+    if (oldestKey !== undefined) {
+      tracker.remove(oldestKey)?.end();
+    }
+  }
+
+  tracker.set(key, span);
+}
+
+export function startTurnSpan(observation: FlueObservation, turnSpans: SpanTracker): void {
   const { turnId } = observation;
-  if (!turnId || turnSpans.has(turnId)) {
+  if (!turnId || turnSpans.get(turnId)) {
     return;
   }
 
-  turnSpans.set(
+  trackSpan(
+    turnSpans,
     turnId,
     startInactiveSpan({
       name: 'chat',
@@ -72,13 +95,13 @@ export function startTurnSpan(observation: FlueObservation, turnSpans: Map<strin
   );
 }
 
-export function endTurnSpan(observation: FlueObservation, turnSpans: Map<string, Span>, recordOutputs: boolean): void {
+export function endTurnSpan(observation: FlueObservation, turnSpans: SpanTracker, recordOutputs: boolean): void {
   const { turnId } = observation;
   const span = turnId ? turnSpans.get(turnId) : undefined;
   if (!span || !turnId) {
     return;
   }
-  turnSpans.delete(turnId);
+  turnSpans.remove(turnId);
 
   const requestedModel = observation.request?.requestedModel;
   const responseModel = observation.response?.responseModel;
@@ -160,13 +183,14 @@ export function setUsageAttributes(span: Span, usage: FlueUsage | undefined, isE
  * OpenTelemetry adapter projects them: siblings of `chat`, correlated to model output by tool call
  * id. Keyed by `toolCallId` so concurrent tool calls in one turn cannot cross-attribute.
  */
-export function startToolSpan(observation: FlueObservation, toolSpans: Map<string, Span>, recordInputs: boolean): void {
+export function startToolSpan(observation: FlueObservation, toolSpans: SpanTracker, recordInputs: boolean): void {
   const { toolCallId, toolName } = observation;
-  if (!toolCallId || toolSpans.has(toolCallId)) {
+  if (!toolCallId || toolSpans.get(toolCallId)) {
     return;
   }
 
-  toolSpans.set(
+  trackSpan(
+    toolSpans,
     toolCallId,
     startInactiveSpan({
       name: `execute_tool ${toolName ?? 'unknown'}`,
@@ -184,13 +208,13 @@ export function startToolSpan(observation: FlueObservation, toolSpans: Map<strin
   );
 }
 
-export function endToolSpan(observation: FlueObservation, toolSpans: Map<string, Span>, recordOutputs: boolean): void {
+export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker, recordOutputs: boolean): void {
   const { toolCallId } = observation;
   const span = toolCallId ? toolSpans.get(toolCallId) : undefined;
   if (!span || !toolCallId) {
     return;
   }
-  toolSpans.delete(toolCallId);
+  toolSpans.remove(toolCallId);
 
   if (recordOutputs && observation.result !== undefined) {
     span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(observation.result));
@@ -206,7 +230,7 @@ export function endToolSpan(observation: FlueObservation, toolSpans: Map<string,
  * `turn_request` is the only event carrying the request's content — the settled `turn` reports
  * metadata alone — so input messages, system prompt and tool definitions are read from it.
  */
-export function recordRequestContent(observation: FlueObservation, turnSpans: Map<string, Span>): void {
+export function recordRequestContent(observation: FlueObservation, turnSpans: SpanTracker): void {
   const { turnId } = observation;
   const span = turnId ? turnSpans.get(turnId) : undefined;
   const input = observation.request?.input;

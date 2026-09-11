@@ -4,6 +4,7 @@ import {
   _INTERNAL_skipAiProviderWrapping,
   continueTrace,
   getActiveSpan,
+  LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
   withActiveSpan,
@@ -14,7 +15,8 @@ import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { GOOGLE_GENAI_INTEGRATION_NAME } from '../google-genai/constants';
 import { OPENAI_INTEGRATION_NAME } from '../openai/constants';
-import { FLUE_INSTRUMENTATION_KEY, FLUE_ORIGIN, SPANNED_OPERATION_TYPE } from './constants';
+import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
+import type { SpanTracker } from './utils';
 import {
   endToolSpan,
   endTurnSpan,
@@ -53,7 +55,7 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
   // clears it, and Cloudflare calls `init()` per request), so a one-shot call at module scope is
   // wiped by the next `init()` and every later request double-reports.
   const skipProviders = (): void => {
-    if (!_INTERNAL_shouldSkipAiProviderWrapping(SKIPPED_PROVIDERS[0]!)) {
+    if (!SKIPPED_PROVIDERS.every(provider => _INTERNAL_shouldSkipAiProviderWrapping(provider))) {
       _INTERNAL_skipAiProviderWrapping(SKIPPED_PROVIDERS);
     }
   };
@@ -61,9 +63,11 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
   // Keyed by the agent operation's own id, which is what the observations carry. That keeps
   // concurrent runs apart and gives a delegated subagent its own span: Flue nests a second `agent`
   // operation inside the parent's for `task` delegation, and the nesting is not bounded at two.
+  // A plain map: the entry is removed in a `finally`, so it is bounded by concurrent agent runs.
   const agentSpans = new Map<string, Span>();
-  const turnSpans = new Map<string, Span>();
-  const toolSpans = new Map<string, Span>();
+  // Capped, unlike the above: these are keyed off ids that only a matching end observation removes.
+  const turnSpans: SpanTracker = new LRUMap(MAX_TRACKED_FLUE_SPANS);
+  const toolSpans: SpanTracker = new LRUMap(MAX_TRACKED_FLUE_SPANS);
 
   return {
     key: FLUE_INSTRUMENTATION_KEY,
@@ -73,16 +77,16 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
 
       // `observe` has already opened the span for this unit of work; make it active for the
       // duration so whatever the tool or model call does lands inside it rather than beside it.
-      if (operation?.type === 'tool') {
+      if (operation?.type === FLUE_OPERATION.TOOL) {
         const toolSpan = operation.toolCallId ? toolSpans.get(operation.toolCallId) : undefined;
         return toolSpan ? withActiveSpan(toolSpan, next) : next();
       }
-      if (operation?.type === 'model') {
+      if (operation?.type === FLUE_OPERATION.MODEL) {
         const turnSpan = operation.turnId ? turnSpans.get(operation.turnId) : undefined;
         return turnSpan ? withActiveSpan(turnSpan, next) : next();
       }
 
-      if (operation?.type !== SPANNED_OPERATION_TYPE) {
+      if (operation?.type !== FLUE_OPERATION.AGENT) {
         return next();
       }
 
