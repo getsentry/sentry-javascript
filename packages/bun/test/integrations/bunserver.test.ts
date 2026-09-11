@@ -70,10 +70,10 @@ describe('Bun Serve Integration', () => {
           'url.scheme': 'http:',
           'url.domain': 'localhost',
           'http.request.header.accept': '*/*',
-          'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+          'http.request.header.accept-encoding': 'gzip, deflate, br, zstd',
           'http.request.header.connection': 'keep-alive',
           'http.request.header.host': expect.any(String),
-          'http.request.header.user_agent': expect.stringContaining('Bun'),
+          'http.request.header.user-agent': expect.stringContaining('Bun'),
         }),
         name: 'GET',
       },
@@ -81,7 +81,7 @@ describe('Bun Serve Integration', () => {
     );
 
     expect(setAttributesSpy).toHaveBeenCalledWith({
-      'http.response.header.x_custom': 'value',
+      'http.response.header.x-custom': 'value',
     });
   });
 
@@ -113,11 +113,11 @@ describe('Bun Serve Integration', () => {
           'url.scheme': 'http:',
           'url.domain': 'localhost',
           'http.request.header.accept': '*/*',
-          'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+          'http.request.header.accept-encoding': 'gzip, deflate, br, zstd',
           'http.request.header.connection': 'keep-alive',
-          'http.request.header.content_length': '0',
+          'http.request.header.content-length': '0',
           'http.request.header.host': expect.any(String),
-          'http.request.header.user_agent': expect.stringContaining('Bun'),
+          'http.request.header.user-agent': expect.stringContaining('Bun'),
         }),
         name: 'POST',
       },
@@ -232,16 +232,16 @@ describe('Bun Serve Integration', () => {
           'url.scheme': 'http:',
           'url.domain': 'localhost',
           // HTTP headers as span attributes following OpenTelemetry semantic conventions
-          'http.request.header.user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'http.request.header.content_type': 'application/json',
-          'http.request.header.x_custom_header': 'custom-value',
+          'http.request.header.user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'http.request.header.content-type': 'application/json',
+          'http.request.header.x-custom-header': 'custom-value',
           'http.request.header.accept': 'application/json, text/plain',
-          'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+          'http.request.header.accept-encoding': 'gzip, deflate, br, zstd',
           'http.request.header.connection': 'keep-alive',
-          'http.request.header.content_length': '15',
+          'http.request.header.content-length': '15',
           'http.request.header.host': expect.any(String),
           'http.request.header.baggage': expect.any(String),
-          'http.request.header.sentry_trace': expect.any(String),
+          'http.request.header.sentry-trace': expect.any(String),
         }),
         name: 'POST',
       }),
@@ -538,7 +538,7 @@ describe('Bun Serve Integration', () => {
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.x_forwarded_for']).toBe('203.0.113.7');
+      expect(attributes?.['http.request.header.x-forwarded-for']).toBe('203.0.113.7');
     });
 
     test('filters request headers according to the dataCollection deny list', async () => {
@@ -561,8 +561,8 @@ describe('Bun Serve Integration', () => {
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.x_internal']).toBe('[Filtered]');
-      expect(attributes?.['http.request.header.x_public']).toBe('public-value');
+      expect(attributes?.['http.request.header.x-internal']).toBe('[Filtered]');
+      expect(attributes?.['http.request.header.x-public']).toBe('public-value');
     });
 
     test('filters always-sensitive request headers even when collection is permissive', async () => {
@@ -604,8 +604,8 @@ describe('Bun Serve Integration', () => {
 
       expect(setAttributesSpy).toHaveBeenCalledTimes(1);
       const responseAttributes = setAttributesSpy.mock.calls[0]?.[0];
-      expect(responseAttributes?.['http.response.header.x_internal']).toBe('[Filtered]');
-      expect(responseAttributes?.['http.response.header.x_public']).toBe('public-value');
+      expect(responseAttributes?.['http.response.header.x-internal']).toBe('[Filtered]');
+      expect(responseAttributes?.['http.response.header.x-public']).toBe('public-value');
     });
   });
 });

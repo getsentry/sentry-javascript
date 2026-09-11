@@ -17,7 +17,7 @@ test('a real mysql query emits a db span with orchestrion-channel attributes', a
   const spans = await spansPromise;
   const dbSpans = spans.filter(span => getSpanOp(span) === 'db');
 
-  const firstQuery = dbSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT 1 + 1 AS solution');
+  const firstQuery = dbSpans.find(span => span.attributes['db.query.text']?.value === 'SELECT ? + ? AS solution');
   expect(firstQuery).toBeDefined();
   expect(firstQuery!.name).toBe('SELECT');
   expect(firstQuery!.attributes['sentry.origin']?.value).toBe('auto.db.mysql');
@@ -45,6 +45,6 @@ test('a nested query lands on the same segment (async context restored)', async 
   const queryTexts = spans
     .filter(span => getSpanOp(span) === 'db')
     .map(span => span.attributes['db.query.text']?.value);
-  expect(queryTexts).toContain('SELECT 1 + 1 AS solution');
+  expect(queryTexts).toContain('SELECT ? + ? AS solution');
   expect(queryTexts).toContain('SELECT NOW()');
 });

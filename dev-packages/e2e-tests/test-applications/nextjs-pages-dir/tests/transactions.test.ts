@@ -34,7 +34,7 @@ test('Sends a pageload span', async ({ page }) => {
     'url.path': { value: '/', type: 'string' },
     'url.template': { value: '/', type: 'string' },
     'react.version': { value: expect.any(String), type: 'string' },
-    'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+    'user_agent.original': { value: expect.any(String), type: 'string' },
   });
   expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/$/);
 });
@@ -65,7 +65,7 @@ test('Sends a navigation span', async ({ page }) => {
     'url.path': { value: '/user/5', type: 'string' },
     'url.template': { value: '/user/[id]', type: 'string' },
     'react.version': { value: expect.any(String), type: 'string' },
-    'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+    'user_agent.original': { value: expect.any(String), type: 'string' },
   });
   expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/user\/5$/);
 

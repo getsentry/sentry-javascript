@@ -1,2 +1,3 @@
 allowBuilds:
   '@sentry/cli': true
+minimumReleaseAge: 0

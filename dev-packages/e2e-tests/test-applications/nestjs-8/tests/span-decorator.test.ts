@@ -21,6 +21,7 @@ test('Trace includes span and correct value for decorated async function', async
       attributes: expect.objectContaining({
         'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
         'sentry.op': { type: 'string', value: 'wait and return a string' },
+        'code.function.name': { type: 'string', value: 'wait' },
       }),
     }),
   );
@@ -44,6 +45,7 @@ test('Trace includes span and correct value for decorated sync function', async 
       attributes: expect.objectContaining({
         'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
         'sentry.op': { type: 'string', value: 'return a string' },
+        'code.function.name': { type: 'string', value: 'getString' },
       }),
     }),
   );

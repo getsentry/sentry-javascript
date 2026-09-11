@@ -154,7 +154,7 @@ test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
         attributes: expect.objectContaining({
           'sentry.op': { value: 'db', type: 'string' },
           'sentry.origin': { value: 'auto.db.mysql', type: 'string' },
-          'db.query.text': { value: 'SELECT 1 + 1 AS solution', type: 'string' },
+          'db.query.text': { value: 'SELECT ? + ? AS solution', type: 'string' },
         }),
       }),
       expect.objectContaining({

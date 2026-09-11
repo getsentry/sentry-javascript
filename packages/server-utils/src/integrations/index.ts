@@ -1,4 +1,6 @@
 import { amqplibIntegration } from './amqplib';
+import { dataloaderIntegration } from './dataloader';
+import { knexIntegration } from './knex';
 import { mongoIntegration } from './mongodb';
 import { graphqlIntegration } from './graphql';
 import { redisIntegration } from './redis';
@@ -40,10 +42,12 @@ export function getTracingIntegrations(): Integration[] {
     postgresIntegration(),
     prismaIntegration(),
     tediousIntegration(),
+    knexIntegration(),
     genericPoolIntegration(),
     kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
+    dataloaderIntegration(),
     awsIntegration(),
     // AI providers
     // LangChain must come first to disable AI provider integrations before they instrument

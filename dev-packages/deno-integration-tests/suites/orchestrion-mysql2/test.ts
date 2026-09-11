@@ -10,7 +10,11 @@ import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('mysql2 instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    traceLifecycle: 'static',
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Mysql2'), `Mysql2 should be in defaults, got ${names.join(', ')}`);
 });
@@ -50,9 +54,9 @@ Deno.test('mysql2 instrumentation: orchestrion:mysql2:query channel produces a n
 
   const mysqlSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(mysqlSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(mysqlSpan!.description, 'SELECT 1 AS solution');
+  assertEquals(mysqlSpan!.description, 'SELECT ? AS solution');
   assertEquals(mysqlSpan!.data?.['db.system.name'], 'mysql');
-  assertEquals(mysqlSpan!.data?.['db.query.text'], 'SELECT 1 AS solution');
+  assertEquals(mysqlSpan!.data?.['db.query.text'], 'SELECT ? AS solution');
   assertEquals(mysqlSpan!.data?.['db.namespace'], 'mydb');
   assertEquals(mysqlSpan!.data?.['db.user'], 'root');
   assertEquals(mysqlSpan!.data?.['server.address'], '127.0.0.1');

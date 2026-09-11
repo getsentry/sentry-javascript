@@ -193,7 +193,7 @@ export default defineNuxtModule<ModuleOptions>({
       }
 
       if (serverConfigFile) {
-        addMiddlewareInstrumentation(nitro);
+        addMiddlewareInstrumentation(nitro, isNitroV3);
 
         if (!usesDeprecatedInjectMode) {
           addServerConfigShimWithWarning(nitro);

@@ -9,6 +9,7 @@ type InstrumentHandlerTypePerformanceObserver =
   | 'paint'
   | 'resource'
   | 'element'
+  | 'soft-navigation'
   // fist-input is still needed for INP
   | 'first-input';
 
@@ -32,6 +33,16 @@ export interface PerformanceEventTiming extends PerformanceEntry {
   interactionId?: number;
 }
 
+/**
+ * A `soft-navigation` entry, minted by the browser once a history change is followed by a
+ * confirming paint. `interactionId` is the id of the `PerformanceEventTiming` entry for the
+ * interaction that drove the navigation, which is how we join it back to a Sentry navigation span.
+ */
+export interface PerformanceSoftNavigation extends PerformanceEntry {
+  readonly interactionId: number;
+  readonly navigationId: number;
+}
+
 interface PerformanceScriptTiming extends PerformanceEntry {
   sourceURL: string;
   sourceFunctionName: string;
@@ -47,6 +58,19 @@ export interface PerformanceLongAnimationFrameTiming extends PerformanceEntry {
 // entrypoint carries a `declare global` block that references DOM globals not present in every
 // TypeScript lib version (e.g. `NavigationType`), which leaks into and breaks consumers on older
 // TS. Keeping this local keeps web-vitals' global augmentations out of our published types.
+/**
+ * The navigation types web-vitals reports a metric for. Wider than the set the
+ * `browser.navigation.type` attribute uses - see `toBrowserNavigationType`.
+ */
+export type MetricNavigationType =
+  | 'navigate'
+  | 'reload'
+  | 'back-forward'
+  | 'back-forward-cache'
+  | 'prerender'
+  | 'restore'
+  | 'soft-navigation';
+
 interface Metric {
   /**
    * The name of the metric (in acronym form).
@@ -95,14 +119,30 @@ interface Metric {
    * support that API). For pages that are restored from the bfcache, this
    * value will be 'back-forward-cache'.
    */
-  navigationType:
-    | 'navigate'
-    | 'reload'
-    | 'back-forward'
-    | 'back-forward-cache'
-    | 'prerender'
-    | 'restore'
-    | 'soft-navigation';
+  navigationType: MetricNavigationType;
+
+  /**
+   * The id of the navigation the metric belongs to. For soft navigations this is the
+   * `navigationId` of the `soft-navigation` entry, otherwise it's the id of the hard navigation.
+   */
+  navigationId: number;
+
+  /**
+   * For soft navigations, the `interactionId` of the interaction that triggered the navigation.
+   */
+  navigationInteractionId?: number;
+
+  /**
+   * The start time the metric value is relative to. Non-zero for soft navigations, where the
+   * time origin is the triggering interaction rather than the start of the document.
+   */
+  navigationStartTime?: number;
+
+  /**
+   * The URL the metric was recorded for. Relevant for soft navigations, where a metric can be
+   * reported long after the URL has moved on.
+   */
+  navigationURL?: string;
 }
 
 type InstrumentHandlerType = InstrumentHandlerTypeMetric | InstrumentHandlerTypePerformanceObserver;
@@ -122,6 +162,47 @@ let _previousLcp: Metric | undefined;
 let _previousTtfb: Metric | undefined;
 let _previousInp: Metric | undefined;
 let _previousFcp: Metric | undefined;
+
+const stopListeners: Partial<Record<InstrumentHandlerType, StopListening>> = {};
+
+let _reportSoftNavs = false;
+let _reportBfcache = false;
+
+/**
+ * Opt the CLS, LCP and INP observers into reporting metrics for soft navigations.
+ *
+ * This also turns `reportAllChanges` off for CLS and LCP. web-vitals force-reports a metric when
+ * the navigation it belongs to is over, so without the intermediate updates every value a handler
+ * receives is already the final one for its navigation. That only holds because soft navigations
+ * are limited to span streaming, where CLS and LCP are sent as their own spans - the static
+ * lifecycle instead writes them onto the pageload span as it ends, which is what `reportAllChanges`
+ * was originally added for (#11934, #12360).
+ *
+ * Each observer is instrumented lazily, on its first handler, and web-vitals takes its options at
+ * that point only. So this has to be called before any of the `add*InstrumentationHandler`
+ * functions, otherwise it won't take effect for observers that are already running.
+ *
+ * On browsers without the Soft Navigation API this is a no-op: web-vitals feature-detects the API
+ * and keeps reporting hard-navigation metrics as usual.
+ */
+export function enableSoftNavigationReporting(): void {
+  _reportSoftNavs = true;
+}
+
+/**
+ * Opt the CLS, LCP and INP observers into reporting metrics for back/forward-cache restores.
+ *
+ * web-vitals re-reports each metric after a restore, tagged with a `back-forward-cache` navigation
+ * type. A restore is a new page view measured against a document that was never reloaded, so the
+ * values only mean anything if there is a fresh root span for them to belong to. Without one they
+ * would attach to the span the page had before it was frozen, which is why this is off by default.
+ *
+ * Like `enableSoftNavigationReporting`, this only affects observers instrumented after it is
+ * called.
+ */
+export function enableBfcacheReporting(): void {
+  _reportBfcache = true;
+}
 
 /**
  * Add a callback that will be triggered when a CLS metric is available.
@@ -229,16 +310,12 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
 }
 
 /**
- * Wraps a metric callback so that metrics reported after a back/forward-cache restore are ignored.
- *
- * web-vitals re-reports each metric after a bfcache restore (tagged with a `back-forward-cache`
- * navigation type). We intentionally drop those for now: our reporting assumes one set of vitals
- * per page load, so surfacing bfcache re-reports would skew the data until we're ready to model
- * and communicate them.
+ * Wraps a metric callback so that metrics reported after a back/forward-cache restore are dropped
+ * unless `enableBfcacheReporting` was called. See there for why they are off by default.
  */
-function withoutBfcache(callback: (metric: Metric) => void): (metric: Metric) => void {
+function unlessBfcacheDisabled(callback: (metric: Metric) => void): (metric: Metric) => void {
   return metric => {
-    if (metric.navigationType === 'back-forward-cache') {
+    if (!_reportBfcache && metric.navigationType === 'back-forward-cache') {
       return;
     }
     callback(metric);
@@ -247,7 +324,7 @@ function withoutBfcache(callback: (metric: Metric) => void): (metric: Metric) =>
 
 function instrumentCls(): StopListening {
   return onCLS(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('cls', {
         metric,
       });
@@ -255,13 +332,13 @@ function instrumentCls(): StopListening {
     }),
     // We want the callback to be called whenever the CLS value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: true },
+    { reportAllChanges: !_reportSoftNavs && !_reportBfcache, reportSoftNavs: _reportSoftNavs },
   );
 }
 
 function instrumentLcp(): StopListening {
   return onLCP(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('lcp', {
         metric,
       });
@@ -269,13 +346,13 @@ function instrumentLcp(): StopListening {
     }),
     // We want the callback to be called whenever the LCP value updates.
     // By default, the callback is only called when the tab goes to the background.
-    { reportAllChanges: true },
+    { reportAllChanges: !_reportSoftNavs && !_reportBfcache, reportSoftNavs: _reportSoftNavs },
   );
 }
 
 function instrumentTtfb(): StopListening {
   return onTTFB(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('ttfb', {
         metric,
       });
@@ -286,7 +363,7 @@ function instrumentTtfb(): StopListening {
 
 function instrumentFcp(): StopListening {
   return onFCP(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('fcp', {
         metric,
       });
@@ -297,12 +374,13 @@ function instrumentFcp(): StopListening {
 
 function instrumentInp(): StopListening {
   return onINP(
-    withoutBfcache(metric => {
+    unlessBfcacheDisabled(metric => {
       triggerHandlers('inp', {
         metric,
       });
       _previousInp = metric;
     }),
+    { reportSoftNavs: _reportSoftNavs },
   );
 }
 
@@ -315,18 +393,24 @@ function addMetricObserver(
 ): CleanupHandlerCallback {
   addHandler(type, callback);
 
-  let stopListening: StopListening | undefined;
-
   if (!instrumented[type]) {
-    stopListening = instrumentFn();
     instrumented[type] = true;
+    // Deferred by a microtask rather than started here, because web-vitals reads its options once,
+    // when the observer is created. Registering a handler would otherwise pin those options for
+    // every other consumer of this observer, so whichever integration happened to run first would
+    // decide whether soft navigations and bfcache restores are reported. Client setup is
+    // synchronous, so every `enable*Reporting()` call has landed by the time this runs, and the
+    // observers are buffered so no entries are missed in the meantime.
+    void Promise.resolve().then(() => {
+      stopListeners[type] = instrumentFn();
+    });
   }
 
   if (previousValue) {
     callback({ metric: previousValue });
   }
 
-  return getCleanupCallback(type, callback, stopOnCallback ? stopListening : undefined);
+  return getCleanupCallback(type, callback, stopOnCallback);
 }
 
 function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObserver): void {
@@ -363,11 +447,13 @@ function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallb
 function getCleanupCallback(
   type: InstrumentHandlerType,
   callback: InstrumentHandlerCallback,
-  stopListening: StopListening,
+  stopOnCleanup = false,
 ): CleanupHandlerCallback {
   return () => {
-    if (stopListening) {
-      stopListening();
+    // Looked up rather than captured: the observer is started in a microtask, so its stop function
+    // does not exist yet when this callback is built.
+    if (stopOnCleanup) {
+      stopListeners[type]?.();
     }
 
     const typeHandlers = handlers[type];
