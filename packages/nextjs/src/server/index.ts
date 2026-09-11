@@ -28,6 +28,7 @@ import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
+import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
@@ -140,6 +141,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
   if (distDirName) {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
+
+  customDefaultIntegrations.push(nextjsUseCacheIntegration());
 
   // Detect if running on OpenNext/Cloudflare and get runtime config
   const cloudflareConfig = getCloudflareRuntimeConfig();
