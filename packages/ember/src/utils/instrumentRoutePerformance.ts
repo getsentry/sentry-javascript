@@ -1,7 +1,7 @@
 import { startSpan } from '@sentry/browser';
-import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, SENTRY_DESCRIPTION, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 import type Route from '@ember/routing/route';
 
@@ -33,19 +33,22 @@ type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Ro
 export function instrumentRoutePerformance<T extends RouteConstructor>(BaseRoute: T): T {
   const instrumentFunction = async (
     hookName: string,
-    name: string,
+    fullRouteName: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Route hooks have varied signatures that can't be unified with unknown
     fn: (...args: any[]) => any,
     args: unknown[],
   ): Promise<unknown> => {
+    const client = getClient();
+    const isStreaming = !!client && hasSpanStreamingEnabled(client);
     return startSpan(
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
           [SENTRY_OP]: FUNCTION,
           [CODE_FUNCTION_NAME]: hookName,
+          ...(isStreaming && { [SENTRY_DESCRIPTION]: fullRouteName }),
         },
-        name,
+        name: isStreaming ? hookName : fullRouteName,
         onlyIfParent: true,
       },
       () => {
