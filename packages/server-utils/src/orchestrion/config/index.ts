@@ -31,6 +31,7 @@ import { nestjsConfig } from './nestjs';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
+import { prismaConfig } from './prisma';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
 import { tediousConfig } from './tedious';
@@ -82,6 +83,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...openaiConfig,
   ...pgConfig,
   ...postgresJsConfig,
+  ...prismaConfig,
   ...redisConfig,
   ...remixConfig,
   ...tediousConfig,
