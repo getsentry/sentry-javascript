@@ -131,7 +131,8 @@ test('sends a pageload span with a route name as span name if available', async 
       return (
         spans.some(
           span => span.is_segment && getSpanOp(span) === 'pageload' && span.attributes['url.path']?.value === route,
-        ) && expectedUiSpanNames.every(name => spans.some(span => span.name === name))
+        ) &&
+        (OPTIONS_API_DISABLED || expectedUiSpanNames.every(name => spans.some(span => span.name === name)))
       );
     });
 
@@ -171,7 +172,7 @@ test('sends a lifecycle span for the root and for each tracked component only', 
   const spansPromise = collectStreamedSpans('vue-3', spans => {
     return (
       spans.some(span => span.is_segment && getSpanOp(span) === 'pageload' && span.name === '/components') &&
-      expectedUiSpanNames.every(name => spans.some(span => span.name === name))
+      (OPTIONS_API_DISABLED || expectedUiSpanNames.every(name => spans.some(span => span.name === name)))
     );
   });
 
