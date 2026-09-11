@@ -47,6 +47,29 @@ describe('OnUncaughtException integration', () => {
       });
     }));
 
+  test('should exit rather than recurse when stderr is a broken pipe', async () => {
+    const testScriptPath = path.resolve(__dirname, 'broken-stdio-pipe-test-script.js');
+
+    // `logAndExitProcess` writes the error to stderr before shutting down. With stderr
+    // closed that write raises EPIPE too, which comes back as another uncaught exception
+    // and re-enters the handler. Each pass used to queue another console write and another
+    // `client.close()`, so the process died of heap exhaustion instead of exiting.
+    // The small heap cap turns that into a ~1s failure rather than a ~1min one.
+    const child = childProcess.spawn(process.execPath, ['--max-old-space-size=64', testScriptPath], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    child.stdout.destroy();
+    child.stderr.destroy();
+
+    const exited = await new Promise<{ code: number | null; signal: string | null }>(resolve => {
+      child.on('exit', (code, signal) => resolve({ code, signal }));
+    });
+
+    // Unbounded recursion shows up as SIGABRT from the V8 out-of-memory abort.
+    expect(exited).toEqual({ code: 1, signal: null });
+  });
+
   describe('with `exitEvenIfOtherHandlersAreRegistered` set to false', () => {
     test('should close process on uncaught error with no additional listeners registered', () =>
       new Promise<void>(done => {
