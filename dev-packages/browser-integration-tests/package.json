@@ -58,7 +58,7 @@
   "dependencies": {
     "@babel/core": "^7.29.6",
     "@babel/preset-typescript": "^7.16.7",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry/rrweb": "2.43.2",
     "@sentry/browser": "10.67.0",
     "@sentry/replay": "10.67.0",

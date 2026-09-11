@@ -190,11 +190,13 @@ test('server trace for a `QUERY` server route includes the wrapped route handler
   expect(getSegmentChildSpans(serverTraceSpans, serverSpan)).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: 'QUERY /query-server-route',
+        name: 'QUERY',
         attributes: expect.objectContaining({
           'sentry.origin': { value: 'auto.function.sveltekit', type: 'string' },
           'code.function.name': { value: 'QUERY', type: 'string' },
           'http.request.method': { value: 'QUERY', type: 'string' },
+          'http.route': { value: '/query-server-route', type: 'string' },
+          'sentry.description': { value: 'QUERY /query-server-route', type: 'string' },
         }),
       }),
     ]),

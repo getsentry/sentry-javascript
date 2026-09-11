@@ -6,6 +6,7 @@ import {
   getRootSpan,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   timestampInSeconds,
 } from '@sentry/core';
@@ -20,7 +21,8 @@ import {
   addLcpInstrumentationHandler,
 } from '../instrumentation/performanceObserver';
 import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
-import { BROWSER_NAVIGATION_TYPE_ATTRIBUTE, _emitWebVitalSpan } from './emitSpan';
+import { BROWSER_NAVIGATION_TYPE } from '@sentry/conventions/attributes';
+import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
 import type { WebVitalReportEvent } from './reportEvents';
 import { listenForWebVitalReportEvents } from './reportEvents';
@@ -28,6 +30,7 @@ import { getNavigationSpanForMetric } from './softNavs';
 import { getBrowserPerformanceAPI, msToSec, supportsWebVital } from '../performance/utils';
 import type { PerformanceEventTiming } from '../instrumentation/performanceObserver';
 import {
+  NAVIGATION,
   UI_INTERACTION_CLICK,
   UI_INTERACTION_DRAG,
   UI_INTERACTION_HOVER,
@@ -69,7 +72,14 @@ function trackWebVitalPerNavigation<M extends WebVitalMetric>(
   // it has long ended and is no longer what is active.
   let bfcacheNavigationSpan: Span | undefined;
   client.on('spanStart', span => {
-    if (spanToJSON(span).attributes?.[BROWSER_NAVIGATION_TYPE_ATTRIBUTE] === 'bfcache') {
+    // The op has to be checked too: the web vital spans emitted for a restore carry the same
+    // `bfcache` navigation type, so matching on that alone lets the first of them replace the
+    // navigation span, and every later vital then hangs off a sibling vital instead.
+    const attributes = spanToJSON(span).attributes;
+    if (
+      attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === NAVIGATION &&
+      attributes[BROWSER_NAVIGATION_TYPE] === 'bfcache'
+    ) {
       bfcacheNavigationSpan = span;
     }
   });

@@ -10,6 +10,8 @@ import {
 } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core/browser';
 import {
+  BROWSER_NAVIGATION_ID,
+  BROWSER_NAVIGATION_TYPE,
   SENTRY_REPLAY_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRANSACTION,
@@ -18,11 +20,6 @@ import {
 import { WINDOW } from '../types';
 import type { MetricNavigationType } from '../instrumentation/performanceObserver';
 import type { WebVitalReportEvent } from './reportEvents';
-import { SOFT_NAVIGATION_ID_ATTRIBUTE } from './softNavs';
-
-// TODO(conventions): replace with `BROWSER_NAVIGATION_TYPE` from `@sentry/conventions/attributes`
-// once https://github.com/getsentry/sentry-conventions/pull/600 is released.
-export const BROWSER_NAVIGATION_TYPE_ATTRIBUTE = 'browser.navigation.type';
 
 // web-vitals reports a wider set of navigation types than the attribute defines. Only the states
 // Navigation Timing cannot express keep their own value; every ordinary document navigation folds
@@ -133,11 +130,11 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   }
 
   if (softNavigationId != null) {
-    attributes[SOFT_NAVIGATION_ID_ATTRIBUTE] = softNavigationId;
+    attributes[BROWSER_NAVIGATION_ID] = softNavigationId;
   }
 
   if (navigationType) {
-    attributes[BROWSER_NAVIGATION_TYPE_ATTRIBUTE] = toBrowserNavigationType(navigationType);
+    attributes[BROWSER_NAVIGATION_TYPE] = toBrowserNavigationType(navigationType);
   }
 
   // A standalone span is sent as a plain v2 span without running the `processSpan` hooks (see

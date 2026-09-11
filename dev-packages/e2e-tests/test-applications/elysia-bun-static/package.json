@@ -15,7 +15,7 @@
     "elysia": "^1.4.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "bun-types": "^1.2.9"
   },
