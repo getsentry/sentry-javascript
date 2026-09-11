@@ -20,6 +20,8 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
   CODE_FUNCTION_NAME,
   HTTP_ROUTE,
+  ROUTER_NAVIGATION_ROUTE_ID,
+  SENTRY_DESCRIPTION,
   URL_FULL,
   URL_PATH,
   SENTRY_KIND,
@@ -91,6 +93,7 @@ function getMatchAttributes(params: RouteCallParams): SpanAttributes {
   const attributes: SpanAttributes = {};
   if (params.routeId) {
     attributes[MATCH_ROUTE_ID] = params.routeId;
+    attributes[ROUTER_NAVIGATION_ROUTE_ID] = params.routeId;
   }
   for (const [name, value] of Object.entries(params.params ?? {})) {
     attributes[`${MATCH_PARAMS}.${name}`] = value || '(undefined)';
@@ -191,11 +194,16 @@ function subscribeCallRouteLoader(): void {
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_CALL_ROUTE_LOADER),
     data => {
       const params = (data.arguments[0] ?? {}) as RouteCallParams;
+      const client = getClient();
+      const description = `LOADER ${params.routeId}`;
       return startInactiveSpan({
-        name: `LOADER ${params.routeId}`,
+        // With span streaming, a `function` span is named after the function it wraps. The route id
+        // stays on `match.route.id`.
+        name: client && hasSpanStreamingEnabled(client) ? 'loader' : description,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: FUNCTION,
+          [SENTRY_DESCRIPTION]: description,
           [CODE_FUNCTION_NAME]: 'loader',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),
@@ -225,11 +233,16 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         formData.catch(() => undefined);
         data._sentryFormData = formData;
       }
+      const client = getClient();
+      const description = `ACTION ${params.routeId}`;
       return startInactiveSpan({
-        name: `ACTION ${params.routeId}`,
+        // With span streaming, a `function` span is named after the function it wraps. The route id
+        // stays on `match.route.id`.
+        name: client && hasSpanStreamingEnabled(client) ? 'action' : description,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: FUNCTION,
+          [SENTRY_DESCRIPTION]: description,
           [CODE_FUNCTION_NAME]: 'action',
           ...getRequestAttributes(params.request),
           ...getMatchAttributes(params),

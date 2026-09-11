@@ -50,6 +50,7 @@ test('Sends form data with the action span', async ({ page }) => {
 
   expect(actionSpan).toBeDefined();
   expect(getSpanOp(actionSpan!)).toBe('function');
+  expect(actionSpan!.name).toBe('action');
   expect(actionSpan!.attributes).toMatchObject({
     'remix.action_form_data.text': { value: 'test', type: 'string' },
     'remix.action_form_data.file': { value: 'file.txt', type: 'string' },
@@ -71,6 +72,10 @@ test('Sends a loader span to Sentry', async ({ page }) => {
 
   expect(loaderSpan).toBeDefined();
   expect(getSpanOp(loaderSpan!)).toBe('function');
+  expect(loaderSpan!.name).toBe('loader');
+  // The route id left the span name, so it has to stay reachable as an attribute.
+  expect(loaderSpan!.attributes['match.route.id']?.value).toEqual(expect.any(String));
+  expect(loaderSpan!.attributes['router.navigation.route.id']?.value).toEqual(expect.any(String));
 });
 
 test('Propagates the trace when the ErrorBoundary is triggered', async ({ page }) => {
