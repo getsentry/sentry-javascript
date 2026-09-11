@@ -135,6 +135,7 @@ export {
   instrumentCreateReactAgent,
   vercelAIIntegration,
   eveConversationHook,
+  getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';
