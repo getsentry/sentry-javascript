@@ -7,13 +7,13 @@ import {
   shouldSkipCodeInjection,
   getDebugIdSnippet,
   stringToUUID,
-  COMMENT_USE_STRICT_REGEX,
   createDebugIdUploadFunction,
   globFiles,
   createComponentNameAnnotateHooks,
   replaceBooleanFlagsInCode,
   CodeInjection,
 } from '../core';
+import { getCodeInjectionPosition } from '../core/get-code-injection-position';
 import type {
   ComponentAnnotationTransformMeta,
   ComponentAnnotationTransformResult,
@@ -259,16 +259,16 @@ export function _rollupPluginInternal(
     }
 
     const ms = meta?.magicString || new MagicString(code, { filename: chunk.fileName });
-    const match = code.match(COMMENT_USE_STRICT_REGEX)?.[0];
+    const injectionPosition = getCodeInjectionPosition(code);
+    const codeToInject = injectionPosition === code.length ? `\n${injectCode.code()}` : `${injectCode.code()}\n`;
 
-    if (match) {
-      // Add injected code after any comments or "use strict" at the beginning of the bundle.
-      ms.appendLeft(match.length, injectCode.code());
+    if (injectionPosition > 0) {
+      ms.appendLeft(injectionPosition, codeToInject);
     } else {
       // ms.replace() doesn't work when there is an empty string match (which happens if
       // there is neither, a comment, nor a "use strict" at the top of the chunk) so we
       // need this special case here.
-      ms.prepend(injectCode.code());
+      ms.prepend(codeToInject);
     }
 
     // Rolldown can pass a native MagicString instance in meta.magicString

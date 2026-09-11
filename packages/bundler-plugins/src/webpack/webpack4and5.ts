@@ -9,6 +9,7 @@ import {
   getDebugIdSnippet,
   createDebugIdUploadFunction,
 } from '../core/index';
+import { getCodeInjectionPosition } from '../core/get-code-injection-position';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -36,23 +37,17 @@ try {
 // since webpack 5.1 compiler contains webpack module so plugins always use correct webpack version
 // https://github.com/webpack/webpack/commit/65eca2e529ce1d79b79200d4bdb1ce1b81141459
 
-interface BannerPluginCallbackArg {
-  chunk?: {
-    hash?: string;
-    contentHash?: {
-      javascript?: string;
-    };
-  };
-}
-
-type UnsafeBannerPlugin = {
+type UnsafeDefinePlugin = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   new (options: any): unknown;
 };
 
-type UnsafeDefinePlugin = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  new (options: any): unknown;
+type WebpackCompilationApi = {
+  PROCESS_ASSETS_STAGE_ADDITIONS: number;
+};
+
+type WebpackSources = {
+  ReplaceSource: new (source: WebpackSource) => WebpackReplaceSource;
 };
 
 type WebpackModule = {
@@ -66,6 +61,11 @@ type WebpackLoaderContext = {
 };
 
 type WebpackCompilationContext = {
+  chunks: Iterable<{
+    files: Iterable<string>;
+    hash?: string;
+    contentHash?: { javascript?: string };
+  }>;
   compiler: {
     webpack?: {
       NormalModule?: {
@@ -81,8 +81,25 @@ type WebpackCompilationContext = {
     normalModuleLoader?: {
       tap: (name: string, callback: (loaderContext: WebpackLoaderContext, module: WebpackModule) => void) => void;
     };
+    processAssets: {
+      tap: (
+        options: { name: string; stage: number },
+        callback: (assets: Record<string, WebpackSource>) => void,
+      ) => void;
+    };
   };
+  updateAsset: (name: string, source: WebpackSource) => void;
 };
+
+type WebpackSource = {
+  source: () => string | Uint8Array;
+};
+
+type WebpackReplaceSource = WebpackSource & {
+  insert: (position: number, value: string) => void;
+};
+
+const WEBPACK_JAVASCRIPT_ASSET_REGEX = /\.(?:js|ts|jsx|tsx|mjs|cjs|mts|cts)(?:\?[^?]*)?(?:#[^#]*)?$/;
 
 type WebpackCompiler = {
   options: {
@@ -104,8 +121,9 @@ type WebpackCompiler = {
     };
   };
   webpack?: {
-    BannerPlugin?: UnsafeBannerPlugin;
     DefinePlugin?: UnsafeDefinePlugin;
+    Compilation?: WebpackCompilationApi;
+    sources?: WebpackSources;
   };
 };
 
@@ -137,19 +155,20 @@ function getWebpackMajorVersion(): string | undefined {
 }
 
 /**
- * The factory function accepts BannerPlugin and DefinePlugin classes in
- * order to avoid direct dependencies on webpack.
+ * The factory accepts Webpack APIs to avoid a direct dependency on Webpack.
  *
- * This allow us to export version of the plugin for webpack 5.1+ and compatible environments.
+ * This allows us to export a version of the plugin for Webpack 5.1+ and compatible environments.
  *
  * Since webpack 5.1 compiler contains webpack module so plugins always use correct webpack version.
  */
 export function sentryWebpackPluginFactory({
-  BannerPlugin: UnsafeBannerPlugin,
   DefinePlugin: UnsafeDefinePlugin,
+  Compilation: UnsafeCompilation,
+  sources: unsafeSources,
 }: {
-  BannerPlugin?: UnsafeBannerPlugin;
   DefinePlugin?: UnsafeDefinePlugin;
+  Compilation?: WebpackCompilationApi;
+  sources?: WebpackSources;
 } = {}) {
   return function sentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {}) {
     const sentryBuildPluginManager = createSentryBuildPluginManager(userOptions, {
@@ -216,32 +235,60 @@ export function sentryWebpackPluginFactory({
         });
 
         // Get the correct plugin classes (webpack 5.1+ vs older versions)
-        const BannerPlugin = compiler?.webpack?.BannerPlugin || UnsafeBannerPlugin;
         const DefinePlugin = compiler?.webpack?.DefinePlugin || UnsafeDefinePlugin;
 
-        // Add BannerPlugin for code injection (release, metadata, debug IDs)
+        // Injecting through BannerPlugin would place executable code before directive prologues.
         if (!staticInjectionCode.isEmpty() || sourcemapsEnabled) {
-          if (!BannerPlugin) {
+          const ReplaceSource = compiler.webpack?.sources?.ReplaceSource || unsafeSources?.ReplaceSource;
+          const processAssetsStage =
+            compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_ADDITIONS ??
+            UnsafeCompilation?.PROCESS_ASSETS_STAGE_ADDITIONS;
+
+          if (!ReplaceSource || processAssetsStage === undefined) {
             logger.warn(
-              'BannerPlugin is not available. Skipping code injection. This usually means webpack is not properly configured.',
+              'Webpack sources are not available. Skipping code injection. This usually means webpack is not properly configured.',
             );
           } else {
-            compiler.options.plugins = compiler.options.plugins || [];
-            compiler.options.plugins.push(
-              new BannerPlugin({
-                raw: true,
-                include: /\.(js|ts|jsx|tsx|mjs|cjs)(\?[^?]*)?(#[^#]*)?$/,
-                banner: (arg?: BannerPluginCallbackArg) => {
-                  const codeToInject = staticInjectionCode.clone();
-                  if (sourcemapsEnabled) {
-                    const hash = arg?.chunk?.contentHash?.javascript ?? arg?.chunk?.hash;
-                    const debugId = hash ? stringToUUID(hash) : randomUUID();
-                    codeToInject.append(getDebugIdSnippet(debugId));
-                  }
-                  return codeToInject.code();
+            compiler.hooks.thisCompilation.tap('sentry-webpack-plugin-injection', compilation => {
+              compilation.hooks.processAssets.tap(
+                {
+                  name: 'sentry-webpack-plugin-injection',
+                  stage: processAssetsStage,
                 },
-              }),
-            );
+                assets => {
+                  for (const chunk of compilation.chunks) {
+                    for (const assetName of chunk.files) {
+                      if (!WEBPACK_JAVASCRIPT_ASSET_REGEX.test(assetName)) {
+                        continue;
+                      }
+
+                      const source = assets[assetName];
+                      if (!source) {
+                        continue;
+                      }
+
+                      const sourceContents = source.source();
+                      const codeString =
+                        typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
+                      const codeToInject = staticInjectionCode.clone();
+                      if (sourcemapsEnabled) {
+                        const hash = chunk.contentHash?.javascript ?? chunk.hash;
+                        codeToInject.append(getDebugIdSnippet(hash ? stringToUUID(hash) : randomUUID()));
+                      }
+
+                      const injectionPosition = getCodeInjectionPosition(codeString);
+                      const injection =
+                        injectionPosition === codeString.length
+                          ? `\n${codeToInject.code()}`
+                          : `${codeToInject.code()}\n`;
+                      const updatedSource = new ReplaceSource(source);
+                      updatedSource.insert(injectionPosition, injection);
+                      compilation.updateAsset(assetName, updatedSource);
+                    }
+                  }
+                },
+              );
+            });
           }
         }
 

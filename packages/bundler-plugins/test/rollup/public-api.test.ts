@@ -1,6 +1,7 @@
 import { _rollupPluginInternal, sentryRollupPlugin } from '../../src/rollup';
 import { createComponentNameAnnotateHooks } from '../../src/core';
 import type { Plugin, SourceMap } from 'rollup';
+import { runInNewContext } from 'node:vm';
 import { describe, it, expect, test, beforeEach, vi } from 'vitest';
 
 const { babelCoreImportMock, transformAsyncMock, viteAnnotationModuleImportMock, viteAnnotationTransformMock } =
@@ -137,9 +138,10 @@ describe('Hooks', () => {
       const result = renderChunk(code, { fileName: 'bundle.js' });
 
       expect(result).not.toBeNull();
-      expect(result?.code).toMatchInlineSnapshot(
-        `"!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="d4309f93-5358-4ae1-bcf0-3813aa590eb5",e._sentryDebugIdIdentifier="sentry-dbid-d4309f93-5358-4ae1-bcf0-3813aa590eb5");}catch(e){}}();console.log("Hello world");"`,
-      );
+      expect(result?.code).toMatchInlineSnapshot(`
+        "!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="d4309f93-5358-4ae1-bcf0-3813aa590eb5",e._sentryDebugIdIdentifier="sentry-dbid-d4309f93-5358-4ae1-bcf0-3813aa590eb5");}catch(e){}}();
+        console.log("Hello world");"
+      `);
     });
 
     it("should inject debug ID after 'use strict'", () => {
@@ -148,9 +150,60 @@ describe('Hooks', () => {
 
       expect(result).not.toBeNull();
       expect(result?.code).toMatchInlineSnapshot(`
-        ""use strict";!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79a86c07-8ecc-4367-82b0-88cf822f2d41",e._sentryDebugIdIdentifier="sentry-dbid-79a86c07-8ecc-4367-82b0-88cf822f2d41");}catch(e){}}();
+        ""use strict";
+        !function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79a86c07-8ecc-4367-82b0-88cf822f2d41",e._sentryDebugIdIdentifier="sentry-dbid-79a86c07-8ecc-4367-82b0-88cf822f2d41");}catch(e){}}();
         console.log("Hello world");"
       `);
+    });
+
+    it('preserves source mappings when injecting after a directive prologue', () => {
+      const code = '"use strict";\nglobalThis.applicationStarted = true;';
+      const result = renderChunk(code, { fileName: 'bundle.js' });
+
+      expect(result).not.toBeNull();
+      expect(JSON.parse(result?.map.toString() ?? '')).toEqual({
+        version: 3,
+        file: 'bundle.js',
+        sources: ['bundle.js'],
+        names: [],
+        mappings: 'AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;;AACZ,UAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI',
+      });
+    });
+
+    it.each([
+      ['when the directive has no semicolon', '"use strict"\n'],
+      ['when another directive precedes it', '"use client";\n"use strict";\n'],
+      ['after an escaped CRLF in an earlier directive', '"not strict\\\r\n";\n"use strict";\n'],
+      ['before an identifier prefixed with an operator keyword', '"use strict"\nin$foo: ;\n'],
+    ])('preserves strict mode %s', (_description, codePrefix) => {
+      const code = `${codePrefix}globalThis.strictModePreserved = (function () { return this; })() === undefined;`;
+      const result = renderChunk(code, { fileName: 'bundle.js' });
+      const context: { strictModePreserved?: boolean; _sentryDebugIds?: Record<string, string> } = {};
+
+      expect(result).not.toBeNull();
+      runInNewContext(result?.code ?? '', context);
+
+      expect(context.strictModePreserved).toBe(true);
+      expect(Object.keys(context._sentryDebugIds ?? {})).toHaveLength(1);
+    });
+
+    it.each([
+      ['a semicolonless directive', '"use strict"'],
+      ['trailing whitespace', '"use strict"   '],
+      ['a trailing block comment', '"use strict"/* trailing */'],
+      ['a trailing line comment', '"use strict" // trailing'],
+    ])('preserves a directive at EOF with %s', (_description, code) => {
+      const result = renderChunk(code, { fileName: 'bundle.js' });
+      const context: { strictModePreserved?: boolean; _sentryDebugIds?: Record<string, string> } = {};
+
+      expect(result).not.toBeNull();
+      runInNewContext(
+        `${result?.code ?? ''}\nglobalThis.strictModePreserved = (function () { return this; })() === undefined;`,
+        context,
+      );
+
+      expect(context.strictModePreserved).toBe(true);
+      expect(Object.keys(context._sentryDebugIds ?? {})).toHaveLength(1);
     });
 
     it.each([['bundle.js'], ['bundle.mjs'], ['bundle.cjs'], ['bundle.js?foo=bar'], ['bundle.js#hash']])(
@@ -235,9 +288,10 @@ export * from './moduleC.js';`,
           facadeModuleId: '/path/to/index.html',
         });
         expect(result).not.toBeNull();
-        expect(result?.code).toMatchInlineSnapshot(
-          `"!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="c4c89e04-3658-4874-b25b-07e638185091",e._sentryDebugIdIdentifier="sentry-dbid-c4c89e04-3658-4874-b25b-07e638185091");}catch(e){}}();function main() { console.log("hello"); }"`,
-        );
+        expect(result?.code).toMatchInlineSnapshot(`
+          "!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="c4c89e04-3658-4874-b25b-07e638185091",e._sentryDebugIdIdentifier="sentry-dbid-c4c89e04-3658-4874-b25b-07e638185091");}catch(e){}}();
+          function main() { console.log("hello"); }"
+        `);
       });
 
       it('should inject into HTML facade with variable declarations', () => {
@@ -246,9 +300,10 @@ export * from './moduleC.js';`,
           facadeModuleId: '/path/to/index.html',
         });
         expect(result).not.toBeNull();
-        expect(result?.code).toMatchInlineSnapshot(
-          `"!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="43e69766-1963-49f2-a291-ff8de60cc652",e._sentryDebugIdIdentifier="sentry-dbid-43e69766-1963-49f2-a291-ff8de60cc652");}catch(e){}}();const x = 42;"`,
-        );
+        expect(result?.code).toMatchInlineSnapshot(`
+          "!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="43e69766-1963-49f2-a291-ff8de60cc652",e._sentryDebugIdIdentifier="sentry-dbid-43e69766-1963-49f2-a291-ff8de60cc652");}catch(e){}}();
+          const x = 42;"
+        `);
       });
 
       it('should inject into HTML facade with substantial code (SPA main bundle)', () => {
@@ -267,7 +322,8 @@ bootstrap();`;
         });
         expect(result).not.toBeNull();
         expect(result?.code).toMatchInlineSnapshot(`
-          "!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="d0c4524b-496e-45a4-9852-7558d043ba3c",e._sentryDebugIdIdentifier="sentry-dbid-d0c4524b-496e-45a4-9852-7558d043ba3c");}catch(e){}}();import { initApp } from './app.js';
+          "!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="d0c4524b-496e-45a4-9852-7558d043ba3c",e._sentryDebugIdIdentifier="sentry-dbid-d0c4524b-496e-45a4-9852-7558d043ba3c");}catch(e){}}();
+          import { initApp } from './app.js';
 
           const config = { debug: true };
 
@@ -286,7 +342,8 @@ bootstrap();`;
         });
         expect(result).not.toBeNull();
         expect(result?.code).toMatchInlineSnapshot(`
-          "!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="28f0bbaa-9aeb-40c4-98c9-4e44f1d4e175",e._sentryDebugIdIdentifier="sentry-dbid-28f0bbaa-9aeb-40c4-98c9-4e44f1d4e175");}catch(e){}}();import './polyfills.js';
+          "!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="28f0bbaa-9aeb-40c4-98c9-4e44f1d4e175",e._sentryDebugIdIdentifier="sentry-dbid-28f0bbaa-9aeb-40c4-98c9-4e44f1d4e175");}catch(e){}}();
+          import './polyfills.js';
           import { init } from './app.js';
 
           init();"
@@ -296,9 +353,10 @@ bootstrap();`;
       it('should inject into regular JS chunks (no HTML facade)', () => {
         const result = renderChunk(`console.log("Hello");`, { fileName: 'bundle.js' });
         expect(result).not.toBeNull();
-        expect(result?.code).toMatchInlineSnapshot(
-          `"!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79f18a7f-ca16-4168-9797-906c82058367",e._sentryDebugIdIdentifier="sentry-dbid-79f18a7f-ca16-4168-9797-906c82058367");}catch(e){}}();console.log("Hello");"`,
-        );
+        expect(result?.code).toMatchInlineSnapshot(`
+          "!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79f18a7f-ca16-4168-9797-906c82058367",e._sentryDebugIdIdentifier="sentry-dbid-79f18a7f-ca16-4168-9797-906c82058367");}catch(e){}}();
+          console.log("Hello");"
+        `);
       });
     });
   });
