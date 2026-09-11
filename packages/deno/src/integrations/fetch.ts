@@ -13,7 +13,7 @@ const INTEGRATION_NAME = 'Fetch' as const;
 
 const HAS_CLIENT_MAP = new WeakMap<Client, boolean>();
 
-interface FetchOptions {
+export interface FetchOptions {
   /**
    * Function determining whether or not to create spans to track outgoing requests to the given URL.
    * By default, spans will be created for all outgoing requests.
