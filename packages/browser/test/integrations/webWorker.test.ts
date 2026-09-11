@@ -912,6 +912,7 @@ describe('forwarded worker errors', () => {
   it.each([
     ['the script that threw', 'http://localhost/chunk.js', 'http://localhost/chunk.js'],
     ['the worker script when the event has no url', undefined, 'http://localhost/worker.js'],
+    ['the worker script when the event url is empty', '', 'http://localhost/worker.js'],
   ])('adds a frame at %s when a message-only error has no stack', (_, url, frameFilename) => {
     forward({
       reason: 'Uncaught Error: boom',

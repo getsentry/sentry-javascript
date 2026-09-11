@@ -229,7 +229,8 @@ function handleForwardedWorkerError(workerError: SerializedWorkerError): void {
       : eventFromUnknownInput(stackParser, error, undefined, attachStacktrace, isUnhandledRejection);
 
   if (!isUnhandledRejection) {
-    _enhanceEventWithInitialFrame(event, url ?? filename, lineno, colno);
+    // An ErrorEvent reports an unknown script as an empty string.
+    _enhanceEventWithInitialFrame(event, url || filename, lineno, colno);
   }
 
   event.level = 'error';
