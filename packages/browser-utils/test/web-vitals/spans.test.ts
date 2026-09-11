@@ -76,7 +76,12 @@ describe('_emitWebVitalSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(SentryCore.spanToJSON).mockImplementation(
+      (span: any) =>
+        (span === bfcacheNavigationSpan
+          ? { attributes: { 'browser.navigation.type': 'bfcache' } }
+          : { attributes: {} }) as any,
+    );
     // A root span is its own root, which is what the web vital spans are parented to.
     vi.mocked(SentryCore.getRootSpan).mockImplementation(span => span);
     vi.mocked(SentryCore.getClient).mockReturnValue({ getIntegrationByName: () => undefined } as any);
@@ -585,7 +590,12 @@ describe('_sendInpSpan', () => {
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(SentryCore.spanToJSON).mockImplementation(
+      (span: any) =>
+        (span === bfcacheNavigationSpan
+          ? { attributes: { 'browser.navigation.type': 'bfcache' } }
+          : { attributes: {} }) as any,
+    );
     // A root span is its own root, which is what the web vital spans are parented to.
     vi.mocked(SentryCore.getRootSpan).mockImplementation(span => span);
   });
@@ -704,7 +714,12 @@ describe('trackInpAsSpan', () => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(SentryCore.spanToJSON).mockImplementation(
+      (span: any) =>
+        (span === bfcacheNavigationSpan
+          ? { attributes: { 'browser.navigation.type': 'bfcache' } }
+          : { attributes: {} }) as any,
+    );
     // A root span is its own root, which is what the web vital spans are parented to.
     vi.mocked(SentryCore.getRootSpan).mockImplementation(span => span);
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
@@ -773,6 +788,7 @@ describe('soft navigation web vitals', () => {
 
   const navigationSpan = { spanContext: () => ({ spanId: 'nav-1' }) } as any;
   const pageloadSpan = createMockPageloadSpan('pageload-1');
+  const bfcacheNavigationSpan = { spanContext: () => ({ spanId: 'bfcache-nav' }) } as any;
 
   let lcpCallback: (arg: { metric: any }) => void;
   let clsCallback: (arg: { metric: any }) => void;
@@ -789,7 +805,12 @@ describe('soft navigation web vitals', () => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: {} } as any);
+    vi.mocked(SentryCore.spanToJSON).mockImplementation(
+      (span: any) =>
+        (span === bfcacheNavigationSpan
+          ? { attributes: { 'browser.navigation.type': 'bfcache' } }
+          : { attributes: {} }) as any,
+    );
     vi.mocked(htmlTreeAsString).mockReturnValue('<div>');
     vi.spyOn(softNavs, 'getNavigationSpanForMetric').mockImplementation((metric: any) =>
       metric.navigationType === 'soft-navigation' ? navigationSpan : undefined,
@@ -807,6 +828,9 @@ describe('soft navigation web vitals', () => {
       on: vi.fn((hook: string, cb: any) => {
         if (hook === 'afterStartPageLoadSpan') {
           cb(pageloadSpan);
+        }
+        if (hook === 'spanStart') {
+          cb(bfcacheNavigationSpan);
         }
       }),
     };
@@ -884,6 +908,51 @@ describe('soft navigation web vitals', () => {
     lcpCallback({ metric: lcpMetric(1, 800, 'navigate') });
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 1 }));
+  });
+
+  it('reports a bfcache restore against the restore navigation span, not the frozen pageload', () => {
+    trackLcpAsSpan(client, true);
+
+    lcpCallback({
+      metric: {
+        value: 40,
+        navigationId: 9,
+        navigationType: 'back-forward-cache',
+        entries: [{ startTime: 40, element: {} }],
+      },
+    });
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parentSpan: bfcacheNavigationSpan,
+        attributes: expect.objectContaining({ 'browser.navigation.type': 'bfcache' }),
+      }),
+    );
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalledWith(
+      expect.objectContaining({ parentSpan: pageloadSpan }),
+    );
+  });
+
+  it('keeps the restore span as the parent once it has ended', () => {
+    // CLS is only finalized on pagehide, long after the restore navigation span's idle timeout, so
+    // there is no active span left to read it back from.
+    vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
+
+    trackClsAsSpan(client, true);
+
+    clsCallback({
+      metric: {
+        value: 0.05,
+        navigationId: 9,
+        navigationType: 'back-forward-cache',
+        navigationStartTime: 5000,
+        entries: [],
+      },
+    });
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({ parentSpan: bfcacheNavigationSpan }),
+    );
   });
 
   it('drops soft navigation vitals that could not be correlated', () => {

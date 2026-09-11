@@ -796,6 +796,8 @@ Legacy HTTP span attributes were replaced by their current semantic-convention e
 
 On server-side HTTP spans, the `content-length` header is now always reported as `http.request.body.size`/`http.response.body.size` instead of switching to `http.request_body_size_uncompressed` when the no encoding was present.
 
+The `http.request.header.<key>`/`http.response.header.<key>` attributes now write the header name lowercased as previously but no longer replaces dashes (`-`) with underscores (`_`). For example, the SDK now sets `http.request.header.user-agent` rather than `http.request.header.user_agent`. The same applies to the cookie names in `http.request.header.cookie.<name>` and `http.request.header.set-cookie.<name>`.
+
 #### Network attributes
 
 Network-related span attributes now use the current Sentry semantic conventions, aligned across SDKs. If you query, transform, or alert on the legacy `net.*` fields, update those references:
@@ -843,6 +845,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 - The `fs_error` span attribute on `file` spans was replaced by `error.type`. The value changed from the full error message to just the syscall's error code instead (`ENOENT`).
 - The Cloudflare-specific `sentry.cloudflare_tracer` span attribute is no longer set. `@sentry/cloudflare` now creates spans through the shared `SentryTracerProvider`, so spans emitted via `@opentelemetry/api` no longer carry a marker distinguishing them from other Sentry spans.
 - The `url.path.params.<key>` attribute was removed from the TanStack Router (library) integration. The replacement is `url.path.parameter.<key>` and holds the same values.
+- The `navigation.route.id` attribute set by the Vue Router instrumentation was renamed to `router.navigation.route.id`. It holds the same value (the matched route's name). The attribute moved to the `router.*` namespace to separate client-side router navigations from browser navigations.
 
 #### Attribute constants
 
@@ -999,6 +1002,7 @@ The following span names were adjusted:
 | `http.client`, `http.client.stream`                                      | The request method and sanitized URL                                                                      | `GET https://api.example.com/users/123`                                        | The request method and the domain, or just the method if there is no domain                                                                                                         | `GET api.example.com`, `GET`                           |
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL                                                      | `/users/123`, `SvelteKit Route Change`                                         | The span's `http.route`, or `Router` if the SDK has none                                                                                                                            | `/users/:id`, `Router`                                 |
 | `handler`                                                                | Framework-specific, often carrying the request method                                                     | `GET /users/:id`, `route-handler`, `getUser`                                   | The span's `http.route`, or `Request handler` if the SDK has none                                                                                                                   | `/users/:id`, `Request handler`                        |
+| `function` (Angular `TraceMethod`)                                       | The decorator's `name` option in angle brackets                                                           | `<getUser>`, `<unnamed>`                                                       | The decorator's `name` option, or `Function execution` if it has none                                                                                                               | `Login.ngOnInit`, `getUsers`, `Function execution`     |
 | `function.gcp`                                                           | The request method and path for HTTP functions, otherwise the trigger's event or trigger type             | `POST /users`, `google.pubsub.topic.publish`, `firebase.function.http.request` | The function name, or `Serverless function execution` if the SDK cannot resolve one                                                                                                 | `myFunction`, `Serverless function execution`          |
 | `function.aws`                                                           | The Lambda function name                                                                                  | `my-function`                                                                  | Unchanged, except that the SDK now falls back to `Serverless function execution` if it cannot resolve the function name                                                             | `my-function`, `Serverless function execution`         |
 | `graphql`                                                                | The graphql phase and, for operations, the operation name                                                 | `query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`                | The operation type, or the processing type where there is none                                                                                                                      | `GraphQL query`, `GraphQL parse`, `GraphQL resolve`    |
@@ -1709,6 +1713,9 @@ Note that `ignoreStatusCodes` is itself [deprecated](#ignorestatuscodes-is-depre
   - Types: `OpenAiClient`, `OpenAiOptions`, `InstrumentedMethod`, `AnthropicAiClient`, `AnthropicAiOptions`, `AnthropicAiResponse`, `AnthropicAiInstrumentedMethod`, `GoogleGenAIClient`, `GoogleGenAIChat`, `GoogleGenAIOptions`, `GoogleGenAIResponse`, `GoogleGenAIInstrumentedMethod`, `GoogleGenAIIstrumentedMethod`, `WorkersAiClient`, `WorkersAiOptions`, `LangChainOptions`, `LangChainIntegration`, `LangGraphOptions`, `LangGraphIntegration`, `CompiledGraph`.
 
 ### `@sentry/react-router`
+
+`@sentry/react-router` is now out of beta. With this, the SDK fully relies on React Router's instrumentation API for
+tracing loaders and actions.
 
 - The deprecated server wrappers `wrapServerLoader` and `wrapServerAction` were removed. Loaders and
   actions are instrumented automatically via the instrumentation API - export

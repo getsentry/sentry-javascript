@@ -25,7 +25,7 @@ test.skip('extracts HTTP request headers as span attributes', async ({ baseURL }
     return (
       span.name === 'GET /pageload-tracing' &&
       span.is_segment &&
-      span.attributes['http.request.header.x_request_id']?.value === 'nextjs-789'
+      span.attributes['http.request.header.x-request-id']?.value === 'nextjs-789'
     );
   });
 
@@ -43,11 +43,11 @@ test.skip('extracts HTTP request headers as span attributes', async ({ baseURL }
   const serverSpan = await serverSpanPromise;
 
   expect(serverSpan.attributes).toMatchObject({
-    'http.request.header.user_agent': { value: 'Custom-NextJS-Agent/15.0', type: 'string' },
-    'http.request.header.content_type': { value: 'text/html', type: 'string' },
-    'http.request.header.x_nextjs_test': { value: 'nextjs-header-value', type: 'string' },
+    'http.request.header.user-agent': { value: 'Custom-NextJS-Agent/15.0', type: 'string' },
+    'http.request.header.content-type': { value: 'text/html', type: 'string' },
+    'http.request.header.x-nextjs-test': { value: 'nextjs-header-value', type: 'string' },
     'http.request.header.accept': { value: 'text/html, application/xhtml+xml', type: 'string' },
-    'http.request.header.x_framework': { value: 'Next.js', type: 'string' },
-    'http.request.header.x_request_id': { value: 'nextjs-789', type: 'string' },
+    'http.request.header.x-framework': { value: 'Next.js', type: 'string' },
+    'http.request.header.x-request-id': { value: 'nextjs-789', type: 'string' },
   });
 });

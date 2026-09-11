@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import * as Module from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { SENTRY_INSTRUMENTATIONS } from '@sentry/server-utils/orchestrion/config';
+import { SENTRY_RUNTIME_INSTRUMENTATIONS } from '@sentry/server-utils/orchestrion/config';
 import type { register } from 'node:module';
 import ModulePatch from '@apm-js-collab/tracing-hooks';
 import { initialize, load, resolve, createDiagnosticsPort } from '@apm-js-collab/tracing-hooks/hook-sync.mjs';
@@ -164,7 +164,7 @@ export function registerDiagnosticsChannelInjection(): void {
   // incompatibility) we warn and continue without channel injection.
   try {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
-      initialize({ instrumentations: SENTRY_INSTRUMENTATIONS });
+      initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
       mod.registerHooks({ resolve, load });
       debug.log('Registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
@@ -223,7 +223,7 @@ export function registerDiagnosticsChannelInjection(): void {
 
       mod.register(hookSpecifier, {
         parentURL,
-        data: { instrumentations: SENTRY_INSTRUMENTATIONS, diagnosticsPort },
+        data: { instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS, diagnosticsPort },
         transferList: [diagnosticsPort],
       });
 
@@ -232,7 +232,7 @@ export function registerDiagnosticsChannelInjection(): void {
       // are resolved through the CJS machinery and never reach the ESM
       // register hook, so without this patch the file we want to instrument
       // loads untransformed.
-      new ModulePatch({ instrumentations: SENTRY_INSTRUMENTATIONS }).patch();
+      new ModulePatch({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS }).patch();
       debug.log('Registered diagnostics-channel injection via Module.register()');
     } else {
       marker.runtimeUnavailable = true;

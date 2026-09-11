@@ -889,7 +889,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       'url.full': 'https://example.com/api/users',
       'http.request.method': 'GET',
       'url.query': 'page=1&limit=10',
-      'http.request.header.content_type': 'application/json',
+      'http.request.header.content-type': 'application/json',
       'http.request.header.accept': 'application/json',
     });
   });
@@ -1097,7 +1097,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
       integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
-      expect(span.attributes).not.toHaveProperty('http.request.header.content_type');
+      expect(span.attributes).not.toHaveProperty('http.request.header.content-type');
     });
 
     it('strips cookie header when include.cookies is false', () => {
@@ -1111,7 +1111,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
       expect(span.attributes).toMatchObject({
-        'http.request.header.content_type': 'application/json',
+        'http.request.header.content-type': 'application/json',
       });
       expect(span.attributes).not.toHaveProperty('http.request.header.cookie.theme');
     });
@@ -1127,9 +1127,9 @@ describe('requestDataIntegration processSegmentSpan', () => {
       integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
       expect(span.attributes).toMatchObject({
-        'http.request.header.content_type': 'application/json',
+        'http.request.header.content-type': 'application/json',
       });
-      expect(span.attributes).not.toHaveProperty('http.request.header.x_forwarded_for');
+      expect(span.attributes).not.toHaveProperty('http.request.header.x-forwarded-for');
       expect(span.attributes).not.toHaveProperty('user.ip_address');
     });
 
@@ -1177,7 +1177,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       integration.processSegmentSpan!(span, mockClient({ httpHeaders: { request: false, response: false } }));
 
       expect(span.attributes).toMatchObject({
-        'http.request.header.content_type': 'application/json',
+        'http.request.header.content-type': 'application/json',
         'http.request.header.accept': 'text/html',
       });
     });
@@ -1194,7 +1194,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       );
 
       expect(span.attributes?.['http.request.header.accept']).toBe('application/json');
-      expect(span.attributes?.['http.request.header.x_request_id']).toBe('[Filtered]');
+      expect(span.attributes?.['http.request.header.x-request-id']).toBe('[Filtered]');
     });
 
     it('include.cookies overrides dataCollection.cookies=false on spans', () => {
@@ -1289,8 +1289,8 @@ describe('requestDataIntegration userInfo collection', () => {
 
     expect(span.attributes).toMatchObject({
       'user.ip_address': '203.0.113.50',
-      'http.request.header.content_type': 'application/json',
-      'http.request.header.x_forwarded_for': '203.0.113.50',
+      'http.request.header.content-type': 'application/json',
+      'http.request.header.x-forwarded-for': '203.0.113.50',
     });
   });
 });

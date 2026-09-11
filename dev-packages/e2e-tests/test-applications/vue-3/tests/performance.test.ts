@@ -99,7 +99,7 @@ test('sends a pageload span with a route name as span name if available', async 
       'sentry.segment.name.source': { type: 'string', value: 'custom' },
       'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
       'sentry.op': { type: 'string', value: 'pageload' },
-      'navigation.route.id': { type: 'string', value: 'AboutView' },
+      'router.navigation.route.id': { type: 'string', value: 'AboutView' },
       'url.path': { type: 'string', value: '/about' },
       'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/about$/) },
     },
