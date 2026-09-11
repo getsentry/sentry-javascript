@@ -109,7 +109,7 @@ test.describe('database integration', () => {
     expect(insertSpan).toBeDefined();
     expect(insertSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'INSERT logs' },
-      'db.query.text': { type: 'string', value: `INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')` },
+      'db.query.text': { type: 'string', value: `INSERT INTO logs (message, level) VALUES (?, ?)` },
       'db.system.name': { type: 'string', value: 'sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
@@ -178,8 +178,8 @@ test.describe('database integration', () => {
     );
 
     expect(dbBreadcrumb).toBeDefined();
-    expect(dbBreadcrumb?.message).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
-    expect(dbBreadcrumb?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
+    expect(dbBreadcrumb?.message).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
+    expect(dbBreadcrumb?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
   });
 
   test('multiple database operations in single request create multiple spans', async ({ request }) => {

@@ -6,6 +6,7 @@ import {
   PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   filterCollectedUrl,
+  timestampInSeconds,
 } from '@sentry/core';
 import {
   startBrowserTracingNavigationSpan,
@@ -38,7 +39,44 @@ function setNavigationSpanUrlAttributes(span: Span, urlPath: string, urlOrPath: 
   });
 }
 
-export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
+/**
+ * `router.back()` and `router.forward()` carry no destination, so their navigation span can only be
+ * started once the resulting `popstate` event tells us where we ended up. Until then, this remembers
+ * which router method triggered the traversal and when, so the span still gets the router's
+ * navigation type and starts at the router call rather than at the `popstate`.
+ */
+interface PendingHistoryTraversal {
+  navigationType: 'router.back' | 'router.forward';
+  startTime: number;
+}
+
+let pendingHistoryTraversal: PendingHistoryTraversal | undefined;
+let pendingHistoryTraversalTimeout: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * A `back()`/`forward()` without a matching history entry never fires `popstate`. Without an expiry,
+ * a later unrelated `popstate` (e.g. the browser's back button) would be attributed to that stale
+ * router call. Browsers dispatch the `popstate` of a same-document traversal within a few
+ * milliseconds, so anything older than this is not the traversal we are waiting for. A timer rather
+ * than a timestamp comparison keeps this tolerant of a blocked main thread, which delays the
+ * `popstate` and the timer alike.
+ */
+const PENDING_HISTORY_TRAVERSAL_TIMEOUT_MS = 1000;
+
+function setPendingHistoryTraversal(navigationType: PendingHistoryTraversal['navigationType']): void {
+  clearTimeout(pendingHistoryTraversalTimeout);
+  pendingHistoryTraversal = { navigationType, startTime: timestampInSeconds() };
+  pendingHistoryTraversalTimeout = setTimeout(() => {
+    pendingHistoryTraversal = undefined;
+  }, PENDING_HISTORY_TRAVERSAL_TIMEOUT_MS);
+}
+
+function takePendingHistoryTraversal(): PendingHistoryTraversal | undefined {
+  clearTimeout(pendingHistoryTraversalTimeout);
+  const traversal = pendingHistoryTraversal;
+  pendingHistoryTraversal = undefined;
+  return traversal;
+}
 
 /**
  * This mutable keeps track of what router navigation instrumentation mechanism we are using.
@@ -164,7 +202,10 @@ export function appRouterInstrumentNavigation(client: Client): void {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     const spanName =
       parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname);
-    if (currentRouterPatchingNavigationSpanRef.current?.isRecording()) {
+    const traversal = takePendingHistoryTraversal();
+    // A traversal triggered through the router always gets its own span: an open router-patch span
+    // here would be a `push()`/`replace()` that the user navigated away from again.
+    if (!traversal && currentRouterPatchingNavigationSpanRef.current?.isRecording()) {
       currentRouterPatchingNavigationSpanRef.current.updateName(spanName);
       currentRouterPatchingNavigationSpanRef.current.setAttribute(
         SENTRY_SEGMENT_NAME_SOURCE,
@@ -179,14 +220,17 @@ export function appRouterInstrumentNavigation(client: Client): void {
         client,
         {
           name: spanName,
+          startTime: traversal?.startTime,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
-            'navigation.type': 'browser.popstate',
+            'navigation.type': traversal?.navigationType ?? 'browser.popstate',
             ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
           },
         },
-        { url: getAbsoluteUrl(pathname) },
+        // The full location rather than just the pathname, so the span's `url.full` keeps the
+        // (filtered) query string like the update path above does.
+        { url: WINDOW.location.href },
       );
     }
   });
@@ -252,39 +296,17 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
             return target.apply(thisArg, argArray);
           }
 
-          let transactionName = INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME;
-          const transactionAttributes: Record<string, string> = {
-            [SENTRY_OP]: NAVIGATION,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-            [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-          };
+          if (routerFunctionName === 'back' || routerFunctionName === 'forward') {
+            setPendingHistoryTraversal(`router.${routerFunctionName}`);
+            return target.apply(thisArg, argArray);
+          }
 
           const href = argArray[0];
           const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
           const normalizedHref =
             basePath && typeof href === 'string' && !href.startsWith(basePath) ? `${basePath}${href}` : href;
-          if (routerFunctionName === 'push') {
-            transactionName = stripTrailingSlash(transactionNameifyRouterArgument(normalizedHref));
-            transactionAttributes['navigation.type'] = 'router.push';
-          } else if (routerFunctionName === 'replace') {
-            transactionName = stripTrailingSlash(transactionNameifyRouterArgument(normalizedHref));
-            transactionAttributes['navigation.type'] = 'router.replace';
-          } else if (routerFunctionName === 'back') {
-            transactionAttributes['navigation.type'] = 'router.back';
-          } else if (routerFunctionName === 'forward') {
-            transactionAttributes['navigation.type'] = 'router.forward';
-          }
-
+          const transactionName = stripTrailingSlash(transactionNameifyRouterArgument(normalizedHref));
           const parameterizedPathname = maybeParameterizeRoute(transactionName);
-
-          const navigationUrl =
-            routerFunctionName === 'back' || routerFunctionName === 'forward'
-              ? undefined
-              : getAbsoluteUrl(normalizedHref);
-
-          // The incomplete-instrumentation placeholder is a static name, so it is low cardinality
-          // already, and keeping it is what makes the `ignoreSpans` entry filtering those spans match.
-          const isPlaceholderName = transactionName === INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME;
 
           currentNavigationSpanRef.current = startBrowserTracingNavigationSpan(
             client,
@@ -292,16 +314,16 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
               // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
               name:
                 parameterizedPathname ??
-                (isPlaceholderName || !hasSpanStreamingEnabled(client)
-                  ? transactionName
-                  : NAVIGATION_SPAN_NAME_FALLBACK),
+                (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : transactionName),
               attributes: {
-                ...transactionAttributes,
+                [SENTRY_OP]: NAVIGATION,
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
                 [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
+                'navigation.type': `router.${routerFunctionName}`,
                 ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
               },
             },
-            navigationUrl ? { url: navigationUrl } : undefined,
+            { url: getAbsoluteUrl(normalizedHref) },
           );
 
           return target.apply(thisArg, argArray);

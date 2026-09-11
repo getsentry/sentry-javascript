@@ -21,7 +21,7 @@ test('Instruments DB calls made during server-side rendering of a page', async (
         'sentry.op': { value: 'db', type: 'string' },
         'sentry.origin': { value: 'auto.db.postgres', type: 'string' },
         'db.system.name': { value: 'postgresql', type: 'string' },
-        'db.query.text': { value: 'SELECT 40 + 2 AS answer', type: 'string' },
+        'db.query.text': { value: 'SELECT ? + ? AS answer', type: 'string' },
       }),
     }),
   );

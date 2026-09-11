@@ -1,122 +1,118 @@
 import * as core from '@actions/core';
 
-// max pages of workflows to pagination through
-const DEFAULT_MAX_PAGES = 50;
-// max results per page
-const DEFAULT_PAGE_LIMIT = 10;
+// How many commits to walk back on the branch before giving up on finding a build with a size-limit artifact.
+const DEFAULT_MAX_COMMITS = 50;
+const COMMITS_PER_PAGE = 100;
+const RUNS_PER_PAGE = 100;
 
 /**
- * Fetch artifacts from a workflow run from a branch
+ * Find the most recent build artifact for a branch by walking its git history.
  *
- * This is a bit hacky since GitHub Actions currently does not directly
- * support downloading artifacts from other workflows
+ * We deliberately drive this from `repos.listCommits` (authoritative, strictly ordered git history) rather than from
+ * `listWorkflowRuns` filtered by branch + event. That listing is backed by an eventually-consistent index that can omit
+ * or reorder very recent runs, which previously made us silently compare against a days-old baseline while still
+ * reporting it as the latest one. Walking commits newest-first and pinning each run by `head_sha` sidesteps that: the
+ * order is exact, and if the tip commit has no artifact yet we fall back to its parent and correctly report the baseline
+ * as not-latest.
  */
 export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, workflowName, branch, artifactName }) {
-  let repositoryWorkflow = null;
+  const workflowId = await findWorkflowId(octokit, { owner, repo, workflowName });
 
-  // For debugging
-  const allWorkflows = [];
-
-  //
-  // Find workflow id from `workflowName`
-  //
-  for await (const response of octokit.paginate.iterator(octokit.rest.actions.listRepoWorkflows, {
-    owner,
-    repo,
-  })) {
-    const targetWorkflow = response.data.find(({ name }) => name === workflowName);
-
-    allWorkflows.push(...response.data.map(({ name }) => name));
-
-    // If not found in responses, continue to search on next page
-    if (!targetWorkflow) {
-      continue;
-    }
-
-    repositoryWorkflow = targetWorkflow;
-    break;
-  }
-
-  if (!repositoryWorkflow) {
-    core.info(
-      `Unable to find workflow with name "${workflowName}" in the repository. Found workflows: ${allWorkflows.join(
-        ', ',
-      )}`,
-    );
+  if (!workflowId) {
     return null;
   }
 
-  const workflow_id = repositoryWorkflow.id;
+  let commitsChecked = 0;
 
-  let currentPage = 0;
-  let latestWorkflowRun = null;
-
-  for await (const response of octokit.paginate.iterator(octokit.rest.actions.listWorkflowRuns, {
+  for await (const response of octokit.paginate.iterator(octokit.rest.repos.listCommits, {
     owner,
     repo,
-    workflow_id,
-    branch,
-    per_page: DEFAULT_PAGE_LIMIT,
-    event: 'push',
+    sha: branch,
+    per_page: COMMITS_PER_PAGE,
   })) {
-    if (!response.data.length) {
-      core.warning(`Workflow ${workflow_id} not found in branch ${branch}`);
-      return null;
-    }
+    for (const { sha } of response.data) {
+      const isLatest = commitsChecked === 0;
+      commitsChecked++;
 
-    // Do not allow downloading artifacts from a fork.
-    const filtered = response.data.filter(workflowRun => workflowRun.head_repository.full_name === `${owner}/${repo}`);
+      const found = await findArtifactForCommit(octokit, { owner, repo, workflowId, sha, artifactName });
 
-    // Sort to ensure the latest workflow run is the first
-    filtered.sort((a, b) => {
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-
-    // Store the first workflow run, to determine if this is the latest one...
-    if (!latestWorkflowRun) {
-      latestWorkflowRun = filtered[0];
-    }
-
-    // Search through workflow artifacts until we find a workflow run w/ artifact name that we are looking for
-    for (const workflowRun of filtered) {
-      core.info(`Checking artifacts for workflow run: ${workflowRun.html_url}`);
-
-      const {
-        data: { artifacts },
-      } = await octokit.rest.actions.listWorkflowRunArtifacts({
-        owner,
-        repo,
-        run_id: workflowRun.id,
-      });
-
-      if (!artifacts) {
-        core.warning(
-          `Unable to fetch artifacts for branch: ${branch}, workflow: ${workflow_id}, workflowRunId: ${workflowRun.id}`,
-        );
-      } else {
-        const foundArtifact = artifacts.find(({ name }) => name === artifactName);
-        if (foundArtifact) {
-          core.info(`Found suitable artifact: ${foundArtifact.url}`);
-          return {
-            artifact: foundArtifact,
-            workflowRun,
-            isLatest: latestWorkflowRun.id === workflowRun.id,
-          };
-        } else {
-          core.info(`No artifact found for ${artifactName}, trying next workflow run...`);
+      if (found) {
+        if (!isLatest) {
+          core.info(
+            `Base artifact comes from commit ${sha}, which is ${commitsChecked - 1} commit(s) behind the tip of "${branch}".`,
+          );
         }
+        return { ...found, isLatest };
+      }
+
+      if (commitsChecked >= DEFAULT_MAX_COMMITS) {
+        core.warning(
+          `No "${artifactName}" artifact found within the last ${DEFAULT_MAX_COMMITS} commits of "${branch}".`,
+        );
+        return null;
       }
     }
-
-    if (currentPage > DEFAULT_MAX_PAGES) {
-      core.warning(`Workflow ${workflow_id} not found in branch: ${branch}`);
-      return null;
-    }
-
-    currentPage++;
   }
 
-  core.warning(`Artifact not found: ${artifactName}`);
-  core.endGroup();
+  core.warning(`No "${artifactName}" artifact found on branch "${branch}".`);
+  return null;
+}
+
+/**
+ * Resolve a workflow's numeric id from its display name.
+ */
+async function findWorkflowId(octokit, { owner, repo, workflowName }) {
+  const allWorkflows = [];
+
+  for await (const response of octokit.paginate.iterator(octokit.rest.actions.listRepoWorkflows, { owner, repo })) {
+    const targetWorkflow = response.data.find(({ name }) => name === workflowName);
+    allWorkflows.push(...response.data.map(({ name }) => name));
+
+    if (targetWorkflow) {
+      return targetWorkflow.id;
+    }
+  }
+
+  core.info(
+    `Unable to find workflow with name "${workflowName}" in the repository. Found workflows: ${allWorkflows.join(', ')}`,
+  );
+  return null;
+}
+
+/**
+ * Return the first `artifactName` artifact produced by any run of `workflowId` for the exact `sha`, preferring the most
+ * recent run (in case of re-runs). Runs originating from a fork are never trusted.
+ */
+async function findArtifactForCommit(octokit, { owner, repo, workflowId, sha, artifactName }) {
+  const {
+    data: { workflow_runs: workflowRuns },
+  } = await octokit.rest.actions.listWorkflowRuns({
+    owner,
+    repo,
+    workflow_id: workflowId,
+    head_sha: sha,
+    per_page: RUNS_PER_PAGE,
+  });
+
+  const runs = workflowRuns
+    .filter(workflowRun => workflowRun.head_repository?.full_name === `${owner}/${repo}`)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  for (const workflowRun of runs) {
+    const {
+      data: { artifacts },
+    } = await octokit.rest.actions.listWorkflowRunArtifacts({
+      owner,
+      repo,
+      run_id: workflowRun.id,
+    });
+
+    const artifact = artifacts?.find(({ name }) => name === artifactName);
+    if (artifact) {
+      core.info(`Found suitable artifact for commit ${sha}: ${artifact.url} (run ${workflowRun.html_url})`);
+      return { artifact, workflowRun };
+    }
+  }
+
   return null;
 }

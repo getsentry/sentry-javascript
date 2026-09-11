@@ -5,7 +5,11 @@ export {
   addLcpInstrumentationHandler,
   addInpInstrumentationHandler,
   addFcpInstrumentationHandler,
+  enableBfcacheReporting,
+  enableSoftNavigationReporting,
 } from './instrumentation/performanceObserver';
+
+export { startSoftNavigationCorrelation, supportsSoftNavigations } from './web-vitals/softNavs';
 
 export { addPerformanceEntries, startTrackingLongTasks, startTrackingLongAnimationFrames } from './performance/entries';
 
@@ -28,6 +32,8 @@ export { getLocationHref } from './getLocationHref';
 export { userTimingIntegration } from './performance/userTiming';
 
 export { extractNetworkProtocol } from './performance/utils';
+
+export { BROWSER_NAVIGATION_TYPE_ATTRIBUTE } from './web-vitals/emitSpan';
 
 export { trackClsAsSpan, trackInpAsSpan, trackLcpAsSpan } from './web-vitals/spans';
 

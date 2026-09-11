@@ -78,6 +78,7 @@ sentryTest(
         'sentry.op': { value: 'ui.interaction.click', type: 'string' },
         'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+        'browser.navigation.type': { value: 'navigate', type: 'string' },
         // the parametrized route name flows onto the INP span
         'sentry.transaction': { value: 'test-route', type: 'string' },
         'sentry.segment.name': { value: 'test-route', type: 'string' },

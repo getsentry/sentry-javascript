@@ -7,11 +7,19 @@ const mockStartTrackingWebVitals = vi.hoisted(() => vi.fn());
 const mockTrackClsAsSpan = vi.hoisted(() => vi.fn());
 const mockTrackInpAsSpan = vi.hoisted(() => vi.fn());
 const mockTrackLcpAsSpan = vi.hoisted(() => vi.fn());
+const mockEnableSoftNavigationReporting = vi.hoisted(() => vi.fn());
+const mockEnableBfcacheReporting = vi.hoisted(() => vi.fn());
+const mockStartSoftNavigationCorrelation = vi.hoisted(() => vi.fn());
+const mockSupportsSoftNavigations = vi.hoisted(() => vi.fn());
 
 vi.mock('@sentry/browser-utils', () => ({
   addWebVitalsToSpan: mockAddWebVitalsToSpan,
+  enableBfcacheReporting: mockEnableBfcacheReporting,
+  enableSoftNavigationReporting: mockEnableSoftNavigationReporting,
   registerInpInteractionListener: mockRegisterInpInteractionListener,
+  startSoftNavigationCorrelation: mockStartSoftNavigationCorrelation,
   startTrackingWebVitals: mockStartTrackingWebVitals,
+  supportsSoftNavigations: mockSupportsSoftNavigations,
   trackClsAsSpan: mockTrackClsAsSpan,
   trackInpAsSpan: mockTrackInpAsSpan,
   trackLcpAsSpan: mockTrackLcpAsSpan,
@@ -44,6 +52,7 @@ describe('webVitalsIntegration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStartTrackingWebVitals.mockReturnValue(vi.fn());
+    mockSupportsSoftNavigations.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -81,8 +90,8 @@ describe('webVitalsIntegration', () => {
       trackLcp: false,
       client,
     });
-    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, false);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, false);
     expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
   });
@@ -95,8 +104,99 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, false);
     expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports soft navigation web vitals by default when supported', () => {
+    mockSupportsSoftNavigations.mockReturnValue(true);
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableSoftNavigationReporting).toHaveBeenCalledTimes(1);
+    expect(mockStartSoftNavigationCorrelation).toHaveBeenCalledWith(client);
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, true);
+  });
+
+  it('does not report soft navigation web vitals when opted out', () => {
+    mockSupportsSoftNavigations.mockReturnValue(true);
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ softNavigations: false });
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableSoftNavigationReporting).not.toHaveBeenCalled();
+    expect(mockStartSoftNavigationCorrelation).not.toHaveBeenCalled();
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, false);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, false);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, false);
+  });
+
+  it('does not report soft navigation web vitals without span streaming', () => {
+    mockSupportsSoftNavigations.mockReturnValue(true);
+    const client = getMockClient();
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableSoftNavigationReporting).not.toHaveBeenCalled();
+    expect(mockStartSoftNavigationCorrelation).not.toHaveBeenCalled();
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, false);
+  });
+
+  it('does not report bfcache web vitals by default', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableBfcacheReporting).not.toHaveBeenCalled();
+  });
+
+  it('reports bfcache web vitals when opted in', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ bfcache: true });
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableBfcacheReporting).toHaveBeenCalledTimes(1);
+  });
+
+  it('puts the trackers on the per-navigation path for bfcache alone', () => {
+    // Soft navigations are unsupported here, so `bfcache` is the only thing that can select it.
+    mockSupportsSoftNavigations.mockReturnValue(false);
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ bfcache: true });
+
+    integration.setup?.(client as never);
+
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, true);
+  });
+
+  it('does not report bfcache web vitals without span streaming', () => {
+    const client = getMockClient();
+    const integration = webVitalsIntegration({ bfcache: true });
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableBfcacheReporting).not.toHaveBeenCalled();
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, false);
+  });
+
+  it('does not report soft navigation web vitals in unsupporting browsers', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableSoftNavigationReporting).not.toHaveBeenCalled();
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, false);
   });
 
   it('supports ignoring selected web vitals', () => {
