@@ -5,6 +5,9 @@ import { getHttpClientSubscriptions } from '../../../../src/integrations/http/cl
 import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/integrations/http/types';
 import { SUPPRESS_TRACING_KEY } from '../../../../src/tracing';
 import { getCurrentScope, withScope } from '../../../../src/currentScopes';
+import type { Client } from '../../../../src/client';
+import { setCurrentClient } from '../../../../src/sdk';
+import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 function makeMockRequest(): HttpClientRequest & {
   _responseListeners: ((res: HttpIncomingMessage) => void)[];
@@ -100,6 +103,52 @@ describe('getHttpClientSubscriptions', () => {
       const handler = subscriptions[HTTP_ON_CLIENT_REQUEST];
 
       const request = makeMockRequest();
+      handler({ request }, HTTP_ON_CLIENT_REQUEST);
+
+      const response = makeMockResponse();
+      request._responseListeners.forEach(fn => fn(response));
+      response._endListeners.forEach(fn => fn());
+
+      expect(spy).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("the SDK's own requests", () => {
+    afterEach(() => {
+      setCurrentClient(undefined as unknown as Client);
+    });
+
+    function setUpClientWithDsn(): void {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337' }));
+      setCurrentClient(client);
+    }
+
+    it('does not instrument requests to the ingest endpoint', () => {
+      setUpClientWithDsn();
+      const spy = vi.spyOn(breadcrumbModule, 'addOutgoingRequestBreadcrumb');
+      const subscriptions = getHttpClientSubscriptions({ breadcrumbs: true, spans: false, propagateTrace: true });
+      const handler = subscriptions[HTTP_ON_CLIENT_REQUEST];
+
+      const request = makeMockRequest();
+      (request as { host: string }).host = 'dsn.ingest.sentry.io';
+      (request as { path: string }).path = '/api/1337/envelope/?sentry_version=7&sentry_key=public';
+
+      handler({ request }, HTTP_ON_CLIENT_REQUEST);
+
+      expect(request._responseListeners).toHaveLength(0);
+      expect(request.setHeader).not.toHaveBeenCalled();
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('still instruments requests to the same host that are not envelope sends', () => {
+      setUpClientWithDsn();
+      const spy = vi.spyOn(breadcrumbModule, 'addOutgoingRequestBreadcrumb');
+      const subscriptions = getHttpClientSubscriptions({ breadcrumbs: true, spans: false });
+      const handler = subscriptions[HTTP_ON_CLIENT_REQUEST];
+
+      const request = makeMockRequest();
+      (request as { host: string }).host = 'dsn.ingest.sentry.io';
+
       handler({ request }, HTTP_ON_CLIENT_REQUEST);
 
       const response = makeMockResponse();
