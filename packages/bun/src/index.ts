@@ -210,5 +210,6 @@ export { bunServerIntegration } from './integrations/bunserver';
 export type { BunServerIntegrationOptions } from './integrations/bunserver';
 export { bunHttpServerIntegration } from './integrations/bunHttpServer';
 export { fetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { bunRuntimeMetricsIntegration, type BunRuntimeMetricsOptions } from './integrations/bunRuntimeMetrics';
 export { makeFetchTransport } from './transports';
