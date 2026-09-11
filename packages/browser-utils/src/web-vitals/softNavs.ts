@@ -1,16 +1,10 @@
 import type { Client, Span } from '@sentry/core';
 import { debug, LRUMap, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
+import { BROWSER_NAVIGATION_ID } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { PerformanceSoftNavigation } from '../instrumentation/performanceObserver';
 import { addPerformanceInstrumentationHandler, isPerformanceEventTiming } from '../instrumentation/performanceObserver';
 import { WINDOW } from '../types';
-
-/**
- * The browser's `navigationId` for the soft navigation a span belongs to. Set on the navigation
- * span itself as well as on the web vital spans reported for it, so both sides of the correlation
- * are visible in the product.
- */
-export const SOFT_NAVIGATION_ID_ATTRIBUTE = 'browser.soft_navigation.id';
 
 /**
  * A page only ever needs its most recent navigations to still be joinable: web vitals for a soft
@@ -146,7 +140,7 @@ export function startSoftNavigationCorrelation(client: Client): void {
       _navigationIdToNavigationSpan.set(entry.navigationId, span);
       // Best effort: the soft navigation entry usually lands well within the navigation span's idle
       // window, but if the span has already been sent this attribute is dropped.
-      span.setAttribute(SOFT_NAVIGATION_ID_ATTRIBUTE, entry.navigationId);
+      span.setAttribute(BROWSER_NAVIGATION_ID, entry.navigationId);
     }
   });
 }

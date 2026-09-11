@@ -109,6 +109,8 @@ export { DenoClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 export { denoServeIntegration } from './integrations/deno-serve';
 export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
+export { fetchIntegration } from './integrations/fetch';
+export type { FetchOptions } from './integrations/fetch';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 

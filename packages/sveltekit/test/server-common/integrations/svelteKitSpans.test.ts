@@ -204,6 +204,7 @@ describe('svelteKitSpansIntegration', () => {
 
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe(op);
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe(origin);
+      expect(span.attributes?.['sentry.description']).toBe(spanName);
     });
 
     it("doesn't change spans from other origins", () => {
@@ -213,6 +214,7 @@ describe('svelteKitSpansIntegration', () => {
 
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBeUndefined();
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBeUndefined();
+      expect(span.attributes?.['sentry.description']).toBeUndefined();
     });
 
     it("doesn't overwrite the sveltekit.handle.root span", () => {
@@ -259,6 +261,17 @@ describe('svelteKitSpansIntegration', () => {
 
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('custom.op');
       expect(span.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.custom.origin');
+    });
+
+    it("doesn't overwrite an already set description", () => {
+      const span = makeStreamedSpan({
+        name: 'sveltekit.load',
+        attributes: { 'sentry.description': 'my custom description' },
+      });
+
+      _enhanceKitSpanStreamed(span);
+
+      expect(span.attributes?.['sentry.description']).toBe('my custom description');
     });
 
     it('overwrites previously set "manual" origins on sveltekit spans', () => {

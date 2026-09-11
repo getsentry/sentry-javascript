@@ -20,6 +20,7 @@ import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
 import { denoServeIntegration } from './integrations/deno-serve';
+import { fetchIntegration } from './integrations/fetch';
 import { denoHttpIntegration } from './integrations/http';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
@@ -42,6 +43,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     breadcrumbsIntegration(),
     denoContextIntegration(),
     denoServeIntegration(),
+    fetchIntegration(),
     denoHttpIntegration(),
     contextLinesIntegration(),
     normalizePathsIntegration(),
