@@ -1,7 +1,3 @@
-export const FLUE_INTEGRATION_NAME = 'Flue' as const;
-
-export const FLUE_MODULE_NAME = '@flue/runtime';
-
 export const FLUE_ORIGIN = 'auto.ai.flue';
 
 /**
