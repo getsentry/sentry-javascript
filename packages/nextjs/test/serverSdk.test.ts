@@ -100,6 +100,26 @@ describe('Server init()', () => {
       expect(onUncaughtExceptionIntegration).toBeDefined();
     });
 
+    it('adds the `use cache` integration when tracing is enabled', () => {
+      init({ tracesSampleRate: 1 });
+
+      expect(nodeInit).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          defaultIntegrations: expect.arrayContaining([expect.objectContaining({ name: 'NextjsUseCache' })]),
+        }),
+      );
+    });
+
+    it('does not add the `use cache` integration when tracing is disabled', () => {
+      init({});
+
+      expect(nodeInit).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          defaultIntegrations: expect.not.arrayContaining([expect.objectContaining({ name: 'NextjsUseCache' })]),
+        }),
+      );
+    });
+
     it('supports passing unrelated integrations through options', () => {
       init({ integrations: [SentryNode.consoleIntegration()] });
 

@@ -11,6 +11,7 @@ import {
   getRootSpan,
   getVercelEnv,
   GLOBAL_OBJ,
+  hasSpansEnabled,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
@@ -28,7 +29,7 @@ import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
-import { instrumentUseCacheHandlers } from './useCacheInstrumentation';
+import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
@@ -142,6 +143,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
+  if (hasSpansEnabled(options)) {
+    customDefaultIntegrations.push(nextjsUseCacheIntegration());
+  }
+
   // Detect if running on OpenNext/Cloudflare and get runtime config
   const cloudflareConfig = getCloudflareRuntimeConfig();
 
@@ -189,8 +194,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
   applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
   const client = nodeInit(opts);
-
-  instrumentUseCacheHandlers();
 
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
