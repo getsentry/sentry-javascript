@@ -358,9 +358,9 @@ function enrichInvokeAgentFromStream(
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
-    for (const [attribute, value] of Object.entries(cacheTokenAttributes(usage))) {
-      addTokensToSpan(span, attribute, value);
-    }
+    const { cacheRead, cacheWrite } = cacheTokens(usage);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
   }
 
   if (recordOutputs) {
@@ -572,7 +572,7 @@ export function enrichSpanOnEnd(
     if (totalTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
     }
-    span.setAttributes(cacheTokenAttributes(usage));
+    setCacheTokens(span, usage);
   }
 
   // Match the OTel integration: finish reasons live on the model-call (`generate_content`) span, not
@@ -643,17 +643,25 @@ function tokenCount(value: unknown): number | undefined {
  * Cache token counts as the AI SDK normalizes them: v5 `cachedInputTokens`, v6 `inputTokenDetails`,
  * v7 `inputTokens.{cacheRead,cacheWrite}`.
  */
-function cacheTokenAttributes(usage: Record<string, unknown>): Record<string, number> {
+function setCacheTokens(span: Span, usage: Record<string, unknown>): void {
+  const { cacheRead, cacheWrite } = cacheTokens(usage);
+  if (cacheRead !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+  }
+  if (cacheWrite !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
+  }
+}
+
+function cacheTokens(usage: Record<string, unknown>): { cacheRead?: number; cacheWrite?: number } {
   const inputTokens = isObjectLike(usage.inputTokens) ? usage.inputTokens : undefined;
   const inputTokenDetails = isObjectLike(usage.inputTokenDetails) ? usage.inputTokenDetails : undefined;
-  const cacheRead =
-    asNumber(inputTokens?.cacheRead) ??
-    asNumber(inputTokenDetails?.cacheReadTokens) ??
-    asNumber(usage.cachedInputTokens);
-  const cacheWrite = asNumber(inputTokens?.cacheWrite) ?? asNumber(inputTokenDetails?.cacheWriteTokens);
   return {
-    [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: cacheRead,
-    [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: cacheWrite,
+    cacheRead:
+      asNumber(inputTokens?.cacheRead) ??
+      asNumber(inputTokenDetails?.cacheReadTokens) ??
+      asNumber(usage.cachedInputTokens),
+    cacheWrite: asNumber(inputTokens?.cacheWrite) ?? asNumber(inputTokenDetails?.cacheWriteTokens),
   };
 }
 
