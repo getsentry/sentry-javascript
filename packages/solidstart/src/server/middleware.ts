@@ -1,21 +1,11 @@
 import { addNonEnumerableProperty, getTraceMetaTags } from '@sentry/core';
+import { injectHtmlIntoHeadStream } from '@sentry/server-utils';
 import type { ResponseMiddleware } from '@solidjs/start/middleware';
 import type { FetchEvent } from '@solidjs/start/server';
 
 export type ResponseMiddlewareResponse = Parameters<ResponseMiddleware>[1] & {
   __sentry_wrapped__?: boolean;
 };
-
-function addMetaTagToHead(html: string): string {
-  const metaTags = getTraceMetaTags();
-
-  if (!metaTags) {
-    return html;
-  }
-
-  const content = `<head>\n${metaTags}\n`;
-  return html.replace('<head>', content);
-}
 
 /**
  * Returns an `onBeforeResponse` solid start middleware handler that adds tracing data as
@@ -38,17 +28,6 @@ export function sentryBeforeResponseMiddleware() {
       return;
     }
 
-    const body = response.body as NodeJS.ReadableStream;
-    const decoder = new TextDecoder();
-    response.body = new ReadableStream({
-      start: async controller => {
-        for await (const chunk of body) {
-          const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-          const modifiedHtml = addMetaTagToHead(html);
-          controller.enqueue(new TextEncoder().encode(modifiedHtml));
-        }
-        controller.close();
-      },
-    });
+    response.body = injectHtmlIntoHeadStream(response.body as ReadableStream<Uint8Array | string>, getTraceMetaTags());
   };
 }
