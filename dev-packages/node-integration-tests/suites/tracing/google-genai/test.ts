@@ -232,8 +232,7 @@ describe('Google GenAI integration', () => {
             expect(streamingToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
-            // The text arrives in two chunks either side of the tool call, so only the fragments that
-            // were actually adjacent in the stream are joined back together.
+            // The text arrives either side of the tool call, so it stays two parts.
             expect(streamingToolsSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
               JSON.stringify([
                 {

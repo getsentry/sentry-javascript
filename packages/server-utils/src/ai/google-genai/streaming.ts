@@ -25,7 +25,7 @@ interface StreamingState {
   totalTokens?: number;
   /** Accumulated tool calls (finalized) */
   toolCalls: Array<Record<string, unknown>>;
-  /** Accumulated `gen_ai.output.messages` parts (for output recording). */
+  /** Accumulated output message parts (for output recording). */
   outputParts: MessagePart[];
 }
 

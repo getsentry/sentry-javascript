@@ -21,10 +21,9 @@ export type Part = Record<string, unknown> & {
 export type PartListUnion = PartUnion[] | PartUnion;
 
 /**
- * A part of a `gen_ai.input.messages` / `gen_ai.output.messages` message, as described in
- * https://develop.sentry.dev/sdk/telemetry/traces/modules/ai-agents/. Google's own `Part` shape
- * (`{ text }`, `{ functionCall }`, ...) is not this shape and renders as nothing, so every part
- * has to be translated.
+ * A message part as described in https://develop.sentry.dev/sdk/telemetry/traces/modules/ai-agents/.
+ * Parts Sentry cannot type are dropped when the message is rendered, so Google's own `Part` shape
+ * (`{ text }`, `{ functionCall }`, ...) has to be translated into this one.
  */
 export type MessagePart = Record<string, unknown> & { type: string };
 
@@ -43,8 +42,6 @@ function mimeTypeOf(value: Record<PropertyKey, unknown>): string | undefined {
 }
 
 /**
- * Translate a single Google `Part` into a `gen_ai` message part.
- *
  * Binary payloads are reported by media type only: `inlineData.data` is base64 bytes, which the
  * conventions require to be dropped rather than recorded.
  */
@@ -89,8 +86,7 @@ export function partToMessagePart(part: unknown): MessagePart | undefined {
     return { type: 'uri', mime_type: mimeTypeOf(fileData), uri: fileData.fileUri };
   }
 
-  // Anything else (`executableCode`, `codeExecutionResult`, future part kinds) is reported verbatim
-  // so it renders as JSON instead of disappearing.
+  // Part kinds we don't know yet render as JSON rather than disappearing.
   return { type: 'object', content: part };
 }
 
@@ -111,9 +107,6 @@ function contentToMessage(content: Content, role: string): Message {
 }
 
 /**
- * Convert anything the Google GenAI SDK accepts as content (`contents`, `history`, `message`,
- * `config.systemInstruction`) into `gen_ai` messages.
- *
  * Bare parts are collected into one message rather than one message each: `[{ text }, { inlineData }]`
  * is a single multimodal turn in Google's API, not two turns.
  */
@@ -157,9 +150,7 @@ export function contentUnionToMessages(content: ContentListUnion, role = 'user')
   return part ? [{ role: normalizeRole(role), parts: [part] }] : [];
 }
 
-/**
- * Collect the `gen_ai` message parts of every candidate in a response.
- */
+/** Collect the message parts of every candidate in a response. */
 export function candidatesToMessageParts(candidates: unknown): MessagePart[] {
   if (!Array.isArray(candidates)) {
     return [];
@@ -173,8 +164,6 @@ export function candidatesToMessageParts(candidates: unknown): MessagePart[] {
 }
 
 /**
- * Join runs of text (or reasoning) parts back into one part.
- *
  * A streamed response delivers its text a few characters at a time, so the parts collected across
  * chunks would otherwise be hundreds of one-word fragments.
  */
@@ -196,12 +185,9 @@ function mergeAdjacentTextParts(parts: MessagePart[]): MessagePart[] {
 }
 
 /**
- * Write the model output as a single assistant message on `gen_ai.output.messages`.
- *
- * This is set in addition to the deprecated `gen_ai.response.text` / `gen_ai.response.tool_calls`
- * attributes because Sentry's product reads the model output from `gen_ai.output.messages` first.
- * Relay migrates `gen_ai.response.text` into `gen_ai.output.messages`, but the tool-calls half of
- * that migration is lossy, so a turn that only calls a tool would otherwise render an empty Output.
+ * Set alongside the deprecated `gen_ai.response.text` / `gen_ai.response.tool_calls`: Relay migrates
+ * those into `gen_ai.output.messages`, but the tool-calls half of that migration is lossy, so a turn
+ * that only calls a tool would otherwise render an empty Output.
  */
 export function setOutputMessagesAttribute(span: Span, parts: MessagePart[]): void {
   const merged = mergeAdjacentTextParts(parts);
@@ -210,10 +196,7 @@ export function setOutputMessagesAttribute(span: Span, parts: MessagePart[]): vo
   }
 }
 
-/**
- * Flatten `config.systemInstruction` (a `ContentUnion`) into the plain text that
- * `gen_ai.system_instructions` expects.
- */
+/** Flatten a `ContentUnion` instruction into the plain text `gen_ai.system_instructions` expects. */
 export function systemInstructionToText(systemInstruction: unknown): string | undefined {
   const texts = contentUnionToMessages(systemInstruction as ContentUnion, 'system')
     .flatMap(message => message.parts)

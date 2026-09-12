@@ -153,7 +153,7 @@ export function addPrivateRequestAttributes(span: Span, params: Record<string, u
     return;
   }
 
-  // config.systemInstruction: ContentUnion. It is its own attribute, so it never joins the message list.
+  // config.systemInstruction: ContentUnion. It has its own attribute, so it never joins the message list.
   if (
     'config' in params &&
     params.config &&
