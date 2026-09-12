@@ -10,9 +10,8 @@ let isShuttingDown = false;
  * @hidden
  */
 export function logAndExitProcess(error: unknown): void {
-  // The console write below raises EPIPE when stderr is a broken pipe, which comes back as
-  // another uncaught exception and lands here again. Return rather than exit, so the shutdown
-  // already in flight keeps the `client.close()` flush that sends the fatal event.
+  // A broken stderr makes the console write below raise EPIPE, re-entering here. Return
+  // rather than exit, so the in-flight `client.close()` still flushes the fatal event.
   if (isShuttingDown) {
     return;
   }
