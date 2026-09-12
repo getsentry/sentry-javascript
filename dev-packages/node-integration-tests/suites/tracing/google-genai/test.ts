@@ -3,6 +3,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -199,6 +200,22 @@ describe('Google GenAI integration', () => {
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
+            expect(nonStreamingToolsSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
+              JSON.stringify([
+                {
+                  role: 'assistant',
+                  parts: [
+                    { type: 'text', content: 'I need to check the light status first.' },
+                    {
+                      type: 'tool_call',
+                      id: 'call_light_control_1',
+                      name: 'controlLight',
+                      arguments: '{"brightness":0.3,"colorTemperature":"warm"}',
+                    },
+                  ],
+                },
+              ]),
+            );
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(8);
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(23);
@@ -215,6 +232,25 @@ describe('Google GenAI integration', () => {
             expect(streamingToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
+            // The text arrives in two chunks either side of the tool call, so only the fragments that
+            // were actually adjacent in the stream are joined back together.
+            expect(streamingToolsSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
+              JSON.stringify([
+                {
+                  role: 'assistant',
+                  parts: [
+                    { type: 'text', content: 'Let me control the lights for you.' },
+                    {
+                      type: 'tool_call',
+                      id: 'call_light_stream_1',
+                      name: 'controlLight',
+                      arguments: '{"brightness":0.5,"colorTemperature":"cool"}',
+                    },
+                    { type: 'text', content: ' Done!' },
+                  ],
+                },
+              ]),
+            );
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('mock-response-tools-id');
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gemini-2.0-flash-001');
             expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(12);
@@ -390,19 +426,40 @@ describe('Google GenAI integration', () => {
     'scenario-system-instructions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('extracts system instructions from messages', async () => {
+      test('extracts system instructions and normalizes messages', async () => {
         await createRunner()
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
+              expect(container.items).toHaveLength(2);
+              const [firstSpan, secondSpan] = container.items;
 
-              // [0] generate_content with system instructions extracted
+              // [0] generate_content with a string system instruction
               expect(firstSpan!.name).toBe('generate_content gemini-1.5-flash');
               expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
               expect(firstSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(
                 JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
+              );
+              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+                JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: 'Hello' }] }]),
+              );
+
+              // [1] generate_content with a `Content` system instruction and a tool-call turn
+              expect(secondSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(
+                JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
+              );
+              expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+                JSON.stringify([
+                  { role: 'user', parts: [{ type: 'text', content: 'What time is it in Tokyo?' }] },
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'tool_call', name: 'get_time', arguments: '{"timezone":"Asia/Tokyo"}' }],
+                  },
+                  {
+                    role: 'user',
+                    parts: [{ type: 'tool_call_response', name: 'get_time', result: '{"output":"10:00"}' }],
+                  },
+                ]),
               );
             },
           })

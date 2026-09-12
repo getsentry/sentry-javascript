@@ -2,6 +2,8 @@ import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { endStreamSpan } from '../core/utils';
 import type { GoogleGenAIResponse } from './types';
+import type { MessagePart } from './utils';
+import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
 
 /**
  * State object used to accumulate information from a stream of Google GenAI events.
@@ -23,6 +25,8 @@ interface StreamingState {
   totalTokens?: number;
   /** Accumulated tool calls (finalized) */
   toolCalls: Array<Record<string, unknown>>;
+  /** Accumulated `gen_ai.output.messages` parts (for output recording). */
+  outputParts: MessagePart[];
 }
 
 /**
@@ -72,6 +76,10 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
     state.toolCalls.push(...chunk.functionCalls);
   }
 
+  if (recordOutputs) {
+    state.outputParts.push(...candidatesToMessageParts(chunk.candidates));
+  }
+
   for (const candidate of chunk.candidates ?? []) {
     if (candidate?.finishReason && !state.finishReasons.includes(candidate.finishReason)) {
       state.finishReasons.push(candidate.finishReason);
@@ -118,6 +126,7 @@ export async function* instrumentStream(
     responseTexts: [],
     finishReasons: [],
     toolCalls: [],
+    outputParts: [],
   };
 
   try {
@@ -126,6 +135,9 @@ export async function* instrumentStream(
       yield chunk;
     }
   } finally {
+    if (recordOutputs) {
+      setOutputMessagesAttribute(span, state.outputParts);
+    }
     endStreamSpan(span, state, recordOutputs);
   }
 }
