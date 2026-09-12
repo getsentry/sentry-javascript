@@ -65,6 +65,9 @@ export interface JsonRpcNotification {
  * @description Abstraction for MCP communication transport layer
  */
 export interface MCPTransport {
+  /** Starts the transport lifecycle. */
+  start?: () => Promise<void>;
+
   /**
    * Message handler for incoming JSON-RPC messages
    * The first argument is a JSON RPC message
