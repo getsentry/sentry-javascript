@@ -39,10 +39,15 @@ describe('Vercel AI SDK cache tokens', () => {
     return endedSpans;
   }
 
-  function runSpan(type: string, result: Record<string, unknown>): Record<string, unknown> {
+  function runSpan(
+    type: string,
+    result: Record<string, unknown>,
+    existingAttributes: Record<string, number> = {},
+  ): Record<string, unknown> {
     const endedSpans = setupClient();
     const message = { type, event: {}, result } as Parameters<typeof createSpanFromMessage>[0];
     const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1]);
+    span!.setAttributes(existingAttributes);
     enrichSpanOnEnd(span!, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
     span?.end();
     return spanToStaticSpanJSON(endedSpans[0]!).data ?? {};
@@ -117,6 +122,17 @@ describe('Vercel AI SDK cache tokens', () => {
 
     expect(data[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]).toBeUndefined();
     expect(data[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]).toBeUndefined();
+  });
+
+  it('leaves an existing count in place when the SDK usage does not report it', () => {
+    const data = runSpan(
+      'languageModelCall',
+      { usage: { inputTokens: 120, cachedInputTokens: 80, outputTokens: 10 } },
+      { [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 20 },
+    );
+
+    expect(data[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]).toBe(80);
+    expect(data[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]).toBe(20);
   });
 
   it('keeps providerMetadata-derived counts over the SDK usage counts', () => {
