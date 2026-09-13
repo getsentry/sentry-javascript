@@ -22,7 +22,7 @@ import {
   setHttpServerSpanRouteAttribute,
   type TracingChannelPayloadWithSpan,
 } from '@sentry/server-utils';
-import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
+import type { TracingRequestEvent as H3TracingRequestEvent } from 'nitro/h3/tracing';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
 

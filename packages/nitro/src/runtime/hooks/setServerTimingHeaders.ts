@@ -1,5 +1,5 @@
 import { getTraceData } from '@sentry/core';
-import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
+import type { TracingRequestEvent as H3TracingRequestEvent } from 'nitro/h3/tracing';
 
 /**
  * Sets Server-Timing response headers for trace propagation to the client.
