@@ -17,7 +17,6 @@ import { CHANNELS } from '../orchestrion/channels';
 import { mastraModuleNames } from '../orchestrion/config/mastra';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { safeChannelCallback } from '../tracing-channel';
-import { injectMastraRouteNamingMiddleware } from './mastra-route-naming';
 
 export interface MastraOptions extends MastraExporterOptions {
   /**
@@ -25,14 +24,6 @@ export interface MastraOptions extends MastraExporterOptions {
    * `true`. Uses an `@mastra/observability` the app already has; the SDK never installs it.
    */
   bootstrapObservability?: boolean;
-
-  /**
-   * Give the incoming `http.server` span the matched route pattern (e.g.
-   * `POST /api/agents/:agentId/generate`) with `http.route` and name source `route`, instead of the
-   * raw URL. Works for Mastra's built-in API routes and custom `registerApiRoute`s. Defaults to
-   * `true`. Set `false` to leave route naming to the app.
-   */
-  instrumentServerRoutes?: boolean;
 }
 
 interface MastraObservabilityInstance {
@@ -69,20 +60,7 @@ const _mastraIntegration = ((options: MastraOptions = {}) => {
 }) satisfies IntegrationFn;
 
 function instrumentMastra(options: MastraOptions): void {
-  const channel = diagnosticsChannel.tracingChannel<ConstructorChannelContext>(CHANNELS.MASTRA_CONSTRUCTOR);
-
-  // `start` fires before the constructor body reads `config.server`, so mutating the config here adds
-  // our route-naming middleware to the Hono server without needing a reference to the (internal) app.
-  if (options.instrumentServerRoutes !== false) {
-    channel.start.subscribe(message => {
-      safeChannelCallback(() => {
-        const { arguments: constructorArgs } = message as ConstructorChannelContext;
-        injectMastraRouteNamingMiddleware(constructorArgs?.[0]);
-      });
-    });
-  }
-
-  channel.end.subscribe(message => {
+  diagnosticsChannel.tracingChannel<ConstructorChannelContext>(CHANNELS.MASTRA_CONSTRUCTOR).end.subscribe(message => {
     safeChannelCallback(() => {
       const { self } = message as ConstructorChannelContext;
       attachExporter(self, options);
@@ -102,11 +80,7 @@ function attachExporter(instance: unknown, options: MastraOptions): void {
     return;
   }
 
-  const {
-    bootstrapObservability: _bootstrapObservability,
-    instrumentServerRoutes: _instrumentServerRoutes,
-    ...exporterOptions
-  } = options;
+  const { bootstrapObservability: _bootstrapObservability, ...exporterOptions } = options;
   const exporter = new SentryMastraExporter(exporterOptions);
 
   const defaultInstance = mastra.observability?.getDefaultInstance?.();
