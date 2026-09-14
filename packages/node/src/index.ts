@@ -216,7 +216,7 @@ export { makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
 export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-export { eveConversationHook } from '@sentry/server-utils';
+export { eveConversationHook, getInstrumentedModuleNames } from '@sentry/server-utils';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';

@@ -14,6 +14,7 @@ export type { InstrumentationConfig } from './orchestrion/apmTypes';
 // helper with no orchestrion build-time dependency.
 export { orchestrionModuleInjected } from './utils/moduleInjected';
 export { eveConversationHook } from './eve';
+export { getInstrumentedModuleNames } from './orchestrion/config';
 export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
