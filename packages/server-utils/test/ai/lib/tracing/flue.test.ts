@@ -313,7 +313,7 @@ describe('createFlueInstrumentation', () => {
     expect(json?.data['gen_ai.request.model']).toBe('claude-haiku-4.5');
     expect(json?.data['gen_ai.provider.name']).toBe('anthropic');
     expect(json?.data['gen_ai.response.id']).toBe('resp_1');
-    expect(json?.data['gen_ai.response.finish_reasons']).toEqual(['stop']);
+    expect(json?.data['gen_ai.response.finish_reasons']).toBe('["stop"]');
     expect(json?.data['gen_ai.conversation.id']).toBe('conv_1');
   });
 
