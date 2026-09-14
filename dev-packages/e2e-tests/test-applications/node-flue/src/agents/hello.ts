@@ -46,5 +46,5 @@ export function Hello() {
     },
   });
 
-  return 'You are a helpful assistant. Use get_weather when asked about weather, and fail_now when asked to fail.';
+  return 'You are a helpful assistant. Use get_weather when asked about weather, count_items when asked to count items, and fail_now when asked to fail.';
 }
