@@ -2,6 +2,8 @@ import { Mastra } from '@mastra/core';
 import { registerApiRoute } from '@mastra/core/server';
 import { LibSQLStore } from '@mastra/libsql';
 import { WEATHER_AGENT, weatherAgent } from './agents/weather-agent.js';
+import { SentryMastraExporter } from '@sentry/node';
+import * as Sentry from '@sentry/node';
 
 // The agent is driven through Mastra's built-in `POST /api/agents/:id/generate`
 // endpoint (see tests/utils.ts). `dataloader` (orchestrion-instrumented) is exercised
@@ -25,6 +27,9 @@ export const mastra = new Mastra({
   server: {
     port: 4111,
     apiRoutes: [manualRoute],
+  },
+  bundler: {
+    externals: Sentry.getInstrumentedModuleNames(),
   },
 });
 
