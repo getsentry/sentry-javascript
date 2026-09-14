@@ -1,12 +1,10 @@
 import { withSentry } from '@sentry/cloudflare';
 import { applySdkMetadata, type BaseTransportOptions, debug, type Options } from '@sentry/core';
 import { getConnInfo } from 'hono/cloudflare-workers';
+import { applyHonoPatches, createHonoRequestMiddleware, type SentryHonoMiddlewareOptions } from '@sentry/server-utils';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactionPatterns';
-import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
-import { applyPatches } from '../shared/applyPatches';
-import type { SentryHonoMiddlewareOptions } from '../shared/types';
 
 export interface HonoCloudflareOptions extends Options<BaseTransportOptions>, SentryHonoMiddlewareOptions {}
 
@@ -41,18 +39,15 @@ export function sentry<E extends Env>(
     app as unknown as ExportedHandler<unknown>,
   );
 
-  applyPatches(app);
+  applyHonoPatches(app);
 
-  return async (context, next) => {
-    const shouldHandleError =
+  return createHonoRequestMiddleware({
+    getConnInfo,
+    // Cloudflare accepts middleware options as a function of `env`, so `shouldHandleError` is only
+    // known per request.
+    resolveShouldHandleError: context =>
       typeof options === 'function'
         ? options(context.env as E['Bindings']).shouldHandleError
-        : options.shouldHandleError;
-
-    requestHandler(context, getConnInfo);
-
-    await next(); // Handler runs in between Request above ⤴ and Response below ⤵
-
-    responseHandler(context, shouldHandleError);
-  };
+        : options.shouldHandleError,
+  });
 }

@@ -25,6 +25,7 @@ import { firebaseIntegration } from './firebase';
 import { expressIntegration } from './express';
 import { fastifyIntegration } from './fastify';
 import { hapiIntegration } from './hapi';
+import { honoIntegration } from './hono';
 import { koaIntegration } from './koa';
 import type { Integration } from '@sentry/core';
 import { awsIntegration } from './aws-sdk';
@@ -64,5 +65,5 @@ export function getTracingIntegrations(): Integration[] {
 
 /** These are integrations that cover error capture, in addition to tracing. */
 export function getErrorIntegrations(): Integration[] {
-  return [expressIntegration(), fastifyIntegration(), hapiIntegration(), koaIntegration()];
+  return [expressIntegration(), fastifyIntegration(), hapiIntegration(), honoIntegration(), koaIntegration()];
 }
