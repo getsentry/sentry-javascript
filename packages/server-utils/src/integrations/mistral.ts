@@ -3,31 +3,30 @@ import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
-  getClient,
-  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { GEN_AI_AGENT_NAME, GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/mistral';
-import { instrumentStream } from '../ai/mistral/streaming';
+import { MISTRAL_INTEGRATION_NAME, MISTRAL_ORIGIN } from '../ai/mistral/constants';
+import { instrumentEventStream } from '../ai/mistral/streaming';
 import type { MistralOptions } from '../ai/mistral/types';
-import { addResponseAttributes } from '../ai/mistral/utils';
+import { addResponseAttributes, getSpanName } from '../ai/mistral/utils';
 import { CHANNELS } from '../orchestrion/channels';
 import { mistralModuleNames } from '../orchestrion/config/mistral';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
-const INTEGRATION_NAME = 'Mistral' as const;
+const INTEGRATION_NAME = MISTRAL_INTEGRATION_NAME;
 
-const ORIGIN = 'auto.ai.mistralai';
-
-// Each instrumented channel maps to the gen_ai operation its span reports.
+// Each instrumented channel maps to the gen_ai operation its span reports. Streaming methods publish
+// on their own channel, so the span knows it is a stream before the result exists.
 const INSTRUMENTED_CHANNELS = [
-  { channel: CHANNELS.MISTRAL_CHAT, operation: 'chat' },
-  { channel: CHANNELS.MISTRAL_EMBEDDINGS, operation: 'embeddings' },
-  { channel: CHANNELS.MISTRAL_AGENTS, operation: 'invoke_agent' },
+  { channel: CHANNELS.MISTRAL_CHAT, operation: 'chat', streaming: false },
+  { channel: CHANNELS.MISTRAL_CHAT_STREAM, operation: 'chat', streaming: true },
+  { channel: CHANNELS.MISTRAL_EMBEDDINGS, operation: 'embeddings', streaming: false },
+  { channel: CHANNELS.MISTRAL_AGENTS, operation: 'invoke_agent', streaming: false },
+  { channel: CHANNELS.MISTRAL_AGENTS_STREAM, operation: 'invoke_agent', streaming: true },
 ] as const;
 
 /**
@@ -49,16 +48,17 @@ const _mistralAIIntegration = ((options: MistralOptions = {}) => {
 }) satisfies IntegrationFn;
 
 function instrumentMistral(options: MistralOptions): void {
-  for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
+  for (const { channel, operation, streaming } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<MistralChannelContext>(channel),
-      data => createGenAiSpan(data, operation, options),
+      data => createGenAiSpan(data, operation, streaming, options),
       {
         beforeSpanEnd: (span, data) => {
           addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
         },
-        // Streaming: the result is an async-iterable consumed later, so instrument it and let it end the span.
-        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
+        // Streaming: the result is an `EventStream` consumed later, so instrument it and let it end the span.
+        deferSpanEnd: ({ span, data }) =>
+          streaming && instrumentEventStream(data.result, span, resolveAIRecordingOptions(options).recordOutputs),
       },
     );
   }
@@ -68,7 +68,12 @@ function instrumentMistral(options: MistralOptions): void {
  * Build the span for an instrumented Mistral call.
  * Returning `undefined` opts the payload out so no span is opened.
  */
-function createGenAiSpan(data: MistralChannelContext, operation: string, options: MistralOptions): Span | undefined {
+function createGenAiSpan(
+  data: MistralChannelContext,
+  operation: string,
+  streaming: boolean,
+  options: MistralOptions,
+): Span | undefined {
   // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks
   // this provider as skipped; skip here to avoid double spans.
   if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
@@ -80,16 +85,11 @@ function createGenAiSpan(data: MistralChannelContext, operation: string, options
 
   const { recordInputs } = resolveAIRecordingOptions(options);
 
-  const attributes = extractRequestAttributes(args, operation, recordInputs);
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
-  // Agent calls carry no model, so their span name uses the agent id (recorded as gen_ai.agent.name).
-  const model =
-    (attributes[operation === 'invoke_agent' ? GEN_AI_AGENT_NAME : GEN_AI_REQUEST_MODEL] as string) || 'unknown';
-  const client = getClient();
+  const attributes = extractRequestAttributes(args, operation, recordInputs, streaming);
+  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = MISTRAL_ORIGIN;
 
   const span = startInactiveSpan({
-    // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
-    name: model !== 'unknown' || !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
+    name: getSpanName(operation, attributes),
     op: getGenAiSpanOp(operation),
     attributes: attributes as Record<string, SpanAttributeValue>,
   });
@@ -99,34 +99,6 @@ function createGenAiSpan(data: MistralChannelContext, operation: string, options
   }
 
   return span;
-}
-
-type AsyncIterableStream = { [Symbol.asyncIterator]: () => AsyncIterator<unknown> };
-
-function isAsyncIterable(value: unknown): value is AsyncIterableStream {
-  return !!value && typeof (value as AsyncIterableStream)[Symbol.asyncIterator] === 'function';
-}
-
-/**
- * For a streaming call the result is an `EventStream` the caller consumes later. We can't swap what the
- * method returns, but the stream in `data.result` is the same instance the caller holds and `asyncEnd`
- * fires before iteration — so we patch its async iterator in place to run through `instrumentStream`,
- * which accumulates streamed attributes and ends the span when iteration finishes. Only a streaming call
- * resolves to an async-iterable, so that check alone distinguishes it. Returns `true` to hand
- * span-ending ownership to `instrumentStream`; `false` for non-streaming/errored results.
- */
-function wrapStreamResult(span: Span, data: MistralChannelContext, options: MistralOptions): boolean {
-  const result = data.result;
-  if (!isAsyncIterable(result)) {
-    return false;
-  }
-
-  const { recordOutputs } = resolveAIRecordingOptions(options);
-  const iterate = result[Symbol.asyncIterator].bind(result);
-  const instrumented = instrumentStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs ?? false);
-  result[Symbol.asyncIterator] = () => instrumented;
-
-  return true;
 }
 
 /**

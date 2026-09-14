@@ -1,6 +1,10 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import type { Span, SpanAttributeValue } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled } from '@sentry/core';
+import type { GenAiOutputMessage } from '../core/utils';
+import { setOutputMessagesAttribute } from '../core/utils';
 import {
+  GEN_AI_AGENT_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -17,12 +21,11 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 
 /**
  * Turn a Mistral message content (string or content-chunk array) into a plain string.
  */
-function contentToString(content: unknown): string {
+export function contentToString(content: unknown): string {
   if (typeof content === 'string') {
     return content;
   }
@@ -39,6 +42,26 @@ function contentToString(content: unknown): string {
 }
 
 /**
+ * Build the span name for an instrumented Mistral call.
+ *
+ * Agent calls carry no model, and their `agentId` is one value per agent, so it is left out of the
+ * name whenever span streaming asks for low-cardinality names. The `'unknown'` model sentinel is
+ * dropped there for the same reason.
+ */
+export function getSpanName(operationName: string, attributes: Record<string, unknown>): string {
+  const client = getClient();
+  const lowCardinalityNames = !!client && hasSpanStreamingEnabled(client);
+
+  const detail = attributes[operationName === 'invoke_agent' ? GEN_AI_AGENT_NAME : GEN_AI_REQUEST_MODEL];
+
+  if (lowCardinalityNames && (operationName === 'invoke_agent' || typeof detail !== 'string')) {
+    return operationName;
+  }
+
+  return `${operationName} ${typeof detail === 'string' ? detail : 'unknown'}`;
+}
+
+/**
  * Extract request parameters. Mistral request fields are camelCase.
  */
 export function extractRequestParameters(params: Record<string, unknown>): Record<string, unknown> {
@@ -51,7 +74,6 @@ export function extractRequestParameters(params: Record<string, unknown>): Recor
   if ('frequencyPenalty' in params) attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = params.frequencyPenalty;
   if ('presencePenalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY] = params.presencePenalty;
   if ('randomSeed' in params) attributes[GEN_AI_REQUEST_SEED] = params.randomSeed;
-  if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
 
   return attributes;
 }
@@ -81,6 +103,8 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
     if (typeof usage.totalTokens === 'number') attrs[GEN_AI_USAGE_TOTAL_TOKENS] = usage.totalTokens;
   }
 
+  let outputMessages: GenAiOutputMessage[] = [];
+
   if (Array.isArray(response.choices)) {
     const choices = response.choices as Array<Record<string, unknown>>;
 
@@ -92,17 +116,23 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
     }
 
     if (recordOutputs) {
-      const responseText = choices
-        .map(choice => contentToString((choice.message as Record<string, unknown> | undefined)?.content))
-        .join('');
-      if (responseText) {
-        attrs[GEN_AI_RESPONSE_TEXT] = responseText;
+      // One entry per choice: Mistral can return several when `n` > 1, and both attributes are
+      // specified as arrays of messages rather than one merged blob.
+      outputMessages = choices.map(choice => {
+        const message = choice.message as Record<string, unknown> | undefined;
+        return {
+          responseText: contentToString(message?.content),
+          toolCalls: Array.isArray(message?.toolCalls) ? message.toolCalls : undefined,
+          finishReason: typeof choice.finishReason === 'string' ? choice.finishReason : undefined,
+        };
+      });
+
+      const responseTexts = outputMessages.map(message => message.responseText).filter(Boolean);
+      if (responseTexts.length > 0) {
+        attrs[GEN_AI_RESPONSE_TEXT] = JSON.stringify(responseTexts);
       }
 
-      const toolCalls = choices
-        .map(choice => (choice.message as Record<string, unknown> | undefined)?.toolCalls)
-        .filter(calls => Array.isArray(calls) && calls.length > 0)
-        .flat();
+      const toolCalls = outputMessages.flatMap(message => message.toolCalls ?? []);
       if (toolCalls.length > 0) {
         attrs[GEN_AI_RESPONSE_TOOL_CALLS] = JSON.stringify(toolCalls);
       }
@@ -110,4 +140,8 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
   }
 
   span.setAttributes(attrs);
+
+  if (recordOutputs) {
+    setOutputMessagesAttribute(span, outputMessages);
+  }
 }

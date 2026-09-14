@@ -12,6 +12,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
@@ -25,6 +26,8 @@ import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
 const PROVIDER = 'mistralai';
 const ORIGIN = 'auto.ai.mistralai';
+// Not exported from `@sentry/conventions` yet; the SDK defines it in `ai/core/gen-ai-attributes`.
+const GEN_AI_REQUEST_STREAM = 'gen_ai.request.stream';
 
 // ESM-only: `@mistralai/mistralai` v2 ships no CJS build, so CJS consumers load it via `require(esm)`,
 // whose auto-instrumentation is inconsistent across Node versions. The SDK's native mode is ESM, so we
@@ -67,6 +70,15 @@ describe('Mistral integration', () => {
             expect(streamSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
             expect(streamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
             expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(30);
+
+            // `chat.stream()` takes no `stream` request field, so the flag has to come from the method.
+            expect(streamSpan!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(true);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(false);
+
+            const errorSpan = container.items.find(s => s.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-model');
+            expect(errorSpan).toBeDefined();
+            // `bindTracingChannelToSpan` derives the status message from the thrown error.
+            expect(errorSpan!.status).toBe('error');
           },
         })
         .start()
@@ -86,7 +98,10 @@ describe('Mistral integration', () => {
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]?.value).toBe(
               '[{"role":"user","content":"What is the capital of France?"}]',
             );
-            expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('Hello from Mistral mock!');
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('["Hello from Mistral mock!"]');
+            expect(chatSpan!.attributes[GEN_AI_OUTPUT_MESSAGES]?.value).toBe(
+              '[{"role":"assistant","parts":[{"type":"text","content":"Hello from Mistral mock!"}],"finish_reason":"stop"}]',
+            );
           },
         })
         .start()
@@ -102,7 +117,10 @@ describe('Mistral integration', () => {
             const chatSpan = container.items.find(s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123');
             expect(chatSpan).toBeDefined();
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]?.value).toContain('What is the capital of France?');
-            expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('Hello from Mistral mock!');
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('["Hello from Mistral mock!"]');
+            expect(chatSpan!.attributes[GEN_AI_OUTPUT_MESSAGES]?.value).toBe(
+              '[{"role":"assistant","parts":[{"type":"text","content":"Hello from Mistral mock!"}],"finish_reason":"stop"}]',
+            );
           },
         })
         .start()
@@ -162,7 +180,9 @@ describe('Mistral integration', () => {
               s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'agentcmpl-mock123',
             );
             expect(agentSpan).toBeDefined();
-            expect(agentSpan!.name).toBe('invoke_agent ag-mock-123');
+            // Agent ids are one value per agent, so the name stays at the bare operation under span
+            // streaming; the id is still recorded on `gen_ai.agent.name`.
+            expect(agentSpan!.name).toBe('invoke_agent');
             expect(agentSpan!.status).toBe('ok');
             expect(agentSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
             expect(agentSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
@@ -194,7 +214,7 @@ describe('Mistral integration', () => {
             );
             expect(agentSpan).toBeDefined();
             expect(agentSpan!.attributes[GEN_AI_INPUT_MESSAGES]?.value).toContain('Who is the best French painter?');
-            expect(agentSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('Hello from Mistral agent!');
+            expect(agentSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('["Hello from Mistral agent!"]');
           },
         })
         .start()
@@ -226,6 +246,39 @@ describe('Mistral integration', () => {
             expect(streamedToolCalls).toContain('get_weather');
             expect(streamedToolCalls).toContain('city');
             expect(streamedToolCalls).toContain('Paris');
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario-manual.mjs', 'instrument-manual.mjs', (createRunner, test) => {
+    test('instruments a client wrapped with instrumentMistralAiClient', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const chatSpan = container.items.find(
+              s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-manual-123',
+            );
+            expect(chatSpan).toBeDefined();
+            expect(chatSpan!.name).toBe('chat mistral-small-latest');
+            expect(chatSpan!.status).toBe('ok');
+            expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+            expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
+            expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('["Hello from the manual client!"]');
+
+            // The scenario drains the stream with `getReader()`, which only works if the instrumented
+            // result is still the SDK's `EventStream` and only ends the span if the reader is wrapped.
+            const streamSpan = container.items.find(
+              s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-manual-stream-123',
+            );
+            expect(streamSpan).toBeDefined();
+            expect(streamSpan!.name).toBe('chat mistral-large-latest');
+            expect(streamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+            expect(streamSpan!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(true);
+            expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(12);
+            expect(streamSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('Manual streaming!');
           },
         })
         .start()

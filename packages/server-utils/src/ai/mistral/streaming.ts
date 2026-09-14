@@ -1,7 +1,8 @@
 import type { Span } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
-import { endStreamSpan } from '../core/utils';
+import { endStreamSpan, setOutputMessagesAttribute } from '../core/utils';
 import type { MistralCompletionChunk, MistralToolCall } from './types';
+import { contentToString } from './utils';
 
 /**
  * State accumulated while consuming a Mistral event stream.
@@ -16,6 +17,39 @@ interface StreamingState {
   totalTokens: number | undefined;
   /** Tool calls accumulated by their delta `index`; `function.arguments` arrives fragmented. */
   toolCalls: Record<number, MistralToolCall>;
+}
+
+/** Which drain path owns accumulation. See {@link instrumentEventStream}. */
+type StreamConsumer = 'iterator' | 'reader';
+
+type AsyncIterableStream = { [Symbol.asyncIterator]: () => AsyncIterator<unknown> };
+
+interface StreamReaderLike {
+  read: () => Promise<{ done: boolean; value?: unknown }>;
+  cancel?: (reason?: unknown) => Promise<unknown>;
+}
+
+interface ReadableStreamLike {
+  getReader?: (...args: unknown[]) => StreamReaderLike;
+  cancel?: (reason?: unknown) => Promise<unknown>;
+}
+
+/** Whether a value can be drained with `for await`. */
+export function isAsyncIterable(value: unknown): value is AsyncIterableStream {
+  return !!value && typeof (value as AsyncIterableStream)[Symbol.asyncIterator] === 'function';
+}
+
+function createStreamingState(): StreamingState {
+  return {
+    responseTexts: [],
+    finishReasons: [],
+    responseId: '',
+    responseModel: '',
+    promptTokens: undefined,
+    completionTokens: undefined,
+    totalTokens: undefined,
+    toolCalls: {},
+  };
 }
 
 function processToolCalls(toolCalls: MistralToolCall[], state: StreamingState): void {
@@ -51,8 +85,11 @@ function processChunk(chunk: MistralCompletionChunk, state: StreamingState, reco
 
   for (const choice of chunk.choices ?? []) {
     if (recordOutputs) {
-      if (typeof choice.delta?.content === 'string' && choice.delta.content) {
-        state.responseTexts.push(choice.delta.content);
+      // Deltas carry either a plain string or the same content-chunk array the non-streaming
+      // responses use, so both go through `contentToString`.
+      const content = contentToString(choice.delta?.content);
+      if (content) {
+        state.responseTexts.push(content);
       }
       if (choice.delta?.toolCalls) {
         processToolCalls(choice.delta.toolCalls, state);
@@ -64,39 +101,162 @@ function processChunk(chunk: MistralCompletionChunk, state: StreamingState, reco
   }
 }
 
-/**
- * Instrument a Mistral event stream, accumulating response attributes and ending the span when
- * iteration finishes. Mistral yields `CompletionEvent` objects that wrap the chunk under `data`.
- */
-export async function* instrumentStream<T>(
-  stream: AsyncIterable<T>,
-  span: Span,
-  recordOutputs: boolean,
-): AsyncGenerator<T, void, unknown> {
-  const state: StreamingState = {
-    responseTexts: [],
-    finishReasons: [],
-    responseId: '',
-    responseModel: '',
-    promptTokens: undefined,
-    completionTokens: undefined,
-    totalTokens: undefined,
-    toolCalls: {},
-  };
+/** Mistral yields `CompletionEvent` objects that wrap the chunk under `data`. */
+function processEvent(event: unknown, state: StreamingState, recordOutputs: boolean): void {
+  const chunk = (event as { data?: MistralCompletionChunk } | undefined)?.data;
+  if (chunk && typeof chunk === 'object') {
+    processChunk(chunk, state, recordOutputs);
+  }
+}
 
+async function* instrumentIterator(
+  iterate: () => AsyncIterator<unknown>,
+  state: StreamingState,
+  recordOutputs: boolean,
+  claim: (consumer: StreamConsumer) => boolean,
+  settle: (error?: unknown) => void,
+): AsyncGenerator<unknown, void, unknown> {
   try {
-    for await (const event of stream) {
-      // Mistral streams `CompletionEvent` objects that wrap the chunk under `data`.
-      const chunk = (event as { data?: MistralCompletionChunk })?.data;
-      if (chunk && typeof chunk === 'object') {
-        processChunk(chunk, state, recordOutputs);
+    for await (const event of { [Symbol.asyncIterator]: iterate }) {
+      if (claim('iterator')) {
+        processEvent(event, state, recordOutputs);
       }
       yield event;
     }
   } catch (error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    settle(error);
     throw error;
   } finally {
-    endStreamSpan(span, { ...state, toolCalls: Object.values(state.toolCalls) }, recordOutputs);
+    settle();
   }
+}
+
+function wrapReader(
+  reader: StreamReaderLike,
+  state: StreamingState,
+  recordOutputs: boolean,
+  claim: (consumer: StreamConsumer) => boolean,
+  settle: (error?: unknown) => void,
+): StreamReaderLike {
+  // Captured before the proxy exists so the wrappers below call the real reader, not themselves.
+  const originalRead = reader.read;
+  const originalCancel = reader.cancel;
+  const read = (): Promise<{ done: boolean; value?: unknown }> => originalRead.call(reader);
+  const cancel =
+    typeof originalCancel === 'function'
+      ? (reason?: unknown): Promise<unknown> => originalCancel.call(reader, reason)
+      : undefined;
+
+  return new Proxy(reader, {
+    get(target: StreamReaderLike, prop: string | symbol): unknown {
+      if (prop === 'read') {
+        return async (): Promise<{ done: boolean; value?: unknown }> => {
+          try {
+            const result = await read();
+            if (result.done) {
+              settle();
+            } else if (claim('reader')) {
+              processEvent(result.value, state, recordOutputs);
+            }
+            return result;
+          } catch (error) {
+            settle(error);
+            throw error;
+          }
+        };
+      }
+
+      if (prop === 'cancel' && cancel) {
+        return async (reason?: unknown): Promise<unknown> => {
+          try {
+            return await cancel(reason);
+          } finally {
+            settle();
+          }
+        };
+      }
+
+      const value = Reflect.get(target, prop, target) as unknown;
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
+
+/**
+ * Instrument a Mistral event stream in place: accumulate response attributes as it is drained and
+ * end `span` when it finishes.
+ *
+ * The stream is patched rather than replaced because `EventStream` extends `ReadableStream`, so
+ * handing back a bare async generator would drop `getReader`, `tee`, `pipeTo` and the rest of the
+ * `ReadableStream` API the caller is entitled to.
+ *
+ * Both `for await` and `getReader()` are valid ways to drain a `ReadableStream`, and the SDK's
+ * iterator polyfill reads through `getReader()`, so both are wrapped. The first path to see a chunk
+ * claims accumulation and the other stays a pass-through, which keeps a chunk from being counted
+ * twice when one path drives the other.
+ *
+ * Returns `false` for a value that is not a stream, leaving it untouched.
+ */
+export function instrumentEventStream(stream: unknown, span: Span, recordOutputs: boolean): boolean {
+  if (!isAsyncIterable(stream)) {
+    return false;
+  }
+
+  const state = createStreamingState();
+  let consumer: StreamConsumer | undefined;
+  let settled = false;
+
+  const claim = (candidate: StreamConsumer): boolean => {
+    consumer ??= candidate;
+    return consumer === candidate;
+  };
+
+  const settle = (error?: unknown): void => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    if (error !== undefined) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    }
+
+    const toolCalls = Object.values(state.toolCalls);
+
+    if (recordOutputs) {
+      // Set the authoritative `gen_ai.output.messages` alongside the deprecated response attributes
+      // `endStreamSpan` writes, so tool calls survive Relay's lossy migration. A stream is a single
+      // assistant turn, so the accumulated fragments make up one message.
+      setOutputMessagesAttribute(span, {
+        responseText: state.responseTexts.join(''),
+        toolCalls,
+        finishReason: state.finishReasons[0],
+      });
+    }
+
+    endStreamSpan(span, { ...state, toolCalls }, recordOutputs);
+  };
+
+  const iterate = stream[Symbol.asyncIterator].bind(stream);
+  const instrumented = instrumentIterator(iterate, state, recordOutputs, claim, settle);
+  stream[Symbol.asyncIterator] = () => instrumented;
+
+  const readable = stream as ReadableStreamLike;
+
+  if (typeof readable.getReader === 'function') {
+    const getReader = readable.getReader.bind(readable);
+    readable.getReader = (...args: unknown[]) => wrapReader(getReader(...args), state, recordOutputs, claim, settle);
+  }
+
+  if (typeof readable.cancel === 'function') {
+    const cancel = readable.cancel.bind(readable);
+    readable.cancel = async (reason?: unknown): Promise<unknown> => {
+      try {
+        return await cancel(reason);
+      } finally {
+        settle();
+      }
+    };
+  }
+
+  return true;
 }
