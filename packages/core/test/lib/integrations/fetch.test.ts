@@ -209,6 +209,50 @@ describe('createFetchIntegration', () => {
     );
   });
 
+  it('sanitizes the breadcrumb URL and reports the query separately', () => {
+    const handler = setupIntegration(fetchIntegration(), client);
+
+    handler({
+      fetchData: { url: 'http://user:pw@my-website.com/path?q=hello&token=secret#frag', method: 'GET' },
+      args: ['http://my-website.com/path?q=hello&token=secret#frag'],
+      startTimestamp: Date.now(),
+      endTimestamp: Date.now() + 100,
+      response: { status: 200 } as Response,
+    });
+
+    expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          url: 'http://[filtered]:[filtered]@my-website.com/path',
+          'url.query': 'q=hello&token=[Filtered]',
+          'url.fragment': 'frag',
+        }),
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('redacts the breadcrumb query when `dataCollection.urlQueryParams` is off', () => {
+    client = makeClient({ dataCollection: { urlQueryParams: false } });
+    const handler = setupIntegration(fetchIntegration(), client);
+
+    handler({
+      fetchData: { url: 'http://my-website.com/path?token=secret', method: 'GET' },
+      args: ['http://my-website.com/path?token=secret'],
+      startTimestamp: Date.now(),
+      endTimestamp: Date.now() + 100,
+      response: { status: 200 } as Response,
+    });
+
+    expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ url: 'http://my-website.com/path' }),
+      }),
+      expect.anything(),
+    );
+    expect(addBreadcrumbSpy.mock.lastCall?.[0].data?.['url.query']).toBeUndefined();
+  });
+
   it('creates an error-level breadcrumb for a failed request', () => {
     const handler = setupIntegration(fetchIntegration(), client);
 
