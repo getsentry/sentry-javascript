@@ -5,7 +5,10 @@ import { runAgentTurn } from './utils';
 const APP = 'node-flue';
 
 test('captures an error thrown inside a Flue tool and marks its span errored', async ({ baseURL }) => {
-  const errorPromise = waitForError(APP, event => event.exception?.values?.[0]?.value === 'Intentional flue tool failure');
+  const errorPromise = waitForError(
+    APP,
+    event => event.exception?.values?.[0]?.value === 'Intentional flue tool failure',
+  );
   const spansPromise = collectStreamedSpans(APP, spansOfTrace =>
     spansOfTrace.some(span => getSpanOp(span) === 'gen_ai.execute_tool'),
   );
