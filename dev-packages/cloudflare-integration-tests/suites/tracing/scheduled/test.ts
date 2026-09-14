@@ -31,6 +31,8 @@ it('Scheduled handler creates transaction with correct attributes', async ({ sig
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.scheduled',
                 [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+                'sentry.description': expect.stringMatching(/^Scheduled Cron/),
+                'code.function.name': 'scheduled',
                 'faas.cron': expect.any(String),
                 'faas.time': expect.any(String),
                 'faas.trigger': 'timer',

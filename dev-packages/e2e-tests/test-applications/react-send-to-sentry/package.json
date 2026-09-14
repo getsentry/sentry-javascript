@@ -41,7 +41,7 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "serve": "14.0.1"
   },
   "volta": {

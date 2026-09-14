@@ -11,6 +11,14 @@ export type CollectBehavior = boolean | { allow: string[] } | { deny: string[] }
 export type HttpBodyCollectionTarget = 'incomingRequest' | 'outgoingRequest' | 'incomingResponse' | 'outgoingResponse';
 
 /**
+ * Controls HTTP header collection per direction.
+ */
+export interface HttpHeadersCollection {
+  request?: CollectBehavior;
+  response?: CollectBehavior;
+}
+
+/**
  * Controls what data the SDK collects and sends to Sentry.
  *
  * All fields are optional. Omitted fields use the documented defaults.
@@ -30,12 +38,11 @@ export interface DataCollection {
 
   /**
    * Controls HTTP header collection for requests and responses.
+   *
+   * Accepts a `CollectBehavior` applied to both directions, or `{ request, response }` to control each independently.
    * @default { request: true, response: true }
    */
-  httpHeaders?: {
-    request?: CollectBehavior;
-    response?: CollectBehavior;
-  };
+  httpHeaders?: CollectBehavior | HttpHeadersCollection;
 
   /**
    * Which HTTP body types to collect. An omitted value collects all body types valid for the
@@ -79,7 +86,7 @@ export interface DataCollection {
   };
 
   /**
-   * Include data associated with database queries. This controls collection of query parameters, inline literal values within query text, mutation/request bodies, and returned result data.
+   * Include data associated with database queries. This controls collection of bound query parameters, data payloads for write operations, and returned result data.
    *
    * Sanitized or parameterized DB statements (`db.query.text`) are **not** controlled by this property. Structural metadata such as the database system, query summary, operation name, or the table being acted upon is also **always** collected.
    * @default true
@@ -118,8 +125,8 @@ export interface DataCollection {
 /**
  * Fully resolved `DataCollection` with all defaults applied.
  */
-export type ResolvedDataCollection = Required<DataCollection> & {
-  httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
+export type ResolvedDataCollection = Required<Omit<DataCollection, 'httpHeaders'>> & {
+  httpHeaders: Required<HttpHeadersCollection>;
   graphQL: Required<NonNullable<DataCollection['graphQL']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;
 };

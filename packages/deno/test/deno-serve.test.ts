@@ -513,8 +513,8 @@ Deno.test('Deno.serve should capture request headers and set response context', 
 
   // Check response context
   assertEquals(transaction?.contexts?.response?.status_code, 201);
-  assertEquals(transaction?.contexts?.trace?.data?.['http.response.header.content_type'], 'text/plain');
-  assertEquals(transaction?.contexts?.trace?.data?.['http.response.header.x_custom_header'], 'test');
+  assertEquals(transaction?.contexts?.trace?.data?.['http.response.header.content-type'], 'text/plain');
+  assertEquals(transaction?.contexts?.trace?.data?.['http.response.header.x-custom-header'], 'test');
 });
 
 Deno.test('Deno.serve should capture client address and port by default', async () => {
@@ -621,7 +621,7 @@ Deno.test('Deno.serve should keep PII request headers by default', async () => {
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
 
-  assertEquals(transaction?.contexts?.trace?.data?.['http.request.header.x_forwarded_for'], '203.0.113.7');
+  assertEquals(transaction?.contexts?.trace?.data?.['http.request.header.x-forwarded-for'], '203.0.113.7');
 });
 
 Deno.test('Deno.serve should filter PII request headers when configured', async () => {
@@ -658,7 +658,7 @@ Deno.test('Deno.serve should filter PII request headers when configured', async 
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
 
-  assertEquals(transaction?.contexts?.trace?.data?.['http.request.header.x_forwarded_for'], '[Filtered]');
+  assertEquals(transaction?.contexts?.trace?.data?.['http.request.header.x-forwarded-for'], '[Filtered]');
 });
 
 Deno.test('Deno.serve should support distributed tracing with sentry-trace header', async () => {

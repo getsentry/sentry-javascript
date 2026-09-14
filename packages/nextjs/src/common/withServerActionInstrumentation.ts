@@ -7,6 +7,7 @@ import {
   getClient,
   getIsolationScope,
   handleCallbackErrors,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
@@ -20,7 +21,13 @@ import {
   isPrerenderControlFlowError,
   isRedirectNavigationError,
 } from './nextNavigationErrorUtils';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  SENTRY_DESCRIPTION,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
 interface Options {
@@ -115,14 +122,21 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
       },
       async () => {
         try {
+          const client = getClient();
+          const description = `serverAction/${serverActionName}`;
+
           return await startSpan(
             {
-              name: `serverAction/${serverActionName}`,
+              name: client && hasSpanStreamingEnabled(client) ? serverActionName : description,
               // oxlint-disable-next-line typescript/no-deprecated
               forceTransaction: true,
               attributes: {
                 [SENTRY_KIND]: 'server',
                 [SENTRY_OP]: FUNCTION,
+                // Overriding span description inference in Relay, because we can't express the serverAction/ prefix
+                // as a sentry-conventions span name rule for `function` spans.
+                [SENTRY_DESCRIPTION]: description,
+                [CODE_FUNCTION_NAME]: serverActionName,
                 [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
               },

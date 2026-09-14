@@ -13,7 +13,7 @@ test('Should create a span for route handlers', async ({ request }) => {
 
   expect(routehandlerSpan.status).toBe('ok');
   expect(getSpanOp(routehandlerSpan)).toBe('http.server');
-  expect(routehandlerSpan.attributes['http.request.header.x_yeet']?.value).toBe('test-value');
+  expect(routehandlerSpan.attributes['http.request.header.x-yeet']?.value).toBe('test-value');
 });
 
 test('Should create a span for route handlers and correctly set span status depending on http status', async ({

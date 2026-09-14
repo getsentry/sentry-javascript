@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",

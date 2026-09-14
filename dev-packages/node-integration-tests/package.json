@@ -71,7 +71,7 @@
     "generic-pool": "^3.9.0",
     "graphql": "^16.11.0",
     "graphql-tag": "^2.12.7",
-    "hono": "^4.12.34",
+    "hono": "^4.13.5",
     "http-terminator": "^3.2.0",
     "ioredis": "5.10.1",
     "ioredis-5": "npm:ioredis@^5.11.0",
@@ -105,7 +105,7 @@
   },
   "devDependencies": {
     "@opentelemetry/instrumentation-http": "0.220.0",
-    "@sentry/conventions": "0.20.0",
+    "@sentry/conventions": "0.23.0",
     "@sentry-internal/test-utils": "10.67.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",

@@ -22,7 +22,7 @@
     "require-in-the-middle": "^8"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^20",
     "@types/react": "^19",

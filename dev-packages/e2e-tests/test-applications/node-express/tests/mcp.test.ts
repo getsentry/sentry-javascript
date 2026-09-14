@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForStreamedSpan, getSpanOp } from '@sentry-internal/test-utils';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
-test('Should record transactions for mcp handlers', async ({ baseURL }) => {
+test('Should record spans for mcp handlers', async ({ baseURL }) => {
   const transport = new SSEClientTransport(new URL(`${baseURL}/sse`));
 
   const client = new Client({
@@ -12,28 +12,31 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
     version: '1.0.0',
   });
 
-  const initializeTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-    return transactionEvent.transaction === 'initialize';
-  });
+  const initializeSegmentPromise = waitForStreamedSpan(
+    'node-express',
+    segment => segment.is_segment && segment.name === 'initialize',
+  );
 
   await client.connect(transport);
 
   await test.step('initialize handshake', async () => {
-    const initializeTransaction = await initializeTransactionPromise;
-    expect(initializeTransaction).toBeDefined();
-    expect(initializeTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('initialize');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.client.name']).toEqual('test-client');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.server.name']).toEqual('Echo');
+    const initializeSegment = await initializeSegmentPromise;
+    expect(initializeSegment).toBeDefined();
+    expect(getSpanOp(initializeSegment)).toEqual('mcp.server');
+    expect(initializeSegment.attributes?.['mcp.method.name']?.value).toEqual('initialize');
+    expect(initializeSegment.attributes?.['mcp.client.name']?.value).toEqual('test-client');
+    expect(initializeSegment.attributes?.['mcp.server.name']?.value).toEqual('Echo');
   });
 
   await test.step('tool handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'POST /messages';
-    });
-    const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'tools/call echo';
-    });
+    const postSegmentPromise = waitForStreamedSpan(
+      'node-express',
+      segment => segment.is_segment && segment.name === 'POST /messages',
+    );
+    const toolSegmentPromise = waitForStreamedSpan(
+      'node-express',
+      segment => segment.is_segment && segment.name === 'tools/call echo',
+    );
 
     const toolResult = await client.callTool({
       name: 'echo',
@@ -51,24 +54,26 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       ],
     });
 
-    const postTransaction = await postTransactionPromise;
-    expect(postTransaction).toBeDefined();
-    expect(postTransaction.contexts?.trace?.op).toEqual('http.server');
+    const postSegment = await postSegmentPromise;
+    expect(postSegment).toBeDefined();
+    expect(getSpanOp(postSegment)).toEqual('http.server');
 
-    const toolTransaction = await toolTransactionPromise;
-    expect(toolTransaction).toBeDefined();
-    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
+    const toolSegment = await toolSegmentPromise;
+    expect(toolSegment).toBeDefined();
+    expect(getSpanOp(toolSegment)).toEqual('mcp.server');
+    expect(toolSegment.attributes?.['mcp.method.name']?.value).toEqual('tools/call');
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
 
   await test.step('registerTool handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'POST /messages';
-    });
-    const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'tools/call echo-register';
-    });
+    const postSegmentPromise = waitForStreamedSpan(
+      'node-express',
+      segment => segment.is_segment && segment.name === 'POST /messages',
+    );
+    const toolSegmentPromise = waitForStreamedSpan(
+      'node-express',
+      segment => segment.is_segment && segment.name === 'tools/call echo-register',
+    );
 
     const toolResult = await client.callTool({
       name: 'echo-register',
@@ -86,24 +91,26 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       ],
     });
 
-    const postTransaction = await postTransactionPromise;
-    expect(postTransaction).toBeDefined();
-    expect(postTransaction.contexts?.trace?.op).toEqual('http.server');
+    const postSegment = await postSegmentPromise;
+    expect(postSegment).toBeDefined();
+    expect(getSpanOp(postSegment)).toEqual('http.server');
 
-    const toolTransaction = await toolTransactionPromise;
-    expect(toolTransaction).toBeDefined();
-    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.name']).toEqual('echo-register');
+    const toolSegment = await toolSegmentPromise;
+    expect(toolSegment).toBeDefined();
+    expect(getSpanOp(toolSegment)).toEqual('mcp.server');
+    expect(toolSegment.attributes?.['mcp.method.name']?.value).toEqual('tools/call');
+    expect(toolSegment.attributes?.['mcp.tool.name']?.value).toEqual('echo-register');
   });
 
   await test.step('resource handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'POST /messages';
-    });
-    const resourceTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'resources/read echo://foobar';
-    });
+    const postSegmentPromise = waitForStreamedSpan(
+      'node-express',
+      segment => segment.is_segment && segment.name === 'POST /messages',
+    );
+    const resourceSegmentPromise = waitForStreamedSpan(
+      'node-express',
+      segment => segment.is_segment && segment.name === 'resources/read',
+    );
 
     const resourceResult = await client.readResource({
       uri: 'echo://foobar',
@@ -113,24 +120,26 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       contents: [{ text: 'Resource echo: foobar', uri: 'echo://foobar' }],
     });
 
-    const postTransaction = await postTransactionPromise;
-    expect(postTransaction).toBeDefined();
-    expect(postTransaction.contexts?.trace?.op).toEqual('http.server');
+    const postSegment = await postSegmentPromise;
+    expect(postSegment).toBeDefined();
+    expect(getSpanOp(postSegment)).toEqual('http.server');
 
-    const resourceTransaction = await resourceTransactionPromise;
-    expect(resourceTransaction).toBeDefined();
-    expect(resourceTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(resourceTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('resources/read');
+    const resourceSegment = await resourceSegmentPromise;
+    expect(resourceSegment).toBeDefined();
+    expect(getSpanOp(resourceSegment)).toEqual('mcp.server');
+    expect(resourceSegment.attributes?.['mcp.method.name']?.value).toEqual('resources/read');
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
 
   await test.step('prompt handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'POST /messages';
-    });
-    const promptTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'prompts/get echo';
-    });
+    const postSegmentPromise = waitForStreamedSpan(
+      'node-express',
+      segment => segment.is_segment && segment.name === 'POST /messages',
+    );
+    const promptSegmentPromise = waitForStreamedSpan(
+      'node-express',
+      segment => segment.is_segment && segment.name === 'prompts/get echo',
+    );
 
     const promptResult = await client.getPrompt({
       name: 'echo',
@@ -151,21 +160,22 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       ],
     });
 
-    const postTransaction = await postTransactionPromise;
-    expect(postTransaction).toBeDefined();
-    expect(postTransaction.contexts?.trace?.op).toEqual('http.server');
+    const postSegment = await postSegmentPromise;
+    expect(postSegment).toBeDefined();
+    expect(getSpanOp(postSegment)).toEqual('http.server');
 
-    const promptTransaction = await promptTransactionPromise;
-    expect(promptTransaction).toBeDefined();
-    expect(promptTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(promptTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('prompts/get');
+    const promptSegment = await promptSegmentPromise;
+    expect(promptSegment).toBeDefined();
+    expect(getSpanOp(promptSegment)).toEqual('mcp.server');
+    expect(promptSegment.attributes?.['mcp.method.name']?.value).toEqual('prompts/get');
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
 
-  await test.step('error tool sets span status to internal_error', async () => {
-    const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      return transactionEvent.transaction === 'tools/call always-error';
-    });
+  await test.step('error tool sets span status to error', async () => {
+    const toolSegmentPromise = waitForStreamedSpan(
+      'node-express',
+      segment => segment.is_segment && segment.name === 'tools/call always-error',
+    );
 
     try {
       await client.callTool({ name: 'always-error', arguments: {} });
@@ -173,10 +183,10 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       // Expected: MCP SDK throws when the tool returns a JSON-RPC error
     }
 
-    const toolTransaction = await toolTransactionPromise;
-    expect(toolTransaction).toBeDefined();
-    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(toolTransaction.contexts?.trace?.status).toEqual('internal_error');
+    const toolSegment = await toolSegmentPromise;
+    expect(toolSegment).toBeDefined();
+    expect(getSpanOp(toolSegment)).toEqual('mcp.server');
+    expect(toolSegment?.status).toEqual('error');
   });
 });
 
@@ -188,9 +198,10 @@ test('resolves capture policy when the MCP server is wrapped before Sentry.init'
   });
   await client.connect(transport);
 
-  const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-    return transactionEvent.transaction === 'tools/call capture-policy';
-  });
+  const toolSegmentPromise = waitForStreamedSpan(
+    'node-express',
+    segment => segment.is_segment && segment.name === 'tools/call capture-policy',
+  );
   const privateMessage = 'node-v1-private-capture-policy-message';
 
   const toolResult = await client.callTool({
@@ -209,16 +220,17 @@ test('resolves capture policy when the MCP server is wrapped before Sentry.init'
     ],
   });
 
-  const toolTransaction = await toolTransactionPromise;
-  const traceData = toolTransaction.contexts?.trace?.data;
+  const toolSegment = await toolSegmentPromise;
+  const traceData = toolSegment.attributes;
 
-  expect(traceData?.['mcp.method.name']).toBe('tools/call');
-  expect(traceData?.['mcp.tool.name']).toBe('capture-policy');
-  expect(traceData?.['mcp.tool.result.content_count']).toBe(1);
-  expect(traceData?.['mcp.tool.result.content_type']).toBe('text');
-  expect(traceData?.['mcp.request.argument.message']).toBeUndefined();
-  expect(traceData?.['mcp.tool.result.content']).toBeUndefined();
-  expect(JSON.stringify(traceData)).not.toContain(privateMessage);
+  expect(traceData?.['mcp.method.name']?.value).toBe('tools/call');
+  expect(traceData?.['mcp.tool.name']?.value).toBe('capture-policy');
+  expect(traceData?.['mcp.tool.result.content_count']?.value).toBe(1);
+  expect(traceData?.['mcp.tool.result.content_type']?.value).toBe('text');
+  expect(traceData?.['mcp.request.argument.message']?.value).toBeUndefined();
+  expect(traceData?.['mcp.tool.result.content']?.value).toBeUndefined();
+  const mcpAttributes = Object.fromEntries(Object.entries(traceData).filter(([key]) => key.startsWith('mcp.')));
+  expect(JSON.stringify(mcpAttributes)).not.toContain(privateMessage);
 
   await client.close();
 });
@@ -234,7 +246,7 @@ test('resolves capture policy when the MCP server is wrapped before Sentry.init'
  *
  * @see https://github.com/getsentry/sentry-mcp/issues/767
  */
-test('Should record transactions for streamable HTTP transport (wrapper transport pattern)', async ({ baseURL }) => {
+test('Should record spans for streamable HTTP transport (wrapper transport pattern)', async ({ baseURL }) => {
   const transport = new StreamableHTTPClientTransport(new URL(`${baseURL}/mcp`));
 
   const client = new Client({
@@ -242,32 +254,34 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
     version: '1.0.0',
   });
 
-  const initializeTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'initialize' &&
-      transactionEvent.contexts?.trace?.data?.['mcp.server.name'] === 'Echo-Streamable'
-    );
-  });
+  const initializeSegmentPromise = waitForStreamedSpan(
+    'node-express',
+    segment =>
+      segment.is_segment &&
+      segment.name === 'initialize' &&
+      segment.attributes?.['mcp.server.name']?.value === 'Echo-Streamable',
+  );
 
   await client.connect(transport);
 
   await test.step('initialize handshake', async () => {
-    const initializeTransaction = await initializeTransactionPromise;
-    expect(initializeTransaction).toBeDefined();
-    expect(initializeTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('initialize');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.client.name']).toEqual('test-client-streamable');
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.server.name']).toEqual('Echo-Streamable');
+    const initializeSegment = await initializeSegmentPromise;
+    expect(initializeSegment).toBeDefined();
+    expect(getSpanOp(initializeSegment)).toEqual('mcp.server');
+    expect(initializeSegment.attributes?.['mcp.method.name']?.value).toEqual('initialize');
+    expect(initializeSegment.attributes?.['mcp.client.name']?.value).toEqual('test-client-streamable');
+    expect(initializeSegment.attributes?.['mcp.server.name']?.value).toEqual('Echo-Streamable');
     // Verify it's using a StreamableHTTP transport (may be wrapper or inner depending on environment)
-    expect(initializeTransaction.contexts?.trace?.data?.['mcp.transport']).toMatch(/StreamableHTTPServerTransport/);
+    expect(initializeSegment.attributes?.['mcp.transport']?.value).toMatch(/StreamableHTTPServerTransport/);
   });
 
   await test.step('tool handler (tests wrapper transport correlation)', async () => {
     // This is the critical test - without the sessionId fix, the span would not be completed
     // because onmessage and send see different transport instances (wrapper vs inner)
-    const toolTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      const transport = transactionEvent.contexts?.trace?.data?.['mcp.transport'] as string | undefined;
-      return transactionEvent.transaction === 'tools/call echo' && transport?.includes('StreamableHTTPServerTransport');
+    const toolSegmentPromise = waitForStreamedSpan('node-express', segment => {
+      if (!segment.is_segment) return false;
+      const transport = segment.attributes?.['mcp.transport']?.value as string | undefined;
+      return segment.name === 'tools/call echo' && !!transport?.includes('StreamableHTTPServerTransport');
     });
 
     const toolResult = await client.callTool({
@@ -286,22 +300,20 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
       ],
     });
 
-    const toolTransaction = await toolTransactionPromise;
-    expect(toolTransaction).toBeDefined();
-    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.name']).toEqual('echo');
+    const toolSegment = await toolSegmentPromise;
+    expect(toolSegment).toBeDefined();
+    expect(getSpanOp(toolSegment)).toEqual('mcp.server');
+    expect(toolSegment.attributes?.['mcp.method.name']?.value).toEqual('tools/call');
+    expect(toolSegment.attributes?.['mcp.tool.name']?.value).toEqual('echo');
     // This attribute proves the span was completed with results (sessionId correlation worked)
-    expect(toolTransaction.contexts?.trace?.data?.['mcp.tool.result.content_count']).toEqual(1);
+    expect(toolSegment.attributes?.['mcp.tool.result.content_count']?.value).toEqual(1);
   });
 
   await test.step('resource handler', async () => {
-    const resourceTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      const transport = transactionEvent.contexts?.trace?.data?.['mcp.transport'] as string | undefined;
-      return (
-        transactionEvent.transaction === 'resources/read echo://streamable-test' &&
-        transport?.includes('StreamableHTTPServerTransport')
-      );
+    const resourceSegmentPromise = waitForStreamedSpan('node-express', segment => {
+      if (!segment.is_segment) return false;
+      const transport = segment.attributes?.['mcp.transport']?.value as string | undefined;
+      return segment.name === 'resources/read' && !!transport?.includes('StreamableHTTPServerTransport');
     });
 
     const resourceResult = await client.readResource({
@@ -312,18 +324,17 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
       contents: [{ text: 'Resource echo: streamable-test', uri: 'echo://streamable-test' }],
     });
 
-    const resourceTransaction = await resourceTransactionPromise;
-    expect(resourceTransaction).toBeDefined();
-    expect(resourceTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(resourceTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('resources/read');
+    const resourceSegment = await resourceSegmentPromise;
+    expect(resourceSegment).toBeDefined();
+    expect(getSpanOp(resourceSegment)).toEqual('mcp.server');
+    expect(resourceSegment.attributes?.['mcp.method.name']?.value).toEqual('resources/read');
   });
 
   await test.step('prompt handler', async () => {
-    const promptTransactionPromise = waitForTransaction('node-express', transactionEvent => {
-      const transport = transactionEvent.contexts?.trace?.data?.['mcp.transport'] as string | undefined;
-      return (
-        transactionEvent.transaction === 'prompts/get echo' && transport?.includes('StreamableHTTPServerTransport')
-      );
+    const promptSegmentPromise = waitForStreamedSpan('node-express', segment => {
+      if (!segment.is_segment) return false;
+      const transport = segment.attributes?.['mcp.transport']?.value as string | undefined;
+      return segment.name === 'prompts/get echo' && !!transport?.includes('StreamableHTTPServerTransport');
     });
 
     const promptResult = await client.getPrompt({
@@ -345,10 +356,10 @@ test('Should record transactions for streamable HTTP transport (wrapper transpor
       ],
     });
 
-    const promptTransaction = await promptTransactionPromise;
-    expect(promptTransaction).toBeDefined();
-    expect(promptTransaction.contexts?.trace?.op).toEqual('mcp.server');
-    expect(promptTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('prompts/get');
+    const promptSegment = await promptSegmentPromise;
+    expect(promptSegment).toBeDefined();
+    expect(getSpanOp(promptSegment)).toEqual('mcp.server');
+    expect(promptSegment.attributes?.['mcp.method.name']?.value).toEqual('prompts/get');
   });
 
   // Clean up - close the client connection

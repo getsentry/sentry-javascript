@@ -16,7 +16,7 @@ test('Should create a span for node route handlers', async ({ request }) => {
 
   // This is flaking on dev mode
   if (process.env.TEST_ENV !== 'development' && process.env.TEST_ENV !== 'dev-turbopack') {
-    expect(routehandlerSpan.attributes['http.request.header.x_charly']?.value).toBe('gomez');
+    expect(routehandlerSpan.attributes['http.request.header.x-charly']?.value).toBe('gomez');
   }
 });
 
@@ -35,7 +35,7 @@ test('Should create a span for edge route handlers', async ({ request }) => {
 
   expect(routehandlerSpan.status).toBe('ok');
   expect(getSpanOp(routehandlerSpan)).toBe('http.server');
-  expect(routehandlerSpan.attributes['http.request.header.x_charly']?.value).toBe('gomez');
+  expect(routehandlerSpan.attributes['http.request.header.x-charly']?.value).toBe('gomez');
 });
 
 test('Should create a span for static route handlers', async ({ request }) => {

@@ -1,327 +1,245 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
-  const transactionPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span with a parameterized URL', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('ember-embroider', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
   await page.goto(`/`);
 
-  const rootSpan = await transactionPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'pageload',
-        origin: 'auto.pageload.ember',
-        data: {
-          'sentry.origin': 'auto.pageload.ember',
-          'sentry.segment.name.source': 'route',
-          'url.template': '/',
-          'url.path': '/',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-        },
-      },
-    },
-    transaction: 'route:index',
-    transaction_info: {
-      source: 'route',
+  expect(pageloadSpan).toMatchObject({
+    name: 'route:index',
+    is_segment: true,
+    attributes: {
+      'sentry.op': { type: 'string', value: 'pageload' },
+      'sentry.origin': { type: 'string', value: 'auto.pageload.ember' },
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'url.template': { type: 'string', value: '/' },
+      'url.path': { type: 'string', value: '/' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/$/) },
     },
   });
 });
 
-test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a navigation span with a parameterized URL', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('ember-embroider', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  const navigationSpanPromise = waitForStreamedSpan('ember-embroider', span => {
+    return span.is_segment && getSpanOp(span) === 'navigation';
   });
 
   await page.goto(`/`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
-  const [_, navigationTxn] = await Promise.all([page.getByText('Tracing').click(), navigationTxnPromise]);
+  const [_, navigationSpan] = await Promise.all([page.getByText('Tracing').click(), navigationSpanPromise]);
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.ember',
-        data: {
-          'sentry.origin': 'auto.navigation.ember',
-          'sentry.segment.name.source': 'route',
-          'url.template': '/tracing',
-          'url.path': '/tracing',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/tracing$/),
-        },
-      },
-    },
-    transaction: 'route:tracing',
-    transaction_info: {
-      source: 'route',
+  expect(navigationSpan).toMatchObject({
+    name: 'route:tracing',
+    is_segment: true,
+    attributes: {
+      'sentry.op': { type: 'string', value: 'navigation' },
+      'sentry.origin': { type: 'string', value: 'auto.navigation.ember' },
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'url.template': { type: 'string', value: '/tracing' },
+      'url.path': { type: 'string', value: '/tracing' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/tracing$/) },
     },
   });
 });
 
-test('sends a navigation transaction even if the pageload span is still active', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a navigation span even if the pageload span is still active', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('ember-embroider', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  const navigationSpanPromise = waitForStreamedSpan('ember-embroider', span => {
+    return span.is_segment && getSpanOp(span) === 'navigation';
   });
 
   await page.goto(`/`);
 
   // immediately navigate to a different route
-  const [_, pageloadTxn, navigationTxn] = await Promise.all([
+  const [_, pageloadSpan, navigationSpan] = await Promise.all([
     page.getByText('Tracing').click(),
-    pageloadTxnPromise,
-    navigationTxnPromise,
+    pageloadSpanPromise,
+    navigationSpanPromise,
   ]);
 
-  expect(pageloadTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'pageload',
-        origin: 'auto.pageload.ember',
-        data: {
-          'sentry.origin': 'auto.pageload.ember',
-          'sentry.segment.name.source': 'route',
-          'url.template': '/',
-          'url.path': '/',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-        },
-      },
-    },
-    transaction: 'route:index',
-    transaction_info: {
-      source: 'route',
+  expect(pageloadSpan).toMatchObject({
+    name: 'route:index',
+    is_segment: true,
+    attributes: {
+      'sentry.op': { type: 'string', value: 'pageload' },
+      'sentry.origin': { type: 'string', value: 'auto.pageload.ember' },
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'url.template': { type: 'string', value: '/' },
+      'url.path': { type: 'string', value: '/' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/$/) },
     },
   });
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.ember',
-        data: {
-          'sentry.origin': 'auto.navigation.ember',
-          'sentry.segment.name.source': 'route',
-          'url.template': '/tracing',
-          'url.path': '/tracing',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/tracing$/),
-        },
-      },
-    },
-    transaction: 'route:tracing',
-    transaction_info: {
-      source: 'route',
+  expect(navigationSpan).toMatchObject({
+    name: 'route:tracing',
+    is_segment: true,
+    attributes: {
+      'sentry.op': { type: 'string', value: 'navigation' },
+      'sentry.origin': { type: 'string', value: 'auto.navigation.ember' },
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'url.template': { type: 'string', value: '/tracing' },
+      'url.path': { type: 'string', value: '/tracing' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/tracing$/) },
     },
   });
 });
 
 test('captures correct spans for navigation', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  const pageloadSpanPromise = waitForStreamedSpan('ember-embroider', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
-  const navigationTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  const spansPromise = collectStreamedSpans('ember-embroider', spans => {
+    const navigationSpan = spans.find(
+      span => span.is_segment && getSpanOp(span) === 'navigation' && span.name === 'route:slow-loading-route.index',
+    );
+
+    return (
+      !!navigationSpan &&
+      spans.some(span => getSpanOp(span) === 'router' && span.parent_span_id === navigationSpan.span_id) &&
+      spans.filter(
+        span => getSpanOp(span) === 'function' && span.attributes['code.function.name']?.value === 'beforeModel',
+      ).length >= 2 &&
+      spans.filter(span => getSpanOp(span) === 'function' && span.attributes['code.function.name']?.value === 'model')
+        .length >= 2 &&
+      spans.filter(
+        span => getSpanOp(span) === 'function' && span.attributes['code.function.name']?.value === 'afterModel',
+      ).length >= 2 &&
+      spans.filter(span => getSpanOp(span) === 'ui.task' && span.attributes['ember.runloop.queue']?.value === 'render')
+        .length > 1
+    );
   });
 
   await page.goto(`/tracing`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
-  const [_, navigationTxn] = await Promise.all([page.getByText('Measure Things!').click(), navigationTxnPromise]);
+  const [_, spans] = await Promise.all([page.getByText('Measure Things!').click(), spansPromise]);
 
-  const traceId = navigationTxn.contexts?.trace?.trace_id;
-  const spanId = navigationTxn.contexts?.trace?.span_id;
+  const navigationSpan = spans.find(
+    span => span.is_segment && getSpanOp(span) === 'navigation' && span.name === 'route:slow-loading-route.index',
+  );
 
-  expect(traceId).toBeDefined();
-  expect(spanId).toBeDefined();
-
-  const spans = navigationTxn.spans || [];
-
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.ember',
-        data: {
-          'sentry.origin': 'auto.navigation.ember',
-          'sentry.segment.name.source': 'route',
-          'url.template': '/slow-loading-route',
-          'url.path': '/slow-loading-route',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/slow-loading-route$/),
-        },
-      },
-    },
-    transaction: 'route:slow-loading-route.index',
-    transaction_info: {
-      source: 'route',
+  expect(navigationSpan).toMatchObject({
+    name: 'route:slow-loading-route.index',
+    is_segment: true,
+    attributes: {
+      'sentry.op': { type: 'string', value: 'navigation' },
+      'sentry.origin': { type: 'string', value: 'auto.navigation.ember' },
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'url.template': { type: 'string', value: '/slow-loading-route' },
+      'url.path': { type: 'string', value: '/slow-loading-route' },
+      'url.full': { type: 'string', value: expect.stringMatching(/^https?:\/\/localhost:\d+\/slow-loading-route$/) },
     },
   });
 
-  const transitionSpans = spans.filter(span => span.op === 'router');
+  const transitionSpans = spans.filter(
+    span => getSpanOp(span) === 'router' && span.parent_span_id === navigationSpan?.span_id,
+  );
   const beforeModelSpans = spans.filter(
-    span => span.op === 'function' && span.data?.['code.function.name'] === 'beforeModel',
+    span => getSpanOp(span) === 'function' && span.attributes['code.function.name']?.value === 'beforeModel',
   );
-  const modelSpans = spans.filter(span => span.op === 'function' && span.data?.['code.function.name'] === 'model');
+  const modelSpans = spans.filter(
+    span => getSpanOp(span) === 'function' && span.attributes['code.function.name']?.value === 'model',
+  );
   const afterModelSpans = spans.filter(
-    span => span.op === 'function' && span.data?.['code.function.name'] === 'afterModel',
+    span => getSpanOp(span) === 'function' && span.attributes['code.function.name']?.value === 'afterModel',
   );
-  const renderSpans = spans.filter(span => span.op === 'ui.task' && span.data?.['ember.runloop.queue'] === 'render');
+  const renderSpans = spans.filter(
+    span => getSpanOp(span) === 'ui.task' && span.attributes['ember.runloop.queue']?.value === 'render',
+  );
 
   expect(transitionSpans).toHaveLength(1);
-
-  // We have two spans each there - one for `slow-loading-route` and one for `slow-load-route.index`
   expect(beforeModelSpans).toHaveLength(2);
   expect(modelSpans).toHaveLength(2);
   expect(afterModelSpans).toHaveLength(2);
-
-  // There may be many render spans...
   expect(renderSpans.length).toBeGreaterThan(1);
 
-  expect(transitionSpans[0]).toEqual({
-    data: {
-      'sentry.op': 'router',
-      'sentry.origin': 'auto.ui.ember',
-    },
-    description: 'route:tracing -> route:slow-loading-route.index',
-    op: 'router',
-    origin: 'auto.ui.ember',
-    status: 'ok',
-    parent_span_id: spanId,
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: traceId,
+  expect(transitionSpans[0]).toMatchObject({
+    name: 'Router',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'router' },
+      'sentry.origin': { type: 'string', value: 'auto.ui.ember' },
+    }),
   });
 
-  expect(beforeModelSpans).toEqual([
-    {
-      data: {
-        'code.function.name': 'beforeModel',
-        'sentry.op': 'function',
-        'sentry.origin': 'auto.ui.ember',
-      },
-      description: 'slow-loading-route',
-      op: 'function',
-      origin: 'auto.ui.ember',
-      status: 'ok',
-      parent_span_id: spanId,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: traceId,
-    },
-    {
-      data: {
-        'code.function.name': 'beforeModel',
-        'sentry.op': 'function',
-        'sentry.origin': 'auto.ui.ember',
-      },
-      description: 'slow-loading-route.index',
-      op: 'function',
-      origin: 'auto.ui.ember',
-      status: 'ok',
-      parent_span_id: spanId,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: traceId,
-    },
-  ]);
+  expect(beforeModelSpans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: 'slow-loading-route',
+        attributes: expect.objectContaining({
+          'code.function.name': { type: 'string', value: 'beforeModel' },
+          'sentry.op': { type: 'string', value: 'function' },
+          'sentry.origin': { type: 'string', value: 'auto.ui.ember' },
+        }),
+      }),
+      expect.objectContaining({
+        name: 'slow-loading-route.index',
+        attributes: expect.objectContaining({
+          'code.function.name': { type: 'string', value: 'beforeModel' },
+          'sentry.op': { type: 'string', value: 'function' },
+          'sentry.origin': { type: 'string', value: 'auto.ui.ember' },
+        }),
+      }),
+    ]),
+  );
 
-  expect(modelSpans).toEqual([
-    {
-      data: {
-        'code.function.name': 'model',
-        'sentry.op': 'function',
-        'sentry.origin': 'auto.ui.ember',
-      },
-      description: 'slow-loading-route',
-      op: 'function',
-      origin: 'auto.ui.ember',
-      status: 'ok',
-      parent_span_id: spanId,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: traceId,
-    },
-    {
-      data: {
-        'code.function.name': 'model',
-        'sentry.op': 'function',
-        'sentry.origin': 'auto.ui.ember',
-      },
-      description: 'slow-loading-route.index',
-      op: 'function',
-      origin: 'auto.ui.ember',
-      status: 'ok',
-      parent_span_id: spanId,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: traceId,
-    },
-  ]);
+  expect(modelSpans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: 'slow-loading-route',
+        attributes: expect.objectContaining({
+          'code.function.name': { type: 'string', value: 'model' },
+        }),
+      }),
+      expect.objectContaining({
+        name: 'slow-loading-route.index',
+        attributes: expect.objectContaining({
+          'code.function.name': { type: 'string', value: 'model' },
+        }),
+      }),
+    ]),
+  );
 
-  expect(afterModelSpans).toEqual([
-    {
-      data: {
-        'code.function.name': 'afterModel',
-        'sentry.op': 'function',
-        'sentry.origin': 'auto.ui.ember',
-      },
-      description: 'slow-loading-route',
-      op: 'function',
-      origin: 'auto.ui.ember',
-      status: 'ok',
-      parent_span_id: spanId,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: traceId,
-    },
-    {
-      data: {
-        'code.function.name': 'afterModel',
-        'sentry.op': 'function',
-        'sentry.origin': 'auto.ui.ember',
-      },
-      description: 'slow-loading-route.index',
-      op: 'function',
-      origin: 'auto.ui.ember',
-      status: 'ok',
-      parent_span_id: spanId,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: traceId,
-    },
-  ]);
+  expect(afterModelSpans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: 'slow-loading-route',
+        attributes: expect.objectContaining({
+          'code.function.name': { type: 'string', value: 'afterModel' },
+        }),
+      }),
+      expect.objectContaining({
+        name: 'slow-loading-route.index',
+        attributes: expect.objectContaining({
+          'code.function.name': { type: 'string', value: 'afterModel' },
+        }),
+      }),
+    ]),
+  );
 
-  expect(renderSpans).toContainEqual({
-    data: {
-      'ember.runloop.queue': 'render',
-      'sentry.op': 'ui.task',
-      'sentry.origin': 'auto.ui.ember',
-    },
-    description: 'runloop',
-    op: 'ui.task',
-    origin: 'auto.ui.ember',
-    status: 'ok',
-    parent_span_id: spanId,
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: traceId,
-  });
+  expect(renderSpans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: 'runloop',
+        attributes: expect.objectContaining({
+          'ember.runloop.queue': { type: 'string', value: 'render' },
+          'sentry.op': { type: 'string', value: 'ui.task' },
+          'sentry.origin': { type: 'string', value: 'auto.ui.ember' },
+        }),
+      }),
+    ]),
+  );
 });

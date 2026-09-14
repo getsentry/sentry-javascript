@@ -77,7 +77,7 @@ test.describe('server - orchestrion db instrumentation', () => {
 
     const spans = await spansPromise;
 
-    for (const queryText of ['SELECT 1 + 1 AS solution', 'SELECT NOW()']) {
+    for (const queryText of ['SELECT ? + ? AS solution', 'SELECT NOW()']) {
       expect(spans).toContainEqual(
         expect.objectContaining({
           name: 'SELECT',

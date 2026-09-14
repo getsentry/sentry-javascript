@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Isolation scope prevents tag leaking between requests', async ({ request }) => {
-  const transactionEventPromise = waitForTransaction('nitro-3', event => {
-    return event?.transaction === 'GET /api/test-isolation/:id';
+  const segmentSpanPromise = waitForStreamedSpan('nitro-3', span => {
+    return span.is_segment && span.name === 'GET /api/test-isolation/:id';
   });
 
   const errorPromise = waitForError('nitro-3', event => {
@@ -14,12 +14,12 @@ test('Isolation scope prevents tag leaking between requests', async ({ request }
     // noop - route throws
   });
 
-  const transactionEvent = await transactionEventPromise;
+  const segmentSpan = await segmentSpanPromise;
   const error = await errorPromise;
 
-  // Assert that isolation scope works properly
+  expect(segmentSpan).toBeDefined();
+
+  // Streamed spans do not carry scope tags, so the isolation check relies on the error event
   expect(error.tags?.['my-isolated-tag']).toBe(true);
   expect(error.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-  expect(transactionEvent.tags?.['my-isolated-tag']).toBe(true);
-  expect(transactionEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
