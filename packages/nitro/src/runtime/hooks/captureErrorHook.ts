@@ -8,7 +8,7 @@ import {
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import { HTTPError } from 'h3';
+import { HTTPError } from 'nitro/h3';
 import type { CapturedErrorContext } from 'nitro/types';
 
 /**

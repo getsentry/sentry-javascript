@@ -18,6 +18,7 @@ import {
 } from '@sentry/core';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '@sentry/server-utils';
 import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
+import type { H3Event } from 'nitro/h3';
 import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
 import { setServerTimingHeaders } from './setServerTimingHeaders';
 
@@ -64,7 +65,7 @@ function applyResponseStatus(span: Span, data: TracingChannelPayloadWithSpan<{ r
 /**
  * Extracts the parameterized route pattern from the h3 event context.
  */
-function getParameterizedRoute(event: H3TracingRequestEvent['event']): string | undefined {
+function getParameterizedRoute(event: H3Event): string | undefined {
   const matchedRoute = event.context?.matchedRoute;
   if (!matchedRoute) {
     return undefined;
@@ -144,7 +145,7 @@ function setupH3TracingChannels(): void {
   );
 
   h3Channel.subscribe({
-    start: (data: H3TracingRequestEvent) => {
+    start: data => {
       setServerTimingHeaders(data.event);
     },
   });
@@ -233,7 +234,7 @@ function setupSrvxTracingChannels(): void {
 /**
  * Sets the parameterized route attributes on the span.
  */
-function setParameterizedRouteAttributes(span: Span, event: H3TracingRequestEvent['event']): void {
+function setParameterizedRouteAttributes(span: Span, event: H3Event): void {
   const rootSpan = getRootSpan(span);
   if (!rootSpan) {
     return;
