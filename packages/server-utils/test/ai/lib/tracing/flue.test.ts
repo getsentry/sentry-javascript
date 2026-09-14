@@ -202,17 +202,23 @@ describe('createFlueInstrumentation', () => {
         async () => undefined,
       );
 
+      // Asserting a well-formed id, not just "not the carrier's": the span has to still be opened
+      // on a fresh trace, and `not.toBe` alone would also pass if no span were opened at all.
+      expect(agentTraceId()).toMatch(/^[0-9a-f]{32}$/);
       expect(agentTraceId()).not.toBe(TRACE_ID);
     });
 
     // An in-process dispatch is genuinely part of the surrounding trace; continuing the persisted
     // one would detach it from the request it is actually running inside.
     it('keeps the active trace when one is already running', async () => {
-      await startSpan({ name: 'incoming request' }, async () => {
+      let requestTraceId: string | undefined;
+
+      await startSpan({ name: 'incoming request' }, async span => {
+        requestTraceId = spanToStaticSpanJSON(span).trace_id;
         await instrumentation.interceptor(AGENT_OP, { ...AGENT_CTX, traceCarrier: CARRIER }, async () => undefined);
       });
 
-      expect(agentTraceId()).not.toBe(TRACE_ID);
+      expect(agentTraceId()).toBe(requestTraceId);
     });
   });
 
