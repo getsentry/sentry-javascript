@@ -17,9 +17,12 @@ export function Hello() {
     // Wrapped in a manual span: Flue runs the tool while the SDK's `execute_tool` span is active,
     // so this should nest directly under it rather than landing beside it.
     run: ({ city }) =>
-      Sentry.startSpan({ name: 'resolve-weather', attributes: { 'weather.source': 'static-table', 'weather.city': city } }, () => {
-        return `It is 21 degrees and sunny in ${city}.`;
-      }),
+      Sentry.startSpan(
+        { name: 'resolve-weather', attributes: { 'weather.source': 'static-table', 'weather.city': city } },
+        () => {
+          return `It is 21 degrees and sunny in ${city}.`;
+        },
+      ),
   });
 
   // Called from inside a tool on purpose: the dataloader span then lands under `execute_tool` in
