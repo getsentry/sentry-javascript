@@ -63,4 +63,21 @@ describe('createHonoRequestMiddleware — duplicate registration handling', () =
     expect(requestHandler).toHaveBeenCalledTimes(2);
     expect(responseHandler).toHaveBeenCalledTimes(2);
   });
+
+  it("uses a deduplicated middleware's shouldHandleError over the outer (auto) default", async () => {
+    const userShouldHandleError = (): boolean => true;
+    // Outer middleware mirrors the auto-instrumentation: registered first, no shouldHandleError.
+    const auto = createHonoRequestMiddleware();
+    // Inner middleware mirrors a manual `sentry({ shouldHandleError })`: deduplicated behind `auto`.
+    const manual = createHonoRequestMiddleware({ shouldHandleError: userShouldHandleError });
+    const context = fakeContext();
+
+    await auto(context, async () => {
+      await manual(context, async () => {});
+    });
+
+    // The request is still handled exactly once, but with the user's callback, not the default.
+    expect(responseHandler).toHaveBeenCalledTimes(1);
+    expect(responseHandler).toHaveBeenCalledWith(context, userShouldHandleError);
+  });
 });

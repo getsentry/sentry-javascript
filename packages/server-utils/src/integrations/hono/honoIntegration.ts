@@ -93,7 +93,16 @@ function instrumentHonoApp<E extends Env>(app: Hono<E>, options: HonoIntegration
   applyPatches(app);
 }
 
-function instrumentHono(options: HonoIntegrationOptions): void {
+// Subscribing happens at most once, whether reached through the per-client `setup()` path
+// (Node/Bun/Deno) or the eager Cloudflare arm below.
+let constructorSubscribed = false;
+
+function instrumentHono(options: HonoIntegrationOptions): boolean {
+  if (constructorSubscribed) {
+    return false;
+  }
+  constructorSubscribed = true;
+
   diagnosticsChannel.tracingChannel<ConstructorChannelContext>(CHANNELS.HONO_CONSTRUCTOR).end.subscribe(message => {
     safeChannelCallback(() => {
       const app = (message as ConstructorChannelContext).self;
@@ -102,6 +111,8 @@ function instrumentHono(options: HonoIntegrationOptions): void {
       }
     });
   });
+
+  return true;
 }
 
 const _honoIntegration = ((options: HonoIntegrationOptions = {}) => {
@@ -128,3 +139,17 @@ const _honoIntegration = ((options: HonoIntegrationOptions = {}) => {
  * request handling is deduplicated per request, so it runs exactly once.
  */
 export const honoIntegration = defineIntegration(_honoIntegration);
+
+// Cloudflare only: the Hono app is built at module scope, before any per-request `init()` creates a
+// client, so the per-client `setup()` path used on Node/Bun/Deno would subscribe too late to catch
+// the `Hono` constructor. The orchestrion snippet injected into `hono` imports this module at hono's
+// module-eval — before `new Hono()` runs — so arming here catches it. Gated to Cloudflare so the
+// other runtimes keep the lazy, opt-out-respecting `setup()` path.
+//
+// The result is assigned to a global so the call is not tree-shaken out of the Cloudflare bundle
+// (`@sentry/server-utils` is `sideEffects: false`) — the same technique the injected snippet uses.
+// TODO: Remove this hack again once we handle this properly in Cloudflare SDK
+// The some problem exists for e.g. express etc, this is just a bandaid
+if (isCloudflare) {
+  (globalThis as Record<string, unknown>).__SENTRY_HONO_CLOUDFLARE_ARMED__ = instrumentHono({});
+}

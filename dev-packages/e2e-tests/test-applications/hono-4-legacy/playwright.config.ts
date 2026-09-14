@@ -10,7 +10,7 @@ if (!testEnv) {
 const APP_PORT = 38787;
 
 const startCommands: Record<Runtime, string> = {
-  cloudflare: `pnpm dev:cloudflare --port ${APP_PORT}`,
+  cloudflare: `pnpm dev:cf --port ${APP_PORT}`,
   node: `pnpm dev:node`,
   bun: `pnpm dev:bun`,
   deno: `pnpm dev:deno`,

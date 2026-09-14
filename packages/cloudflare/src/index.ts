@@ -136,6 +136,7 @@ export {
   instrumentStateGraph,
   instrumentCreateReactAgent,
   vercelAIIntegration,
+  honoIntegration,
   eveConversationHook,
   getInstrumentedModuleNames,
 } from '@sentry/server-utils';
