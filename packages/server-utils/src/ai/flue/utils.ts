@@ -1,5 +1,11 @@
 import type { LRUMap, Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startInactiveSpan, stringify } from '@sentry/core';
+import {
+  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  stringify,
+} from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_COST_CACHE_CREATION_INPUT_TOKENS,
@@ -33,7 +39,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp } from '../core/utils';
 import { FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
-import type { FlueModelRequestInfo, FlueObservation, FlueUsage } from './types';
+import type { FlueErrorInfo, FlueModelRequestInfo, FlueObservation, FlueUsage } from './types';
 
 /**
  * Flue persists the incoming W3C `traceparent` at admission and replays it on the agent operation.
@@ -69,6 +75,34 @@ function trackSpan(tracker: SpanTracker, key: string, span: Span): void {
   }
 
   tracker.set(key, span);
+}
+
+/**
+ * Report a failed tool or turn as an error event.
+ *
+ * Flue catches whatever the tool threw and reports it as a tool result, so nothing propagates for
+ * the SDK's global handlers to see: without this, a throwing tool produces an errored span and no
+ * error at all. `errorInfo` carries the original name, message and stack, so rebuild an `Error`
+ * from it rather than capturing the serialized shape.
+ */
+function captureFlueError(errorInfo: FlueErrorInfo | undefined, kind: 'tool' | 'turn'): void {
+  if (!errorInfo) {
+    return;
+  }
+
+  const error = new Error(errorInfo.message ?? `Flue ${kind} failed`);
+  error.name = errorInfo.name ?? errorInfo.type ?? 'Error';
+  if (errorInfo.stack) {
+    error.stack = errorInfo.stack;
+  }
+
+  captureException(error, {
+    mechanism: {
+      // Handled: Flue caught it and fed it back to the model as a tool result.
+      handled: true,
+      type: `${FLUE_ORIGIN}.${kind}_error`,
+    },
+  });
 }
 
 export function startTurnSpan(observation: FlueObservation, turnSpans: SpanTracker): void {
@@ -143,6 +177,7 @@ export function endTurnSpan(observation: FlueObservation, turnSpans: SpanTracker
 
   if (observation.isError) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    captureFlueError(observation.errorInfo, 'turn');
   }
   span.end();
 }
@@ -224,6 +259,7 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
 
   if (observation.isError) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    captureFlueError(observation.errorInfo, 'tool');
   }
   span.end();
 }

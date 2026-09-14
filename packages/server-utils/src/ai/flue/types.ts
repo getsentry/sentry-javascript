@@ -56,6 +56,17 @@ export interface FlueModelResponse {
 }
 
 /**
+ * Mirrors Flue's `errorInfo`, which it attaches to a failed tool or turn observation. Flue catches
+ * the throw and turns it into a tool result, so this serialized form is the only trace of it.
+ */
+export interface FlueErrorInfo {
+  type?: string;
+  name?: string;
+  message?: string;
+  stack?: string;
+}
+
+/**
  * One event from Flue's observation stream. Only the fields we read are declared; Flue emits more
  * event types than are handled here, and unknown types are ignored.
  */
@@ -71,6 +82,7 @@ export interface FlueObservation {
   toolName?: string;
   toolCallId?: string;
   isError?: boolean;
+  errorInfo?: FlueErrorInfo;
   purpose?: string;
   durationMs?: number;
   request?: FlueModelRequest;
