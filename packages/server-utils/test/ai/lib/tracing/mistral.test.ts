@@ -249,6 +249,72 @@ describe('instrumentMistralAiClient', () => {
       expect(endedSpans).toHaveLength(1);
     });
 
+    it('keeps the span ok when cancelling rejects an in-flight read', async () => {
+      const endedSpans = setupClient('stream');
+
+      // Mirrors a real HTTP body: cancelling aborts the underlying request, which rejects the read
+      // that was already in flight. A spec `ReadableStream` resolves that read with `done: true`
+      // instead, so the failure mode only shows up on a stream backed by a live connection.
+      let rejectPendingRead: ((error: Error) => void) | undefined;
+      const abortingStream = {
+        [Symbol.asyncIterator]: () => ({ next: () => new Promise<never>(() => {}) }),
+        getReader: () => ({
+          read: () => new Promise<never>((_, reject) => (rejectPendingRead = reject)),
+          cancel: async () => {
+            rejectPendingRead?.(new Error('The operation was aborted'));
+            // Let the rejected read settle before the cancel resolves, which is the race.
+            await Promise.resolve();
+          },
+        }),
+      };
+      const client = instrumentMistralAiClient(
+        fakeClient({ chat: { stream: vi.fn().mockResolvedValue(abortingStream) } }),
+      );
+
+      const stream = await client.chat.stream({ model: 'mistral-large-latest', messages: [] });
+      const reader = stream.getReader();
+      const pendingRead = reader.read().catch(() => undefined);
+      await reader.cancel();
+      await pendingRead;
+
+      expect(endedSpans).toHaveLength(1);
+      expect(spanToStaticSpanJSON(endedSpans[0]!).status).not.toBe('internal_error');
+    });
+
+    it('still marks the span errored when the stream fails without a cancel', async () => {
+      const endedSpans = setupClient('stream');
+      const failing = new ReadableStream({
+        start(controller) {
+          controller.error(new Error('connection reset'));
+        },
+      });
+      const client = instrumentMistralAiClient(fakeClient({ chat: { stream: vi.fn().mockResolvedValue(failing) } }));
+
+      const stream = await client.chat.stream({ model: 'mistral-large-latest', messages: [] });
+      const reader = stream.getReader();
+      await expect(reader.read()).rejects.toThrow('connection reset');
+
+      expect(spanToStaticSpanJSON(endedSpans[0]!).status).toBe('internal_error');
+    });
+
+    it('keeps the span ok when a pending read is cancelled on a real ReadableStream', async () => {
+      const endedSpans = setupClient('stream');
+      const neverResolving = new ReadableStream({ start() {} });
+      const client = instrumentMistralAiClient(
+        fakeClient({ chat: { stream: vi.fn().mockResolvedValue(neverResolving) } }),
+      );
+
+      const stream = await client.chat.stream({ model: 'mistral-large-latest', messages: [] });
+      const reader = stream.getReader();
+      const pendingRead = reader.read();
+      await reader.cancel('user cancel');
+
+      // Spec behaviour: the in-flight read resolves as done rather than rejecting.
+      await expect(pendingRead).resolves.toEqual({ done: true, value: undefined });
+      expect(endedSpans).toHaveLength(1);
+      expect(spanToStaticSpanJSON(endedSpans[0]!).status).not.toBe('internal_error');
+    });
+
     it('counts each chunk once when the iterator reads through `getReader()`', async () => {
       const endedSpans = setupClient('stream');
       const client = instrumentMistralAiClient(fakeClient(), { recordOutputs: true });

@@ -137,6 +137,7 @@ function wrapReader(
   recordOutputs: boolean,
   claim: (consumer: StreamConsumer) => boolean,
   settle: (error?: unknown) => void,
+  markCancelled: () => void,
 ): StreamReaderLike {
   // Captured before the proxy exists so the wrappers below call the real reader, not themselves.
   const originalRead = reader.read;
@@ -168,6 +169,7 @@ function wrapReader(
 
       if (prop === 'cancel' && cancel) {
         return async (reason?: unknown): Promise<unknown> => {
+          markCancelled();
           try {
             return await cancel(reason);
           } finally {
@@ -205,10 +207,18 @@ export function instrumentEventStream(stream: unknown, span: Span, recordOutputs
   const state = createStreamingState();
   let consumer: StreamConsumer | undefined;
   let settled = false;
+  let cancelled = false;
 
   const claim = (candidate: StreamConsumer): boolean => {
     consumer ??= candidate;
     return consumer === candidate;
+  };
+
+  // Set synchronously when the caller asks to cancel, before the underlying cancel is awaited.
+  // Cancelling can reject an in-flight `read()` (it aborts the HTTP body the stream reads from), and
+  // that rejection would otherwise reach `settle` first and record a deliberate abort as a failure.
+  const markCancelled = (): void => {
+    cancelled = true;
   };
 
   const settle = (error?: unknown): void => {
@@ -216,7 +226,7 @@ export function instrumentEventStream(stream: unknown, span: Span, recordOutputs
       return;
     }
     settled = true;
-    if (error !== undefined) {
+    if (error !== undefined && !cancelled) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     }
 
@@ -244,12 +254,14 @@ export function instrumentEventStream(stream: unknown, span: Span, recordOutputs
 
   if (typeof readable.getReader === 'function') {
     const getReader = readable.getReader.bind(readable);
-    readable.getReader = (...args: unknown[]) => wrapReader(getReader(...args), state, recordOutputs, claim, settle);
+    readable.getReader = (...args: unknown[]) =>
+      wrapReader(getReader(...args), state, recordOutputs, claim, settle, markCancelled);
   }
 
   if (typeof readable.cancel === 'function') {
     const cancel = readable.cancel.bind(readable);
     readable.cancel = async (reason?: unknown): Promise<unknown> => {
+      markCancelled();
       try {
         return await cancel(reason);
       } finally {
