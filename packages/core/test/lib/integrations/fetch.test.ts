@@ -253,6 +253,23 @@ describe('createFetchIntegration', () => {
     expect(addBreadcrumbSpy.mock.lastCall?.[0].data?.['url.query']).toBeUndefined();
   });
 
+  it('records an empty breadcrumb URL rather than the string "undefined"', () => {
+    const handler = setupIntegration(fetchIntegration(), client);
+
+    handler({
+      fetchData: { url: '', method: 'GET' },
+      args: [''],
+      startTimestamp: Date.now(),
+      endTimestamp: Date.now() + 100,
+      error: new Error('Invalid URL'),
+    });
+
+    expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { method: 'GET', url: '' } }),
+      expect.anything(),
+    );
+  });
+
   it('creates an error-level breadcrumb for a failed request', () => {
     const handler = setupIntegration(fetchIntegration(), client);
 
