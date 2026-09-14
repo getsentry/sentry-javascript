@@ -56,12 +56,13 @@ function turn(overrides: Partial<FlueObservation> = {}): FlueObservation {
 
 describe('createFlueInstrumentation', () => {
   let endedSpans: Span[];
+  let client: TestClient;
   let instrumentation: FlueInstrumentation;
 
   beforeEach(() => {
     _INTERNAL_clearAiProviderSkips();
     getMainCarrier().__SENTRY__ = undefined;
-    const client = new TestClient(
+    client = new TestClient(
       getDefaultTestClientOptions({
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
         tracesSampleRate: 1,
@@ -497,6 +498,43 @@ describe('createFlueInstrumentation', () => {
     expect(json?.data['sentry.origin']).toBe('auto.ai.flue');
     expect(json?.data['gen_ai.operation.name']).toBe('execute_tool');
     expect(json?.data['gen_ai.tool.name']).toBe('get_weather');
+  });
+
+  // Flue catches whatever the tool threw and feeds it back to the model as a tool result, so
+  // nothing reaches the SDK's global handlers. Without an explicit capture there is an errored span
+  // and no error event at all.
+  it('captures an error event for a failed tool, rebuilt from `errorInfo`', async () => {
+    await withAgent(() => {
+      instrumentation.observe({ type: 'tool_start', toolCallId: 'c1', toolName: 'boom', operationId: 'op_1' }, {});
+      instrumentation.observe(
+        {
+          type: 'tool',
+          toolCallId: 'c1',
+          toolName: 'boom',
+          operationId: 'op_1',
+          isError: true,
+          errorInfo: { type: 'Error', name: 'TypeError', message: 'kaboom', stack: 'TypeError: kaboom\n    at run' },
+        },
+        {},
+      );
+    });
+
+    await client.flush();
+
+    const exception = client.event?.exception?.values?.[0];
+    expect(exception?.type).toBe('TypeError');
+    expect(exception?.value).toBe('kaboom');
+    expect(exception?.mechanism?.type).toBe('auto.ai.flue.tool_error');
+  });
+
+  it('does not capture an error event for a tool that succeeded', async () => {
+    await withAgent(() => {
+      instrumentation.observe({ type: 'tool_start', toolCallId: 'c1', toolName: 'ok', operationId: 'op_1' }, {});
+      instrumentation.observe({ type: 'tool', toolCallId: 'c1', toolName: 'ok', operationId: 'op_1' }, {});
+    });
+    await client.flush();
+
+    expect(client.event).toBeUndefined();
   });
 
   it('marks a failed tool call as errored', async () => {
