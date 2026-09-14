@@ -40,8 +40,7 @@ export const mastra = new Mastra({
  * TODO
  *
  *
- *  1. Tool result not captured — Mastra doesn't populate output on exported tool_call spans, so gen_ai.tool.call.result is empty (arguments are captured).
-  2. Bubbled-up tool errors aren't captured as issues — only reflected on the span (status + error.type); the exporter leaves captureException to the app.
-  5. dataloader/requiresParentSpan — orchestrion span-openers need an active parent; Mastra runs tools with inactive spans, so the `count_items` tool must open its own active span (startSpan) for dataloader's `cache.get` span to emit.
-  6. parametrized routes for mastra?
+  1. Bubbled-up tool errors aren't captured as issues — only reflected on the span (status + error.type); the exporter leaves captureException to the app.
+  2. Mastra runs tools with inactive spans, so the `count_items` tool must open its own active span (startSpan) for dataloader's `cache.get` span to emit.
+  3. parametrized routes for mastra?
   */
