@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { Span } from '@sentry/core';
+import type { Event, Span } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_shouldSkipAiProviderWrapping,
@@ -525,7 +525,37 @@ describe('createFlueInstrumentation', () => {
     expect(exception?.type).toBe('TypeError');
     expect(exception?.value).toBe('kaboom');
     expect(exception?.mechanism?.type).toBe('auto.ai.flue');
-    expect(exception?.mechanism?.handled).toBe(false);
+    // Handled: Flue caught the throw and returned it to the model, so no global hook sees it.
+    expect(exception?.mechanism?.handled).toBe(true);
+  });
+
+  // Flue swallows the throw, so nothing else reports it. If a second capture path is ever added,
+  // or the error starts propagating to the global handlers, this catches the duplicate.
+  it('captures a failed tool exactly once', async () => {
+    const events: Event[] = [];
+    TestClient.sendEventCalled = event => events.push(event);
+
+    try {
+      await withAgent(() => {
+        instrumentation.observe({ type: 'tool_start', toolCallId: 'c1', toolName: 'boom', operationId: 'op_1' }, {});
+        instrumentation.observe(
+          {
+            type: 'tool',
+            toolCallId: 'c1',
+            toolName: 'boom',
+            operationId: 'op_1',
+            isError: true,
+            errorInfo: { name: 'Error', message: 'kaboom' },
+          },
+          {},
+        );
+      });
+      await client.flush();
+    } finally {
+      TestClient.sendEventCalled = undefined;
+    }
+
+    expect(events.filter(event => event.exception?.values?.length)).toHaveLength(1);
   });
 
   it('does not capture an error event for a tool that succeeded', async () => {
