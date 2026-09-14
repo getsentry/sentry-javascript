@@ -79,19 +79,22 @@ function trackSpan(tracker: SpanTracker, key: string, span: Span): void {
 }
 
 /**
- * Report a failed tool or turn as an error event.
+ * Report a failed tool as an error event.
  *
- * Flue catches whatever the tool threw and reports it as a tool result, so nothing propagates for
- * the SDK's global handlers to see: without this, a throwing tool produces an errored span and no
- * error at all. `errorInfo` carries the original name, message and stack, so rebuild an `Error`
- * from it rather than capturing the serialized shape.
+ * Flue catches whatever the tool threw and hands it back to the model as a tool result, so nothing
+ * propagates for the SDK's global handlers to see: without this a throwing tool produces an errored
+ * span and no issue at all. `errorInfo` carries the original name, message and stack, so rebuild an
+ * `Error` from it rather than capturing the serialized shape.
+ *
+ * Tools only. A failed turn carries no `errorInfo` — a provider auth failure produces an errored
+ * `chat` span and nothing to rebuild from — so there is no turn equivalent to capture.
  */
-function captureFlueError(span: Span, errorInfo: FlueErrorInfo | undefined, kind: 'tool' | 'turn'): void {
+function captureToolError(span: Span, errorInfo: FlueErrorInfo | undefined): void {
   if (!errorInfo) {
     return;
   }
 
-  const error = new Error(errorInfo.message ?? `Flue ${kind} failed`);
+  const error = new Error(errorInfo.message ?? 'Flue tool failed');
   error.name = errorInfo.name ?? errorInfo.type ?? 'Error';
   if (errorInfo.stack) {
     error.stack = errorInfo.stack;
@@ -176,7 +179,6 @@ export function endTurnSpan(observation: FlueObservation, turnSpans: SpanTracker
 
   if (observation.isError) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-    captureFlueError(span, observation.errorInfo, 'turn');
   }
   span.end();
 }
@@ -258,7 +260,7 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
 
   if (observation.isError) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-    captureFlueError(span, observation.errorInfo, 'tool');
+    captureToolError(span, observation.errorInfo);
   }
   span.end();
 }

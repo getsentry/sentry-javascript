@@ -182,6 +182,10 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
       }
     },
 
+    // Only the turn and tool spans are ended here. They come from `startInactiveSpan`, so nothing
+    // else will. The agent spans come from `startSpan`, which ends them when its callback settles —
+    // ending them here would stamp an early end time on work that is still running, and the later
+    // `end()` would be ignored.
     dispose: () => {
       for (const span of [...turnSpans.values(), ...toolSpans.values()]) {
         span.end();
