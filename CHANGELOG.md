@@ -16,6 +16,7 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
   - `DenoMysql` => `Mysql`
   - `DenoPostgres` => `Postgres`
 - feat(node): Add first-party Mastra integration ([#23823](https://github.com/getsentry/sentry-javascript/pull/23823)). Enabled by default; disable with `defaultIntegrations: integrations => integrations.filter(i => i.name !== 'Mastra')`.
+- feat(node): Name Mastra server routes from their route pattern. The Mastra integration now names incoming requests' `http.server` span after the matched Hono route (e.g. `POST /api/agents/:agentId/generate`, `GET /echo/:id`) with `http.route` set and name source `route`, instead of the raw URL — for both built-in API routes and custom `registerApiRoute`s. This keeps route transactions low-cardinality. Disable with `mastraIntegration({ instrumentServerRoutes: false })`.
 - feat(node): Enable the `dataloader` and `knex` integrations by default. Both were previously opt-in — `dataloader` was removed from the defaults in v8 due to an upstream OpenTelemetry bug that has since been fixed, and `knex` was never enabled by default. You no longer need to add `dataloaderIntegration()` or `knexIntegration()` manually. Disable either with `defaultIntegrations: integrations => integrations.filter(i => i.name !== 'Dataloader' /* or 'Knex' */)`.
 - **feat(browser): Add `bfcacheMetricsIntegration` to track back/forward cache health**
 
