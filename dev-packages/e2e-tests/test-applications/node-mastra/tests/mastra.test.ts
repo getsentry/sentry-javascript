@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, SerializedStreamedSpan, waitForError } from '@sentry-internal/test-utils';
 import { runAgentTurn } from './utils';
 
 const APP = 'node-mastra';
@@ -98,19 +98,17 @@ test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs
   expect(attrValue(executeTool!, 'gen_ai.conversation.id')).toBe(thread);
 });
 
-test('records a bubbled-up Mastra tool error on the span', async ({ baseURL }) => {
-  // This asserts the *current* behavior: when a tool throws, Mastra reports it as
-  // `errorInfo` and the Sentry exporter reflects that on the tool span (error
-  // status + `error.type`). It does NOT (today) surface as a captured Sentry
-  // error/issue: the exporter deliberately leaves `captureException` to the app,
-  // and nothing here re-captures the bubbled-up error. Whether the SDK should
-  // capture such errors automatically is a follow-up — see
-  // https://github.com/getsentry/sentry-javascript (Mastra integration).
-  //
-  // `fail_now` is unique to this test, so its errored tool span isolates this
-  // turn's trace from the other tests sharing the proxy.
+test('captures a Mastra tool error as an issue and marks the tool span', async ({ baseURL }) => {
+  // A thrown tool error surfaces both ways: reflected on the exporter's tool span (error status +
+  // `error.type`) and captured as a Sentry issue with the real error and stack, from the Mastra
+  // integration (mechanism `auto.ai.mastra`). `fail_now` is unique to this test, so both the errored
+  // tool span and the captured error isolate this turn.
   const erroredToolSpanPromise = collectStreamedSpans(APP, spansOfTrace =>
     spansOfTrace.some(span => callsTool('fail_now')(span) && Boolean(attrValue(span, 'error.type'))),
+  );
+  const errorPromise = waitForError(
+    APP,
+    event => event.exception?.values?.[0]?.value === 'Intentional Mastra tool failure',
   );
 
   await runAgentTurn(baseURL!, 'Please call the tool that triggers a failure now.');
@@ -121,7 +119,14 @@ test('records a bubbled-up Mastra tool error on the span', async ({ baseURL }) =
   // The errored tool span comes from the Mastra exporter (no double instrumentation).
   expect(attrValue(erroredTool!, 'sentry.origin')).toBe(MASTRA_ORIGIN);
   expect(attrValue(erroredTool!, 'gen_ai.tool.name')).toBe('fail_now');
-  // The error is recorded on the span (status + type), not as a separate issue.
   expect(attrValue(erroredTool!, 'error.type')).toBeTruthy();
   expect(erroredTool!.status).not.toBe('ok');
+
+  // The thrown error is captured as a proper issue with a real stack.
+  const error = await errorPromise;
+  const exception = error.exception?.values?.[0];
+  expect(exception?.value).toBe('Intentional Mastra tool failure');
+  expect(exception?.mechanism?.type).toBe('auto.ai.mastra');
+  expect(exception?.mechanism?.handled).toBe(false);
+  expect((exception?.stacktrace?.frames ?? []).length).toBeGreaterThan(0);
 });

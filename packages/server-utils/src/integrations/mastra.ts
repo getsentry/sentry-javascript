@@ -3,7 +3,15 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { IntegrationFn } from '@sentry/core';
-import { consoleSandbox, debug, defineIntegration, GLOBAL_OBJ, isObjectLike } from '@sentry/core';
+import {
+  captureException,
+  consoleSandbox,
+  debug,
+  defineIntegration,
+  GLOBAL_OBJ,
+  isObjectLike,
+  withActiveSpan,
+} from '@sentry/core';
 import {
   COMMUNITY_MASTRA_SENTRY_EXPORTER_NAME,
   MASTRA_EXPORTER_BRAND,
@@ -67,7 +75,8 @@ const _mastraIntegration = ((options: MastraOptions = {}) => {
   return {
     name: MASTRA_INTEGRATION_NAME,
     setup(client) {
-      // Attaching the exporter opens no spans, so a missing async-context binding must not defer it.
+      // Attaching the exporter and capturing errors open no spans, so a missing async-context binding
+      // must not defer them.
       invokeOrchestrionInstrumentation(client, mastraModuleNames, instrumentExporter, [options], {
         requiresTracingChannelBinding: false,
       });
@@ -85,6 +94,42 @@ function instrumentExporter(options: MastraOptions): void {
       attachExporter(self, options);
     });
   });
+
+  captureExecuteWithContextErrors();
+}
+
+/**
+ * Capture errors thrown by Mastra operations as Sentry issues. Mastra runs each operation's work
+ * inside `executeWithContext({ span, fn })`; when `fn` rejects, the channel's `error` carries the real
+ * `Error` (with a stack), so we capture that rather than the exporter's stack-less `errorInfo`. Deduped
+ * against re-captures (Mastra can re-throw the same error through outer operations) and associated with
+ * the exporter's span for that operation so it lands on the right trace. Capturing needs no async
+ * context binding, so it rides the attach-only path.
+ */
+function captureExecuteWithContextErrors(): void {
+  diagnosticsChannel
+    .tracingChannel<ExecuteWithContextChannelContext>(CHANNELS.MASTRA_EXECUTE_WITH_CONTEXT)
+    .error.subscribe(message => {
+      safeChannelCallback(() => {
+        const data = message as ExecuteWithContextChannelContext & { error: unknown };
+        captureMastraError(data.error, (data.arguments as unknown[] | undefined)?.[0]);
+      });
+    });
+}
+
+function captureMastraError(error: unknown, params: unknown): void {
+  const id = isObjectLike(params) ? mastraSpanId(params.span) : undefined;
+  const span = id ? getSentrySpanForMastraId(id) : undefined;
+  // `captureException` dedupes on the error instance, so the same error re-thrown through outer
+  // `executeWithContext` calls is captured only once.
+  const capture = (): string => captureException(error, { mechanism: { type: 'auto.ai.mastra', handled: false } });
+
+  // Attach to the operation's span so the issue lands on the right trace, when the span is still open.
+  if (span) {
+    withActiveSpan(span, capture);
+  } else {
+    capture();
+  }
 }
 
 /**
