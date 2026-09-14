@@ -25,15 +25,10 @@ test('wraps a custom Mastra route in an http.server span with correct attributes
 
   expect(serverSpan).toBeDefined();
   expect(getSpanOp(serverSpan!)).toBe('http.server');
-  expect(serverSpan!.name).toBe('GET');
+  expect(serverSpan!.name).toBe('GET /manual-route');
   expect(attrValue(serverSpan!, 'http.request.method')).toBe('GET');
   expect(attrValue(serverSpan!, 'http.response.status_code')).toBe(200);
   expect(String(attrValue(serverSpan!, 'url.full') ?? '')).toContain('/manual-route');
-
-  // Codifies current behavior: the transaction name is derived from the URL path,
-  // not a route pattern. Mastra serves custom routes through Hono, which Sentry
-  // does not route-instrument the way it does Express — so there is no `http.route`
-  // attribute and the name source is `url` (an Express route would give `route`).
-  expect(attrValue(serverSpan!, 'sentry.segment.name.source')).toBe('url');
-  expect(attrValue(serverSpan!, 'http.route')).toBeUndefined();
+  expect(attrValue(serverSpan!, 'sentry.segment.name.source')).toBe('route');
+  expect(attrValue(serverSpan!, 'http.route')).toBe('/manual-route');
 });
