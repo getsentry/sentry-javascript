@@ -2,6 +2,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
+import { countItemsTool } from '../tools/count-items.js';
 import { failNowTool } from '../tools/fail-now.js';
 import { getWeatherTool } from '../tools/get-weather.js';
 
@@ -32,9 +33,10 @@ export const weatherAgent = new Agent({
     'You are a concise assistant used by an automated end-to-end test.',
     'When the user asks about the weather in a place, call the `get_weather` tool for that place and answer in one short sentence using its result.',
     'When the user asks you to trigger a failure, call the `fail_now` tool.',
+    'When the user asks you to count items, call the `count_items` tool with the item names.',
     'Do not ask follow-up questions.',
   ].join('\n'),
   model: openrouter('openai/gpt-4o-mini'),
-  tools: { get_weather: getWeatherTool, fail_now: failNowTool },
+  tools: { get_weather: getWeatherTool, fail_now: failNowTool, count_items: countItemsTool },
   memory,
 });

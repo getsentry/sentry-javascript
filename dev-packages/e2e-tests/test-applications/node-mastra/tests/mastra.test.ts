@@ -86,15 +86,10 @@ test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs
   expect(String(attrValue(invokeAgent!, 'gen_ai.input.messages') ?? '')).toContain('Paris');
   expect(String(attrValue(invokeAgent!, 'gen_ai.output.messages') ?? '')).not.toBe('');
   expect(String(attrValue(executeTool!, 'gen_ai.tool.call.arguments') ?? '')).toContain('Paris');
-  // NOTE: current behavior — the tool *arguments* are captured, but the tool
-  // *result* is not. Mastra does not populate `output` on the exported
-  // `tool_call` span at export time (the exporter maps `span.output` to
-  // `gen_ai.tool.call.result`), so it comes through empty even though the tool
-  // returns `{ city, condition: 'Sunny', temperatureC: 22 }`. Asserting the
-  // empty value documents the gap; if Mastra starts emitting tool output this
-  // will fail and should become `.toContain('Sunny')`. Follow-up: capture tool
-  // results for the Mastra integration.
-  expect(String(attrValue(executeTool!, 'gen_ai.tool.call.result') ?? '')).toBe('');
+  // Both the tool arguments and the tool result are captured. The exporter maps
+  // Mastra's tool `output` to `gen_ai.tool.call.result`; here the tool returns
+  // `{ city, condition: 'Sunny', temperatureC: 22 }`.
+  expect(String(attrValue(executeTool!, 'gen_ai.tool.call.result') ?? '')).toContain('Sunny');
 
   // Conversation id: the exporter maps Mastra's `metadata.threadId` to
   // `gen_ai.conversation.id` on every mapped span.

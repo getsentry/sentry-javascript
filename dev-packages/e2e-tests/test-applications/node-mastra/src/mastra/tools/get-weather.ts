@@ -10,7 +10,7 @@ export const getWeatherTool = createTool({
     condition: z.string(),
     temperatureC: z.number(),
   }),
-  async execute({ context }) {
-    return { city: context.city, condition: 'Sunny', temperatureC: 22 };
+  async execute(inputData) {
+    return { city: inputData.city, condition: 'Sunny', temperatureC: 22 };
   },
 });
