@@ -134,6 +134,7 @@ export {
   instrumentStateGraph,
   instrumentCreateReactAgent,
   vercelAIIntegration,
+  eveConversationHook,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

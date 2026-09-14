@@ -146,6 +146,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
+  eveConversationHook,
 } from '@sentry/server-utils';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared

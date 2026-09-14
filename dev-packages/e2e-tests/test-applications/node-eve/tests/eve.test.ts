@@ -34,7 +34,7 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
       ) && spansOfTrace.some(isAgentServerSpan),
   );
 
-  await runAgentTurn(baseURL!, 'What is the weather in Paris?');
+  const sessionId = await runAgentTurn(baseURL!, 'What is the weather in Paris?');
 
   const traceSpans = await traceSpansPromise;
 
@@ -65,6 +65,14 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   expect(executeTool?.attributes?.['gen_ai.tool.call.arguments']?.value).toContain('Paris');
   // The tool returns `{ city, condition: 'Sunny', temperatureC: 22 }`.
   expect(executeTool?.attributes?.['gen_ai.tool.call.result']?.value).toContain('Sunny');
+
+  // `agent/hooks/sentry.ts` sets the eve session id as the conversation id via
+  // `Sentry.eveConversationHook()`, so every gen_ai span in the turn is tagged with it — that is
+  // what links a multi-turn session (each turn is its own trace) into one Sentry conversation.
+  expect(sessionId).toBeTruthy();
+  for (const span of [invokeAgent, generateContent, executeTool]) {
+    expect(span?.attributes?.['gen_ai.conversation.id']?.value).toBe(sessionId);
+  }
 
   // The agent turn is captured as an http.server span on one of eve's two agent
   // request paths (the other http.server spans — health and the event stream —
