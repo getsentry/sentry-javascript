@@ -1,3 +1,4 @@
+import { URL_FRAGMENT, URL_QUERY } from '@sentry/conventions/attributes';
 import { addBreadcrumb } from '../breadcrumbs';
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
@@ -9,9 +10,11 @@ import type { HandlerDataFetch } from '../types/instrument';
 import type { Integration, IntegrationFn } from '../types/integration';
 import type { Span, SpanOrigin } from '../types/span';
 import { getBreadcrumbLogLevelFromHttpStatusCode } from '../utils/breadcrumb-log-level';
+import { filterCollectedUrlQuery } from '../utils/data-collection/filterCollectedUrl';
 import { isSentryRequestUrl } from '../utils/isSentryRequestUrl';
 import { LRUMap } from '../utils/lru';
 import { shouldPropagateTraceForUrl } from '../utils/tracePropagationTargets';
+import { getSanitizedUrlString, getUrlFragment, getUrlQuery, parseUrl } from '../utils/url';
 
 export interface FetchIntegrationOptions {
   /**
@@ -100,7 +103,7 @@ export function createFetchIntegration({
           });
 
           if (config.breadcrumbs) {
-            createBreadcrumb(handlerData);
+            createBreadcrumb(handlerData, client);
           }
         });
       },
@@ -147,7 +150,7 @@ function resolveConfig(client: Client, options: FetchIntegrationOptions): Client
   };
 }
 
-function createBreadcrumb(handlerData: HandlerDataFetch): void {
+function createBreadcrumb(handlerData: HandlerDataFetch, client: Client): void {
   const { startTimestamp, endTimestamp } = handlerData;
 
   // We only capture complete fetch requests
@@ -155,9 +158,13 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
     return;
   }
 
+  const parsedUrl = parseUrl(handlerData.fetchData.url);
+
   const breadcrumbData: FetchBreadcrumbData = {
     method: handlerData.fetchData.method,
-    url: handlerData.fetchData.url,
+    url: getSanitizedUrlString(parsedUrl),
+    [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client),
+    [URL_FRAGMENT]: getUrlFragment(parsedUrl.hash),
   };
 
   if (handlerData.error) {
