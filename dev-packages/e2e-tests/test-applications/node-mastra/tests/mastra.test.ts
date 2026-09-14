@@ -34,11 +34,16 @@ test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs
   // across envelopes until the agent/model spans have also arrived. Tool spans are
   // matched by op alone (not origin), so a double-instrumented span is collected
   // too and caught by the assertions below.
+  const isGenerateServerSpan = (span: SerializedStreamedSpan): boolean =>
+    isOp('http.server')(span) && String(attrValue(span, 'url.full') ?? '').includes('/api/agents/');
+
   const traceSpansPromise = collectStreamedSpans(
     APP,
     spansOfTrace =>
       spansOfTrace.some(callsTool('get_weather')) &&
-      ['gen_ai.invoke_agent', 'gen_ai.chat'].every(op => spansOfTrace.some(isOp(op))),
+      ['gen_ai.invoke_agent', 'gen_ai.chat'].every(op => spansOfTrace.some(isOp(op))) &&
+      // The root `http.server` span ends (and streams) after its children, so wait for it too.
+      spansOfTrace.some(isGenerateServerSpan),
   );
 
   await runAgentTurn(baseURL!, 'What is the weather in Paris?', { thread, resource: 'e2e-user' });
@@ -96,6 +101,19 @@ test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs
   expect(attrValue(invokeAgent!, 'gen_ai.conversation.id')).toBe(thread);
   expect(attrValue(chat!, 'gen_ai.conversation.id')).toBe(thread);
   expect(attrValue(executeTool!, 'gen_ai.conversation.id')).toBe(thread);
+
+  // http.server span: Mastra serves the agent through its internal Hono server, so the incoming
+  // `POST /api/agents/weatherAgent/generate` request is the root `http.server` span of this trace,
+  // and the AI spans above are its children.
+  const serverSpan = traceSpans.find(isGenerateServerSpan);
+  expect(serverSpan).toBeDefined();
+  expect(getSpanOp(serverSpan!)).toBe('http.server');
+  expect(attrValue(serverSpan!, 'http.request.method')).toBe('POST');
+  expect(attrValue(serverSpan!, 'http.response.status_code')).toBe(200);
+  expect(String(attrValue(serverSpan!, 'url.full') ?? '')).toContain('/api/agents/weatherAgent/generate');
+  expect(attrValue(serverSpan!, 'sentry.segment.name.source')).toBe('route');
+  expect(attrValue(serverSpan!, 'http.route')).toMatch(/^\/api\/agents\/:[^/]+\/generate$/);
+  expect(serverSpan!.name).toMatch(/^POST \/api\/agents\/:[^/]+\/generate$/);
 });
 
 test('captures a Mastra tool error as an issue and marks the tool span', async ({ baseURL }) => {

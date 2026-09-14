@@ -21,14 +21,14 @@ test('wraps a custom Mastra route in an http.server span with correct attributes
   await res.json();
 
   const spans = await spansPromise;
-  const serverSpan = spans.find(isManualRouteServerSpan);
+  const serverSpan = spans.find(isManualRouteServerSpan)!;
 
   expect(serverSpan).toBeDefined();
-  expect(getSpanOp(serverSpan!)).toBe('http.server');
-  expect(serverSpan!.name).toBe('GET /manual-route');
-  expect(attrValue(serverSpan!, 'http.request.method')).toBe('GET');
-  expect(attrValue(serverSpan!, 'http.response.status_code')).toBe(200);
-  expect(String(attrValue(serverSpan!, 'url.full') ?? '')).toContain('/manual-route');
-  expect(attrValue(serverSpan!, 'sentry.segment.name.source')).toBe('route');
-  expect(attrValue(serverSpan!, 'http.route')).toBe('/manual-route');
+  expect(getSpanOp(serverSpan)).toBe('http.server');
+  expect(attrValue(serverSpan, 'http.request.method')).toBe('GET');
+  expect(attrValue(serverSpan, 'http.response.status_code')).toBe(200);
+  expect(String(attrValue(serverSpan, 'url.full') ?? '')).toContain('/manual-route');
+  expect(serverSpan.name).toBe('GET /manual-route');
+  expect(attrValue(serverSpan, 'sentry.segment.name.source')).toBe('route');
+  expect(attrValue(serverSpan, 'http.route')).toBe('/manual-route');
 });
