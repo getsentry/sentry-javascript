@@ -13,6 +13,9 @@ interface SentryTestVariant {
   'build-command': string;
   'assert-command'?: string;
   label?: string;
+  // When true, the variant is excluded from the CI matrix (see `getTestMatrix.mjs`) and skipped by
+  // the local runner. Use it to park a variant blocked by an upstream bug without deleting it.
+  skip?: boolean;
 }
 
 interface PackageJson {
@@ -82,7 +85,13 @@ async function getVariantBuildCommand(
   packageJsonPath: string,
   variantLabel: string,
   testAppPath: string,
-): Promise<{ buildCommand: string; assertCommand: string; testLabel: string; matchedVariantLabel?: string }> {
+): Promise<{
+  buildCommand: string;
+  assertCommand: string;
+  testLabel: string;
+  matchedVariantLabel?: string;
+  skip?: boolean;
+}> {
   try {
     const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
     const packageJson: PackageJson = JSON.parse(packageJsonContent);
@@ -100,6 +109,7 @@ async function getVariantBuildCommand(
         assertCommand: matchingVariant['assert-command'] || 'pnpm test:assert',
         testLabel: matchingVariant.label || testAppPath,
         matchedVariantLabel: matchingVariant.label,
+        skip: matchingVariant.skip,
       };
     }
 
@@ -228,13 +238,20 @@ async function run(): Promise<void> {
 
     const cwd = tmpDirPath;
     // Resolve variant if needed
-    const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
+    const { buildCommand, assertCommand, testLabel, matchedVariantLabel, skip } = variantLabel
       ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
       : {
           buildCommand: 'pnpm test:build',
           assertCommand: 'pnpm test:assert',
           testLabel: testAppPath,
         };
+
+    // A variant marked `skip` is parked (e.g. blocked by an upstream bug); don't build or test it.
+    if (skip) {
+      console.log(`\n\nSkipping variant "${matchedVariantLabel ?? variantLabel}" (marked skip).\n\n`);
+      await rm(tmpDirPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
+      continue;
+    }
 
     // Print which variant we're using if found
     if (matchedVariantLabel) {
