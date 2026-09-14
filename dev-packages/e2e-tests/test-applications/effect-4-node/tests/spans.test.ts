@@ -58,8 +58,10 @@ test('Sends Effect spans with correct parent-child structure', async ({ baseURL 
   expect(parent.parent_span_id).toBe(segment.span_id);
   expect(nested.parent_span_id).toBe(parent.span_id);
   for (const child of children) {
-    expect(getSpanOp(child)).toBe('function');
-    expect(child.attributes['sentry.origin']?.value).toBe('auto.function.effect');
+    // These spans come from user code calling `Effect.withSpan`, so the SDK does not claim an op or
+    // an `auto.*` origin for them.
+    expect(getSpanOp(child)).toBeUndefined();
+    expect(child.attributes['sentry.origin']?.value).toBe('manual');
     expect(child.trace_id).toBe(segment.trace_id);
   }
 });

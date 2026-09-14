@@ -453,8 +453,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.content_type': 'application/json',
-        'http.request.header.user_agent': 'test-agent',
+        'http.request.header.content-type': 'application/json',
+        'http.request.header.user-agent': 'test-agent',
       });
     });
 
@@ -467,7 +467,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.custom_header': 'value1;value2',
+        'http.request.header.custom-header': 'value1;value2',
         'http.request.header.accept': 'application/json;text/html',
       });
     });
@@ -481,8 +481,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.valid_header': 'valid-value',
-        'http.request.header.undefined_values': ';',
+        'http.request.header.valid-header': 'valid-value',
+        'http.request.header.undefined-values': ';',
       });
     });
 
@@ -495,7 +495,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.valid_header': 'valid-value',
+        'http.request.header.valid-header': 'valid-value',
       });
     });
 
@@ -508,12 +508,12 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.empty_header': '',
-        'http.request.header.valid_header': 'valid-value',
+        'http.request.header.empty-header': '',
+        'http.request.header.valid-header': 'valid-value',
       });
     });
 
-    it('converts header names to lowercase and replaces dashes with underscores', () => {
+    it('converts header names to lowercase and preserves dashes', () => {
       const headers = {
         'Content-Type': 'application/json',
         'X-CUSTOM-HEADER': 'custom-value',
@@ -524,9 +524,9 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.content_type': 'application/json',
-        'http.request.header.x_custom_header': 'custom-value',
-        'http.request.header.user_agent': 'test-agent',
+        'http.request.header.content-type': 'application/json',
+        'http.request.header.x-custom-header': 'custom-value',
+        'http.request.header.user-agent': 'test-agent',
         'http.request.header.accept': 'text/html',
       });
     });
@@ -548,14 +548,14 @@ describe('request utils', () => {
 
       expect(result).toEqual({
         'http.request.header.host': 'example.com',
-        'http.request.header.user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'http.request.header.user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'http.request.header.accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'http.request.header.accept_language': 'en-US,en;q=0.5',
-        'http.request.header.accept_encoding': 'gzip, deflate',
+        'http.request.header.accept-language': 'en-US,en;q=0.5',
+        'http.request.header.accept-encoding': 'gzip, deflate',
         'http.request.header.connection': 'keep-alive',
-        'http.request.header.upgrade_insecure_requests': '1',
-        'http.request.header.cache_control': 'no-cache',
-        'http.request.header.x_forwarded_for': '192.168.1.1',
+        'http.request.header.upgrade-insecure-requests': '1',
+        'http.request.header.cache-control': 'no-cache',
+        'http.request.header.x-forwarded-for': '192.168.1.1',
       });
     });
 
@@ -568,7 +568,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.x_random_header': 'test=abc123;preferences=dark-mode;number=three',
+        'http.request.header.x-random-header': 'test=abc123;preferences=dark-mode;number=three',
         'http.request.header.accept': 'application/json;text/html',
       });
     });
@@ -582,8 +582,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.empty_header': '',
-        'http.request.header.valid_header': 'valid-value',
+        'http.request.header.empty-header': '',
+        'http.request.header.valid-header': 'valid-value',
       });
     });
 
@@ -609,7 +609,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.mixed_types': 'string-value;123;true;',
+        'http.request.header.mixed-types': 'string-value;123;true;',
       });
     });
 
@@ -625,7 +625,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
       expect(result).toEqual({
-        'http.request.header.string_header': 'valid-value',
+        'http.request.header.string-header': 'valid-value',
       });
     });
 
@@ -641,9 +641,9 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
         expect(result).toEqual({
-          'http.request.header.content_type': 'application/json',
+          'http.request.header.content-type': 'application/json',
           'http.request.header.cookie.session': '[Filtered]',
-          'http.request.header.x_api_key': '[Filtered]',
+          'http.request.header.x-api-key': '[Filtered]',
           'http.request.header.authorization': '[Filtered]',
         });
       });
@@ -662,7 +662,7 @@ describe('request utils', () => {
           'http.request.header.cookie.theme': 'dark',
           'http.request.header.cookie.lang': 'en',
           'http.request.header.cookie.user_session': '[Filtered]',
-          'http.request.header.cookie.cookie_authentication_key_without_value': '[Filtered]',
+          'http.request.header.cookie.cookie-authentication-key-without-value': '[Filtered]',
           'http.request.header.cookie.pref': '1',
         });
       });
@@ -680,7 +680,7 @@ describe('request utils', () => {
           'http.request.header.cookie.express.sid': '[Filtered]',
           'http.request.header.cookie.phpsessid': '[Filtered]',
           'http.request.header.cookie.theme': 'light',
-          'http.request.header.cookie.sb_access_token': '[Filtered]',
+          'http.request.header.cookie.sb-access-token': '[Filtered]',
           'http.request.header.cookie.__stripe_mid': '[Filtered]',
         });
       });
@@ -718,15 +718,15 @@ describe('request utils', () => {
       });
 
       it.each([
-        ['preferred-color-mode=light', { 'http.request.header.set_cookie.preferred_color_mode': 'light' }],
-        ['theme=dark; HttpOnly', { 'http.request.header.set_cookie.theme': 'dark' }],
-        ['session=abc123; Domain=example.com; HttpOnly', { 'http.request.header.set_cookie.session': '[Filtered]' }],
-        ['lang=en; Expires=Wed, 21 Oct 2025 07:28:00 GMT', { 'http.request.header.set_cookie.lang': 'en' }],
-        ['pref=1; Max-Age=3600', { 'http.request.header.set_cookie.pref': '1' }],
-        ['color=blue; Path=/dashboard', { 'http.request.header.set_cookie.color': 'blue' }],
-        ['token=eyJhbGc=.eyJzdWI=.SflKxw; Secure', { 'http.request.header.set_cookie.token': '[Filtered]' }],
-        ['auth_required; HttpOnly', { 'http.request.header.set_cookie.auth_required': '[Filtered]' }],
-        ['empty=; Secure', { 'http.request.header.set_cookie.empty': '' }],
+        ['preferred-color-mode=light', { 'http.request.header.set-cookie.preferred-color-mode': 'light' }],
+        ['theme=dark; HttpOnly', { 'http.request.header.set-cookie.theme': 'dark' }],
+        ['session=abc123; Domain=example.com; HttpOnly', { 'http.request.header.set-cookie.session': '[Filtered]' }],
+        ['lang=en; Expires=Wed, 21 Oct 2025 07:28:00 GMT', { 'http.request.header.set-cookie.lang': 'en' }],
+        ['pref=1; Max-Age=3600', { 'http.request.header.set-cookie.pref': '1' }],
+        ['color=blue; Path=/dashboard', { 'http.request.header.set-cookie.color': 'blue' }],
+        ['token=eyJhbGc=.eyJzdWI=.SflKxw; Secure', { 'http.request.header.set-cookie.token': '[Filtered]' }],
+        ['auth_required; HttpOnly', { 'http.request.header.set-cookie.auth_required': '[Filtered]' }],
+        ['empty=; Secure', { 'http.request.header.set-cookie.empty': '' }],
       ])('should parse and filter Set-Cookie header: %s', (setCookieValue, expected) => {
         const headers = { 'Set-Cookie': setCookieValue };
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
@@ -736,7 +736,7 @@ describe('request utils', () => {
       it('only splits cookies once between key and value, even when more equals signs are present', () => {
         const headers = { Cookie: 'random-string=eyJhbGc=.eyJzdWI=.SflKxw' };
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
-        expect(result).toEqual({ 'http.request.header.cookie.random_string': 'eyJhbGc=.eyJzdWI=.SflKxw' });
+        expect(result).toEqual({ 'http.request.header.cookie.random-string': 'eyJhbGc=.eyJzdWI=.SflKxw' });
       });
 
       it.each([
@@ -747,23 +747,23 @@ describe('request utils', () => {
             },
           }),
           expected: {
-            'http.request.header.content_type': 'application/json',
-            'http.request.header.user_agent': 'Mozilla/5.0',
-            'http.request.header.x_user': '[Filtered]',
-            'http.request.header.x_forwarded_for': '[Filtered]',
-            'http.request.header.x_forwarded_host': '[Filtered]',
-            'http.request.header.x_forwarded_proto': '[Filtered]',
+            'http.request.header.content-type': 'application/json',
+            'http.request.header.user-agent': 'Mozilla/5.0',
+            'http.request.header.x-user': '[Filtered]',
+            'http.request.header.x-forwarded-for': '[Filtered]',
+            'http.request.header.x-forwarded-host': '[Filtered]',
+            'http.request.header.x-forwarded-proto': '[Filtered]',
           },
         },
         {
           dataCollection: resolveDataCollectionOptions({}),
           expected: {
-            'http.request.header.content_type': 'application/json',
-            'http.request.header.user_agent': 'Mozilla/5.0',
-            'http.request.header.x_user': 'my-personal-username',
-            'http.request.header.x_forwarded_for': '192.168.1.1',
-            'http.request.header.x_forwarded_host': 'example.com',
-            'http.request.header.x_forwarded_proto': 'https',
+            'http.request.header.content-type': 'application/json',
+            'http.request.header.user-agent': 'Mozilla/5.0',
+            'http.request.header.x-user': 'my-personal-username',
+            'http.request.header.x-forwarded-for': '192.168.1.1',
+            'http.request.header.x-forwarded-host': 'example.com',
+            'http.request.header.x-forwarded-proto': 'https',
           },
         },
       ])('filters PII headers according to dataCollection.httpHeaders', ({ dataCollection, expected }) => {
@@ -814,31 +814,31 @@ describe('request utils', () => {
 
         // Security-sensitive headers remain redacted with permissive collection defaults.
         expect(result).toEqual({
-          'http.request.header.content_type': 'application/json',
-          'http.request.header.user_agent': 'test-agent',
+          'http.request.header.content-type': 'application/json',
+          'http.request.header.user-agent': 'test-agent',
           'http.request.header.accept': 'application/json',
           'http.request.header.host': 'example.com',
           'http.request.header.authorization': '[Filtered]',
           'http.request.header.cookie.session': '[Filtered]',
-          'http.request.header.set_cookie.session': '[Filtered]',
-          'http.request.header.x_api_key': '[Filtered]',
-          'http.request.header.x_auth_token': '[Filtered]',
-          'http.request.header.x_secret': '[Filtered]',
-          'http.request.header.x_secret_key': '[Filtered]',
-          'http.request.header.www_authenticate': '[Filtered]',
-          'http.request.header.proxy_authorization': '[Filtered]',
-          'http.request.header.x_access_token': '[Filtered]',
-          'http.request.header.x_csrf': '[Filtered]',
-          'http.request.header.x_xsrf': '[Filtered]',
-          'http.request.header.x_session_token': '[Filtered]',
-          'http.request.header.x_password': '[Filtered]',
-          'http.request.header.x_private_key': '[Filtered]',
-          'http.request.header.x_forwarded_user': 'user',
-          'http.request.header.x_forwarded_authorization': '[Filtered]',
-          'http.request.header.x_jwt_token': '[Filtered]',
-          'http.request.header.x_bearer_token': '[Filtered]',
-          'http.request.header.x_sso_token': '[Filtered]',
-          'http.request.header.x_saml_token': '[Filtered]',
+          'http.request.header.set-cookie.session': '[Filtered]',
+          'http.request.header.x-api-key': '[Filtered]',
+          'http.request.header.x-auth-token': '[Filtered]',
+          'http.request.header.x-secret': '[Filtered]',
+          'http.request.header.x-secret-key': '[Filtered]',
+          'http.request.header.www-authenticate': '[Filtered]',
+          'http.request.header.proxy-authorization': '[Filtered]',
+          'http.request.header.x-access-token': '[Filtered]',
+          'http.request.header.x-csrf': '[Filtered]',
+          'http.request.header.x-xsrf': '[Filtered]',
+          'http.request.header.x-session-token': '[Filtered]',
+          'http.request.header.x-password': '[Filtered]',
+          'http.request.header.x-private-key': '[Filtered]',
+          'http.request.header.x-forwarded-user': 'user',
+          'http.request.header.x-forwarded-authorization': '[Filtered]',
+          'http.request.header.x-jwt-token': '[Filtered]',
+          'http.request.header.x-bearer-token': '[Filtered]',
+          'http.request.header.x-sso-token': '[Filtered]',
+          'http.request.header.x-saml-token': '[Filtered]',
         });
       });
 
@@ -865,19 +865,19 @@ describe('request utils', () => {
 
         expect(result).toEqual({
           'http.response.header.host': 'example.com',
-          'http.response.header.user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'http.response.header.user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'http.response.header.accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'http.response.header.accept_language': 'en-US,en;q=0.5',
-          'http.response.header.accept_encoding': 'gzip, deflate',
+          'http.response.header.accept-language': 'en-US,en;q=0.5',
+          'http.response.header.accept-encoding': 'gzip, deflate',
           'http.response.header.connection': 'keep-alive',
-          'http.response.header.upgrade_insecure_requests': '1',
-          'http.response.header.cache_control': 'no-cache',
-          'http.response.header.x_forwarded_for': '192.168.1.1',
+          'http.response.header.upgrade-insecure-requests': '1',
+          'http.response.header.cache-control': 'no-cache',
+          'http.response.header.x-forwarded-for': '192.168.1.1',
           'http.response.header.authorization': '[Filtered]',
-          'http.response.header.x_bearer_token': '[Filtered]',
-          'http.response.header.x_saml_token': '[Filtered]',
-          'http.response.header.x_sso_token': '[Filtered]',
-          'http.response.header.set_cookie.session': '[Filtered]',
+          'http.response.header.x-bearer-token': '[Filtered]',
+          'http.response.header.x-saml-token': '[Filtered]',
+          'http.response.header.x-sso-token': '[Filtered]',
+          'http.response.header.set-cookie.session': '[Filtered]',
           'http.response.header.cookie.session': '[Filtered]',
         });
       });
@@ -916,10 +916,10 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc);
 
         expect(result).toEqual({
-          'http.request.header.content_type': 'application/json',
-          'http.request.header.x_request_id': 'abc-123',
-          'http.request.header.x_trace_id': '[Filtered]',
-          'http.request.header.user_agent': '[Filtered]',
+          'http.request.header.content-type': 'application/json',
+          'http.request.header.x-request-id': 'abc-123',
+          'http.request.header.x-trace-id': '[Filtered]',
+          'http.request.header.user-agent': '[Filtered]',
         });
       });
 
@@ -942,9 +942,9 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc);
 
         expect(result).toEqual({
-          'http.request.header.content_type': 'application/json',
-          'http.request.header.x_custom_secret': '[Filtered]',
-          'http.request.header.x_forwarded_for': '192.168.1.1',
+          'http.request.header.content-type': 'application/json',
+          'http.request.header.x-custom-secret': '[Filtered]',
+          'http.request.header.x-forwarded-for': '192.168.1.1',
           'http.request.header.accept': 'text/html',
         });
       });
@@ -982,7 +982,7 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc);
 
         expect(result).toEqual({
-          'http.request.header.content_type': 'application/json',
+          'http.request.header.content-type': 'application/json',
         });
       });
 
@@ -1022,8 +1022,8 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc, 'response');
 
         expect(result).toEqual({
-          'http.response.header.content_type': 'application/json',
-          'http.response.header.x_custom': '[Filtered]',
+          'http.response.header.content-type': 'application/json',
+          'http.response.header.x-custom': '[Filtered]',
         });
       });
 
@@ -1045,7 +1045,7 @@ describe('request utils', () => {
 
         expect(result).toEqual({
           'http.request.header.authorization': '[Filtered]',
-          'http.request.header.x_request_id': 'abc-123',
+          'http.request.header.x-request-id': 'abc-123',
         });
       });
     });

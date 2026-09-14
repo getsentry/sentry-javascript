@@ -53,7 +53,7 @@ test.describe('orchestrion DB instrumentation', () => {
 
     // With span streaming the span name is the low-cardinality query summary; the statement
     // stays in `db.query.text`.
-    for (const query of ['SELECT 1 + 1 AS solution', 'SELECT NOW()']) {
+    for (const query of ['SELECT ? + ? AS solution', 'SELECT NOW()']) {
       expect(mysqlSpans).toContainEqual(
         expect.objectContaining({
           name: 'SELECT',

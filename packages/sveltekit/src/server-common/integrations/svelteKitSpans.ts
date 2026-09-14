@@ -1,6 +1,6 @@
 import type { Integration, SpanJSON, SpanOrigin, StreamedSpanJSON } from '@sentry/core';
 import { safeSetSpanJSONAttributes, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_DESCRIPTION, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
 /**
@@ -64,7 +64,9 @@ export function _enhanceKitSpanStreamed(span: StreamedSpanJSON): void {
 
   const previousOrigin = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
 
-  safeSetSpanJSONAttributes(span, { [SENTRY_OP]: FUNCTION });
+  // Kit's span names carry no `code.function.name`, so without an explicit description, these spans
+  // would be described by the `function` op's static fallback instead of the operation they ran.
+  safeSetSpanJSONAttributes(span, { [SENTRY_OP]: FUNCTION, [SENTRY_DESCRIPTION]: span.name });
 
   if (previousOrigin === 'manual') {
     // `safeSetSpanJSONAttributes` skips existing keys, so overwrite the 'manual' sentinel directly.

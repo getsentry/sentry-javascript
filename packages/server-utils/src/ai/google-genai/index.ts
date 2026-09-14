@@ -103,6 +103,7 @@ export function extractRequestAttributes(
   operationName: string,
   params?: Record<string, unknown>,
   context?: unknown,
+  recordInputs = true,
 ): Record<string, SpanAttributeValue> {
   const attributes: Record<string, SpanAttributeValue> = {
     [GEN_AI_PROVIDER_NAME]: GOOGLE_GENAI_SYSTEM_NAME,
@@ -119,7 +120,7 @@ export function extractRequestAttributes(
       Object.assign(attributes, extractConfigAttributes(config));
 
       // Extract available tools from config
-      if ('tools' in config && Array.isArray(config.tools)) {
+      if (recordInputs && 'tools' in config && Array.isArray(config.tools)) {
         const functionDeclarations = config.tools.flatMap(
           (tool: { functionDeclarations: unknown[] }) => tool.functionDeclarations,
         );
@@ -301,7 +302,12 @@ function instrumentMethod<T extends unknown[], R>(
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
       const attributeParams = resolveChatParams(operationName, params, context);
-      const requestAttributes = extractRequestAttributes(operationName, attributeParams, context);
+      const requestAttributes = extractRequestAttributes(
+        operationName,
+        attributeParams,
+        context,
+        !!options.recordInputs,
+      );
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.

@@ -102,10 +102,12 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/image.svg',
+      // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
+      // or render blocking status.
+      'http.response_delivery_type': '',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
-        'http.response_delivery_type': '',
       }),
     },
     description: 'https://sentry-test-site.example/path/to/image.svg',
@@ -119,10 +121,11 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
     trace_id: traceId,
   });
 
-  // range check: TTFB must be >0 (at least in this case) and it's reasonable to
-  // assume <10 seconds. This also tests that we're reporting TTFB in seconds.
+  // range check: TTFB is reasonably <10 seconds, which is really a check that we report it in
+  // seconds rather than milliseconds. WebKit resolves these intercepted routes without measurable
+  // delay, so only the other engines are held to a non-zero value.
   const imgSpanTtfb = imgSpan?.data['http.request.time_to_first_byte'];
-  expect(imgSpanTtfb).toBeGreaterThan(0);
+  expect(imgSpanTtfb).toBeGreaterThan(isWebkitRun ? -1 : 0);
   expect(imgSpanTtfb).toBeLessThan(10);
 
   expect(linkSpan).toEqual({
@@ -152,10 +155,12 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/style.css',
+      // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
+      // or render blocking status.
+      'http.response_delivery_type': '',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
-        'http.response_delivery_type': '',
       }),
     },
     description: 'https://sentry-test-site.example/path/to/style.css',
@@ -196,10 +201,12 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/script.js',
+      // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
+      // or render blocking status.
+      'http.response_delivery_type': '',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
-        'http.response_delivery_type': '',
       }),
     },
     description: 'https://sentry-test-site.example/path/to/script.js',

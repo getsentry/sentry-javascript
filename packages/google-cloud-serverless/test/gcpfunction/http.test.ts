@@ -1,8 +1,16 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  FAAS_NAME,
+  FAAS_TRIGGER,
+  HTTP_REQUEST_METHOD,
+  SENTRY_OP,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
-import type { Integration } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
+import type { Client, Integration } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
 import type { HttpFunction, Request, Response } from '../../src/gcpfunction/general';
 import { wrapHttpFunction } from '../../src/gcpfunction/http';
 import { init } from '../../src/sdk';
@@ -96,9 +104,12 @@ describe('GCPFunction', () => {
         name: 'POST /path',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'http',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
+          [HTTP_REQUEST_METHOD]: 'POST',
+          [URL_PATH]: '/path',
         },
       };
 
@@ -120,9 +131,12 @@ describe('GCPFunction', () => {
         name: 'POST /path',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'http',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
+          [HTTP_REQUEST_METHOD]: 'POST',
+          [URL_PATH]: '/path',
         },
       };
 
@@ -169,6 +183,117 @@ describe('GCPFunction', () => {
 
       await expect(wrappedHandler(request, response)).resolves.toBeUndefined();
       expect(mockEnd).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('wrapHttpFunction() with span streaming enabled', () => {
+    beforeEach(() => {
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+        getOptions: () => ({ traceLifecycle: 'stream' }),
+      } as unknown as Client);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.unstubAllEnvs();
+    });
+
+    test('names the span after the function name from FUNCTION_TARGET', async () => {
+      vi.stubEnv('FUNCTION_TARGET', 'myCloudFunction');
+
+      const handler: HttpFunction = (_req, res) => {
+        res.statusCode = 200;
+        res.end();
+      };
+      await handleHttp(wrapHttpFunction(handler));
+
+      expect(mockStartSpanManual).toBeCalledWith(
+        expect.objectContaining({
+          name: 'myCloudFunction',
+          attributes: expect.objectContaining({
+            [FAAS_NAME]: 'myCloudFunction',
+            // The method and path stay on the span even though they are no longer the name.
+            [HTTP_REQUEST_METHOD]: 'POST',
+            [URL_PATH]: '/path',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('falls back to K_SERVICE when FUNCTION_TARGET is unset', async () => {
+      vi.stubEnv('FUNCTION_TARGET', '');
+      vi.stubEnv('K_SERVICE', 'my-cloud-run-service');
+
+      const handler: HttpFunction = (_req, res) => {
+        res.end();
+      };
+      await handleHttp(wrapHttpFunction(handler));
+
+      expect(mockStartSpanManual).toBeCalledWith(
+        expect.objectContaining({
+          name: 'my-cloud-run-service',
+          attributes: expect.objectContaining({
+            [FAAS_NAME]: 'my-cloud-run-service',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('falls back to the static span name when no function name is resolvable', async () => {
+      vi.stubEnv('FUNCTION_TARGET', '');
+      vi.stubEnv('K_SERVICE', '');
+
+      const handler: HttpFunction = (_req, res) => {
+        res.end();
+      };
+      await handleHttp(wrapHttpFunction(handler));
+
+      expect(mockStartSpanManual).toBeCalledWith(
+        expect.objectContaining({
+          name: SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
+          attributes: expect.objectContaining({ [FAAS_NAME]: undefined, [SENTRY_SEGMENT_NAME_SOURCE]: 'component' }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('keeps the raw path out of the span name', async () => {
+      vi.stubEnv('FUNCTION_TARGET', 'myCloudFunction');
+
+      const handler: HttpFunction = (_req, res) => {
+        res.end();
+      };
+      await handleHttp(wrapHttpFunction(handler));
+
+      const spanName = mockStartSpanManual.mock.calls[0]?.[0]?.name;
+      expect(spanName).not.toContain('/path');
+    });
+
+    test('keeps naming the span after method and path when span streaming is disabled', async () => {
+      vi.stubEnv('FUNCTION_TARGET', 'myCloudFunction');
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+        getOptions: () => ({ traceLifecycle: 'static' }),
+      } as unknown as Client);
+
+      const handler: HttpFunction = (_req, res) => {
+        res.end();
+      };
+      await handleHttp(wrapHttpFunction(handler));
+
+      expect(mockStartSpanManual).toBeCalledWith(
+        expect.objectContaining({
+          name: 'POST /path',
+          attributes: expect.objectContaining({
+            [FAAS_NAME]: 'myCloudFunction',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          }),
+        }),
+        expect.any(Function),
+      );
     });
   });
 

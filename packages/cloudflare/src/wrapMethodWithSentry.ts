@@ -1,13 +1,13 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import type { SerializedTraceData } from '@sentry/core';
+import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import {
   isObjectLike,
   captureException,
   continueTrace,
   isThenable,
   type Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startNewTrace as startNewTraceCore,
   startSpan,
 } from '@sentry/core';
@@ -203,8 +203,10 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const attributes = wrapperOptions.spanOp
               ? {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+                  [SENTRY_OP]: wrapperOptions.spanOp,
+                  [SENTRY_ORIGIN]: origin,
+                  // `function` spans are already named like their function name, so we just set `code.function.name` here.
+                  ...(wrapperOptions.spanOp === FUNCTION && { [CODE_FUNCTION_NAME]: methodName }),
                 }
               : {};
 

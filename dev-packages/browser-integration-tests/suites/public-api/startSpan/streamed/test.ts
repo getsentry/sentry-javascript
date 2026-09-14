@@ -18,6 +18,7 @@ import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 
 sentryTest(
@@ -107,6 +108,10 @@ sentryTest(
             type: 'string',
             value: 'stream',
           },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -146,6 +151,10 @@ sentryTest(
           [SENTRY_TRACE_LIFECYCLE]: {
             type: 'string',
             value: 'stream',
+          },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
           },
         },
         end_timestamp: expect.any(Number),
@@ -191,6 +200,10 @@ sentryTest(
             type: 'string',
             value: 'stream',
           },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -215,7 +228,7 @@ sentryTest(
             type: 'string',
             value: expect.any(String),
           },
-          'http.request.header.user_agent': {
+          [USER_AGENT_ORIGINAL]: {
             type: 'string',
             value: expect.any(String),
           },

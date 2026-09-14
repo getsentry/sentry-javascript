@@ -128,7 +128,7 @@ test('Extracts HTTP request headers as streamed span attributes', async ({ baseU
       span.name === 'GET /test-transaction' &&
       getSpanOp(span) === 'http.server' &&
       span.is_segment &&
-      span.attributes['http.request.header.user_agent']?.value === 'Custom-Agent/1.0 (Test)'
+      span.attributes['http.request.header.user-agent']?.value === 'Custom-Agent/1.0 (Test)'
     );
   });
 
@@ -144,9 +144,9 @@ test('Extracts HTTP request headers as streamed span attributes', async ({ baseU
 
   const rootSpan = await rootSpanPromise;
 
-  expect(rootSpan.attributes['http.request.header.user_agent']?.value).toBe('Custom-Agent/1.0 (Test)');
-  expect(rootSpan.attributes['http.request.header.content_type']?.value).toBe('application/json');
-  expect(rootSpan.attributes['http.request.header.x_custom_header']?.value).toBe('test-value');
+  expect(rootSpan.attributes['http.request.header.user-agent']?.value).toBe('Custom-Agent/1.0 (Test)');
+  expect(rootSpan.attributes['http.request.header.content-type']?.value).toBe('application/json');
+  expect(rootSpan.attributes['http.request.header.x-custom-header']?.value).toBe('test-value');
   expect(rootSpan.attributes['http.request.header.accept']?.value).toBe('application/json, text/plain');
-  expect(rootSpan.attributes['http.request.header.x_request_id']?.value).toBe('req-123');
+  expect(rootSpan.attributes['http.request.header.x-request-id']?.value).toBe('req-123');
 });

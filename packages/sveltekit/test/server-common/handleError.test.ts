@@ -2,6 +2,7 @@ import * as SentryCore from '@sentry/core';
 import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleErrorWithSentry } from '../../src/server-common/handleError';
+import { setCloudflareExecutionContextFallback } from '../../src/server-common/utils';
 
 const mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'xx');
 
@@ -157,6 +158,29 @@ describe('handleError (server)', () => {
       });
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
+    });
+
+    // `@sveltejs/adapter-cloudflare` >= 8.0.0-next.7 passes no `platform` at all; the `workerd` entry point
+    // registers `waitUntil` from `cloudflare:workers` as the fallback instead
+    it('calls the fallback waitUntil if the event carries no platform', async () => {
+      const wrappedHandleError = handleErrorWithSentry();
+      const mockError = new Error('test');
+      const waitUntilSpy = vi.fn();
+      setCloudflareExecutionContextFallback(() => ({ waitUntil: waitUntilSpy }));
+
+      try {
+        await wrappedHandleError({
+          error: mockError,
+          event: { ...requestEvent, platform: undefined },
+          status: 500,
+          message: 'Internal Error',
+        });
+      } finally {
+        setCloudflareExecutionContextFallback(undefined);
+      }
+
+      expect(waitUntilSpy).toHaveBeenCalledTimes(1);
+      expect(waitUntilSpy).toHaveBeenCalledWith(expect.any(Promise));
     });
   });
 });

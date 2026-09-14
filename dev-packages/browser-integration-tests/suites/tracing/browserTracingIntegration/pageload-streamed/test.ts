@@ -16,6 +16,7 @@ import {
   SENTRY_TRACE_LIFECYCLE,
   URL_FULL,
   URL_PATH,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -81,7 +82,7 @@ sentryTest(
           type: 'string',
           value: expect.any(String),
         },
-        'http.request.header.user_agent': {
+        [USER_AGENT_ORIGINAL]: {
           type: 'string',
           value: expect.any(String),
         },

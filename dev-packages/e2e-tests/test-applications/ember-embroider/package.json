@@ -50,7 +50,7 @@
     "loader.js": "^4.7.0",
     "tracked-built-ins": "^3.3.0",
     "webpack": "~5.107.0",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry/ember": "file:../../packed/sentry-ember-packed.tgz",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@tsconfig/ember": "^3.0.6",

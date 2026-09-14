@@ -9,7 +9,7 @@ import {
 test('should create one segment for an HTTP function', async () => {
   const spansPromise = collectStreamedSpansUntilSegment(
     'node-firebase',
-    span => span.name === 'firebase.function.http.request' && span.attributes['faas.name']?.value === 'helloWorld',
+    span => span.name === 'helloWorld' && span.attributes['faas.name']?.value === 'helloWorld',
   );
 
   const response = await fetch('http://localhost:5001/demo-functions/default/helloWorld');
@@ -20,7 +20,7 @@ test('should create one segment for an HTTP function', async () => {
   const span = spans[0]!;
   expect(getSpanOp(span)).toBe('function.gcp');
   expect(span).toMatchObject({
-    name: 'firebase.function.http.request',
+    name: 'helloWorld',
     status: 'ok',
     span_id: expect.any(String),
     trace_id: expect.any(String),
@@ -29,6 +29,7 @@ test('should create one segment for an HTTP function', async () => {
       'faas.name': { value: 'helloWorld', type: 'string' },
       'faas.provider': { value: 'firebase', type: 'string' },
       'faas.trigger': { value: 'http.request', type: 'string' },
+      'gcp.function.context.type': { value: 'firebase.function.http.request', type: 'string' },
       'sentry.kind': { value: 'server', type: 'string' },
       'sentry.origin': { value: 'auto.firebase.functions', type: 'string' },
       'sentry.sample_rate': { value: expect.any(Number), type: 'integer' },
@@ -45,9 +46,7 @@ test('should send failed span when the function fails', async () => {
   const spanPromise = waitForStreamedSpan(
     'node-firebase',
     span =>
-      span.is_segment &&
-      span.name === 'firebase.function.http.request' &&
-      span.attributes['faas.name']?.value === 'unhandeledError',
+      span.is_segment && span.name === 'unhandeledError' && span.attributes['faas.name']?.value === 'unhandeledError',
   );
 
   await fetch('http://localhost:5001/demo-functions/default/unhandeledError');
@@ -85,7 +84,7 @@ test('should create a document and trigger onDocumentCreated and another with au
     expect(spans).toHaveLength(1);
     const segment = spans[0]!;
     expect(segment).toMatchObject({
-      name: `firebase.function.${trigger}`,
+      name,
       status: 'ok',
       span_id: expect.any(String),
       trace_id: expect.any(String),
@@ -94,6 +93,7 @@ test('should create a document and trigger onDocumentCreated and another with au
         'faas.name': { value: name, type: 'string' },
         'faas.provider': { value: 'firebase', type: 'string' },
         'faas.trigger': { value: trigger, type: 'string' },
+        'gcp.function.context.type': { value: `firebase.function.${trigger}`, type: 'string' },
         'sentry.kind': { value: 'server', type: 'string' },
         'sentry.op': { value: 'function.gcp', type: 'string' },
         'sentry.origin': { value: 'auto.firebase.functions', type: 'string' },

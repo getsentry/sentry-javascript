@@ -6,6 +6,8 @@ import {
   getDebugIdSnippet,
   createDebugIdUploadFunction,
   CodeInjection,
+  addDebugIdToEmittedArtifacts,
+  isJsFile,
 } from '../core';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
@@ -51,6 +53,8 @@ interface EsbuildInitialOptions {
   inject?: string[];
   metafile?: boolean;
   define?: Record<string, string>;
+  write?: boolean;
+  absWorkingDir?: string;
 }
 
 interface EsbuildPluginBuild {
@@ -283,9 +287,30 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
         try {
           await sentryBuildPluginManager.createRelease();
 
-          if (sourcemapsEnabled && options.sourcemaps?.disable !== 'disable-upload') {
+          if (sourcemapsEnabled) {
             const buildArtifacts = result.metafile ? Object.keys(result.metafile.outputs) : [];
-            await upload(buildArtifacts);
+
+            if (options.sourcemaps?.disable !== 'disable-upload') {
+              await upload(buildArtifacts);
+            } else if (initialOptions.write === false) {
+              logger.debug('Build output is not written to disk. Skipping debug ID injection into build artifacts.');
+            } else {
+              // The upload routine (which stamps debug IDs into temp copies of the artifacts) is
+              // skipped with `disable-upload`. esbuild has no hook to modify outputs before they are
+              // written, so the emitted artifacts get stamped on disk instead.
+              const outputDir = initialOptions.absWorkingDir ?? process.cwd();
+              await Promise.all(
+                buildArtifacts
+                  .filter(isJsFile)
+                  .map(bundle =>
+                    addDebugIdToEmittedArtifacts(
+                      path.resolve(outputDir, bundle),
+                      logger,
+                      options.sourcemaps?.resolveSourceMap,
+                    ),
+                  ),
+              );
+            }
           }
         } finally {
           freeGlobalDependencyOnBuildArtifacts();

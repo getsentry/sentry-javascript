@@ -1,5 +1,12 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
-import type { ExternalOption, InputOptions, NormalizedInputOptions, Plugin, PluginContext } from 'rollup';
+import type {
+  ExternalOption,
+  InputOptions,
+  NormalizedInputOptions,
+  Plugin,
+  PluginContext,
+  ResolveIdHook,
+} from 'rollup';
 
 export type { Plugin as RollupPlugin } from 'rollup';
 import { instrumentedModuleNames } from '../config';
@@ -60,11 +67,20 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
     // specifier doesn't resolve from an instrumented package's location, so when
     // normal resolution fails, fall back to this package's own resolution so it
     // gets bundled from its real on-disk path.
-    async resolveId(this: PluginContext, source: string, importer: string | undefined) {
+    //
+    // Forward `options` unchanged: it carries the `custom` metadata `@rollup/plugin-commonjs`
+    // uses to recognize a `require()` it is already resolving. Drop it and that plugin warns
+    // (THIS_RESOLVE_WITHOUT_OPTIONS), then abandons the resolution.
+    async resolveId(
+      this: PluginContext,
+      source: string,
+      importer: string | undefined,
+      options: Parameters<ResolveIdHook>[2],
+    ) {
       if (source !== SNIPPET_IMPORT_SPECIFIER) {
         return null;
       }
-      const resolved = await this.resolve(source, importer, { skipSelf: true });
+      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
       if (resolved) {
         return resolved;
       }

@@ -137,7 +137,7 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         this.warn?.(
           `[sentry] Could not auto-instrument ${missing.join(', ')}.` +
             'The worker entry has no export matching them. ' +
-            'Star re-exports (`export * from "./do"`) are not matched.' +
+            'Star re-exports (`export * from "./do"`) are not matched. ' +
             'Export them by name or wrap them manually with corresponding `instrument*WithSentry` helpers.',
         );
       }

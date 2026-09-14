@@ -16,7 +16,7 @@
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
     "@astrojs/node": "^11.1.4",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
     "astro": "^7.2.4",

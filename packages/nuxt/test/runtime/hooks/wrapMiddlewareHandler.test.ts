@@ -62,7 +62,7 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         frameContextLines: 5,
       }),
     });
-    (SentryCore.httpHeadersToSpanAttributes as any).mockReturnValue({ 'http.request.header.user_agent': 'test-agent' });
+    (SentryCore.httpHeadersToSpanAttributes as any).mockReturnValue({ 'http.request.header.user-agent': 'test-agent' });
     (SentryCoreServer.flushIfServerless as any).mockResolvedValue(undefined);
   });
 

@@ -13,11 +13,13 @@ type WebpackModule = {
   DefinePlugin?: PluginClass;
   Compilation?: {
     PROCESS_ASSETS_STAGE_ADDITIONS: number;
+    PROCESS_ASSETS_STAGE_DEV_TOOLING?: number;
   };
   sources?: {
     ReplaceSource: new (source: WebpackSource) => WebpackSource & {
       insert: (position: number, value: string) => void;
     };
+    RawSource?: new (source: string) => WebpackSource;
   };
   default?: WebpackModule;
 };

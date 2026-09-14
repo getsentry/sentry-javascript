@@ -6,12 +6,12 @@ import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../..
 function getCommonHttpRequestHeaders(): Record<string, unknown> {
   return {
     'http.request.header.accept': '*/*',
-    'http.request.header.accept_encoding': 'gzip, deflate',
-    'http.request.header.accept_language': '*',
+    'http.request.header.accept-encoding': 'gzip, deflate',
+    'http.request.header.accept-language': '*',
     'http.request.header.connection': 'keep-alive',
     'http.request.header.host': expect.any(String),
-    'http.request.header.sec_fetch_mode': 'cors',
-    'http.request.header.user_agent': 'node',
+    'http.request.header.sec-fetch-mode': 'cors',
+    'http.request.header.user-agent': 'node',
   };
 }
 
@@ -160,8 +160,8 @@ describe('httpIntegration', () => {
                 'sentry.segment.name.source': 'route',
                 [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
                 [URL_PATH]: '/test',
-                'http.request.header.content_length': '9',
-                'http.request.header.content_type': 'text/plain;charset=UTF-8',
+                'http.request.header.content-length': '9',
+                'http.request.header.content-type': 'text/plain;charset=UTF-8',
                 ...getCommonHttpRequestHeaders(),
               });
             },

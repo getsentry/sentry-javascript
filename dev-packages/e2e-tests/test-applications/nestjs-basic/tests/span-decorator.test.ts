@@ -31,6 +31,7 @@ function tracedSpan(segmentSpan: SerializedStreamedSpan, name: string, op: strin
         : {}),
       'sentry.origin': { type: 'string', value: 'auto.function.nestjs.sentry_traced' },
       'sentry.op': { type: 'string', value: op },
+      'code.function.name': { type: 'string', value: name },
     },
   };
 }

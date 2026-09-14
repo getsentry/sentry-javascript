@@ -1149,6 +1149,8 @@ jobs:
       REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
+      # Used by the `node-eve` test app to make real model calls through OpenRouter
+      E2E_OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-optional) }}
