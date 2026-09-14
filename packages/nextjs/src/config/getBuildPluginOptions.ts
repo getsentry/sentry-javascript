@@ -97,15 +97,16 @@ function createSourcemapUploadAssetPatterns(
     assets.push(path.posix.join(normalizedDistPath, getServerPattern({ useDirectoryPath: true })));
 
     if (buildTool === 'after-production-compile-turbopack') {
-      // In turbopack we always want to upload the full static chunks directory
-      // as the build output is not split into pages|app chunks
-      assets.push(path.posix.join(normalizedDistPath, getStaticChunksPattern({ useDirectoryPath: true })));
-
-      // With `experimental.supportsImmutableAssets` (auto-enabled on Vercel preview), Turbopack emits
-      // client chunks to `static/immutable/chunks` instead of `static/chunks`
+      // Turbopack output is not split into pages|app chunks, so the whole chunks directory is uploaded.
+      // With `experimental.supportsImmutableAssets` (e.g. on Vercel), Turbopack emits client chunks to
+      // `static/immutable/chunks` instead of `static/chunks`. The upload errors on asset directories that
+      // don't exist, so each directory is only included when Turbopack actually emitted it.
+      const staticChunksPath = path.posix.join(normalizedDistPath, getStaticChunksPattern({ useDirectoryPath: true }));
       const immutableChunksPath = path.posix.join(normalizedDistPath, FILE_PATTERNS.STATIC_IMMUTABLE_CHUNKS.PATH);
-      if (fs.existsSync(immutableChunksPath)) {
-        assets.push(immutableChunksPath);
+      for (const chunksPath of [staticChunksPath, immutableChunksPath]) {
+        if (fs.existsSync(chunksPath)) {
+          assets.push(chunksPath);
+        }
       }
     } else {
       // Webpack client builds in after-production-compile mode
