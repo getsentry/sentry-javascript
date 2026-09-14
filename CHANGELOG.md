@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, and @hafzism. Thank you for your contributions!
+Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, and @JosephDoUrden. Thank you for your contributions!
 
 - feat(core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders`. Passing `true`, `false`, `{ allow: [...] }` or `{ deny: [...] }` now applies to both request and response headers; `{ request, response }` still controls each direction independently.
 - feat(langchain)!: Emit `gen_ai.pipeline.name` instead of `langchain.chain.name` on LangChain chain spans. The attribute is omitted when the chain is unnamed.
