@@ -1,3 +1,6 @@
+// Webpack 4 and 5 share this implementation so their behavior cannot drift apart.
+/* oxlint-disable max-lines */
+
 import type { Options } from '../core/index';
 import {
   createSentryBuildPluginManager,
@@ -54,37 +57,13 @@ type WebpackSources = {
   RawSource?: WebpackRawSource;
 };
 
-type WebpackModule = {
-  resource?: string;
-};
-
-type WebpackLoaderCallback = (err: Error | null, content?: string, sourceMap?: unknown) => void;
-
-type WebpackLoaderContext = {
-  callback: WebpackLoaderCallback;
-};
-
 type WebpackCompilationContext = {
   chunks: Iterable<{
     files: Iterable<string>;
     hash?: string;
     contentHash?: { javascript?: string };
   }>;
-  compiler: {
-    webpack?: {
-      NormalModule?: {
-        getCompilationHooks: (compilation: WebpackCompilationContext) => {
-          loader: {
-            tap: (name: string, callback: (loaderContext: WebpackLoaderContext, module: WebpackModule) => void) => void;
-          };
-        };
-      };
-    };
-  };
   hooks: {
-    normalModuleLoader?: {
-      tap: (name: string, callback: (loaderContext: WebpackLoaderContext, module: WebpackModule) => void) => void;
-    };
     processAssets: {
       tap: (
         options: { name: string; stage: number },
@@ -128,6 +107,9 @@ type WebpackCompiler = {
     };
   };
   hooks: {
+    compilation: {
+      tap: (name: string, callback: (compilation: WebpackCompilationContext) => void) => void;
+    };
     thisCompilation: {
       tap: (name: string, callback: (compilation: WebpackCompilation) => void) => void;
     };
@@ -272,6 +254,63 @@ export function sentryWebpackPluginFactory({
 
     const transformReplace = Object.keys(replacementValues).length > 0;
 
+    function addCodeInjection(compiler: WebpackCompiler): void {
+      if (staticInjectionCode.isEmpty() && !sourcemapsEnabled) {
+        return;
+      }
+
+      const ReplaceSource = compiler.webpack?.sources?.ReplaceSource || unsafeSources?.ReplaceSource;
+      const processAssetsStage =
+        compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_ADDITIONS ??
+        UnsafeCompilation?.PROCESS_ASSETS_STAGE_ADDITIONS;
+
+      if (!ReplaceSource || processAssetsStage === undefined) {
+        logger.warn(
+          'Webpack sources are not available. Skipping code injection. This usually means webpack is not properly configured.',
+        );
+        return;
+      }
+
+      compiler.hooks.compilation.tap('sentry-webpack-plugin-injection', compilation => {
+        compilation.hooks.processAssets.tap(
+          {
+            name: 'sentry-webpack-plugin-injection',
+            stage: processAssetsStage,
+          },
+          assets => {
+            for (const chunk of compilation.chunks) {
+              for (const assetName of chunk.files) {
+                if (!WEBPACK_JAVASCRIPT_ASSET_REGEX.test(assetName)) {
+                  continue;
+                }
+
+                const source = assets[assetName];
+                if (!source) {
+                  continue;
+                }
+
+                const sourceContents = source.source();
+                const codeString =
+                  typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
+                const codeToInject = staticInjectionCode.clone();
+                if (sourcemapsEnabled) {
+                  const hash = chunk.contentHash?.javascript ?? chunk.hash;
+                  codeToInject.append(getDebugIdSnippet(hash ? stringToUUID(hash) : randomUUID()));
+                }
+
+                const injectionPosition = getCodeInjectionPosition(codeString);
+                const injection =
+                  injectionPosition === codeString.length ? `\n${codeToInject.code()}` : `${codeToInject.code()}\n`;
+                const updatedSource = new ReplaceSource(source);
+                updatedSource.insert(injectionPosition, injection);
+                compilation.updateAsset(assetName, updatedSource);
+              }
+            }
+          },
+        );
+      });
+    }
+
     return {
       apply(compiler: WebpackCompiler) {
         void sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal().catch(() => {
@@ -282,59 +321,7 @@ export function sentryWebpackPluginFactory({
         const DefinePlugin = compiler?.webpack?.DefinePlugin || UnsafeDefinePlugin;
 
         // Injecting through BannerPlugin would place executable code before directive prologues.
-        if (!staticInjectionCode.isEmpty() || sourcemapsEnabled) {
-          const ReplaceSource = compiler.webpack?.sources?.ReplaceSource || unsafeSources?.ReplaceSource;
-          const processAssetsStage =
-            compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_ADDITIONS ??
-            UnsafeCompilation?.PROCESS_ASSETS_STAGE_ADDITIONS;
-
-          if (!ReplaceSource || processAssetsStage === undefined) {
-            logger.warn(
-              'Webpack sources are not available. Skipping code injection. This usually means webpack is not properly configured.',
-            );
-          } else {
-            compiler.hooks.thisCompilation.tap('sentry-webpack-plugin-injection', compilation => {
-              compilation.hooks.processAssets.tap(
-                {
-                  name: 'sentry-webpack-plugin-injection',
-                  stage: processAssetsStage,
-                },
-                assets => {
-                  for (const chunk of compilation.chunks) {
-                    for (const assetName of chunk.files) {
-                      if (!WEBPACK_JAVASCRIPT_ASSET_REGEX.test(assetName)) {
-                        continue;
-                      }
-
-                      const source = assets[assetName];
-                      if (!source) {
-                        continue;
-                      }
-
-                      const sourceContents = source.source();
-                      const codeString =
-                        typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
-                      const codeToInject = staticInjectionCode.clone();
-                      if (sourcemapsEnabled) {
-                        const hash = chunk.contentHash?.javascript ?? chunk.hash;
-                        codeToInject.append(getDebugIdSnippet(hash ? stringToUUID(hash) : randomUUID()));
-                      }
-
-                      const injectionPosition = getCodeInjectionPosition(codeString);
-                      const injection =
-                        injectionPosition === codeString.length
-                          ? `\n${codeToInject.code()}`
-                          : `${codeToInject.code()}\n`;
-                      const updatedSource = new ReplaceSource(source);
-                      updatedSource.insert(injectionPosition, injection);
-                      compilation.updateAsset(assetName, updatedSource);
-                    }
-                  }
-                },
-              );
-            });
-          }
-        }
+        addCodeInjection(compiler);
 
         // The upload routine (which stamps debug IDs into temp copies of the artifacts) is skipped
         // with `disable-upload`, so the emitted artifacts get stamped in the asset pipeline instead.

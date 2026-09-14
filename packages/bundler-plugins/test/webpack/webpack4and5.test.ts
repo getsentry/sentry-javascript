@@ -24,7 +24,7 @@ function runWebpackSourceInjection(
       sources: { ReplaceSource: webpack.sources.ReplaceSource },
     },
     hooks: {
-      thisCompilation: {
+      compilation: {
         tap: (_name: string, callback: (compilation: unknown) => void) => {
           compilationCallback = callback;
         },
