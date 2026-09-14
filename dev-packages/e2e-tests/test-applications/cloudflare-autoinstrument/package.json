@@ -32,7 +32,6 @@
     "ws": "^8.21.1"
   },
   "volta": {
-    "node": "24.15.0",
     "extends": "../../package.json"
   }
 }
