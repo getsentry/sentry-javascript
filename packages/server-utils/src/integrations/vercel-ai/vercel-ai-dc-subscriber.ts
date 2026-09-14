@@ -18,6 +18,8 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
@@ -356,6 +358,9 @@ function enrichInvokeAgentFromStream(
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
+    const { cacheRead, cacheWrite } = cacheTokens(usage);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
   }
 
   if (recordOutputs) {
@@ -567,6 +572,7 @@ export function enrichSpanOnEnd(
     if (totalTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
     }
+    setCacheTokens(span, usage);
   }
 
   // Match the OTel integration: finish reasons live on the model-call (`generate_content`) span, not
@@ -631,6 +637,32 @@ function getFinishReason(result: Record<string, unknown>): string | undefined {
 /** Reads a token count that may be a plain number or a `{ total }` object (model-call usage). */
 function tokenCount(value: unknown): number | undefined {
   return asNumber(value) ?? (isObjectLike(value) ? asNumber(value.total) : undefined);
+}
+
+/**
+ * Cache token counts as the AI SDK normalizes them: v5 `cachedInputTokens`, v6 `inputTokenDetails`,
+ * v7 `inputTokens.{cacheRead,cacheWrite}`.
+ */
+function setCacheTokens(span: Span, usage: Record<string, unknown>): void {
+  const { cacheRead, cacheWrite } = cacheTokens(usage);
+  if (cacheRead !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+  }
+  if (cacheWrite !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
+  }
+}
+
+function cacheTokens(usage: Record<string, unknown>): { cacheRead?: number; cacheWrite?: number } {
+  const inputTokens = isObjectLike(usage.inputTokens) ? usage.inputTokens : undefined;
+  const inputTokenDetails = isObjectLike(usage.inputTokenDetails) ? usage.inputTokenDetails : undefined;
+  return {
+    cacheRead:
+      asNumber(inputTokens?.cacheRead) ??
+      asNumber(inputTokenDetails?.cacheReadTokens) ??
+      asNumber(usage.cachedInputTokens),
+    cacheWrite: asNumber(inputTokens?.cacheWrite) ?? asNumber(inputTokenDetails?.cacheWriteTokens),
+  };
 }
 
 function buildOutputMessages(
