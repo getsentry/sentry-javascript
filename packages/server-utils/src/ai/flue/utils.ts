@@ -103,7 +103,10 @@ function captureToolError(span: Span, errorInfo: FlueErrorInfo | undefined): voi
   // Captured under the operation's own span so the issue lands on the right trace, matching how the
   // Mastra integration attaches its captures.
   withActiveSpan(span, () => {
-    captureException(error, { mechanism: { handled: false, type: FLUE_ORIGIN } });
+    // Handled: this is not a rejection observed on a tracing channel, where the handled state is
+    // unknowable. Flue caught the throw and returned it to the model as a tool result, so it is
+    // definitively handled and no global hook will ever see it.
+    captureException(error, { mechanism: { handled: true, type: FLUE_ORIGIN } });
   });
 }
 
