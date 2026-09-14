@@ -68,6 +68,10 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
  * @param recordOutputs - Whether to record outputs
  */
 function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean): void {
+  // `chunk.functionCalls` is the SDK accessor over the candidate's function-call parts, so it is the
+  // single source of truth for tool calls. Also reading `part.functionCall` from those same parts
+  // would record every call twice, with two different shapes. This mirrors the non-streaming path,
+  // which likewise takes tool calls from `response.functionCalls`.
   if (Array.isArray(chunk.functionCalls)) {
     state.toolCalls.push(...chunk.functionCalls);
   }
@@ -79,14 +83,6 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
 
     for (const part of candidate?.content?.parts ?? []) {
       if (recordOutputs && part.text) state.responseTexts.push(part.text);
-      if (part.functionCall) {
-        state.toolCalls.push({
-          type: 'function',
-          id: part.functionCall.id,
-          name: part.functionCall.name,
-          arguments: part.functionCall.args,
-        });
-      }
     }
   }
 }
