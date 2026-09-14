@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { IntegrationFn } from '@sentry/core';
-import { consoleSandbox, debug, defineIntegration, GLOBAL_OBJ } from '@sentry/core';
+import { consoleSandbox, debug, defineIntegration, GLOBAL_OBJ, isObjectLike } from '@sentry/core';
 import {
   COMMUNITY_MASTRA_SENTRY_EXPORTER_NAME,
   MASTRA_EXPORTER_BRAND,
@@ -11,12 +11,13 @@ import {
 } from '../ai/mastra/constants';
 import { SentryMastraExporter } from '../ai/mastra';
 import type { MastraExporterOptions } from '../ai/mastra';
+import { getSentrySpanForMastraId } from '../ai/mastra/span-registry';
 import type { MastraObservabilityExporter } from '../ai/mastra/types';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { mastraModuleNames } from '../orchestrion/config/mastra';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
-import { safeChannelCallback } from '../tracing-channel';
+import { bindSpanToChannelStore, safeChannelCallback } from '../tracing-channel';
 
 export interface MastraOptions extends MastraExporterOptions {
   /**
@@ -40,6 +41,21 @@ interface ConstructorChannelContext {
   self?: unknown;
 }
 
+interface ExecuteWithContextChannelContext {
+  // `executeWithContext({ span, fn })` — the first arg carries the Mastra AISpan.
+  arguments: unknown[];
+}
+
+/** Mastra AISpan → the id the exporter keys its Sentry span on. */
+function mastraSpanId(span: unknown): string | undefined {
+  if (!isObjectLike(span)) {
+    return undefined;
+  }
+  const exported = span.getExportedSpanId;
+  const id = typeof exported === 'function' ? exported.call(span) : span.id;
+  return typeof id === 'string' ? id : undefined;
+}
+
 // `registerExporter` does not dedupe; WeakSet so short-lived instances stay collectable.
 const registered = new WeakSet<object>();
 
@@ -51,21 +67,41 @@ const _mastraIntegration = ((options: MastraOptions = {}) => {
   return {
     name: MASTRA_INTEGRATION_NAME,
     setup(client) {
-      // The subscriber opens no spans, so a missing async-context binding must not defer it.
-      invokeOrchestrionInstrumentation(client, mastraModuleNames, instrumentMastra, [options], {
+      // Attaching the exporter opens no spans, so a missing async-context binding must not defer it.
+      invokeOrchestrionInstrumentation(client, mastraModuleNames, instrumentExporter, [options], {
         requiresTracingChannelBinding: false,
       });
+      // The `executeWithContext` bridge binds spans into the async context, so it must wait for the
+      // async-context binding (e.g. a custom OpenTelemetry setup wires it up late).
+      invokeOrchestrionInstrumentation(client, mastraModuleNames, instrumentExecuteWithContext, []);
     },
   };
 }) satisfies IntegrationFn;
 
-function instrumentMastra(options: MastraOptions): void {
+function instrumentExporter(options: MastraOptions): void {
   diagnosticsChannel.tracingChannel<ConstructorChannelContext>(CHANNELS.MASTRA_CONSTRUCTOR).end.subscribe(message => {
     safeChannelCallback(() => {
       const { self } = message as ConstructorChannelContext;
       attachExporter(self, options);
     });
   });
+}
+
+/**
+ * Mastra runs each operation's work inside `executeWithContext({ span, fn })`. Bind the exporter's
+ * Sentry span for that Mastra span into the async context for the call, so nested auto-instrumented
+ * work (the model `fetch`, a `dataloader.load` in a tool) parents under it. This activates an existing
+ * exporter span — it never opens or ends one; the exporter owns the span lifecycle.
+ */
+function instrumentExecuteWithContext(): void {
+  bindSpanToChannelStore(
+    diagnosticsChannel.tracingChannel<ExecuteWithContextChannelContext>(CHANNELS.MASTRA_EXECUTE_WITH_CONTEXT),
+    data => {
+      const params = (data.arguments as unknown[] | undefined)?.[0];
+      const id = isObjectLike(params) ? mastraSpanId(params.span) : undefined;
+      return id ? getSentrySpanForMastraId(id) : undefined;
+    },
+  );
 }
 
 function attachExporter(instance: unknown, options: MastraOptions): void {

@@ -215,7 +215,7 @@ export function bindTracingChannelToSpan<TData extends object>(
  *
  * `getSpan` may return `undefined` to leave the active context untouched for that payload.
  */
-function bindSpanToChannelStore<TData extends object>(
+export function bindSpanToChannelStore<TData extends object>(
   channel: TracingChannel<TData, TData>,
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span | undefined,
   opts?: Pick<TracingChannelLifeCycleOptions, 'requiresParentSpan'>,
