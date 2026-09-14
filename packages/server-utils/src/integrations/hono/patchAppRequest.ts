@@ -8,8 +8,8 @@ import {
   startSpan,
   type WrappedFunction,
 } from '@sentry/core';
-import type { Env, Hono } from 'hono';
-import { DEBUG_BUILD } from '../debug-build';
+import type { Env, Hono } from './honoTypes';
+import { DEBUG_BUILD } from '../../debug-build';
 
 const INTERNAL_REQUEST_OP = HTTP_SERVER;
 const INTERNAL_REQUEST_ORIGIN = 'auto.http.hono.internal_request';

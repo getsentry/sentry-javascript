@@ -9,7 +9,7 @@ import {
   startInactiveSpan,
   type WrappedFunction,
 } from '@sentry/core';
-import { type MiddlewareHandler } from 'hono';
+import { type MiddlewareHandler } from './honoTypes';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
