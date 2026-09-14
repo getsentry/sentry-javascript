@@ -330,6 +330,103 @@ describe('instrumentMistralAiClient', () => {
       expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_RESPONSE_TEXT]).toBe('Hello from Mistral');
     });
 
+    it('accumulates and ends the span when the stream is drained with pipeTo()', async () => {
+      const endedSpans = setupClient('stream');
+      const client = instrumentMistralAiClient(fakeClient(), { recordOutputs: true });
+
+      const stream = await client.chat.stream({ model: 'mistral-large-latest', messages: [] });
+      const received: unknown[] = [];
+      await stream.pipeTo(
+        new WritableStream({
+          write(chunk) {
+            received.push(chunk);
+          },
+        }),
+      );
+
+      expect(received).toHaveLength(3);
+      expect(endedSpans).toHaveLength(1);
+      const span = spanToStaticSpanJSON(endedSpans[0]!);
+      expect(span.data[GEN_AI_RESPONSE_STREAMING]).toBe(true);
+      expect(span.data[GEN_AI_RESPONSE_TEXT]).toBe('Hello from Mistral');
+      expect(span.data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(30);
+    });
+
+    it('accumulates and ends the span when the stream is drained with pipeThrough()', async () => {
+      const endedSpans = setupClient('stream');
+      const client = instrumentMistralAiClient(fakeClient(), { recordOutputs: true });
+
+      const stream = await client.chat.stream({ model: 'mistral-large-latest', messages: [] });
+      const passThrough = stream.pipeThrough(new TransformStream());
+
+      const received: unknown[] = [];
+      for await (const chunk of passThrough) {
+        received.push(chunk);
+      }
+
+      expect(received).toHaveLength(3);
+      expect(endedSpans).toHaveLength(1);
+      expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_RESPONSE_TEXT]).toBe('Hello from Mistral');
+    });
+
+    it('counts chunks once when the stream is teed, and feeds both branches', async () => {
+      const endedSpans = setupClient('stream');
+      const client = instrumentMistralAiClient(fakeClient(), { recordOutputs: true });
+
+      const stream = await client.chat.stream({ model: 'mistral-large-latest', messages: [] });
+      const [left, right] = stream.tee();
+
+      const drain = async (branch: ReadableStream<unknown>): Promise<unknown[]> => {
+        const chunks: unknown[] = [];
+        for await (const chunk of branch) {
+          chunks.push(chunk);
+        }
+        return chunks;
+      };
+      const [leftChunks, rightChunks] = await Promise.all([drain(left), drain(right)]);
+
+      // Both consumers see the full stream.
+      expect(leftChunks).toHaveLength(3);
+      expect(rightChunks).toHaveLength(3);
+
+      // ...but the span records the response once, not twice.
+      expect(endedSpans).toHaveLength(1);
+      expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_RESPONSE_TEXT]).toBe('Hello from Mistral');
+    });
+
+    it('leaves the teed stream locked, as an untouched ReadableStream would be', async () => {
+      setupClient('stream');
+      const client = instrumentMistralAiClient(fakeClient());
+
+      const stream = await client.chat.stream({ model: 'mistral-large-latest', messages: [] });
+      stream.tee();
+
+      expect(stream.locked).toBe(true);
+      expect(() => stream.getReader()).toThrow(TypeError);
+    });
+
+    it('applies backpressure instead of draining the source eagerly', async () => {
+      setupClient('stream');
+      let pulled = 0;
+      const counting = new ReadableStream({
+        pull(controller) {
+          pulled++;
+          controller.enqueue(STREAM_EVENTS[0]);
+        },
+      });
+      const client = instrumentMistralAiClient(fakeClient({ chat: { stream: vi.fn().mockResolvedValue(counting) } }));
+
+      const stream = await client.chat.stream({ model: 'mistral-large-latest', messages: [] });
+      const reader = stream.pipeThrough(new TransformStream()).getReader();
+      await reader.read();
+      const afterOneRead = pulled;
+      await reader.cancel();
+
+      // An infinite source must not be drained just because it was piped. The exact count depends on
+      // queue sizes; what matters is that it stays bounded rather than running away.
+      expect(afterOneRead).toBeLessThan(10);
+    });
+
     it('marks the span errored when the stream throws', async () => {
       const endedSpans = setupClient('stream');
       const failing = new ReadableStream({
