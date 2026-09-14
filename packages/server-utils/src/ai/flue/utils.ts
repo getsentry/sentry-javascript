@@ -5,6 +5,7 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stringify,
+  withActiveSpan,
 } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
@@ -85,7 +86,7 @@ function trackSpan(tracker: SpanTracker, key: string, span: Span): void {
  * error at all. `errorInfo` carries the original name, message and stack, so rebuild an `Error`
  * from it rather than capturing the serialized shape.
  */
-function captureFlueError(errorInfo: FlueErrorInfo | undefined, kind: 'tool' | 'turn'): void {
+function captureFlueError(span: Span, errorInfo: FlueErrorInfo | undefined, kind: 'tool' | 'turn'): void {
   if (!errorInfo) {
     return;
   }
@@ -96,12 +97,10 @@ function captureFlueError(errorInfo: FlueErrorInfo | undefined, kind: 'tool' | '
     error.stack = errorInfo.stack;
   }
 
-  captureException(error, {
-    mechanism: {
-      // Handled: Flue caught it and fed it back to the model as a tool result.
-      handled: true,
-      type: `${FLUE_ORIGIN}.${kind}_error`,
-    },
+  // Captured under the operation's own span so the issue lands on the right trace, matching how the
+  // Mastra integration attaches its captures.
+  withActiveSpan(span, () => {
+    captureException(error, { mechanism: { handled: false, type: FLUE_ORIGIN } });
   });
 }
 
@@ -177,7 +176,7 @@ export function endTurnSpan(observation: FlueObservation, turnSpans: SpanTracker
 
   if (observation.isError) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-    captureFlueError(observation.errorInfo, 'turn');
+    captureFlueError(span, observation.errorInfo, 'turn');
   }
   span.end();
 }
@@ -259,7 +258,7 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
 
   if (observation.isError) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-    captureFlueError(observation.errorInfo, 'tool');
+    captureFlueError(span, observation.errorInfo, 'tool');
   }
   span.end();
 }
