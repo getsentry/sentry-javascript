@@ -129,7 +129,9 @@ export function endTurnSpan(observation: FlueObservation, turnSpans: SpanTracker
     span.setAttribute(GEN_AI_RESPONSE_ID, responseId);
   }
   if (finishReason) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, [finishReason]);
+    // Serialized, not a raw array: the conventions declare this attribute's value type as `string`,
+    // and that is what `ai/core`, Mastra, OpenAI and Vercel AI all write.
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, stringify([finishReason]));
   }
 
   const output = observation.response?.output;
