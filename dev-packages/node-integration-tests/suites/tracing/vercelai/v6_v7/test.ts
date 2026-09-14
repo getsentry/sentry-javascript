@@ -817,11 +817,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     'scenario-cache-tokens.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      // Through the Vercel AI Gateway, `providerMetadata` is keyed `gateway` rather than by provider,
-      // so cache counts can only come from the SDK's normalized usage object. Only the channel
-      // subscriber (v7) reads them from there; the v6 OTel processor derives cache counts from
-      // `providerMetadata` alone and can't see the gateway case.
-      test.skipIf(version === '6')('reads cache token counts from the SDK usage object', async () => {
+      test('reads cache token counts from the SDK usage object', async () => {
         await createRunner()
           .expect({ transaction: { transaction: 'main' } })
           .expect({
