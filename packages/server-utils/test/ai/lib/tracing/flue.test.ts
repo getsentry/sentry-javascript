@@ -524,7 +524,8 @@ describe('createFlueInstrumentation', () => {
     const exception = client.event?.exception?.values?.[0];
     expect(exception?.type).toBe('TypeError');
     expect(exception?.value).toBe('kaboom');
-    expect(exception?.mechanism?.type).toBe('auto.ai.flue.tool_error');
+    expect(exception?.mechanism?.type).toBe('auto.ai.flue');
+    expect(exception?.mechanism?.handled).toBe(false);
   });
 
   it('does not capture an error event for a tool that succeeded', async () => {
