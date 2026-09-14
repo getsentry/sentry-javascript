@@ -285,4 +285,34 @@ describe('Mistral integration', () => {
         .completed();
     });
   });
+  createEsmTests(__dirname, 'scenario-parse.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('creates chat spans for the structured-output entry points', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            // `parse` bypasses `chat.complete`, so this span can only come from its own
+            // orchestrion entry — and there must be exactly one, not one per underlying call.
+            const parseSpans = container.items.filter(
+              s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-parse-123',
+            );
+            expect(parseSpans).toHaveLength(1);
+            expect(parseSpans[0]!.name).toBe('chat mistral-small-latest');
+            expect(parseSpans[0]!.status).toBe('ok');
+            expect(parseSpans[0]!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
+            expect(parseSpans[0]!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+            expect(parseSpans[0]!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(false);
+            expect(parseSpans[0]!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(12);
+
+            const parseStreamSpan = container.items.find(
+              s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-parse-stream-123',
+            );
+            expect(parseStreamSpan).toBeDefined();
+            expect(parseStreamSpan!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(true);
+            expect(parseStreamSpan!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });
