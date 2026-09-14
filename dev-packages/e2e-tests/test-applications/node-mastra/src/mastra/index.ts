@@ -24,16 +24,6 @@ export const mastra = new Mastra({
     port: 4111,
     apiRoutes: [manualRoute],
   },
-  // `dataloader` MUST stay an external (real node_modules module) rather than be
-  // bundled inline. Sentry's orchestrion instrumentation transforms `dataloader`'s
-  // on-disk `index.js` at require time to publish tracing channels; a copy inlined
-  // into the Mastra bundle is never transformed, so no `cache.get` span is emitted.
-  // (When `dataloader` was imported from the entry `index.ts` Mastra kept it
-  // external automatically; reaching it only through the bundled `count_items` tool
-  // makes Mastra inline it unless it is listed here.)
-  bundler: {
-    externals: ['dataloader'],
-  },
 });
 
 /**
