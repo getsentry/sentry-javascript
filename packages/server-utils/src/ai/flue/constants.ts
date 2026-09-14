@@ -1,9 +1,16 @@
 export const FLUE_ORIGIN = 'auto.ai.flue';
 
 /**
- * Identifies our registration in Flue's keyed instrumentation registry. A distinct key lets us
- * coexist with `@flue/opentelemetry` (which registers under its own key) and makes a repeated
- * `instrument()` call a no-op instead of throwing `InstrumentationAlreadyInstalledError`.
+ * Identifies our registration in Flue's keyed instrumentation registry.
+ *
+ * `key` is optional, but without one there is no protection against registering twice: Flue
+ * deduplicates on object identity, and `createFlueInstrumentation()` returns a new object each
+ * call, so a second `instrument()` would silently add a second observer and interceptor and
+ * duplicate every span.
+ *
+ * With a key, Flue handles the repeat itself — it throws `InstrumentationAlreadyInstalledError` in
+ * production, and in dev disposes the previous registration and swaps in the new one, which is what
+ * stops `vite dev` from stacking observers across reloads.
  */
 export const FLUE_INSTRUMENTATION_KEY = Symbol.for('sentry.flue.instrumentation');
 
