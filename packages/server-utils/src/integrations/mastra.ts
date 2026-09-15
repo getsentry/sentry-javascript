@@ -101,10 +101,9 @@ function instrumentExporter(options: MastraOptions): void {
 /**
  * Capture errors thrown by Mastra operations as Sentry issues. Mastra runs each operation's work
  * inside `executeWithContext({ span, fn })`; when `fn` rejects, the channel's `error` carries the real
- * `Error` (with a stack), so we capture that rather than the exporter's stack-less `errorInfo`. Deduped
- * against re-captures (Mastra can re-throw the same error through outer operations) and associated with
- * the exporter's span for that operation so it lands on the right trace. Capturing needs no async
- * context binding, so it rides the attach-only path.
+ * `Error` (with a stack), so we capture that rather than the exporter's stack-less `errorInfo`.
+ * Associated with the exporter's span for that operation so it lands on the right trace. Capturing needs
+ * no async context binding, so it rides the attach-only path.
  */
 function captureExecuteWithContextErrors(): void {
   diagnosticsChannel
@@ -117,11 +116,38 @@ function captureExecuteWithContextErrors(): void {
     });
 }
 
+/** Bound on the `cause` walk; a self- or cyclic `cause` from a wrapped error would otherwise hang. */
+const MAX_CAUSE_CHAIN_DEPTH = 10;
+
+// Errors we've already captured, plus everything they wrap. Mastra re-throws failures wrapped in a
+// `new MastraError({ cause })`, so the same failure surfaces at outer operations as a *different*
+// object — `captureException`'s identity dedup can't see that, but the shared `cause` can.
+const capturedErrors = new WeakSet<object>();
+
+function errorCauseChain(error: unknown): object[] {
+  const chain: object[] = [];
+  let current = error;
+  for (let depth = 0; depth < MAX_CAUSE_CHAIN_DEPTH && isObjectLike(current); depth++) {
+    chain.push(current);
+    const cause = (current as { cause?: unknown }).cause;
+    if (cause === current) {
+      break;
+    }
+    current = cause;
+  }
+  return chain;
+}
+
 function captureMastraError(error: unknown, params: unknown): void {
+  const chain = errorCauseChain(error);
+  // Skip if this error — or anything it wraps, or anything wrapping it — was already captured.
+  if (chain.some(link => capturedErrors.has(link))) {
+    return;
+  }
+  chain.forEach(link => capturedErrors.add(link));
+
   const id = isObjectLike(params) ? mastraSpanId(params.span) : undefined;
   const span = id ? getSentrySpanForMastraId(id) : undefined;
-  // `captureException` dedupes on the error instance, so the same error re-thrown through outer
-  // `executeWithContext` calls is captured only once.
   const capture = (): string => captureException(error, { mechanism: { type: 'auto.ai.mastra', handled: false } });
 
   // Attach to the operation's span so the issue lands on the right trace, when the span is still open.
