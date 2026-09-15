@@ -64,6 +64,7 @@ export {
   openAIIntegration,
   langChainIntegration,
   langGraphIntegration,
+  createFlueInstrumentation,
   mastraIntegration,
   SentryMastraExporter,
   modulesIntegration,

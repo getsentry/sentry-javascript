@@ -95,6 +95,7 @@ export {
   openAIIntegration,
   langChainIntegration,
   langGraphIntegration,
+  createFlueInstrumentation,
   mastraIntegration,
   SentryMastraExporter,
   parameterize,
@@ -186,6 +187,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   metrics,
+  eveConversationHook,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

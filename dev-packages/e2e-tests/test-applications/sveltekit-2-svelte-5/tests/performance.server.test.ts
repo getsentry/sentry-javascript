@@ -23,9 +23,14 @@ test('server pageload request span has nested request span for sub request', asy
     expect.arrayContaining([
       // load span where the server load function initiates the sub request:
       expect.objectContaining({
-        name: '/server-load-fetch',
+        name: 'load',
         is_segment: false,
-        attributes: expect.objectContaining({ 'sentry.op': { value: 'function', type: 'string' } }),
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'code.function.name': { value: 'load', type: 'string' },
+          'http.route': { value: '/server-load-fetch', type: 'string' },
+          'sentry.description': { value: '/server-load-fetch', type: 'string' },
+        }),
       }),
       // sub request span:
       expect.objectContaining({

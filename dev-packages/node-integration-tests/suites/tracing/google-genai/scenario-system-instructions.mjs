@@ -43,6 +43,18 @@ async function run() {
       },
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
     });
+
+    await client.models.generateContent({
+      model: 'gemini-1.5-flash',
+      config: {
+        systemInstruction: { parts: [{ text: 'You are a helpful assistant' }] },
+      },
+      contents: [
+        { role: 'user', parts: [{ text: 'What time is it in Tokyo?' }] },
+        { role: 'model', parts: [{ functionCall: { name: 'get_time', args: { timezone: 'Asia/Tokyo' } } }] },
+        { role: 'user', parts: [{ functionResponse: { name: 'get_time', response: { output: '10:00' } } }] },
+      ],
+    });
   });
 
   await Sentry.flush(2000);

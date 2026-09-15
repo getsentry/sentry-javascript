@@ -1507,3 +1507,33 @@ test('GQL fetch spans are attributed to correct navigation segments when navigat
   expect(secondNavSegment.trace_id).toBeDefined();
   expect(firstNavSegment.trace_id).not.toBe(secondNavSegment.trace_id);
 });
+
+test('Does not rename the previous navigation span with the route of the next navigation', async ({ page }) => {
+  const navigationNames: string[] = [];
+
+  const navigationsPromise = waitForStreamedSpan('react-router-7-lazy-routes', span => {
+    if (getSpanOp(span) === 'navigation' && span.is_segment) {
+      navigationNames.push(span.name);
+    }
+
+    return navigationNames.length >= 2;
+  });
+
+  await page.goto('/');
+
+  const toAnotherLazy = page.locator('id=navigation-to-another-deep');
+  await expect(toAnotherLazy).toBeVisible();
+  await toAnotherLazy.click();
+
+  // No wait in between: the second navigation has to start while the first navigation's span is
+  // still open, which is when React Router hands it the second location's routes.
+  const toInnerLazy = page.locator('id=navigate-to-inner-from-deep');
+  await expect(toInnerLazy).toBeVisible();
+  await toInnerLazy.click();
+
+  await expect(page.locator('id=innermost-lazy-route')).toBeVisible();
+
+  await navigationsPromise;
+
+  expect(navigationNames).toEqual(['/another-lazy/sub/:id/:subId', '/lazy/inner/:id/:anotherId/:someAnotherId']);
+});

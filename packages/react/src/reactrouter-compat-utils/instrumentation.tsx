@@ -374,6 +374,17 @@ export function updateNavigationSpan(
 ): void {
   const { name: currentName, end_timestamp, attributes } = spanToJSON(activeRootSpan);
 
+  // React Router resolves a location's routes either side of the SDK starting that navigation's
+  // span, so a resolution can arrive holding the previous navigation's span.
+  const spanPathname = (activeRootSpan as { __sentry_navigation_pathname__?: string })?.__sentry_navigation_pathname__;
+  if (spanPathname !== undefined && spanPathname !== location.pathname) {
+    DEBUG_BUILD &&
+      debug.log(
+        `[React Router] Not renaming the navigation span for "${spanPathname}" with the route of "${location.pathname}"`,
+      );
+    return;
+  }
+
   const hasBeenNamed = (activeRootSpan as { __sentry_navigation_name_set__?: boolean })?.__sentry_navigation_name_set__;
   const currentNameHasWildcard = currentName && transactionNameHasWildcard(currentName);
   const shouldUpdate = !hasBeenNamed || forceUpdate || currentNameHasWildcard;
@@ -1078,6 +1089,9 @@ export function handleNavigation(opts: {
     }
 
     if (navigationSpan) {
+      // On the span rather than only in the tracked entry, which a late resolution finds already
+      // moved on to the next navigation.
+      addNonEnumerableProperty(navigationSpan, '__sentry_navigation_pathname__', location.pathname);
       // Update the map with the real span (isPlaceholder omitted, defaults to false)
       activeNavigationSpans.set(client, {
         span: navigationSpan,

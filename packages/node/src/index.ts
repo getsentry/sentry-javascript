@@ -20,6 +20,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
+  createFlueInstrumentation,
   mastraIntegration,
   SentryMastraExporter,
   mongoIntegration,
@@ -218,6 +219,7 @@ export { makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
 export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+export { eveConversationHook, getInstrumentedModuleNames } from '@sentry/server-utils';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';

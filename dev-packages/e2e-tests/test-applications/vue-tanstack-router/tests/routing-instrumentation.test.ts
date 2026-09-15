@@ -40,11 +40,10 @@ test('sends a pageload span for the root route with web vital attributes and a s
 
   const pageloadSpan = await pageloadSpanPromise;
 
-  // LCP is only reported once the page is hidden or a navigation happens
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
+  // LCP finalizes on the first trusted input or visibility change, and web-vitals checks
+  // `isTrusted`, so a synthetically dispatched `visibilitychange` does not finalize it. Click to
+  // finalize the way a real user would.
+  await page.click('body');
 
   const lcpSpan = await lcpSpanPromise;
 

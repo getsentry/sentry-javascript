@@ -45,20 +45,20 @@ export interface WebVitalsOptions {
   softNavigations?: boolean;
 
   /**
-   * Report a fresh set of LCP, CLS and INP after the page is restored from the back/forward cache.
+   * Give each back/forward-cache restore its own set of LCP, CLS and INP.
    *
    * A restore is a new page view measured against a document that was never reloaded, so its vitals
    * are reported against the navigation span `browserTracingIntegration` starts for the restore,
-   * and tagged `browser.navigation.type: bfcache`. They measure a near-instant restore rather than
-   * a document load, so they are a distinct population from page load vitals and are off by
-   * default.
+   * and tagged `browser.navigation.type: bfcache`. A restore is near-instant by construction, so
+   * these are a distinct population from page load vitals and are meant to be read through that
+   * attribute rather than pooled with them. Set this to `false` to leave restores unmeasured.
    *
    * Requires span streaming (`traceLifecycle: 'stream'`, the default) and
    * `browserTracingIntegration`, which supplies the navigation span these attach to.
    *
-   * Default: `false`
+   * Default: `true`
    */
-  bfcache?: boolean;
+  bfcacheNavigations?: boolean;
 }
 
 /**
@@ -69,7 +69,7 @@ export interface WebVitalsOptions {
  * needed to customize options or to use it without `browserTracingIntegration`.
  */
 export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions = {}) => {
-  const { ignore = [], softNavigations = true, bfcache = false } = options;
+  const { ignore = [], softNavigations = true, bfcacheNavigations = true } = options;
   const ignored = new Set(ignore);
 
   return {
@@ -80,7 +80,7 @@ export const webVitalsIntegration = defineIntegration((options: WebVitalsOptions
       // Soft navigation vitals are finalized at the next soft navigation or on pagehide, long after
       // the navigation span they belong to has ended. Only span streaming can still send them.
       const reportSoftNavs = softNavigations && spanStreamingEnabled && supportsSoftNavigations();
-      const reportBfcache = bfcache && spanStreamingEnabled;
+      const reportBfcache = bfcacheNavigations && spanStreamingEnabled;
 
       // Both attribute a vital to the page view it was measured on rather than to the page load, so
       // either one puts the trackers on the per-navigation path.

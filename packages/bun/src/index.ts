@@ -87,6 +87,7 @@ export {
   langGraphIntegration,
   mastraIntegration,
   SentryMastraExporter,
+  createFlueInstrumentation,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -189,6 +190,8 @@ export {
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
+  eveConversationHook,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export {
@@ -209,6 +212,7 @@ export {
   initWithoutDefaultIntegrations,
 } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export type { BunServerIntegrationOptions } from './integrations/bunserver';
 export { bunHttpServerIntegration } from './integrations/bunHttpServer';
 export { fetchIntegration } from './integrations/fetch';
 export { bunRuntimeMetricsIntegration, type BunRuntimeMetricsOptions } from './integrations/bunRuntimeMetrics';

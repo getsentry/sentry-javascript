@@ -28,13 +28,13 @@ import {
 import { _INTERNAL_ensureBrowserSpanStreaming, startIdleSpan, startInactiveSpan } from '@sentry/core/browser';
 import {
   addHistoryInstrumentationHandler,
-  BROWSER_NAVIGATION_TYPE_ATTRIBUTE,
   addPerformanceEntries,
   getLocationHref,
   isBotUserAgent,
   startTrackingLongAnimationFrames,
   startTrackingLongTasks,
 } from '@sentry/browser-utils';
+import { BROWSER_NAVIGATION_TYPE } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import { filterCollectedUrl } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
@@ -723,7 +723,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
                   [SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache',
                   // A bfcache restore is near-instant, so these spans would otherwise drag
                   // navigation duration percentiles down with no way to tell them apart.
-                  [BROWSER_NAVIGATION_TYPE_ATTRIBUTE]: 'bfcache',
+                  [BROWSER_NAVIGATION_TYPE]: 'bfcache',
                 },
               },
               { url: WINDOW.location?.href },

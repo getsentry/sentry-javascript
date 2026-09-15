@@ -90,8 +90,8 @@ describe('webVitalsIntegration', () => {
       trackLcp: false,
       client,
     });
-    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, false);
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, false);
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
     expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
   });
@@ -104,7 +104,7 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, false);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
     expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
   });
 
@@ -131,9 +131,10 @@ describe('webVitalsIntegration', () => {
 
     expect(mockEnableSoftNavigationReporting).not.toHaveBeenCalled();
     expect(mockStartSoftNavigationCorrelation).not.toHaveBeenCalled();
-    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, false);
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, false);
-    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, false);
+    // Restores still select the per-navigation path, independently of soft navigations.
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, true);
   });
 
   it('does not report soft navigation web vitals without span streaming', () => {
@@ -148,29 +149,29 @@ describe('webVitalsIntegration', () => {
     expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, false);
   });
 
-  it('does not report bfcache web vitals by default', () => {
+  it('reports bfcache web vitals by default', () => {
     const client = getMockClient({ traceLifecycle: 'stream' });
     const integration = webVitalsIntegration();
-
-    integration.setup?.(client as never);
-
-    expect(mockEnableBfcacheReporting).not.toHaveBeenCalled();
-  });
-
-  it('reports bfcache web vitals when opted in', () => {
-    const client = getMockClient({ traceLifecycle: 'stream' });
-    const integration = webVitalsIntegration({ bfcache: true });
 
     integration.setup?.(client as never);
 
     expect(mockEnableBfcacheReporting).toHaveBeenCalledTimes(1);
   });
 
+  it('does not report bfcache web vitals when opted out', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ bfcacheNavigations: false });
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableBfcacheReporting).not.toHaveBeenCalled();
+  });
+
   it('puts the trackers on the per-navigation path for bfcache alone', () => {
-    // Soft navigations are unsupported here, so `bfcache` is the only thing that can select it.
+    // Soft navigations are unsupported here, so bfcache restores are the only thing that can select it.
     mockSupportsSoftNavigations.mockReturnValue(false);
     const client = getMockClient({ traceLifecycle: 'stream' });
-    const integration = webVitalsIntegration({ bfcache: true });
+    const integration = webVitalsIntegration();
 
     integration.setup?.(client as never);
 
@@ -181,7 +182,7 @@ describe('webVitalsIntegration', () => {
 
   it('does not report bfcache web vitals without span streaming', () => {
     const client = getMockClient();
-    const integration = webVitalsIntegration({ bfcache: true });
+    const integration = webVitalsIntegration();
 
     integration.setup?.(client as never);
 
@@ -196,7 +197,8 @@ describe('webVitalsIntegration', () => {
     integration.setup?.(client as never);
 
     expect(mockEnableSoftNavigationReporting).not.toHaveBeenCalled();
-    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, false);
+    // Restores still select the per-navigation path, independently of soft navigations.
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
   });
 
   it('supports ignoring selected web vitals', () => {
