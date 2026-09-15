@@ -56,6 +56,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         },
         close() {
           renderContent(false);
+          getClient()?.emit('closeFeedbackWidget');
           DOCUMENT.body.style.overflow = originalOverflow;
         },
       };
