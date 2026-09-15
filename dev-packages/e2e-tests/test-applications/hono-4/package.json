@@ -12,9 +12,9 @@
     "test": "TEST_ENV=production playwright test",
     "test:assert": "pnpm test:assert:node",
     "test:assert:node": "RUNTIME=node pnpm test",
-    "test:assert:bun": "RUNTIME=bun bun run build.ts &&pnpm test",
+    "test:assert:bun": "bun run build.ts && RUNTIME=bun pnpm test",
     "test:assert:deno": "RUNTIME=deno pnpm test",
-    "test:assert:cloudflare": "RUNTIME=cloudflare vite build && pnpm test"
+    "test:assert:cloudflare": "vite build && RUNTIME=cloudflare pnpm test"
   },
   "dependencies": {
     "@sentry/bun": "latest || *",
