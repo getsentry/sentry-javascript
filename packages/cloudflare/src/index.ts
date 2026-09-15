@@ -120,6 +120,7 @@ export { _INTERNAL_earlyInit, _INTERNAL_wrapRequestHandler, getDefaultIntegratio
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
+export { onUnhandledRejectionIntegration } from './integrations/onUnhandledRejection';
 export { spotlightIntegration } from './integrations/spotlight';
 export {
   openTelemetryIntegration,

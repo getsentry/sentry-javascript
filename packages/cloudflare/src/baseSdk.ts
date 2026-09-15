@@ -20,6 +20,7 @@ import { cacheClient, getCachedClient } from './clientCache';
 import { DEBUG_BUILD } from './debug-build';
 import { fetchIntegration } from './integrations/fetch';
 import { httpServerIntegration } from './integrations/httpServer';
+import { onUnhandledRejectionIntegration } from './integrations/onUnhandledRejection';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from './integrations/spotlight';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
@@ -61,6 +62,7 @@ export function getBaseDefaultIntegrations(options: CloudflareOptions): Integrat
     httpServerIntegration(),
     requestDataIntegration(),
     consoleIntegration(),
+    onUnhandledRejectionIntegration(),
     // The orchestrion diagnostics-channel subscribers (mysql, pg, …). The
     // `@sentry/cloudflare/vite` plugin injects the channels at build time and,
     // next to each, a snippet that registers the matching subscriber factory on
