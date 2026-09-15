@@ -125,9 +125,9 @@ function instrumentMethod<T extends unknown[], R>(
       attributes: requestAttributes as Record<string, SpanAttributeValue>,
     };
 
-    let originalResult!: Promise<R>;
-
     if (isStreamRequested) {
+      let originalResult!: Promise<R>;
+
       const instrumentedPromise = startSpanManual(spanConfig, (span: Span) => {
         originalResult = originalMethod.apply(context, args);
 
@@ -154,6 +154,8 @@ function instrumentMethod<T extends unknown[], R>(
 
       return wrapPromiseWithMethods(originalResult, instrumentedPromise);
     }
+
+    let originalResult!: Promise<R>;
 
     const instrumentedPromise = startSpan(spanConfig, (span: Span) => {
       originalResult = originalMethod.apply(context, args);
