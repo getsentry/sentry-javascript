@@ -23,6 +23,16 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./cli": {
+      "import": {
+        "types": "./build/types/cli.d.ts",
+        "default": "./build/esm/cli.js"
+      },
+      "require": {
+        "types": "./build/types/cli.d.ts",
+        "default": "./build/cjs/cli.js"
+      }
     }
   },
   "sideEffects": false,
