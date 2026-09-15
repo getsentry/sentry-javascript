@@ -132,6 +132,7 @@ export {
   graphqlIntegration,
   hapiIntegration,
   honoIntegration,
+  honoMiddleware,
   kafkaIntegration,
   knexIntegration,
   koaIntegration,

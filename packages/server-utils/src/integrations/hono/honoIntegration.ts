@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
-import type { Env, GetConnInfo, Hono } from './honoTypes';
+import type { Env, GetConnInfo, Hono, MiddlewareHandler } from './honoTypes';
 import { CHANNELS } from '../../orchestrion/channels';
 import { honoModuleNames } from '../../orchestrion/config/hono';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -93,6 +93,27 @@ function instrumentHonoApp<E extends Env>(app: Hono<E>, options: HonoIntegration
   applyPatches(app);
 }
 
+/**
+ * Manually instruments a Hono app for Sentry tracing and returns the Sentry request/response
+ * middleware to register — `app.use(honoMiddleware(app))`, as the FIRST middleware.
+ *
+ * This is the same instrumentation the {@link honoIntegration} sets up automatically via orchestrion,
+ * exposed for manual use where the automatic constructor hook cannot run — most notably Cloudflare
+ * Workers, where the Hono app is built at module scope and `node:diagnostics_channel` publishing is
+ * disallowed there. It is config- and DSN-free: `Sentry.init(...)` must still be called separately.
+ *
+ * `getConnInfo` is resolved for the current runtime (Node/Bun/Deno); on Cloudflare it is left to the
+ * platform's request-data handling.
+ */
+export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegrationOptions = {}): MiddlewareHandler {
+  applyPatches(app);
+
+  return createHonoRequestMiddleware({
+    getConnInfo: resolveGetConnInfo(),
+    shouldHandleError: options.shouldHandleError,
+  });
+}
+
 // Subscribing happens at most once, whether reached through the per-client `setup()` path
 // (Node/Bun/Deno) or the eager Cloudflare arm below.
 let constructorSubscribed = false;
@@ -173,16 +194,8 @@ const _honoIntegration = ((options: HonoIntegrationOptions = {}) => {
  */
 export const honoIntegration = defineIntegration(_honoIntegration);
 
-// Cloudflare only: the Hono app is built at module scope, before any per-request `init()` creates a
-// client, so the per-client `setup()` path used on Node/Bun/Deno would subscribe too late to catch
-// the `Hono` constructor. The orchestrion snippet injected into `hono` imports this module at hono's
-// module-eval — before `new Hono()` runs — so arming here catches it. Gated to Cloudflare so the
-// other runtimes keep the lazy, opt-out-respecting `setup()` path.
-//
-// The result is assigned to a global so the call is not tree-shaken out of the Cloudflare bundle
-// (`@sentry/server-utils` is `sideEffects: false`) — the same technique the injected snippet uses.
-// TODO: Remove this hack again once we handle this properly in Cloudflare SDK
-// The some problem exists for e.g. express etc, this is just a bandaid
-if (isCloudflare) {
-  (globalThis as Record<string, unknown>).__SENTRY_HONO_CLOUDFLARE_ARMED__ = instrumentHono({});
-}
+// Cloudflare Workers build the Hono app at module scope, and workerd disallows `diagnostics_channel`
+// publish/`runStores` at module scope — so arming the constructor channel there crashes the worker at
+// `new Hono()`. Auto-instrumentation via the constructor channel therefore does not run on Cloudflare;
+// users register the middleware manually instead (`app.use(honoMiddleware(app))`, exported from
+// `@sentry/cloudflare`), which applies the same instrumentation without touching diagnostics_channel.

@@ -36,7 +36,7 @@ export { genericPoolIntegration } from './integrations/generic-pool';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';
-export { honoIntegration } from './integrations/hono';
+export { honoIntegration, honoMiddleware } from './integrations/hono';
 export type { HonoIntegrationOptions } from './integrations/hono';
 // Shared, runtime-agnostic Hono instrumentation re-used by the `@sentry/hono` SDK.
 export { applyHonoPatches, earlyPatchHono, createHonoRequestMiddleware } from './integrations/hono';

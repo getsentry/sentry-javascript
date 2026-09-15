@@ -5,6 +5,10 @@ import type { Hono } from './honoTypes';
 export { honoIntegration } from './honoIntegration';
 export type { HonoIntegrationOptions } from './honoIntegration';
 
+// Manual counterpart of the auto-instrumentation, for setups where the automatic constructor hook
+// can't run (most notably Cloudflare Workers): `app.use(honoMiddleware(app))`.
+export { honoMiddleware } from './honoIntegration';
+
 // Shared, runtime-agnostic Hono instrumentation, re-used by the `@sentry/hono` SDK across all of its
 // runtimes (Node, Bun, Cloudflare, Deno). None of these modules import `hono` (at runtime or type
 // level), so they stay safe to load in every server SDK — including apps that do not use Hono.

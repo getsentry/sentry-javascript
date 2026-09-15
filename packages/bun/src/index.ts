@@ -127,6 +127,7 @@ export {
   setupFastifyErrorHandler,
   firebaseIntegration,
   honoIntegration,
+  honoMiddleware,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
