@@ -7,7 +7,7 @@
     "dev:node": "node --import tsx/esm --import ./src/instrument.node.ts src/entry.node.ts",
     "dev:bun": "bun run dist/entry.bun.js",
     "dev:deno": "deno run --allow-net --allow-env --allow-read --preload=npm:@sentry/deno/import src/entry.deno.ts",
-    "dev:cloudflare": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "dev:cloudflare": "wrangler dev --config ./dist/hono_4/wrangler.json --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
     "test:build": "pnpm install",
     "test": "TEST_ENV=production playwright test",
     "test:assert": "pnpm test:assert:node",
