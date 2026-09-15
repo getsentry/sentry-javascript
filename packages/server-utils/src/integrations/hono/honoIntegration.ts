@@ -97,9 +97,9 @@ function instrumentHonoApp<E extends Env>(app: Hono<E>, options: HonoIntegration
 // (Node/Bun/Deno) or the eager Cloudflare arm below.
 let constructorSubscribed = false;
 
-function instrumentHono(options: HonoIntegrationOptions): boolean {
+function instrumentHono(options: HonoIntegrationOptions): void {
   if (constructorSubscribed) {
-    return false;
+    return;
   }
   constructorSubscribed = true;
 
@@ -111,8 +111,6 @@ function instrumentHono(options: HonoIntegrationOptions): boolean {
       }
     });
   });
-
-  return true;
 }
 
 const _honoIntegration = ((options: HonoIntegrationOptions = {}) => {
