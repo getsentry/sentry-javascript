@@ -13,8 +13,6 @@ interface SentryTestVariant {
   'build-command': string;
   'assert-command'?: string;
   label?: string;
-  // When true, the variant is excluded from the CI matrix (see `getTestMatrix.mjs`) and skipped by
-  // the local runner. Use it to park a variant blocked by an upstream bug without deleting it.
   skip?: boolean;
 }
 
@@ -246,7 +244,6 @@ async function run(): Promise<void> {
           testLabel: testAppPath,
         };
 
-    // A variant marked `skip` is parked (e.g. blocked by an upstream bug); don't build or test it.
     if (skip) {
       console.log(`\n\nSkipping variant "${matchedVariantLabel ?? variantLabel}" (marked skip).\n\n`);
       await rm(tmpDirPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
