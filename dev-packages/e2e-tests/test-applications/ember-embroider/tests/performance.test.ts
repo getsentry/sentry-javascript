@@ -178,17 +178,19 @@ test('captures correct spans for navigation', async ({ page }) => {
   expect(beforeModelSpans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: 'slow-loading-route',
+        name: 'beforeModel',
         attributes: expect.objectContaining({
           'code.function.name': { type: 'string', value: 'beforeModel' },
+          'sentry.description': { type: 'string', value: 'slow-loading-route' },
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.ui.ember' },
         }),
       }),
       expect.objectContaining({
-        name: 'slow-loading-route.index',
+        name: 'beforeModel',
         attributes: expect.objectContaining({
           'code.function.name': { type: 'string', value: 'beforeModel' },
+          'sentry.description': { type: 'string', value: 'slow-loading-route.index' },
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.ui.ember' },
         }),
@@ -199,15 +201,17 @@ test('captures correct spans for navigation', async ({ page }) => {
   expect(modelSpans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: 'slow-loading-route',
+        name: 'model',
         attributes: expect.objectContaining({
           'code.function.name': { type: 'string', value: 'model' },
+          'sentry.description': { type: 'string', value: 'slow-loading-route' },
         }),
       }),
       expect.objectContaining({
-        name: 'slow-loading-route.index',
+        name: 'model',
         attributes: expect.objectContaining({
           'code.function.name': { type: 'string', value: 'model' },
+          'sentry.description': { type: 'string', value: 'slow-loading-route.index' },
         }),
       }),
     ]),
@@ -216,15 +220,17 @@ test('captures correct spans for navigation', async ({ page }) => {
   expect(afterModelSpans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: 'slow-loading-route',
+        name: 'afterModel',
         attributes: expect.objectContaining({
           'code.function.name': { type: 'string', value: 'afterModel' },
+          'sentry.description': { type: 'string', value: 'slow-loading-route' },
         }),
       }),
       expect.objectContaining({
-        name: 'slow-loading-route.index',
+        name: 'afterModel',
         attributes: expect.objectContaining({
           'code.function.name': { type: 'string', value: 'afterModel' },
+          'sentry.description': { type: 'string', value: 'slow-loading-route.index' },
         }),
       }),
     ]),
