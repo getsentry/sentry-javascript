@@ -143,6 +143,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  mistralAIIntegration,
   openAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
