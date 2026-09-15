@@ -1528,20 +1528,7 @@ Sentry.init({
 
 ### `@sentry/browser`
 
-- The `console` option was removed from `breadcrumbsIntegration`. Console breadcrumbs are now recorded by `consoleIntegration`, which is enabled by default, like it already is in the server-side SDKs. It records the same breadcrumbs and additionally accepts `levels` and `filter` options. It does not send logs; that still requires `consoleLoggingIntegration`. If you set `defaultIntegrations: false` and add `breadcrumbsIntegration()` yourself, also add `consoleIntegration()` to keep console breadcrumbs.
-
-```js
-// before
-Sentry.init({
-  integrations: [Sentry.breadcrumbsIntegration({ console: false })],
-});
-
-// after
-Sentry.init({
-  integrations: defaultIntegrations => defaultIntegrations.filter(integration => integration.name !== 'Console'),
-});
-```
-
+- The `console` option was removed from `breadcrumbsIntegration`. Console breadcrumbs now come from the default `consoleIntegration`: filter out the `Console` integration to disable them, or add `consoleIntegration()` if you set `defaultIntegrations: false`.
 - The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from both `browserTracingIntegration` and `webVitalsIntegration`. CLS and LCP are no longer configurable: they are recorded as measurements on the pageload span, unless span streaming is enabled (`traceLifecycle: 'stream'`), in which case they are sent as dedicated spans.
 - INP is now always sent as a web vital span (streamed when span streaming is enabled, standalone otherwise) that carries its value as a `browser.web_vital.inp.value` attribute. Previously, with span streaming disabled, INP was sent as a standalone span that carried its value as a span measurement.
 
