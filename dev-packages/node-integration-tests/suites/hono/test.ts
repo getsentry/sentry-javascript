@@ -1,6 +1,20 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../utils/runner';
 
+// Verifies that Hono is auto-instrumented out of the box by `@sentry/node` (the `honoIntegration`
+// default), without importing `@sentry/hono` or registering the `sentry()` middleware manually.
+//
+// The SDK runs with the default `traceLifecycle` (span streaming), so the transaction is asserted via
+// the streamed span container (`container.items`, root = `is_segment`) rather than a `transaction`
+// envelope, and `.unordered()` lets the segment/child spans and error events arrive in any order
+// while ignoring unrelated envelopes (client reports, etc.).
+
+// oxlint-disable-next-line typescript/no-explicit-any
+type StreamedSpan = { name?: string; status?: string; is_segment?: boolean; attributes?: Record<string, any> };
+
+const attr = (span: StreamedSpan, key: string): unknown => span.attributes?.[key]?.value;
+const op = (span: StreamedSpan): unknown => attr(span, 'sentry.op');
+
 describe('hono auto-instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
@@ -9,15 +23,15 @@ describe('hono auto-instrumentation', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates a transaction for a basic GET request', async () => {
       const runner = createRunner()
+        .unordered()
         .expect({
-          transaction: {
-            transaction: 'GET /',
-            contexts: {
-              trace: {
-                op: 'http.server',
-                status: 'ok',
-              },
-            },
+          span: container => {
+            const segment = container.items.find(item => item.is_segment && item.name === 'GET /');
+            if (!segment) {
+              throw new Error('segment for `GET /` not in this container');
+            }
+            expect(op(segment)).toBe('http.server');
+            expect(segment.status).toBe('ok');
           },
         })
         .start();
@@ -27,18 +41,15 @@ describe('hono auto-instrumentation', () => {
 
     test('creates a transaction with a parametrized route name', async () => {
       const runner = createRunner()
+        .unordered()
         .expect({
-          transaction: {
-            transaction: 'GET /hello/:name',
-            transaction_info: {
-              source: 'route',
-            },
-            contexts: {
-              trace: {
-                op: 'http.server',
-                status: 'ok',
-              },
-            },
+          span: container => {
+            const segment = container.items.find(item => item.is_segment && item.name === 'GET /hello/:name');
+            if (!segment) {
+              throw new Error('segment for `GET /hello/:name` not in this container');
+            }
+            expect(op(segment)).toBe('http.server');
+            expect(attr(segment, 'sentry.segment.name.source')).toBe('route');
           },
         })
         .start();
@@ -48,7 +59,7 @@ describe('hono auto-instrumentation', () => {
 
     test('captures an error with the correct mechanism', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .unordered()
         .expect({
           event: {
             exception: {
@@ -73,19 +84,16 @@ describe('hono auto-instrumentation', () => {
 
     test('creates a transaction with internal_error status when an error occurs', async () => {
       const runner = createRunner()
-        .ignore('event')
+        .unordered()
         .expect({
-          transaction: {
-            transaction: 'GET /error/:param',
-            contexts: {
-              trace: {
-                op: 'http.server',
-                status: 'internal_error',
-                data: expect.objectContaining({
-                  'http.response.status_code': 500,
-                }),
-              },
-            },
+          span: container => {
+            const segment = container.items.find(item => item.is_segment && item.name === 'GET /error/:param');
+            if (!segment) {
+              throw new Error('segment for `GET /error/:param` not in this container');
+            }
+            expect(op(segment)).toBe('http.server');
+            expect(segment.status).toBe('error');
+            expect(attr(segment, 'http.response.status_code')).toBe(500);
           },
         })
         .start();
@@ -95,16 +103,19 @@ describe('hono auto-instrumentation', () => {
 
     test('does not create a middleware span for the Sentry middleware in a mounted sub-app', async () => {
       const runner = createRunner()
+        .unordered()
         .expect({
-          transaction: transaction => {
-            expect(transaction.transaction).toBe('GET /sub/hello');
-            const middlewareSpans = (transaction.spans || []).filter(span => span.op === 'middleware');
-            const names = middlewareSpans.map(span => span.description);
+          span: container => {
+            const segment = container.items.find(item => item.is_segment && item.name === 'GET /sub/hello');
+            if (!segment) {
+              throw new Error('segment for `GET /sub/hello` not in this container');
+            }
+            const middlewareNames = container.items.filter(item => op(item) === 'middleware').map(item => item.name);
             // The sub-app's user middleware is traced …
-            expect(names).toContain('subMiddleware');
+            expect(middlewareNames).toContain('subMiddleware');
             // … but the sub-app's own auto-registered Sentry middleware must not appear as a span
             // (it is copied into the parent at mount time and must stay unwrapped).
-            expect(names).not.toContain('<anonymous>');
+            expect(middlewareNames).not.toContain('<anonymous>');
           },
         })
         .start();
@@ -114,21 +125,25 @@ describe('hono auto-instrumentation', () => {
 
     test('traces an internal .request() call without the inner app re-instrumenting the request', async () => {
       const runner = createRunner()
+        .unordered()
         .expect({
-          transaction: transaction => {
-            // The transaction is named after the outer route, not the internal one.
-            expect(transaction.transaction).toBe('GET /outer/:itemId');
-
-            const spans = transaction.spans || [];
+          span: container => {
+            // Transaction is named after the outer route, not the internal one.
+            const segment = container.items.find(item => item.is_segment && item.name === 'GET /outer/:itemId');
+            if (!segment) {
+              throw new Error('segment for `GET /outer/:itemId` not in this container');
+            }
 
             // The internal dispatch is traced with the raw inner path — the inner app's Sentry
             // middleware must not re-name it to the parametrized route.
-            const internalRequestSpans = spans.filter(span => span.origin === 'auto.http.hono.internal_request');
+            const internalRequestSpans = container.items.filter(
+              item => attr(item, 'sentry.origin') === 'auto.http.hono.internal_request',
+            );
             expect(internalRequestSpans).toHaveLength(1);
-            expect(internalRequestSpans[0]?.description).toBe('GET /item/self-watering-plant');
+            expect(internalRequestSpans[0]?.name).toBe('GET /item/self-watering-plant');
 
             // The inner app's Sentry middleware must not add a middleware span.
-            const middlewareNames = spans.filter(span => span.op === 'middleware').map(span => span.description);
+            const middlewareNames = container.items.filter(item => op(item) === 'middleware').map(item => item.name);
             expect(middlewareNames).not.toContain('<anonymous>');
           },
         })
@@ -139,7 +154,7 @@ describe('hono auto-instrumentation', () => {
 
     test('captures an error thrown after an internal .request() with the outer request data', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .unordered()
         .expect({
           event: event => {
             expect(event.exception?.values?.[0]?.value).toBe('Test error from outer Hono app after internal request');
