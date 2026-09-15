@@ -37,6 +37,12 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
 
 ### Important Changes
 
+- **feat(effect): Capture errors through the Effect v4 `ErrorReporter` API**
+
+  On Effect v4, `Sentry.effectLayer` now registers a Sentry `ErrorReporter`. Failures that pass through `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC reporting boundaries are captured automatically, with `ErrorReporter.ignore`, `ErrorReporter.severity` and `ErrorReporter.attributes` annotations respected. Nothing changes on Effect v3.
+
+  The server SDK now enables the `contextLines` and `linkedErrors` integrations by default, so captured errors carry source context and their `cause` chain. No other Node default integration is enabled.
+
 - **feat(sveltekit): Add support for SvelteKit 3 ([#22264](https://github.com/getsentry/sentry-javascript/pull/22264))**
 
   The SvelteKit SDK now supports the pre-release of SvelteKit 3, including client-side pageload and navigation tracing and server-side native tracing, alongside continued SvelteKit 2 support. No Sentry-specific setup changes are required. The SDK detects your SvelteKit version and picks the right implementation automatically.
