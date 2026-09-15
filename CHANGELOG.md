@@ -6,6 +6,8 @@
 
 - feat(core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders` ([#24336](https://github.com/getsentry/sentry-javascript/pull/24336)). Passing `true`, `false`, `{ allow: [...] }` or `{ deny: [...] }` now applies to both request and response headers; `{ request, response }` still controls each direction independently.
 
+- feat(effect): Capture errors through the Effect v4 `ErrorReporter` API ([#24151](https://github.com/getsentry/sentry-javascript/pull/24151)). On Effect v4, `Sentry.effectLayer` now registers a Sentry `ErrorReporter`. Failures that pass through `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC reporting boundaries are captured automatically, with `ErrorReporter.ignore`, `ErrorReporter.severity` and `ErrorReporter.attributes` annotations respected. Nothing changes on Effect v3.
+
 ## 10.74.0
 
 - feat(v10): Streamline isolation scope handling & reset in isolation scopes ([#24152](https://github.com/getsentry/sentry-javascript/pull/24152))
