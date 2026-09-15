@@ -1027,7 +1027,9 @@ jobs:
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
-        if: matrix.test-application == 'node-exports-test-app' || contains(matrix.test-application, 'bun') || contains(matrix.label, 'bun')
+        if:
+          matrix.test-application == 'node-exports-test-app' || contains(matrix.test-application, 'bun') ||
+          contains(matrix.label, 'bun')
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.14'
