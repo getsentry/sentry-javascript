@@ -31,8 +31,8 @@ describe('requestData-streamed', () => {
             });
 
             expect(serverSpan?.attributes['http.request.header.host']).toEqual({
-              type: 'string',
-              value: expect.any(String),
+              type: 'array',
+              value: [expect.any(String)],
             });
 
             expect(serverSpan?.attributes['user.ip_address']).toEqual({
@@ -74,8 +74,8 @@ describe('requestData-streamed', () => {
             });
 
             expect(serverSpan?.attributes['http.request.header.host']).toEqual({
-              type: 'string',
-              value: expect.any(String),
+              type: 'array',
+              value: [expect.any(String)],
             });
 
             expect(serverSpan?.attributes['user.ip_address']).toEqual({
@@ -106,8 +106,8 @@ describe('requestData-streamed', () => {
               expect(serverSpan).toBeDefined();
 
               expect(serverSpan?.attributes['http.request.header.host']).toEqual({
-                type: 'string',
-                value: expect.any(String),
+                type: 'array',
+                value: [expect.any(String)],
               });
 
               expect(serverSpan?.attributes['user.ip_address']).toBeUndefined();

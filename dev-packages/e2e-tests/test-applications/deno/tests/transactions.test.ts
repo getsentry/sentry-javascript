@@ -38,40 +38,40 @@ const SEGMENT_SPAN = {
       value: expect.any(Number),
     },
     'http.request.header.accept': {
-      type: 'string',
-      value: '*/*',
+      type: 'array',
+      value: ['*/*'],
     },
     'http.request.header.accept-encoding': {
-      type: 'string',
-      value: 'gzip, deflate',
+      type: 'array',
+      value: ['gzip, deflate'],
     },
     'http.request.header.accept-language': {
-      type: 'string',
-      value: '*',
+      type: 'array',
+      value: ['*'],
     },
     'http.request.header.connection': {
-      type: 'string',
-      value: 'keep-alive',
+      type: 'array',
+      value: ['keep-alive'],
     },
     'http.request.header.host': {
-      type: 'string',
-      value: expect.stringMatching(/^localhost:\d+$/),
+      type: 'array',
+      value: [expect.stringMatching(/^localhost:\d+$/)],
     },
     'http.request.header.sec-fetch-mode': {
-      type: 'string',
-      value: 'cors',
+      type: 'array',
+      value: ['cors'],
     },
     'http.request.header.user-agent': {
-      type: 'string',
-      value: 'node',
+      type: 'array',
+      value: ['node'],
     },
     'http.request.method': {
       type: 'string',
       value: 'GET',
     },
     'http.response.header.content-type': {
-      type: 'string',
-      value: 'application/json',
+      type: 'array',
+      value: ['application/json'],
     },
     'http.response.status_code': {
       type: 'integer',

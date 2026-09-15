@@ -7,7 +7,7 @@ import type { RequestEventData } from '../types/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types/webfetchapi';
 import { debug } from './debug-logger';
 import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from './data-collection/filtering-snippets';
-import { filterKeyValueData } from './data-collection/filterKeyValueData';
+import { filterKeyValueData, shouldFilterDataKey } from './data-collection/filterKeyValueData';
 import { safeUnref } from './timer';
 import { getUrlQuery } from './url';
 
@@ -265,7 +265,7 @@ function getAbsoluteUrl({
 /**
  * Converts incoming HTTP request or response headers to OpenTelemetry span attributes following semantic conventions.
  * Header names are converted to the format: http.<request|response>.header.<key>
- * where <key> is the header name in lowercase.
+ * where <key> is the header name in lowercase. Header values are always emitted as a string array.
  *
  * @param lifecycle - The lifecycle of the headers, either 'request' or 'response'
  *
@@ -279,16 +279,16 @@ export function httpHeadersToSpanAttributes(
   headers: Record<string, string | string[] | undefined>,
   dataCollection: ResolvedDataCollection,
   lifecycle: 'request' | 'response' = 'request',
-): Record<string, string> {
+): Record<string, string | string[]> {
   const headerBehavior =
     lifecycle === 'request' ? dataCollection.httpHeaders.request : dataCollection.httpHeaders.response;
   const cookieBehavior = dataCollection.cookies;
   const prefix = `http.${lifecycle}.header.`;
 
-  const spanAttributes: Record<string, string> = {};
+  const spanAttributes: Record<string, string | string[]> = {};
 
   try {
-    const regularHeaders: Record<string, string> = {};
+    const regularHeaders: Record<string, string[]> = {};
 
     for (const [key, value] of Object.entries(headers)) {
       if (value == null) {
@@ -310,7 +310,7 @@ export function httpHeadersToSpanAttributes(
             spanAttributes[`${prefix}${lowerKey}.${cookieKey}`] = cookieValue;
           }
         } else {
-          spanAttributes[`${prefix}${lowerKey}`] = FILTERED_VALUE;
+          spanAttributes[`${prefix}${lowerKey}`] = [FILTERED_VALUE];
         }
       } else {
         if (headerBehavior === false) {
@@ -318,17 +318,18 @@ export function httpHeadersToSpanAttributes(
         }
 
         if (Array.isArray(value)) {
-          regularHeaders[lowerKey] = value.map(v => (v != null ? String(v) : v)).join(';');
+          regularHeaders[lowerKey] = value.filter(v => v != null).map(v => String(v));
         } else if (typeof value === 'string') {
-          regularHeaders[lowerKey] = value;
+          regularHeaders[lowerKey] = [value];
         }
       }
     }
 
     if (headerBehavior !== false) {
-      const filtered = filterKeyValueData(regularHeaders, headerBehavior);
-      for (const [headerKey, headerValue] of Object.entries(filtered)) {
-        spanAttributes[`${prefix}${headerKey}`] = headerValue;
+      for (const [headerKey, headerValues] of Object.entries(regularHeaders)) {
+        spanAttributes[`${prefix}${headerKey}`] = shouldFilterDataKey(headerKey, headerBehavior)
+          ? [FILTERED_VALUE]
+          : headerValues;
       }
     }
   } catch {

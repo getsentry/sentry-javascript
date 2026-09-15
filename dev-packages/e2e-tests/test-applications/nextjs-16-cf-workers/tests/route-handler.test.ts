@@ -33,5 +33,5 @@ test('Should create a span for edge route handlers', async ({ request }) => {
 
   expect(routehandlerSpan.status).toBe('ok');
   expect(getSpanOp(routehandlerSpan)).toBe('http.server');
-  expect(routehandlerSpan.attributes['http.request.header.x-charly']?.value).toBe('gomez');
+  expect(routehandlerSpan.attributes['http.request.header.x-charly']?.value).toEqual(['gomez']);
 });
