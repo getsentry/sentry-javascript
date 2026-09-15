@@ -122,10 +122,8 @@ Deno.test('records console calls as breadcrumbs', async () => {
   client.captureMessage('Message with console breadcrumb');
 
   await delay(200);
-  assertEquals(
-    ev?.breadcrumbs?.some(breadcrumb => breadcrumb.category === 'console' && breadcrumb.message === 'console breadcrumb'),
-    true,
-  );
+  const consoleBreadcrumb = ev?.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'console');
+  assertEquals(consoleBreadcrumb?.message, 'console breadcrumb');
 });
 
 Deno.test('metrics.count captures a counter metric', async () => {
