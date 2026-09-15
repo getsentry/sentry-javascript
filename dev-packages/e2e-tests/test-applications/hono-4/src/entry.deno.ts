@@ -1,18 +1,19 @@
 import { Hono } from 'hono';
-import { sentry } from '@sentry/hono/deno';
 import { addRoutes } from './routes';
+import * as Sentry from '@sentry/deno';
+
+// TODO: This does not work today,
+// so we skip this test variant
+// wait for https://github.com/apm-js-collab/tracing-hooks/issues/53 to be fixed
+Sentry.init({
+  dsn: Deno.env.get('E2E_TEST_DSN'),
+  environment: 'qa',
+  dataCollection: {},
+  tracesSampleRate: 1.0,
+  tunnel: 'http://localhost:3031/',
+});
 
 const app = new Hono();
-
-app.use(
-  sentry(app, {
-    dsn: Deno.env.get('E2E_TEST_DSN'),
-    environment: 'qa',
-    dataCollection: {},
-    tracesSampleRate: 1.0,
-    tunnel: 'http://localhost:3031/',
-  }),
-);
 
 addRoutes(app);
 

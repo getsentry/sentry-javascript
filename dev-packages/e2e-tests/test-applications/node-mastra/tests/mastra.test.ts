@@ -4,6 +4,12 @@ import { runAgentTurn } from './utils';
 
 const APP = 'node-mastra';
 
+// In `mastra dev`, Mastra inlines its Hono-based server into the dev bundle, so the `--import`
+// orchestrion hook cannot transform Hono and the root request span is not route-enriched: its name is
+// the bare method and it carries no `http.route`/route name source. In prod (`mastra build`/`start`)
+// Hono is external and fully instrumented, so the span is named after the matched route.
+const IS_DEV = process.env.TEST_ENV === 'development';
+
 const attrValue = (span: SerializedStreamedSpan, key: string): unknown => span.attributes?.[key]?.value;
 
 const MASTRA_ORIGIN = 'auto.ai.mastra';
@@ -34,11 +40,16 @@ test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs
   // across envelopes until the agent/model spans have also arrived. Tool spans are
   // matched by op alone (not origin), so a double-instrumented span is collected
   // too and caught by the assertions below.
+  const isGenerateServerSpan = (span: SerializedStreamedSpan): boolean =>
+    isOp('http.server')(span) && String(attrValue(span, 'url.full') ?? '').includes('/api/agents/');
+
   const traceSpansPromise = collectStreamedSpans(
     APP,
     spansOfTrace =>
       spansOfTrace.some(callsTool('get_weather')) &&
-      ['gen_ai.invoke_agent', 'gen_ai.chat'].every(op => spansOfTrace.some(isOp(op))),
+      ['gen_ai.invoke_agent', 'gen_ai.chat'].every(op => spansOfTrace.some(isOp(op))) &&
+      // The root `http.server` span ends (and streams) after its children, so wait for it too.
+      spansOfTrace.some(isGenerateServerSpan),
   );
 
   await runAgentTurn(baseURL!, 'What is the weather in Paris?', { thread, resource: 'e2e-user' });
@@ -96,6 +107,24 @@ test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs
   expect(attrValue(invokeAgent!, 'gen_ai.conversation.id')).toBe(thread);
   expect(attrValue(chat!, 'gen_ai.conversation.id')).toBe(thread);
   expect(attrValue(executeTool!, 'gen_ai.conversation.id')).toBe(thread);
+
+  // http.server span: Mastra serves the agent through its internal Hono server, so the incoming
+  // `POST /api/agents/weatherAgent/generate` request is the root `http.server` span of this trace,
+  // and the AI spans above are its children.
+  const serverSpan = traceSpans.find(isGenerateServerSpan);
+  expect(serverSpan).toBeDefined();
+  expect(getSpanOp(serverSpan!)).toBe('http.server');
+  expect(attrValue(serverSpan!, 'http.request.method')).toBe('POST');
+  expect(attrValue(serverSpan!, 'http.response.status_code')).toBe(200);
+  expect(String(attrValue(serverSpan!, 'url.full') ?? '')).toContain('/api/agents/weatherAgent/generate');
+
+  if (IS_DEV) {
+    expect(serverSpan!.name).toBe('POST');
+  } else {
+    expect(attrValue(serverSpan!, 'sentry.segment.name.source')).toBe('route');
+    expect(attrValue(serverSpan!, 'http.route')).toMatch(/^\/api\/agents\/:[^/]+\/generate$/);
+    expect(serverSpan!.name).toMatch(/^POST \/api\/agents\/:[^/]+\/generate$/);
+  }
 });
 
 test('records a bubbled-up Mastra tool error on the span', async ({ baseURL }) => {

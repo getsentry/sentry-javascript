@@ -14,6 +14,7 @@ export {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
+  honoIntegration,
   kafkaIntegration,
   knexIntegration,
   koaIntegration,

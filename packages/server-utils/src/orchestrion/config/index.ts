@@ -12,6 +12,7 @@ import { genericPoolConfig } from './generic-pool';
 import { googleGenAiConfig } from './google-genai';
 import { graphqlConfig } from './graphql';
 import { hapiConfig } from './hapi';
+import { honoConfig } from './hono';
 import { ioredisConfig } from './ioredis';
 import { kafkajsConfig } from './kafkajs';
 import { knexConfig } from './knex';
@@ -59,6 +60,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...googleGenAiConfig,
   ...graphqlConfig,
   ...hapiConfig,
+  ...honoConfig,
   ...ioredisConfig,
   ...kafkajsConfig,
   ...knexConfig,

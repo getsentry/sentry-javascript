@@ -1,17 +1,15 @@
+import * as Sentry from '@sentry/bun';
 import { Hono } from 'hono';
-import { sentry } from '@sentry/hono/bun';
 import { addRoutes } from './routes';
 
-const app = new Hono();
+Sentry.init({
+  dsn: process.env.E2E_TEST_DSN,
+  environment: 'qa',
+  tracesSampleRate: 1.0,
+  tunnel: 'http://localhost:3031/',
+});
 
-app.use(
-  sentry(app, {
-    dsn: process.env.E2E_TEST_DSN,
-    environment: 'qa',
-    tracesSampleRate: 1.0,
-    tunnel: 'http://localhost:3031/',
-  }),
-);
+const app = new Hono();
 
 addRoutes(app);
 
