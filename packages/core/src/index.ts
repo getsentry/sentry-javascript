@@ -164,6 +164,8 @@ export { featureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
 export { conversationIdIntegration } from './integrations/conversationId';
 export { spanStreamingIntegration } from './integrations/spanStreaming';
+export { createFetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from './integrations/fetch';
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
 // Therefore:
