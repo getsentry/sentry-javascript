@@ -7,7 +7,6 @@ Sentry.init({
   tracesSampleRate: 1.0,
   dataCollection: { genAI: { inputs: true, outputs: true } },
   transport: loggingTransport,
-  traceLifecycle: 'stream',
   // `instrumentMistralAiClient` is the manual path for runtimes without the orchestrion hook.
   // Drop the automatic integration so the scenario exercises it alone.
   integrations: integrations => integrations.filter(integration => integration.name !== 'Mistral'),
