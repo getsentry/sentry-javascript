@@ -5,7 +5,7 @@ import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
-import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
+import { sentryCaptureErrorHook } from '../hooks/captureErrorHook-legacy';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
 import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';

@@ -1,12 +1,12 @@
-import { HTTPError } from 'nitro/h3';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { H3Error } from 'h3';
 import { createCaptureErrorHook } from '../utils/captureError';
 
 /**
  * Hook that can be added in a Nitro plugin. It captures an error and sends it to Sentry.
  *
- * For Nuxt v5+ (Nitro v3+, h3 v2).
+ * For Nuxt v3/v4 (Nitro v2, h3 v1).
  */
 export const sentryCaptureErrorHook = createCaptureErrorHook(error =>
-  // `isError` compares constructor names, so it also matches an error thrown by another copy of h3
-  HTTPError.isError(error) ? error.status : undefined,
+  error instanceof H3Error ? error.statusCode : undefined,
 );
