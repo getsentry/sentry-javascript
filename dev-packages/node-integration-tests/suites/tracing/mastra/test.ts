@@ -432,4 +432,32 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     },
     MASTRA_NESTING_DEPENDENCIES,
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-error.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('captures an error thrown in a Mastra tool as a Sentry issue', async () => {
+        // The scenario also emits the `mastra-test` transaction and its streamed gen_ai spans; their
+        // flush order relative to the error event races, so ignore them and match only the issue.
+        await createRunner()
+          .ignore('transaction', 'span')
+          .expect({
+            event: event => {
+              const exception = event.exception?.values?.[0];
+              expect(exception?.type).toBe('Error');
+              expect(exception?.value).toBe('tool blew up');
+              // A real stack from the tool, not the exporter's stack-less `errorInfo`.
+              expect(exception?.stacktrace?.frames?.length).toBeGreaterThan(0);
+              expect(exception?.mechanism?.type).toBe('auto.ai.mastra');
+              expect(exception?.mechanism?.handled).toBe(false);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    MASTRA_NESTING_DEPENDENCIES,
+  );
 });
