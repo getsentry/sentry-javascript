@@ -118,6 +118,7 @@ Deno.test('records console calls as breadcrumbs', async () => {
     ev = event;
   });
 
+  // eslint-disable-next-line no-console
   console.log('console breadcrumb');
   client.captureMessage('Message with console breadcrumb');
 
