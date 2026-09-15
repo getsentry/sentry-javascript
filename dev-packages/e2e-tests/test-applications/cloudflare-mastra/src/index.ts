@@ -1,6 +1,5 @@
 import { Mastra } from '@mastra/core';
 import { InMemoryStore } from '@mastra/core/storage';
-import { Observability, TestExporter } from '@mastra/observability';
 import { createWeatherAgent, WEATHER_AGENT } from './mastra/agents/weather-agent';
 
 // This file deliberately contains NO `Sentry.*` calls and no import of
@@ -25,17 +24,6 @@ function getMastra(apiKey: string): Mastra {
     mastra = new Mastra({
       agents: { [WEATHER_AGENT]: createWeatherAgent(apiKey) },
       storage: new InMemoryStore(),
-      // Configure observability explicitly so the Sentry integration takes the direct
-      // `registerExporter` path — it adds its exporter to this default instance after
-      // construction. Its fallback bootstrap resolves `@mastra/observability` via
-      // `createRequire`/`process.cwd()`, which does not work in a bundled worker.
-      //
-      // Mastra validates the instance at construction and rejects one with no exporter,
-      // so a silent in-memory `TestExporter` is supplied as a placeholder — the Sentry
-      // exporter is what the assertions care about; this one just satisfies validation.
-      observability: new Observability({
-        configs: { default: { serviceName: 'mastra', exporters: [new TestExporter()] } },
-      }),
     });
   }
   return mastra;
