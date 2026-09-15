@@ -1,0 +1,35 @@
+{
+  "name": "cloudflare-workers-send-to-sentry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.47.0",
+    "@cloudflare/workers-types": "^5.20260727.1",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^26.1.2",
+    "sentry": "~0.44.1",
+    "typescript": "~6.0.3",
+    "vite": "^8.1.5",
+    "wrangler": "^4.114.0"
+  },
+  "volta": {
+    "node": "24.15.0",
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true
+  }
+}
