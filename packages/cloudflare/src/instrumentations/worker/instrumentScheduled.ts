@@ -1,9 +1,18 @@
 import type { ScheduledController } from '@cloudflare/workers-types';
 import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  FAAS_CRON,
+  FAAS_TIME,
+  FAAS_TRIGGER,
+  SENTRY_DESCRIPTION,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
-import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, withIsolationScope } from '@sentry/core';
+import { captureException, hasSpanStreamingEnabled, startSpan, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
@@ -30,15 +39,21 @@ function wrapScheduledHandler(
 
     addCloudResourceContext(isolationScope);
 
+    const description = `Scheduled Cron ${controller.cron}`;
+
     return startSpan(
       {
-        name: `Scheduled Cron ${controller.cron}`,
+        name: client && hasSpanStreamingEnabled(client) ? 'scheduled' : description,
         attributes: {
           [SENTRY_OP]: FUNCTION,
-          'faas.cron': controller.cron,
-          'faas.time': new Date(controller.scheduledTime).toISOString(),
-          'faas.trigger': 'timer',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.scheduled',
+          // override description inference by Relay to preserve the original (transaction-based) description.
+          // sentry-conventions can't map the special case for the "Scheduled Cron" prefix and the chron string.
+          [SENTRY_DESCRIPTION]: description,
+          [CODE_FUNCTION_NAME]: 'scheduled',
+          [FAAS_CRON]: controller.cron,
+          [FAAS_TIME]: new Date(controller.scheduledTime).toISOString(),
+          [FAAS_TRIGGER]: 'timer',
+          [SENTRY_ORIGIN]: 'auto.faas.cloudflare.scheduled',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         },
       },

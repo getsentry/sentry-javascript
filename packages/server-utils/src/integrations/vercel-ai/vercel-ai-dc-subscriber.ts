@@ -18,8 +18,11 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
@@ -47,7 +50,7 @@ import {
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
 import type { GenAiOptions } from '../../ai/core/utils';
-import { getProviderMetadataAttributes } from '../../ai/vercel-ai';
+import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum, tapModelCallStream } from './util';
@@ -132,6 +135,29 @@ export function clearOperationCallId(callId: string): void {
   operationIdByCallId.delete(callId);
   toolDescriptionsByCallId.delete(callId);
   invokeAgentSpanByCallId.delete(callId);
+}
+
+/**
+ * `providerMetadata` is last-step only; drop derived usage on spans that report an aggregate.
+ *
+ * Reasoning goes only when it accompanies a recomputed output (Google), because dropping that
+ * output leaves the span's own count reasoning-exclusive and the documented subset relationship
+ * would not hold. A provider that reports reasoning against an already-inclusive output (OpenAI)
+ * keeps it.
+ */
+function dropLastStepOnlyUsage(providerAttributes: Record<string, number | string>, type: ChannelEventType): void {
+  if (!ROOT_OPERATION_TYPES.has(type)) {
+    return;
+  }
+  const hasRecomputedOutput = GEN_AI_USAGE_OUTPUT_TOKENS in providerAttributes;
+  for (const key of LAST_STEP_ONLY_USAGE_KEYS) {
+    // oxlint-disable-next-line typescript/no-dynamic-delete
+    delete providerAttributes[key];
+  }
+  if (hasRecomputedOutput) {
+    // oxlint-disable-next-line typescript/no-dynamic-delete
+    delete providerAttributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS];
+  }
 }
 
 /** Record tool name → description from an event's `tools`, so tool spans can backfill the description. */
@@ -332,6 +358,9 @@ function enrichInvokeAgentFromStream(
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
+    const { cacheRead, cacheWrite } = cacheTokens(usage);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
   }
 
   if (recordOutputs) {
@@ -543,6 +572,7 @@ export function enrichSpanOnEnd(
     if (totalTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
     }
+    setCacheTokens(span, usage);
   }
 
   // Match the OTel integration: finish reasons live on the model-call (`generate_content`) span, not
@@ -573,6 +603,7 @@ export function enrichSpanOnEnd(
     // oxlint-disable-next-line typescript/no-dynamic-delete
     delete providerAttributes[GEN_AI_CONVERSATION_ID];
   }
+  dropLastStepOnlyUsage(providerAttributes, type);
   span.setAttributes(providerAttributes);
 
   if (recordOutputs) {
@@ -606,6 +637,32 @@ function getFinishReason(result: Record<string, unknown>): string | undefined {
 /** Reads a token count that may be a plain number or a `{ total }` object (model-call usage). */
 function tokenCount(value: unknown): number | undefined {
   return asNumber(value) ?? (isObjectLike(value) ? asNumber(value.total) : undefined);
+}
+
+/**
+ * Cache token counts as the AI SDK normalizes them: v5 `cachedInputTokens`, v6 `inputTokenDetails`,
+ * v7 `inputTokens.{cacheRead,cacheWrite}`.
+ */
+function setCacheTokens(span: Span, usage: Record<string, unknown>): void {
+  const { cacheRead, cacheWrite } = cacheTokens(usage);
+  if (cacheRead !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+  }
+  if (cacheWrite !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
+  }
+}
+
+function cacheTokens(usage: Record<string, unknown>): { cacheRead?: number; cacheWrite?: number } {
+  const inputTokens = isObjectLike(usage.inputTokens) ? usage.inputTokens : undefined;
+  const inputTokenDetails = isObjectLike(usage.inputTokenDetails) ? usage.inputTokenDetails : undefined;
+  return {
+    cacheRead:
+      asNumber(inputTokens?.cacheRead) ??
+      asNumber(inputTokenDetails?.cacheReadTokens) ??
+      asNumber(usage.cachedInputTokens),
+    cacheWrite: asNumber(inputTokens?.cacheWrite) ?? asNumber(inputTokenDetails?.cacheWriteTokens),
+  };
 }
 
 function buildOutputMessages(

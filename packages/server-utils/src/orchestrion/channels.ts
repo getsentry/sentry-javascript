@@ -15,6 +15,8 @@ import { koaChannels } from './config/koa';
 import { langchainChannels } from './config/langchain';
 import { langgraphChannels } from './config/langgraph';
 import { lruMemoizerChannels } from './config/lru-memoizer';
+import { mastraChannels } from './config/mastra';
+import { mistralChannels } from './config/mistral';
 import { mongodbChannels } from './config/mongodb';
 import { mongooseChannels } from './config/mongoose';
 import { mysql2Channels } from './config/mysql2';
@@ -62,6 +64,8 @@ export const CHANNELS = {
   ...langchainChannels,
   ...langgraphChannels,
   ...lruMemoizerChannels,
+  ...mastraChannels,
+  ...mistralChannels,
   ...mongodbChannels,
   ...mongooseChannels,
   ...mysql2Channels,

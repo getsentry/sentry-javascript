@@ -1,11 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 test('Should create a span for middleware', async ({ request }) => {
-  const spansPromise = collectStreamedSpans('nextjs-16', spans =>
-    spans.some(span => span.name === 'middleware GET' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'middleware GET');
+
+  const routeSpanPromise = waitForStreamedSpan('nextjs-16', span => {
+    return span.name === 'GET /api/endpoint-behind-middleware' && span.is_segment;
+  });
 
   const response = await request.get('/api/endpoint-behind-middleware');
   expect(await response.json()).toStrictEqual({ name: 'John Doe' });
@@ -24,6 +31,17 @@ test('Should create a span for middleware', async ({ request }) => {
   // `wrapMiddlewareWithSentry` wrapper used to start a second, redundant one nested inside it.
   const nestedMiddlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware' && !span.is_segment);
   expect(nestedMiddlewareSpans).toHaveLength(0);
+
+  // Assert that isolation scope works properly
+  expect(middlewareSpan.attributes['isolation_scope.is_default']).toEqual({ value: false, type: 'boolean' });
+  expect(middlewareSpan.attributes['isolation_scope.has_proxy_marker']).toEqual({ value: true, type: 'boolean' });
+
+  // Scope data set in middleware must not leak into other requests (e.g. via a shared scope when the middleware
+  // runs in a detached context - https://github.com/vercel/next.js/pull/95306). The route handler exposes it
+  // via the same attributes.
+  const routeSpan = await routeSpanPromise;
+  expect(routeSpan.attributes['isolation_scope.is_default']).toEqual({ value: false, type: 'boolean' });
+  expect(routeSpan.attributes['isolation_scope.has_proxy_marker']).toEqual({ value: false, type: 'boolean' });
 });
 
 test('Faulty middlewares', async ({ request }) => {

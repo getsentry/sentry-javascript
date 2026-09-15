@@ -25,6 +25,10 @@
     },
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "workerd": {
+        "import": "./build/esm/index.workerd.js",
+        "require": "./build/cjs/index.workerd.js"
+      },
       "worker": {
         "import": "./build/esm/index.worker.js",
         "require": "./build/cjs/index.worker.js"
@@ -63,7 +67,7 @@
   "dependencies": {
     "@sentry/cloudflare": "10.67.0",
     "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.20.0",
+    "@sentry/conventions": "^0.23.0",
     "@sentry/node": "10.67.0",
     "@sentry/server-runtime-injection": "10.67.0",
     "@sentry/server-utils": "10.67.0",

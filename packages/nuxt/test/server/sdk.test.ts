@@ -1,8 +1,9 @@
 import type { Event, EventProcessor } from '@sentry/core';
+import { originalConsoleMethods } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NUXT_DEV_MODE_FLAG } from '../../src/common/devMode';
+import { NUXT_DEV_MODE_FLAG, NUXT_PRERENDER_FLAG, NUXT_SERVER_INITIALIZED_FLAG } from '../../src/common/devMode';
 import { init } from '../../src/server';
 import { clientSourceMapErrorFilter, lowQualityTransactionsFilter } from '../../src/server/sdk';
 
@@ -12,6 +13,9 @@ describe('Nuxt Server SDK', () => {
   describe('init', () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      // Each test needs a fresh init; the double-init guard would otherwise skip every later call.
+      delete (globalThis as { __SENTRY_NUXT_SERVER_INITIALIZED__?: boolean }).__SENTRY_NUXT_SERVER_INITIALIZED__;
+      delete (globalThis as { __SENTRY_NUXT_PRERENDER__?: boolean }).__SENTRY_NUXT_PRERENDER__;
     });
 
     it('Adds Nuxt metadata to the SDK options', () => {
@@ -40,6 +44,51 @@ describe('Nuxt Server SDK', () => {
 
     it('returns client from init', () => {
       expect(init({})).not.toBeUndefined();
+    });
+
+    describe('initialization guards', () => {
+      it('skips initialization during a prerender build', () => {
+        const globalWithFlag = globalThis as { __SENTRY_NUXT_PRERENDER__?: boolean };
+
+        // The generated runtime-flags module sets this by name, so a rename must break the test rather than the runtime.
+        expect(NUXT_PRERENDER_FLAG).toBe('__SENTRY_NUXT_PRERENDER__');
+
+        globalWithFlag.__SENTRY_NUXT_PRERENDER__ = true;
+
+        const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        expect(client).toBeUndefined();
+        expect(nodeInit).not.toHaveBeenCalled();
+      });
+
+      it('skips a second initialization and notifies that the `--import` preload is removable', () => {
+        // A `node --import` preload of the config file initializes once before the bundled config does.
+        expect(NUXT_SERVER_INITIALIZED_FLAG).toBe('__SENTRY_NUXT_SERVER_INITIALIZED__');
+        // `consoleSandbox` swaps in the method recorded in `originalConsoleMethods`, so a spy on
+        // `console.log` never sees the notice — intercept the sandboxed method instead.
+        const logMock = vi.fn();
+        const originalLog = originalConsoleMethods.log;
+        originalConsoleMethods.log = logMock;
+
+        try {
+          const firstClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+          const secondClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+          expect(nodeInit).toHaveBeenCalledTimes(1);
+          expect(secondClient).toBe(firstClient);
+          expect(logMock).toHaveBeenCalledWith(expect.stringContaining('already initialized'));
+        } finally {
+          originalConsoleMethods.log = originalLog;
+        }
+      });
+
+      it('marks a successful initialization for the double-init guard', () => {
+        init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        expect(
+          (globalThis as { __SENTRY_NUXT_SERVER_INITIALIZED__?: boolean }).__SENTRY_NUXT_SERVER_INITIALIZED__,
+        ).toBe(true);
+      });
     });
 
     it('delegates default integrations to initNode when not provided in options', () => {

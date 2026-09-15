@@ -17,7 +17,7 @@
     "@types/react-dom": "19.2.3",
     "@types/node": "^20",
     "@react-router/dev": "^8.3.0",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "tsx": "^4.23.0",
     "typescript": "^5.6.3",

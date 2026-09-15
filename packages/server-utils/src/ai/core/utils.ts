@@ -2,9 +2,10 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import { getClient, isThenable } from '@sentry/core';
+import { getClient, isThenable, stringify } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import {
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
@@ -126,6 +127,79 @@ export function setTokenUsageAttributes(
       [GEN_AI_USAGE_TOTAL_TOKENS]: totalTokens,
     });
   }
+}
+
+/** One assistant turn for {@link setOutputMessagesAttribute}. */
+export interface GenAiOutputMessage {
+  /** The message's text content, already flattened out of any content-part array. */
+  responseText?: string;
+  /** Tool calls in either the OpenAI-compatible (`function.name`) or flat (`name`) shape. */
+  toolCalls?: unknown[];
+  /** Recorded as `finish_reason` on the message, per the `gen_ai.output.messages` schema. */
+  finishReason?: string;
+}
+
+/**
+ * Build the `gen_ai.output.messages` value (assistant messages with text and/or tool-call parts).
+ *
+ * We set this in addition to the deprecated `gen_ai.response.text` / `gen_ai.response.tool_calls`
+ * attributes because Sentry's product reads the model output from `gen_ai.output.messages` first.
+ * Relay migrates `gen_ai.response.text` into `gen_ai.output.messages`, but the tool-calls half of
+ * that migration is lossy — so tool-call turns would otherwise render an empty Output.
+ *
+ * Pass an array for providers that can return more than one choice per response; a single object is
+ * the common case of one assistant turn.
+ */
+export function setOutputMessagesAttribute(span: Span, messages: GenAiOutputMessage | GenAiOutputMessage[]): void {
+  const serialized = (Array.isArray(messages) ? messages : [messages])
+    .map(buildOutputMessage)
+    .filter((message): message is Record<string, unknown> => !!message);
+
+  if (serialized.length > 0) {
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify(serialized));
+  }
+}
+
+function buildOutputMessage({
+  responseText,
+  toolCalls,
+  finishReason,
+}: GenAiOutputMessage): Record<string, unknown> | undefined {
+  const parts: Array<Record<string, unknown>> = [];
+
+  if (typeof responseText === 'string' && responseText.length > 0) {
+    parts.push({ type: 'text', content: responseText });
+  }
+
+  if (Array.isArray(toolCalls)) {
+    for (const toolCall of toolCalls) {
+      if (!toolCall || typeof toolCall !== 'object') {
+        continue;
+      }
+      const call = toolCall as {
+        id?: unknown;
+        function?: { name?: unknown; arguments?: unknown };
+        name?: unknown;
+        arguments?: unknown;
+      };
+      // Normalize both the OpenAI-compatible shape (name/arguments nested under `function`)
+      // and the flat shape some providers use.
+      const name = call.function?.name ?? call.name;
+      const args = call.function?.arguments ?? call.arguments;
+      parts.push({
+        type: 'tool_call',
+        id: call.id,
+        name,
+        arguments: stringify(args ?? {}, String),
+      });
+    }
+  }
+
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  return finishReason ? { role: 'assistant', parts, finish_reason: finishReason } : { role: 'assistant', parts };
 }
 
 export interface StreamResponseState {

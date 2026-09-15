@@ -146,6 +146,25 @@ describe('Route Conversion Consistency', () => {
     });
   });
 
+  describe('Trailing underscore routes', () => {
+    it('should strip a trailing underscore at build time and at runtime', () => {
+      const buildTime = convertRemixRouteToPath('concerts_.mine.tsx');
+      const runtime = convertRemixRouteIdToPath('routes/concerts_.mine');
+
+      expect(buildTime?.path).toBe('/concerts/mine');
+      expect(runtime).toBe('/concerts/mine');
+    });
+
+    it('should strip a trailing underscore from dynamic segments', () => {
+      const buildTime = convertRemixRouteToPath('app.projects.$id_.roadmap.tsx');
+      const runtime = convertRemixRouteIdToPath('routes/app.projects.$id_.roadmap');
+
+      expect(buildTime?.path).toBe('/app/projects/:id/roadmap');
+      expect(buildTime?.isDynamic).toBe(true);
+      expect(runtime).toBe('/app/projects/:id/roadmap');
+    });
+  });
+
   describe('Pathless layout routes', () => {
     it('should return null for standalone pathless layout routes', () => {
       // These are layout routes that don't contribute to the URL path

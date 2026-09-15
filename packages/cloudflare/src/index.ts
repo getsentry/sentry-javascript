@@ -106,11 +106,13 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { instrumentPostgresJsSql, trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './durableobject';
+export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
@@ -123,6 +125,7 @@ export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -132,6 +135,8 @@ export {
   instrumentStateGraph,
   instrumentCreateReactAgent,
   vercelAIIntegration,
+  eveConversationHook,
+  getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

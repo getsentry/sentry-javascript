@@ -1,0 +1,51 @@
+{
+  "name": "node-mastra",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "mastra build && rm -rf .mastra/output/node_modules/@sentry",
+    "start": "mastra start --custom-args=\"--import=./instrument.mjs\"",
+    "dev": "mastra dev --custom-args=\"--import=./instrument.mjs\"",
+    "clean": "npx rimraf node_modules .mastra pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add @mastra/core@latest @mastra/observability@latest @mastra/memory@latest @mastra/libsql@latest mastra@latest && pnpm build",
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test"
+  },
+  "dependencies": {
+    "@mastra/core": "~1.65.0",
+    "@mastra/libsql": "~1.22.4",
+    "@mastra/memory": "~1.28.3",
+    "@mastra/observability": "~1.17.6",
+    "@openrouter/ai-sdk-provider": "~3.0.0",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "ai": "~7.0.97",
+    "dataloader": "~2.2.3",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "24.x",
+    "mastra": "~1.28.0",
+    "typescript": "~5.9.0"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "volta": {
+    "node": "24.15.0",
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true,
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "node-mastra (latest)"
+      }
+    ]
+  }
+}

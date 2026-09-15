@@ -174,7 +174,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'rpc.service': 'Lambda',
       'faas.invoked_name': 'my-function',
       'faas.invoked_provider': 'aws',
-      'faas.execution': 'request-id-1',
+      'faas.invocation_id': 'request-id-1',
     }),
   });
 

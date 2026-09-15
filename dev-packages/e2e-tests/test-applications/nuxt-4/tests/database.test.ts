@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 
 async function collectDbSpans() {
-  const spans = await collectStreamedSpans('nuxt-4', spans =>
-    spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test'),
+  const spans = await collectStreamedSpansUntilSegment(
+    'nuxt-4',
+    span => span.attributes['url.path']?.value === '/api/db-test',
   );
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test');
 
@@ -108,7 +109,7 @@ test.describe('database integration', () => {
     expect(insertSpan).toBeDefined();
     expect(insertSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'INSERT logs' },
-      'db.query.text': { type: 'string', value: `INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')` },
+      'db.query.text': { type: 'string', value: `INSERT INTO logs (message, level) VALUES (?, ?)` },
       'db.system.name': { type: 'string', value: 'sqlite' },
       'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
     });
@@ -177,8 +178,8 @@ test.describe('database integration', () => {
     );
 
     expect(dbBreadcrumb).toBeDefined();
-    expect(dbBreadcrumb?.message).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
-    expect(dbBreadcrumb?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
+    expect(dbBreadcrumb?.message).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
+    expect(dbBreadcrumb?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
   });
 
   test('multiple database operations in single request create multiple spans', async ({ request }) => {

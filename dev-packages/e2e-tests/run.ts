@@ -260,7 +260,7 @@ async function run(): Promise<void> {
     await asyncExec(testCommand, { env: appEnv, cwd });
 
     // clean up (although this is tmp, still nice to do)
-    await rm(tmpDirPath, { recursive: true });
+    await rm(tmpDirPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
   }
 }
 

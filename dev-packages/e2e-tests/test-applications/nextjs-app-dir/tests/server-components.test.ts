@@ -1,13 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
-
-// Streamed spans are flushed across multiple envelopes as they end, so child spans can arrive in an
-// earlier envelope than the `is_segment` root span. Accumulate spans until the root span is seen.
-function collectSpansUntilSegment(segmentName: string) {
-  return collectStreamedSpans('nextjs-app-dir', spans =>
-    spans.some(span => span.name === segmentName && span.is_segment),
-  );
-}
+import { collectStreamedSpansUntilSegment, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Sends a span for a request to app router', async ({ page }) => {
   const serverComponentSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
@@ -55,7 +47,7 @@ test('Should not set an error status on an app router span when it redirects', a
 test('Should set a "not_found" status on a server component span when notFound() is called and the request span should have status ok', async ({
   page,
 }) => {
-  const spansPromise = collectSpansUntilSegment('GET /server-component/not-found');
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-app-dir', 'GET /server-component/not-found');
 
   await page.goto('/server-component/not-found');
 
@@ -78,18 +70,21 @@ test('Should set a "not_found" status on a server component span when notFound()
   // Page server component span should have the right name and attributes
   expect(spans).toContainEqual(
     expect.objectContaining({
-      name: 'resolve page server component "/server-component/not-found"',
+      name: 'Page',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'function', type: 'string' },
+        'sentry.description': { value: 'resolve page server component "/server-component/not-found"', type: 'string' },
+        'code.function.name': { value: 'Page', type: 'string' },
         'sentry.nextjs.ssr.function.type': { value: 'Page', type: 'string' },
         'sentry.nextjs.ssr.function.route': { value: '/server-component/not-found', type: 'string' },
+        'http.route': { value: '/server-component/not-found', type: 'string' },
       }),
     }),
   );
 });
 
 test('Should capture an error and spans for a app router page', async ({ page }) => {
-  const spansPromise = collectSpansUntilSegment('GET /server-component/faulty');
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-app-dir', 'GET /server-component/faulty');
 
   const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'I am a faulty server component';
@@ -119,11 +114,14 @@ test('Should capture an error and spans for a app router page', async ({ page })
   // The page server component span should have the right name and attributes
   expect(spans).toContainEqual(
     expect.objectContaining({
-      name: 'resolve page server component "/server-component/faulty"',
+      name: 'Page',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'function', type: 'string' },
+        'sentry.description': { value: 'resolve page server component "/server-component/faulty"', type: 'string' },
+        'code.function.name': { value: 'Page', type: 'string' },
         'sentry.nextjs.ssr.function.type': { value: 'Page', type: 'string' },
         'sentry.nextjs.ssr.function.route': { value: '/server-component/faulty', type: 'string' },
+        'http.route': { value: '/server-component/faulty', type: 'string' },
       }),
     }),
   );

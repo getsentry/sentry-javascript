@@ -57,18 +57,21 @@ Sentry.captureEvent({
 });
 ```
 
-## Auto-instrumentation (experimental)
+## Auto-instrumentation
 
 Some libraries (e.g. `mysql`) don't emit tracing signals on their
 own. To instrument them, Sentry transforms them at load time so they
 publish to `node:diagnostics_channel`.
 
-Use the `--import` or `--preload` argument to `deno run` to enable
+Use the `--preload` argument to `deno run` to enable
 these instrumentations.
 
 ```bash
-$ deno run --import=@sentry/deno/import app.ts
+$ deno run --preload=npm:@sentry/deno/import app.ts
 ```
+
+If your `deno.json` maps `@sentry/deno` to the npm package, the bare
+`--preload=@sentry/deno/import` form works as well.
 
 Your `app.ts` should simply load Sentry as usual:
 

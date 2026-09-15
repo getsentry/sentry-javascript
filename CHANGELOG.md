@@ -4,8 +4,9 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, and @mohd-akram. Thank you for your contributions!
+Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, @JosephDoUrden and @Tyagiquamar. Thank you for your contributions!
 
+- feat(core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders`. Passing `true`, `false`, `{ allow: [...] }` or `{ deny: [...] }` now applies to both request and response headers; `{ request, response }` still controls each direction independently.
 - feat(langchain)!: Emit `gen_ai.pipeline.name` instead of `langchain.chain.name` on LangChain chain spans. The attribute is omitted when the chain is unnamed.
 - feat(deno)!: Rename several default integrations to match the other SDKs ([#22404](https://github.com/getsentry/sentry-javascript/pull/22404)). The `deno*Integration` exports are kept as deprecated aliases. If you were relying on the names (for example, to disable them), then note that these have changed:
   - `DenoAmqplib` => `Amqplib`
@@ -14,6 +15,8 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
   - `DenoMongoose` => `Mongoose`
   - `DenoMysql` => `Mysql`
   - `DenoPostgres` => `Postgres`
+- feat(node): Add first-party Mastra integration ([#23823](https://github.com/getsentry/sentry-javascript/pull/23823)). Enabled by default; disable with `defaultIntegrations: integrations => integrations.filter(i => i.name !== 'Mastra')`.
+- feat(node): Enable the `dataloader` and `knex` integrations by default. Both were previously opt-in — `dataloader` was removed from the defaults in v8 due to an upstream OpenTelemetry bug that has since been fixed, and `knex` was never enabled by default. You no longer need to add `dataloaderIntegration()` or `knexIntegration()` manually. Disable either with `defaultIntegrations: integrations => integrations.filter(i => i.name !== 'Dataloader' /* or 'Knex' */)`.
 - **feat(browser): Add `bfcacheMetricsIntegration` to track back/forward cache health**
 
   The new opt-in `bfcacheMetricsIntegration` emits metrics about browser back/forward cache (bfcache) navigations, so you can
@@ -33,6 +36,12 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
 ## 10.67.0
 
 ### Important Changes
+
+- **feat(effect): Capture errors through the Effect v4 `ErrorReporter` API**
+
+  On Effect v4, `Sentry.effectLayer` now registers a Sentry `ErrorReporter`. Failures that pass through `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC reporting boundaries are captured automatically, with `ErrorReporter.ignore`, `ErrorReporter.severity` and `ErrorReporter.attributes` annotations respected. Nothing changes on Effect v3.
+
+  The server SDK now enables the `contextLines` and `linkedErrors` integrations by default, so captured errors carry source context and their `cause` chain. No other Node default integration is enabled.
 
 - **feat(sveltekit): Add support for SvelteKit 3 ([#22264](https://github.com/getsentry/sentry-javascript/pull/22264))**
 
