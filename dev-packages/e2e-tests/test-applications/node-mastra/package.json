@@ -6,7 +6,7 @@
   "scripts": {
     "build": "mastra build && rm -rf .mastra/output/node_modules/@sentry",
     "start": "mastra start --custom-args=\"--import=./instrument.mjs\"",
-    "dev": "mastra dev --custom-args=\"--import=./instrument.mjs\"",
+    "dev": "MASTRA_DEV=true mastra dev --custom-args=\"--import=./instrument.mjs\"",
     "clean": "npx rimraf node_modules .mastra pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:build-latest": "pnpm install && pnpm add @mastra/core@latest @mastra/observability@latest @mastra/memory@latest @mastra/libsql@latest mastra@latest && pnpm build",
