@@ -439,7 +439,10 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('captures an error thrown in a Mastra tool as a Sentry issue', async () => {
+        // The scenario also emits the `mastra-test` transaction and its streamed gen_ai spans; their
+        // flush order relative to the error event races, so ignore them and match only the issue.
         await createRunner()
+          .ignore('transaction', 'span')
           .expect({
             event: event => {
               const exception = event.exception?.values?.[0];
