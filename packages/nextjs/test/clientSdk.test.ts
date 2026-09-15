@@ -128,7 +128,7 @@ describe('Client init()', () => {
     type ModifiedInitOptionsIntegrationArray = { defaultIntegrations: Integration[]; integrations: Integration[] };
 
     it('supports passing unrelated integrations through options', () => {
-      init({ integrations: [breadcrumbsIntegration({ console: false })] });
+      init({ integrations: [breadcrumbsIntegration({ dom: false })] });
 
       const reactInitOptions = reactInit.mock.calls[0]![0] as ModifiedInitOptionsIntegrationArray;
       const installedBreadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');

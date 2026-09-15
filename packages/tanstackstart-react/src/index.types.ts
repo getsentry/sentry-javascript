@@ -16,6 +16,7 @@ export * from './common';
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
+export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const startSpan: typeof clientSdk.startSpan;
 export declare const startSpanManual: typeof clientSdk.startSpanManual;
