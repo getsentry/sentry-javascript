@@ -3,9 +3,14 @@
  */
 
 import * as SentryCore from '@sentry/core';
+import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { isError } from '@sentry/core';
+import { BrowserClient } from '../../src/client';
 import * as helpers from '../../src/helpers';
 import { INTEGRATION_NAME, registerWebWorker, webWorkerIntegration } from '../../src/integrations/webWorker';
+import { defaultStackParser } from '../../src/stack-parsers';
+import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 // Mock @sentry/core
 vi.mock('@sentry/core', async importActual => {
@@ -27,7 +32,16 @@ vi.mock('../../src/helpers', () => ({
   WINDOW: {
     _sentryDebugIds: undefined,
   },
+  ignoreNextOnError: vi.fn(),
 }));
+
+function getListener(addEventListener: ReturnType<typeof vi.fn>, type: string): (event: any) => void {
+  const call = addEventListener.mock.calls.find(([eventType]) => eventType === type);
+  if (!call) {
+    throw new Error(`No ${type} listener registered`);
+  }
+  return call[1];
+}
 
 describe('webWorkerIntegration', () => {
   const mockDebugLog = SentryCore.debug.log as any;
@@ -115,9 +129,7 @@ describe('webWorkerIntegration', () => {
         const integration = webWorkerIntegration({ worker: mockWorker as any });
         integration.setupOnce!();
 
-        // Extract the message handler from the addEventListener call
-        expect(mockWorker.addEventListener.mock.calls).toBeDefined();
-        messageHandler = mockWorker.addEventListener.mock.calls[0]![1];
+        messageHandler = getListener(mockWorker.addEventListener, 'message');
       });
 
       it('ignores non-Sentry messages', () => {
@@ -407,7 +419,11 @@ describe('registerWebWorker', () => {
     addEventListener: ReturnType<typeof vi.fn>;
     _sentryDebugIds?: Record<string, string>;
     _sentryModuleMetadata?: Record<string, any>;
+    location?: { href?: string };
   };
+
+  // registerWebWorker raises this globally, so every test has to put it back.
+  const originalStackTraceLimit = Error.stackTraceLimit;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -418,6 +434,10 @@ describe('registerWebWorker', () => {
     };
   });
 
+  afterEach(() => {
+    Error.stackTraceLimit = originalStackTraceLimit;
+  });
+
   it('posts message with _sentryMessage flag', () => {
     registerWebWorker({ self: mockWorkerSelf as any });
 
@@ -426,6 +446,7 @@ describe('registerWebWorker', () => {
       _sentryMessage: true,
       _sentryDebugIds: undefined,
       _sentryModuleMetadata: undefined,
+      _sentryForwardsErrors: true,
     });
   });
 
@@ -445,6 +466,7 @@ describe('registerWebWorker', () => {
         'worker-file2.js': 'debug-id-2',
       },
       _sentryModuleMetadata: undefined,
+      _sentryForwardsErrors: true,
     });
   });
 
@@ -458,6 +480,7 @@ describe('registerWebWorker', () => {
       _sentryMessage: true,
       _sentryDebugIds: undefined,
       _sentryModuleMetadata: undefined,
+      _sentryForwardsErrors: true,
     });
   });
 
@@ -475,6 +498,7 @@ describe('registerWebWorker', () => {
       _sentryMessage: true,
       _sentryDebugIds: undefined,
       _sentryModuleMetadata: rawMetadata,
+      _sentryForwardsErrors: true,
     });
   });
 
@@ -487,6 +511,7 @@ describe('registerWebWorker', () => {
       _sentryMessage: true,
       _sentryDebugIds: undefined,
       _sentryModuleMetadata: undefined,
+      _sentryForwardsErrors: true,
     });
   });
 
@@ -508,6 +533,183 @@ describe('registerWebWorker', () => {
         'worker-file.js': 'debug-id-1',
       },
       _sentryModuleMetadata: rawMetadata,
+      _sentryForwardsErrors: true,
+    });
+  });
+
+  describe('error forwarding', () => {
+    function trigger(type: string, event: unknown): void {
+      getListener(mockWorkerSelf.addEventListener, type)(event);
+    }
+
+    it('raises the stack trace limit so forwarded stacks are not truncated', () => {
+      Error.stackTraceLimit = 10;
+
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      expect(Error.stackTraceLimit).toBe(50);
+    });
+
+    it('forwards an uncaught error with its location, name and kind "error"', () => {
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      mockWorkerSelf.location = { href: 'http://localhost/worker.js' };
+      const error = new Error('boom');
+      trigger('error', {
+        error,
+        message: 'Uncaught Error: boom',
+        filename: 'http://localhost/chunk.js',
+        lineno: 12,
+        colno: 9,
+      });
+
+      expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+        _sentryMessage: true,
+        _sentryWorkerError: {
+          reason: error,
+          filename: 'http://localhost/worker.js',
+          kind: 'error',
+          name: 'Error',
+          url: 'http://localhost/chunk.js',
+          lineno: 12,
+          colno: 9,
+        },
+      });
+    });
+
+    it('sends the error name separately because structured clone resets it', () => {
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      const error = new Error('divide by zero');
+      error.name = 'RuntimeError';
+      trigger('error', { error });
+
+      expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+        _sentryMessage: true,
+        _sentryWorkerError: expect.objectContaining({ reason: error, name: 'RuntimeError' }),
+      });
+    });
+
+    it('falls back to the event message when there is no error object', () => {
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      trigger('error', { error: null, message: 'Uncaught Error: boom', lineno: 3, colno: 7 });
+
+      expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+        _sentryMessage: true,
+        _sentryWorkerError: expect.objectContaining({
+          reason: 'Uncaught Error: boom',
+          kind: 'error',
+          name: undefined,
+          lineno: 3,
+          colno: 7,
+        }),
+      });
+    });
+
+    it('tags forwarded rejections with kind "unhandledrejection"', () => {
+      registerWebWorker({ self: mockWorkerSelf as any });
+
+      const reason = new Error('rejected');
+      trigger('unhandledrejection', { reason });
+
+      expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+        _sentryMessage: true,
+        _sentryWorkerError: {
+          reason,
+          filename: undefined,
+          kind: 'unhandledrejection',
+          name: 'Error',
+        },
+      });
+    });
+
+    describe('when the reason cannot be structured-cloned', () => {
+      beforeEach(() => {
+        mockWorkerSelf.postMessage.mockImplementation(message => structuredClone(message));
+      });
+
+      it('retries with a plain copy that keeps message and stack but drops the cause', () => {
+        registerWebWorker({ self: mockWorkerSelf as any });
+
+        const error = new Error('boom') as Error & { cause?: unknown };
+        error.cause = () => {};
+        expect(() => trigger('error', { error })).not.toThrow();
+
+        // The mocked postMessage clones for real, so a third call proves the
+        // retry no longer carries the function that blocked the first one.
+        expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(3);
+        expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+          _sentryMessage: true,
+          _sentryWorkerError: expect.objectContaining({
+            reason: { message: 'boom', stack: error.stack },
+            plainError: true,
+            name: 'Error',
+            kind: 'error',
+          }),
+        });
+      });
+
+      it('sends only plain data when the browser cannot clone errors at all', () => {
+        registerWebWorker({ self: mockWorkerSelf as any });
+        mockWorkerSelf.postMessage.mockImplementation(message => {
+          if (isError(message._sentryWorkerError?.reason)) {
+            throw new DOMException('could not be cloned', 'DataCloneError');
+          }
+        });
+
+        const error = new Error('boom');
+        trigger('error', { error });
+
+        expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+          _sentryMessage: true,
+          _sentryWorkerError: expect.objectContaining({
+            reason: { message: 'boom', stack: error.stack },
+            plainError: true,
+          }),
+        });
+      });
+
+      it('keeps the message and stack of a WebAssembly.Exception', () => {
+        registerWebWorker({ self: mockWorkerSelf as any });
+
+        const tag = new WebAssembly.Tag({ parameters: [] });
+        const exception = new WebAssembly.Exception(tag, [], { traceStack: true });
+        trigger('error', { error: exception });
+
+        expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+          _sentryMessage: true,
+          _sentryWorkerError: expect.objectContaining({
+            reason: { message: 'wasm exception', stack: exception.stack },
+            plainError: true,
+            name: 'WebAssembly.Exception',
+          }),
+        });
+      });
+
+      it('normalizes a reason that is not an error', () => {
+        registerWebWorker({ self: mockWorkerSelf as any });
+
+        trigger('unhandledrejection', { reason: { retry: () => {} } });
+
+        expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
+          _sentryMessage: true,
+          _sentryWorkerError: expect.objectContaining({
+            reason: { retry: '[Function: retry]' },
+            plainError: false,
+            kind: 'unhandledrejection',
+          }),
+        });
+      });
+
+      it('does not throw out of the error handler when the retry fails as well', () => {
+        registerWebWorker({ self: mockWorkerSelf as any });
+        mockWorkerSelf.postMessage.mockImplementation(() => {
+          throw new DOMException('could not be cloned', 'DataCloneError');
+        });
+
+        expect(() => trigger('error', { error: new Error('boom') })).not.toThrow();
+      });
     });
   });
 });
@@ -578,6 +780,7 @@ describe('registerWebWorker and webWorkerIntegration', () => {
       _sentryMessage: true,
       _sentryDebugIds: mockWorker._sentryDebugIds,
       _sentryModuleMetadata: undefined,
+      _sentryForwardsErrors: true,
     });
 
     expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
@@ -599,6 +802,7 @@ describe('registerWebWorker and webWorkerIntegration', () => {
       _sentryMessage: true,
       _sentryDebugIds: mockWorker3._sentryDebugIds,
       _sentryModuleMetadata: undefined,
+      _sentryForwardsErrors: true,
     });
 
     expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
@@ -612,5 +816,165 @@ describe('registerWebWorker and webWorkerIntegration', () => {
       'Error at \n /worker-3-file1.js': 'worker-3-debug-1',
       'Error at \n /worker-3-file2.js': 'worker-3-debug-2',
     });
+  });
+});
+
+describe('forwarded worker errors', () => {
+  let client: BrowserClient;
+  let captureEventSpy: MockInstance<BrowserClient['captureEvent']>;
+  let mockWorker: { addEventListener: ReturnType<typeof vi.fn>; postMessage: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    client = new BrowserClient({
+      ...getDefaultBrowserClientOptions(),
+      stackParser: defaultStackParser,
+    });
+    SentryCore.setCurrentClient(client);
+    client.init();
+    captureEventSpy = vi.spyOn(client, 'captureEvent');
+
+    mockWorker = { addEventListener: vi.fn(), postMessage: vi.fn() };
+    const integration = webWorkerIntegration({ worker: mockWorker as any });
+    integration.setupOnce!();
+  });
+
+  function receive(data: Record<string, unknown>): void {
+    getListener(
+      mockWorker.addEventListener,
+      'message',
+    )({
+      data: { _sentryMessage: true, ...data },
+      stopImmediatePropagation: vi.fn(),
+    });
+  }
+
+  function forward(workerError: Record<string, unknown>): void {
+    receive({ _sentryWorkerError: workerError });
+  }
+
+  function expectCapturedException(exception: Record<string, unknown>): void {
+    expect(captureEventSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ exception: { values: [expect.objectContaining(exception)] } }),
+      expect.anything(),
+      expect.anything(),
+    );
+  }
+
+  it('captures a forwarded error with the onerror mechanism', () => {
+    const error = new Error('boom');
+
+    forward({ reason: error, filename: 'http://localhost/worker.js', kind: 'error' });
+
+    expect(captureEventSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'error' }),
+      expect.objectContaining({
+        originalException: error,
+        mechanism: { handled: false, type: 'auto.browser.web_worker.onerror' },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it.each([
+    ['kind "unhandledrejection"', 'unhandledrejection'],
+    // Workers registered by an older SDK only forwarded rejections and sent no kind.
+    ['no kind', undefined],
+  ])('captures a forwarded rejection with %s using the onunhandledrejection mechanism', (_, kind) => {
+    forward({ reason: new Error('rejected'), kind });
+
+    expect(captureEventSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        mechanism: { handled: false, type: 'auto.browser.web_worker.onunhandledrejection' },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('does not apply promise-rejection wording to a thrown primitive', () => {
+    forward({ reason: 'just a string', kind: 'error' });
+
+    expectCapturedException({ type: 'Error', value: 'just a string' });
+  });
+
+  it('keeps promise-rejection wording for a rejected primitive', () => {
+    forward({ reason: 'just a string', kind: 'unhandledrejection' });
+
+    expectCapturedException({
+      type: 'UnhandledRejection',
+      value: 'Non-Error promise rejection captured with value: just a string',
+    });
+  });
+
+  it('restores the name that structured clone dropped and parses the forwarded stack', () => {
+    const error = new Error('divide by zero');
+    error.name = 'RuntimeError';
+    error.stack = [
+      'RuntimeError: divide by zero',
+      '    at trigger_crash (http://localhost:8080/maze.wasm:wasm-function[36]:0x2877)',
+      '    at runStepGame (http://localhost:8080/worker.js:12:9)',
+    ].join('\n');
+    const cloned = structuredClone(error);
+    expect(cloned.name).toBe('Error');
+
+    forward({ reason: cloned, name: 'RuntimeError', kind: 'error' });
+
+    expectCapturedException({
+      type: 'RuntimeError',
+      value: 'divide by zero',
+      stacktrace: {
+        frames: expect.arrayContaining([
+          expect.objectContaining({ filename: 'http://localhost:8080/maze.wasm:wasm-function[36]:0x2877' }),
+          expect.objectContaining({ filename: 'http://localhost:8080/worker.js' }),
+        ]),
+      },
+    });
+  });
+
+  it('rebuilds an error from a plain copy and restores its name', () => {
+    const stack = ['RuntimeError: divide by zero', '    at runStepGame (http://localhost:8080/worker.js:12:9)'].join(
+      '\n',
+    );
+
+    forward({ reason: { message: 'divide by zero', stack }, plainError: true, name: 'RuntimeError', kind: 'error' });
+
+    expectCapturedException({
+      type: 'RuntimeError',
+      value: 'divide by zero',
+      stacktrace: { frames: [expect.objectContaining({ filename: 'http://localhost:8080/worker.js', lineno: 12 })] },
+    });
+  });
+
+  it.each([
+    ['the script that threw', 'http://localhost/chunk.js', 'http://localhost/chunk.js'],
+    ['the worker script when the event has no url', undefined, 'http://localhost/worker.js'],
+    ['the worker script when the event url is empty', '', 'http://localhost/worker.js'],
+  ])('adds a frame at %s when a message-only error has no stack', (_, url, frameFilename) => {
+    forward({
+      reason: 'Uncaught Error: boom',
+      kind: 'error',
+      filename: 'http://localhost/worker.js',
+      url,
+      lineno: 12,
+      colno: 9,
+    });
+
+    expectCapturedException({
+      value: 'Uncaught Error: boom',
+      stacktrace: { frames: [expect.objectContaining({ filename: frameFilename, lineno: 12, colno: 9 })] },
+    });
+  });
+
+  it('skips the global onerror copy only once the worker announced that it forwards errors', () => {
+    const onWorkerError = getListener(mockWorker.addEventListener, 'error');
+
+    onWorkerError({});
+    expect(helpers.ignoreNextOnError).not.toHaveBeenCalled();
+
+    receive({ _sentryDebugIds: undefined, _sentryForwardsErrors: true });
+    onWorkerError({});
+    expect(helpers.ignoreNextOnError).toHaveBeenCalledTimes(1);
   });
 });
