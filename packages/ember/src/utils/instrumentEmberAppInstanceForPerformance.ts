@@ -7,6 +7,7 @@ import type {
 } from '@sentry/browser';
 import { getAbsoluteUrl, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, WINDOW } from '@sentry/browser';
 import {
+  ROUTER_NAVIGATION_ROUTE_ID,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_OP,
   URL_FULL,
@@ -75,6 +76,7 @@ export function instrumentEmberAppInstanceForPerformance(
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: routeInfo ? 'route' : 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
+        ...(routeInfo ? { [ROUTER_NAVIGATION_ROUTE_ID]: `route:${routeInfo.name}` } : {}),
         ...(url ? _getRouteUrlAttributes(client, url, routeInfo?.params) : {}),
         toRoute: routeInfo?.name,
       },
@@ -117,6 +119,7 @@ export function instrumentEmberAppInstanceForPerformance(
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
+            ...(toRoute !== undefined ? { [ROUTER_NAVIGATION_ROUTE_ID]: `route:${toRoute}` } : {}),
             ...urlAttributes,
             fromRoute,
             toRoute,
@@ -133,6 +136,7 @@ export function instrumentEmberAppInstanceForPerformance(
         activeRootSpan.updateName(`route:${toRoute}`);
         activeRootSpan.setAttributes({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          ...(toRoute !== undefined ? { [ROUTER_NAVIGATION_ROUTE_ID]: `route:${toRoute}` } : {}),
           ..._getRouteUrlAttributes(client, url, routeInfo?.params),
           toRoute: toRoute,
         });
