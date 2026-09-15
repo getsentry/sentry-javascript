@@ -1,17 +1,28 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
-import { runAgentTurn } from './utils';
+import { newConversationId, runAgentTurn } from './utils';
 
 const APP = 'node-flue';
 
-const hasOps = (ops: string[]) => (spansOfTrace: { attributes?: Record<string, { value?: unknown }> }[]) =>
+type SpanLike = { name?: string; attributes?: Record<string, { value?: unknown }> };
+
+const hasOps = (ops: string[]) => (spansOfTrace: SpanLike[]) =>
   ops.every(op => spansOfTrace.some(span => getSpanOp(span) === op));
+
+// Anchored on the tool the test drives, so a leftover trace from another test cannot satisfy it.
+const usedTool = (toolName: string) => (spansOfTrace: SpanLike[]) =>
+  spansOfTrace.some(span => span.attributes?.['gen_ai.tool.name']?.value === toolName);
 
 test('captures the invoke_agent / chat / execute_tool hierarchy for a Flue turn', async ({ baseURL }) => {
   // The trace flushes across several envelopes, so accumulate it rather than asserting on one.
-  const spansPromise = collectStreamedSpans(APP, hasOps(['gen_ai.invoke_agent', 'gen_ai.chat', 'gen_ai.execute_tool']));
+  const spansPromise = collectStreamedSpans(
+    APP,
+    spansOfTrace =>
+      hasOps(['gen_ai.invoke_agent', 'gen_ai.chat', 'gen_ai.execute_tool'])(spansOfTrace) &&
+      usedTool('get_weather')(spansOfTrace),
+  );
 
-  await runAgentTurn(baseURL!, 'weather-conversation', 'What is the weather in Paris?');
+  await runAgentTurn(baseURL!, newConversationId('weather'), 'What is the weather in Paris?');
 
   const spans = await spansPromise;
   const invokeAgent = spans.find(span => getSpanOp(span) === 'gen_ai.invoke_agent');
@@ -40,12 +51,10 @@ test('captures the invoke_agent / chat / execute_tool hierarchy for a Flue turn'
 test('nests a manual span raised inside a tool under that tool span', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpans(
     APP,
-    spansOfTrace =>
-      spansOfTrace.some(span => getSpanOp(span) === 'gen_ai.execute_tool') &&
-      spansOfTrace.some(span => span.name === 'resolve-weather'),
+    spansOfTrace => usedTool('get_weather')(spansOfTrace) && spansOfTrace.some(span => span.name === 'resolve-weather'),
   );
 
-  await runAgentTurn(baseURL!, 'manual-span-conversation', 'What is the weather in Berlin?');
+  await runAgentTurn(baseURL!, newConversationId('manual-span'), 'What is the weather in Berlin?');
 
   const spans = await spansPromise;
   const executeTool = spans.find(span => getSpanOp(span) === 'gen_ai.execute_tool');
@@ -66,7 +75,7 @@ test('nests the provider HTTP call inside the chat span', async ({ baseURL }) =>
       spansOfTrace.some(span => getSpanOp(span) === 'http.client'),
   );
 
-  await runAgentTurn(baseURL!, 'provider-http-conversation', 'Say hello.');
+  await runAgentTurn(baseURL!, newConversationId('provider-http'), 'Say hello.');
 
   const spans = await spansPromise;
   const chat = spans.find(span => getSpanOp(span) === 'gen_ai.chat');

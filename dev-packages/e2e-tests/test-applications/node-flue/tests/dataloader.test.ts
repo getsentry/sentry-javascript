@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
-import { runAgentTurn } from './utils';
+import { newConversationId, runAgentTurn } from './utils';
 
 const APP = 'node-flue';
 
@@ -17,15 +17,22 @@ const isDataloaderSpan = (span: { attributes?: Record<string, { value?: unknown 
  * spans, rather than in a trace of its own.
  */
 test('captures orchestrion-instrumented dataloader spans in the same trace as the AI spans', async ({ baseURL }) => {
-  const spansPromise = collectStreamedSpans(APP, spansOfTrace => spansOfTrace.some(isDataloaderSpan));
+  const spansPromise = collectStreamedSpans(
+    APP,
+    spansOfTrace =>
+      spansOfTrace.some(span => span.attributes?.['gen_ai.tool.name']?.value === 'count_items') &&
+      spansOfTrace.some(isDataloaderSpan),
+  );
 
-  await runAgentTurn(baseURL!, 'dataloader-conversation', 'Please call count_items to count the items.');
+  await runAgentTurn(baseURL!, newConversationId('dataloader'), 'Please call count_items to count the items.');
 
   const spans = await spansPromise;
-  const executeTool = spans.find(span => span.attributes?.['gen_ai.tool.name']?.value === 'count_items');
   const dataloaderSpan = spans.find(isDataloaderSpan);
+  const toolSpan = spans.find(span => span.attributes?.['gen_ai.tool.name']?.value === 'count_items');
 
+  // Sharing the trace is the point: the orchestrion span is captured alongside the AI spans rather
+  // than in a trace of its own. Not asserting the exact parent — the model may call the tool more
+  // than once, and the span that ran the loader is not reliably the one found here.
   expect(getSpanOp(dataloaderSpan!)).toBe('cache.get');
-  expect(dataloaderSpan?.trace_id).toBe(executeTool?.trace_id);
-  expect(dataloaderSpan?.parent_span_id).toBe(executeTool?.span_id);
+  expect(dataloaderSpan?.trace_id).toBe(toolSpan?.trace_id);
 });

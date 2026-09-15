@@ -2,7 +2,7 @@
 import { useModel, useTool } from '@flue/runtime';
 import * as Sentry from '@sentry/node';
 import * as v from 'valibot';
-import { itemLoader } from '../loaders.ts';
+import DataLoader from 'dataloader';
 
 // The `'use agent'` directive is how `@flue/vite` finds this module and binds an identity to it at
 // build time. That binding is the part a hand-written scenario cannot reproduce, so it is the main
@@ -31,8 +31,11 @@ export function Hello() {
     name: 'count_items',
     description: 'Count items by loading them. Call this when the user asks to count items.',
     input: v.object({}),
+    // Constructed per execution, like node-eve does: a module-level loader caches its keys, so a
+    // second call would skip the batch function and emit no span.
     run: async () => {
-      const doubled = await Promise.all([itemLoader.load(1), itemLoader.load(2), itemLoader.load(3)]);
+      const loader = new DataLoader<number, number>(async keys => keys.map(key => key * 2));
+      const doubled = await Promise.all([loader.load(1), loader.load(2), loader.load(3)]);
       return `Loaded ${doubled.length} items: ${doubled.join(', ')}.`;
     },
   });
