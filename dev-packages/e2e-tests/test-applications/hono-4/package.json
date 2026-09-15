@@ -46,12 +46,12 @@
       },
       {
         "assert-command": "pnpm test:assert:deno",
-        "label": "hono-4 (deno)",
-        "skip": true
+        "label": "hono-4 (deno)"
       },
       {
         "assert-command": "pnpm test:assert:cloudflare",
-        "label": "hono-4 (cloudflare)"
+        "label": "hono-4 (cloudflare)",
+        "skip": true
       }
     ]
   }
