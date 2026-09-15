@@ -4,17 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 3030",
+    "dev": "NODE_OPTIONS='--import=@sentry/node/import' vite dev --port 3030",
     "build": "vite build",
-    "start": "PORT=3030 node dist/server.mjs",
-    "dev:orchestrion": "NODE_OPTIONS='--import=@sentry/node/import' pnpm dev",
-    "start:orchestrion": "NODE_OPTIONS='--import=@sentry/node/import' pnpm start",
+    "start": "NODE_OPTIONS='--import=@sentry/node/import' PORT=3030 node dist/server.mjs",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:build-orchestrion": "USE_ORCHESTRION=1 pnpm test:build",
     "test:build-latest": "pnpm install && pnpm add @flue/runtime@latest @flue/vite@latest @flue/cli@latest && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-orchestrion": "USE_ORCHESTRION=1 pnpm test:assert",
     "test:prod": "OPENROUTER_API_KEY=$E2E_OPENROUTER_API_KEY TEST_ENV=production playwright test",
     "test:dev": "OPENROUTER_API_KEY=$E2E_OPENROUTER_API_KEY TEST_ENV=development playwright test"
   },
@@ -48,11 +44,6 @@
       {
         "build-command": "pnpm test:build-latest",
         "label": "node-flue (latest)"
-      },
-      {
-        "build-command": "pnpm test:build-orchestrion",
-        "assert-command": "pnpm test:assert-orchestrion",
-        "label": "node-flue (orchestrion)"
       }
     ]
   }
