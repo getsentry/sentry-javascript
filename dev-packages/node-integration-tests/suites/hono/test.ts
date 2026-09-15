@@ -1,9 +1,7 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../utils/runner';
 
-// Verifies that Hono is auto-instrumented out of the box by `@sentry/node` (the `honoIntegration`
-// default), without importing `@sentry/hono` or registering the `sentry()` middleware manually.
-describe('hono auto-instrumentation (Node)', () => {
+describe('hono auto-instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
