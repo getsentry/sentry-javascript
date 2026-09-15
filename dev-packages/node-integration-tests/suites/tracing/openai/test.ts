@@ -323,7 +323,7 @@ describe('OpenAI integration', () => {
               value: 'auto.ai.openai',
             });
 
-            // PII attributes must never be recorded when `sendDefaultPii` is disabled.
+            // GenAI inputs and outputs must never be recorded when `dataCollection.genAI` disables them.
             // Asserting over every span in the envelope catches attributes leaking onto
             // spans which are not individually inspected above.
             for (const span of container.items) {
@@ -856,7 +856,7 @@ describe('OpenAI integration', () => {
               value: 10,
             });
 
-            // PII attributes must never be recorded when `sendDefaultPii` is disabled.
+            // GenAI inputs and outputs must never be recorded when `dataCollection.genAI` disables them.
             // Asserting over every span in the envelope catches attributes leaking onto
             // spans which are not individually inspected above.
             for (const span of container.items) {
