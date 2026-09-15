@@ -102,8 +102,6 @@ function createGenAiSpan(
 }
 
 /**
- * Diagnostics-channel-based Mistral integration. Subscribes to the `orchestrion:@mistralai/mistralai:*`
- * diagnostics_channels injected into the SDK's chat, embeddings and agents methods, so it requires
- * the Sentry runtime hook or bundler plugin.
+ * An integration to instrument @mistralai/mistrailai.
  */
 export const mistralAIIntegration = defineIntegration(_mistralAIIntegration);
