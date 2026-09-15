@@ -1,3 +1,6 @@
+// Webpack 4 and 5 share this implementation so their behavior cannot drift apart.
+/* oxlint-disable max-lines */
+
 import type { Options } from '../core/index';
 import {
   createSentryBuildPluginManager,
@@ -11,6 +14,7 @@ import {
   isJsFile,
   stampDebugId,
 } from '../core/index';
+import { getCodeInjectionPosition } from '../core/get-code-injection-position';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -38,31 +42,36 @@ try {
 // since webpack 5.1 compiler contains webpack module so plugins always use correct webpack version
 // https://github.com/webpack/webpack/commit/65eca2e529ce1d79b79200d4bdb1ce1b81141459
 
-interface BannerPluginCallbackArg {
-  chunk?: {
-    hash?: string;
-    contentHash?: {
-      javascript?: string;
-    };
-  };
-}
-
-type UnsafeBannerPlugin = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  new (options: any): unknown;
-};
-
 type UnsafeDefinePlugin = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   new (options: any): unknown;
 };
 
-type WebpackSource = {
-  source: () => string | Buffer;
+type WebpackCompilationApi = {
+  PROCESS_ASSETS_STAGE_ADDITIONS: number;
+  PROCESS_ASSETS_STAGE_DEV_TOOLING?: number;
 };
 
-type WebpackRawSource = {
-  new (source: string): WebpackSource;
+type WebpackSources = {
+  ReplaceSource: new (source: WebpackSource) => WebpackReplaceSource;
+  RawSource?: WebpackRawSource;
+};
+
+type WebpackCompilationContext = {
+  chunks: Iterable<{
+    files: Iterable<string>;
+    hash?: string;
+    contentHash?: { javascript?: string };
+  }>;
+  hooks: {
+    processAssets: {
+      tap: (
+        options: { name: string; stage: number },
+        callback: (assets: Record<string, WebpackSource>) => void,
+      ) => void;
+    };
+  };
+  updateAsset: (name: string, source: WebpackSource) => void;
 };
 
 type WebpackAsset = {
@@ -75,6 +84,20 @@ type WebpackAsset = {
   };
 };
 
+type WebpackSource = {
+  source: () => string | Uint8Array;
+};
+
+type WebpackRawSource = {
+  new (source: string): WebpackSource;
+};
+
+type WebpackReplaceSource = WebpackSource & {
+  insert: (position: number, value: string) => void;
+};
+
+const WEBPACK_JAVASCRIPT_ASSET_REGEX = /\.(?:js|ts|jsx|tsx|mjs|cjs|mts|cts)(?:\?[^?]*)?(?:#[^#]*)?$/;
+
 type WebpackCompiler = {
   options: {
     plugins?: unknown[];
@@ -84,6 +107,9 @@ type WebpackCompiler = {
     };
   };
   hooks: {
+    compilation: {
+      tap: (name: string, callback: (compilation: WebpackCompilationContext) => void) => void;
+    };
     thisCompilation: {
       tap: (name: string, callback: (compilation: WebpackCompilation) => void) => void;
     };
@@ -95,30 +121,19 @@ type WebpackCompiler = {
     };
   };
   webpack?: {
-    BannerPlugin?: UnsafeBannerPlugin;
     DefinePlugin?: UnsafeDefinePlugin;
-    Compilation?: {
-      PROCESS_ASSETS_STAGE_DEV_TOOLING?: number;
-    };
-    sources?: {
-      RawSource?: WebpackRawSource;
-    };
+    Compilation?: WebpackCompilationApi;
+    sources?: WebpackSources;
   };
 };
 
-type WebpackCompilation = {
+type WebpackCompilation = WebpackCompilationContext & {
   outputOptions: {
     path?: string;
   };
   assets: Record<string, unknown>;
   getAssets: () => WebpackAsset[];
   getAsset: (name: string) => WebpackAsset | undefined;
-  updateAsset: (name: string, source: WebpackSource) => void;
-  hooks: {
-    processAssets: {
-      tap: (options: { name: string; stage: number }, callback: () => void) => void;
-    };
-  };
 };
 
 // Detect webpack major version for telemetry (helps differentiate webpack 4 vs 5 usage)
@@ -166,19 +181,20 @@ function addDebugIdsToAssets(compilation: WebpackCompilation, RawSource: Webpack
 }
 
 /**
- * The factory function accepts BannerPlugin and DefinePlugin classes in
- * order to avoid direct dependencies on webpack.
+ * The factory accepts Webpack APIs to avoid a direct dependency on Webpack.
  *
- * This allow us to export version of the plugin for webpack 5.1+ and compatible environments.
+ * This allows us to export a version of the plugin for Webpack 5.1+ and compatible environments.
  *
  * Since webpack 5.1 compiler contains webpack module so plugins always use correct webpack version.
  */
 export function sentryWebpackPluginFactory({
-  BannerPlugin: UnsafeBannerPlugin,
   DefinePlugin: UnsafeDefinePlugin,
+  Compilation: UnsafeCompilation,
+  sources: unsafeSources,
 }: {
-  BannerPlugin?: UnsafeBannerPlugin;
   DefinePlugin?: UnsafeDefinePlugin;
+  Compilation?: WebpackCompilationApi;
+  sources?: WebpackSources;
 } = {}) {
   return function sentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {}) {
     const sentryBuildPluginManager = createSentryBuildPluginManager(userOptions, {
@@ -238,6 +254,63 @@ export function sentryWebpackPluginFactory({
 
     const transformReplace = Object.keys(replacementValues).length > 0;
 
+    function addCodeInjection(compiler: WebpackCompiler): void {
+      if (staticInjectionCode.isEmpty() && !sourcemapsEnabled) {
+        return;
+      }
+
+      const ReplaceSource = compiler.webpack?.sources?.ReplaceSource || unsafeSources?.ReplaceSource;
+      const processAssetsStage =
+        compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_ADDITIONS ??
+        UnsafeCompilation?.PROCESS_ASSETS_STAGE_ADDITIONS;
+
+      if (!ReplaceSource || processAssetsStage === undefined) {
+        logger.warn(
+          'Webpack sources are not available. Skipping code injection. This usually means webpack is not properly configured.',
+        );
+        return;
+      }
+
+      compiler.hooks.compilation.tap('sentry-webpack-plugin-injection', compilation => {
+        compilation.hooks.processAssets.tap(
+          {
+            name: 'sentry-webpack-plugin-injection',
+            stage: processAssetsStage,
+          },
+          assets => {
+            for (const chunk of compilation.chunks) {
+              for (const assetName of chunk.files) {
+                if (!WEBPACK_JAVASCRIPT_ASSET_REGEX.test(assetName)) {
+                  continue;
+                }
+
+                const source = assets[assetName];
+                if (!source) {
+                  continue;
+                }
+
+                const sourceContents = source.source();
+                const codeString =
+                  typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
+                const codeToInject = staticInjectionCode.clone();
+                if (sourcemapsEnabled) {
+                  const hash = chunk.contentHash?.javascript ?? chunk.hash;
+                  codeToInject.append(getDebugIdSnippet(hash ? stringToUUID(hash) : randomUUID()));
+                }
+
+                const injectionPosition = getCodeInjectionPosition(codeString);
+                const injection =
+                  injectionPosition === codeString.length ? `\n${codeToInject.code()}` : `${codeToInject.code()}\n`;
+                const updatedSource = new ReplaceSource(source);
+                updatedSource.insert(injectionPosition, injection);
+                compilation.updateAsset(assetName, updatedSource);
+              }
+            }
+          },
+        );
+      });
+    }
+
     return {
       apply(compiler: WebpackCompiler) {
         void sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal().catch(() => {
@@ -245,34 +318,10 @@ export function sentryWebpackPluginFactory({
         });
 
         // Get the correct plugin classes (webpack 5.1+ vs older versions)
-        const BannerPlugin = compiler?.webpack?.BannerPlugin || UnsafeBannerPlugin;
         const DefinePlugin = compiler?.webpack?.DefinePlugin || UnsafeDefinePlugin;
 
-        // Add BannerPlugin for code injection (release, metadata, debug IDs)
-        if (!staticInjectionCode.isEmpty() || sourcemapsEnabled) {
-          if (!BannerPlugin) {
-            logger.warn(
-              'BannerPlugin is not available. Skipping code injection. This usually means webpack is not properly configured.',
-            );
-          } else {
-            compiler.options.plugins = compiler.options.plugins || [];
-            compiler.options.plugins.push(
-              new BannerPlugin({
-                raw: true,
-                include: /\.(js|ts|jsx|tsx|mjs|cjs)(\?[^?]*)?(#[^#]*)?$/,
-                banner: (arg?: BannerPluginCallbackArg) => {
-                  const codeToInject = staticInjectionCode.clone();
-                  if (sourcemapsEnabled) {
-                    const hash = arg?.chunk?.contentHash?.javascript ?? arg?.chunk?.hash;
-                    const debugId = hash ? stringToUUID(hash) : randomUUID();
-                    codeToInject.append(getDebugIdSnippet(debugId));
-                  }
-                  return codeToInject.code();
-                },
-              }),
-            );
-          }
-        }
+        // Injecting through BannerPlugin would place executable code before directive prologues.
+        addCodeInjection(compiler);
 
         // The upload routine (which stamps debug IDs into temp copies of the artifacts) is skipped
         // with `disable-upload`, so the emitted artifacts get stamped in the asset pipeline instead.

@@ -5,9 +5,22 @@ import { createRequire } from 'node:module';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PluginClass = new (options: any) => unknown;
 
+type WebpackSource = {
+  source: () => string | Uint8Array;
+};
+
 type WebpackModule = {
-  BannerPlugin?: PluginClass;
   DefinePlugin?: PluginClass;
+  Compilation?: {
+    PROCESS_ASSETS_STAGE_ADDITIONS: number;
+    PROCESS_ASSETS_STAGE_DEV_TOOLING?: number;
+  };
+  sources?: {
+    ReplaceSource: new (source: WebpackSource) => WebpackSource & {
+      insert: (position: number, value: string) => void;
+    };
+    RawSource?: new (source: string) => WebpackSource;
+  };
   default?: WebpackModule;
 };
 
@@ -25,13 +38,15 @@ function loadWebpack(): WebpackModule {
 }
 
 const webpack = loadWebpack();
-const BannerPlugin = webpack.BannerPlugin ?? webpack.default?.BannerPlugin;
 const DefinePlugin = webpack.DefinePlugin ?? webpack.default?.DefinePlugin;
+const Compilation = webpack.Compilation ?? webpack.default?.Compilation;
+const sources = webpack.sources ?? webpack.default?.sources;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const sentryWebpackPlugin: (options?: SentryWebpackPluginOptions) => any = sentryWebpackPluginFactory({
-  BannerPlugin,
   DefinePlugin,
+  Compilation,
+  sources,
 });
 
 export type { SentryWebpackPluginOptions };
