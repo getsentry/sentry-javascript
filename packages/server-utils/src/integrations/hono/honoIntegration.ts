@@ -106,10 +106,45 @@ function instrumentHono(options: HonoIntegrationOptions): void {
   diagnosticsChannel.tracingChannel<ConstructorChannelContext>(CHANNELS.HONO_CONSTRUCTOR).end.subscribe(message => {
     safeChannelCallback(() => {
       const app = (message as ConstructorChannelContext).self;
-      if (isHonoApp(app)) {
+      if (!isHonoApp(app)) {
+        return;
+      }
+
+      // We hook the `HonoBase` (base) constructor, so this `end` fires during `new Hono()`'s
+      // `super()` — before the `Hono` subclass body assigns `this.router`. `app.use()` needs the
+      // router, so if it is not set yet, defer instrumentation to the moment the subclass assigns it.
+      // That assignment happens synchronously, right after `super()` returns and before any user route
+      // registration, so the Sentry middleware still lands first.
+      if ((app as { router?: unknown }).router) {
         instrumentHonoApp(app, options);
+      } else {
+        instrumentWhenRouterReady(app, options);
       }
     });
+  });
+}
+
+/**
+ * Installs a one-shot accessor for `router` so the first assignment (`this.router = …` in the `Hono`
+ * subclass constructor, run right after `super()` returns) restores a plain data property and then
+ * instruments the app. Kept synchronous — no microtask — so the Sentry middleware is registered
+ * before user code appends any routes.
+ */
+function instrumentWhenRouterReady<E extends Env>(app: Hono<E>, options: HonoIntegrationOptions): void {
+  let routerValue: unknown;
+  Object.defineProperty(app, 'router', {
+    configurable: true,
+    enumerable: true,
+    get() {
+      return routerValue;
+    },
+    set(value: unknown) {
+      routerValue = value;
+      Object.defineProperty(app, 'router', { value, writable: true, configurable: true, enumerable: true });
+      safeChannelCallback(() => {
+        instrumentHonoApp(app, options);
+      });
+    },
   });
 }
 
