@@ -55,15 +55,16 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(result.code).toContain('__SENTRY__.withSentry(');
   });
 
-  it('leaves an already-manually-wrapped entry untouched', async () => {
+  it('only adds the early init import to an already-manually-wrapped entry', async () => {
     const { transform: tx, entryPath } = createPlugin('main = "src/index.ts"');
 
     const code = [
       "import { withSentry } from '@sentry/cloudflare';",
       'export default withSentry((env) => ({}), { fetch() {} });',
     ].join('\n');
-    // No DO classes configured and nothing to wrap → no transform result.
-    expect(await tx(code, entryPath)).toBeUndefined();
+    const result = await tx(code, entryPath);
+
+    expect(result.code).toBe(`import 'virtual:sentry-cloudflare-early-init';\n${code}`);
   });
 
   it('skips non-entry files', async () => {
@@ -153,6 +154,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(result).toBeDefined();
     expect(result.code).toBe(
       [
+        "import 'virtual:sentry-cloudflare-early-init';",
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { WorkerEntrypoint } from 'cloudflare:workers';",
         'class __SENTRY_ORIGINAL_AdminEntry__ extends WorkerEntrypoint {',
@@ -229,7 +231,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const code = ["import { BaseEntry } from './base';", 'export class RemoteEntry extends BaseEntry {}'].join('\n');
     const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
 
-    expect(result).toBeUndefined();
+    expect(result.code).toBe(`import 'virtual:sentry-cloudflare-early-init';\n${code}`);
   });
 
   // An Agent is a Durable Object, so wrangler can only ever list it under
@@ -314,6 +316,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const result = await tx(code);
       expect(result.code).toBe(
         [
+          "import 'virtual:sentry-cloudflare-early-init';",
           "import * as __SENTRY__ from '@sentry/cloudflare';",
           'const __SENTRY_OPTIONS__ = (env) => { const opts = (() => undefined)(env); return { ...opts, rpcTracePropagationBindings: ["MY_AGENT", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
           "import { MyAgent } from './agent';",
@@ -332,6 +335,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const result = await tx(code);
       expect(result.code).toBe(
         [
+          "import 'virtual:sentry-cloudflare-early-init';",
           "import * as __SENTRY__ from '@sentry/cloudflare';",
           'const __SENTRY_OPTIONS__ = (env) => { const opts = (() => undefined)(env); return { ...opts, rpcTracePropagationBindings: ["MY_AGENT", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
           "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './agent';",
@@ -353,6 +357,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const result = await tx(code);
       expect(result.code).toBe(
         [
+          "import 'virtual:sentry-cloudflare-early-init';",
           "import * as __SENTRY__ from '@sentry/cloudflare';",
           'const __SENTRY_OPTIONS__ = (env) => { const opts = (() => undefined)(env); return { ...opts, rpcTracePropagationBindings: ["MY_AGENT", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
           "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './do';",
@@ -424,6 +429,7 @@ describe('wranglerConfigPath option', () => {
     expect(result).toBeDefined();
     expect(result.code).toBe(
       [
+        "import 'virtual:sentry-cloudflare-early-init';",
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
         'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',

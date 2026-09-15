@@ -114,6 +114,8 @@ export interface TransformContext {
   optionsFn: string;
   /** Import statement prepended when `optionsFn` references a separate module. */
   optionsImport?: string;
+  /** Import statement of the module that initializes the SDK before the rest of the entry is evaluated. */
+  earlyInitImport?: string;
   /** @see {@link import('./wranglerConfig').WranglerConfig.sameWorkerBindings} */
   sameWorkerBindings?: readonly SameWorkerBinding[];
 }
@@ -186,6 +188,11 @@ export function applyAutoInstrumentTransforms(
   }
 
   if (!state.needsImport) {
+    // A manually wrapped entry still gets the early init.
+    if (ctx.earlyInitImport) {
+      ms.prepend(ctx.earlyInitImport);
+      return { code: ms.toString(), map: ms.generateMap({ hires: true }), wrappedClasses };
+    }
     // Nothing was rewritten. Still surface any classes found already wrapped
     // manually (via `wrappedClasses`) so the caller doesn't warn about them;
     // return undefined only when there was nothing to report either.
@@ -199,6 +206,8 @@ export function applyAutoInstrumentTransforms(
   }
   if (ctx.optionsImport) ms.prepend(ctx.optionsImport);
   ms.prepend("import * as __SENTRY__ from '@sentry/cloudflare';\n");
+  // Must be the first import, imports are evaluated in source order.
+  if (ctx.earlyInitImport) ms.prepend(ctx.earlyInitImport);
 
   return {
     code: ms.toString(),

@@ -15,12 +15,17 @@ function normalizePath(path: string): string {
 // `.html`, … — sharing the entry's basename must never be treated as the entry.
 const JS_EXTENSION_REGEX = /\.[cm]?[jt]sx?$/;
 
+const EARLY_INIT_ID = 'virtual:sentry-cloudflare-early-init';
+const RESOLVED_EARLY_INIT_ID = `\0${EARLY_INIT_ID}`;
+const EARLY_INIT_IMPORT = `import '${EARLY_INIT_ID}';\n`;
+
 export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPath?: string } = {}) {
   let wranglerConfig: WranglerConfig | undefined;
   let entryFilePath: string | undefined;
 
   let optionsFn = ENV_FALLBACK_OPTIONS_FN;
   let optionsImport: string | undefined;
+  let instrumentFilePath: string | undefined;
 
   return {
     name: 'sentry-cloudflare-auto-instrument',
@@ -49,13 +54,32 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       }
 
       if (entryFilePath) {
-        const instrumentFilePath = resolveInstrumentFile(entryFilePath);
+        instrumentFilePath = resolveInstrumentFile(entryFilePath);
         if (instrumentFilePath) {
           const built = buildOptionsImport(entryFilePath, instrumentFilePath);
           optionsFn = built.optionsFn;
           optionsImport = built.importStmt;
         }
       }
+    },
+
+    resolveId(id: string): string | undefined {
+      return id === EARLY_INIT_ID ? RESOLVED_EARLY_INIT_ID : undefined;
+    },
+
+    load(id: string): string | undefined {
+      if (id !== RESOLVED_EARLY_INIT_ID) return undefined;
+
+      // `env` from `cloudflare:workers` is the only binding access available while the entry is evaluated.
+      return [
+        "import { env } from 'cloudflare:workers';",
+        "import { _INTERNAL_earlyInit } from '@sentry/cloudflare';",
+        instrumentFilePath
+          ? `import optionsFn from ${JSON.stringify(normalizePath(instrumentFilePath))};`
+          : `const optionsFn = ${ENV_FALLBACK_OPTIONS_FN};`,
+        '_INTERNAL_earlyInit(optionsFn, env);',
+        '',
+      ].join('\n');
     },
 
     async transform(
@@ -128,6 +152,7 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         agentClasses,
         optionsFn,
         optionsImport,
+        earlyInitImport: EARLY_INIT_IMPORT,
         sameWorkerBindings: wranglerConfig.sameWorkerBindings,
       });
 

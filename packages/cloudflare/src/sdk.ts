@@ -1,6 +1,8 @@
 import type { Integration } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { getBaseDefaultIntegrations, initWithDefaultIntegrations } from './baseSdk';
 import type { CloudflareClient, CloudflareOptions } from './client';
+import { getFinalOptions } from './options';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { type RequestHandlerWrapperOptions, wrapRequestHandlerWithInit } from './wrapRequestHandlerWithInit';
 
@@ -29,6 +31,31 @@ export function init(options: CloudflareOptions): CloudflareClient | undefined {
   }
 
   return initWithDefaultIntegrations(options, getDefaultIntegrations);
+}
+
+/**
+ * Creates the isolate's cached client while the worker entry module is evaluated, so events captured
+ * in global scope are queued. The first instrumented invocation reuses the client and sends them.
+ *
+ * Injected by `@sentry/cloudflare/vite` as the first import of the worker entry.
+ *
+ * @internal
+ */
+export function _INTERNAL_earlyInit(
+  optionsCallback: (env: unknown) => CloudflareOptions | undefined,
+  env: unknown,
+): void {
+  try {
+    const options = getFinalOptions(optionsCallback(env), env);
+    if (options.cacheClient === false) {
+      return;
+    }
+
+    setAsyncLocalStorageAsyncContextStrategy();
+    init(options);
+  } catch {
+    // Never break worker startup, `withSentry` initializes on the first invocation instead.
+  }
 }
 
 /**

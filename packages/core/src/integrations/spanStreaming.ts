@@ -54,11 +54,16 @@ export const spanStreamingIntegration = defineIntegration((options: SpanStreamin
           const traceId = segmentSpan.spanContext().traceId;
           // `safeUnref` so an enabled `flushOnSegmentEnd` on a server runtime can't keep the
           // process alive until the timer fires (no-op in the browser, where it's the default path).
-          safeUnref(
-            setTimeout(() => {
-              buffer.flush(traceId);
-            }, 500),
-          );
+          try {
+            safeUnref(
+              setTimeout(() => {
+                buffer.flush(traceId);
+              }, 500),
+            );
+          } catch {
+            // Cloudflare Workers disallow timers in global scope, no later timer tick exists to wait for.
+            buffer.flush(traceId);
+          }
         });
       }
     },

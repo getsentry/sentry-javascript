@@ -55,15 +55,23 @@ export class IsolatedPromiseBuffer {
    * @inheritdoc
    */
   public drain(timeout?: number): PromiseLike<boolean> {
-    const oldTaskProducers = [...this._taskProducers];
-    this._taskProducers = [];
-
     return new Promise(resolve => {
-      const timer = setTimeout(() => {
-        if (timeout && timeout > 0) {
-          resolve(false);
-        }
-      }, timeout);
+      let timer: ReturnType<typeof setTimeout>;
+      try {
+        timer = setTimeout(() => {
+          if (timeout && timeout > 0) {
+            resolve(false);
+          }
+        }, timeout);
+      } catch {
+        // workerd disallows timers and I/O in global scope. Keep the queued requests,
+        // so the first invocation's flush sends them.
+        resolve(false);
+        return;
+      }
+
+      const oldTaskProducers = [...this._taskProducers];
+      this._taskProducers = [];
 
       // This cannot reject
       // eslint-disable-next-line @typescript-eslint/no-floating-promises

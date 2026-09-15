@@ -116,7 +116,7 @@ export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
-export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
+export { _INTERNAL_earlyInit, _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';

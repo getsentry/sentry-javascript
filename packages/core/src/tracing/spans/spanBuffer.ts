@@ -19,7 +19,7 @@ const MAX_TRACE_WEIGHT_IN_BYTES = 5_000_000;
 interface TraceBucket {
   spans: Set<SerializedStreamedSpanWithSegmentSpan>;
   size: number;
-  timeout: ReturnType<typeof setTimeout>;
+  timeout: ReturnType<typeof setTimeout> | undefined;
 }
 
 export interface SpanBufferOptions {
@@ -105,15 +105,18 @@ export class SpanBuffer {
     let bucket = this._traceBuckets.get(traceId);
 
     if (!bucket) {
-      bucket = {
-        spans: new Set(),
-        size: 0,
-        timeout: safeUnref(
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      try {
+        timeout = safeUnref(
           setTimeout(() => {
             this.flush(traceId);
           }, this._flushInterval),
-        ),
-      };
+        );
+      } catch {
+        // Cloudflare Workers disallow timers in global scope. The trace then waits for the next
+        // `flush` or a size threshold instead of throwing out of `span.end()`.
+      }
+      bucket = { spans: new Set(), size: 0, timeout };
       this._traceBuckets.set(traceId, bucket);
     }
 
