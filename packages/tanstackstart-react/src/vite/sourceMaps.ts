@@ -1,5 +1,6 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import type { Plugin, UserConfig } from 'vite';
+import { rewriteTanstackStartSources } from './nitroSourceMaps';
 import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 
 type FilesToDeleteAfterUpload = string | string[] | undefined;
@@ -70,7 +71,7 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
       assets: sourcemaps?.assets,
       disable: sourcemaps?.disable,
       ignore: sourcemaps?.ignore,
-      rewriteSources: sourcemaps?.rewriteSources,
+      rewriteSources: sourcemaps?.rewriteSources ?? rewriteTanstackStartSources,
       resolveSourceMap: sourcemaps?.resolveSourceMap,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },

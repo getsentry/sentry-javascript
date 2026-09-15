@@ -1,6 +1,7 @@
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import type { UserConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { rewriteTanstackStartSources } from '../../src/vite/nitroSourceMaps';
 import {
   getUpdatedSourceMapSettings,
   makeAddSentryVitePlugin,
@@ -222,6 +223,21 @@ describe('makeAddSentryVitePlugin()', () => {
     expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Automatically setting'));
 
     consoleSpy.mockRestore();
+  });
+
+  it('uses rewriteTanstackStartSources when rewriteSources is not provided', () => {
+    makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: expect.objectContaining({
+          rewriteSources: rewriteTanstackStartSources,
+        }),
+      }),
+    );
   });
 
   it('passes rewriteSources to the vite plugin', () => {
