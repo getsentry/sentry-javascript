@@ -3,6 +3,9 @@ import type { MastraSpanType } from './types';
 
 export const MASTRA_INTEGRATION_NAME = 'Mastra' as const;
 
+/** Cap on tracked spans, matching `MAX_TRACKED_PRISMA_SPANS`. Spans that never end would otherwise leak. */
+export const MAX_TRACKED_MASTRA_SPANS = 1000;
+
 export const MASTRA_ORIGIN = 'auto.ai.mastra';
 
 /** Not `sentry` — that is the community `@mastra/sentry` exporter name. */
