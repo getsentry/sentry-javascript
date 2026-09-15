@@ -4,6 +4,12 @@ import { runAgentTurn } from './utils';
 
 const APP = 'node-mastra';
 
+// In `mastra dev`, Mastra inlines its Hono-based server into the dev bundle, so the `--import`
+// orchestrion hook cannot transform Hono and the root request span is not route-enriched: its name is
+// the bare method and it carries no `http.route`/route name source. In prod (`mastra build`/`start`)
+// Hono is external and fully instrumented, so the span is named after the matched route.
+const IS_DEV = process.env.TEST_ENV === 'development';
+
 const attrValue = (span: SerializedStreamedSpan, key: string): unknown => span.attributes?.[key]?.value;
 
 const MASTRA_ORIGIN = 'auto.ai.mastra';
@@ -111,9 +117,14 @@ test('captures Mastra agent spans (invoke_agent, chat, execute_tool) with inputs
   expect(attrValue(serverSpan!, 'http.request.method')).toBe('POST');
   expect(attrValue(serverSpan!, 'http.response.status_code')).toBe(200);
   expect(String(attrValue(serverSpan!, 'url.full') ?? '')).toContain('/api/agents/weatherAgent/generate');
-  expect(attrValue(serverSpan!, 'sentry.segment.name.source')).toBe('route');
-  expect(attrValue(serverSpan!, 'http.route')).toMatch(/^\/api\/agents\/:[^/]+\/generate$/);
-  expect(serverSpan!.name).toMatch(/^POST \/api\/agents\/:[^/]+\/generate$/);
+
+  if (IS_DEV) {
+    expect(serverSpan!.name).toBe('POST');
+  } else {
+    expect(attrValue(serverSpan!, 'sentry.segment.name.source')).toBe('route');
+    expect(attrValue(serverSpan!, 'http.route')).toMatch(/^\/api\/agents\/:[^/]+\/generate$/);
+    expect(serverSpan!.name).toMatch(/^POST \/api\/agents\/:[^/]+\/generate$/);
+  }
 });
 
 test('records a bubbled-up Mastra tool error on the span', async ({ baseURL }) => {

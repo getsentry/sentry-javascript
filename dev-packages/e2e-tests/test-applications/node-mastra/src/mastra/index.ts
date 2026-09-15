@@ -1,7 +1,6 @@
 import { Mastra } from '@mastra/core';
 import { registerApiRoute } from '@mastra/core/server';
 import { LibSQLStore } from '@mastra/libsql';
-import * as Sentry from '@sentry/node';
 import { WEATHER_AGENT, weatherAgent } from './agents/weather-agent.js';
 
 // The agent is driven through Mastra's built-in `POST /api/agents/:id/generate`
@@ -27,15 +26,11 @@ export const mastra = new Mastra({
     port: 4111,
     apiRoutes: [manualRoute],
   },
-  bundler: {
-    // Externalize the modules Sentry instruments at runtime via the `--import` orchestrion hook, so
-    // they stay unbundled and the hook can transform them (Hono included). In prod (`mastra build`/
-    // `start`) we pass the explicit `getInstrumentedModuleNames()` list to make it clear which
-    // modules are required. In dev, `mastra dev`'s watcher only honors the boolean `externals: true`
-    // preset — it ignores an array, which would leave Hono bundled and un-instrumentable — so we fall
-    // back to `true` there. `MASTRA_DEV` is set by the `dev` package script.
-    externals: process.env.MASTRA_DEV ? true : Sentry.getInstrumentedModuleNames(),
-  },
+  // No `bundler.externals` override: `mastra build` defaults to externalizing all non-workspace deps,
+  // so Hono (and the other instrumented modules) stay unbundled and the `--import` orchestrion hook
+  // can transform them in prod. In `mastra dev` the bundler inlines its own Hono-based server
+  // framework into the entry regardless of any `externals` config, so Hono is not
+  // orchestrion-instrumented in dev — the tests assert the un-routed span name there.
 });
 
 /**
