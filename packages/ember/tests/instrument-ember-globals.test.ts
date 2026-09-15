@@ -14,6 +14,13 @@ vi.mock('@sentry/browser', () => ({
   startInactiveSpan: vi.fn(() => ({ end: vi.fn() })),
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
 }));
+// Unmocked, `@sentry/core` pulls ~250 ESM files through the ember and babel
+// Vite plugins. That transform is charged to whichever test first awaits the
+// dynamic import below, which timed out on slower CI runners.
+vi.mock('@sentry/core', () => ({
+  timestampInSeconds: vi.fn(() => Date.now() / 1000),
+  browserPerformanceTimeOrigin: vi.fn(() => undefined),
+}));
 
 function getSubscriber(eventName: string): Subscriber | undefined {
   const call = vi.mocked(subscribe).mock.calls.find(([name]) => name === eventName);
