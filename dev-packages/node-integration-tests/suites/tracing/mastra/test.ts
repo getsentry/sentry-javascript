@@ -328,4 +328,108 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     },
     MASTRA_NESTING_DEPENDENCIES,
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-stream-nesting.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('nests the model fetch and tool work under the exporter spans when streaming', async () => {
+        // Same nesting guarantee as `generate`, but the agent is driven via `stream()` — the model
+        // request is a real streaming (SSE) call, and the tool still runs inside `executeWithContext`.
+        let chatSpanId: string | undefined;
+        let executeToolSpanId: string | undefined;
+        let modelFetchParentIds: (string | undefined)[] = [];
+        let cacheGetParentIds: (string | undefined)[] = [];
+
+        await createRunner()
+          .expect({
+            transaction: event => {
+              expect(event.transaction).toBe('mastra-test');
+              const modelFetches = (event.spans ?? []).filter(
+                span => span.op === 'http.client' && (span.description ?? '').includes('/v1/chat/completions'),
+              );
+              expect(modelFetches.length).toBeGreaterThan(0);
+              modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
+
+              const loadSpans = (event.spans ?? []).filter(
+                span => span.op === 'cache.get' && span.description === 'dataloader.load',
+              );
+              expect(loadSpans.length).toBeGreaterThan(0);
+              cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
+            },
+          })
+          .expect({
+            span: container => {
+              const chat = container.items.find(span => span.attributes['sentry.op']?.value === 'gen_ai.chat')!;
+              expect(chat).toBeDefined();
+              chatSpanId = chat.span_id;
+
+              const executeTool = container.items.find(
+                span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items',
+              )!;
+              expect(executeTool).toBeDefined();
+              expect(executeTool.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
+              executeToolSpanId = executeTool.span_id;
+            },
+          })
+          .start()
+          .completed();
+
+        expect(chatSpanId).toBeDefined();
+        expect(executeToolSpanId).toBeDefined();
+        expect(new Set(modelFetchParentIds)).toEqual(new Set([chatSpanId]));
+        expect(new Set(cacheGetParentIds)).toEqual(new Set([executeToolSpanId]));
+      });
+    },
+    MASTRA_NESTING_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-multi-instance.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('routes tool nesting per Mastra instance through the shared span registry', async () => {
+        // Two instances run concurrently in one trace. Each instance's `dataloader.load` must nest under
+        // that instance's own `execute_tool` span — if the registry cross-talked, one tool span would
+        // have no dataloader child.
+        const toolSpanIds: Record<string, string> = {};
+        let loadParentIds: (string | undefined)[] = [];
+
+        await createRunner()
+          .expect({
+            transaction: event => {
+              expect(event.transaction).toBe('mastra-multi');
+              const loadSpans = (event.spans ?? []).filter(
+                span => span.op === 'cache.get' && span.description === 'dataloader.load',
+              );
+              loadParentIds = loadSpans.map(span => span.parent_span_id);
+            },
+          })
+          .expect({
+            span: container => {
+              for (const toolName of ['count_a', 'count_b']) {
+                const toolSpan = container.items.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === toolName)!;
+                expect(toolSpan).toBeDefined();
+                toolSpanIds[toolName] = toolSpan.span_id;
+              }
+            },
+          })
+          .start()
+          .completed();
+
+        // Each instance's tool span parents at least one dataloader load — neither is starved.
+        for (const toolName of ['count_a', 'count_b']) {
+          expect(loadParentIds).toContain(toolSpanIds[toolName]);
+        }
+        // And every load parents onto one of the two tool spans (no stray reparenting).
+        const toolIds = new Set(Object.values(toolSpanIds));
+        for (const parent of loadParentIds) {
+          expect(toolIds.has(parent!)).toBe(true);
+        }
+      });
+    },
+    MASTRA_NESTING_DEPENDENCIES,
+  );
 });

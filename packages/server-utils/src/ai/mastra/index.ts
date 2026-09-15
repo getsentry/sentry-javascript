@@ -28,6 +28,7 @@ import {
   MASTRA_EXPORTER_BRAND,
   MASTRA_EXPORTER_NAME,
   MASTRA_ORIGIN,
+  MAX_TRACKED_MASTRA_SPANS,
   MODEL_SPAN_TYPES,
 } from './constants';
 import { registerMastraSpan, unregisterMastraSpan } from './span-registry';
@@ -45,9 +46,6 @@ const FLUSH_TIMEOUT_MS = 2000;
 
 /** Bound on the skipped-span parent walk; a cyclic chain from Mastra would otherwise hang the process. */
 const MAX_PARENT_WALK_DEPTH = 100;
-
-/** Cap on tracked spans, matching `MAX_TRACKED_PRISMA_SPANS`. Spans that never end would otherwise leak. */
-const MAX_TRACKED_MASTRA_SPANS = 1000;
 
 /**
  * Mastra `ObservabilityExporter` that turns tracing events into Sentry spans.
