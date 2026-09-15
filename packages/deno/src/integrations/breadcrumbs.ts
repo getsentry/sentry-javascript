@@ -3,24 +3,19 @@ import type {
   Event as SentryEvent,
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
-  HandlerDataConsole,
   HandlerDataFetch,
   IntegrationFn,
 } from '@sentry/core';
 import {
   addBreadcrumb,
-  addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
   defineIntegration,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getEventDescription,
-  safeJoin,
-  severityLevelFromString,
 } from '@sentry/core';
 
 interface BreadcrumbsOptions {
-  console: boolean;
   fetch: boolean;
   sentry: boolean;
 }
@@ -33,7 +28,6 @@ const INTEGRATION_NAME = 'Breadcrumbs' as const;
  */
 const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   const _options = {
-    console: true,
     fetch: true,
     sentry: true,
     ...options,
@@ -42,10 +36,6 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      // TODO(v11): Remove this functionality and use `consoleIntegration` from @sentry/core instead.
-      if (_options.console) {
-        addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));
-      }
       if (_options.fetch) {
         addFetchInstrumentationHandler(_getFetchBreadcrumbHandler(client));
       }
@@ -57,7 +47,7 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
 }) satisfies IntegrationFn;
 
 /**
- * Adds a breadcrumbs for console, fetch, and sentry events.
+ * Adds a breadcrumbs for fetch and sentry events.
  *
  * Enabled by default in the Deno SDK.
  *
@@ -92,42 +82,6 @@ function _getSentryBreadcrumbHandler(client: Client): (event: SentryEvent) => vo
         event,
       },
     );
-  };
-}
-
-/**
- * Creates breadcrumbs from console API calls
- */
-function _getConsoleBreadcrumbHandler(client: Client): (handlerData: HandlerDataConsole) => void {
-  return function _consoleBreadcrumb(handlerData: HandlerDataConsole): void {
-    if (getClient() !== client) {
-      return;
-    }
-
-    const breadcrumb = {
-      category: 'console',
-      data: {
-        arguments: handlerData.args,
-        logger: 'console',
-      },
-      level: severityLevelFromString(handlerData.level),
-      message: safeJoin(handlerData.args, ' '),
-    };
-
-    if (handlerData.level === 'assert') {
-      if (handlerData.args[0] === false) {
-        breadcrumb.message = `Assertion failed: ${safeJoin(handlerData.args.slice(1), ' ') || 'console.assert'}`;
-        breadcrumb.data.arguments = handlerData.args.slice(1);
-      } else {
-        // Don't capture a breadcrumb for passed assertions
-        return;
-      }
-    }
-
-    addBreadcrumb(breadcrumb, {
-      input: handlerData.args,
-      level: handlerData.level,
-    });
   };
 }
 

@@ -74,6 +74,7 @@ export {
   functionToStringIntegration,
   requestDataIntegration,
   captureConsoleIntegration,
+  consoleIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
