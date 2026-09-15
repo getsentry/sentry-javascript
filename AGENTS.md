@@ -95,6 +95,11 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Do not use `expect(someSpy.mock.calls[0]?.[0])` or similar constructs to check what a spy was called with.
   Instead use `expect(someSpy).toHaveBeenCalledWith(...)` or derivatives for a more readable and less brittle test assertion.
 
+## Testing
+
+- **Do not set `traceLifecycle` in new tests** (node-integration-tests, e2e). Leave it unset so the test exercises the default — span streaming (`stream`). Many existing suites pin `traceLifecycle: 'static'` (or toggle it via `process.env.STREAMED`); do not copy that into new tests.
+- Under span streaming there is no `transaction` envelope with nested `spans`. Assert the transaction via the streamed span container: `.expect({ span: (container) => { ... } })`, finding the root with `container.items.find(i => i.is_segment)` and child spans with `container.items.filter(...)`. Add `.unordered()` so the span container and error events can arrive in any order and unrelated envelopes (client reports, etc.) are ignored. Errors are still separate `event` envelopes (`.expect({ event })`). A streamed span's error status is `'error'`, not the classic transaction's `'internal_error'`.
+
 ## Lazy Loading Is a Last Resort
 
 Do NOT "fix" a bundler, runtime, or platform incompatibility by making an import lazy or opaque — `createRequire`, require-inside-a-function, dynamic `import()`, computed specifiers. Not all bundlers understand `createRequire`, and anything opaque to static analysis just moves the breakage to a different consumer (pnpm isolation, workerd, Turbopack, nft tracing) while masking the real defect. SDK code must stay statically analyzable.
