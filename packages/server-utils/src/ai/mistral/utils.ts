@@ -1,10 +1,8 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import type { Span, SpanAttributeValue } from '@sentry/core';
-import { getClient, hasSpanStreamingEnabled } from '@sentry/core';
 import type { GenAiOutputMessage } from '../core/utils';
 import { setOutputMessagesAttribute } from '../core/utils';
 import {
-  GEN_AI_AGENT_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -42,23 +40,17 @@ export function contentToString(content: unknown): string {
 }
 
 /**
- * Build the span name for an instrumented Mistral call.
- *
- * Agent calls carry no model, and their `agentId` is one value per agent, so it is left out of the
- * name whenever span streaming asks for low-cardinality names. The `'unknown'` model sentinel is
- * dropped there for the same reason.
+ * Build the span name for an instrumented Mistral call. Agent ids and a missing model are left out
+ * to keep the name low cardinality.
  */
 export function getSpanName(operationName: string, attributes: Record<string, unknown>): string {
-  const client = getClient();
-  const lowCardinalityNames = !!client && hasSpanStreamingEnabled(client);
+  const model = attributes[GEN_AI_REQUEST_MODEL];
 
-  const detail = attributes[operationName === 'invoke_agent' ? GEN_AI_AGENT_NAME : GEN_AI_REQUEST_MODEL];
-
-  if (lowCardinalityNames && (operationName === 'invoke_agent' || typeof detail !== 'string')) {
+  if (operationName === 'invoke_agent' || typeof model !== 'string') {
     return operationName;
   }
 
-  return `${operationName} ${typeof detail === 'string' ? detail : 'unknown'}`;
+  return `${operationName} ${model}`;
 }
 
 /**

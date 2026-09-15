@@ -180,8 +180,6 @@ describe('Mistral integration', () => {
               s => s.attributes[GEN_AI_RESPONSE_ID]?.value === 'agentcmpl-mock123',
             );
             expect(agentSpan).toBeDefined();
-            // Agent ids are one value per agent, so the name stays at the bare operation under span
-            // streaming; the id is still recorded on `gen_ai.agent.name`.
             expect(agentSpan!.name).toBe('invoke_agent');
             expect(agentSpan!.status).toBe('ok');
             expect(agentSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');

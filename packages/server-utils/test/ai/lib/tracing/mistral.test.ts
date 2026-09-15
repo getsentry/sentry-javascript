@@ -128,17 +128,8 @@ describe('instrumentMistralAiClient', () => {
       expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat mistral-small-latest');
     });
 
-    it('keeps `chat unknown` when the model is missing in static mode', async () => {
+    it('names a chat span with a missing model `{operation}`', async () => {
       const endedSpans = setupClient('static');
-      const client = instrumentMistralAiClient(fakeClient());
-
-      await client.chat.complete({ messages: [] });
-
-      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat unknown');
-    });
-
-    it('drops the `unknown` model sentinel under span streaming', async () => {
-      const endedSpans = setupClient('stream');
       const client = instrumentMistralAiClient(fakeClient());
 
       await client.chat.complete({ messages: [] });
@@ -146,25 +137,15 @@ describe('instrumentMistralAiClient', () => {
       expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat');
     });
 
-    it('leaves the agent id out of the span name under span streaming', async () => {
-      const endedSpans = setupClient('stream');
+    it('leaves the agent id out of the span name', async () => {
+      const endedSpans = setupClient('static');
       const client = instrumentMistralAiClient(fakeClient());
 
       await client.agents.complete({ agentId: 'ag_01abcdef', messages: [] });
 
       const span = spanToStaticSpanJSON(endedSpans[0]!);
       expect(span.description).toBe('invoke_agent');
-      // The id is still recorded, just not in the name.
       expect(span.data[GEN_AI_AGENT_NAME]).toBe('ag_01abcdef');
-    });
-
-    it('keeps the agent id in the span name in static mode', async () => {
-      const endedSpans = setupClient('static');
-      const client = instrumentMistralAiClient(fakeClient());
-
-      await client.agents.complete({ agentId: 'ag_01abcdef', messages: [] });
-
-      expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('invoke_agent ag_01abcdef');
     });
   });
 
