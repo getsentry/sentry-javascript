@@ -863,6 +863,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 - The `url.path.params.<key>` attribute was removed from the TanStack Router (library) integration. The replacement is `url.path.parameter.<key>` and holds the same values.
 - The `navigation.route.id` attribute set by the Vue Router instrumentation was renamed to `router.navigation.route.id`. It holds the same value (the matched route's name). The attribute moved to the `router.*` namespace to separate client-side router navigations from browser navigations.
 - The `faas.execution` and `faas.id` attributes on `function.aws` spans in `@sentry/aws-serverless` were renamed to `faas.invocation_id` and `cloud.resource_id`. They hold the same values (the Lambda request ID and the invoked function ARN). Lambda `Invoke` spans created by `awsIntegration` also report the response's request ID on `faas.invocation_id` instead of `faas.execution`.
+- The deprecated `koa.name` attribute is no longer set on Koa `router` and `middleware` spans. Router spans carry the route on `http.route` and middleware spans the handler name on `code.function.name`, both of which were already set alongside it.
 
 #### Attribute constants
 
