@@ -1,7 +1,7 @@
 import { isObjectLike } from '@sentry/core';
 import type { SourceMap } from 'magic-string';
 
-import type { ComponentAnnotationAttribute } from './component-annotation';
+import type { ComponentAnnotationAttribute } from '../babel-plugin/component-annotation';
 
 export { isObjectLike };
 

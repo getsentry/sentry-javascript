@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import MagicString from 'magic-string';
 
-import { KNOWN_INCOMPATIBLE_PLUGINS } from './component-annotation-constants';
+import { KNOWN_INCOMPATIBLE_PLUGINS } from '../babel-plugin/constants';
 import { stripQueryAndHashFromPath } from './utils';
 import { isAstNode } from './component-annotation-oxc-ast';
 import { collectOxcComponentAnnotationInsertions } from './component-annotation-oxc-walk';
