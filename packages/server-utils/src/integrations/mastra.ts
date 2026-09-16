@@ -148,7 +148,7 @@ function captureMastraError(error: unknown, params: unknown): void {
 
   const id = isObjectLike(params) ? mastraSpanId(params.span) : undefined;
   const span = id ? getSentrySpanForMastraId(id) : undefined;
-  const capture = (): string => captureException(error, { mechanism: { type: 'auto.ai.mastra', handled: false } });
+  const capture = (): string => captureException(error, { mechanism: { type: 'auto.ai.mastra', handled: true } });
 
   // Attach to the operation's span so the issue lands on the right trace, when the span is still open.
   if (span) {

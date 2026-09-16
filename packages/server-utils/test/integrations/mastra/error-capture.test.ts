@@ -36,7 +36,7 @@ describe('mastraIntegration error capture', () => {
     // The captured value is the thrown error itself (real stack), with the Mastra mechanism.
     expect(captureException).toHaveBeenCalledWith(
       error,
-      expect.objectContaining({ mechanism: { type: 'auto.ai.mastra', handled: false } }),
+      expect.objectContaining({ mechanism: { type: 'auto.ai.mastra', handled: true } }),
       expect.anything(),
     );
   });

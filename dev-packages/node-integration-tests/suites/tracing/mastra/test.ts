@@ -451,7 +451,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               // A real stack from the tool, not the exporter's stack-less `errorInfo`.
               expect(exception?.stacktrace?.frames?.length).toBeGreaterThan(0);
               expect(exception?.mechanism?.type).toBe('auto.ai.mastra');
-              expect(exception?.mechanism?.handled).toBe(false);
+              expect(exception?.mechanism?.handled).toBe(true);
             },
           })
           .start()
