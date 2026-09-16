@@ -23,6 +23,7 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - feat!: Use `handler` span op for terminal request handlers ([#22871](https://github.com/getsentry/sentry-javascript/pull/22871))
 - feat!: Use `middleware` span op for web-server middleware ([#22852](https://github.com/getsentry/sentry-javascript/pull/22852))
 - feat(frameworks)!: Use `function` op for framework functions ([#23047](https://github.com/getsentry/sentry-javascript/pull/23047))
+- feat(node/cloudflare)!: Remove deprecated `honoIntegration` ([#22480](https://github.com/getsentry/sentry-javascript/pull/22480))
 - feat(v11): Drop TypeScript 3.8 support ([#18604](https://github.com/getsentry/sentry-javascript/pull/18604))
 
 #### AI integrations
@@ -126,6 +127,7 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - feat(core)!: Return `StreamedSpanJSON` from `spanToJSON` ([#23238](https://github.com/getsentry/sentry-javascript/pull/23238))
 - feat(core)!: Update all spans to use `url.full`, `url.fragment` and `url.query` ([#22547](https://github.com/getsentry/sentry-javascript/pull/22547))
 - feat(core)!: Use `rpc` span op for tRPC spans ([#22914](https://github.com/getsentry/sentry-javascript/pull/22914))
+- feat(server-utils,core)!: Use `router` span op for backend router layers ([#23088](https://github.com/getsentry/sentry-javascript/pull/23088))
 - fix(core)!: Remove `enableLogs` option ([#23319](https://github.com/getsentry/sentry-javascript/pull/23319))
 - ref(core)!: Make `attributes` in sampling context required ([#24153](https://github.com/getsentry/sentry-javascript/pull/24153))
 - ref(core)!: Align gen_ai cache token attributes with conventions ([#22811](https://github.com/getsentry/sentry-javascript/pull/22811))
@@ -162,6 +164,7 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 
 #### @sentry/ember
 
+- feat(angular,ember,sveltekit)!: Use `router` span op for frontend routers ([#23086](https://github.com/getsentry/sentry-javascript/pull/23086))
 - feat(ember)!: Update to v2 addon format ([#23252](https://github.com/getsentry/sentry-javascript/pull/23252))
 - feat(ember)!: Use `function` and `ui.task` span ops for route hooks and runloop ([#22669](https://github.com/getsentry/sentry-javascript/pull/22669))
 - ref(ember)!: Change `'ui.ember.component.render'` to `ui.render` ([#23587](https://github.com/getsentry/sentry-javascript/pull/23587))
@@ -193,6 +196,10 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - ref(nextjs)!: Migrate import hook to makeOrchestrionLoader ([#22864](https://github.com/getsentry/sentry-javascript/pull/22864))
 - ref(nextjs)!: Move `withSentryConfig` to `@sentry/nextjs/config` ([#23628](https://github.com/getsentry/sentry-javascript/pull/23628))
 
+#### @sentry/nitro
+
+- feat(nuxt, nitro)!: Use convention cache ops for storage spans ([#22689](https://github.com/getsentry/sentry-javascript/pull/22689))
+
 #### @sentry/node
 
 - chore(node)!: Remove legacy profiling options (`profilesSampleRate` and `profilesSampler`) ([#23216](https://github.com/getsentry/sentry-javascript/pull/23216))
@@ -208,7 +215,6 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - feat(node)!: split childProcess integration into childProcess and worker integrations ([#22886](https://github.com/getsentry/sentry-javascript/pull/22886))
 - feat(node)!: Stop inferring name for spans ([#22712](https://github.com/getsentry/sentry-javascript/pull/22712))
 - feat(node)!: Use `db.query` and `db` span ops for Redis ([#22690](https://github.com/getsentry/sentry-javascript/pull/22690))
-- feat(node/cloudflare)!: Remove deprecated `honoIntegration` ([#22480](https://github.com/getsentry/sentry-javascript/pull/22480))
 - fix(node)!: rejection warning in strict mode ([#21160](https://github.com/getsentry/sentry-javascript/pull/21160))
 - ref!(node): Remove Fastify error handler setter ([#23411](https://github.com/getsentry/sentry-javascript/pull/23411))
 - ref(express)!: Export a single ExpressIntegrationOptions type ([#23763](https://github.com/getsentry/sentry-javascript/pull/23763))
@@ -247,6 +253,7 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 #### @sentry/react
 
 - feat(react)!: Drop support for React 16 ([#22665](https://github.com/getsentry/sentry-javascript/pull/22665))
+- feat(vue,svelte,react)!: Use `ui.*` ops for component lifecycles ([#23085](https://github.com/getsentry/sentry-javascript/pull/23085))
 - ref(react)!: Remove redundant `url.path.params.<key>` attribute ([#23506](https://github.com/getsentry/sentry-javascript/pull/23506))
 
 #### @sentry/react-router
@@ -288,8 +295,13 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - feat(solidstart)!: Align v1 build options with BuildTimeOptionsBase ([#23388](https://github.com/getsentry/sentry-javascript/pull/23388))
 - feat(solidstart)!: Remove unstable_sentryVitePluginOptions ([#23389](https://github.com/getsentry/sentry-javascript/pull/23389))
 
+#### @sentry/svelte
+
+- feat(vue,svelte,react)!: Use `ui.*` ops for component lifecycles ([#23085](https://github.com/getsentry/sentry-javascript/pull/23085))
+
 #### @sentry/sveltekit
 
+- feat(angular,ember,sveltekit)!: Use `router` span op for frontend routers ([#23086](https://github.com/getsentry/sentry-javascript/pull/23086))
 - feat(sveltekit)!: Enable orchestrion instrumentation on Cloudflare ([#22967](https://github.com/getsentry/sentry-javascript/pull/22967))
 - feat(sveltekit)!: Remove deprecated `sourceMapsUploadOptions` Vite plugin option ([#22874](https://github.com/getsentry/sentry-javascript/pull/22874))
 - feat(sveltekit)!: Remove unstable_sentryVitePluginOptions ([#23366](https://github.com/getsentry/sentry-javascript/pull/23366))
@@ -303,6 +315,10 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 #### @sentry/types
 
 - chore(types)!: Stop publishing `@sentry/types` ([#23073](https://github.com/getsentry/sentry-javascript/pull/23073))
+
+#### @sentry/vercel-edge
+
+- feat(cf/vercel-edge)!: Align request data collection with v11 defaults ([#22850](https://github.com/getsentry/sentry-javascript/pull/22850))
 
 #### @sentry/vue
 
@@ -808,6 +824,7 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - ref(cloudflare): Ensure wrapRequestHandler stays free of node specifcs ([#22894](https://github.com/getsentry/sentry-javascript/pull/22894))
 - ref(cloudflare): Remove outdated v11 todo ([#23493](https://github.com/getsentry/sentry-javascript/pull/23493))
 - ref(cloudflare): Use conventions constants for R2 span ops and attrs ([#23677](https://github.com/getsentry/sentry-javascript/pull/23677))
+- ref(cloudflare)!: Remove wrapRequestHandlerWithInit as export ([#23322](https://github.com/getsentry/sentry-javascript/pull/23322))
 - ref(core): Ensure error span status is always valid ([#22522](https://github.com/getsentry/sentry-javascript/pull/22522))
 - ref(core): Export browser-specific span start APIs ([#23361](https://github.com/getsentry/sentry-javascript/pull/23361))
 - ref(core): Move browser-only types out of core ([#23723](https://github.com/getsentry/sentry-javascript/pull/23723))
