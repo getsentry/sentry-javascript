@@ -3,6 +3,10 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+// Loaded for its side effect: importing the mocked specifier here runs the factory below at collect
+// time, so the one-time transform of the `@sentry/core` graph is not charged to whichever test
+// imports it first. That timed out on slower CI runners.
+import '@sentry/core';
 
 const windowListeners = vi.hoisted(() => new Map<string, (event: unknown) => void>());
 const performanceHandlers = vi.hoisted(() => new Map<string, (data: { entries: unknown[] }) => void>());
