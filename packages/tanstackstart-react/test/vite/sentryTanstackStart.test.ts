@@ -16,6 +16,13 @@ const mockSentryVitePlugin: Plugin = {
   writeBundle: vi.fn(),
 };
 
+const mockNitroSourceMapsPlugin: Plugin = {
+  name: 'sentry-tanstackstart-nitro-source-maps',
+  apply: 'build',
+  enforce: 'pre',
+  config: vi.fn(),
+};
+
 const mockEnableSourceMapsPlugin: Plugin = {
   name: 'sentry-tanstackstart-react-source-maps',
   apply: 'build',
@@ -56,6 +63,10 @@ vi.mock('../../src/vite/routePatterns', () => ({
   makeRoutePatternPlugin: vi.fn(() => mockRoutePatternPlugin),
 }));
 
+vi.mock('../../src/vite/nitroSourceMaps', () => ({
+  makeNitroSourceMapsPlugin: vi.fn(() => mockNitroSourceMapsPlugin),
+}));
+
 vi.mock('../../src/vite/sourceMaps', () => ({
   makeAddSentryVitePlugin: vi.fn(() => [mockSourceMapsConfigPlugin, mockSentryVitePlugin]),
   makeEnableSourceMapsVitePlugin: vi.fn(() => [mockEnableSourceMapsPlugin]),
@@ -86,6 +97,7 @@ describe('sentryTanstackStart()', () => {
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
         mockOrchestrionPlugin,
+        mockNitroSourceMapsPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockEnableSourceMapsPlugin,
@@ -134,6 +146,7 @@ describe('sentryTanstackStart()', () => {
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
         mockOrchestrionPlugin,
+        mockNitroSourceMapsPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
       ]);
@@ -148,6 +161,7 @@ describe('sentryTanstackStart()', () => {
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
         mockOrchestrionPlugin,
+        mockNitroSourceMapsPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockEnableSourceMapsPlugin,
