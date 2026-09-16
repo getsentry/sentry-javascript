@@ -98,9 +98,9 @@ function instrumentHonoApp<E extends Env>(app: Hono<E>, options: HonoIntegration
  * middleware to register — `app.use(honoMiddleware(app))`, as the FIRST middleware.
  *
  * This is the same instrumentation the {@link honoIntegration} sets up automatically via orchestrion,
- * exposed for manual use where the automatic constructor hook cannot run — most notably Cloudflare
- * Workers, where the Hono app is built at module scope and `node:diagnostics_channel` publishing is
- * disallowed there. It is config- and DSN-free: `Sentry.init(...)` must still be called separately.
+ * exposed for manual use where the automatic constructor hook is unavailable (e.g. the bundler plugin
+ * / runtime hook isn't set up). It is config- and DSN-free: `Sentry.init(...)` must still be called
+ * separately.
  *
  * `getConnInfo` is resolved for the current runtime (Node/Bun/Deno); on Cloudflare it is left to the
  * platform's request-data handling.
@@ -114,8 +114,7 @@ export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegra
   });
 }
 
-// Subscribing happens at most once, whether reached through the per-client `setup()` path
-// (Node/Bun/Deno) or the eager Cloudflare arm below.
+// Subscribing happens at most once, through the per-client `setup()` path (all runtimes).
 let constructorSubscribed = false;
 
 function instrumentHono(options: HonoIntegrationOptions): void {
@@ -131,41 +130,11 @@ function instrumentHono(options: HonoIntegrationOptions): void {
         return;
       }
 
-      // We hook the `HonoBase` (base) constructor, so this `end` fires during `new Hono()`'s
-      // `super()` — before the `Hono` subclass body assigns `this.router`. `app.use()` needs the
-      // router, so if it is not set yet, defer instrumentation to the moment the subclass assigns it.
-      // That assignment happens synchronously, right after `super()` returns and before any user route
-      // registration, so the Sentry middleware still lands first.
-      if ((app as { router?: unknown }).router) {
-        instrumentHonoApp(app, options);
-      } else {
-        instrumentWhenRouterReady(app, options);
-      }
+      // We hook the `Hono` subclass constructor, so this `end` fires once the constructor has fully
+      // run (`super()` plus `this.router = …`). The app is fully initialized here, so the Sentry
+      // middleware can be registered immediately — before any user route registration.
+      instrumentHonoApp(app, options);
     });
-  });
-}
-
-/**
- * Installs a one-shot accessor for `router` so the first assignment (`this.router = …` in the `Hono`
- * subclass constructor, run right after `super()` returns) restores a plain data property and then
- * instruments the app. Kept synchronous — no microtask — so the Sentry middleware is registered
- * before user code appends any routes.
- */
-function instrumentWhenRouterReady<E extends Env>(app: Hono<E>, options: HonoIntegrationOptions): void {
-  let routerValue: unknown;
-  Object.defineProperty(app, 'router', {
-    configurable: true,
-    enumerable: true,
-    get() {
-      return routerValue;
-    },
-    set(value: unknown) {
-      routerValue = value;
-      Object.defineProperty(app, 'router', { value, writable: true, configurable: true, enumerable: true });
-      safeChannelCallback(() => {
-        instrumentHonoApp(app, options);
-      });
-    },
   });
 }
 
@@ -194,8 +163,7 @@ const _honoIntegration = ((options: HonoIntegrationOptions = {}) => {
  */
 export const honoIntegration = defineIntegration(_honoIntegration);
 
-// Cloudflare Workers build the Hono app at module scope, and workerd disallows `diagnostics_channel`
-// publish/`runStores` at module scope — so arming the constructor channel there crashes the worker at
-// `new Hono()`. Auto-instrumentation via the constructor channel therefore does not run on Cloudflare;
-// users register the middleware manually instead (`app.use(honoMiddleware(app))`, exported from
-// `@sentry/cloudflare`), which applies the same instrumentation without touching diagnostics_channel.
+// On Cloudflare the Hono app is built at module scope, where workerd disallows `diagnostics_channel`
+// publish/`runStores`. The Cloudflare SDK routes the injected channels through a workerd-safe façade
+// that defers those module-scope events until the first request (after `init()` subscribes), so the
+// constructor channel is delivered through the normal per-client `setup()` path like everywhere else.

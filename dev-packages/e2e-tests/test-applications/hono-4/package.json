@@ -50,8 +50,7 @@
       },
       {
         "assert-command": "pnpm test:assert:cloudflare",
-        "label": "hono-4 (cloudflare)",
-        "skip": true
+        "label": "hono-4 (cloudflare)"
       }
     ]
   }
