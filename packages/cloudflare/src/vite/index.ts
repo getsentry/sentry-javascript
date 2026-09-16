@@ -5,6 +5,7 @@
 // expose it — same setup as `@sentry/server-utils/orchestrion/vite` itself.
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import { sentryCloudflareAutoInstrumentPlugin } from './autoInstrument';
+import { sentryMastraObservabilityProviderPlugin } from './mastraObservability';
 
 /**
  * Options for {@link sentryCloudflareVitePlugin}.
@@ -86,6 +87,7 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
     sentryOrchestrionPlugin({
       buildTimeInstrumentation: options.buildTimeInstrumentation,
     }),
+    sentryMastraObservabilityProviderPlugin(),
     ...(options.autoInstrumentation !== false
       ? [sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: options.wranglerConfigPath })]
       : []),

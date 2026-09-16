@@ -329,6 +329,15 @@ function tryRequireObservability(parent: string): Record<string, unknown> | unde
  * cannot see `@mastra/observability`, hence the fallbacks.
  */
 function loadMastraObservability(): Record<string, unknown> {
+  // A bundled runtime (e.g. Cloudflare Workers) has no on-disk `node_modules` to
+  // `createRequire` against. `@sentry/cloudflare/vite` splices a static provider import
+  // into this module that stashes the `@mastra/observability` namespace on the global
+  // marker, so prefer that when present.
+  const injected = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.providedModules?.['@mastra/observability'];
+  if (injected) {
+    return injected;
+  }
+
   const parents = new Set<string>();
   const injectedCore = findInjectedMastraCoreFilename();
   if (injectedCore) {
