@@ -73,6 +73,7 @@ export {
   isEnabled,
   kafkaIntegration,
   honoIntegration,
+  honoMiddleware,
   koaIntegration,
   knexIntegration,
   lastEventId,
