@@ -4,9 +4,26 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- feat(core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders` ([#24336](https://github.com/getsentry/sentry-javascript/pull/24336)). Passing `true`, `false`, `{ allow: [...] }` or `{ deny: [...] }` now applies to both request and response headers; `{ request, response }` still controls each direction independently.
+## 10.75.0
 
-- feat(effect): Capture errors through the Effect v4 `ErrorReporter` API ([#24151](https://github.com/getsentry/sentry-javascript/pull/24151)). On Effect v4, `Sentry.effectLayer` now registers a Sentry `ErrorReporter`. Failures that pass through `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC reporting boundaries are captured automatically, with `ErrorReporter.ignore`, `ErrorReporter.severity` and `ErrorReporter.attributes` annotations respected. Nothing changes on Effect v3.
+### Important Changes
+
+- **feat(v10/effect): Capture errors through the Effect v4 `ErrorReporter` API ([#24445](https://github.com/getsentry/sentry-javascript/pull/24445))**
+
+  On Effect v4, `Sentry.effectLayer` now registers a Sentry `ErrorReporter`. Failures that pass through `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC reporting boundaries are captured automatically, with `ErrorReporter.ignore`, `ErrorReporter.severity` and `ErrorReporter.attributes` annotations respected. Nothing changes on Effect v3.
+
+### Other Changes
+
+- feat(v10/core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders` ([#24339](https://github.com/getsentry/sentry-javascript/pull/24339))
+- fix(v10/browser): Release the XHR `virtualError` once the request completed ([#24307](https://github.com/getsentry/sentry-javascript/pull/24307))
+- fix(v10/browser-utils): Skip nullish LCP entries in vendored web-vitals ([#24349](https://github.com/getsentry/sentry-javascript/pull/24349))
+- fix(v10/bundler-plugins): Stamp debug IDs onto emitted source maps when `disable-upload` is set ([#24332](https://github.com/getsentry/sentry-javascript/pull/24332))
+- fix(v10/core): Don't instrument the SDK's own envelope requests ([#24276](https://github.com/getsentry/sentry-javascript/pull/24276))
+- fix(v10/nextjs): Only include emitted chunk directories in Turbopack sourcemap upload ([#24295](https://github.com/getsentry/sentry-javascript/pull/24295))
+- fix(v10/nitro): Import from nitro/h3 instead of h3 directly ([#24444](https://github.com/getsentry/sentry-javascript/pull/24444))
+- fix(v10/node-core): Don't recurse in logAndExitProcess on a broken stdio pipe ([#24353](https://github.com/getsentry/sentry-javascript/pull/24353))
+- fix(v10/nuxt): Detect Nitro version via the app's Nuxt dependency chain ([#24025](https://github.com/getsentry/sentry-javascript/pull/24025))
+- fix(v10/replay): Don't rewrite already-emitted nodes when syncing mirror attributes ([#23588](https://github.com/getsentry/sentry-javascript/pull/23588))
 
 ## 10.74.0
 
