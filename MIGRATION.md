@@ -963,17 +963,14 @@ AI integrations are no longer available in the browser SDK. They remain availabl
 - **AI helpers moved from `@sentry/core` to `@sentry/server-utils`.** If you imported any of these **directly from `@sentry/core`**, import them from `@sentry/server-utils` instead. Imports from platform SDKs such as `@sentry/node` are unchanged. Affected helpers: `instrumentOpenAiClient`, `instrumentAnthropicAiClient`, `instrumentGoogleGenAIClient`, `instrumentWorkersAiClient`, `createLangChainCallbackHandler`, `instrumentLangChainEmbeddings`, `instrumentStateGraph`, `instrumentStateGraphCompile`, `instrumentCreateReactAgent`.
 - Low-level provider instrumentation internals are no longer exported, see [Removed internal exports](#7-removed-internal-exports).
 
-### Browser sessions use `unhandled` instead of `crashed`
+## 5. Browser SDKs
 
-Affected SDKs: All SDKs running in the browser.
+**Applies to:** `@sentry/browser`, `@sentry/react`, `@sentry/vue`, `@sentry/angular`, `@sentry/svelte`, `@sentry/solid`, `@sentry/ember`, `@sentry/gatsby`, and the client side of every meta-framework SDK (`@sentry/nextjs`, `@sentry/nuxt`, `@sentry/remix`, `@sentry/react-router`, `@sentry/solidstart`, `@sentry/sveltekit`, `@sentry/astro`, `@sentry/tanstackstart-react`).
 
-Browser sessions affected by an uncaught error are now recorded as `unhandled` rather than `crashed`. If you track crash-free session rates in Release Health or have alerts built on them, expect the crash-free rate to shift after upgrading.
+### Sessions
 
-### `page` is the default browser session lifecycle mode
-
-Affected SDKs: All SDKs running in the browser.
-
-The default `lifecycle` mode of `browserSessionIntegration` changed from `'route'` to `'page'`. In `'page'` mode a session is created once when the page loads and is **not** renewed on navigation. To restore the previous behaviour (a new session on load and on every navigation):
+- Browser sessions affected by an uncaught error are now recorded as `unhandled` rather than `crashed`. If you track crash-free session rates in Release Health or have alerts built on them, expect the crash-free rate to shift after upgrading.
+- The default `lifecycle` of `browserSessionIntegration` changed from `'route'` to `'page'`. A session is now created once when the page loads and is **not** renewed on navigation. To restore the previous behavior:
 
 ```js
 Sentry.init({
@@ -981,53 +978,77 @@ Sentry.init({
 });
 ```
 
-### Web vitals are reported per soft navigation
+### Web vitals
 
-Affected SDKs: All SDKs running in the browser.
+- **Reported per soft navigation.** `webVitalsIntegration` (auto-registered by `browserTracingIntegration`) now reports LCP, CLS and INP for every soft navigation the browser detects through the [Soft Navigations API](https://developer.chrome.com/docs/web-platform/soft-navigations-experiment), attributed to its navigation span. The page load's vitals are finalized at the first soft navigation instead of accumulating over the page lifetime, so **expect the values reported for page loads to drop** on apps with client-side routing, most noticeably for CLS and INP. This requires span streaming (the default) and a browser with the Soft Navigations API (Chromium 151+). Navigations the browser does not detect as soft navigations (programmatic navigations, navigations that never paint) report no vitals.
+- **No intermediate CLS and LCP values.** With soft navigation reporting enabled, CLS and LCP are reported once per navigation with the final value. As a result, Session Replay records one LCP and one CLS `web-vital` breadcrumb per navigation instead of one per intermediate update.
+- **Back/forward-cache restores report their own vitals**, on the navigation span `browserTracingIntegration` starts for the restore, tagged `browser.navigation.type: bfcache`. A restore is near-instant, so these are a distinct population from page load vitals: read them through that attribute, as pooling them with page loads pulls aggregates down.
+- **INP** is now always sent as a web vital span (streamed with span streaming, standalone otherwise) that carries its value as a `browser.web_vital.inp.value` attribute. Previously, with span streaming disabled, it carried its value as a span measurement.
+- **CLS and LCP** are recorded as measurements on the pageload span, or sent as dedicated spans with span streaming. The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from `browserTracingIntegration` and `webVitalsIntegration`.
 
-`webVitalsIntegration` (auto-registered by `browserTracingIntegration`) now reports its own set of LCP, CLS and INP for every soft navigation the browser detects through the [Soft Navigations API](https://developer.chrome.com/docs/web-platform/soft-navigations-experiment), attributed to the navigation span it belongs to.
-
-This also changes how the initial page load is measured. Previously a page reported a single set of vitals that accumulated over the whole page lifetime. Now the page load's vitals are finalized at the first soft navigation, so **expect the values reported for page loads to drop** on apps that do client-side routing, most noticeably for CLS and INP. Aggregates such as p75s will shift after upgrading.
-
-Reporting per soft navigation requires span streaming (`traceLifecycle: 'stream'`, the default) and is ignored in browsers without support for the Soft Navigations API (Chromium 151+). Navigations the browser does not detect as soft navigations (programmatic navigations, navigations that never paint) report no vitals at all, so coverage is lower than for page loads.
-
-To keep the previous behaviour of one set of vitals for the whole page lifetime:
+To keep one set of vitals for the whole page lifetime, or to leave bfcache restores unmeasured:
 
 ```js
 Sentry.init({
-  integrations: [Sentry.browserTracingIntegration({ webVitals: { softNavigations: false } })],
+  integrations: [
+    Sentry.browserTracingIntegration({
+      webVitals: { softNavigations: false, bfcacheNavigations: false },
+    }),
+  ],
 });
 ```
 
-### CLS and LCP no longer report intermediate values
+### Features moved out of `browserTracingIntegration`
 
-Affected SDKs: All SDKs running in the browser.
-
-With soft navigation reporting enabled (the default, see above), the SDK no longer subscribes to every intermediate CLS and LCP update. `web-vitals` reports once per navigation, with the final value.
-
-This is required for per-navigation values to be correct: `web-vitals` skips any report with a zero delta, including the forced report at a navigation boundary, so subscribing to all changes means the page load never receives its final value.
-
-The visible effect is in Session Replay, which records `web-vital` breadcrumbs from the same instrumentation. Replays now contain one LCP and one CLS entry per navigation instead of one per intermediate update. Where soft navigation reporting is disabled or unsupported, the previous behaviour is unchanged.
-
-### Back/forward-cache restores report their own web vitals
-
-Affected SDKs: All SDKs running in the browser.
-
-A page restored from the back/forward cache now reports its own LCP, CLS and INP, against the navigation span `browserTracingIntegration` starts for the restore and tagged `browser.navigation.type: bfcache`.
-
-A restore is near-instant by construction, so these are a distinct population from page load vitals rather than more samples of the same thing. Read them through that attribute; pooling them with page loads will pull aggregates down. Set `webVitals: { bfcacheNavigations: false }` to leave restores unmeasured.
+| v10                                                        | v11                                   |
+| ---------------------------------------------------------- | ------------------------------------- |
+| `performance.mark()`/`measure()` spans captured by default | `userTimingIntegration()`             |
+| `ignorePerformanceApiSpans` option                         | `userTimingIntegration({ ignore })`   |
+| `_experiments.enableInteractions` option                   | `interactionsIntegration()`           |
+| `trackFetchStreamPerformance` option                       | `fetchStreamPerformanceIntegration()` |
 
 ```js
+// before
 Sentry.init({
-  integrations: [Sentry.browserTracingIntegration({ webVitals: { bfcacheNavigations: false } })],
+  integrations: [
+    Sentry.browserTracingIntegration({
+      ignorePerformanceApiSpans: ['third-party-mark'],
+      trackFetchStreamPerformance: true,
+      _experiments: { enableInteractions: true },
+    }),
+  ],
+});
+
+// after
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.userTimingIntegration({ ignore: ['third-party-mark'] }),
+    Sentry.fetchStreamPerformanceIntegration(),
+    Sentry.interactionsIntegration(),
+  ],
 });
 ```
 
-### `DOMException.code` is no longer set as a tag
+The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction spans (`ui.action.click` and `ui.interaction.click`) are no longer inherited from `browserTracingIntegration` and are configured on `interactionsIntegration` instead, using the same defaults as before. Since this was the only experimental option, `browserTracingIntegration` no longer accepts an `_experiments` object at all.
 
-Affected SDKs: All SDKs running in the browser.
+### Other browser changes
 
-Events created from a `DOMException` no longer carry a `DOMException.code` tag. The `code` property is deprecated and has been replaced by `DOMException.name`, which is already available as the exception type. If you have searches or alert rules keyed on the tag, switch them to `error.type`.
+- **The `console` option was removed from `breadcrumbsIntegration`** in `@sentry/browser` and `@sentry/deno`. Console breadcrumbs now come from the default `consoleIntegration`: filter out the `Console` integration to disable them, or add `consoleIntegration()` if you set `defaultIntegrations: false`.
+- **`sendFeedback` rejects with an `Error`** in all cases. Previously it rejected with a plain string when the request timed out, was rejected with a 403, or otherwise failed to send. The message text is unchanged and still customizable through the `errorMessages` hint, so read it off `error.message`.
+
+```js
+try {
+  await Sentry.sendFeedback({ message: 'Hello' });
+} catch (error) {
+  // v10: a string on send failures, an Error on validation failures
+  // v11: always an Error
+  console.log(error.message);
+}
+```
+
+- **`DOMException.code` is no longer set as a tag.** The `code` property is deprecated in favor of `DOMException.name`, which is already the exception type. Switch searches or alert rules keyed on the tag to `error.type`.
+- **Metrics moved out of the base CDN bundle.** Metrics now ship only in the `*.logs.metrics` CDN bundles. On the other bundles, `Sentry.metrics.*` is a no-op shim that warns in debug builds.
 
 ### Deno `node:http` server requests are tracked as sessions
 
@@ -1077,22 +1098,6 @@ SDKs.
 
 `denoHttpIntegration` additionally accepts the outgoing request hooks `outgoingRequestHook`, `outgoingResponseHook` and
 `outgoingRequestApplyCustomAttributes`, matching `httpIntegration`.
-
-### `sendFeedback` rejects with an `Error`
-
-Affected SDKs: All SDKs running in the browser.
-
-`Sentry.sendFeedback()` now rejects with an `Error` in all cases. Previously it rejected with a plain string when the request timed out, was rejected with a 403, or otherwise failed to send, while the synchronous validation paths (empty message, no client configured) already threw an `Error`. The message text itself is unchanged, and is still customizable through the `errorMessages` hint, so read it off `error.message`:
-
-```js
-try {
-  await Sentry.sendFeedback({ message: 'Hello' });
-} catch (error) {
-  // v10: a string on send failures, an Error on validation failures
-  // v11: always an Error
-  console.log(error.message);
-}
-```
 
 ### `@sentry/nextjs`
 
@@ -1337,55 +1342,6 @@ This entry requires `react-router` to be resolvable — it is declared as an opt
 The existing `@sentry/react` API is unchanged and keeps working; passing the hooks there is now optional too (`useEffect` in particular is no longer used and can be omitted).
 
 Additionally — for **every** `@sentry/react` routing setup, not just the new entry — the order in which you add the browser tracing integration and wrap your routes no longer matters.
-
-### `@sentry/browser`
-
-- The `console` option was removed from `breadcrumbsIntegration` in `@sentry/browser` and `@sentry/deno`. Console breadcrumbs now come from the default `consoleIntegration`: filter out the `Console` integration to disable them, or add `consoleIntegration()` if you set `defaultIntegrations: false`.
-- The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from both `browserTracingIntegration` and `webVitalsIntegration`. CLS and LCP are no longer configurable: they are recorded as measurements on the pageload span, unless span streaming is enabled (`traceLifecycle: 'stream'`), in which case they are sent as dedicated spans.
-- INP is now always sent as a web vital span (streamed when span streaming is enabled, standalone otherwise) that carries its value as a `browser.web_vital.inp.value` attribute. Previously, with span streaming disabled, INP was sent as a standalone span that carried its value as a span measurement.
-
-- `browserTracingIntegration` no longer captures spans created by `performance.mark()` and `performance.measure()` by default. Add `userTimingIntegration()` to continue capturing them. The `ignorePerformanceApiSpans` option moved to the new integration as `ignore`.
-
-```js
-// before
-Sentry.init({
-  integrations: [
-    Sentry.browserTracingIntegration({
-      ignorePerformanceApiSpans: ['third-party-mark'],
-    }),
-  ],
-});
-
-// after
-Sentry.init({
-  integrations: [
-    Sentry.browserTracingIntegration(),
-    Sentry.userTimingIntegration({
-      ignore: ['third-party-mark'],
-    }),
-  ],
-});
-```
-
-- The experimental `_experiments.enableInteractions` option was removed from `browserTracingIntegration`. Interaction spans (`ui.action.click` and `ui.interaction.click`) now live in the standalone `interactionsIntegration`. Since this was the only experimental option, `browserTracingIntegration` no longer accepts an `_experiments` object at all.
-
-```js
-// before
-Sentry.init({
-  integrations: [
-    Sentry.browserTracingIntegration({
-      _experiments: { enableInteractions: true },
-    }),
-  ],
-});
-
-// after
-Sentry.init({
-  integrations: [Sentry.browserTracingIntegration(), Sentry.interactionsIntegration()],
-});
-```
-
-The `idleTimeout`, `finalTimeout` and `childSpanTimeout` options of interaction spans are no longer inherited from `browserTracingIntegration` and are configured on `interactionsIntegration` instead, using the same defaults as before.
 
 ### `@sentry/cloudflare`
 
@@ -1745,12 +1701,6 @@ export default defineConfig(
 
 The SolidStart build options now also accept `applicationKey`, `sentryUrl`, `headers`, `silent`,
 `errorHandler`, `release` and `moduleMetadata`, which previously had no top-level equivalent.
-
-### Metrics moved out of the base CDN bundle
-
-Affected SDKs: `@sentry/browser` (CDN bundles).
-
-Metrics are no longer included in the base CDN bundle. Metrics are now shipped only in the dedicated `*.logs.metrics` CDN bundles. If you use metrics via the CDN, switch to a `*.logs.metrics` bundle. On the other bundles, `Sentry.metrics.*` is a no-op shim that warns in debug builds.
 
 ### `denoHttpIntegration` incoming span hooks renamed
 
