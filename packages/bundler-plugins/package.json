@@ -115,6 +115,7 @@
     "dotenv": "^17.4.2",
     "glob": "^13.0.6",
     "magic-string": "~0.30.8",
+    "oxc-parser": "^0.143.0",
     "sentry": "^0.44.0",
     "supports-color": "^8.1.1"
   },
