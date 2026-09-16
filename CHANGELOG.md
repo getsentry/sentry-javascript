@@ -96,7 +96,6 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - ref(cloudflare)!: Remove deprecated `instrumentD1WithSentry` export ([#23153](https://github.com/getsentry/sentry-javascript/pull/23153))
 - ref(cloudflare)!: Remove instrumentPrototypeMethods option ([#22961](https://github.com/getsentry/sentry-javascript/pull/22961))
 - ref(cloudflare)!: Remove wrapRequestHandler from main entrypoint ([#22881](https://github.com/getsentry/sentry-javascript/pull/22881))
-- ref(cloudflare)!: Remove wrapRequestHandlerWithInit as export ([#23322](https://github.com/getsentry/sentry-javascript/pull/23322))
 - ref(cloudflare)!: Use shared `SentryTracerProvider` for OpenTelemetry interop ([#23300](https://github.com/getsentry/sentry-javascript/pull/23300))
 
 #### @sentry/core
