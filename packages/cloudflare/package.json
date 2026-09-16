@@ -41,6 +41,11 @@
       "types": "./build/types/vite/index.d.ts",
       "import": "./build/esm/prod/vite/index.js",
       "require": "./build/cjs/prod/vite/index.js"
+    },
+    "./orchestrion-diagnostics-channel": {
+      "types": "./build/types/orchestrion-diagnostics-channel.d.ts",
+      "import": "./build/esm/prod/orchestrion-diagnostics-channel.js",
+      "require": "./build/cjs/prod/orchestrion-diagnostics-channel.js"
     }
   },
   "publishConfig": {
