@@ -44,62 +44,6 @@ function warnRuntimeUnavailable(message: string): void {
   warn(`${message} See ${BUNDLING_DOCS_URL}`);
 }
 
-// Matches a top-level `import`/`export` statement, the signal that a module is ESM.
-const ESM_SOURCE_MARKER = /(?:^|[\s;])(?:import|export)[\s{*]/m;
-
-/**
- * Whether `url` is a file the transformer will instrument — i.e. it matches one of the runtime
- * instrumentation configs (package name + `filePath`). Scoping the format fix below to exactly these
- * files keeps it from touching any other module's loading.
- */
-function isInstrumentedTarget(url: string): boolean {
-  const marker = '/node_modules/';
-  const idx = url.lastIndexOf(marker);
-  if (idx === -1) {
-    return false;
-  }
-  const rest = url.slice(idx + marker.length).replace(/[?#].*$/, '');
-  const segments = rest.split('/');
-  if (segments.length < 2) {
-    return false;
-  }
-  const name = segments[0]?.startsWith('@') ? `${segments[0]}/${segments[1]}` : segments[0];
-  if (!name) {
-    return false;
-  }
-  const filePath = rest.slice(name.length + 1);
-  return SENTRY_RUNTIME_INSTRUMENTATIONS.some(
-    ({ module: mod }) =>
-      mod.name === name && (typeof mod.filePath === 'string' ? mod.filePath === filePath : mod.filePath.test(filePath)),
-  );
-}
-
-/**
- * `Module.registerHooks` load hook that fills in a missing `format` for instrumented modules, then
- * delegates to the tracing-hooks `load`.
- *
- * Deno's synchronous loader reports `format: undefined` (Node always sets it). For a module we
- * transform, `@apm-js-collab/tracing-hooks` then treats the unknown format as CommonJS and injects a
- * `require(...)` into what is really an ES module, so the instrumented module throws
- * `ReferenceError: require is not defined` at evaluation. Inferring the format from the source — the
- * same import/export signal the runtime itself uses — lets the transform emit the matching module
- * syntax. Scoped to the modules we actually transform (and only when the runtime left `format` unset)
- * so it never changes how any other module — or Node, which always sets `format` — is loaded.
- */
-function loadWithInferredFormat(url: string, context: unknown, nextLoad: Function): unknown {
-  return load(url, context, (nextUrl: string, nextContext: unknown) => {
-    const result = nextLoad(nextUrl, nextContext) as {
-      format?: string | null;
-      source?: string | Uint8Array | null;
-    };
-    if (result && result.format == null && result.source != null && isInstrumentedTarget(nextUrl)) {
-      const source = typeof result.source === 'string' ? result.source : Buffer.from(result.source).toString('utf8');
-      result.format = ESM_SOURCE_MARKER.test(source) ? 'module' : 'commonjs';
-    }
-    return result;
-  });
-}
-
 // A systemic transformer failure breaks every module, so the "bundled" fix is stated once.
 let warnedTransformerUnavailable = false;
 // Isolated per-module failures are unrelated to bundling, so they warn once per module.
@@ -221,7 +165,7 @@ export function registerDiagnosticsChannelInjection(): void {
   try {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
-      mod.registerHooks({ resolve, load: loadWithInferredFormat });
+      mod.registerHooks({ resolve, load });
       debug.log('Registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0
