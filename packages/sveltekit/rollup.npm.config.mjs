@@ -6,6 +6,7 @@ export default makeNPMConfigVariants(
       'src/index.server.ts',
       'src/index.client.ts',
       'src/index.worker.ts',
+      'src/index.workerd.ts',
       'src/client/index.ts',
       // Browser-tracing variants, kept as standalone entrypoints so the `sentrySvelteKit()` plugin
       // (or the `exports` fallback) can select one per SvelteKit version.
@@ -18,7 +19,7 @@ export default makeNPMConfigVariants(
     packageSpecificConfig: {
       // Keep the variant subpath external so the transpiled output preserves the import for the
       // consumer to resolve (via `exports` or the `sentrySvelteKit()` plugin).
-      external: ['$app/state', '$app/stores', '@sentry/sveltekit/browser-tracing-variant'],
+      external: ['$app/state', '$app/stores', '@sentry/sveltekit/browser-tracing-variant', 'cloudflare:workers'],
       output: {
         dynamicImportInCjs: true,
       },

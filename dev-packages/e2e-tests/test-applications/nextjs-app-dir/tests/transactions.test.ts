@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForError,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
 const packageJson = require('../package.json');
@@ -34,7 +40,7 @@ test('Sends a pageload span', async ({ page }) => {
     'url.path': { value: '/', type: 'string' },
     'url.template': { value: '/', type: 'string' },
     'react.version': { value: expect.any(String), type: 'string' },
-    'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+    'user_agent.original': { value: expect.any(String), type: 'string' },
   });
   expect(String(span.attributes['url.full']?.value)).toMatch(/^https?:\/\/localhost:\d+\/$/);
 });
@@ -45,7 +51,7 @@ test('Should send a span for instrumented server actions', async ({ page }) => {
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
   const serverActionSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
-    return span.name === 'serverAction/myServerAction' && span.is_segment;
+    return span.name === 'myServerAction' && span.is_segment;
   });
 
   await page.goto('/server-action');
@@ -54,6 +60,13 @@ test('Should send a span for instrumented server actions', async ({ page }) => {
   const span = await serverActionSpanPromise;
 
   expect(span).toBeDefined();
+  expect(span.attributes).toMatchObject({
+    'sentry.op': { value: 'function', type: 'string' },
+    'sentry.origin': { value: 'auto.function.nextjs.server_action', type: 'string' },
+    'sentry.description': { value: 'serverAction/myServerAction', type: 'string' },
+    'code.function.name': { value: 'myServerAction', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+  });
 });
 
 test('Should send a wrapped server action as a child of a nextjs span', async ({ page }) => {
@@ -64,14 +77,14 @@ test('Should send a wrapped server action as a child of a nextjs span', async ({
   test.skip(isDevMode, 'this magically only works in production');
 
   // Both spans must come from the same trace. Other specs on this page produce identically shaped
-  // `POST /server-action` and `serverAction/myServerAction` spans, so requiring both within one
+  // `POST /server-action` and `myServerAction` spans, so requiring both within one
   // `collectStreamedSpans` - which evaluates a single trace at a time - keeps them paired.
   const spansPromise = collectStreamedSpans('nextjs-app-dir', spans => {
     return (
       spans.some(
         span =>
           span.name === 'POST /server-action' && span.is_segment && span.attributes['sentry.origin']?.value === 'auto',
-      ) && spans.some(span => span.name === 'serverAction/myServerAction' && span.is_segment)
+      ) && spans.some(span => span.name === 'myServerAction' && span.is_segment)
     );
   });
 
@@ -83,7 +96,7 @@ test('Should send a wrapped server action as a child of a nextjs span', async ({
     span =>
       span.name === 'POST /server-action' && span.is_segment && span.attributes['sentry.origin']?.value === 'auto',
   )!;
-  const serverActionSpan = spans.find(span => span.name === 'serverAction/myServerAction' && span.is_segment)!;
+  const serverActionSpan = spans.find(span => span.name === 'myServerAction' && span.is_segment)!;
 
   expect(nextjsSpan).toBeDefined();
   expect(serverActionSpan).toBeDefined();
@@ -97,7 +110,7 @@ test('Should set not_found status for server actions calling notFound()', async 
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
   const serverActionSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
-    return span.name === 'serverAction/notFoundServerAction' && span.is_segment;
+    return span.name === 'notFoundServerAction' && span.is_segment;
   });
 
   await page.goto('/server-action');
@@ -117,7 +130,7 @@ test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions 
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
   const serverActionSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
-    return span.name === 'serverAction/redirectServerAction' && span.is_segment;
+    return span.name === 'redirectServerAction' && span.is_segment;
   });
 
   let controlFlowErrorCaptured = false;
@@ -145,8 +158,9 @@ test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions 
 test('Will not include spans with faulty timestamps for slow loading pages', async ({ page }) => {
   test.slow();
 
-  const spansPromise = collectStreamedSpans('nextjs-app-dir', spans =>
-    spans.some(span => span.name === '/very-slow-component' && getSpanOp(span) === 'pageload' && span.is_segment),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-app-dir',
+    span => span.name === '/very-slow-component' && getSpanOp(span) === 'pageload',
   );
 
   await page.goto('/very-slow-component', { timeout: 11000 });

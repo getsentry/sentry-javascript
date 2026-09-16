@@ -10,7 +10,11 @@ import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('pg instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    traceLifecycle: 'static',
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Postgres'), `Postgres should be in defaults, got ${names.join(', ')}`);
 });
@@ -89,9 +93,9 @@ Deno.test('pg instrumentation: orchestrion:pg:query channel produces a nested db
 
   const pgSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(pgSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(pgSpan!.description, 'SELECT 1 AS solution');
+  assertEquals(pgSpan!.description, 'SELECT ? AS solution');
   assertEquals(pgSpan!.data?.['db.system.name'], 'postgresql');
-  assertEquals(pgSpan!.data?.['db.query.text'], 'SELECT 1 AS solution');
+  assertEquals(pgSpan!.data?.['db.query.text'], 'SELECT ? AS solution');
   assertEquals(pgSpan!.data?.['server.address'], '127.0.0.1');
   assertEquals(pgSpan!.data?.['server.port'], 5432);
   assertEquals(pgSpan!.data?.['db.user'], 'root');

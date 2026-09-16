@@ -1,45 +1,39 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/nuxt';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('sends a server action transaction on pageload', async ({ page }) => {
-  const transactionPromise = waitForTransaction('nuxt-3-dynamic-import', transactionEvent => {
-    return transactionEvent.transaction.includes('GET /test-param/');
+test('sends a server root span on pageload', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan('nuxt-3-dynamic-import', span => {
+    return span.is_segment && span.name.includes('GET /test-param/');
   });
 
   await page.goto('/test-param/1234');
 
-  const transaction = await transactionPromise;
+  const serverSpan = await serverSpanPromise;
 
-  expect(transaction.contexts.trace).toEqual(
-    expect.objectContaining({
-      data: expect.objectContaining({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
-      }),
-    }),
-  );
+  expect(getSpanOp(serverSpan)).toBe('http.server');
+  expect(serverSpan.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
 });
 
-test('does not send transactions for build asset folder "_nuxt"', async ({ page }) => {
+test('does not send spans for build asset folder "_nuxt"', async ({ page }) => {
   let buildAssetFolderOccurred = false;
 
-  waitForTransaction('nuxt-3-dynamic-import', transactionEvent => {
-    if (transactionEvent.transaction?.match(/^GET \/_nuxt\//)) {
+  waitForStreamedSpan('nuxt-3-dynamic-import', span => {
+    if (span.is_segment && /^GET \/_nuxt\//.test(span.name)) {
       buildAssetFolderOccurred = true;
     }
     return false; // expects to return a boolean (but not relevant here)
   });
 
-  const transactionEventPromise = waitForTransaction('nuxt-3-dynamic-import', transactionEvent => {
-    return transactionEvent.transaction.includes('GET /test-param/');
+  const serverSpanPromise = waitForStreamedSpan('nuxt-3-dynamic-import', span => {
+    return span.is_segment && span.name.includes('GET /test-param/');
   });
 
   await page.goto('/test-param/1234');
 
-  const transactionEvent = await transactionEventPromise;
+  const serverSpan = await serverSpanPromise;
 
   expect(buildAssetFolderOccurred).toBe(false);
 
-  expect(transactionEvent.transaction).toBe('GET /test-param/:param()');
+  expect(serverSpan.name).toBe('GET /test-param/:param()');
+  expect(serverSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
 });

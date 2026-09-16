@@ -75,7 +75,7 @@
     "@sentry-internal/replay-worker": "10.67.0",
     "@sentry/rrweb": "2.43.2",
     "@sentry/rrweb-snapshot": "2.43.2",
-    "fflate": "0.8.2",
+    "fflate": "0.8.3",
     "jest-matcher-utils": "^29.0.0",
     "jsdom-worker": "^0.3.0"
   },

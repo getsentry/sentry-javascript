@@ -28,7 +28,7 @@ import { DB } from '@sentry/conventions/op';
 import { CHANNELS } from '../orchestrion/channels';
 import { tediousModuleNames } from '../orchestrion/config/tedious';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
-import { _INTERNAL_getSqlQuerySummary, _INTERNAL_sanitizeSqlQuery } from '@sentry/core/server';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
 
 // NOTE: this uses the same name as the OTel integration by design. When orchestrion injection is active,
 // `_init` swaps the OTel `Tedious` integration out of the defaults and appends this one (matched by name).
@@ -132,8 +132,8 @@ function subscribeQuery(channelName: string, operation: string): void {
 
     const databaseName = connection[currentDatabaseSymbol];
     const sql = extractSql(request);
-    const querySummary =
-      sql && operation !== 'callProcedure' ? _INTERNAL_getSqlQuerySummary(_INTERNAL_sanitizeSqlQuery(sql)) : undefined;
+    const queryText = sql ? sanitizeSqlQuery(sql, 'mssql') : undefined;
+    const querySummary = queryText && operation !== 'callProcedure' ? getSqlQuerySummary(queryText) : undefined;
 
     const attributes: SpanAttributes = {
       [SENTRY_OP]: DB,
@@ -143,7 +143,7 @@ function subscribeQuery(channelName: string, operation: string): void {
       [DB_NAMESPACE]: databaseName,
       // `>=4` uses the `authentication` object; older versions expose `userName` directly.
       [DB_USER]: connection.config?.userName ?? connection.config?.authentication?.options?.userName,
-      [DB_QUERY_TEXT]: sql,
+      [DB_QUERY_TEXT]: queryText,
       [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_DB_SQL_TABLE]: request.table,
       [SERVER_ADDRESS]: connection.config?.server,
@@ -156,7 +156,7 @@ function subscribeQuery(channelName: string, operation: string): void {
       name:
         client && hasSpanStreamingEnabled(client)
           ? querySummary || getLowCardinalitySecondarySpanName(operation, databaseName, sql, request.table)
-          : sql || getSecondarySpanName(operation, databaseName, request.table),
+          : queryText || getSecondarySpanName(operation, databaseName, request.table),
       attributes,
     });
 

@@ -1,4 +1,7 @@
 {
+  "attribution": {
+    "sessionUrl": false
+  },
   "env": { "ENABLE_LSP_TOOL": "1" },
   "hooks": {
     "SessionStart": [

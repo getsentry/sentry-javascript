@@ -27,6 +27,15 @@ export type PluginOptions = {
    * run.
    */
   customTransforms?: Record<string, CustomTransform>;
+  /**
+   * Module specifier the transformed code imports its `tracingChannel` from, in
+   * place of `node:diagnostics_channel`. The Cloudflare build points this at a
+   * workerd-safe façade so channels wrapped at module scope don't throw. This is
+   * global — `code-transformer` ignores per-config `dcModule` (the matcher's value
+   * overwrites it) — but the façade delegates transparently in a request, so
+   * routing every channel through it is harmless.
+   */
+  dcModule?: string;
 };
 
 /**
@@ -74,6 +83,7 @@ export function orchestrionTransformOptions(
   return {
     instrumentations: [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])],
     customTransforms: { ...options.customTransforms, ...moduleInjectedTransforms() },
+    ...(options.dcModule && { dcModule: options.dcModule }),
     ...(injectDiagnostics && { injectDiagnostics: () => ORCHESTRION_BUNDLER_MARKER_BANNER }),
   };
 }

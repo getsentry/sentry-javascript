@@ -84,7 +84,14 @@ export interface HttpServerSpansIntegrationOptions {
    * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
+   * Important: This option is ignored by default! It only has an effect if `traceLifecycle` is set to `'static'`.
+   *
    * @default `[[401, 404], [301, 303], [305, 399]]`
+   *
+   * @deprecated This option only has an effect if `traceLifecycle` is set to `'static'`. With span streaming
+   * (`traceLifecycle: 'stream'`, the default), the SDK ignores it: child spans are sent as they end, before the
+   * response status code is known, so a request's spans cannot be dropped retroactively. `ignoreStatusCodes` will be
+   * removed in v12 of the SDK, without replacement.
    */
   ignoreStatusCodes?: (number | [number, number])[];
 
@@ -98,6 +105,7 @@ export interface HttpServerSpansIntegrationOptions {
 const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
   const ignoreStaticAssets = options.ignoreStaticAssets ?? true;
   const ignoreIncomingRequests = options.ignoreIncomingRequests;
+  // oxlint-disable-next-line typescript/no-deprecated
   const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
   const { onSpanCreated } = options;

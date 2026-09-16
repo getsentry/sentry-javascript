@@ -99,6 +99,17 @@ export function getLinksFromHeaders(headers: KafkaMessage['headers']): SpanLink[
   ];
 }
 
+/**
+ * The Kafka message key is producer-supplied payload data, so `dataCollection.queues` gates it.
+ * Everything else on the span (topic, partition, offset) is structural metadata and stays.
+ */
+function collectMessageKey(key: unknown, client = getClient()): string | undefined {
+  if (!key || client?.getDataCollectionOptions().queues === false) {
+    return undefined;
+  }
+  return String(key);
+}
+
 /** Starts an inactive consumer (process/receive) span carrying the kafkajs messaging attributes. */
 export function startConsumerSpan({ topic, message, operationType, links, attributes }: ConsumerSpanOptions): Span {
   // The batch "receive" span is named `poll`; per-message spans use the operation type verbatim.
@@ -119,7 +130,7 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
       [MESSAGING_DESTINATION_NAME]: topic,
       [MESSAGING_OPERATION_TYPE]: operationType,
       [MESSAGING_OPERATION_NAME]: operationName,
-      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message?.key ? String(message.key) : undefined,
+      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: collectMessageKey(message?.key, client),
       [ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE]: message?.key && message.value === null ? true : undefined,
       [ATTR_MESSAGING_KAFKA_OFFSET]: message?.offset as string | undefined,
       // Mirror the upstream behavior of only tagging per-message processing spans (not the batch
@@ -138,7 +149,7 @@ export function startProducerSpan(topic: string, message: Message): Span {
       [SENTRY_KIND]: 'producer',
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
-      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message.key ? String(message.key) : undefined,
+      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: collectMessageKey(message.key),
       [ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE]: message.key && message.value === null ? true : undefined,
       [ATTR_MESSAGING_DESTINATION_PARTITION_ID]:
         message.partition !== undefined ? String(message.partition) : undefined,

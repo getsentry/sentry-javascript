@@ -10,7 +10,7 @@ import type {
   EnvelopeItemType,
   EventEnvelopeHeaders,
 } from '../types/envelope';
-import type { Event } from '../types/event';
+import type { Event, EventType } from '../types/event';
 import type { SdkInfo } from '../types/sdkinfo';
 import type { SdkMetadata } from '../types/sdkmetadata';
 import { dsnToString } from './dsn';
@@ -250,4 +250,11 @@ export function createEventEnvelopeHeaders(
       trace: dynamicSamplingContext,
     }),
   };
+}
+
+/**
+ * Maps an event type to the data category used for client reports.
+ */
+export function getDataCategoryByType(type: EventType): DataCategory {
+  return type === 'replay_event' ? 'replay' : type || 'error';
 }

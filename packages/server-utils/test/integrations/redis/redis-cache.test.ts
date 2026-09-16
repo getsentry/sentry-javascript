@@ -1,8 +1,17 @@
-import { CACHE_KEY, CACHE_OPERATION, SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import { setCurrentClient } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  applyRedisCacheAttributes,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  applyCacheResponseAttributes,
+  getRedisCacheAttributes,
   calculateCacheItemSize,
   GET_COMMANDS,
   getCacheKeySafely,
@@ -19,75 +28,87 @@ function setUpClient(traceLifecycle: 'stream' | 'static'): void {
 }
 
 describe('redis cache', () => {
-  describe('applyRedisCacheAttributes', () => {
-    let mockSpan: any;
-
-    beforeEach(() => {
-      mockSpan = {
-        setAttribute: vi.fn(),
-        setAttributes: vi.fn(),
-        updateName: vi.fn(),
-        spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
-      };
+  describe('getRedisCacheAttributes', () => {
+    it.each([
+      { desc: 'no args', cmd: 'get', args: [], options: {} },
+      { desc: 'unsupported command', cmd: 'exists', args: ['key'], options: {} },
+      { desc: 'no cache prefixes', cmd: 'get', args: ['key'], options: {} },
+      { desc: 'non-matching prefix', cmd: 'get', args: ['key'], options: { cachePrefixes: ['c'] } },
+    ])('should return undefined when $desc', ({ cmd, args, options }) => {
+      expect(getRedisCacheAttributes(cmd, args, {}, options)).toBeUndefined();
     });
 
-    afterEach(() => {
-      vi.restoreAllMocks();
+    it('should return cache op, key and network peer attributes for a matching key', () => {
+      const result = getRedisCacheAttributes(
+        'get',
+        ['cache:test-key'],
+        { [SERVER_ADDRESS]: 'localhost', [SERVER_PORT]: 6379 },
+        { cachePrefixes: ['cache:'] },
+      );
+
+      expect(result).toStrictEqual({
+        name: 'cache:test-key',
+        attributes: {
+          [SENTRY_OP]: 'cache.get',
+          [CACHE_KEY]: ['cache:test-key'],
+          [CACHE_OPERATION]: 'get',
+          [NETWORK_PEER_ADDRESS]: 'localhost',
+          [NETWORK_PEER_PORT]: 6379,
+        },
+      });
     });
 
-    describe('early returns', () => {
-      it.each([
-        { desc: 'no args', cmd: 'get', args: [], response: 'test', options: {} },
-        { desc: 'unsupported command', cmd: 'exists', args: ['key'], response: 'test', options: {} },
-        { desc: 'no cache prefixes', cmd: 'get', args: ['key'], response: 'test', options: {} },
-        { desc: 'non-matching prefix', cmd: 'get', args: ['key'], response: 'test', options: { cachePrefixes: ['c'] } },
-      ])('should return early without modifying span when $desc', ({ cmd, args, response, options }) => {
-        applyRedisCacheAttributes(mockSpan, cmd, args, response, options);
+    it('should omit network peer attributes when the db attributes have no server address', () => {
+      const result = getRedisCacheAttributes('del', ['cache:test-key'], {}, { cachePrefixes: ['cache:'] });
 
-        expect(mockSpan.setAttribute).not.toHaveBeenCalled();
-        expect(mockSpan.setAttributes).not.toHaveBeenCalled();
-        expect(mockSpan.updateName).not.toHaveBeenCalled();
+      expect(result).toStrictEqual({
+        name: 'cache:test-key',
+        attributes: {
+          [SENTRY_OP]: 'cache.remove',
+          [CACHE_KEY]: ['cache:test-key'],
+          [CACHE_OPERATION]: 'remove',
+        },
       });
     });
 
     describe('span name truncation', () => {
       it('should not truncate span name when maxCacheKeyLength is not set', () => {
-        applyRedisCacheAttributes(
-          mockSpan,
+        const result = getRedisCacheAttributes(
           'mget',
           ['cache:very-long-key-name', 'cache:very-long-key-name-2', 'cache:very-long-key-name-3'],
-          'value',
+          {},
           { cachePrefixes: ['cache:'] },
         );
 
-        expect(mockSpan.updateName).toHaveBeenCalledWith(
-          'cache:very-long-key-name, cache:very-long-key-name-2, cache:very-long-key-name-3',
-        );
-        expect(mockSpan.setAttribute).not.toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, undefined);
+        expect(result?.name).toBe('cache:very-long-key-name, cache:very-long-key-name-2, cache:very-long-key-name-3');
       });
 
       it('should truncate span name when maxCacheKeyLength is set', () => {
-        applyRedisCacheAttributes(mockSpan, 'get', ['cache:very-long-key-name'], 'value', {
-          cachePrefixes: ['cache:'],
-          maxCacheKeyLength: 10,
-        });
+        const result = getRedisCacheAttributes(
+          'get',
+          ['cache:very-long-key-name'],
+          {},
+          {
+            cachePrefixes: ['cache:'],
+            maxCacheKeyLength: 10,
+          },
+        );
 
-        expect(mockSpan.updateName).toHaveBeenCalledWith('cache:very...');
+        expect(result?.name).toBe('cache:very...');
       });
 
       it('should truncate multiple keys joined with commas', () => {
-        applyRedisCacheAttributes(
-          mockSpan,
+        const result = getRedisCacheAttributes(
           'mget',
           ['cache:key1', 'cache:key2', 'cache:key3'],
-          ['val1', 'val2', 'val3'],
+          {},
           {
             cachePrefixes: ['cache:'],
             maxCacheKeyLength: 20,
           },
         );
 
-        expect(mockSpan.updateName).toHaveBeenCalledWith('cache:key1, cache:ke...');
+        expect(result?.name).toBe('cache:key1, cache:ke...');
       });
     });
 
@@ -103,27 +124,63 @@ describe('redis cache', () => {
       ])('names a streamed $op span after the cache operation', ({ cmd, op, operation }) => {
         setUpClient('stream');
 
-        applyRedisCacheAttributes(mockSpan, cmd, ['cache:user-42'], 'value', { cachePrefixes: ['cache:'] });
+        const result = getRedisCacheAttributes(cmd, ['cache:user-42'], {}, { cachePrefixes: ['cache:'] });
 
-        expect(mockSpan.updateName).toHaveBeenCalledWith(op);
         // The key is high cardinality, so it only lives on the attribute.
-        expect(mockSpan.setAttributes).toHaveBeenCalledWith(
-          expect.objectContaining({
+        expect(result).toStrictEqual({
+          name: op,
+          attributes: {
             [SENTRY_OP]: op,
             [CACHE_OPERATION]: operation,
             [CACHE_KEY]: ['cache:user-42'],
-          }),
-        );
+          },
+        });
       });
 
       it('keeps the cache key as the span name when span streaming is off', () => {
         setUpClient('static');
 
-        applyRedisCacheAttributes(mockSpan, 'get', ['cache:user-42'], 'value', { cachePrefixes: ['cache:'] });
+        const result = getRedisCacheAttributes('get', ['cache:user-42'], {}, { cachePrefixes: ['cache:'] });
 
-        expect(mockSpan.updateName).toHaveBeenCalledWith('cache:user-42');
-        expect(mockSpan.setAttributes).toHaveBeenCalledWith(expect.objectContaining({ [CACHE_OPERATION]: 'get' }));
+        expect(result?.name).toBe('cache:user-42');
+        expect(result?.attributes).toEqual(expect.objectContaining({ [CACHE_OPERATION]: 'get' }));
       });
+    });
+  });
+
+  describe('applyCacheResponseAttributes', () => {
+    const cacheSpan = (op: string): SentrySpan =>
+      new SentrySpan({ name: 'cache:test-key', attributes: { [SENTRY_OP]: op } });
+
+    it('should set item size and cache hit on a cache.get span', () => {
+      const span = cacheSpan('cache.get');
+      applyCacheResponseAttributes(span, 'test-value');
+
+      expect(spanToJSON(span).attributes).toMatchObject({ 'cache.item_size': 10, 'cache.hit': true });
+    });
+
+    it('should set a cache miss for an empty cache.get response', () => {
+      const span = cacheSpan('cache.get');
+      applyCacheResponseAttributes(span, null);
+
+      expect(spanToJSON(span).attributes).toMatchObject({ 'cache.hit': false });
+      expect(spanToJSON(span).attributes).not.toHaveProperty('cache.item_size');
+    });
+
+    it('should set only the item size on a cache.put span', () => {
+      const span = cacheSpan('cache.put');
+      applyCacheResponseAttributes(span, 'OK');
+
+      expect(spanToJSON(span).attributes).toMatchObject({ 'cache.item_size': 2 });
+      expect(spanToJSON(span).attributes).not.toHaveProperty('cache.hit');
+    });
+
+    it.each(['cache.remove', 'db.query'])('should not modify a %s span', op => {
+      const span = cacheSpan(op);
+      applyCacheResponseAttributes(span, 'test-value');
+
+      expect(spanToJSON(span).attributes).not.toHaveProperty('cache.item_size');
+      expect(spanToJSON(span).attributes).not.toHaveProperty('cache.hit');
     });
   });
 

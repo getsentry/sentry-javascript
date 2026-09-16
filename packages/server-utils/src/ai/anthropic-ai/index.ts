@@ -48,7 +48,11 @@ const INSTRUMENTED_METHODS = new WeakSet<object>();
 /**
  * Extract request attributes from method arguments
  */
-export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
+export function extractRequestAttributes(
+  args: unknown[],
+  operationName: string,
+  recordInputs: boolean,
+): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'anthropic',
     [GEN_AI_OPERATION_NAME]: operationName,
@@ -57,7 +61,7 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
-    if (params.tools && Array.isArray(params.tools)) {
+    if (recordInputs && params.tools && Array.isArray(params.tools)) {
       attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(params.tools);
     }
 
@@ -259,7 +263,7 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       const operationName = instrumentedMethod.operation || 'unknown';
-      const requestAttributes = extractRequestAttributes(args, operationName);
+      const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.

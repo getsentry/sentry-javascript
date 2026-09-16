@@ -12,17 +12,16 @@ describe('express error handling', () => {
         const runner = createRunner()
           .unordered()
           .expect({
-            transaction: {
-              transaction: 'GET /test/express/:id',
-              contexts: {
-                trace: {
-                  op: 'http.server',
-                  status: 'internal_error',
-                  data: expect.objectContaining({
-                    'http.response.status_code': 500,
-                  }),
-                },
-              },
+            span: container => {
+              expect(container.items.find(item => item.is_segment)).toMatchObject({
+                name: 'GET /test/express/:id',
+                status: 'error',
+                attributes: expect.objectContaining({
+                  'sentry.op': { type: 'string', value: 'http.server' },
+                  'sentry.status.message': { type: 'string', value: 'internal_error' },
+                  'http.response.status_code': { type: 'integer', value: 500 },
+                }),
+              });
             },
           })
           .expect({
@@ -99,7 +98,7 @@ describe('express error handling', () => {
     createCjsTests(__dirname, 'scenario.mjs', 'instrument-no-tracing.mjs', (createRunner, test) => {
       test('should capture and send Express controller error if tracesSampleRate is not set.', async () => {
         const runner = createRunner()
-          .ignore('transaction')
+          .ignore('span')
           .expect({
             event: {
               exception: {

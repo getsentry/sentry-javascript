@@ -1,14 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('Sends a span for a request to app router with URL', async ({ page }) => {
-  const spansPromise = collectStreamedSpans('nextjs-15', spans =>
-    spans.some(
-      span =>
-        span.name === 'GET /parameterized/[one]/beep/[two]' &&
-        span.is_segment &&
-        String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
-    ),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-15',
+    span =>
+      span.name === 'GET /parameterized/[one]/beep/[two]' &&
+      String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
   );
 
   await page.goto('/parameterized/1337/beep/42');

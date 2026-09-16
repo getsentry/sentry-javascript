@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { CODE_FUNCTION_NAME } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,6 +43,7 @@ describe('SentryTraced decorator', () => {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test-operation',
+          [CODE_FUNCTION_NAME]: 'testMethod',
         },
       },
       expect.any(Function),
@@ -75,6 +77,7 @@ describe('SentryTraced decorator', () => {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+          [CODE_FUNCTION_NAME]: 'testDefaultOp',
         },
       },
       expect.any(Function),
@@ -108,6 +111,7 @@ describe('SentryTraced decorator', () => {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'sync-operation',
+          [CODE_FUNCTION_NAME]: 'syncMethod',
         },
       },
       expect.any(Function),

@@ -27,6 +27,7 @@ import {
   URL_FULL,
   URL_PATH,
   URL_TEMPLATE,
+  SENTRY_DESCRIPTION,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, ROUTER } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
@@ -39,6 +40,7 @@ import {
   stripUrlQueryAndFragment,
   timestampInSeconds,
   filterCollectedUrl,
+  FUNCTION_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -404,15 +406,25 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
     descriptor.value = function (...args: unknown[]): ReturnType<typeof originalMethod> {
       const now = timestampInSeconds();
 
+      const methodName = options?.name;
+      const description = `<${methodName || 'unnamed'}>`;
+
+      const client = getClient();
+      const hasSpanStreaming = client && hasSpanStreamingEnabled(client);
+      const name = hasSpanStreaming ? methodName || FUNCTION_SPAN_NAME_FALLBACK : description;
+
       runOutsideAngular(() => {
         startInactiveSpan({
           onlyIfParent: true,
-          name: `<${options?.name ? options.name : 'unnamed'}>`,
+          name,
           startTime: now,
           attributes: {
             [SENTRY_OP]: FUNCTION,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
-            [CODE_FUNCTION_NAME]: String(propertyKey),
+            // override description inference by Relay to preserve the original (transaction-based) description.
+            // sentry-conventions can't map the special case with the angle brackets.
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
+            [CODE_FUNCTION_NAME]: methodName || String(propertyKey),
           },
         }).end(now);
       });

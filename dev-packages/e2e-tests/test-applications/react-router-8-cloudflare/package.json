@@ -15,7 +15,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.35.0",
     "@cloudflare/workers-types": "^4.20260504.0",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@react-router/dev": "^8",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/mysql": "^2.15.26",

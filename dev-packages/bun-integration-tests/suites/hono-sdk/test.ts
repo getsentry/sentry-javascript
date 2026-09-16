@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { eventEnvelope, SHORT_UUID_MATCHER, UUID_MATCHER } from '../../expect';
 import { createRunner } from '../../runner';
@@ -8,43 +9,25 @@ it('Hono app captures parametrized errors (Hono SDK on Bun)', async ({ signal })
       const [, envelopeItems] = envelope;
       const [itemHeader, itemPayload] = envelopeItems[0];
 
-      expect(itemHeader.type).toBe('transaction');
+      expect(itemHeader.type).toBe('span');
 
-      expect(itemPayload).toMatchObject({
-        type: 'transaction',
-        platform: 'node',
-        transaction: 'GET /error/:param',
-        transaction_info: {
-          source: 'route',
-        },
-        contexts: {
-          trace: {
-            span_id: expect.any(String),
-            trace_id: expect.any(String),
-            op: 'http.server',
-            status: 'internal_error',
-            origin: 'auto.http.bun.serve',
-          },
-          response: {
-            status_code: 500,
-          },
-        },
-        request: expect.objectContaining({
-          method: 'GET',
-          url: expect.stringContaining('/error/param-123'),
+      const segmentSpan = (itemPayload as SerializedStreamedSpanContainer).items.find(span => span.is_segment);
+
+      expect(segmentSpan).toMatchObject({
+        name: 'GET /error/:param',
+        is_segment: true,
+        span_id: expect.any(String),
+        trace_id: expect.any(String),
+        status: 'error',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'http.server', type: 'string' },
+          'sentry.origin': { value: 'auto.http.bun.serve', type: 'string' },
+          'sentry.segment.name.source': { value: 'route', type: 'string' },
+          'http.route': { value: '/error/:param', type: 'string' },
+          'http.request.method': { value: 'GET', type: 'string' },
+          'http.response.status_code': { value: 500, type: 'integer' },
+          'url.path': { value: '/error/param-123', type: 'string' },
         }),
-        breadcrumbs: [
-          {
-            timestamp: expect.any(Number),
-            category: 'console',
-            level: 'error',
-            message: 'Error: Test error from Hono app',
-            data: expect.objectContaining({
-              logger: 'console',
-              arguments: [{ message: 'Test error from Hono app', name: 'Error', stack: expect.any(String) }],
-            }),
-          },
-        ],
       });
     })
 
@@ -101,27 +84,23 @@ it('Hono app captures parametrized route names on Bun', async ({ signal }) => {
       const [, envelopeItems] = envelope;
       const [itemHeader, itemPayload] = envelopeItems[0];
 
-      expect(itemHeader.type).toBe('transaction');
+      expect(itemHeader.type).toBe('span');
 
-      expect(itemPayload).toMatchObject({
-        type: 'transaction',
-        platform: 'node',
-        transaction: 'GET /hello/:name',
-        transaction_info: {
-          source: 'route',
-        },
-        contexts: {
-          trace: {
-            span_id: SHORT_UUID_MATCHER,
-            trace_id: UUID_MATCHER,
-            op: 'http.server',
-            status: 'ok',
-            origin: 'auto.http.bun.serve',
-          },
-        },
-        request: expect.objectContaining({
-          method: 'GET',
-          url: expect.stringContaining('/hello/world'),
+      const segmentSpan = (itemPayload as SerializedStreamedSpanContainer).items.find(span => span.is_segment);
+
+      expect(segmentSpan).toMatchObject({
+        name: 'GET /hello/:name',
+        is_segment: true,
+        span_id: SHORT_UUID_MATCHER,
+        trace_id: UUID_MATCHER,
+        status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'http.server', type: 'string' },
+          'sentry.origin': { value: 'auto.http.bun.serve', type: 'string' },
+          'sentry.segment.name.source': { value: 'route', type: 'string' },
+          'http.route': { value: '/hello/:name', type: 'string' },
+          'http.request.method': { value: 'GET', type: 'string' },
+          'url.path': { value: '/hello/world', type: 'string' },
         }),
       });
     })

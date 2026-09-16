@@ -107,6 +107,11 @@ export interface DenoHttpIntegrationOptions {
    * limitation.
    *
    * @default `[[401, 404], [301, 303], [305, 399]]`
+   *
+   * @deprecated This option only has an effect if `traceLifecycle` is set to `'static'`. With span streaming
+   * (`traceLifecycle: 'stream'`, the default), the SDK ignores it: child spans are sent as they end, before the
+   * response status code is known, so a request's spans cannot be dropped retroactively. `ignoreStatusCodes` will be
+   * removed in v12 of the SDK.
    */
   ignoreStatusCodes?: (number | [number, number])[];
 
@@ -146,6 +151,7 @@ export interface DenoHttpIntegrationOptions {
 const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
   const breadcrumbs = options.breadcrumbs ?? true;
   const tracePropagation = options.tracePropagation ?? true;
+  // oxlint-disable-next-line typescript/no-deprecated
   const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
   return {
