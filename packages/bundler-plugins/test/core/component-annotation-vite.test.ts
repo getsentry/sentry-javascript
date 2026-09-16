@@ -6,8 +6,10 @@ import { describe, expect, it, vi } from 'vitest';
 import componentNameAnnotatePlugin from '../../src/babel-plugin';
 import {
   createViteComponentNameAnnotateHooks,
+  getOxcParseAstAsync,
   type ComponentAnnotationTransformResult,
 } from '../../src/core/component-annotation-vite';
+import type { ParseAstAsync } from '../../src/core/component-annotation-vite-ast';
 
 type Annotation = {
   elementName: string;
@@ -84,13 +86,17 @@ async function annotateWithVite(
   code: string,
   id: string,
   ignoredComponents: string[] = [],
+  getParseAstAsync: () => Promise<ParseAstAsync | null> = async () => parseAstAsync,
 ): Promise<ComponentAnnotationTransformResult> {
-  const hooks = createViteComponentNameAnnotateHooks(ignoredComponents, async () => parseAstAsync);
+  const hooks = createViteComponentNameAnnotateHooks(ignoredComponents, getParseAstAsync);
 
   return hooks.transform(code, id);
 }
 
-describe('createViteComponentNameAnnotateHooks', () => {
+describe.each<[string, () => Promise<ParseAstAsync | null>]>([
+  ['@babel/parser', async () => parseAstAsync],
+  ['oxc-parser', getOxcParseAstAsync],
+])('createViteComponentNameAnnotateHooks with %s', (_parserName, getParseAstAsync) => {
   it.each([
     [
       'function declarations and nested children',
@@ -254,8 +260,25 @@ export function TypedComponent(props: Props) {
 }`,
       [],
     ],
+    [
+      'tsx files with parenthesized returns and TypeScript expressions',
+      '/src/typed-parenthesized.tsx',
+      `import React from "react";
+
+type Props<T> = { items?: T[] };
+
+export const List = <T,>(props: Props<T>) => {
+  const items = props.items!;
+  return (
+    <Table rows={items as unknown[]}>
+      <Row<T> item={items[0]} />
+    </Table>
+  );
+};`,
+      [],
+    ],
   ])('matches Babel annotations for %s', async (_name, id, code, ignoredComponents) => {
-    const viteResult = await annotateWithVite(code, id, ignoredComponents);
+    const viteResult = await annotateWithVite(code, id, ignoredComponents, getParseAstAsync);
 
     expect(viteResult).toBeTruthy();
     expect(collectAnnotations(viteResult?.code.toString() ?? '', id)).toEqual(
@@ -267,7 +290,7 @@ export function TypedComponent(props: Props) {
     const code = `export const App = () => <${elementName} />;`;
     const id = '/src/app.jsx';
 
-    const viteResult = await annotateWithVite(code, id);
+    const viteResult = await annotateWithVite(code, id, [], getParseAstAsync);
 
     expect(viteResult).toBeTruthy();
     expect(collectAnnotations(viteResult?.code.toString() ?? '', id)).toEqual([
@@ -281,7 +304,9 @@ export function TypedComponent(props: Props) {
       },
     ]);
   });
+});
 
+describe('createViteComponentNameAnnotateHooks', () => {
   it('uses the native magicString object from transform metadata when it is available', async () => {
     const code = `export function App() {
   return <Custom />;
@@ -310,5 +335,11 @@ export function TypedComponent(props: Props) {
     });
 
     await expect(hooks.transform('export const App = () => <Custom />;', '/src/app.jsx')).resolves.toBeUndefined();
+  });
+
+  it('returns undefined when oxc-parser reports a syntax error so callers can fall back to Babel', async () => {
+    const hooks = createViteComponentNameAnnotateHooks([], getOxcParseAstAsync);
+
+    await expect(hooks.transform('export const App = () => <Custom>;', '/src/app.tsx')).resolves.toBeUndefined();
   });
 });

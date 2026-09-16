@@ -19,6 +19,30 @@ export type {
   ComponentAnnotationTransformResult,
 } from './component-annotation-vite-ast';
 
+let oxcParseAstAsyncPromise: Promise<ParseAstAsync | null> | undefined;
+
+export function getOxcParseAstAsync(): Promise<ParseAstAsync | null> {
+  if (!oxcParseAstAsyncPromise) {
+    oxcParseAstAsyncPromise = import('oxc-parser')
+      .then(({ parse }): ParseAstAsync => {
+        return async (code, { lang }) => {
+          // preserveParens: false matches the AST Vite 8 produces. The walker
+          // does not look through ParenthesizedExpression nodes.
+          const { program, errors } = await parse(`component.${lang}`, code, { lang, preserveParens: false });
+
+          if (errors.length > 0) {
+            throw new Error(errors[0]?.message);
+          }
+
+          return program;
+        };
+      })
+      .catch(() => null);
+  }
+
+  return oxcParseAstAsyncPromise;
+}
+
 // Keep this as a superset of JSX tag starts Babel can annotate, because a miss suppresses Babel fallback.
 const JSX_TAG_START_REGEXP = /<[$_\p{ID_Start}][$_\u200c\u200d\p{ID_Continue}.:-]*|<>/u;
 const JSX_FILE_REGEXP = /\.[jt]sx$/;
