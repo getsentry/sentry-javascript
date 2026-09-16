@@ -959,8 +959,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
     integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
-      'http.request.header.cookie.theme': 'dark',
-      'http.request.header.cookie.locale': 'en',
+      'http.request.header.cookie': ['theme=dark', 'locale=en'],
     });
   });
 
@@ -975,8 +974,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
     integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
-      'http.request.header.cookie.theme': 'dark',
-      'http.request.header.cookie.locale': 'en',
+      'http.request.header.cookie': ['theme=dark', 'locale=en'],
     });
   });
 
@@ -991,9 +989,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
     integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
 
     expect(span.attributes).toMatchObject({
-      'http.request.header.cookie.theme': 'dark',
-      'http.request.header.cookie.connect.sid': '[Filtered]',
-      'http.request.header.cookie.session_token': '[Filtered]',
+      'http.request.header.cookie': ['theme=dark', 'connect.sid=[Filtered]', 'session_token=[Filtered]'],
     });
   });
 
@@ -1113,7 +1109,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       expect(span.attributes).toMatchObject({
         'http.request.header.content-type': ['application/json'],
       });
-      expect(span.attributes).not.toHaveProperty('http.request.header.cookie.theme');
+      expect(span.attributes).not.toHaveProperty('http.request.header.cookie');
     });
 
     it('strips IP headers when include.ip is false', () => {
@@ -1208,8 +1204,7 @@ describe('requestDataIntegration processSegmentSpan', () => {
       integration.processSegmentSpan!(span, mockClient({ cookies: false }));
 
       expect(span.attributes).toMatchObject({
-        'http.request.header.cookie.theme': 'dark',
-        'http.request.header.cookie.locale': 'en',
+        'http.request.header.cookie': ['theme=dark', 'locale=en'],
       });
     });
 
@@ -1221,9 +1216,11 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
       integration.processSegmentSpan!(span, mockClient({ cookies: { allow: ['theme'] } }));
 
-      expect(span.attributes?.['http.request.header.cookie.theme']).toBe('dark');
-      expect(span.attributes?.['http.request.header.cookie.locale']).toBe('[Filtered]');
-      expect(span.attributes?.['http.request.header.cookie.session']).toBe('[Filtered]');
+      expect(span.attributes?.['http.request.header.cookie']).toEqual([
+        'theme=dark',
+        'locale=[Filtered]',
+        'session=[Filtered]',
+      ]);
     });
 
     it('filters query params when include.query_string overrides dataCollection.urlQueryParams=false on spans', () => {
