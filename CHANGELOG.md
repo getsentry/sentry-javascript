@@ -14,7 +14,6 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 
 #### All SDKs
 
-- chore(v11): Upgrade to TypeScript 7.0 ([#19435](https://github.com/getsentry/sentry-javascript/pull/19435))
 - feat: Remove support for initialising via `--require` ([#22513](https://github.com/getsentry/sentry-javascript/pull/22513))
 - feat!: Rename deprecated `http.*` span attributes ([#23574](https://github.com/getsentry/sentry-javascript/pull/23574))
 - feat!: Rename deprecated `net.` span attributes ([#23301](https://github.com/getsentry/sentry-javascript/pull/23301))
@@ -25,7 +24,6 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - feat!: Use `middleware` span op for web-server middleware ([#22852](https://github.com/getsentry/sentry-javascript/pull/22852))
 - feat(frameworks)!: Use `function` op for framework functions ([#23047](https://github.com/getsentry/sentry-javascript/pull/23047))
 - feat(v11): Drop TypeScript 3.8 support ([#18604](https://github.com/getsentry/sentry-javascript/pull/18604))
-- ref!: Remove `.orchestrion.` from span origins ([#22722](https://github.com/getsentry/sentry-javascript/pull/22722))
 
 #### AI integrations
 
@@ -686,6 +684,7 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - chore(tanstackstart-react): Remove leftover empty config module ([#23483](https://github.com/getsentry/sentry-javascript/pull/23483))
 - chore(test): mock @sentry/core in ember test ([#24406](https://github.com/getsentry/sentry-javascript/pull/24406))
 - chore(v11): add v11 migration guide ([#22364](https://github.com/getsentry/sentry-javascript/pull/22364))
+- chore(v11): Upgrade to TypeScript 7.0 ([#19435](https://github.com/getsentry/sentry-javascript/pull/19435))
 - ci: Add `v10` to build and license-compliance branch filters ([#22498](https://github.com/getsentry/sentry-javascript/pull/22498))
 - ci(deps-dev): Bump @sveltejs/kit from 2.52.2 to 2.70.2 in /dev-packages/e2e-tests/test-applications/sveltekit-2-otlp ([#24198](https://github.com/getsentry/sentry-javascript/pull/24198))
 - ci(deps): Bump actions/cache from 5 to 6 ([#22935](https://github.com/getsentry/sentry-javascript/pull/22935))
@@ -796,6 +795,7 @@ We recommend following the [migration guide](https://docs.sentry.io/platforms/ja
 - ref: Remove redundant `forceTransaction: true` usages ([#23756](https://github.com/getsentry/sentry-javascript/pull/23756))
 - ref: Replace UI Span OP with `ui.` from `@sentry/conventions/op` ([#23565](https://github.com/getsentry/sentry-javascript/pull/23565))
 - ref: Use op constants from conventions ([#23742](https://github.com/getsentry/sentry-javascript/pull/23742))
+- ref!: Remove `.orchestrion.` from span origins ([#22722](https://github.com/getsentry/sentry-javascript/pull/22722))
 - ref(ai)!: Drop core's duplicate AI base copy ([#22965](https://github.com/getsentry/sentry-javascript/pull/22965))
 - ref(astro): Remove unused script ([#23274](https://github.com/getsentry/sentry-javascript/pull/23274))
 - ref(aws-serverless): Remove dead vendored aws-sdk OTel instrumentation ([#22825](https://github.com/getsentry/sentry-javascript/pull/22825))
