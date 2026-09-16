@@ -1,0 +1,298 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for HTML roots 1`] = `
+"export default function App() {
+  return (
+    <div data-sentry-component="App">
+      <span>nested html</span>
+      <CustomCard />
+    </div>
+  );
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for React Native elements 1`] = `
+"export const Native = () => (
+  <View data-sentry-component="Native">
+    <Text>hello</Text>
+  </View>
+);
+
+export const Card = () => (
+  <CardContainer>
+    <Image data-sentry-component="Card" />
+  </CardContainer>
+);"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for anonymous default classes 1`] = `
+"import React from "react";
+
+export default class extends React.Component {
+  render() {
+    return <div data-sentry-component="" />;
+  }
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for class render methods with nested render helpers 1`] = `
+"import React, { Component } from "react";
+
+export class ClassComponent extends Component {
+  render() {
+    const Helper = () => {
+      return <em data-sentry-component="ClassComponent" />;
+    };
+
+    return <section data-sentry-component="ClassComponent">{Helper()}</section>;
+  }
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for component wrappers 1`] = `
+"const Page = () => (
+  <Layout.Root>
+    <Layout.Body>
+      <main data-sentry-component="Page">content</main>
+      <aside data-sentry-component="Page" />
+    </Layout.Body>
+  </Layout.Root>
+);
+
+export default Page;"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for conditional returns 1`] = `
+"export function ConditionalComponent({ maybeTrue }) {
+  return maybeTrue ? <div data-sentry-component="ConditionalComponent" /> : <Wrapper><span data-sentry-component="ConditionalComponent" /></Wrapper>;
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for existing component attributes 1`] = `
+"export function Existing() {
+  return <div data-sentry-component="Custom" />;
+}
+
+export function Fresh() {
+  return <div data-sentry-component="Fresh" />;
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for fragment roots and aliases 1`] = `
+"import React, { Fragment as ImportedFragment } from "react";
+
+export function FragmentComponent() {
+  return (
+    <>
+      <ImportedFragment>
+        <section data-sentry-component="FragmentComponent" />
+      </ImportedFragment>
+      <React.Fragment>
+        <p data-sentry-component="FragmentComponent" />
+      </React.Fragment>
+    </>
+  );
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for ignored component and element names 1`] = `
+"export function IgnoredComponent() {
+  return <div />;
+}
+
+export function Navigation() {
+  return (
+    <Wrapper>
+      <nav>
+        <a />
+      </nav>
+    </Wrapper>
+  );
+}
+
+export function Header() {
+  return <header data-sentry-component="Header" />;
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for lowercase member expressions and identifiers 1`] = `
+"export const Motion = () => (
+  <motion.div data-sentry-component="Motion">
+    <span />
+  </motion.div>
+);
+
+export const Underscore = () => <_foo data-sentry-component="Underscore" />;
+
+export const Dollar = () => <$Foo data-sentry-component="Dollar" />;"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates HTML elements in injection mode for tsx files with TypeScript expressions 1`] = `
+"type Props<T> = { items?: T[] };
+
+export const List = <T,>(props: Props<T>) => {
+  const items = props.items!;
+  return (
+    <Table<T> rows={items as unknown[]}>
+      <tr data-sentry-component="List" />
+    </Table>
+  );
+};"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates anonymous class render methods with nested render helpers 1`] = `
+"import React from "react";
+
+export default class extends React.Component {
+  render() {
+    const Helper = () => {
+      return <Nested data-sentry-element="Nested" data-sentry-component="Helper" data-sentry-source-file="anonymous-class-nested-helper.jsx" />;
+    };
+
+    return <Wrapper data-sentry-element="Wrapper" data-sentry-source-file="anonymous-class-nested-helper.jsx">{Helper()}</Wrapper>;
+  }
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates anonymous default class render methods 1`] = `
+"import React from "react";
+
+export default class extends React.Component {
+  render() {
+    return <Foo data-sentry-element="Foo" data-sentry-source-file="anonymous-class.jsx" />;
+  }
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates arrow function expression bodies 1`] = `
+"import React from "react";
+
+const ArrowComponent = () => (
+  <Panel.Root data-sentry-element="Panel.Root" data-sentry-component="ArrowComponent" data-sentry-source-file="arrow.jsx">
+    <Panel.Body data-sentry-element="Panel.Body" data-sentry-source-file="arrow.jsx" />
+  </Panel.Root>
+);
+
+export default ArrowComponent;"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates class render methods 1`] = `
+"import React, { Component } from "react";
+
+export class ClassComponent extends Component {
+  render() {
+    return (
+      <Layout data-sentry-element="Layout" data-sentry-component="ClassComponent" data-sentry-source-file="class-component.jsx">
+        <Layout.Header data-sentry-element="Layout.Header" data-sentry-source-file="class-component.jsx" />
+      </Layout>
+    );
+  }
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates class render methods with nested render helpers 1`] = `
+"import React, { Component } from "react";
+
+export class ClassComponent extends Component {
+  render() {
+    const Helper = () => {
+      return <Nested data-sentry-element="Nested" data-sentry-component="ClassComponent" data-sentry-source-file="class-nested-helper.jsx" />;
+    };
+
+    return <Wrapper data-sentry-element="Wrapper" data-sentry-component="ClassComponent" data-sentry-source-file="class-nested-helper.jsx">{Helper()}</Wrapper>;
+  }
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates conditional returns 1`] = `
+"import React from "react";
+
+const maybeTrue = Math.random() > 0.5;
+
+export default function ConditionalComponent() {
+  return maybeTrue ? <First data-sentry-element="First" data-sentry-component="ConditionalComponent" data-sentry-source-file="conditional.jsx" /> : <Second data-sentry-element="Second" data-sentry-component="ConditionalComponent" data-sentry-source-file="conditional.jsx" />;
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates fragment aliases 1`] = `
+"import React, { Fragment as ImportedFragment } from "react";
+import * as ReactNamespace from "react";
+
+const { Fragment: DestructuredFragment } = React;
+const AssignedFragment = ImportedFragment;
+
+export default function FragmentComponent() {
+  return (
+    <div data-sentry-component="FragmentComponent" data-sentry-source-file="fragments.jsx">
+      <ImportedFragment>
+        <span>import alias</span>
+      </ImportedFragment>
+      <ReactNamespace.Fragment>
+        <span>namespace alias</span>
+      </ReactNamespace.Fragment>
+      <DestructuredFragment>
+        <span>destructured alias</span>
+      </DestructuredFragment>
+      <AssignedFragment>
+        <span>assigned alias</span>
+      </AssignedFragment>
+    </div>
+  );
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates function declarations and nested children 1`] = `
+"import React from "react";
+
+export default function App() {
+  return (
+    <section data-sentry-component="App" data-sentry-source-file="app.jsx">
+      <CustomCard data-sentry-element="CustomCard" data-sentry-source-file="app.jsx" />
+      <span>ignored dom element</span>
+    </section>
+  );
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates ignored component names and member expressions 1`] = `
+"import React from "react";
+import { Tab } from "@headlessui/react";
+import { Components } from "my-ui-library";
+
+export default function IgnoredComponent() {
+  return (
+    <div data-sentry-component="IgnoredComponent" data-sentry-source-file="ignored.jsx">
+      <Tab.Group>
+        <Tab.List />
+      </Tab.Group>
+      <Components.UI.Button />
+      <Components.UI.Card.Header data-sentry-element="Components.UI.Card.Header" data-sentry-source-file="ignored.jsx" />
+    </div>
+  );
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates tsx files 1`] = `
+"import React from "react";
+
+type Props = { title: string };
+
+export function TypedComponent(props: Props) {
+  return <Title text={props.title} data-sentry-element="Title" data-sentry-component="TypedComponent" data-sentry-source-file="typed.tsx" />;
+}"
+`;
+
+exports[`createOxcComponentNameAnnotateHooks > annotates tsx files with parenthesized returns and TypeScript expressions 1`] = `
+"import React from "react";
+
+type Props<T> = { items?: T[] };
+
+export const List = <T,>(props: Props<T>) => {
+  const items = props.items!;
+  return (
+    <Table rows={items as unknown[]} data-sentry-element="Table" data-sentry-component="List" data-sentry-source-file="typed-parenthesized.tsx">
+      <Row<T> item={items[0]} data-sentry-element="Row" data-sentry-source-file="typed-parenthesized.tsx" />
+    </Table>
+  );
+};"
+`;

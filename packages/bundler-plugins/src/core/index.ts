@@ -1,47 +1,7 @@
-import { debug } from '@sentry/core';
 import { CodeInjection, containsOnlyImports, stripQueryAndHashFromPath } from './utils';
-import type { transformAsync as babelTransformAsync } from '@babel/core';
-import type componentNameAnnotatePlugin from '../babel-plugin';
-import type { experimentalComponentNameAnnotatePlugin } from '../babel-plugin';
-import type {
-  ComponentAnnotationTransformMeta,
-  ComponentAnnotationTransformResult,
-  ParseAstAsync,
-} from './component-annotation-oxc-ast';
-
-type FastAnnotationHooks = {
-  transform(
-    code: string,
-    id: string,
-    meta?: ComponentAnnotationTransformMeta,
-  ): Promise<ComponentAnnotationTransformResult>;
-};
-
-type BabelTransformAsync = typeof babelTransformAsync;
-type BabelParserPlugins = NonNullable<NonNullable<Parameters<BabelTransformAsync>[1]>['parserOpts']>['plugins'];
-type BabelAnnotationRuntime = {
-  transformAsync: BabelTransformAsync;
-  componentNameAnnotatePlugin: typeof componentNameAnnotatePlugin;
-  experimentalComponentNameAnnotatePlugin: typeof experimentalComponentNameAnnotatePlugin;
-};
-
-let babelAnnotationRuntimePromise: Promise<BabelAnnotationRuntime> | undefined;
-
-function loadBabelAnnotationRuntime(): Promise<BabelAnnotationRuntime> {
-  if (!babelAnnotationRuntimePromise) {
-    babelAnnotationRuntimePromise = Promise.all([import('@babel/core'), import('../babel-plugin')]).then(
-      ([babel, babelPlugin]) => {
-        return {
-          transformAsync: babel.transformAsync,
-          componentNameAnnotatePlugin: babelPlugin.default,
-          experimentalComponentNameAnnotatePlugin: babelPlugin.experimentalComponentNameAnnotatePlugin,
-        };
-      },
-    );
-  }
-
-  return babelAnnotationRuntimePromise;
-}
+import { createOxcComponentNameAnnotateHooks, getOxcParseAstAsync } from './component-annotation-oxc';
+import type { ComponentAnnotationTransformMeta, ParseAstAsync } from './component-annotation-oxc-ast';
+import type { Logger } from './logger';
 
 // We need to be careful not to inject the snippet before any `"use strict";`s.
 // As an additional complication `"use strict";`s may come after any number of comments.
@@ -92,83 +52,30 @@ export { globFiles } from './glob';
 export function createComponentNameAnnotateHooks(
   ignoredComponents: string[],
   injectIntoHtml: boolean,
-  getParseAstAsync?: () => Promise<ParseAstAsync | null>,
+  options: { getParseAstAsync?: () => Promise<ParseAstAsync | null>; logger?: Logger } = {},
 ) {
-  let fastHooksPromise: Promise<FastAnnotationHooks> | undefined;
+  let warnedParserUnavailable = false;
+
+  const hooks = createOxcComponentNameAnnotateHooks(
+    ignoredComponents,
+    async () => {
+      const parseAstAsync = (await options.getParseAstAsync?.()) ?? (await getOxcParseAstAsync());
+
+      if (!parseAstAsync && !warnedParserUnavailable) {
+        warnedParserUnavailable = true;
+        options.logger?.warn('Could not load `oxc-parser` for this platform. React components will not be annotated.');
+      }
+
+      return parseAstAsync;
+    },
+    injectIntoHtml,
+  );
 
   return {
-    async transform(this: void, code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
-      if (!fastHooksPromise) {
-        fastHooksPromise = import('./component-annotation-oxc').then(
-          ({ createOxcComponentNameAnnotateHooks, getOxcParseAstAsync }) =>
-            createOxcComponentNameAnnotateHooks(
-              ignoredComponents,
-              getParseAstAsync ?? getOxcParseAstAsync,
-              injectIntoHtml,
-            ),
-        );
-      }
-
-      const fastResult = await (await fastHooksPromise).transform(code, id, meta);
-      if (fastResult !== undefined) {
-        return fastResult;
-      }
-
-      return transformWithBabel(code, id, ignoredComponents, injectIntoHtml);
+    transform(this: void, code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
+      return hooks.transform(code, id, meta);
     },
   };
-}
-
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-async function transformWithBabel(code: string, id: string, ignoredComponents: string[], injectIntoHtml: boolean) {
-  // id may contain query and hash which will trip up our file extension logic below
-  const idWithoutQueryAndHash = stripQueryAndHashFromPath(id);
-
-  if (idWithoutQueryAndHash.match(/\\node_modules\\|\/node_modules\//)) {
-    return null;
-  }
-
-  // We will only apply this plugin on jsx and tsx files
-  if (!['.jsx', '.tsx'].some(ending => idWithoutQueryAndHash.endsWith(ending))) {
-    return null;
-  }
-
-  const parserPlugins: BabelParserPlugins = [];
-  if (idWithoutQueryAndHash.endsWith('.jsx')) {
-    parserPlugins.push('jsx');
-  } else if (idWithoutQueryAndHash.endsWith('.tsx')) {
-    parserPlugins.push('jsx', 'typescript');
-  }
-
-  const { transformAsync, componentNameAnnotatePlugin, experimentalComponentNameAnnotatePlugin } =
-    await loadBabelAnnotationRuntime();
-  const plugin = injectIntoHtml ? experimentalComponentNameAnnotatePlugin : componentNameAnnotatePlugin;
-
-  try {
-    const result = await transformAsync(code, {
-      plugins: [[plugin, { ignoredComponents }]],
-      filename: id,
-      sourceFileName: idWithoutQueryAndHash,
-      parserOpts: {
-        sourceType: 'module',
-        allowAwaitOutsideFunction: true,
-        plugins: parserPlugins,
-      },
-      generatorOpts: {
-        decoratorsBeforeExport: true,
-      },
-      sourceMaps: true,
-    });
-
-    return {
-      code: result?.code ?? code,
-      map: result?.map,
-    };
-  } catch (e) {
-    debug.error(`Failed to apply react annotate plugin`, e);
-  }
-
-  return { code };
 }
 
 export function getDebugIdSnippet(debugId: string): CodeInjection {

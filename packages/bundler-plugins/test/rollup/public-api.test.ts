@@ -1,39 +1,20 @@
 import { _rollupPluginInternal, sentryRollupPlugin } from '../../src/rollup';
-import { createComponentNameAnnotateHooks } from '../../src/core';
 import type { Plugin, SourceMap } from 'rollup';
+import type * as Core from '../../src/core';
 import { describe, it, expect, test, beforeEach, vi } from 'vitest';
 
-const {
-  babelCoreImportMock,
-  transformAsyncMock,
-  annotationTransformMock,
-  createOxcComponentNameAnnotateHooksMock,
-  getOxcParseAstAsyncMock,
-} = vi.hoisted(() => {
-  const annotationTransformMock = vi.fn(async () => ({ code: 'fast-path', map: null }));
-
+const { createComponentNameAnnotateHooksMock } = vi.hoisted(() => {
   return {
-    babelCoreImportMock: vi.fn(),
-    transformAsyncMock: vi.fn(async (code: string) => ({ code, map: null })),
-    annotationTransformMock,
-    createOxcComponentNameAnnotateHooksMock: vi.fn(() => ({
-      transform: annotationTransformMock,
+    createComponentNameAnnotateHooksMock: vi.fn(() => ({
+      transform: vi.fn(async () => ({ code: 'annotated', map: null })),
     })),
-    getOxcParseAstAsyncMock: vi.fn(),
   };
 });
 
-vi.mock('@babel/core', () => {
-  babelCoreImportMock();
+vi.mock('../../src/core', async importOriginal => {
   return {
-    transformAsync: transformAsyncMock,
-  };
-});
-
-vi.mock('../../src/core/component-annotation-oxc', () => {
-  return {
-    createOxcComponentNameAnnotateHooks: createOxcComponentNameAnnotateHooksMock,
-    getOxcParseAstAsync: getOxcParseAstAsyncMock,
+    ...(await importOriginal<typeof Core>()),
+    createComponentNameAnnotateHooks: createComponentNameAnnotateHooksMock,
   };
 });
 
@@ -52,29 +33,7 @@ test('Rollup plugin should exist', () => {
   expect(typeof sentryRollupPlugin).toBe('function');
 });
 
-test('component annotations only load Babel when the fast path cannot annotate a file', async () => {
-  expect(babelCoreImportMock).not.toHaveBeenCalled();
-
-  const hooks = createComponentNameAnnotateHooks([], false);
-
-  annotationTransformMock.mockResolvedValueOnce(null as never);
-  await expect(hooks.transform('const x = 1;', '/src/plain.js')).resolves.toBeNull();
-
-  await expect(hooks.transform('export function App() { return <div />; }', '/src/app.jsx')).resolves.toEqual({
-    code: 'fast-path',
-    map: null,
-  });
-
-  expect(babelCoreImportMock).not.toHaveBeenCalled();
-
-  annotationTransformMock.mockResolvedValueOnce(undefined as never);
-  await hooks.transform('export function App() { return <div />; }', '/src/app.jsx');
-
-  expect(babelCoreImportMock).toHaveBeenCalledTimes(1);
-  expect(transformAsyncMock).toHaveBeenCalledTimes(1);
-});
-
-describe('annotation fast path', () => {
+describe('component annotation', () => {
   const code = 'export function App() { return <div />; }';
 
   beforeEach(() => {
@@ -84,46 +43,48 @@ describe('annotation fast path', () => {
   it.each<[string, 'rollup' | 'vite', string | undefined]>([
     ['Rollup', 'rollup', undefined],
     ['Vite 7', 'vite', '7'],
-  ])('uses the fast path with oxc-parser for %s', async (_name, buildTool, majorVersion) => {
+  ])('uses the default parser for %s', async (_name, buildTool, majorVersion) => {
     const plugin = _rollupPluginInternal(
       { release: { inject: false }, reactComponentAnnotation: { enabled: true } },
       buildTool,
       majorVersion,
     ) as Plugin;
 
-    await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
+    await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'annotated', map: null });
 
-    expect(createOxcComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], getOxcParseAstAsyncMock, false);
-    expect(annotationTransformMock).toHaveBeenCalledTimes(1);
-    expect(transformAsyncMock).not.toHaveBeenCalled();
+    expect(createComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], false, {
+      getParseAstAsync: undefined,
+      logger: expect.anything(),
+    });
   });
 
-  it("uses the fast path with Vite's parser for Vite 8", async () => {
+  it("uses Vite's parser for Vite 8", async () => {
     const plugin = _rollupPluginInternal(
       { release: { inject: false }, reactComponentAnnotation: { enabled: true } },
       'vite',
       '8',
     ) as Plugin;
 
-    await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
+    await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'annotated', map: null });
 
-    expect(createOxcComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], expect.any(Function), false);
-    expect(createOxcComponentNameAnnotateHooksMock).not.toHaveBeenCalledWith([], getOxcParseAstAsyncMock, false);
-    expect(annotationTransformMock).toHaveBeenCalledTimes(1);
-    expect(transformAsyncMock).not.toHaveBeenCalled();
+    expect(createComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], false, {
+      getParseAstAsync: expect.any(Function),
+      logger: expect.anything(),
+    });
   });
 
-  it('uses the fast path when injecting into HTML', async () => {
+  it('passes the HTML injection option', async () => {
     const plugin = _rollupPluginInternal(
       { release: { inject: false }, reactComponentAnnotation: { enabled: true, _experimentalInjectIntoHtml: true } },
       'rollup',
     ) as Plugin;
 
-    await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
+    await runTransform(plugin, code, '/src/app.jsx');
 
-    expect(createOxcComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], getOxcParseAstAsyncMock, true);
-    expect(annotationTransformMock).toHaveBeenCalledTimes(1);
-    expect(transformAsyncMock).not.toHaveBeenCalled();
+    expect(createComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], true, {
+      getParseAstAsync: undefined,
+      logger: expect.anything(),
+    });
   });
 });
 
