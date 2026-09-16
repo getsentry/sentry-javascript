@@ -236,19 +236,13 @@ async function run(): Promise<void> {
 
     const cwd = tmpDirPath;
     // Resolve variant if needed
-    const { buildCommand, assertCommand, testLabel, matchedVariantLabel, skip } = variantLabel
+    const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
       ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
       : {
           buildCommand: 'pnpm test:build',
           assertCommand: 'pnpm test:assert',
           testLabel: testAppPath,
         };
-
-    if (skip) {
-      console.log(`\n\nSkipping variant "${matchedVariantLabel ?? variantLabel}" (marked skip).\n\n`);
-      await rm(tmpDirPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
-      continue;
-    }
 
     // Print which variant we're using if found
     if (matchedVariantLabel) {
