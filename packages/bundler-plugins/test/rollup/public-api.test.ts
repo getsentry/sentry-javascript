@@ -6,18 +6,18 @@ import { describe, it, expect, test, beforeEach, vi } from 'vitest';
 const {
   babelCoreImportMock,
   transformAsyncMock,
-  viteAnnotationTransformMock,
-  createViteComponentNameAnnotateHooksMock,
+  annotationTransformMock,
+  createOxcComponentNameAnnotateHooksMock,
   getOxcParseAstAsyncMock,
 } = vi.hoisted(() => {
-  const viteAnnotationTransformMock = vi.fn(async () => ({ code: 'fast-path', map: null }));
+  const annotationTransformMock = vi.fn(async () => ({ code: 'fast-path', map: null }));
 
   return {
     babelCoreImportMock: vi.fn(),
     transformAsyncMock: vi.fn(async (code: string) => ({ code, map: null })),
-    viteAnnotationTransformMock,
-    createViteComponentNameAnnotateHooksMock: vi.fn(() => ({
-      transform: viteAnnotationTransformMock,
+    annotationTransformMock,
+    createOxcComponentNameAnnotateHooksMock: vi.fn(() => ({
+      transform: annotationTransformMock,
     })),
     getOxcParseAstAsyncMock: vi.fn(),
   };
@@ -30,9 +30,9 @@ vi.mock('@babel/core', () => {
   };
 });
 
-vi.mock('../../src/core/component-annotation-vite', () => {
+vi.mock('../../src/core/component-annotation-oxc', () => {
   return {
-    createViteComponentNameAnnotateHooks: createViteComponentNameAnnotateHooksMock,
+    createOxcComponentNameAnnotateHooks: createOxcComponentNameAnnotateHooksMock,
     getOxcParseAstAsync: getOxcParseAstAsyncMock,
   };
 });
@@ -86,8 +86,8 @@ describe('annotation fast path', () => {
 
     await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
 
-    expect(createViteComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], getOxcParseAstAsyncMock);
-    expect(viteAnnotationTransformMock).toHaveBeenCalledTimes(1);
+    expect(createOxcComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], getOxcParseAstAsyncMock);
+    expect(annotationTransformMock).toHaveBeenCalledTimes(1);
     expect(transformAsyncMock).not.toHaveBeenCalled();
   });
 
@@ -100,9 +100,9 @@ describe('annotation fast path', () => {
 
     await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
 
-    expect(createViteComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], expect.any(Function));
-    expect(createViteComponentNameAnnotateHooksMock).not.toHaveBeenCalledWith([], getOxcParseAstAsyncMock);
-    expect(viteAnnotationTransformMock).toHaveBeenCalledTimes(1);
+    expect(createOxcComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], expect.any(Function));
+    expect(createOxcComponentNameAnnotateHooksMock).not.toHaveBeenCalledWith([], getOxcParseAstAsyncMock);
+    expect(annotationTransformMock).toHaveBeenCalledTimes(1);
     expect(transformAsyncMock).not.toHaveBeenCalled();
   });
 
@@ -115,7 +115,7 @@ describe('annotation fast path', () => {
 
     await runTransform(plugin, code, '/src/app.jsx');
 
-    expect(viteAnnotationTransformMock).not.toHaveBeenCalled();
+    expect(annotationTransformMock).not.toHaveBeenCalled();
     expect(transformAsyncMock).toHaveBeenCalledTimes(1);
   });
 });

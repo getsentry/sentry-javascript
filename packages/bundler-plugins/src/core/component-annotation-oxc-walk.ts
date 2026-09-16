@@ -1,17 +1,17 @@
-import type { AstNode, AttributeInsertion, FragmentContext, JSXRootNode } from './component-annotation-vite-ast';
+import type { AstNode, AttributeInsertion, FragmentContext, JSXRootNode } from './component-annotation-oxc-ast';
 import {
   addPendingAttributes,
   getStringName,
   isJSXElement,
   isJSXRoot,
   toAttributeInsertions,
-} from './component-annotation-vite-jsx';
-import { isAstNode, isObjectLike, walkAst } from './component-annotation-vite-ast';
-import { collectFragmentContext } from './component-annotation-vite-fragments';
+} from './component-annotation-oxc-jsx';
+import { isAstNode, isObjectLike, walkAst } from './component-annotation-oxc-ast';
+import { collectFragmentContext } from './component-annotation-oxc-fragments';
 
 type ComponentJSXRoots = { name: string; roots: JSXRootNode[] };
 
-export function collectViteComponentAnnotationInsertions(
+export function collectOxcComponentAnnotationInsertions(
   code: string,
   ast: AstNode,
   ignoredComponents: string[],

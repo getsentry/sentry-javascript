@@ -18,7 +18,7 @@ import {
 import type {
   ComponentAnnotationTransformMeta,
   ComponentAnnotationTransformResult,
-} from '../core/component-annotation-vite';
+} from '../core/component-annotation-oxc';
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
@@ -176,9 +176,9 @@ export function _rollupPluginInternal(
           return {
             transform(code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
               if (!fastAnnotationHooksPromise) {
-                fastAnnotationHooksPromise = import('../core/component-annotation-vite').then(
-                  ({ createViteComponentNameAnnotateHooks, getOxcParseAstAsync }) =>
-                    createViteComponentNameAnnotateHooks(
+                fastAnnotationHooksPromise = import('../core/component-annotation-oxc').then(
+                  ({ createOxcComponentNameAnnotateHooks, getOxcParseAstAsync }) =>
+                    createOxcComponentNameAnnotateHooks(
                       options.reactComponentAnnotation?.ignoredComponents || [],
                       // Vite 8 already loads an oxc-based parser, so reuse it.
                       buildTool === 'vite' && buildToolMajorVersion === '8'

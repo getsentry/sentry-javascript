@@ -5,11 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import componentNameAnnotatePlugin from '../../src/babel-plugin';
 import {
-  createViteComponentNameAnnotateHooks,
+  createOxcComponentNameAnnotateHooks,
   getOxcParseAstAsync,
   type ComponentAnnotationTransformResult,
-} from '../../src/core/component-annotation-vite';
-import type { ParseAstAsync } from '../../src/core/component-annotation-vite-ast';
+} from '../../src/core/component-annotation-oxc';
+import type { ParseAstAsync } from '../../src/core/component-annotation-oxc-ast';
 
 type Annotation = {
   elementName: string;
@@ -82,13 +82,13 @@ async function annotateWithBabel(code: string, id: string, ignoredComponents: st
   return collectAnnotations(result?.code ?? '', id);
 }
 
-async function annotateWithVite(
+async function annotateWithOxc(
   code: string,
   id: string,
   ignoredComponents: string[] = [],
   getParseAstAsync: () => Promise<ParseAstAsync | null> = async () => parseAstAsync,
 ): Promise<ComponentAnnotationTransformResult> {
-  const hooks = createViteComponentNameAnnotateHooks(ignoredComponents, getParseAstAsync);
+  const hooks = createOxcComponentNameAnnotateHooks(ignoredComponents, getParseAstAsync);
 
   return hooks.transform(code, id);
 }
@@ -96,7 +96,7 @@ async function annotateWithVite(
 describe.each<[string, () => Promise<ParseAstAsync | null>]>([
   ['@babel/parser', async () => parseAstAsync],
   ['oxc-parser', getOxcParseAstAsync],
-])('createViteComponentNameAnnotateHooks with %s', (_parserName, getParseAstAsync) => {
+])('createOxcComponentNameAnnotateHooks with %s', (_parserName, getParseAstAsync) => {
   it.each([
     [
       'function declarations and nested children',
@@ -278,10 +278,10 @@ export const List = <T,>(props: Props<T>) => {
       [],
     ],
   ])('matches Babel annotations for %s', async (_name, id, code, ignoredComponents) => {
-    const viteResult = await annotateWithVite(code, id, ignoredComponents, getParseAstAsync);
+    const oxcResult = await annotateWithOxc(code, id, ignoredComponents, getParseAstAsync);
 
-    expect(viteResult).toBeTruthy();
-    expect(collectAnnotations(viteResult?.code.toString() ?? '', id)).toEqual(
+    expect(oxcResult).toBeTruthy();
+    expect(collectAnnotations(oxcResult?.code.toString() ?? '', id)).toEqual(
       await annotateWithBabel(code, id, ignoredComponents),
     );
   });
@@ -290,10 +290,10 @@ export const List = <T,>(props: Props<T>) => {
     const code = `export const App = () => <${elementName} />;`;
     const id = '/src/app.jsx';
 
-    const viteResult = await annotateWithVite(code, id, [], getParseAstAsync);
+    const oxcResult = await annotateWithOxc(code, id, [], getParseAstAsync);
 
-    expect(viteResult).toBeTruthy();
-    expect(collectAnnotations(viteResult?.code.toString() ?? '', id)).toEqual([
+    expect(oxcResult).toBeTruthy();
+    expect(collectAnnotations(oxcResult?.code.toString() ?? '', id)).toEqual([
       {
         elementName,
         attributes: {
@@ -306,14 +306,14 @@ export const List = <T,>(props: Props<T>) => {
   });
 });
 
-describe('createViteComponentNameAnnotateHooks', () => {
+describe('createOxcComponentNameAnnotateHooks', () => {
   it('uses the native magicString object from transform metadata when it is available', async () => {
     const code = `export function App() {
   return <Custom />;
 }`;
     const id = '/src/app.jsx';
     const magicString = new MagicString(code);
-    const hooks = createViteComponentNameAnnotateHooks([], async () => parseAstAsync);
+    const hooks = createOxcComponentNameAnnotateHooks([], async () => parseAstAsync);
 
     const result = await hooks.transform(code, id, { magicString });
 
@@ -321,16 +321,16 @@ describe('createViteComponentNameAnnotateHooks', () => {
     expect(result?.code.toString()).toContain(`data-sentry-component="App"`);
   });
 
-  it('returns null without parsing when the file cannot contain public Vite annotations', async () => {
+  it('returns null without parsing when the file cannot contain annotations', async () => {
     const parse = vi.fn(parseAstAsync);
-    const hooks = createViteComponentNameAnnotateHooks([], async () => parse);
+    const hooks = createOxcComponentNameAnnotateHooks([], async () => parse);
 
     await expect(hooks.transform('const value = 1;', '/src/app.js')).resolves.toBeNull();
     expect(parse).not.toHaveBeenCalled();
   });
 
   it('returns undefined when parsing fails so callers can fall back to Babel', async () => {
-    const hooks = createViteComponentNameAnnotateHooks([], async () => {
+    const hooks = createOxcComponentNameAnnotateHooks([], async () => {
       throw new Error('parser unavailable');
     });
 
@@ -338,7 +338,7 @@ describe('createViteComponentNameAnnotateHooks', () => {
   });
 
   it('returns undefined when oxc-parser reports a syntax error so callers can fall back to Babel', async () => {
-    const hooks = createViteComponentNameAnnotateHooks([], getOxcParseAstAsync);
+    const hooks = createOxcComponentNameAnnotateHooks([], getOxcParseAstAsync);
 
     await expect(hooks.transform('export const App = () => <Custom>;', '/src/app.tsx')).resolves.toBeUndefined();
   });
