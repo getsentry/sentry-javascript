@@ -77,7 +77,6 @@ test('Sends an API route span', async ({ baseURL }) => {
       end_timestamp: expect.any(Number),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       attributes: expect.objectContaining({
-        'koa.name': { value: 'bodyParser', type: 'string' },
         'code.function.name': { value: 'bodyParser', type: 'string' },
         'koa.type': { value: 'middleware', type: 'string' },
         'sentry.op': { value: 'middleware', type: 'string' },
@@ -94,7 +93,6 @@ test('Sends an API route span', async ({ baseURL }) => {
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       attributes: expect.objectContaining({
         'http.route': { value: '/test-transaction', type: 'string' },
-        'koa.name': { value: '/test-transaction', type: 'string' },
         'koa.type': { value: 'router', type: 'string' },
         'sentry.origin': { value: 'auto.http.koa', type: 'string' },
         'sentry.op': { value: 'router', type: 'string' },

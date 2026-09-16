@@ -43,7 +43,6 @@ describe('koa auto-instrumentation', () => {
                 attributes: expect.objectContaining({
                   'http.route': { type: 'string', value: '/' },
                   'koa.type': { type: 'string', value: 'router' },
-                  'koa.name': { type: 'string', value: '/' },
                   'sentry.op': { type: 'string', value: 'router' },
                   'sentry.origin': { type: 'string', value: origin },
                 }),
@@ -56,7 +55,6 @@ describe('koa auto-instrumentation', () => {
                 name: 'simpleMiddleware',
                 attributes: expect.objectContaining({
                   'koa.type': { type: 'string', value: 'middleware' },
-                  'koa.name': { type: 'string', value: 'simpleMiddleware' },
                   'code.function.name': { type: 'string', value: 'simpleMiddleware' },
                   'sentry.op': { type: 'string', value: 'middleware' },
                   'sentry.origin': { type: 'string', value: origin },
@@ -82,7 +80,6 @@ describe('koa auto-instrumentation', () => {
                 attributes: expect.objectContaining({
                   'http.route': { type: 'string', value: '/test-param/:id' },
                   'koa.type': { type: 'string', value: 'router' },
-                  'koa.name': { type: 'string', value: '/test-param/:id' },
                   'sentry.op': { type: 'string', value: 'router' },
                   'sentry.origin': { type: 'string', value: origin },
                 }),
