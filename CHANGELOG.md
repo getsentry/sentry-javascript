@@ -8,16 +8,13 @@
 
 ### Important Changes
 
-- **feat(v10/core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders` ([#24339](https://github.com/getsentry/sentry-javascript/pull/24339))**
-
-  Passing `true`, `false`, `{ allow: [...] }` or `{ deny: [...] }` now applies to both request and response headers; `{ request, response }` still controls each direction independently.
-
 - **feat(v10/effect): Capture errors through the Effect v4 `ErrorReporter` API ([#24445](https://github.com/getsentry/sentry-javascript/pull/24445))**
 
   On Effect v4, `Sentry.effectLayer` now registers a Sentry `ErrorReporter`. Failures that pass through `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC reporting boundaries are captured automatically, with `ErrorReporter.ignore`, `ErrorReporter.severity` and `ErrorReporter.attributes` annotations respected. Nothing changes on Effect v3.
 
 ### Other Changes
 
+- feat(v10/core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders` ([#24339](https://github.com/getsentry/sentry-javascript/pull/24339))
 - fix(v10/browser): Release the XHR `virtualError` once the request completed ([#24307](https://github.com/getsentry/sentry-javascript/pull/24307))
 - fix(v10/browser-utils): Skip nullish LCP entries in vendored web-vitals ([#24349](https://github.com/getsentry/sentry-javascript/pull/24349))
 - fix(v10/bundler-plugins): Stamp debug IDs onto emitted source maps when `disable-upload` is set ([#24332](https://github.com/getsentry/sentry-javascript/pull/24332))
