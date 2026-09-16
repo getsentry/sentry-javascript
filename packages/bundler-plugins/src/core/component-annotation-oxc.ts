@@ -149,8 +149,9 @@ async function annotateWithOxcParser(
 
   return {
     code: magicString.toString(),
+    // No `file`, because magic-string would then make `source` relative to it
+    // and drop the directory from `sources`.
     map: magicString.generateMap?.({
-      file: id,
       source: idWithoutQueryAndHash,
       includeContent: true,
       hires: true,

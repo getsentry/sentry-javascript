@@ -52,15 +52,22 @@ test('Rollup plugin should exist', () => {
   expect(typeof sentryRollupPlugin).toBe('function');
 });
 
-test('component annotations only load Babel when the Babel transform runs', async () => {
+test('component annotations only load Babel when the fast path cannot annotate a file', async () => {
   expect(babelCoreImportMock).not.toHaveBeenCalled();
 
   const hooks = createComponentNameAnnotateHooks([], false);
 
-  await hooks.transform('const x = 1;', '/src/plain.js');
+  annotationTransformMock.mockResolvedValueOnce(null as never);
+  await expect(hooks.transform('const x = 1;', '/src/plain.js')).resolves.toBeNull();
+
+  await expect(hooks.transform('export function App() { return <div />; }', '/src/app.jsx')).resolves.toEqual({
+    code: 'fast-path',
+    map: null,
+  });
 
   expect(babelCoreImportMock).not.toHaveBeenCalled();
 
+  annotationTransformMock.mockResolvedValueOnce(undefined as never);
   await hooks.transform('export function App() { return <div />; }', '/src/app.jsx');
 
   expect(babelCoreImportMock).toHaveBeenCalledTimes(1);
