@@ -31,6 +31,5 @@ export const mastra = new Mastra({
 /**
  * TODO
  *
- * 1. Bubbled-up tool errors aren't captured as issues — only reflected on the span (status + error.type); the exporter leaves captureException to the app.
- * 2. Parametrized custom routes aren't route-instrumented on Mastra's Hono server (named from the URL, not a route pattern).
+ * 1. Parametrized custom routes aren't route-instrumented on Mastra's Hono server (named from the URL, not a route pattern).
  */
