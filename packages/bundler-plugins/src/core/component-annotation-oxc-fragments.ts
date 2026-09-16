@@ -1,6 +1,6 @@
-import type { AstNode, FragmentContext } from './component-annotation-vite-ast';
-import { isAstNode, isObjectLike, walkAst } from './component-annotation-vite-ast';
-import { getStringName } from './component-annotation-vite-jsx';
+import type { AstNode, FragmentContext } from './component-annotation-oxc-ast';
+import { isAstNode, isObjectLike, walkAst } from './component-annotation-oxc-ast';
+import { getStringName } from './component-annotation-oxc-jsx';
 
 export function collectFragmentContext(ast: AstNode): FragmentContext {
   const context: FragmentContext = {

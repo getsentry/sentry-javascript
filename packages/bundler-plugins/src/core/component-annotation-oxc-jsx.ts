@@ -12,8 +12,8 @@ import type {
   JSXFragmentNode,
   JSXOpeningElementNode,
   JSXRootNode,
-} from './component-annotation-vite-ast';
-import { isAstNode, isObjectLike } from './component-annotation-vite-ast';
+} from './component-annotation-oxc-ast';
+import { isAstNode, isObjectLike } from './component-annotation-oxc-ast';
 
 const UNKNOWN_ELEMENT_NAME = 'unknown';
 const WEB_ATTRIBUTE_NAMES = [WEB_ELEMENT_NAME, WEB_COMPONENT_NAME, WEB_SOURCE_FILE_NAME] as const;
