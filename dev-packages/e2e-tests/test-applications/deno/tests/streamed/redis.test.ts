@@ -2,29 +2,14 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import type { SerializedStreamedSpan } from '@sentry/core';
 
-// `Deno.serve` has no route information, so with span streaming the http.server segment is
-// named after the method only; the path lives in `url.path`.
-function isSegmentFor(path: string): (span: SerializedStreamedSpan) => boolean {
-  return span => getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === path;
-}
-
-function isRedisCommand(span: SerializedStreamedSpan): boolean {
-  return getSpanOp(span) === 'db.query';
-}
-
-// `db.query.text` carries the key, so with span streaming a redis command span is named
-// `{db.operation.name} {server.address}:{server.port}` instead.
-function expectedCommandName(span: SerializedStreamedSpan): string {
-  const { 'db.operation.name': operation, 'server.address': address, 'server.port': port } = span.attributes;
-  return `${operation?.value} ${address?.value}:${port?.value}`;
-}
+import { expectedCommandName, isRedisCommand, isSegmentFor } from './utils';
 
 test('GET command emits an http.server segment containing a db.query child span', async ({ baseURL }) => {
   // Each incoming request gets a Sentry http.server segment span (via the
   // default denoServeIntegration); the redis command runs inside it, so the
   // child span joins that trace.
   const spansPromise = collectStreamedSpans(
-    'deno-redis',
+    'deno',
     spans => spans.some(isSegmentFor('/redis-get')) && spans.some(isRedisCommand),
   );
 
@@ -49,7 +34,7 @@ test('GET command emits an http.server segment containing a db.query child span'
 
 test('SET then GET emit two db.query child spans on the same trace', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpans(
-    'deno-redis',
+    'deno',
     spans => spans.some(isSegmentFor('/redis-set-get')) && spans.filter(isRedisCommand).length >= 2,
   );
 
@@ -71,7 +56,7 @@ test('MULTI batch emits a PIPELINE/MULTI batch span', async ({ baseURL }) => {
   const isBatchSpan = (span: SerializedStreamedSpan) => span.name === 'MULTI' || span.name === 'PIPELINE';
 
   const spansPromise = collectStreamedSpans(
-    'deno-redis',
+    'deno',
     spans => spans.some(isSegmentFor('/redis-multi')) && spans.some(isBatchSpan),
   );
 

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends transaction with Sentry.startSpan', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('deno-static', event => {
+  const transactionPromise = waitForTransaction('deno', event => {
     return event?.spans?.some(span => span.description === 'test-sentry-span') ?? false;
   });
 
@@ -21,7 +21,7 @@ test('Sends transaction with Sentry.startSpan', async ({ baseURL }) => {
 });
 
 test('Sends transaction with OTel tracer.startSpan despite pre-existing provider', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('deno-static', event => {
+  const transactionPromise = waitForTransaction('deno', event => {
     return event?.spans?.some(span => span.description === 'test-otel-span') ?? false;
   });
 
@@ -45,7 +45,7 @@ test('Sends transaction with OTel tracer.startSpan despite pre-existing provider
 });
 
 test('Sends transaction with OTel tracer.startActiveSpan', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('deno-static', event => {
+  const transactionPromise = waitForTransaction('deno', event => {
     return event?.spans?.some(span => span.description === 'test-otel-active-span') ?? false;
   });
 
@@ -68,7 +68,7 @@ test('Sends transaction with OTel tracer.startActiveSpan', async ({ baseURL }) =
 });
 
 test('OTel span appears as child of Sentry span (interop)', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('deno-static', event => {
+  const transactionPromise = waitForTransaction('deno', event => {
     return event?.spans?.some(span => span.description === 'sentry-parent') ?? false;
   });
 
