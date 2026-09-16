@@ -3,8 +3,8 @@ import {
   WEB_COMPONENT_NAME,
   WEB_ELEMENT_NAME,
   WEB_SOURCE_FILE_NAME,
-} from './component-annotation';
-import type { ComponentAnnotationAttribute } from './component-annotation';
+} from '../babel-plugin/component-annotation';
+import type { ComponentAnnotationAttribute } from '../babel-plugin/component-annotation';
 import type {
   AttributeInsertion,
   FragmentContext,

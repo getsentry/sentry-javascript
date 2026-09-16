@@ -1,8 +1,12 @@
-import { DEFAULT_IGNORED_ELEMENTS } from './component-annotation-constants';
+import { DEFAULT_IGNORED_ELEMENTS } from './constants';
 
 export const WEB_COMPONENT_NAME = 'data-sentry-component';
 export const WEB_ELEMENT_NAME = 'data-sentry-element';
 export const WEB_SOURCE_FILE_NAME = 'data-sentry-source-file';
+
+export const NATIVE_COMPONENT_NAME = 'dataSentryComponent';
+export const NATIVE_ELEMENT_NAME = 'dataSentryElement';
+export const NATIVE_SOURCE_FILE_NAME = 'dataSentrySourceFile';
 
 export type ComponentAnnotationAttributeNames = readonly [string, string, string];
 
