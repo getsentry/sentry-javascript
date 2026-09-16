@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Outbound fetch inside Sentry span creates transaction', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('deno-static', event => {
+  const transactionPromise = waitForTransaction('deno', event => {
     return event?.spans?.some(span => span.description === 'test-outgoing-fetch') ?? false;
   });
 

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should create AI pipeline spans with Vercel AI SDK', async ({ baseURL }) => {
-  const aiTransactionPromise = waitForTransaction('deno-static', event => {
+  const aiTransactionPromise = waitForTransaction('deno', event => {
     return event?.spans?.some(span => span.description === 'ai-test') ?? false;
   });
 

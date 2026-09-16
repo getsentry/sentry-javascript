@@ -1,15 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { getSpanOp } from '@sentry-internal/test-utils';
 
-// `Deno.serve` has no route information, so with span streaming the http.server segment is
-// named after the method only and the path lives in `url.path`.
-function collectRequestSpans(path: string) {
-  return collectStreamedSpans('deno', spans =>
-    spans.some(
-      span => getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === path,
-    ),
-  );
-}
+import { collectRequestSpans } from './utils';
 
 const SEGMENT_SPAN = {
   attributes: {

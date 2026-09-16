@@ -2,11 +2,11 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction, waitForError } from '@sentry-internal/test-utils';
 
 test('should link AI errors to the correct trace', async ({ baseURL }) => {
-  const aiTransactionPromise = waitForTransaction('deno-static', event => {
+  const aiTransactionPromise = waitForTransaction('deno', event => {
     return event?.spans?.some(span => span.description === 'ai-error-test') ?? false;
   });
 
-  const errorEventPromise = waitForError('deno-static', event => {
+  const errorEventPromise = waitForError('deno', event => {
     return event.exception?.values?.[0]?.value?.includes('Tool call failed') ?? false;
   });
 
