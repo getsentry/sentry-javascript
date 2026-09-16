@@ -72,6 +72,34 @@ const HttpLive = HttpRouter.serve(Routes).pipe(
 NodeRuntime.runMain(Layer.launch(HttpLive));
 ```
 
+### Error reporting
+
+On Effect v4, `Sentry.effectLayer` registers a Sentry `ErrorReporter`. Failures
+that pass through `Effect.withErrorReporting`, `ErrorReporter.report` or the
+built-in HTTP and RPC reporting boundaries are captured automatically. The
+`ErrorReporter.ignore`, `ErrorReporter.severity` and `ErrorReporter.attributes`
+annotations are respected: ignored errors are skipped, the severity becomes the
+event level and the attributes are attached as extra data.
+
+```typescript
+import { Data, Effect, ErrorReporter } from 'effect';
+
+class RateLimitError extends Data.TaggedError('RateLimitError')<{ readonly retryAfter: number }> {
+  readonly [ErrorReporter.severity] = 'Warn' as const;
+  readonly [ErrorReporter.attributes] = { retryAfter: this.retryAfter };
+}
+
+const program = Effect.fail(new RateLimitError({ retryAfter: 60 })).pipe(Effect.withErrorReporting);
+```
+
+Reporters registered with `ErrorReporter.layer` replace the current set, so add
+your own reporters with `mergeWithExisting: true` or provide them below the
+Sentry layer to keep the Sentry reporter:
+
+```typescript
+const SentryLive = Sentry.effectLayer({ dsn: '__DSN__' }).pipe(Layer.provide(ErrorReporter.layer([consoleReporter])));
+```
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/effect/)
