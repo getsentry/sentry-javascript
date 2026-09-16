@@ -21,11 +21,20 @@ Version 11 of the Sentry JavaScript SDK primarily focuses on better OpenTelemetr
 - **Node and TypeScript versions:** Node **20.19.0** is the new minimum and we raised the minimum TypeScript version.
 - **Framework versions:** We raised the minimum version of various supported frameworks.
 
-Since some of these changes are not caught by TypeScript or other tooling, we recommend reading through this entire guide before upgrading. For an early overview see [#22056 "What's coming in v11"](https://github.com/getsentry/sentry-javascript/issues/22056).
+Many of these changes are not caught by TypeScript or other tooling. Work through the checklist below, then read the section for the SDKs you use. For an early overview see [#22056 "What's coming in v11"](https://github.com/getsentry/sentry-javascript/issues/22056).
 
-Version 11 of the SDK is compatible with Sentry self-hosted versions 26.4.2 or higher. Lower versions may continue to
-work, but are not supported. For the best experience we recommend updating your self-hosted Sentry to the latest
-version.
+## Upgrade checklist
+
+Most apps only need to go through this list. Each item links to the details.
+
+1. **Check version support:** Node.js 20.19.0+, TypeScript 5.0.4+, and the new framework minimums. See [Version support](#1-version-support).
+2. **Decide on data collection:** `sendDefaultPii` is gone, and leaving `dataCollection` unset now collects more than v10 did. See [`dataCollection`](#senddefaultpii-is-replaced-by-datacollection).
+3. **Remove `enableLogs` and `enableMetrics`:** logs and metrics are captured as soon as you use them. See [Logs and metrics](#enablelogs-and-enablemetrics-were-removed).
+4. **Migrate span hooks:** `beforeSendTransaction` and `ignoreTransactions` no longer do anything, and `beforeSendSpan` receives a new format. See [Span streaming](#span-streaming-is-now-the-default).
+5. **Check anything that matches on span names, ops or attributes:** dashboards, alerts, dynamic sampling rules, `ignoreSpans` and `tracesSampler`. See [Span names, ops and attributes](#span-names-ops-and-attributes).
+6. **Server-side:** preload with `--import` instead of `--require`, and drop `setup*ErrorHandler` calls. If you run your own OpenTelemetry setup, read [OpenTelemetry](#opentelemetry). See [Server-side SDKs](#4-server-side-sdks).
+7. **Update moved imports:** build plugins and a few entry points moved to subpaths. See [Moved imports](#build-plugins-and-other-exports-moved-to-subpaths).
+8. **Read the section for your framework or platform:** see [Framework and platform SDKs](#6-framework-and-platform-sdks).
 
 ## 1. Version support
 
@@ -1475,12 +1484,33 @@ tracing loaders and actions.
 - [`sourceMapsUploadOptions` was removed](#sourcemapsuploadoptions-was-removed).
 - Load and server route spans are named after the wrapped function, see [Span names](#span-names).
 
-### `@sentry/server-utils`
+## 7. Removed internal exports
 
-- The following exports were removed from `@sentry/server-utils`. They were only reachable by importing from `@sentry/server-utils` directly (no user-facing SDK re-exported them) and were effectively internal; the underlying functionality is unchanged and still used within the SDK.
-  - `instrumentPrisma`: Prisma is instrumented via `prismaIntegration` and works out of the box, so manual instrumentation is no longer exposed.
-  - `defaultDbStatementSerializer`: the default Redis command statement serializer helper.
-  - Types: `PrismaInstrumentationConfig`, `PrismaOptions`, `RedisDiagnosticChannelsOptions`, `SentryTracingChannel`, `TracingChannelLifeCycleOptions`, `TracingChannelBindingHandle`.
+These exports were internal or low-level and are unlikely to affect your app. TypeScript reports them as missing if you do use them.
+
+<details>
+<summary>All removed internal exports</summary>
+
+**`@sentry/core`:**
+
+- `addAutoIpAddressToUser` (deprecated).
+- `isStreamedBeforeSendSpanCallback`.
+
+**`@sentry/server-utils`:** these were only reachable by importing from `@sentry/server-utils` directly. The underlying functionality is unchanged.
+
+- `instrumentPrisma`. Prisma is instrumented via `prismaIntegration` and works out of the box.
+- `defaultDbStatementSerializer`, the default Redis command statement serializer.
+- Types: `PrismaInstrumentationConfig`, `PrismaOptions`, `RedisDiagnosticChannelsOptions`, `SentryTracingChannel`, `TracingChannelLifeCycleOptions`, `TracingChannelBindingHandle`.
+
+**AI integrations:** provider instrumentation internals that were exported from `@sentry/core`:
+
+- Attribute, stream and util helpers: `extractOpenAiRequestAttributes`, `addOpenAiRequestAttributes`, `addOpenAiResponseAttributes`, `extractOpenAiRequestParameters`, `instrumentOpenAiStream`, `extractAnthropicRequestAttributes`, `addAnthropicRequestAttributes`, `addAnthropicResponseAttributes`, `instrumentAsyncIterableStream`, `instrumentMessageStream`, `extractGoogleGenAIRequestAttributes`, `addGoogleGenAIRequestAttributes`, `addGoogleGenAIResponseAttributes`, `instrumentGoogleGenAIStream`, `getProviderMetadataAttributes`, `getTruncatedJsonString`, `shouldEnableTruncation`, `resolveAIRecordingOptions`, `wrapToolsWithSpans`, `extractLLMFromParams`, `extractAgentNameFromParams`, `instrumentCompiledGraphInvoke`.
+- Integration-name constants: `OPENAI_INTEGRATION_NAME`, `ANTHROPIC_AI_INTEGRATION_NAME`, `GOOGLE_GENAI_INTEGRATION_NAME`, `LANGCHAIN_INTEGRATION_NAME`, `LANGGRAPH_INTEGRATION_NAME`.
+- Types: `OpenAiClient`, `OpenAiOptions`, `InstrumentedMethod`, `AnthropicAiClient`, `AnthropicAiOptions`, `AnthropicAiResponse`, `AnthropicAiInstrumentedMethod`, `GoogleGenAIClient`, `GoogleGenAIChat`, `GoogleGenAIOptions`, `GoogleGenAIResponse`, `GoogleGenAIInstrumentedMethod`, `GoogleGenAIIstrumentedMethod`, `WorkersAiClient`, `WorkersAiOptions`, `LangChainOptions`, `LangChainIntegration`, `LangGraphOptions`, `LangGraphIntegration`, `CompiledGraph`.
+- The internal `sentry.sdk_meta.gen_ai.input.messages.original_length` span attribute.
+- (Vercel AI) The internal JSON-stringify workaround for array span attributes.
+
+</details>
 
 ## No Version Support Timeline
 
