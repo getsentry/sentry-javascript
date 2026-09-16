@@ -9,7 +9,6 @@ export default makeNPMConfigVariants(
       'src/esbuild/index.ts',
       'src/webpack/index.ts',
       'src/webpack/component-annotation-transform.ts',
-      'src/babel-plugin/index.ts',
     ],
     packageSpecificConfig: {
       output: {

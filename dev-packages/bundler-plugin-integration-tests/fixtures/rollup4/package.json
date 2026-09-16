@@ -7,6 +7,7 @@
     "react": "19.2.4",
     "rollup": "4.59.0",
     "@rollup/plugin-babel": "6.0.4",
+    "@babel/preset-react": "7.23.3",
     "@rollup/plugin-node-resolve": "16.0.3",
     "@sentry/bundler-plugins": "10.67.0"
   },

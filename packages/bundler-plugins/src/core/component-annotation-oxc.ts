@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import MagicString from 'magic-string';
 
-import { KNOWN_INCOMPATIBLE_PLUGINS } from '../babel-plugin/constants';
+import { KNOWN_INCOMPATIBLE_PLUGINS } from './component-annotation-constants';
 import { stripQueryAndHashFromPath } from './utils';
 import { isAstNode } from './component-annotation-oxc-ast';
 import { collectOxcComponentAnnotationInsertions } from './component-annotation-oxc-walk';
@@ -43,7 +43,7 @@ export function getOxcParseAstAsync(): Promise<ParseAstAsync | null> {
   return oxcParseAstAsyncPromise;
 }
 
-// Keep this as a superset of JSX tag starts Babel can annotate, because a miss suppresses Babel fallback.
+// Keep this as a superset of all JSX tag starts, because a miss skips the file.
 const JSX_TAG_START_REGEXP = /<[$_\p{ID_Start}][$_\u200c\u200d\p{ID_Continue}.:-]*|<>/u;
 const JSX_FILE_REGEXP = /\.[jt]sx$/;
 
@@ -98,31 +98,18 @@ function getMagicString(
 
 async function annotateWithOxcParser(
   code: string,
-  id: string,
+  idWithoutQueryAndHash: string,
   ignoredComponents: string[],
   parseAstAsync: ParseAstAsync,
   injectIntoHtml: boolean,
   meta?: ComponentAnnotationTransformMeta,
 ): Promise<ComponentAnnotationTransformResult> {
-  const idWithoutQueryAndHash = stripQueryAndHashFromPath(id);
-
-  if (
-    !idWithoutQueryAndHash ||
-    !isAnnotationFile(idWithoutQueryAndHash) ||
-    !shouldTryParse(code) ||
-    shouldSkipIncompatibleFile(idWithoutQueryAndHash)
-  ) {
-    return null;
-  }
-
   const ast = await parseAstAsync(code, {
     lang: idWithoutQueryAndHash.endsWith('.jsx') ? 'jsx' : 'tsx',
   });
 
-  // Fall through to the Babel fallback (return undefined, not null) when the parser yields an
-  // unexpected result, mirroring the catch path — null would suppress Babel and drop annotations.
   if (!isAstNode(ast)) {
-    return undefined;
+    return null;
   }
 
   const insertions = collectOxcComponentAnnotationInsertions(
@@ -172,16 +159,35 @@ export function createOxcComponentNameAnnotateHooks(
 } {
   return {
     async transform(code, id, meta) {
+      const idWithoutQueryAndHash = stripQueryAndHashFromPath(id);
+
+      if (
+        !idWithoutQueryAndHash ||
+        !isAnnotationFile(idWithoutQueryAndHash) ||
+        !shouldTryParse(code) ||
+        shouldSkipIncompatibleFile(idWithoutQueryAndHash)
+      ) {
+        return null;
+      }
+
       try {
         const parseAstAsync = await getParseAstAsync();
 
         if (!parseAstAsync) {
-          return undefined;
+          return null;
         }
 
-        return await annotateWithOxcParser(code, id, ignoredComponents, parseAstAsync, injectIntoHtml, meta);
+        return await annotateWithOxcParser(
+          code,
+          idWithoutQueryAndHash,
+          ignoredComponents,
+          parseAstAsync,
+          injectIntoHtml,
+          meta,
+        );
       } catch {
-        return undefined;
+        // Leave files the parser cannot read unchanged. The bundler reports the syntax error.
+        return null;
       }
     },
   };

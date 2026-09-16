@@ -44,11 +44,6 @@
       "import": "./build/esm/core/index.js",
       "require": "./build/cjs/core/index.js"
     },
-    "./babel-plugin": {
-      "types": "./build/types/babel-plugin/index.d.ts",
-      "import": "./build/esm/babel-plugin/index.js",
-      "require": "./build/cjs/babel-plugin/index.js"
-    },
     "./sentry-release-injection-file": {
       "import": "./sentry-release-injection-file.js",
       "require": "./sentry-release-injection-file.js"
@@ -105,7 +100,6 @@
     }
   },
   "dependencies": {
-    "@babel/core": "^7.18.5",
     "@sentry/core": "10.67.0",
     "dotenv": "^17.4.2",
     "glob": "^13.0.6",
@@ -127,8 +121,6 @@
     }
   },
   "devDependencies": {
-    "@babel/preset-react": "^7.23.3",
-    "@types/babel__core": "^7.20.5",
     "@types/node": "^18.6.3",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",

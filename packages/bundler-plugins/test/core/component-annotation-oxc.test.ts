@@ -1,109 +1,33 @@
-import { transformAsync, traverse, types as t } from '@babel/core';
-import { parse } from '@babel/parser';
 import MagicString from 'magic-string';
+import { parseAstAsync as rolldownParseAstAsync } from 'rolldown/parseAst';
 import { describe, expect, it, vi } from 'vitest';
 
-import componentNameAnnotatePlugin, { experimentalComponentNameAnnotatePlugin } from '../../src/babel-plugin';
-import {
-  createOxcComponentNameAnnotateHooks,
-  getOxcParseAstAsync,
-  type ComponentAnnotationTransformResult,
-} from '../../src/core/component-annotation-oxc';
+import { createOxcComponentNameAnnotateHooks, getOxcParseAstAsync } from '../../src/core/component-annotation-oxc';
 import type { ParseAstAsync } from '../../src/core/component-annotation-oxc-ast';
 
-type Annotation = {
-  elementName: string;
-  attributes: Record<string, string>;
-};
-
-const SENTRY_ATTRIBUTES = new Set(['data-sentry-component', 'data-sentry-element', 'data-sentry-source-file']);
-
-async function parseAstAsync(code: string, options: { lang: 'jsx' | 'tsx' }): Promise<unknown> {
-  return parse(code, {
-    sourceType: 'module',
-    plugins: options.lang === 'tsx' ? ['jsx', 'typescript'] : ['jsx'],
-  });
-}
-
-function collectAnnotations(code: string, id: string): Annotation[] {
-  const ast = parse(code, {
-    sourceType: 'module',
-    plugins: id.endsWith('.tsx') ? ['jsx', 'typescript'] : ['jsx'],
-  });
-  const annotations: Annotation[] = [];
-
-  traverse(ast, {
-    JSXOpeningElement(path) {
-      const attributes: Record<string, string> = {};
-
-      for (const attribute of path.node.attributes) {
-        if (
-          !t.isJSXAttribute(attribute) ||
-          !t.isJSXIdentifier(attribute.name) ||
-          !SENTRY_ATTRIBUTES.has(attribute.name.name) ||
-          !t.isStringLiteral(attribute.value)
-        ) {
-          continue;
-        }
-
-        attributes[attribute.name.name] = attribute.value.value;
-      }
-
-      if (Object.keys(attributes).length > 0) {
-        annotations.push({
-          elementName: path.get('name').toString(),
-          attributes,
-        });
-      }
-    },
-  });
-
-  return annotations;
-}
-
-async function annotateWithBabel(
-  code: string,
-  id: string,
-  ignoredComponents: string[],
-  injectIntoHtml = false,
-): Promise<Annotation[]> {
-  const plugin = injectIntoHtml ? experimentalComponentNameAnnotatePlugin : componentNameAnnotatePlugin;
-  const result = await transformAsync(code, {
-    filename: id,
-    configFile: false,
-    babelrc: false,
-    plugins: [[plugin, { ignoredComponents }]],
-    parserOpts: {
-      sourceType: 'module',
-      allowAwaitOutsideFunction: true,
-      plugins: id.endsWith('.tsx') ? ['jsx', 'typescript'] : ['jsx'],
-    },
-    generatorOpts: {
-      decoratorsBeforeExport: true,
-    },
-  });
-
-  expect(result?.code).toBeDefined();
-
-  return collectAnnotations(result?.code ?? '', id);
-}
-
-async function annotateWithOxc(
+async function annotate(
   code: string,
   id: string,
   ignoredComponents: string[] = [],
-  getParseAstAsync: () => Promise<ParseAstAsync | null> = async () => parseAstAsync,
   injectIntoHtml = false,
-): Promise<ComponentAnnotationTransformResult> {
-  const hooks = createOxcComponentNameAnnotateHooks(ignoredComponents, getParseAstAsync, injectIntoHtml);
+): Promise<string | undefined> {
+  const parsers: Array<() => Promise<ParseAstAsync | null>> = [
+    getOxcParseAstAsync,
+    async () => rolldownParseAstAsync as ParseAstAsync,
+  ];
+  const [oxcResult, rolldownResult] = await Promise.all(
+    parsers.map(getParseAstAsync =>
+      createOxcComponentNameAnnotateHooks(ignoredComponents, getParseAstAsync, injectIntoHtml).transform(code, id),
+    ),
+  );
 
-  return hooks.transform(code, id);
+  // Vite 8 parses with Rolldown, everything else with oxc-parser.
+  expect(rolldownResult?.code).toBe(oxcResult?.code);
+
+  return oxcResult?.code;
 }
 
-describe.each<[string, () => Promise<ParseAstAsync | null>]>([
-  ['@babel/parser', async () => parseAstAsync],
-  ['oxc-parser', getOxcParseAstAsync],
-])('createOxcComponentNameAnnotateHooks with %s', (_parserName, getParseAstAsync) => {
+describe('createOxcComponentNameAnnotateHooks', () => {
   it.each([
     [
       'function declarations and nested children',
@@ -284,32 +208,18 @@ export const List = <T,>(props: Props<T>) => {
 };`,
       [],
     ],
-  ])('matches Babel annotations for %s', async (_name, id, code, ignoredComponents) => {
-    const oxcResult = await annotateWithOxc(code, id, ignoredComponents, getParseAstAsync);
+  ])('annotates %s', async (_name, id, code, ignoredComponents) => {
+    const result = await annotate(code, id, ignoredComponents);
 
-    expect(oxcResult).toBeTruthy();
-    expect(collectAnnotations(oxcResult?.code.toString() ?? '', id)).toEqual(
-      await annotateWithBabel(code, id, ignoredComponents),
-    );
+    expect(result).toMatchSnapshot();
   });
 
   it.each(['_Foo', '$Foo', 'Ωmega'])('parses JSX identifiers that start with %s', async elementName => {
-    const code = `export const App = () => <${elementName} />;`;
-    const id = '/src/app.jsx';
+    const result = await annotate(`export const App = () => <${elementName} />;`, '/src/app.jsx');
 
-    const oxcResult = await annotateWithOxc(code, id, [], getParseAstAsync);
-
-    expect(oxcResult).toBeTruthy();
-    expect(collectAnnotations(oxcResult?.code.toString() ?? '', id)).toEqual([
-      {
-        elementName,
-        attributes: {
-          'data-sentry-component': 'App',
-          'data-sentry-element': elementName,
-          'data-sentry-source-file': 'app.jsx',
-        },
-      },
-    ]);
+    expect(result).toBe(
+      `export const App = () => <${elementName} data-sentry-element="${elementName}" data-sentry-component="App" data-sentry-source-file="app.jsx" />;`,
+    );
   });
 
   it.each([
@@ -475,24 +385,19 @@ export const List = <T,>(props: Props<T>) => {
 };`,
       [],
     ],
-  ])('matches Babel HTML injection annotations for %s', async (_name, id, code, ignoredComponents) => {
-    const oxcResult = await annotateWithOxc(code, id, ignoredComponents, getParseAstAsync, true);
+  ])('annotates HTML elements in injection mode for %s', async (_name, id, code, ignoredComponents) => {
+    const result = await annotate(code, id, ignoredComponents, true);
 
-    expect(oxcResult).toBeTruthy();
-    expect(collectAnnotations(oxcResult?.code.toString() ?? '', id)).toEqual(
-      await annotateWithBabel(code, id, ignoredComponents, true),
-    );
+    expect(result).toMatchSnapshot();
   });
-});
 
-describe('createOxcComponentNameAnnotateHooks', () => {
   it('uses the native magicString object from transform metadata when it is available', async () => {
     const code = `export function App() {
   return <Custom />;
 }`;
     const id = '/src/app.jsx';
     const magicString = new MagicString(code);
-    const hooks = createOxcComponentNameAnnotateHooks([], async () => parseAstAsync);
+    const hooks = createOxcComponentNameAnnotateHooks([], getOxcParseAstAsync);
 
     const result = await hooks.transform(code, id, { magicString });
 
@@ -500,25 +405,31 @@ describe('createOxcComponentNameAnnotateHooks', () => {
     expect(result?.code.toString()).toContain(`data-sentry-component="App"`);
   });
 
-  it('returns null without parsing when the file cannot contain annotations', async () => {
-    const parse = vi.fn(parseAstAsync);
-    const hooks = createOxcComponentNameAnnotateHooks([], async () => parse);
+  it('returns null without loading a parser when the file cannot contain annotations', async () => {
+    const getParseAstAsync = vi.fn(getOxcParseAstAsync);
+    const hooks = createOxcComponentNameAnnotateHooks([], getParseAstAsync);
 
     await expect(hooks.transform('const value = 1;', '/src/app.js')).resolves.toBeNull();
-    expect(parse).not.toHaveBeenCalled();
+    expect(getParseAstAsync).not.toHaveBeenCalled();
   });
 
-  it('returns undefined when parsing fails so callers can fall back to Babel', async () => {
+  it('returns null when the parser cannot be loaded', async () => {
+    const hooks = createOxcComponentNameAnnotateHooks([], async () => null);
+
+    await expect(hooks.transform('export const App = () => <Custom />;', '/src/app.jsx')).resolves.toBeNull();
+  });
+
+  it('returns null when parsing fails', async () => {
     const hooks = createOxcComponentNameAnnotateHooks([], async () => {
       throw new Error('parser unavailable');
     });
 
-    await expect(hooks.transform('export const App = () => <Custom />;', '/src/app.jsx')).resolves.toBeUndefined();
+    await expect(hooks.transform('export const App = () => <Custom />;', '/src/app.jsx')).resolves.toBeNull();
   });
 
-  it('returns undefined when oxc-parser reports a syntax error so callers can fall back to Babel', async () => {
+  it('returns null when oxc-parser reports a syntax error', async () => {
     const hooks = createOxcComponentNameAnnotateHooks([], getOxcParseAstAsync);
 
-    await expect(hooks.transform('export const App = () => <Custom>;', '/src/app.tsx')).resolves.toBeUndefined();
+    await expect(hooks.transform('export const App = () => <Custom>;', '/src/app.tsx')).resolves.toBeNull();
   });
 });
