@@ -123,6 +123,6 @@ test('captures a Mastra tool error as an issue and marks the tool span', async (
   const exception = error.exception?.values?.[0];
   expect(exception?.value).toBe('Intentional Mastra tool failure');
   expect(exception?.mechanism?.type).toBe('auto.ai.mastra');
-  expect(exception?.mechanism?.handled).toBe(false);
+  expect(exception?.mechanism?.handled).toBe(true);
   expect((exception?.stacktrace?.frames ?? []).length).toBeGreaterThan(0);
 });
