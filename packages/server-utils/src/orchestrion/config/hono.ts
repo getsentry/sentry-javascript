@@ -1,27 +1,40 @@
 import type { InstrumentationConfig } from '../apmTypes';
 import { getModuleNames } from './module-names';
 
-// Users construct their app with `new Hono()`. We hook the `Hono` subclass constructor in
-// `dist/hono.js` / `dist/cjs/hono.js` (`class Hono extends HonoBase`). Its `end` fires after the full
-// constructor has run — `super()` plus `this.router = …` — so the app is exposed as `self` fully
-// initialized (router set) and `app.use()` works immediately. `className` is the selector (no
-// `methodName` → the class constructor); the subscriber tolerates anything that is not a Hono app.
-//
-// NOTE: The transform wraps the constructor body in a closure and reads `this` in a `finally`, which
-// Bun's JSC engine rejects for a DERIVED constructor ("'super()' must be called before accessing
-// |this|"). Wrapping this derived constructor therefore breaks Bun boot — tracked separately.
-const honoConstructorConfig: InstrumentationConfig[] = [
+// Hono is instrumented through its PER-REQUEST internals rather than at app construction or route
+// registration. Two functions are wrapped, both of which only ever run while a request is being
+// handled — never at module scope. That is what makes this work on Cloudflare Workers (workerd
+// forbids `diagnostics_channel` publish/`runStores` at module scope) with no registration-time
+// patching, while behaving identically under the Node/Deno runtime hook and the bundler plugins.
+// The subscribers live in `honoIntegration`.
+const honoInstrumentationConfig: InstrumentationConfig[] = [
   {
-    channelName: 'honoConstructor',
-    module: { name: 'hono', versionRange: '>=4.0.0 <5', filePath: /^dist\/(?:cjs\/)?hono\.js$/ },
-    functionQuery: { className: 'Hono' },
+    // `new Context(req, { matchResult })` is created once per dispatched request, inside `#dispatch`
+    // and BEFORE Hono's single-handler fast-path check. The subscriber injects the Sentry
+    // request/response middleware into `matchResult[0]` (so it runs first, in the composed chain —
+    // which also forces the ≥2-handler path, giving uniform route naming and error capture) and
+    // wraps the matched middleware handlers for spans. Copied sub-app handlers are already present in
+    // `matchResult`, so they are covered automatically.
+    channelName: 'context',
+    module: { name: 'hono', versionRange: '>=4.0.0 <5', filePath: /^dist\/(?:cjs\/)?context\.js$/ },
+    functionQuery: { className: 'Context' },
+  },
+  {
+    // `app.request(...)` is Hono's internal dispatch entry (a class-field arrow, so it needs an
+    // `astQuery` rather than a `methodName`). Sub-app-to-sub-app internal fetches go through it; each
+    // gets an `http.server` child span (only when there is a parent span).
+    channelName: 'request',
+    module: { name: 'hono', versionRange: '>=4.0.0 <5', filePath: /^dist\/(?:cjs\/)?hono-base\.js$/ },
+    astQuery: "PropertyDefinition[key.name='request'] > ArrowFunctionExpression",
+    functionQuery: { kind: 'Auto' },
   },
 ];
 
-export const honoConfig = honoConstructorConfig satisfies InstrumentationConfig[];
+export const honoConfig = honoInstrumentationConfig satisfies InstrumentationConfig[];
 
 export const honoModuleNames = getModuleNames(honoConfig);
 
 export const honoChannels = {
-  HONO_CONSTRUCTOR: 'orchestrion:hono:honoConstructor',
+  HONO_CONTEXT: 'orchestrion:hono:context',
+  HONO_REQUEST: 'orchestrion:hono:request',
 } as const;

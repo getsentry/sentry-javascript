@@ -17,11 +17,10 @@ const ipvType = expect.stringMatching(/^ipv[46]$/) as unknown;
 //   adds, never clobbers).
 const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Record<string, unknown> }> = {
   node: {
-    added: { 'client.port': anyNumber, 'network.type': ipvType, 'network.transport': undefined },
+    added: { 'client.address': anyString, 'client.port': anyNumber, 'network.type': ipvType, 'network.transport': undefined },
     baseline: {
       'server.address': 'localhost',
       'server.port': anyNumber,
-      'client.address': anyString,
       'client.port': anyNumber,
       'network.type': ipvType,
       'network.protocol.name': 'http',
@@ -32,27 +31,31 @@ const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Rec
     },
   },
   bun: {
-    added: { 'client.port': anyNumber, 'network.type': ipvType, 'network.transport': undefined },
-    baseline: { 'client.address': anyString, 'client.port': anyNumber, 'network.type': ipvType },
+    added: { 'client.address': anyString, 'client.port': anyNumber, 'network.type': ipvType, 'network.transport': undefined },
+    baseline: { 'client.port': anyNumber, 'network.type': ipvType },
   },
   deno: {
     // Only `hono/deno` exposes `network.transport`.
-    added: { 'client.port': anyNumber, 'network.transport': expect.stringMatching(/tcp/) },
+    added: { 'client.address': anyString, 'client.port': anyNumber, 'network.transport': expect.stringMatching(/tcp/) },
     baseline: {
       'server.address': 'localhost',
-      'client.address': anyString,
       'client.port': anyNumber,
       'network.transport': 'tcp',
       'network.protocol.name': 'http',
     },
   },
   cloudflare: {
-    // Cloudflare Workers expose no port, address family, or transport. Asserting their absence lets
-    // us notice if that ever changes.
-    added: { 'client.port': undefined, 'network.type': undefined, 'network.transport': undefined },
+    // Cloudflare Workers expose no client address, port, address family, or transport: there is no
+    // `getConnInfo` on Workers and nothing else populates `client.address`, so all of these are
+    // absent. Asserting `undefined` here lets us notice if that ever changes.
+    added: {
+      'client.address': undefined,
+      'client.port': undefined,
+      'network.type': undefined,
+      'network.transport': undefined,
+    },
     baseline: {
       'server.address': 'localhost',
-      'client.address': '::1',
       'network.protocol.name': 'http',
       'network.protocol.version': '1.1',
     },
@@ -104,16 +107,14 @@ test('attaches HTTP connection info to the server span', async ({ baseURL, page 
   const segment = await segmentPromise;
   const data = segment.attributes ?? {};
 
-  expect(data['client.address']?.value).toEqual(expect.any(String));
+  for (const [key, expected] of Object.entries(connInfo.added)) {
+    expect(data[key]?.value).toEqual(expected);
+  }
 
   // conninfo must only *add* attributes, never replace: peer mirrors client on every runtime
   // (including when both are absent).
   expect(data['network.peer.address']?.value).toBe(data['client.address']?.value);
   expect(data['network.peer.port']?.value).toBe(data['client.port']?.value);
-
-  for (const [key, expected] of Object.entries(connInfo.added)) {
-    expect(data[key]?.value).toEqual(expected);
-  }
 });
 
 // Regression guard against connection info attributes.
