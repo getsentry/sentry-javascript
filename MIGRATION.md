@@ -1050,423 +1050,68 @@ try {
 - **`DOMException.code` is no longer set as a tag.** The `code` property is deprecated in favor of `DOMException.name`, which is already the exception type. Switch searches or alert rules keyed on the tag to `error.type`.
 - **Metrics moved out of the base CDN bundle.** Metrics now ship only in the `*.logs.metrics` CDN bundles. On the other bundles, `Sentry.metrics.*` is a no-op shim that warns in debug builds.
 
-### Deno `node:http` server requests are tracked as sessions
+## 6. Framework and platform SDKs
 
-Affected SDKs: `@sentry/deno`.
+### Build plugins and other exports moved to subpaths
 
-`denoHttpIntegration` now creates [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming `node:http` requests, matching the other server SDKs. In v10 it disabled them unconditionally, so release health reported no session data for Deno servers. If you have a `release` configured, you will start seeing session aggregates for incoming requests. Pass `sessions: false` to restore the previous behavior:
+Build plugins moved off the main entry points so the build-time module graph (e.g. `@sentry/vite-plugin` and `@babel/core`) is never reachable from server code, where bundlers that trace by reachability (e.g. `@vercel/nft`) would copy it into your functions.
 
-```js
-Sentry.init({
-  dsn: '__DSN__',
-  integrations: [Sentry.denoHttpIntegration({ sessions: false })],
-});
+| SDK                    | Export                                                                                               | New import path              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `@sentry/nextjs`       | `withSentryConfig`, `SentryBuildOptions`                                                             | `@sentry/nextjs/config`      |
+| `@sentry/react-router` | `sentryReactRouter`, `sentryOnBuildEnd`, `makeConfigInjectorPlugin`, `SentryReactRouterBuildOptions` | `@sentry/react-router/vite`  |
+| `@sentry/remix`        | `sentryRemixVitePlugin`                                                                              | `@sentry/remix/vite`         |
+| `@sentry/sveltekit`    | `sentrySvelteKit`                                                                                    | `@sentry/sveltekit/vite`     |
+| `@sentry/cloudflare`   | `wrapRequestHandler`                                                                                 | `@sentry/cloudflare/request` |
+| `@sentry/cloudflare`   | Everything from `@sentry/cloudflare/nodejs_compat` (subpath removed)                                 | `@sentry/cloudflare`         |
+
+```diff
+// vite.config.ts
+- import { sentrySvelteKit } from '@sentry/sveltekit';
++ import { sentrySvelteKit } from '@sentry/sveltekit/vite';
 ```
 
-`sessionFlushingDelayMS` is also configurable now, and defaults to `60000` (60s) as in the other SDKs.
+### Build options
 
-### Deno server transactions are dropped for some 3xx/4xx status codes
+#### `sourceMapsUploadOptions` was removed
 
-Affected SDKs: `@sentry/deno`.
+The deprecated `sourceMapsUploadOptions` option, and other deprecated build plugin options, were removed from `@sentry/astro`, `@sentry/nuxt`, `@sentry/react-router`, `@sentry/solidstart` and `@sentry/sveltekit`. Move its fields to the top level of the SDK's build options (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`). A few fields changed along the way:
 
-`denoHttpIntegration` and `denoServeIntegration` now honor `ignoreStatusCodes`, using the same default list as
-`httpIntegration` in the other server SDKs: incoming request transactions whose response status falls in
-`[[401, 404], [301, 303], [305, 399]]` are dropped. Previously the option was declared but never read, so these
-transactions were always kept.
+| Old field                            | New field                                                  | SDKs                                  |
+| ------------------------------------ | ---------------------------------------------------------- | ------------------------------------- |
+| `url`                                | `sentryUrl`                                                | Nuxt, SvelteKit                       |
+| `enabled: false`                     | `sourcemaps: { disable: true }`                            | Astro, Nuxt, React Router, SolidStart |
+| `assets`, `filesToDeleteAfterUpload` | `sourcemaps.assets`, `sourcemaps.filesToDeleteAfterUpload` | Astro                                 |
 
-Each integration owns the option for the requests it instruments — `denoHttpIntegration` for `node:http`,
-`denoServeIntegration` for `Deno.serve` — so setting it on one does not affect the other. Pass your own list to change
-which codes are dropped, or an empty array to keep everything:
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@sentry/nuxt/module'],
+  sentry: {
+    // before
+    sourceMapsUploadOptions: {
+      org: 'my-org',
+      project: 'my-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      url: 'https://my-sentry.example.com',
+      sourcemaps: { assets: ['./dist/**/*'] },
+    },
 
-```js
-Sentry.init({
-  dsn: '__DSN__',
-  integrations: [
-    Sentry.denoHttpIntegration({ ignoreStatusCodes: [] }),
-    Sentry.denoServeIntegration({ ignoreStatusCodes: [] }),
-  ],
-});
-```
-
-This filter runs on transaction events (`processEvent`), so it only takes effect when `traceLifecycle` is `'static'`.
-The default `'stream'` lifecycle does not produce transaction events, and typical Deno apps are unaffected. Node's
-`httpIntegration` has the same limitation. For that reason, [`ignoreStatusCodes` is deprecated](#ignorestatuscodes-is-deprecated)
-and will be removed in v12.
-
-Transactions that are kept now also carry the HTTP status in the top-level `response` context, as in the other server
-SDKs.
-
-`denoHttpIntegration` additionally accepts the outgoing request hooks `outgoingRequestHook`, `outgoingResponseHook` and
-`outgoingRequestApplyCustomAttributes`, matching `httpIntegration`.
-
-### `@sentry/nextjs`
-
-**Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
-
-**Unified `reactComponentAnnotation` option:** React component annotation is now configured through a single top-level `reactComponentAnnotation` option that applies to both webpack and Turbopack builds:
-
-```js
-export default withSentryConfig(nextConfig, {
-  reactComponentAnnotation: {
-    enabled: true,
-    ignoredComponents: ['MyComponent'],
+    // after
+    org: 'my-org',
+    project: 'my-project',
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sentryUrl: 'https://my-sentry.example.com',
+    sourcemaps: { assets: ['./dist/**/*'] },
   },
 });
 ```
 
-The two bundler-specific options it replaces are deprecated but still work, and will be removed in v12:
+On `@sentry/solidstart`, this only affects SolidStart 1 setups using `withSentry()` / `sentrySolidStartVite()`. SolidStart 2's `sentrySolidStart()` already took its options at the top level.
 
-- `webpack.reactComponentAnnotation`
-- `_experimental.turbopackReactComponentAnnotation`
+#### `unstable_sentry*PluginOptions` was removed
 
-If both a bundler-specific option and the top-level one are set, the bundler-specific one wins for that bundler.
-
-Note that v10.30.0 deprecated a top-level `reactComponentAnnotation` in favour of `webpack.reactComponentAnnotation`, and v11 removed it. This reinstates the top-level option with broader meaning: it now drives Turbopack builds as well, which the old one never did. If you moved to `webpack.reactComponentAnnotation` for v10, moving back to the top level is the forward path.
-
-On Turbopack, component annotation requires Next.js 16+. The SDK now warns at build time if annotation is enabled on an older Next.js version, where it previously did nothing silently.
-
-**Default `environment` on Vercel no longer has a `vercel-` prefix:** On Vercel, the SDK now defaults `environment` to the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) instead of `vercel-production` / `vercel-preview`. Update alert rules, dashboards and saved searches that reference the old names, or keep them by setting `environment` explicitly.
-
-**Vercel AI no longer supported on Edge runtime:** We now rely on diagnostics channels for our Vercel AI instrumentation, which does not work on the Edge runtime. Because of this, monitoring of the `ai` package is no longer supported on Edge. Note that Edge is deprecated.
-
-### Cloudflare: `nodejs_compat` compatibility flag is now required
-
-Affected SDKs: `@sentry/cloudflare`.
-
-The SDK now requires the `nodejs_compat` compatibility flag instead of `nodejs_als`. Update your `wrangler.toml` (or `wrangler.jsonc`):
-
-```diff
-- compatibility_flags = ["nodejs_als"]
-+ compatibility_flags = ["nodejs_compat"]
-```
-
-### Cloudflare: `wrapRequestHandler` moved to `@sentry/cloudflare/request`
-
-Affected SDKs: `@sentry/cloudflare`.
-
-`wrapRequestHandler` is no longer available from the main `@sentry/cloudflare` entry point. Import it from the dedicated subpath instead:
-
-```diff
-- import { wrapRequestHandler } from '@sentry/cloudflare';
-+ import { wrapRequestHandler } from '@sentry/cloudflare/request';
-```
-
-### Cloudflare: the Vite plugin auto-instruments your Worker by default
-
-Affected SDKs: `@sentry/cloudflare`.
-
-`sentryCloudflareVitePlugin()` now wraps your Worker entry — and any Durable Object, Workflow or WorkerEntrypoint class listed in your wrangler config — at build time. Entries you already wrapped yourself are left untouched, so no action is required for most users. Opt out with the new top-level `autoInstrumentation` option:
-
-```js
-sentryCloudflareVitePlugin({ autoInstrumentation: false });
-```
-
-The experimental opt-in this replaces was removed:
-
-```diff
-- sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true } });
-+ sentryCloudflareVitePlugin();
-```
-
-### Cloudflare: rate limiter bindings no longer emit spans
-
-Affected SDKs: `@sentry/cloudflare`.
-
-Calls to rate limiter bindings (`env.MY_RATE_LIMITER.limit()`) no longer create a span. The removed span had the op `rpc`, the origin `auto.faas.cloudflare.rate_limit`, and the attribute `rpc.service: cloudflare.rate_limit`. Remove any dashboard, alert, or `ignoreSpans` entry that references it.
-
-### `@sentry/nuxt`: the server config is bundled, `--import` is no longer needed
-
-The SDK now bundles `sentry.server.config.ts` into the Nitro server build, where it initializes itself when the server starts. Instrumentation happens at build time, so preloading the config file is no longer necessary.
-
-Remove the `--import` flag from your production start command:
-
-```bash
-# before
-node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
-
-# after
-node .output/server/index.mjs
-```
-
-Old start commands keep working: the SDK still emits a file at the old path, but it only prints a reminder that the flag can be removed. If you preload a file that calls `Sentry.init` yourself, that init wins and the bundled one is skipped.
-
-The same applies in development. Remove the `NODE_OPTIONS` preload:
-
-```bash
-# before
-NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev
-
-# after
-nuxt dev
-```
-
-Since no preload is needed anymore, the `autoInjectServerSentry` option (`'top-level-import'` and `'experimental_dynamic-import'`) and `experimental_entrypointWrappedFunctions` are deprecated. Remove them from your `sentry` module options as the default behavior replaces both. They will be deleted in the next major version.
-
-### `@sentry/ember` is now a v2 addon with manual setup
-
-Affected SDKs: `@sentry/ember`.
-
-`@sentry/ember` is now a [v2 (Embroider) addon](https://rfcs.emberjs.com/id/0507-embroider-v2-package-format/), so it builds cleanly under Embroider and Vite in addition to classic builds. Because v2 addons cannot auto-configure the host app, Sentry is no longer wired up from `config/environment.js` and no longer registers its own initializer. You now call `Sentry.init()` yourself and opt into performance instrumentation explicitly. A full walkthrough lives in [`packages/ember/UPGRADE.md`](./packages/ember/UPGRADE.md).
-
-**1. Initialize Sentry in `app/app.ts` instead of `config/environment.js`.** Remove the `'@sentry/ember'` block from `config/environment.js` and call `init()` before your `Application` class:
-
-```ts
-// config/environment.js
-ENV.sentryDsn = process.env.E2E_TEST_DSN;
-```
-
-```typescript
-// app/app.ts
-import Application from '@ember/application';
-import Resolver from 'ember-resolver';
-import loadInitializers from 'ember-load-initializers';
-import config from 'my-app/config/environment';
-import * as Sentry from '@sentry/ember';
-
-Sentry.init({
-  dsn: config.sentryDsn,
-  tracesSampleRate: 1.0,
-  // all @sentry/browser options are supported
-});
-
-export default class App extends Application {
-  modulePrefix = config.modulePrefix;
-  podModulePrefix = config.podModulePrefix;
-  Resolver = Resolver;
-}
-
-loadInitializers(App, config.modulePrefix);
-```
-
-The former `@sentry/ember` config keys map onto arguments you now pass directly: `sentry` options become `Sentry.init()` options, and the `disable*` performance flags move to `instrumentAppInstancePerformance()` (see below). `disablePerformance` no longer exists as a single switch — omit the instance-initializer entirely to disable performance instrumentation.
-
-**2. Opt into performance instrumentation with an instance-initializer.** Automatic performance instrumentation is gone; add it yourself:
-
-```typescript
-// app/instance-initializers/sentry-performance.ts
-import type ApplicationInstance from '@ember/application/instance';
-import { instrumentAppInstancePerformance } from '@sentry/ember';
-
-export function initialize(appInstance: ApplicationInstance): void {
-  instrumentAppInstancePerformance(appInstance, {
-    // former config/environment flags live here now, e.g.:
-    // disableRunloopPerformance: false,
-    // disableInstrumentComponents: false,
-  });
-}
-
-export default { initialize };
-```
-
-FastBoot is detected automatically, so client-side instrumentation is skipped during server rendering with no extra configuration.
-
-**3. `instrumentRoutePerformance` is unchanged.** Wrapping individual routes works exactly as before:
-
-```typescript
-// app/routes/posts.ts
-import Route from '@ember/routing/route';
-import { instrumentRoutePerformance } from '@sentry/ember';
-
-class PostsRoute extends Route {
-  async model() {
-    return this.store.findAll('post');
-  }
-}
-
-export default instrumentRoutePerformance(PostsRoute);
-```
-
-### React Router: Vite plugin moved to `@sentry/react-router/vite`
-
-Affected SDKs: `@sentry/react-router`.
-
-`sentryReactRouter`, `sentryOnBuildEnd`, `makeConfigInjectorPlugin` and the `SentryReactRouterBuildOptions` type are no longer available from the main `@sentry/react-router` entry point. Import them from the dedicated subpath instead:
-
-```diff
-// vite.config.ts
-- import { sentryReactRouter } from '@sentry/react-router';
-+ import { sentryReactRouter } from '@sentry/react-router/vite';
-```
-
-```diff
-// react-router.config.ts
-- import { sentryOnBuildEnd } from '@sentry/react-router';
-+ import { sentryOnBuildEnd } from '@sentry/react-router/vite';
-```
-
-### Remix: Vite plugin moved to `@sentry/remix/vite`
-
-Affected SDKs: `@sentry/remix`.
-
-`sentryRemixVitePlugin` is no longer available from the main `@sentry/remix` entry point. Import it from the dedicated subpath instead:
-
-```diff
-// vite.config.ts
-- import { sentryRemixVitePlugin } from '@sentry/remix';
-+ import { sentryRemixVitePlugin } from '@sentry/remix/vite';
-```
-
-The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
-
-### React: Simpler React Router setup via `@sentry/react/react-router`
-
-Affected SDKs: `@sentry/react`.
-
-`@sentry/react` gained a new `@sentry/react/react-router` entry point that pulls the required React Router hooks (`useLocation`, `useNavigationType`, `matchRoutes`, `createRoutesFromChildren`) from `react-router` for you, so you no longer have to thread them through `reactRouterBrowserTracingIntegration` yourself:
-
-```diff
-- import * as Sentry from '@sentry/react';
-- import { useEffect } from 'react';
-- import { createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router';
-+ import * as Sentry from '@sentry/react';
-+ import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';
-
-  Sentry.init({
-    integrations: [
--     Sentry.reactRouterBrowserTracingIntegration({
--       useEffect,
--       useLocation,
--       useNavigationType,
--       createRoutesFromChildren,
--       matchRoutes,
--     }),
-+     reactRouterBrowserTracingIntegration(),
-    ],
-  });
-```
-
-The `wrapReactRouterRouting`, `wrapUseRoutes`, `wrapCreateBrowserRouter` and `wrapCreateMemoryRouter` helpers are re-exported from `@sentry/react/react-router` as well.
-
-This entry requires `react-router` to be resolvable — it is declared as an optional peer dependency and supports React Router v6, v7 and v8. If you are on React Router v6 with only `react-router-dom` installed, either add `react-router` as a dependency or keep importing `reactRouterBrowserTracingIntegration` from `@sentry/react` and pass the hooks explicitly.
-
-The existing `@sentry/react` API is unchanged and keeps working; passing the hooks there is now optional too (`useEffect` in particular is no longer used and can be omitted).
-
-Additionally — for **every** `@sentry/react` routing setup, not just the new entry — the order in which you add the browser tracing integration and wrap your routes no longer matters.
-
-### `@sentry/cloudflare`
-
-- The `@sentry/cloudflare/nodejs_compat` subpath export was removed. Since `nodejs_compat` is now required for all users, the main `@sentry/cloudflare` entry point includes everything that was previously only available via the subpath.
-
-```diff
-- import * as Sentry from '@sentry/cloudflare/nodejs_compat';
-+ import * as Sentry from '@sentry/cloudflare';
-```
-
-- The deprecated `instrumentD1WithSentry` export was removed. `withSentry()` automatically instruments all D1 bindings via `env`.
-
-```diff
-  import * as Sentry from '@sentry/cloudflare';
-
-  export default withSentry(
-    (env) => ({ dsn: env.SENTRY_DSN }),
-    {
-      async fetch(request, env, ctx) {
--       const db = Sentry.instrumentD1WithSentry(env.DB);
--       const result = await db.prepare('SELECT * FROM users').all();
-+       const result = await env.DB.prepare('SELECT * FROM users').all();
-      },
-    },
-  );
-```
-
-- The `enableRpcTracePropagation` option was removed. Trace context is no longer appended to every RPC call on `env`. List the bindings you call in `rpcTracePropagationBindings` instead. Strings match a binding name exactly, regular expressions match by pattern, and both match case-insensitively. The option covers RPC method calls only, because they carry the trace context as a trailing argument that a non-Sentry receiver would see as a real argument. `stub.fetch()` and service binding `fetch()` carry it in HTTP headers, so they propagate regardless of this option. Receivers no longer take the option at all: an instrumented Durable Object or WorkerEntrypoint reads the trace context whenever a caller sends it.
-
-```diff
-  export default Sentry.withSentry(
-    (env) => ({
-      dsn: env.SENTRY_DSN,
--     enableRpcTracePropagation: true,
-+     rpcTracePropagationBindings: ['ORDERS', /^SVC_/],
-    }),
-    handler,
-  );
-```
-
-`rpcTracePropagationBindings` follows the matching rules `tracePropagationTargets` has in v11: casing does not matter on either side, and the `g` and `y` flags are ignored on regular expressions, because they made matching stateful via `lastIndex`. The one difference is that a string target has to equal the whole binding name, so `'DB'` does not cover a binding named `MY_DB`.
-
-- The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed. A Durable Object's prototype methods are now wrapped unconditionally, so every RPC method is instrumented and there is no longer an option to turn this on. Delete the option from your config.
-
-```diff
-  export const MyDO = Sentry.instrumentDurableObjectWithSentry(
-    (env) => ({
-      dsn: env.SENTRY_DSN,
--     instrumentPrototypeMethods: true,
-    }),
-    MyDOBase,
-  );
-```
-
-- The `honoIntegration` was removed. Use the dedicated [`@sentry/hono`](https://www.npmjs.com/package/@sentry/hono) package instead, which provides a middleware that handles error capturing automatically.
-
-```diff
-- import * as Sentry from '@sentry/cloudflare';
-+ import { sentry } from '@sentry/hono/cloudflare';
-
-  const app = new Hono();
-+ app.use(sentry());
-```
-
-### `@sentry/react-router`
-
-`@sentry/react-router` is now out of beta. With this, the SDK fully relies on React Router's instrumentation API for
-tracing loaders and actions.
-
-- The deprecated server wrappers `wrapServerLoader` and `wrapServerAction` were removed. Loaders and
-  actions are instrumented automatically via the instrumentation API - export
-  `instrumentations = [Sentry.createSentryServerInstrumentation()]` from your `entry.server.tsx`
-  instead of wrapping them individually.
-- The deprecated `sentryHandleRequest` export was removed. Use `wrapSentryHandleRequest` instead.
-
-The deprecated `sourceMapsUploadOptions` option was removed from `sentryReactRouter()`. Move its fields to the root level of the `sentryConfig` passed to `sentryReactRouter()`. Note that `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
-
-### `@sentry/nextjs`
-
-`withSentryConfig` and the `SentryBuildOptions` type moved to the `@sentry/nextjs/config` entry point and are no
-longer exported from `@sentry/nextjs`:
-
-```js
-// next.config.mjs
-
-// before
-import { withSentryConfig } from '@sentry/nextjs';
-
-// after
-import { withSentryConfig } from '@sentry/nextjs/config';
-```
-
-The no-op `withSentryConfig` passthroughs that the client and edge builds exported were removed along with it.
-
-The following top-level options in `withSentryConfig` / the `sentry` config were removed. They were deprecated in
-10.30.0, when most of them moved under the `webpack` option; use the replacement listed below instead:
-
-| Removed option                          | Replacement                                                              |
-| --------------------------------------- | ------------------------------------------------------------------------ |
-| `autoInstrumentServerFunctions`         | `webpack.autoInstrumentServerFunctions`                                  |
-| `autoInstrumentMiddleware`              | `webpack.autoInstrumentMiddleware`                                       |
-| `autoInstrumentAppDirectory`            | `webpack.autoInstrumentAppDirectory`                                     |
-| `automaticVercelMonitors`               | `webpack.automaticVercelMonitors`                                        |
-| `excludeServerRoutes`                   | `webpack.excludeServerRoutes`                                            |
-| `unstable_sentryWebpackPluginOptions`   | Removed entirely, see [below](#removed-unstable_-bundler-plugin-options) |
-| `disableSentryWebpackConfig`            | `webpack.disableSentryConfig`                                            |
-| `disableLogger`                         | `webpack.treeshake.removeDebugLogging`                                   |
-| `disableManifestInjection`              | `routeManifestInjection: false`                                          |
-| `_experimental.turbopackApplicationKey` | `applicationKey` (works for both webpack and Turbopack builds)           |
-
-**Vercel AI no longer supported on Edge runtime:** We now rely on diagnostics channels for our Vercel AI instrumentation, which does not work on the Edge runtime. Because of this, monitoring of the `ai` package is no longer supported on Edge. Note that Edge is deprecated.
-
-### Meta-framework build options
-
-The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin options were removed from `@sentry/astro`, `@sentry/nuxt` and `@sentry/sveltekit`. Use the top-level equivalents (e.g. `sourcemaps`, `release`, `authToken`, `org`, `project`, `telemetry`) instead.
-
-### Bundler plugins: Vercel deploys use the plain Vercel environment name
-
-Deploys that the bundler plugins create automatically on Vercel now use the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) as their environment instead of `vercel-production` / `vercel-preview`. This matches the new default runtime `environment` of `@sentry/nextjs`, and the `production` default of all other SDKs. If your events use a different environment, set `release.deploy.env` to the same value, or set `release.deploy` to `false` to opt out.
-
-### Removed `unstable_` bundler plugin options
-
-The `unstable_sentry*PluginOptions` escape hatch was removed from every SDK. It existed because the Sentry
-bundler plugins shipped on a separate release cadence from the SDK; they now live in the SDK monorepo and
-move in lockstep, so every supported plugin option is reachable as a first-class build option.
+The bundler plugins now live in the SDK monorepo and release in lockstep with the SDKs, so every supported plugin option is reachable as a first-class build option and the escape hatch was removed from every SDK:
 
 | SDK                    | Removed option                                                         |
 | ---------------------- | ---------------------------------------------------------------------- |
@@ -1493,92 +1138,342 @@ applicationKey: 'my-app',
 Passing a removed option logs a build-time warning naming it, because meta-framework build configs are
 often plain JavaScript (for example `next.config.js`) where TypeScript cannot catch it.
 
-`moduleMetadata` and `sourcemaps.resolveSourceMap` were promoted to first-class build options as part of
-this change — they were previously only reachable through the escape hatch. `reactComponentAnnotation`
-remains available on the React-based SDKs (`@sentry/nextjs`, `@sentry/react-router`,
-`@sentry/tanstackstart-react`).
+- `moduleMetadata` and `sourcemaps.resolveSourceMap` were promoted to first-class build options.
+- `reactComponentAnnotation` remains available on the React-based SDKs (`@sentry/nextjs`, `@sentry/react-router`, `@sentry/tanstackstart-react`).
+- `release.uploadLegacySourcemaps`, `_experiments`, and the whole-plugin `disable` flag have no first-class equivalent and are no longer reachable. Use `sourcemaps.disable` instead of `disable`.
 
-The following bundler plugin options have no first-class equivalent and are no longer reachable:
-`release.uploadLegacySourcemaps`, `_experiments`, and the whole-plugin `disable` flag (use
-`sourcemaps.disable` instead).
+#### Vercel environment names
 
-### `@sentry/nuxt`
+On Vercel, `@sentry/nextjs` now defaults `environment` to the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) instead of `vercel-production` / `vercel-preview`. Update alert rules, dashboards and saved searches that reference the old names, or keep them by setting `environment` explicitly.
 
-Removed support for the `public/instrument.server.[ext]` file. Move the file to the root of your project, next to `nuxt.config.ts`, and rename it to `sentry.server.config.[ext]`. Its contents do not change.
+Deploys that the bundler plugins create automatically on Vercel use the same value as their environment, matching `@sentry/nextjs` and the `production` default of all other SDKs. If your events use a different environment, set `release.deploy.env` to the same value, or set `release.deploy` to `false` to opt out.
 
-```
-// before
-public/instrument.server.ts
+### `@sentry/astro`
 
-// after
-sentry.server.config.ts
-```
+- **Runtime options can no longer be passed to `sentryAstro()`.** Move `dsn`, `environment`, `release` (as a string), `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate` and `replaysOnErrorSampleRate` to `sentry.client.config.ts` / `sentry.server.config.ts`. `release` and `debug` on `sentryAstro()` are now build-time options (`release` for source map uploads, `debug` for build-time logging). If no config files exist, the generated default init snippets still pick them up (`release.name` as the runtime `release`, `debug` for SDK debug logging). The generated client snippet now always includes the `Replay` integration with default sample rates. To customize or remove it (previously done by setting both replay sample rates to `0`), create a `sentry.client.config.ts`.
 
-After the rename, the SDK bundles the file into the Nitro server build and initializes itself at server startup. See ["the server config is bundled"](#sentrynuxt-the-server-config-is-bundled---import-is-no-longer-needed) above: the `--import` preload is no longer needed.
-
-The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
-
-```ts
-// nuxt.config.ts
-export default defineNuxtConfig({
-  modules: ['@sentry/nuxt/module'],
-  sentry: {
-    // before
-    sourceMapsUploadOptions: {
-      org: 'my-org',
-      project: 'my-project',
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-      url: 'https://my-sentry.example.com',
-      sourcemaps: {
-        assets: ['./dist/**/*'],
-      },
-    },
-
-    // after
-    org: 'my-org',
-    project: 'my-project',
-    authToken: process.env.SENTRY_AUTH_TOKEN,
-    sentryUrl: 'https://my-sentry.example.com',
-    sourcemaps: {
-      assets: ['./dist/**/*'],
-    },
-  },
-});
-```
-
-### `@sentry/sveltekit`
-
-The deprecated `sourceMapsUploadOptions` option was removed from `sentrySvelteKit()`. Move its fields to the root level of the `sentrySvelteKit()` options. Note that `url` was renamed to `sentryUrl`.
-
-```ts
-// vite.config.ts
-export default defineConfig({
-  plugins: [
-    sentrySvelteKit({
-      // before
-      sourceMapsUploadOptions: {
+  ```ts
+  // astro.config.mjs — build-time options only
+  export default defineConfig({
+    integrations: [
+      sentry({
         org: 'my-org',
         project: 'my-project',
         authToken: process.env.SENTRY_AUTH_TOKEN,
-        url: 'https://my-sentry.example.com',
-        sourcemaps: {
-          assets: ['./build/**/*'],
+        release: { name: '1.0.0' },
+        debug: true,
+      }),
+    ],
+  });
+
+  // sentry.client.config.ts — runtime SDK options
+  Sentry.init({
+    dsn: 'https://example@sentry.io/123',
+    release: '1.0.0',
+    environment: 'production',
+    tracesSampleRate: 0.5,
+  });
+  ```
+
+- **Client IP:** `trackClientIp` no longer defaults to `false`. When you leave it unset, `handleRequest` now follows `dataCollection.userInfo`, which defaults to `true`, so Astro apps that set neither option start reporting `user.ip_address`. Pass `trackClientIp: false` to keep the v10 behaviour.
+- [`sourceMapsUploadOptions` was removed](#sourcemapsuploadoptions-was-removed).
+
+### `@sentry/aws-serverless`
+
+- The deprecated `disableAwsContextPropagation` option was removed. It no longer had any effect.
+- The deprecated `startTrace` option was removed. It no longer had any effect; to disable tracing, set `tracesSampleRate` to `0`.
+- The deprecated `tryPatchHandler` function was removed. It was no longer used.
+
+### `@sentry/cloudflare`
+
+- **The `nodejs_compat` compatibility flag is required** instead of `nodejs_als`. Update your `wrangler.toml` (or `wrangler.jsonc`). The main `@sentry/cloudflare` entry point now includes everything that was previously only available via `@sentry/cloudflare/nodejs_compat`, which was removed.
+
+  ```diff
+  - compatibility_flags = ["nodejs_als"]
+  + compatibility_flags = ["nodejs_compat"]
+  ```
+
+- **`wrapRequestHandler` moved to `@sentry/cloudflare/request`**, see [moved imports](#build-plugins-and-other-exports-moved-to-subpaths).
+- **The Vite plugin auto-instruments your Worker by default.** `sentryCloudflareVitePlugin()` wraps your Worker entry — and any Durable Object, Workflow or WorkerEntrypoint class listed in your wrangler config — at build time. Entries you already wrapped yourself are left untouched. Opt out with `sentryCloudflareVitePlugin({ autoInstrumentation: false })`. The experimental `_experimental: { autoInstrumentation: true }` opt-in was removed.
+
+  ```diff
+  - sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true } });
+  + sentryCloudflareVitePlugin();
+  ```
+
+- **RPC trace propagation is opt-in per binding.** The `enableRpcTracePropagation` option was removed, and trace context is no longer appended to every RPC call on `env`. List the bindings you call in `rpcTracePropagationBindings` instead. Strings must equal the whole binding name (`'DB'` does not cover `MY_DB`), regular expressions match by pattern, and both match case-insensitively with the `g` and `y` flags ignored, like `tracePropagationTargets`. The option only covers RPC method calls, which carry the trace context as a trailing argument that a non-Sentry receiver would see as a real argument. `stub.fetch()` and service binding `fetch()` carry it in HTTP headers and propagate regardless. Receivers no longer take the option: an instrumented Durable Object or WorkerEntrypoint reads the trace context whenever a caller sends it.
+
+  ```diff
+    export default Sentry.withSentry(
+      (env) => ({
+        dsn: env.SENTRY_DSN,
+  -     enableRpcTracePropagation: true,
+  +     rpcTracePropagationBindings: ['ORDERS', /^SVC_/],
+      }),
+      handler,
+    );
+  ```
+
+- **`instrumentD1WithSentry` was removed.** `withSentry()` automatically instruments all D1 bindings via `env`, so use `env.DB` directly.
+
+  ```diff
+    export default withSentry(
+      (env) => ({ dsn: env.SENTRY_DSN }),
+      {
+        async fetch(request, env, ctx) {
+  -       const db = Sentry.instrumentD1WithSentry(env.DB);
+  -       const result = await db.prepare('SELECT * FROM users').all();
+  +       const result = await env.DB.prepare('SELECT * FROM users').all();
         },
       },
+    );
+  ```
 
-      // after
-      org: 'my-org',
-      project: 'my-project',
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-      sentryUrl: 'https://my-sentry.example.com',
-      sourcemaps: {
-        assets: ['./build/**/*'],
-      },
-    }),
-    sveltekit(),
-  ],
+- **The `instrumentPrototypeMethods` option of `instrumentDurableObjectWithSentry` was removed.** A Durable Object's prototype methods are now wrapped unconditionally, so every RPC method is instrumented.
+- **`honoIntegration` was removed.** Use the dedicated [`@sentry/hono`](https://www.npmjs.com/package/@sentry/hono) package, which provides a middleware that captures errors automatically:
+
+  ```diff
+  - import * as Sentry from '@sentry/cloudflare';
+  + import { sentry } from '@sentry/hono/cloudflare';
+
+    const app = new Hono();
+  + app.use(sentry());
+  ```
+
+- **Rate limiter bindings no longer emit spans.** Calls to `env.MY_RATE_LIMITER.limit()` no longer create a span (op `rpc`, origin `auto.faas.cloudflare.rate_limit`, attribute `rpc.service: cloudflare.rate_limit`). Remove any dashboard, alert, or `ignoreSpans` entry that references it.
+- **Types:** the `env` types and the generics on `withSentry` and `instrumentDurableObjectWithSentry` were reworked for better type safety. If you were not passing explicit generic type parameters, no changes are needed.
+
+  ```diff
+  - export default withSentry<Env>(
+  + export default withSentry(
+      (env) => ({ dsn: env.SENTRY_DSN }),
+      {
+        async fetch(request, env, ctx) {
+          // env is correctly typed based on the handler
+        },
+      } satisfies ExportedHandler<Env>,
+    );
+
+  - export const MyDO = Sentry.instrumentDurableObjectWithSentry<Env, MyDOBase, typeof MyDOBase>(
+  + export const MyDO = Sentry.instrumentDurableObjectWithSentry(
+      (env) => ({ dsn: env.SENTRY_DSN }),
+      MyDOBase,
+    );
+  ```
+
+### `@sentry/deno`
+
+- **`node:http` server requests are tracked as sessions.** `denoHttpIntegration` now creates [sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming `node:http` requests, matching the other server SDKs. If you have a `release` configured, you will start seeing session aggregates. Pass `denoHttpIntegration({ sessions: false })` to restore the previous behavior. `sessionFlushingDelayMS` is now configurable too, and defaults to `60000` (60s).
+
+  ```js
+  Sentry.init({
+    dsn: '__DSN__',
+    integrations: [Sentry.denoHttpIntegration({ sessions: false })],
+  });
+  ```
+
+- **`ignoreStatusCodes` is honored.** `denoHttpIntegration` (for `node:http`) and `denoServeIntegration` (for `Deno.serve`) each read the option, using the same default list as `httpIntegration`: transactions whose response status falls in `[[401, 404], [301, 303], [305, 399]]` are dropped. It was previously declared but never read. Pass `[]` to keep everything. This only has an effect with `traceLifecycle: 'static'`, and the option is [deprecated](#ignorestatuscodes-is-deprecated). Kept transactions now also carry the HTTP status in the top-level `response` context.
+
+  ```js
+  Sentry.init({
+    dsn: '__DSN__',
+    integrations: [
+      Sentry.denoHttpIntegration({ ignoreStatusCodes: [] }),
+      Sentry.denoServeIntegration({ ignoreStatusCodes: [] }),
+    ],
+  });
+  ```
+
+- **Incoming span hooks were renamed** to match `httpIntegration`: `onIncomingSpanCreated` is now `onSpanCreated` and `onIncomingSpanEnd` is now `onSpanEnd`. Their arguments are typed as `HttpIncomingMessage` / `HttpServerResponse` instead of `unknown`.
+- `denoHttpIntegration` also accepts the outgoing request hooks `outgoingRequestHook`, `outgoingResponseHook` and `outgoingRequestApplyCustomAttributes`, matching `httpIntegration`.
+- Several default integrations were renamed, see [Integration renames](#integration-renames).
+
+### `@sentry/ember`
+
+`@sentry/ember` is now a [v2 (Embroider) addon](https://rfcs.emberjs.com/id/0507-embroider-v2-package-format/), so it builds cleanly under Embroider and Vite in addition to classic builds. Because v2 addons cannot auto-configure the host app, Sentry is no longer wired up from `config/environment.js` and no longer registers its own initializer. You now call `Sentry.init()` yourself and opt into performance instrumentation explicitly. A full walkthrough lives in [`packages/ember/UPGRADE.md`](./packages/ember/UPGRADE.md).
+
+**1. Initialize Sentry in `app/app.ts`.** Remove the `'@sentry/ember'` block from `config/environment.js` and call `Sentry.init()` before your `Application` class. The former `sentry` config options become `Sentry.init()` options:
+
+```typescript
+// app/app.ts
+import Application from '@ember/application';
+import Resolver from 'ember-resolver';
+import loadInitializers from 'ember-load-initializers';
+import config from 'my-app/config/environment';
+import * as Sentry from '@sentry/ember';
+
+Sentry.init({
+  dsn: config.sentryDsn,
+  tracesSampleRate: 1.0,
+  // all @sentry/browser options are supported
 });
+
+export default class App extends Application {
+  modulePrefix = config.modulePrefix;
+  podModulePrefix = config.podModulePrefix;
+  Resolver = Resolver;
+}
+
+loadInitializers(App, config.modulePrefix);
 ```
+
+**2. Opt into performance instrumentation with an instance-initializer.** Automatic performance instrumentation is gone. The former `disable*` config flags are passed to `instrumentAppInstancePerformance()` instead. `disablePerformance` no longer exists; omit the instance-initializer to disable performance instrumentation. FastBoot is detected automatically, so client-side instrumentation is skipped during server rendering.
+
+```typescript
+// app/instance-initializers/sentry-performance.ts
+import type ApplicationInstance from '@ember/application/instance';
+import { instrumentAppInstancePerformance } from '@sentry/ember';
+
+export function initialize(appInstance: ApplicationInstance): void {
+  instrumentAppInstancePerformance(appInstance, {
+    // former config/environment flags live here now, e.g.:
+    // disableRunloopPerformance: false,
+    // disableInstrumentComponents: false,
+  });
+}
+
+export default { initialize };
+```
+
+**3. `instrumentRoutePerformance` is unchanged.** Wrapping individual routes works exactly as before.
+
+```typescript
+// app/routes/posts.ts
+import Route from '@ember/routing/route';
+import { instrumentRoutePerformance } from '@sentry/ember';
+
+class PostsRoute extends Route {
+  async model() {
+    return this.store.findAll('post');
+  }
+}
+
+export default instrumentRoutePerformance(PostsRoute);
+```
+
+### `@sentry/nextjs`
+
+- **`withSentryConfig` moved to `@sentry/nextjs/config`**, see [moved imports](#build-plugins-and-other-exports-moved-to-subpaths). The no-op `withSentryConfig` passthroughs that the client and edge builds exported were removed.
+- **Deprecated top-level build options were removed.** They were deprecated in 10.30.0:
+
+  | Removed option                          | Replacement                                                                             |
+  | --------------------------------------- | --------------------------------------------------------------------------------------- |
+  | `autoInstrumentServerFunctions`         | `webpack.autoInstrumentServerFunctions`                                                 |
+  | `autoInstrumentMiddleware`              | `webpack.autoInstrumentMiddleware`                                                      |
+  | `autoInstrumentAppDirectory`            | `webpack.autoInstrumentAppDirectory`                                                    |
+  | `automaticVercelMonitors`               | `webpack.automaticVercelMonitors`                                                       |
+  | `excludeServerRoutes`                   | `webpack.excludeServerRoutes`                                                           |
+  | `unstable_sentryWebpackPluginOptions`   | Removed entirely, see [`unstable_*` options](#unstable_sentrypluginoptions-was-removed) |
+  | `disableSentryWebpackConfig`            | `webpack.disableSentryConfig`                                                           |
+  | `disableLogger`                         | `webpack.treeshake.removeDebugLogging`                                                  |
+  | `disableManifestInjection`              | `routeManifestInjection: false`                                                         |
+  | `_experimental.turbopackApplicationKey` | `applicationKey` (works for both webpack and Turbopack builds)                          |
+
+- **`reactComponentAnnotation` is one top-level option for webpack and Turbopack.** `webpack.reactComponentAnnotation` and `_experimental.turbopackReactComponentAnnotation` are deprecated but still work, and will be removed in v12. If both a bundler-specific option and the top-level one are set, the bundler-specific one wins for that bundler. If you moved to `webpack.reactComponentAnnotation` when v10.30.0 deprecated the top-level option, move back. On Turbopack, component annotation requires Next.js 16+, and the SDK warns at build time on older versions, where it previously did nothing silently.
+
+  ```js
+  export default withSentryConfig(nextConfig, {
+    reactComponentAnnotation: {
+      enabled: true,
+      ignoredComponents: ['MyComponent'],
+    },
+  });
+  ```
+
+- **Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates.** Route handlers and middleware are still instrumented automatically, so no action is required for most users.
+- **The default `environment` on Vercel no longer has a `vercel-` prefix**, see [Vercel environment names](#vercel-environment-names).
+- **Vercel AI is not instrumented on the Edge runtime**, see [AI integrations](#ai-integrations).
+
+### `@sentry/nuxt`
+
+**The server config is bundled, and `--import` is no longer needed.** The SDK bundles `sentry.server.config.ts` into the Nitro server build, where it initializes itself when the server starts. Remove the preload from your start commands:
+
+```bash
+# before
+node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
+NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev
+
+# after
+node .output/server/index.mjs
+nuxt dev
+```
+
+Old start commands keep working: the SDK still emits a file at the old path, but it only prints a reminder that the flag can be removed. If you preload a file that calls `Sentry.init` yourself, that init wins and the bundled one is skipped.
+
+- The `autoInjectServerSentry` option (`'top-level-import'` and `'experimental_dynamic-import'`) and `experimental_entrypointWrappedFunctions` are deprecated, as the default behavior replaces both. Remove them from your `sentry` module options; they will be deleted in the next major version.
+- Support for `public/instrument.server.[ext]` was removed. Move the file next to `nuxt.config.ts` and rename it to `sentry.server.config.[ext]`. Its contents do not change.
+- [`sourceMapsUploadOptions` was removed](#sourcemapsuploadoptions-was-removed).
+
+### `@sentry/react`
+
+`@sentry/react` gained a new `@sentry/react/react-router` entry point that pulls the required React Router hooks (`useLocation`, `useNavigationType`, `matchRoutes`, `createRoutesFromChildren`) from `react-router` for you, so you no longer have to thread them through `reactRouterBrowserTracingIntegration` yourself:
+
+```diff
+- import * as Sentry from '@sentry/react';
+- import { useEffect } from 'react';
+- import { createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router';
++ import * as Sentry from '@sentry/react';
++ import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router';
+
+  Sentry.init({
+    integrations: [
+-     Sentry.reactRouterBrowserTracingIntegration({
+-       useEffect,
+-       useLocation,
+-       useNavigationType,
+-       createRoutesFromChildren,
+-       matchRoutes,
+-     }),
++     reactRouterBrowserTracingIntegration(),
+    ],
+  });
+```
+
+- `wrapReactRouterRouting`, `wrapUseRoutes`, `wrapCreateBrowserRouter` and `wrapCreateMemoryRouter` are re-exported from `@sentry/react/react-router` as well.
+- The entry requires `react-router` to be resolvable. It is an optional peer dependency and supports React Router v6, v7 and v8. On React Router v6 with only `react-router-dom` installed, either add `react-router` or keep importing from `@sentry/react` and pass the hooks explicitly.
+- The existing `@sentry/react` API keeps working, and passing the hooks there is now optional too (`useEffect` is no longer used).
+- For **every** `@sentry/react` routing setup, the order in which you add the browser tracing integration and wrap your routes no longer matters.
+
+### `@sentry/react-router`
+
+`@sentry/react-router` is now out of beta. With this, the SDK fully relies on React Router's instrumentation API for
+tracing loaders and actions.
+
+- The deprecated `wrapServerLoader` and `wrapServerAction` wrappers were removed. Export `instrumentations = [Sentry.createSentryServerInstrumentation()]` from your `entry.server.tsx` instead of wrapping loaders and actions individually.
+- The deprecated `sentryHandleRequest` export was removed. Use `wrapSentryHandleRequest` instead.
+- The Vite plugin moved to `@sentry/react-router/vite`, see [moved imports](#build-plugins-and-other-exports-moved-to-subpaths).
+- [`sourceMapsUploadOptions` was removed](#sourcemapsuploadoptions-was-removed).
+
+### `@sentry/remix`
+
+- **The Vite plugin moved to `@sentry/remix/vite`**, see [moved imports](#build-plugins-and-other-exports-moved-to-subpaths). It now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
+- **Action form data:** `captureActionFormDataKeys` is an integration-level override, so it no longer requires `dataCollection.httpBodies` to also include `'incomingRequest'`. If it is not set, all form fields are captured when `dataCollection.httpBodies` includes `'incomingRequest'` (the v11 default). Values whose field name looks sensitive (`password`, `token`, …) are replaced with `[Filtered]`, including explicitly allowlisted ones.
+
+  ```js
+  // v10 — both were required
+  Sentry.init({
+    captureActionFormDataKeys: { username: true },
+    dataCollection: { httpBodies: ['incomingRequest'] },
+  });
+
+  // v11 — the option opts in on its own
+  Sentry.init({
+    captureActionFormDataKeys: { username: true },
+  });
+  ```
+
+- **Form data attributes were renamed.** The captured fields are now reported as `remix.action_form_data.<field>` span attributes on every runtime. On Node, they were previously reported as `formData.<field>`; the Cloudflare and Hydrogen paths already used the new name. Update any dashboards, alerts, or saved searches that query `formData.*`.
+
+### `@sentry/solidstart`
+
+- [`sourceMapsUploadOptions` was removed](#sourcemapsuploadoptions-was-removed).
+- The build options now also accept `applicationKey`, `sentryUrl`, `headers`, `silent`, `errorHandler`, `release` and `moduleMetadata`.
+
+### `@sentry/sveltekit`
+
+- The `sentrySvelteKit` Vite plugin moved to `@sentry/sveltekit/vite`, see [moved imports](#build-plugins-and-other-exports-moved-to-subpaths).
+- [`sourceMapsUploadOptions` was removed](#sourcemapsuploadoptions-was-removed).
+- Load and server route spans are named after the wrapped function, see [Span names](#span-names).
 
 ### `@sentry/server-utils`
 
@@ -1586,166 +1481,6 @@ export default defineConfig({
   - `instrumentPrisma`: Prisma is instrumented via `prismaIntegration` and works out of the box, so manual instrumentation is no longer exposed.
   - `defaultDbStatementSerializer`: the default Redis command statement serializer helper.
   - Types: `PrismaInstrumentationConfig`, `PrismaOptions`, `RedisDiagnosticChannelsOptions`, `SentryTracingChannel`, `TracingChannelLifeCycleOptions`, `TracingChannelBindingHandle`.
-
-### `@sentry/astro`
-
-The deprecated `sourceMapsUploadOptions` option was removed from `sentryAstro()`. Move its fields to the top level of the `sentryAstro()` options. Note that `assets` and `filesToDeleteAfterUpload` moved into `sourcemaps`, and `enabled` was replaced by `sourcemaps.disable` (inverted: `enabled: false` becomes `sourcemaps: { disable: true }`).
-
-```js
-// astro.config.mjs
-export default defineConfig({
-  integrations: [
-    sentry({
-      // before
-      sourceMapsUploadOptions: {
-        org: 'my-org',
-        project: 'my-project',
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-        assets: ['./dist/**/*'],
-      },
-
-      // after
-      org: 'my-org',
-      project: 'my-project',
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-      sourcemaps: {
-        assets: ['./dist/**/*'],
-      },
-    }),
-  ],
-});
-```
-
-Runtime SDK options (`dsn`, `environment`, `release` as a string, `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate`, `replaysOnErrorSampleRate`) can no longer be passed to `sentryAstro()`. Configure them in `sentry.client.config.ts` / `sentry.server.config.ts` instead. `release` and `debug` on `sentryAstro()` are now build-time options (`release` for source map uploads, `debug` for build-time logging). If no config files exist, the generated default init snippets still pick them up (`release.name` as the runtime `release`, `debug` for SDK debug logging). The generated client snippet now always includes the `Replay` integration with default sample rates — to customize or remove it (previously done by setting both replay sample rates to `0`), create a `sentry.client.config.ts`.
-
-```ts
-// astro.config.mjs — before
-import { defineConfig } from 'astro/config';
-import sentry from '@sentry/astro';
-
-export default defineConfig({
-  integrations: [
-    sentry({
-      // runtime SDK options on the integration
-      dsn: 'https://example@sentry.io/123',
-      release: '1.0.0',
-      environment: 'production',
-      tracesSampleRate: 0.5,
-    }),
-  ],
-});
-```
-
-```ts
-// astro.config.mjs — after (build-time options only)
-import { defineConfig } from 'astro/config';
-import sentry from '@sentry/astro';
-
-export default defineConfig({
-  integrations: [
-    sentry({
-      org: 'my-org',
-      project: 'my-project',
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-      release: { name: '1.0.0' },
-      debug: true,
-    }),
-  ],
-});
-```
-
-```ts
-// sentry.client.config.ts — after (runtime SDK options)
-import * as Sentry from '@sentry/astro';
-
-Sentry.init({
-  dsn: 'https://example@sentry.io/123',
-  release: '1.0.0',
-  environment: 'production',
-  tracesSampleRate: 0.5,
-});
-```
-
-### `@sentry/solidstart`
-
-The `sourceMapsUploadOptions` build option was removed. Move its fields to the top level, matching every
-other meta-framework SDK. Note that `enabled` was replaced by `sourcemaps.disable` (inverted:
-`enabled: false` becomes `sourcemaps: { disable: true }`).
-
-This only affects SolidStart 1 setups using `withSentry()` / `sentrySolidStartVite()`. SolidStart 2's
-`sentrySolidStart()` already took its options at the top level.
-
-```ts
-// app.config.ts
-export default defineConfig(
-  withSentry(
-    {},
-    {
-      // before
-      sourceMapsUploadOptions: {
-        enabled: true,
-        telemetry: false,
-        filesToDeleteAfterUpload: ['./dist/**/*.map'],
-      },
-
-      // after
-      telemetry: false,
-      sourcemaps: {
-        disable: false,
-        filesToDeleteAfterUpload: ['./dist/**/*.map'],
-      },
-    },
-  ),
-);
-```
-
-The SolidStart build options now also accept `applicationKey`, `sentryUrl`, `headers`, `silent`,
-`errorHandler`, `release` and `moduleMetadata`, which previously had no top-level equivalent.
-
-### `denoHttpIntegration` incoming span hooks renamed
-
-Affected SDKs: `@sentry/deno`.
-
-The incoming-span hooks on `denoHttpIntegration` were renamed to match `httpIntegration` in the other server SDKs. Their arguments are typed as `HttpIncomingMessage` / `HttpServerResponse` now, instead of `unknown`.
-
-| Removed option          | Replacement     |
-| ----------------------- | --------------- |
-| `onIncomingSpanCreated` | `onSpanCreated` |
-| `onIncomingSpanEnd`     | `onSpanEnd`     |
-
-```js
-// before
-Sentry.denoHttpIntegration({
-  onIncomingSpanCreated: (span, req, res) => {
-    span.setAttribute('custom', true);
-  },
-});
-
-// after
-Sentry.denoHttpIntegration({
-  onSpanCreated: (span, req, res) => {
-    span.setAttribute('custom', true);
-  },
-});
-```
-
-### `sentrySvelteKit` moved to the `@sentry/sveltekit/vite` subpath export
-
-Affected SDKs: `@sentry/sveltekit`.
-
-The `sentrySvelteKit` Vite plugin is no longer re-exported from the main `@sentry/sveltekit` entry. Import it from `@sentry/sveltekit/vite` in your `vite.config.ts` instead:
-
-```ts
-// vite.config.ts
-
-// before
-import { sentrySvelteKit } from '@sentry/sveltekit';
-
-// after
-import { sentrySvelteKit } from '@sentry/sveltekit/vite';
-```
-
-The main entry re-exported the build plugin statically, which pulled the whole build-time module graph (`@sentry/vite-plugin`, and through it `@babel/core`) into the server runtime graph whenever the SDK was imported in server code. Serverless bundlers that trace by reachability (e.g. `@vercel/nft`) then copied all of it into the function. Moving the plugin behind its own subpath keeps it off the runtime entry so it is never reachable from server code.
 
 ## No Version Support Timeline
 
