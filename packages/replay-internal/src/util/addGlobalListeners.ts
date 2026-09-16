@@ -56,20 +56,34 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       replay.lastActiveSpan = span;
     });
 
+    let replayPausedByFeedback = false;
+
     // We want to attach the replay id to the feedback event
     client.on('beforeSendFeedback', async (feedbackEvent, options) => {
       const replayId = replay.getSessionId();
       if (options?.includeReplay && replay.isEnabled() && replayId && feedbackEvent.contexts?.feedback) {
-        // In case the feedback is sent via API and not through our widget, we want to flush replay
-        if (feedbackEvent.contexts.feedback.source === 'api') {
-          await replay.sendBufferedReplayOrFlush();
-        }
         feedbackEvent.contexts.feedback.replay_id = replayId;
+        const feedbackSource = feedbackEvent.contexts.feedback.source;
+        if (feedbackSource === 'api') {
+          await replay.sendBufferedReplayOrFlush();
+        } else if (feedbackSource === 'widget' && replayPausedByFeedback) {
+          await replay.sendBufferedReplayOrFlush({ continueRecording: false });
+        }
       }
     });
 
-    client.on('openFeedbackWidget', async () => {
-      await replay.sendBufferedReplayOrFlush();
+    client.on('openFeedbackWidget', () => {
+      if (replay.isEnabled() && !replay.isPaused()) {
+        replay.pause();
+        replayPausedByFeedback = true;
+      }
+    });
+
+    client.on('closeFeedbackWidget', () => {
+      if (replayPausedByFeedback) {
+        replayPausedByFeedback = false;
+        replay.resume();
+      }
     });
   }
 }

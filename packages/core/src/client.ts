@@ -811,6 +811,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'openFeedbackWidget', callback: () => void): () => void;
 
   /**
+   * Register a callback when the feedback widget is closed in a user's browser
+   */
+  public on(hook: 'closeFeedbackWidget', callback: () => void): () => void;
+
+  /**
    * A hook that is called when a replay session starts recording (either session or buffer mode).
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -1132,6 +1137,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook event for when the feedback widget is opened in a user's browser
    */
   public emit(hook: 'openFeedbackWidget'): void;
+
+  /**
+   * Fire a hook event for when the feedback widget is closed in a user's browser
+   */
+  public emit(hook: 'closeFeedbackWidget'): void;
 
   /**
    * Fire a hook event when a replay session starts recording.
