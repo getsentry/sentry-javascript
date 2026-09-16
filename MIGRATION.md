@@ -27,7 +27,7 @@ Version 11 of the SDK is compatible with Sentry self-hosted versions 26.4.2 or h
 work, but are not supported. For the best experience we recommend updating your self-hosted Sentry to the latest
 version.
 
-## 1. Version Support Changes:
+## 1. Version Support Changes
 
 Version 11 of the Sentry SDK has new compatibility ranges for runtimes and frameworks.
 
@@ -287,7 +287,7 @@ The new channel-based instrumentations (using `orchestrion` instead of `import-i
 
 #### `vercelAIIntegration` changes
 
-One integration to call out specifically here is the `vercelAIIntegration`. This integration no longer works on Vercel Edge (as that does not support diagnostics channel), and we also removed the capabilities to enhance native OTEL spans emitted by the `ai` package - you can only capture these as-is and may loose some advanced agent monitoring capabilities. On the other hand, the integration will now work much better out of the box in many environments than it used to before.
+One integration to call out specifically here is the `vercelAIIntegration`. This integration no longer works on Vercel Edge (as that does not support diagnostics channel), and we also removed the capabilities to enhance native OTEL spans emitted by the `ai` package - you can only capture these as-is and may lose some advanced agent monitoring capabilities. On the other hand, the integration will now work much better out of the box in many environments than it used to before.
 
 ### `setupKoaErrorHandler` is deprecated (Koa errors are captured automatically)
 
@@ -493,7 +493,7 @@ Sentry.init({
 
 The `ignoreStatusCodes` option is deprecated on `httpIntegration` and `httpServerSpansIntegration` (Node and the SDKs built on it) as well as on `denoHttpIntegration` and `denoServeIntegration`. It will be removed in v12, without a direct replacement.
 
-The filter runs on the finished transaction event, which is no longer supported span streaming. Child spans are sent as they end, before the response status code is known, so a request's spans can no longer be dropped once the status turns out to be uninteresting. The option therefore only has an effect with `traceLifecycle: 'static'`.
+The filter runs on the finished transaction event, which is no longer supported with span streaming. Child spans are sent as they end, before the response status code is known, so a request's spans can no longer be dropped once the status turns out to be uninteresting. The option therefore only has an effect with `traceLifecycle: 'static'`.
 
 To keep specific requests out of Sentry, decide before they are instrumented: Use `tracesSampler`, or ignore the request via `ignoreIncomingRequests`, which matches on the incoming request instead of on the response:
 
@@ -527,7 +527,7 @@ In Node, Bun, Vercel Edge and Cloudflare you can also set the `SENTRY_TRACE_LIFE
 
 #### `Sentry.spanToJSON` returns streamed span format
 
-The `spanToJSON` helper previously returned a `SpanJSON` object. In v11, the return type was changed to `StreamedSpanJSON`, meaning the object shape is now the [same as in `beforeSendSpan`](#beforeSendSpan-receives-the-streamed-span-format).
+The `spanToJSON` helper previously returned a `SpanJSON` object. In v11, the return type was changed to `StreamedSpanJSON`, meaning the object shape is now the [same as in `beforeSendSpan`](#beforesendspan-receives-the-streamed-span-format).
 
 If you're [opting out of span streaming](#opting-out-of-span-streaming), you can replace your `spanToJSON` calls with `spanToStaticSpanJSON`, which still returns the static `SpanJSON` object format.
 
@@ -808,7 +808,7 @@ Legacy HTTP span attributes were replaced by their current semantic-convention e
 
 `SanitizedRequestData` — the shape used for `http` breadcrumb data and `http.client` span data — now uses `http.request.method` instead of `http.method` as a key for the request method.
 
-On server-side HTTP spans, the `content-length` header is now always reported as `http.request.body.size`/`http.response.body.size` instead of switching to `http.request_body_size_uncompressed` when the no encoding was present.
+On server-side HTTP spans, the `content-length` header is now always reported as `http.request.body.size`/`http.response.body.size` instead of switching to `http.request_body_size_uncompressed` when no encoding was present.
 
 The `http.request.header.<key>`/`http.response.header.<key>` attributes now write the header name lowercased as previously but no longer replaces dashes (`-`) with underscores (`_`). For example, the SDK now sets `http.request.header.user-agent` rather than `http.request.header.user_agent`. The same applies to the cookie names in `http.request.header.cookie.<name>` and `http.request.header.set-cookie.<name>`.
 
@@ -1789,19 +1789,18 @@ The no-op `withSentryConfig` passthroughs that the client and edge builds export
 The following top-level options in `withSentryConfig` / the `sentry` config were removed. They were deprecated in
 10.30.0, when most of them moved under the `webpack` option; use the replacement listed below instead:
 
-| Removed option                          | Replacement                                                             |
-| --------------------------------------- | ----------------------------------------------------------------------- |
-| `autoInstrumentServerFunctions`         | `webpack.autoInstrumentServerFunctions`                                 |
-| `autoInstrumentMiddleware`              | `webpack.autoInstrumentMiddleware`                                      |
-| `autoInstrumentAppDirectory`            | `webpack.autoInstrumentAppDirectory`                                    |
-| `automaticVercelMonitors`               | `webpack.automaticVercelMonitors`                                       |
-| `excludeServerRoutes`                   | `webpack.excludeServerRoutes`                                           |
-| `reactComponentAnnotation`              | `webpack.reactComponentAnnotation`                                      |
-| `unstable_sentryWebpackPluginOptions`   | Removed entirely, see [below](#removed-unstable-bundler-plugin-options) |
-| `disableSentryWebpackConfig`            | `webpack.disableSentryConfig`                                           |
-| `disableLogger`                         | `webpack.treeshake.removeDebugLogging`                                  |
-| `disableManifestInjection`              | `routeManifestInjection: false`                                         |
-| `_experimental.turbopackApplicationKey` | `applicationKey` (works for both webpack and Turbopack builds)          |
+| Removed option                          | Replacement                                                              |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| `autoInstrumentServerFunctions`         | `webpack.autoInstrumentServerFunctions`                                  |
+| `autoInstrumentMiddleware`              | `webpack.autoInstrumentMiddleware`                                       |
+| `autoInstrumentAppDirectory`            | `webpack.autoInstrumentAppDirectory`                                     |
+| `automaticVercelMonitors`               | `webpack.automaticVercelMonitors`                                        |
+| `excludeServerRoutes`                   | `webpack.excludeServerRoutes`                                            |
+| `unstable_sentryWebpackPluginOptions`   | Removed entirely, see [below](#removed-unstable_-bundler-plugin-options) |
+| `disableSentryWebpackConfig`            | `webpack.disableSentryConfig`                                            |
+| `disableLogger`                         | `webpack.treeshake.removeDebugLogging`                                   |
+| `disableManifestInjection`              | `routeManifestInjection: false`                                          |
+| `_experimental.turbopackApplicationKey` | `applicationKey` (works for both webpack and Turbopack builds)           |
 
 **Vercel AI no longer supported on Edge runtime:** We now rely on diagnostics channels for our Vercel AI instrumentation, which does not work on the Edge runtime. Because of this, monitoring of the `ai` package is no longer supported on Edge. Note that Edge is deprecated.
 
@@ -2261,31 +2260,6 @@ import { sentrySvelteKit } from '@sentry/sveltekit/vite';
 ```
 
 The main entry re-exported the build plugin statically, which pulled the whole build-time module graph (`@sentry/vite-plugin`, and through it `@babel/core`) into the server runtime graph whenever the SDK was imported in server code. Serverless bundlers that trace by reachability (e.g. `@vercel/nft`) then copied all of it into the function. Moving the plugin behind its own subpath keeps it off the runtime entry so it is never reachable from server code.
-
-- Several public types that used `any` now use `unknown` — including `StackFrame`, `SamplingContext`,
-  `SentryError`, and `User`. You may need to narrow types explicitly where you previously relied on
-  `any`.
-- (Cloudflare) The `env` types and the generics on `withSentry` and `instrumentDurableObjectWithSentry` were reworked for better type safety. If you were not passing explicit generic type parameters, no changes are needed.
-
-```diff
-- export default withSentry<Env>(
-+ export default withSentry(
-    (env) => ({ dsn: env.SENTRY_DSN }),
-    {
-      async fetch(request, env, ctx) {
-        // env is correctly typed based on the handler
-      },
-    } satisfies ExportedHandler<Env>,
-  );
-```
-
-```diff
-- export const MyDO = Sentry.instrumentDurableObjectWithSentry<Env, MyDOBase, typeof MyDOBase>(
-+ export const MyDO = Sentry.instrumentDurableObjectWithSentry(
-    (env) => ({ dsn: env.SENTRY_DSN }),
-    MyDOBase,
-  );
-```
 
 ## 6. Type Changes
 
