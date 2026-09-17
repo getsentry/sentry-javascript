@@ -151,6 +151,19 @@ describe('makeAddSentryVitePlugin', () => {
     await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./dist/client/**/*.map']);
   });
 
+  // Vite resolves `outDir` to an absolute path by the time this hook runs, and `.//abs/path` would
+  // match nothing - leaving the maps in the production output.
+  it('does not prefix an absolute outDir', async () => {
+    const plugins = makeAddSentryVitePlugin({});
+    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
+
+    (configPlugin?.config as (config: UserConfig) => void)({ build: { outDir: '/tmp/app/build/client' } });
+
+    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual([
+      '/tmp/app/build/client/**/*.map',
+    ]);
+  });
+
   it('keeps the source maps when the user set their own build.sourcemap', async () => {
     const plugins = makeAddSentryVitePlugin({});
     const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');

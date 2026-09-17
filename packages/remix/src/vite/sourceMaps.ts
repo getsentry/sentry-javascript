@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentryRemixVitePluginOptions } from './types';
@@ -53,8 +54,11 @@ export function makeAddSentryVitePlugin(options: SentryRemixVitePluginOptions): 
         // Derived from the configured `outDir` rather than hardcoding `build`, so a custom Remix
         // `buildDirectory` still gets cleaned up. Remix runs a client and an SSR build, each with
         // its own `outDir`, so each pass deletes only what it emitted.
-        const outDir = config.build?.outDir?.replace(/^\.\//, '').replace(/\/+$/, '') || 'build';
-        const filesToDelete = [`./${outDir}/**/*.map`];
+        // Vite resolves `outDir` to an absolute path, so only a relative one may be prefixed with
+        // `./` - `.//abs/path/**/*.map` matches nothing and silently leaves the maps on disk.
+        const outDir = config.build?.outDir?.replace(/\/+$/, '') || 'build';
+        const outDirGlob = path.isAbsolute(outDir) ? outDir : `./${outDir.replace(/^\.\//, '')}`;
+        const filesToDelete = [`${outDirGlob}/**/*.map`];
 
         if (debug) {
           // eslint-disable-next-line no-console
