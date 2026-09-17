@@ -23,7 +23,6 @@ function getH3ErrorStatusCode(error: Error): number | undefined {
   return status ?? statusCode;
 }
 
-
 /**
  *  Hook that can be added in a Nitro plugin. It captures an error and sends it to Sentry.
  */

@@ -187,4 +187,16 @@ describe('sentryCaptureErrorHook - errors that only look like h3 errors', () => 
 
     expect(SentryCore.captureException).toHaveBeenCalledWith(error, expect.anything());
   });
+
+  it('still reports a third-party `HTTPError` whose status lives on `response`', async () => {
+    // The packages "ky" and "got" name their errors `HTTPError` but keep the status on `response`, not on the error
+    const error = Object.assign(new Error('Request failed with status code 404'), {
+      name: 'HTTPError',
+      response: { status: 404 },
+    });
+
+    await sentryCaptureErrorHook(error, {} as CapturedErrorContext);
+
+    expect(SentryCore.captureException).toHaveBeenCalledWith(error, expect.anything());
+  });
 });
