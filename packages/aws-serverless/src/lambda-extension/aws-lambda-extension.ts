@@ -1,102 +1,32 @@
-import * as http from 'node:http';
-import { buffer } from 'node:stream/consumers';
+import type * as http from 'node:http';
 import {
-  consoleSandbox,
-  debug,
-  type DsnComponents,
-  dsnToString,
-  getEnvelopeEndpointWithUrlEncodedAuth,
-  makeDsn,
-} from '@sentry/core';
-import { DEBUG_BUILD } from './debug-build';
-
-const POLL_RETRY_BASE_MS = 100;
-const POLL_RETRY_MAX_MS = 5_000;
-/** Bounded so a permanently unreachable API exits instead of logging every 5s forever. */
-const POLL_MAX_CONSECUTIVE_FAILURES = 20;
-
-/** The body lands in an error message that a failing poll writes to the console. */
-const ERROR_BODY_MAX_LENGTH = 200;
-
-/**
- * Detects a peer that went away without a FIN/RST, which a request deadline cannot do here: the
- * poll is open across the environment's frozen idle time, which is unbounded, and a socket
- * deadline runs on real time and would fire on thaw after a long idle — destroying a poll that
- * was about to be answered. Keep-alive probes only travel while the environment is running.
- */
-const POLL_KEEPALIVE_MS = 30_000;
-
-/** 408 and 429 are the retryable ones; the rest of 4xx means the poll itself is refused. */
-const RETRYABLE_CLIENT_ERRORS = [408, 429];
-
-interface ExtensionEvent {
-  eventType?: string;
-}
-
-interface ExtensionsApiResponse {
-  statusCode: number;
-  body: string;
-}
-
-export class ExtensionsApiError extends Error {
-  public constructor(
-    message: string,
-    public readonly statusCode: number,
-  ) {
-    super(message);
-    this.name = 'ExtensionsApiError';
-  }
-}
+  EXTENSION_NAME,
+  EXTENSIONS_API_PATH,
+  MAX_REPORTED_FAILURES,
+  POLL_ESTABLISHED_MS,
+  POLL_GIVE_UP_MS,
+  SHUTDOWN_BUDGET_MS,
+  SHUTDOWN_IDLE_GRACE_MS,
+  SHUTDOWN_MARGIN_MS,
+  TERMINAL_POLL_CONFIRMATIONS,
+  TUNNEL_PORT,
+} from './constants';
+import { ExtensionsApiError, isTerminalPollStatus, PermanentRegistrationError } from './errors';
+import { parseEvent, request } from './extensions-api';
+import { SentryTunnel } from './sentry-tunnel';
+import type { ExtensionEvent, PollOutcome } from './types';
+import { logError, retryDelayMs, sleep, truncateBody } from './utils';
 
 /**
- * Structural rather than `instanceof`: the check has to hold for an error that crossed a
- * module boundary, and a transport failure carries `code`, never `statusCode`.
+ * AWS's own documented example carries `deadlineMs: 676051`, which is not an epoch value — read as
+ * one it yields a negative budget and drops whatever is in flight. Anything that is not a plausible
+ * remaining window falls back to the limit Lambda enforces anyway.
  */
-function isClientError(err: unknown): boolean {
-  const statusCode = (err as { statusCode?: unknown } | null)?.statusCode;
-  return (
-    typeof statusCode === 'number' &&
-    statusCode >= 400 &&
-    statusCode < 500 &&
-    !RETRYABLE_CLIENT_ERRORS.includes(statusCode)
-  );
-}
+function shutdownBudgetMs(deadlineMs: unknown): number {
+  const remaining = typeof deadlineMs === 'number' ? deadlineMs - Date.now() : NaN;
+  const trusted = remaining > 0 && remaining <= SHUTDOWN_BUDGET_MS ? remaining : SHUTDOWN_BUDGET_MS;
 
-/**
- * Exported only for testing purposes.
- *
- * `fetch` cannot be used for the long poll: Node's implementation applies undici's 300s
- * `headersTimeout`, and lifting it would mean passing a dispatcher and depending on `undici`
- * directly. `http.request` has no default timeout, and the Extensions API is plain HTTP on
- * localhost.
- */
-export function request(url: string, headers: Record<string, string>): Promise<ExtensionsApiResponse> {
-  return new Promise((resolve, reject) => {
-    const req = http.request(url, { headers }, res => {
-      const chunks: Buffer[] = [];
-      res.on('data', (chunk: Buffer) => chunks.push(chunk));
-      res.on('end', () => resolve({ statusCode: res.statusCode ?? 0, body: Buffer.concat(chunks).toString() }));
-      res.on('error', err => {
-        req.destroy();
-        reject(err);
-      });
-    });
-
-    req.on('socket', socket => socket.setKeepAlive(true, POLL_KEEPALIVE_MS));
-
-    req.on('error', reject);
-    req.end();
-  });
-}
-
-function truncate(body: string): string {
-  return body.length > ERROR_BODY_MAX_LENGTH ? `${body.slice(0, ERROR_BODY_MAX_LENGTH)}...` : body;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms);
-  });
+  return Math.max(trusted - SHUTDOWN_MARGIN_MS, 0);
 }
 
 /**
@@ -104,36 +34,54 @@ function sleep(ms: number): Promise<void> {
  */
 export class AwsLambdaExtension {
   private readonly _baseUrl: string;
+  private readonly _tunnel: SentryTunnel;
   private _extensionId: string | null;
 
   public constructor() {
-    this._baseUrl = `http://${process.env.AWS_LAMBDA_RUNTIME_API}/2020-01-01/extension`;
+    this._baseUrl = `http://${process.env.AWS_LAMBDA_RUNTIME_API}${EXTENSIONS_API_PATH}`;
+    this._tunnel = new SentryTunnel();
     this._extensionId = null;
   }
 
   /**
-   * Register this extension as an external extension with AWS.
+   * Registers as an external extension, subscribed to SHUTDOWN alone.
+   *
+   * An INVOKE subscription joins the gate that holds every invocation until each subscriber has
+   * asked for the next event, so a poll that dies mid-flight would hold the rest of the
+   * environment's invocations open until the function timeout. Lambda Managed Instances refuses the
+   * subscription outright, taking the function's init down with it.
+   *
+   * What is retried is the API not answering. Lambda gates the init phase on every registered
+   * extension, so never registering holds each invocation open with the handler never running, and
+   * a late registration costs only the first invocation.
    */
   public async register(): Promise<void> {
-    const res = await fetch(`${this._baseUrl}/register`, {
-      method: 'POST',
-      body: JSON.stringify({
-        events: ['INVOKE', 'SHUTDOWN'],
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-        'Lambda-Extension-Name': 'sentry-extension',
-      },
-    });
+    let failingSince = 0;
 
-    if (!res.ok) {
-      throw new Error(`Failed to register with the extension API: ${await res.text()}`);
-    }
+    for (let attempt = 1; ; attempt++) {
+      try {
+        this._extensionId = await this._requestRegistration();
+        return;
+      } catch (err) {
+        if (err instanceof PermanentRegistrationError) {
+          throw err;
+        }
 
-    this._extensionId = res.headers.get('lambda-extension-identifier');
+        failingSince = failingSince === 0 ? Date.now() : failingSince;
 
-    if (!this._extensionId) {
-      throw new Error('Extensions API accepted the registration without returning an extension identifier');
+        // The same ceiling the poll loop has, for the same reason: an extension Lambda launched
+        // that never registers holds the init phase, and with it every invocation, for as long as
+        // it keeps trying. Past this it is better to crash and let Lambda recycle.
+        if (Date.now() - failingSince >= POLL_GIVE_UP_MS) {
+          throw err;
+        }
+
+        if (attempt <= MAX_REPORTED_FAILURES) {
+          logError('registering with the Extensions API failed, retrying.', err);
+        }
+
+        await sleep(retryDelayMs(attempt));
+      }
     }
   }
 
@@ -145,198 +93,166 @@ export class AwsLambdaExtension {
       throw new Error('Extension ID is not set');
     }
 
-    // This request blocks until the next event arrives, so it stays open for the whole
-    // duration of the current invocation. Under `fetch` that is capped at 300s, so any
-    // invocation that runs longer than that loses the extension partway through.
     const res = await request(`${this._baseUrl}/event/next`, {
-      'Lambda-Extension-Identifier': this._extensionId,
-      'Content-Type': 'application/json',
+      headers: {
+        'Lambda-Extension-Identifier': this._extensionId,
+        'Content-Type': 'application/json',
+      },
     });
 
-    if (res.statusCode < 200 || res.statusCode > 299) {
-      throw new ExtensionsApiError(`Failed to advance to next event: ${truncate(res.body)}`, res.statusCode);
+    // Reaching `end` without a status is a transport problem, not a verdict from the API, so it
+    // must not carry a status into the terminal check.
+    if (!res.statusCode) {
+      throw new Error('The Extensions API response carried no status');
     }
 
-    try {
-      return JSON.parse(res.body) as ExtensionEvent;
-    } catch {
-      // Not an empty event: `run` reads `eventType` to decide when to stop, so a body it cannot
-      // read has to be a failed poll. Returning `{}` would look like an INVOKE — resetting the
-      // backoff and re-polling with no delay, which spins the loop on any endpoint answering
-      // 200 with something that is not JSON, and skips the SHUTDOWN exit.
-      throw new Error(`Failed to parse the event from the Extensions API: ${truncate(res.body)}`);
+    if (res.statusCode < 200 || res.statusCode > 299) {
+      throw new ExtensionsApiError(`Failed to advance to next event: ${truncateBody(res.body)}`, res.statusCode);
     }
+
+    const event: unknown = parseEvent(res.body);
+
+    // `run` decides when to stop from `eventType`, and every JSON literal parses — `{}` included —
+    // so anything without one would read as an event: counters reset, no backoff, immediate re-poll.
+    if (typeof (event as ExtensionEvent | null)?.eventType !== 'string') {
+      throw new Error(`The Extensions API returned no event: ${truncateBody(res.body)}`);
+    }
+
+    return event as ExtensionEvent;
   }
 
   /**
    * Polls the Extensions API until the environment shuts down.
    *
-   * A failed poll is retried rather than ending the loop. Lambda only completes an invocation
-   * once the runtime and every registered extension have asked for the next event, so an
-   * extension that stops polling does not fail loudly — it leaves every later invocation on
-   * that execution environment running until the function timeout kills it.
+   * Giving up stops the loop rather than ending the process: subscribed to SHUTDOWN alone, an
+   * extension that has stopped polling costs the customer nothing but this drain, while exiting
+   * fails the invocation in flight as `Extension.Crash`. The outcome reports whether the API ever
+   * took a poll, because that is not true yet during the init phase — see `main`.
    */
-  public async run(): Promise<void> {
-    let consecutiveFailures = 0;
+  public async run(): Promise<PollOutcome> {
+    let failures = 0;
+    let reported = 0;
+    let terminalStatuses = 0;
+    let failingSince = 0;
+    let pollAccepted = false;
 
     for (;;) {
-      try {
-        const event = await this.next();
-        consecutiveFailures = 0;
+      const sentAt = Date.now();
+      let event: ExtensionEvent;
 
-        // The runtime API is torn down right after this, so polling again would only produce
-        // errors on the way out.
-        if (event.eventType === 'SHUTDOWN') {
-          return;
+      try {
+        event = await this.next();
+        // Before the contract check below: the API answering at all is what releases the init
+        // phase, whatever it answered with.
+        pollAccepted = true;
+
+        // Nothing else was subscribed to, so this is the API answering outside its own contract.
+        // Falling through would re-poll with no delay, and nothing rate-limits a loop that is no
+        // longer in the invocation gate.
+        if (event.eventType !== 'SHUTDOWN') {
+          throw new Error(`The Extensions API delivered an unsubscribed event: ${event.eventType}`);
         }
       } catch (err) {
-        // A poll the API refuses outright is not going to start working; retrying only buries
-        // the reason under a console error every few seconds for the life of the environment.
-        if (isClientError(err)) {
-          throw err;
+        const failedAt = Date.now();
+
+        // The only health signal available: one poll covers the environment's whole life, so
+        // "since the last event" would make every counter here a lifetime tally.
+        if (failedAt - sentAt >= POLL_ESTABLISHED_MS) {
+          failures = 0;
+          terminalStatuses = 0;
+          failingSince = 0;
         }
 
-        consecutiveFailures++;
+        failures++;
+        // From the failure rather than `sentAt`, which on a parked poll predates the whole budget.
+        failingSince = failingSince === 0 ? failedAt : failingSince;
 
-        // Same reasoning once a recoverable-looking failure stops recovering.
-        if (consecutiveFailures >= POLL_MAX_CONSECUTIVE_FAILURES) {
-          throw err;
+        // Deliberately not reset by a non-terminal error: a permanent refusal that flaps with
+        // transport failures would otherwise never confirm.
+        if (isTerminalPollStatus(err)) {
+          terminalStatuses++;
         }
 
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.error('Sentry Lambda extension: polling the Extensions API failed, retrying.', err);
-        });
+        if (terminalStatuses >= TERMINAL_POLL_CONFIRMATIONS || failedAt - failingSince >= POLL_GIVE_UP_MS) {
+          return { reason: 'unrecoverable', pollAccepted, error: err };
+        }
 
-        await sleep(Math.min(POLL_RETRY_BASE_MS * 2 ** (consecutiveFailures - 1), POLL_RETRY_MAX_MS));
+        if (reported++ < MAX_REPORTED_FAILURES) {
+          logError('polling the Extensions API failed, retrying.', err);
+        }
+
+        await sleep(retryDelayMs(failures));
+        continue;
       }
+
+      await this.drainPendingUploads(event.deadlineMs);
+      return { reason: 'shutdown', pollAccepted };
     }
   }
 
   /**
-   * Reports an error to the extension API.
-   * @param phase The phase of the extension.
-   * @param err The error to report.
+   * Waits for envelopes the tunnel is still forwarding, up to the shutdown deadline.
+   *
+   * Lambda allows 2,000ms for shutdown and SIGKILLs whatever is left, billed to the function — so
+   * idling the window costs the customer, and an upload in flight at teardown is simply lost.
    */
-  public async error(phase: 'init' | 'exit', err: Error): Promise<never> {
-    if (!this._extensionId) {
-      throw new Error('Extension ID is not set');
+  public async drainPendingUploads(deadlineMs?: unknown): Promise<void> {
+    const startedAt = Date.now();
+    const until = startedAt + shutdownBudgetMs(deadlineMs);
+
+    for (;;) {
+      const now = Date.now();
+
+      if (now >= until) {
+        return;
+      }
+
+      // Resolves at once when nothing is in flight, so this doubles as the emptiness check.
+      if (!(await this._tunnel.uploads.drain(until - now))) {
+        return;
+      }
+
+      // Re-armed by each arrival, so a burst of exit flushes extends the wait rather than racing it.
+      const idleFor = Math.max(startedAt, this._tunnel.lastActivityAt) + SHUTDOWN_IDLE_GRACE_MS - Date.now();
+
+      if (idleFor <= 0) {
+        return;
+      }
+
+      await sleep(Math.min(idleFor, until - Date.now()));
     }
-
-    const errorType = `Extension.${err.name || 'UnknownError'}`;
-
-    const res = await fetch(`${this._baseUrl}/${phase}/error`, {
-      method: 'POST',
-      body: JSON.stringify({
-        errorMessage: err.message || err.toString(),
-        errorType,
-        stackTrace: [err.stack],
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-        'Lambda-Extension-Identifier': this._extensionId,
-        'Lambda-Extension-Function-Error': errorType,
-      },
-    });
-
-    if (!res.ok) {
-      DEBUG_BUILD && debug.error(`Failed to report error: ${await res.text()}`);
-    }
-
-    throw err;
   }
 
   /**
    * Starts the Sentry tunnel.
    */
-  public startSentryTunnel(): void {
-    const allowedDsnComponents = getSentryDSNFromEnv();
+  public startSentryTunnel(port: number = TUNNEL_PORT): http.Server {
+    return this._tunnel.listen(port);
+  }
 
-    if (!allowedDsnComponents) {
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.warn(
-          'Sentry Lambda extension: SENTRY_DSN is not set or is invalid. The /envelope tunnel will forward ' +
-            'any DSN in the envelope header without allowlist validation. Set SENTRY_DSN to the same DSN as ' +
-            'your SDK to restrict outbound requests.',
-        );
-      });
+  /** Resolves to the identifier every later poll carries. */
+  private async _requestRegistration(): Promise<string> {
+    const res = await request(`${this._baseUrl}/register`, {
+      method: 'POST',
+      body: JSON.stringify({ events: ['SHUTDOWN'] }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Lambda-Extension-Name': EXTENSION_NAME,
+      },
+    });
+
+    if (res.statusCode < 200 || res.statusCode > 299) {
+      throw new PermanentRegistrationError(`Failed to register with the extension API: ${truncateBody(res.body)}`);
     }
 
-    const server = http.createServer(async (req, res) => {
-      if (req.method === 'POST' && req.url?.startsWith('/envelope')) {
-        try {
-          const buf = await buffer(req);
-          // Extract the actual bytes from the Buffer by slicing its underlying ArrayBuffer
-          // This ensures we get only the data portion without any padding or offset
-          const envelopeBytes = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-          const envelope = new TextDecoder().decode(envelopeBytes);
-          const piece = envelope.split('\n')[0];
-          const header = JSON.parse(piece || '{}') as { dsn?: string };
-          const envelopeDsn = header.dsn;
-          if (!envelopeDsn) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Invalid envelope: missing DSN' }));
-            return;
-          }
+    const extensionId = res.headers['lambda-extension-identifier'];
 
-          // When SENTRY_DSN is set, same allowlist check as handleTunnelRequest in @sentry/core (SSRF protection).
-          // If not set, we allow any DSN (but warn about this once, above)
-          if (allowedDsnComponents) {
-            if (dsnToString(allowedDsnComponents) !== envelopeDsn) {
-              DEBUG_BUILD &&
-                debug.warn(`Sentry Lambda extension tunnel: rejected request with unauthorized DSN (${envelopeDsn})`);
-              res.writeHead(403, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: 'DSN not allowed' }));
-              return;
-            }
-          }
+    if (typeof extensionId !== 'string' || !extensionId) {
+      throw new PermanentRegistrationError(
+        'The Extensions API accepted the registration without returning an identifier',
+      );
+    }
 
-          const dsn = allowedDsnComponents || makeDsn(envelopeDsn);
-          if (!dsn) {
-            res.writeHead(403, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Invalid DSN' }));
-            return;
-          }
-          const upstreamSentryUrl = getEnvelopeEndpointWithUrlEncodedAuth(dsn);
-
-          fetch(upstreamSentryUrl, {
-            method: 'POST',
-            body: envelopeBytes as BodyInit,
-          }).catch(err => {
-            DEBUG_BUILD && debug.error('Error sending envelope to Sentry', err);
-          });
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({}));
-        } catch (e) {
-          DEBUG_BUILD && debug.error('Error tunneling to Sentry', e);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Error tunneling to Sentry' }));
-        }
-      } else {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not found' }));
-      }
-    });
-
-    server.listen(9000, () => {
-      DEBUG_BUILD && debug.log('Sentry proxy listening on port 9000');
-    });
-
-    server.on('error', err => {
-      DEBUG_BUILD && debug.error('Error starting Sentry proxy', err);
-      process.exit(1);
-    });
+    return extensionId;
   }
-}
-
-/**
- * DSN components allowed for the Lambda extension `/envelope` tunnel, derived from `SENTRY_DSN`.
- *
- * Exported only for testing purposes.
- */
-export function getSentryDSNFromEnv(): DsnComponents | undefined {
-  const raw = process.env.SENTRY_DSN?.trim();
-  return raw ? makeDsn(raw) : undefined;
 }

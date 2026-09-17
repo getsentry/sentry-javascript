@@ -104,6 +104,8 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
       }
     } else {
       DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
+      // Kept literal: importing it from the extension's tree would ship that module in the SDK
+      // bundle. `test/init.test.ts` asserts the two halves still agree.
       opts.tunnel = 'http://localhost:9000/envelope';
     }
   }
