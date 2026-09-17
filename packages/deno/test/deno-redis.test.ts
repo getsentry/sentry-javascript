@@ -52,9 +52,13 @@ function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   });
 }
 
-Deno.test('redisIntegration: included in default integrations', () => {
+Deno.test('redisIntegration: included in default integrations when tracing is enabled', () => {
   resetGlobals();
-  const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Redis'), `Redis should be in defaults, got ${names.join(', ')}`);
 });

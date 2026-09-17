@@ -319,7 +319,9 @@ export function getSanitizedUrlString(url: PartialURL): string {
       .replace(/(:80)$/, '')
       .replace(/(:443)$/, '') || '';
 
-  return `${protocol ? `${protocol}://` : ''}${filteredHost}${path}`;
+  // `parseUrl` returns `{}` for an empty or unparseable URL, and interpolating a missing path
+  // would render the string 'undefined'.
+  return `${protocol ? `${protocol}://` : ''}${filteredHost}${path || ''}`;
 }
 
 /**

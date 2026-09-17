@@ -3,15 +3,14 @@ import { addContextToFrame, defineIntegration, GLOBAL_OBJ, stripUrlQueryAndFragm
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
-const DEFAULT_LINES_OF_CONTEXT = 7;
+const DEFAULT_LINES_OF_CONTEXT = 5;
 
 const INTEGRATION_NAME = 'ContextLines' as const;
 
-// TODO(v11): Use `dataCollection.frameContextLines` default (5)
 interface ContextLinesOptions {
   /**
    * Sets the number of context lines for each frame when loading a file.
-   * Defaults to 7.
+   * Defaults to `dataCollection.frameContextLines` (5).
    *
    * Set to 0 to disable loading and inclusion of source files.
    *

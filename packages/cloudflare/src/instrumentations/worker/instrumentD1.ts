@@ -27,12 +27,14 @@ function instrumentD1PreparedStatementQueries(statement: D1PreparedStatement, qu
     return statement;
   }
 
+  const queryText = query ? sanitizeSqlQuery(query) : undefined;
+
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.first = new Proxy(statement.first, {
     apply(target, thisArg, args: Parameters<typeof statement.first>) {
-      return startSpan(createStartSpanOptions(query, 'first'), async () => {
+      return startSpan(createStartSpanOptions(queryText, 'first'), async () => {
         const res = await Reflect.apply(target, thisArg, args);
-        createD1Breadcrumb(query, 'first');
+        createD1Breadcrumb(queryText, 'first');
         return res;
       });
     },
@@ -41,10 +43,10 @@ function instrumentD1PreparedStatementQueries(statement: D1PreparedStatement, qu
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.run = new Proxy(statement.run, {
     apply(target, thisArg, args: Parameters<typeof statement.run>) {
-      return startSpan(createStartSpanOptions(query, 'run'), async span => {
+      return startSpan(createStartSpanOptions(queryText, 'run'), async span => {
         const d1Response = await Reflect.apply(target, thisArg, args);
         applyD1ReturnObjectToSpan(span, d1Response);
-        createD1Breadcrumb(query, 'run', d1Response);
+        createD1Breadcrumb(queryText, 'run', d1Response);
         return d1Response;
       });
     },
@@ -53,10 +55,10 @@ function instrumentD1PreparedStatementQueries(statement: D1PreparedStatement, qu
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.all = new Proxy(statement.all, {
     apply(target, thisArg, args: Parameters<typeof statement.all>) {
-      return startSpan(createStartSpanOptions(query, 'all'), async span => {
+      return startSpan(createStartSpanOptions(queryText, 'all'), async span => {
         const d1Result = await Reflect.apply(target, thisArg, args);
         applyD1ReturnObjectToSpan(span, d1Result);
-        createD1Breadcrumb(query, 'all', d1Result);
+        createD1Breadcrumb(queryText, 'all', d1Result);
         return d1Result;
       });
     },
@@ -65,9 +67,9 @@ function instrumentD1PreparedStatementQueries(statement: D1PreparedStatement, qu
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.raw = new Proxy(statement.raw, {
     apply(target, thisArg, args: Parameters<typeof statement.raw>) {
-      return startSpan(createStartSpanOptions(query, 'raw'), async () => {
+      return startSpan(createStartSpanOptions(queryText, 'raw'), async () => {
         const res = await Reflect.apply(target, thisArg, args);
-        createD1Breadcrumb(query, 'raw');
+        createD1Breadcrumb(queryText, 'raw');
         return res;
       });
     },
@@ -119,10 +121,11 @@ function getAttributesFromD1Response(d1Result: D1Response): SpanAttributes {
 
 type D1QueryType = 'first' | 'run' | 'all' | 'raw' | 'batch' | 'exec';
 
-function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Response): void {
+/** The message is the span's query text (already sanitized) or a static label such as `D1 batch`. */
+function createD1Breadcrumb(message: string | undefined, type: D1QueryType, d1Result?: D1Response): void {
   addBreadcrumb({
     category: 'query',
-    message: query,
+    message,
     data: {
       ...(d1Result ? getAttributesFromD1Response(d1Result) : {}),
       'db.operation.name': type,
@@ -130,11 +133,12 @@ function createD1Breadcrumb(query: string, type: D1QueryType, d1Result?: D1Respo
   });
 }
 
-function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOptions {
-  const querySummary = query ? getSqlQuerySummary(sanitizeSqlQuery(query)) : undefined;
+function createStartSpanOptions(queryText: string | undefined, type: D1QueryType): StartSpanOptions {
+  const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
 
   const client = getClient();
-  const name = client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : query;
+  const name =
+    client && hasSpanStreamingEnabled(client) ? querySummary || 'cloudflare-d1' : (queryText ?? 'cloudflare-d1');
 
   return {
     name,
@@ -142,7 +146,7 @@ function createStartSpanOptions(query: string, type: D1QueryType): StartSpanOpti
       [SENTRY_OP]: DB_QUERY,
       'db.system.name': 'cloudflare-d1',
       'db.operation.name': type,
-      'db.query.text': query,
+      'db.query.text': queryText,
       'db.query.summary': querySummary,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
     },
@@ -171,6 +175,7 @@ function instrumentBatch(
       const queryText = statements
         .map(statement => (statement as unknown as { statement?: string }).statement ?? '')
         .filter(Boolean)
+        .map(statement => sanitizeSqlQuery(statement))
         .join('\n');
 
       return startSpan(
@@ -208,9 +213,10 @@ function _instrumentD1(db: D1Database): D1Database {
   db.exec = new Proxy(db.exec, {
     apply(target, thisArg, args: Parameters<typeof db.exec>) {
       const [query] = args;
-      return startSpan(createStartSpanOptions(query, 'exec'), async () => {
+      const queryText = query ? sanitizeSqlQuery(query) : undefined;
+      return startSpan(createStartSpanOptions(queryText, 'exec'), async () => {
         const res = await Reflect.apply(target, thisArg, args);
-        createD1Breadcrumb(query, 'exec');
+        createD1Breadcrumb(queryText, 'exec');
         return res;
       });
     },

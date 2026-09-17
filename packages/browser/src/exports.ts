@@ -62,6 +62,7 @@ export {
   functionToStringIntegration,
   eventFiltersIntegration,
   dedupeIntegration,
+  consoleIntegration,
   parameterize,
   startSession,
   captureSession,

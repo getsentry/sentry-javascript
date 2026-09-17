@@ -20,8 +20,8 @@ test('server pageload request span has nested request span for sub request', asy
     'http.route': { value: '/server-load-fetch', type: 'string' },
     'sveltekit.tracing.original_name': { value: 'sveltekit.handle.root', type: 'string' },
     'url.full': { value: 'https://localhost:3030/server-load-fetch', type: 'string' },
-    'http.request.header.accept': { value: expect.any(String), type: 'string' },
-    'http.request.header.user_agent': { value: expect.any(String), type: 'string' },
+    'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
+    'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
   });
 
   const spans = getSegmentChildSpans(serverTraceSpans, serverSpan);
@@ -190,11 +190,13 @@ test('server trace for a `QUERY` server route includes the wrapped route handler
   expect(getSegmentChildSpans(serverTraceSpans, serverSpan)).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: 'QUERY /query-server-route',
+        name: 'QUERY',
         attributes: expect.objectContaining({
           'sentry.origin': { value: 'auto.function.sveltekit', type: 'string' },
           'code.function.name': { value: 'QUERY', type: 'string' },
           'http.request.method': { value: 'QUERY', type: 'string' },
+          'http.route': { value: '/query-server-route', type: 'string' },
+          'sentry.description': { value: 'QUERY /query-server-route', type: 'string' },
         }),
       }),
     ]),

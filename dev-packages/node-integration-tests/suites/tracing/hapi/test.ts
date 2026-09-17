@@ -8,25 +8,6 @@ describe('hapi auto-instrumentation', () => {
 
   const origin = 'auto.http.hapi';
 
-  const EXPECTED_TRANSACTION = {
-    transaction: 'GET /',
-    spans: expect.arrayContaining([
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'http.route': '/',
-          'http.request.method': 'GET',
-          'hapi.type': 'router',
-          'sentry.origin': origin,
-          'sentry.op': 'router',
-        }),
-        description: 'GET /',
-        op: 'router',
-        origin,
-        status: 'ok',
-      }),
-    ]),
-  };
-
   const EXPECTED_ERROR_EVENT = {
     exception: {
       values: [
@@ -40,7 +21,28 @@ describe('hapi auto-instrumentation', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should auto-instrument `@hapi/hapi` package.', async () => {
-      const runner = createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
+      const runner = createRunner()
+        .expect({
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /');
+
+            // Router spans are named after the route alone, without the `GET ` prefix.
+            expect(container.items).toContainEqual(
+              expect.objectContaining({
+                name: '/',
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  'http.route': { type: 'string', value: '/' },
+                  'http.request.method': { type: 'string', value: 'GET' },
+                  'hapi.type': { type: 'string', value: 'router' },
+                  'sentry.origin': { type: 'string', value: origin },
+                  'sentry.op': { type: 'string', value: 'router' },
+                }),
+              }),
+            );
+          },
+        })
+        .start();
       runner.makeRequest('get', '/');
       await runner.completed();
     });
@@ -48,33 +50,35 @@ describe('hapi auto-instrumentation', () => {
     test('should instrument plugin routes and server extensions.', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /plugin-route',
-            spans: expect.arrayContaining([
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /plugin-route');
+
+            const handlerSpan = container.items.find(item => item.attributes['sentry.op']?.value === 'handler');
+            expect(handlerSpan).toMatchObject({
+              // The route alone, without the `GET ` prefix the static name carried.
+              name: '/plugin-route',
+              attributes: expect.objectContaining({
+                // The name has to stay in step with the attribute it comes from.
+                'http.route': { type: 'string', value: '/plugin-route' },
+                'hapi.type': { type: 'string', value: 'plugin' },
+                'hapi.plugin.name': { type: 'string', value: 'testPlugin' },
+                'sentry.op': { type: 'string', value: 'handler' },
+                'sentry.origin': { type: 'string', value: origin },
+              }),
+            });
+
+            // Spans of other ops keep their names.
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                description: 'GET /plugin-route',
-                op: 'handler',
-                origin,
-                data: expect.objectContaining({
-                  'http.route': '/plugin-route',
-                  'hapi.type': 'plugin',
-                  'hapi.plugin.name': 'testPlugin',
-                  'sentry.op': 'handler',
-                  'sentry.origin': origin,
+                name: 'ext - onPreResponse',
+                attributes: expect.objectContaining({
+                  'hapi.type': { type: 'string', value: 'server.ext' },
+                  'server.ext.type': { type: 'string', value: 'onPreResponse' },
+                  'sentry.op': { type: 'string', value: 'middleware' },
+                  'sentry.origin': { type: 'string', value: origin },
                 }),
               }),
-              expect.objectContaining({
-                description: 'ext - onPreResponse',
-                op: 'middleware',
-                origin,
-                data: expect.objectContaining({
-                  'hapi.type': 'server.ext',
-                  'server.ext.type': 'onPreResponse',
-                  'sentry.op': 'middleware',
-                  'sentry.origin': origin,
-                }),
-              }),
-            ]),
+            );
           },
         })
         .start();
@@ -82,35 +86,12 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
 
-    test('names request handler spans after their route when span streaming is enabled', async () => {
-      const runner = createRunner()
-        .withEnv({ STREAMED: 'true' })
-        .expect({
-          span: container => {
-            const handlerSpan = container.items.find(item => item.attributes['sentry.op']?.value === 'handler');
-
-            // The route alone, without the `GET ` prefix the static name carries.
-            expect(handlerSpan?.name).toBe('/plugin-route');
-            // The name has to stay in step with the attribute it comes from.
-            expect(handlerSpan?.attributes['http.route']?.value).toBe('/plugin-route');
-            expect(handlerSpan?.attributes['hapi.type']?.value).toBe('plugin');
-
-            // Spans of other ops keep their names.
-            expect(container.items.find(item => item.name === 'ext - onPreResponse')).toBeDefined();
-          },
-        })
-        .start();
-
-      await runner.makeRequest('get', '/plugin-route');
-
-      await runner.completed();
-    });
-
     test('should handle returned plain errors in routes.', async () => {
       const runner = createRunner()
+        .unordered()
         .expect({
-          transaction: {
-            transaction: 'GET /error',
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /error');
           },
         })
         .expect({ event: EXPECTED_ERROR_EVENT })
@@ -127,7 +108,7 @@ describe('hapi auto-instrumentation', () => {
             transaction: 'GET /error/{id}',
           },
         })
-        .ignore('transaction')
+        .ignore('span')
         .start();
       runner.makeRequest('get', '/error/123', { expectError: true });
       await runner.completed();
@@ -135,9 +116,10 @@ describe('hapi auto-instrumentation', () => {
 
     test('should handle returned Boom errors in routes.', async () => {
       const runner = createRunner()
+        .unordered()
         .expect({
-          transaction: {
-            transaction: 'GET /boom-error',
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /boom-error');
           },
         })
         .expect({ event: EXPECTED_ERROR_EVENT })
@@ -148,9 +130,10 @@ describe('hapi auto-instrumentation', () => {
 
     test('should handle promise rejections in routes.', async () => {
       const runner = createRunner()
+        .unordered()
         .expect({
-          transaction: {
-            transaction: 'GET /promise-error',
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /promise-error');
           },
         })
         .expect({ event: EXPECTED_ERROR_EVENT })
@@ -172,7 +155,7 @@ describe('hapi auto-instrumentation', () => {
     (createRunner, test) => {
       test('integration `shouldHandleError` overrides an earlier default-valued `setupHapiErrorHandler`', async () => {
         const runner = createRunner()
-          .ignore('transaction')
+          .ignore('span')
           .expect({
             event: {
               exception: {

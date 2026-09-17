@@ -183,7 +183,7 @@ function assertAwsServiceSpans(spanCcontainer: SerializedStreamedSpanContainer):
       'rpc.service': { value: 'Lambda', type: 'string' },
       'faas.invoked_name': { value: 'my-function', type: 'string' },
       'faas.invoked_provider': { value: 'aws', type: 'string' },
-      'faas.execution': { value: 'request-id-1', type: 'string' },
+      'faas.invocation_id': { value: 'request-id-1', type: 'string' },
     }),
   });
 

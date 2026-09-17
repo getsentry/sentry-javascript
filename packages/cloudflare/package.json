@@ -41,6 +41,11 @@
       "types": "./build/types/vite/index.d.ts",
       "import": "./build/esm/prod/vite/index.js",
       "require": "./build/cjs/prod/vite/index.js"
+    },
+    "./orchestrion-diagnostics-channel": {
+      "types": "./build/types/orchestrion-diagnostics-channel.d.ts",
+      "import": "./build/esm/prod/orchestrion-diagnostics-channel.js",
+      "require": "./build/cjs/prod/orchestrion-diagnostics-channel.js"
     }
   },
   "publishConfig": {
@@ -48,7 +53,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/conventions": "^0.20.0",
+    "@sentry/conventions": "^0.23.0",
     "@sentry/core": "10.67.0",
     "@sentry/opentelemetry": "10.67.0",
     "@sentry/server-utils": "10.67.0",

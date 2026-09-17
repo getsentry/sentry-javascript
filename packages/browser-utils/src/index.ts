@@ -5,7 +5,11 @@ export {
   addLcpInstrumentationHandler,
   addInpInstrumentationHandler,
   addFcpInstrumentationHandler,
+  enableBfcacheReporting,
+  enableSoftNavigationReporting,
 } from './instrumentation/performanceObserver';
+
+export { startSoftNavigationCorrelation, supportsSoftNavigations } from './web-vitals/softNavs';
 
 export { addPerformanceEntries, startTrackingLongTasks, startTrackingLongAnimationFrames } from './performance/entries';
 

@@ -226,36 +226,36 @@ it('sends a streamed span envelope with correct spans for a manually started spa
             value: 'node',
           },
           'http.request.header.accept': {
-            type: 'string',
-            value: '*/*',
+            type: 'array',
+            value: ['*/*'],
           },
-          'http.request.header.accept_encoding': {
-            type: 'string',
-            value: 'br, gzip',
+          'http.request.header.accept-encoding': {
+            type: 'array',
+            value: ['br, gzip'],
           },
-          'http.request.header.accept_language': {
-            type: 'string',
-            value: '*',
+          'http.request.header.accept-language': {
+            type: 'array',
+            value: ['*'],
           },
-          'http.request.header.cf_connecting_ip': {
-            type: 'string',
-            value: '127.0.0.1',
+          'http.request.header.cf-connecting-ip': {
+            type: 'array',
+            value: ['127.0.0.1'],
           },
           'user.ip_address': {
             type: 'string',
             value: '127.0.0.1',
           },
           'http.request.header.host': {
-            type: 'string',
-            value: expect.stringMatching(/^localhost:.+$/),
+            type: 'array',
+            value: [expect.stringMatching(/^localhost:.+$/)],
           },
-          'http.request.header.sec_fetch_mode': {
-            type: 'string',
-            value: 'cors',
+          'http.request.header.sec-fetch-mode': {
+            type: 'array',
+            value: ['cors'],
           },
-          'http.request.header.user_agent': {
-            type: 'string',
-            value: 'node',
+          'http.request.header.user-agent': {
+            type: 'array',
+            value: ['node'],
           },
           'http.request.method': {
             type: 'string',

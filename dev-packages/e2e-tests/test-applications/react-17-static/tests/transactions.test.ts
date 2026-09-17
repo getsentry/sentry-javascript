@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, hidePage, waitForStreamedSpan, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-17-static', async transactionEvent => {
@@ -76,13 +76,8 @@ test('sends an INP span', async ({ page }) => {
 
   await page.click('#exception-button');
 
-  await page.waitForTimeout(500);
-
   // Page hide to trigger INP
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
+  await hidePage(page);
 
   const inpSpan = await inpSpanPromise;
 

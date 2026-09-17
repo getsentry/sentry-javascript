@@ -1,18 +1,24 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
 const usesManagedTunnelRoute =
   (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
 
 test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
 
-test('Sends a server function transaction with auto-instrumentation', async ({ page }) => {
-  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      !!transactionEvent?.transaction?.startsWith('GET /_serverFn')
-    );
-  });
+function isServerFnSegment(span: Parameters<typeof getSpanOp>[0]): boolean {
+  return (
+    !!span.is_segment &&
+    getSpanOp(span) === 'http.server' &&
+    String(span.attributes['url.path']?.value ?? '').startsWith('/_serverFn')
+  );
+}
+
+test('Sends a server function span with auto-instrumentation', async ({ page }) => {
+  const spansPromise = collectStreamedSpans(
+    'tanstackstart-react',
+    spans => spans.some(isServerFnSegment) && spans.some(span => span.name === 'GET /_serverFn/testLog'),
+  );
 
   await page.goto('/test-serverFn');
 
@@ -20,37 +26,34 @@ test('Sends a server function transaction with auto-instrumentation', async ({ p
 
   await page.getByText('Call server function', { exact: true }).click();
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  // Check for the auto-instrumented server function span
-  expect(Array.isArray(transactionEvent?.spans)).toBe(true);
-  expect(transactionEvent?.spans).toEqual(
+  expect(spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: 'GET /_serverFn/testLog',
-        op: 'function',
-        origin: 'auto.function.tanstackstart.server',
-        data: {
-          'sentry.op': 'function',
-          'sentry.origin': 'auto.function.tanstackstart.server',
-          'tanstackstart.function.id': expect.any(String),
-          'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
-        },
+        name: 'GET /_serverFn/testLog',
         status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'function' },
+          'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
+          'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
+        }),
       }),
     ]),
   );
 });
 
-test('Sends a server function transaction for a nested server function only if it is manually instrumented', async ({
+test('Sends a server function span for a nested server function only if it is manually instrumented', async ({
   page,
 }) => {
-  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      !!transactionEvent?.transaction?.startsWith('GET /_serverFn')
-    );
-  });
+  const spansPromise = collectStreamedSpans(
+    'tanstackstart-react',
+    spans =>
+      spans.some(isServerFnSegment) &&
+      spans.some(span => span.name === 'GET /_serverFn/testNestedLog') &&
+      spans.some(span => span.name === 'testNestedLog') &&
+      spans.some(span => span.name === 'globalFunctionMiddleware'),
+  );
 
   await page.goto('/test-serverFn');
 
@@ -58,52 +61,44 @@ test('Sends a server function transaction for a nested server function only if i
 
   await page.getByText('Call server function nested').click();
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(Array.isArray(transactionEvent?.spans)).toBe(true);
-
-  // Check for the auto-instrumented server function span
-  expect(transactionEvent?.spans).toEqual(
+  expect(spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: 'GET /_serverFn/testNestedLog',
-        op: 'function',
-        origin: 'auto.function.tanstackstart.server',
-        data: {
-          'sentry.op': 'function',
-          'sentry.origin': 'auto.function.tanstackstart.server',
-          'tanstackstart.function.id': expect.any(String),
-          'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
-        },
+        name: 'GET /_serverFn/testNestedLog',
         status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'function' },
+          'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
+          'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
+        }),
       }),
     ]),
   );
 
-  // Check for the manually instrumented nested span
-  expect(transactionEvent?.spans).toEqual(
+  expect(spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: 'testNestedLog',
-        origin: 'manual',
+        name: 'testNestedLog',
         status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.origin': { type: 'string', value: 'manual' },
+        }),
       }),
     ]),
   );
 
-  // Verify that globalFunctionMiddleware and testNestedLog are sibling spans under the root
-  const functionMiddlewareSpan = transactionEvent?.spans?.find(
-    (span: { description?: string; origin?: string }) =>
-      span.description === 'globalFunctionMiddleware' && span.origin === 'auto.middleware.tanstackstart',
+  const functionMiddlewareSpan = spans.find(
+    span =>
+      span.name === 'globalFunctionMiddleware' &&
+      span.attributes['sentry.origin']?.value === 'auto.middleware.tanstackstart',
   );
-  const nestedSpan = transactionEvent?.spans?.find(
-    (span: { description?: string; origin?: string }) =>
-      span.description === 'testNestedLog' && span.origin === 'manual',
+  const nestedSpan = spans.find(
+    span => span.name === 'testNestedLog' && span.attributes['sentry.origin']?.value === 'manual',
   );
 
   expect(functionMiddlewareSpan).toBeDefined();
   expect(nestedSpan).toBeDefined();
-
-  // Both spans should be siblings under the same parent (root transaction)
   expect(nestedSpan?.parent_span_id).toBe(functionMiddlewareSpan?.parent_span_id);
 });

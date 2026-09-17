@@ -20,6 +20,7 @@ test('sends a server action span on pageload', async ({ page }) => {
   expect(functionSpan?.attributes).toMatchObject({
     'sentry.op': { value: 'function', type: 'string' },
     'sentry.origin': { value: 'auto.function.solidstart', type: 'string' },
+    'code.function.name': { value: 'getPrefecture', type: 'string' },
   });
 });
 
@@ -42,5 +43,6 @@ test('sends a server action span on client navigation', async ({ page }) => {
   expect(functionSpan?.attributes).toMatchObject({
     'sentry.op': { value: 'function', type: 'string' },
     'sentry.origin': { value: 'auto.function.solidstart', type: 'string' },
+    'code.function.name': { value: 'getPrefecture', type: 'string' },
   });
 });

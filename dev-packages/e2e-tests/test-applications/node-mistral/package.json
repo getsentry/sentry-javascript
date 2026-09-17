@@ -1,0 +1,36 @@
+{
+  "name": "node-mistral",
+  "description": "Mistral AI gen_ai spans, errors, span nesting and co-instrumented dataloader spans, exercised through both the runtime loader (dev) and a bundler-instrumented build (prod)",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --import ./src/instrument.mjs src/app.mjs",
+    "start:bundled": "node dist/app.cjs",
+    "build": "node build.mjs",
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test"
+  },
+  "dependencies": {
+    "@mistralai/mistralai": "^2.6.4",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "dataloader": "^2.2.2",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
+    "esbuild": "0.28.2"
+  },
+  "sentryTest": {
+    "optional": true
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

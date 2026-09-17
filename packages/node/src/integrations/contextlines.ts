@@ -6,7 +6,7 @@ import { DEBUG_BUILD } from '../debug-build';
 
 const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);
 const LRU_FILE_CONTENTS_FS_READ_FAILED = new LRUMap<string, 1>(20);
-const DEFAULT_LINES_OF_CONTEXT = 7;
+const DEFAULT_LINES_OF_CONTEXT = 5;
 const INTEGRATION_NAME = 'ContextLines' as const;
 // Determines the upper bound of lineno/colno that we will attempt to read. Large colno values are likely to be
 // minified code while large lineno values are likely to be bundled code.
@@ -14,11 +14,10 @@ const INTEGRATION_NAME = 'ContextLines' as const;
 export const MAX_CONTEXTLINES_COLNO: number = 1000;
 export const MAX_CONTEXTLINES_LINENO: number = 10000;
 
-// TODO(v11): Use `dataCollection.frameContextLines` default (5)
 interface ContextLinesOptions {
   /**
    * Sets the number of context lines for each frame when loading a file.
-   * Defaults to 7.
+   * Defaults to `dataCollection.frameContextLines` (5).
    *
    * Set to 0 to disable loading and inclusion of source files.
    *

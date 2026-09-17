@@ -2,10 +2,14 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 // The Nuxt module auto-wires the orchestrion build-time transform, which injects
-// `diagnostics_channel` publishers into these drivers as Nitro bundles them. That
-// only happens in the production build, so these tests are excluded from the
-// `test:dev` pass (which filters to `environment`).
+// `diagnostics_channel` publishers into these drivers as Nitro bundles them. `nuxt dev`
+// has no bundle to transform, so there the drivers rely on runtime injection instead.
 test('Instruments ioredis automatically', async ({ baseURL }) => {
+  // ioredis 5.10.x has no native channels, so dev needs runtime injection — but the dev bundle hoists
+  // its import above the inlined `Sentry.init`, so it loads before injection is active. (ioredis >=5.11
+  // publishes native channels and does work in dev; mysql requires its file lazily, after init.)
+  test.skip(process.env.TEST_ENV === 'development', 'ioredis <5.11 loads before runtime injection is active in dev');
+
   const transactionEventPromise = waitForTransaction('nuxt-4-static', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/db-ioredis'
@@ -70,11 +74,11 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
     expect.objectContaining({
       op: 'db',
       origin: 'auto.db.mysql',
-      description: 'SELECT 1 + 1 AS solution',
+      description: 'SELECT ? + ? AS solution',
       status: 'ok',
       data: expect.objectContaining({
         'db.system.name': 'mysql',
-        'db.query.text': 'SELECT 1 + 1 AS solution',
+        'db.query.text': 'SELECT ? + ? AS solution',
         'db.user': 'root',
         'db.connection_string': expect.any(String),
         'server.address': expect.any(String),

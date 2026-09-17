@@ -54,7 +54,7 @@ describe('mysql auto instrumentation', () => {
 
     return {
       transaction: 'Test Transaction',
-      spans: expect.arrayContaining([span('SELECT 1 + 1 AS solution'), span('SELECT NOW()')]),
+      spans: expect.arrayContaining([span('SELECT ? + ? AS solution'), span('SELECT NOW()')]),
       ...(override ?? {}),
     };
   }
@@ -144,7 +144,7 @@ describe('mysql auto instrumentation', () => {
                 transaction: (transaction): void => {
                   const transactionSpanId = transaction.contexts?.trace?.span_id;
                   const spans = transaction.spans ?? [];
-                  const mysqlSpan = spans.find(span => span.description === 'SELECT 1 + 1 AS solution');
+                  const mysqlSpan = spans.find(span => span.description === 'SELECT ? + ? AS solution');
                   const listenerSpan = spans.find(span => span.description === 'listener-child');
                   const innerSpan = spans.find(span => span.description === 'inner-span');
 
@@ -261,7 +261,7 @@ describe('mysql auto instrumentation', () => {
             ...COMMON_ATTRIBUTES,
             'db.query.text': {
               type: 'string',
-              value: 'SELECT 1 + 1 AS solution',
+              value: 'SELECT ? + ? AS solution',
             },
             'db.query.summary': {
               type: 'string',

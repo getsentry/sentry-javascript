@@ -85,6 +85,7 @@ export { filterCookies as _INTERNAL_filterCookies } from './utils/data-collectio
 export { filterQueryParams as _INTERNAL_filterQueryParams } from './utils/data-collection/filterQueryParams';
 export { filterCollectedUrl, filterCollectedUrlQuery } from './utils/data-collection/filterCollectedUrl';
 export { envToBool } from './utils/envToBool';
+export { getVercelEnv } from './utils/vercel';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -167,6 +168,8 @@ export { featureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
 export { conversationIdIntegration } from './integrations/conversationId';
 export { spanStreamingIntegration } from './integrations/spanStreaming';
+export { createFetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from './integrations/fetch';
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
 // Therefore:
@@ -404,6 +407,7 @@ export type {
   CollectBehavior,
   DataCollection,
   HttpBodyCollectionTarget,
+  HttpHeadersCollection,
   ResolvedDataCollection,
 } from './types/datacollection';
 export type { ClientOptions, CoreOptions as Options } from './types/options';
