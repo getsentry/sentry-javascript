@@ -23,11 +23,13 @@ const DECOMPRESSORS: Record<string, () => Transform> = {
   br: createBrotliDecompress,
 };
 
-/** A header value is the sender's, so it arrives in whatever case and list form they chose. */
-function codingOf(contentEncoding: string | string[] | undefined): string {
-  const value = Array.isArray(contentEncoding) ? contentEncoding[0] : contentEncoding;
-
-  return (value ?? '').split(',')[0]?.trim().toLowerCase() ?? '';
+/**
+ * A header value is the sender's, so it arrives in whatever case and list form they chose. It is
+ * always one string: Node types this header as such, and joins duplicates with `, ` rather than
+ * collecting them the way it does `set-cookie`.
+ */
+function codingOf(contentEncoding: string | undefined): string {
+  return (contentEncoding ?? '').split(',')[0]?.trim().toLowerCase() ?? '';
 }
 
 /**
@@ -39,10 +41,7 @@ function codingOf(contentEncoding: string | string[] | undefined): string {
  * 32KiB, every envelope the SDK actually gzips would exceed any bound small enough to protect the
  * memory the extension shares with the function.
  */
-async function readEnvelopeHeader(
-  body: Buffer,
-  contentEncoding: string | string[] | undefined,
-): Promise<EnvelopeHeader | null> {
+async function readEnvelopeHeader(body: Buffer, contentEncoding: string | undefined): Promise<EnvelopeHeader | null> {
   const decompress = DECOMPRESSORS[codingOf(contentEncoding)];
 
   // Nullable because every JSON literal parses: `null`, a number and a string all get here, and
