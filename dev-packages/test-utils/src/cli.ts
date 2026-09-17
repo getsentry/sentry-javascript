@@ -69,12 +69,11 @@ export function fetchTrace(traceId: string): TraceItem[] {
     );
   }
 
-  // Exit code 23 means the trace has not landed yet. Log anything else, since a rejected request
-  // and a trace that has not landed are otherwise indistinguishable.
-  if (result.status !== 23) {
-    // eslint-disable-next-line no-console
-    console.log(`sentry trace view ${target} exited with ${result.status}: ${result.stderr}`);
+  const traceMissing = result.status === 23 && result.stderr.includes(`Trace '${traceId}' not found`);
+  if (traceMissing) {
+    return [];
   }
+  throw new Error(`sentry trace view ${target} exited with ${result.status}: ${result.stderr}`);
 
   return [];
 }
