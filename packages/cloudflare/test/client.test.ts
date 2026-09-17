@@ -225,7 +225,7 @@ describe('CloudflareClient', () => {
   });
 
   describe('flush()', () => {
-    it('calls transport flush with the given timeout', async () => {
+    it('shares the timeout between client processing and transport flushing', async () => {
       const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
 
       const privateClient = client as unknown as {
@@ -234,7 +234,7 @@ describe('CloudflareClient', () => {
 
       await client.flush(3000);
 
-      expect(privateClient._transport.flush).toHaveBeenCalledWith(3000);
+      expect(privateClient._transport.flush).toHaveBeenCalledWith(1500);
     });
 
     it('resolves with the transport flush result', async () => {
@@ -288,7 +288,59 @@ describe('CloudflareClient', () => {
       ]);
 
       expect(result).toBe(false);
-      expect(privateClient._transport.flush).not.toHaveBeenCalled();
+      expect(privateClient._transport.flush).toHaveBeenCalledOnce();
+    });
+
+    it('still drains the transport when pending spans consume their wait budget', async () => {
+      const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
+      const privateClient = client as unknown as {
+        _transport: { flush: ReturnType<typeof vi.fn> };
+      };
+      const pendingSpan = {
+        spanContext: () => ({ spanId: 'pending-span', traceFlags: TRACE_FLAG_SAMPLED }),
+      };
+
+      client.emit('spanStart', pendingSpan as any);
+
+      const result = await client.flush(10);
+
+      expect(result).toBe(false);
+      expect(privateClient._transport.flush).toHaveBeenCalledOnce();
+    });
+
+    it('keeps all flush stages within one timeout', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(0);
+        const transportFlush = vi.fn(
+          (timeout?: number) => new Promise<boolean>(resolve => setTimeout(() => resolve(false), timeout)),
+        );
+        const client = new CloudflareClient({
+          ...MOCK_CLIENT_OPTIONS,
+          flushLock: { ready: Promise.resolve(), finalize: () => new Promise<void>(() => undefined) },
+          transport: () => ({ send: vi.fn().mockResolvedValue({}), flush: transportFlush }),
+        });
+        const privateClient = client as unknown as { _numProcessing: number };
+        privateClient._numProcessing = 1;
+        client.emit('spanStart', {
+          spanContext: () => ({ spanId: 'pending-span', traceFlags: TRACE_FLAG_SAMPLED }),
+        } as any);
+        let settled = false;
+
+        const flushPromise = client.flush(100).then(result => {
+          settled = true;
+          return result;
+        });
+
+        await vi.advanceTimersByTimeAsync(99);
+        expect(settled).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await flushPromise).toBe(false);
+        expect(transportFlush).toHaveBeenCalledOnce();
+        expect(Date.now()).toBe(100);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
