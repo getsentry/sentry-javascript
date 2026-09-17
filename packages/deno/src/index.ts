@@ -146,6 +146,8 @@ export {
   mysql2Integration,
   mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
