@@ -89,9 +89,7 @@ describe('sentryRemixVitePlugin', () => {
       }
     }
 
-    await expect(capturedSentryOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual([
-      './build/**/*.map',
-    ]);
+    await expect(capturedSentryOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./build/**/*.map']);
   });
 
   it('returns the route manifest, orchestrion and source map plugins', () => {
