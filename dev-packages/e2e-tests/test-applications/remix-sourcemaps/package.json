@@ -1,0 +1,33 @@
+{
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "scripts": {
+    "build": "node start-mock-sentry-server.mjs & remix vite:build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; exit $BUILD_EXIT",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm tsx assert-build.ts"
+  },
+  "dependencies": {
+    "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
+    "@remix-run/node": "2.17.4",
+    "@remix-run/react": "2.17.4",
+    "@remix-run/serve": "2.17.4",
+    "isbot": "^3.6.8",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@remix-run/dev": "2.17.4",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^20",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.34",
+    "tsx": "^4.23.0",
+    "typescript": "^5.1.6",
+    "vite": "^5.4.11"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
