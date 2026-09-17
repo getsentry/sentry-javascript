@@ -16,6 +16,11 @@ export const middlewareB: MiddlewareHandler = async function (_c, next) {
   await next();
 };
 
+let failingMiddlewareCount = 0;
 export const failingMiddleware: MiddlewareHandler = async function (_c, _next) {
-  throw new Error('Middleware error');
+  // Each throw gets a unique suffix so the Dedupe integration doesn't collapse the identical errors
+  // that several tests (and their retries) trigger through this shared middleware — otherwise only the
+  // first would be reported and the other tests' `waitForError` would time out. Tests match on the
+  // stable `Middleware error` prefix.
+  throw new Error(`Middleware error #${(failingMiddlewareCount += 1)}`);
 };

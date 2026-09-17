@@ -115,14 +115,17 @@ for (const { name, prefix } of SCENARIOS) {
 
     test('captures error thrown in middleware', async ({ baseURL }) => {
       const errorPromise = waitForError(APP_NAME, event => {
-        return event.exception?.values?.[0]?.value === 'Middleware error';
+        return (
+          !!event.exception?.values?.[0]?.value?.startsWith('Middleware error') &&
+          !!event.request?.url?.includes(prefix)
+        );
       });
 
       const response = await fetch(`${baseURL}${prefix}/error`);
       expect(response.status).toBe(500);
 
       const errorEvent = await errorPromise;
-      expect(errorEvent.exception?.values?.[0]?.value).toBe('Middleware error');
+      expect(errorEvent.exception?.values?.[0]?.value).toMatch(/^Middleware error/);
       expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
         expect.objectContaining({
           handled: false,
@@ -184,7 +187,10 @@ for (const { name, prefix } of SCENARIOS) {
 
     test('includes request data on error events from middleware', async ({ baseURL }) => {
       const errorPromise = waitForError(APP_NAME, event => {
-        return event.exception?.values?.[0]?.value === 'Middleware error' && !!event.request?.url?.includes(prefix);
+        return (
+          !!event.exception?.values?.[0]?.value?.startsWith('Middleware error') &&
+          !!event.request?.url?.includes(prefix)
+        );
       });
 
       await fetch(`${baseURL}${prefix}/error`);
