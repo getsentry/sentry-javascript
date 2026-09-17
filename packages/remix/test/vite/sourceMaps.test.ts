@@ -140,6 +140,17 @@ describe('makeAddSentryVitePlugin', () => {
     await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./build/**/*.map']);
   });
 
+  // Remix's `buildDirectory` is configurable, and it runs a client and an SSR build with their own
+  // `outDir`s - a hardcoded `./build/**/*.map` would leave a custom output directory's maps on disk.
+  it('scopes the deletion glob to the configured outDir', async () => {
+    const plugins = makeAddSentryVitePlugin({});
+    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
+
+    (configPlugin?.config as (config: UserConfig) => void)({ build: { outDir: 'dist/client' } });
+
+    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./dist/client/**/*.map']);
+  });
+
   it('keeps the source maps when the user set their own build.sourcemap', async () => {
     const plugins = makeAddSentryVitePlugin({});
     const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');

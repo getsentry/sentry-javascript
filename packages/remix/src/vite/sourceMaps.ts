@@ -50,13 +50,21 @@ export function makeAddSentryVitePlugin(options: SentryRemixVitePluginOptions): 
         typeof config.build?.sourcemap === 'undefined' &&
         !sourcemaps?.disable
       ) {
+        // Derived from the configured `outDir` rather than hardcoding `build`, so a custom Remix
+        // `buildDirectory` still gets cleaned up. Remix runs a client and an SSR build, each with
+        // its own `outDir`, so each pass deletes only what it emitted.
+        const outDir = config.build?.outDir?.replace(/^\.\//, '').replace(/\/+$/, '') || 'build';
+        const filesToDelete = [`./${outDir}/**/*.map`];
+
         if (debug) {
           // eslint-disable-next-line no-console
           console.log(
-            '[Sentry] Automatically setting `sourcemaps.filesToDeleteAfterUpload: ["./build/**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
+            `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(
+              filesToDelete,
+            )}\` to delete generated source maps after they were uploaded to Sentry.`,
           );
         }
-        resolveFilesToDeleteAfterUpload?.(['./build/**/*.map']);
+        resolveFilesToDeleteAfterUpload?.(filesToDelete);
       } else {
         resolveFilesToDeleteAfterUpload?.(userFilesToDelete);
       }
