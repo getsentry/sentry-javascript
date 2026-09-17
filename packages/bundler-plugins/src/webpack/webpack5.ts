@@ -1,9 +1,6 @@
-import type { SentryWebpackPluginOptions } from './webpack4and5';
-import { sentryWebpackPluginFactory } from './webpack4and5';
-
-const createSentryWebpackPlugin = sentryWebpackPluginFactory();
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const sentryWebpackPlugin: (options?: SentryWebpackPluginOptions) => any = createSentryWebpackPlugin;
-
-export type { SentryWebpackPluginOptions };
+/**
+ * @deprecated Import `sentryWebpackPlugin` from `@sentry/bundler-plugins/webpack` instead.
+ * The `webpack5` entry point is identical to `webpack` and will be removed in a future major.
+ */
+export { sentryWebpackPlugin } from './index';
+export type { SentryWebpackPluginOptions } from './index';

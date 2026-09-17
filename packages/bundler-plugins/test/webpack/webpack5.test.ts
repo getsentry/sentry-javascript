@@ -1,21 +1,21 @@
-import type { WebpackPluginInstance } from 'webpack';
+import { describe, it, expect } from 'vitest';
 import { sentryWebpackPlugin } from '../../src/webpack/index';
-import { describe, it, expect, test } from 'vitest';
+/* eslint-disable typescript/no-deprecated */
+import { sentryWebpackPlugin as sentryWebpack5Plugin } from '../../src/webpack/webpack5';
+/* eslint-enable typescript/no-deprecated */
 
-test('Webpack plugin should exist', () => {
-  expect(sentryWebpackPlugin).toBeDefined();
-  expect(typeof sentryWebpackPlugin).toBe('function');
-});
+describe('deprecated webpack5 entry point', () => {
+  it('re-exports the same plugin as the webpack entry point', () => {
+    expect(sentryWebpack5Plugin).toBe(sentryWebpackPlugin);
+  });
 
-describe('sentryWebpackPlugin', () => {
   it('returns a webpack plugin', () => {
-    const plugin = sentryWebpackPlugin({
+    const plugin = sentryWebpack5Plugin({
       authToken: 'test-token',
       org: 'test-org',
       project: 'test-project',
-    }) as WebpackPluginInstance;
+    });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     expect(plugin).toEqual({ apply: expect.any(Function) });
   });
 });
