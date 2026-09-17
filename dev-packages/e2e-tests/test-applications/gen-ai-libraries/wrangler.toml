@@ -1,0 +1,10 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "gen-ai-libraries"
+main = "src/entry.cloudflare.ts"
+compatibility_date = "2026-04-26"
+compatibility_flags = ["nodejs_compat"]
+
+# `vite preview` takes no `--var` flag, so these are declared here and read from the process
+# environment the Playwright web server inherits.
+[secrets]
+required = ["E2E_TEST_DSN", "E2E_OPENROUTER_API_KEY"]
