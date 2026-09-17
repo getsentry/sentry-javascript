@@ -458,9 +458,9 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('sometimes error step', expect.any(Function));
-    // One flush per attempt (failed and retried, past the span end) and one at end of
-    // run, plus one eager registration for the envelope of the error captured mid-run
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(4);
+    // One boundary flush per attempt (failed and retried) and one at the end of the run.
+    // The retry starts before its flush point, so its envelope does not add an eager flush.
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(3);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     // No error event (not final attempt), only failed transaction + successful retry transaction
     expect(mockTransport.send).toHaveBeenCalledTimes(2);
@@ -783,5 +783,28 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(tagInsideStep).toBe('marker');
     expect(hasInvocationStateInsideStep).toBe(true);
+  });
+
+  test('each workflow step starts before the invocation flush point', async () => {
+    const flushPointsAtStepStart: Array<boolean | undefined> = [];
+
+    class MultipleStepWorkflow {
+      constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+      async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        await step.do('first step', async () => {
+          flushPointsAtStepStart.push(getInvocationState()?.flushPointReached);
+        });
+        await step.do('second step', async () => {
+          flushPointsAtStepStart.push(getInvocationState()?.flushPointReached);
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, MultipleStepWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(mockContext, {}) as MultipleStepWorkflow;
+    await workflow.run({ payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID }, mockStep);
+
+    expect(flushPointsAtStepStart).toEqual([false, false]);
   });
 });

@@ -172,7 +172,7 @@ describe('instrumentFetch', () => {
       .then(response => response.text());
     expect(flush).not.toBeCalled();
     expect(waitUntil).toBeCalled();
-    vi.advanceTimersToNextTimer().runAllTimers();
+    await vi.advanceTimersToNextTimerAsync();
     await Promise.all(waits);
     expect(flush).toHaveBeenCalledOnce();
   });
