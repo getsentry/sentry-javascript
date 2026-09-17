@@ -4,26 +4,50 @@ import MagicString from 'magic-string';
 
 import { KNOWN_INCOMPATIBLE_PLUGINS } from '../babel-plugin/constants';
 import { stripQueryAndHashFromPath } from './utils';
-import { isAstNode } from './component-annotation-vite-ast';
-import { collectViteComponentAnnotationInsertions } from './component-annotation-vite-walk';
+import { isAstNode } from './component-annotation-oxc-ast';
+import { collectOxcComponentAnnotationInsertions } from './component-annotation-oxc-walk';
 import type {
   AttributeInsertion,
   ComponentAnnotationTransformMeta,
   ComponentAnnotationTransformResult,
   MagicStringLike,
   ParseAstAsync,
-} from './component-annotation-vite-ast';
+} from './component-annotation-oxc-ast';
 
 export type {
   ComponentAnnotationTransformMeta,
   ComponentAnnotationTransformResult,
-} from './component-annotation-vite-ast';
+} from './component-annotation-oxc-ast';
+
+let oxcParseAstAsyncPromise: Promise<ParseAstAsync | null> | undefined;
+
+export function getOxcParseAstAsync(): Promise<ParseAstAsync | null> {
+  if (!oxcParseAstAsyncPromise) {
+    oxcParseAstAsyncPromise = import('oxc-parser')
+      .then(({ parse }): ParseAstAsync => {
+        return async (code, { lang }) => {
+          // preserveParens: false matches the AST Vite 8 produces. The walker
+          // does not look through ParenthesizedExpression nodes.
+          const { program, errors } = await parse(`component.${lang}`, code, { lang, preserveParens: false });
+
+          if (errors.length > 0) {
+            throw new Error(errors[0]?.message);
+          }
+
+          return program;
+        };
+      })
+      .catch(() => null);
+  }
+
+  return oxcParseAstAsyncPromise;
+}
 
 // Keep this as a superset of JSX tag starts Babel can annotate, because a miss suppresses Babel fallback.
 const JSX_TAG_START_REGEXP = /<[$_\p{ID_Start}][$_\u200c\u200d\p{ID_Continue}.:-]*|<>/u;
 const JSX_FILE_REGEXP = /\.[jt]sx$/;
 
-function isViteAnnotationFile(idWithoutQueryAndHash: string): boolean {
+function isAnnotationFile(idWithoutQueryAndHash: string): boolean {
   if (idWithoutQueryAndHash.match(/\\node_modules\\|\/node_modules\//)) {
     return false;
   }
@@ -72,7 +96,7 @@ function getMagicString(
   return { magicString: new MagicString(code), isNative: false };
 }
 
-async function annotateWithViteParser(
+async function annotateWithOxcParser(
   code: string,
   id: string,
   ignoredComponents: string[],
@@ -83,7 +107,7 @@ async function annotateWithViteParser(
 
   if (
     !idWithoutQueryAndHash ||
-    !isViteAnnotationFile(idWithoutQueryAndHash) ||
+    !isAnnotationFile(idWithoutQueryAndHash) ||
     !shouldTryParse(code) ||
     shouldSkipIncompatibleFile(idWithoutQueryAndHash)
   ) {
@@ -100,7 +124,7 @@ async function annotateWithViteParser(
     return undefined;
   }
 
-  const insertions = collectViteComponentAnnotationInsertions(
+  const insertions = collectOxcComponentAnnotationInsertions(
     code,
     ast,
     ignoredComponents,
@@ -132,7 +156,7 @@ async function annotateWithViteParser(
   };
 }
 
-export function createViteComponentNameAnnotateHooks(
+export function createOxcComponentNameAnnotateHooks(
   ignoredComponents: string[],
   getParseAstAsync: () => Promise<ParseAstAsync | null>,
 ): {
@@ -151,7 +175,7 @@ export function createViteComponentNameAnnotateHooks(
           return undefined;
         }
 
-        return await annotateWithViteParser(code, id, ignoredComponents, parseAstAsync, meta);
+        return await annotateWithOxcParser(code, id, ignoredComponents, parseAstAsync, meta);
       } catch {
         return undefined;
       }

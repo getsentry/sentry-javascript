@@ -38,3 +38,5 @@ export type {
   HttpServerResponse,
   HttpModuleExport,
 } from './integrations/http/types';
+export { createFetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from './integrations/fetch';
