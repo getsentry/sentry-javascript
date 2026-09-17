@@ -30,7 +30,7 @@ describe('outgoing fetch spans - headers to span attributes', () => {
                 data: expect.objectContaining({
                   'http.request.header.x-test-header': ['test-value'],
                   // Listed in `headersToSpanAttributes`, but the denylist still wins.
-                  'http.request.header.authorization': '[Filtered]',
+                  'http.request.header.authorization': ['[Filtered]'],
                   'http.response.header.x-powered-by': ['Express'],
                 }),
               }),

@@ -659,7 +659,6 @@ describe('request utils', () => {
           'http.request.header.cookie': [
             'session=[Filtered]',
             'tracking=enabled',
-            'cookie-authentication-key-without-value=[Filtered]',
             'theme=dark',
             'lang=en',
             'user_session=[Filtered]',
@@ -668,24 +667,33 @@ describe('request utils', () => {
         });
       });
 
-      it('drops cookie segments that are not a name=value pair', () => {
-        // The bare token is a nameless cookie's value, so it must not become the attribute key.
+      it('filters cookie segments that are not a name=value pair', () => {
+        // The bare token is a nameless cookie's value, so it must be filtered.
         const headers = { Cookie: 'session=abc123; theme=dark; y7Uu0Rk2QpLmXv3' };
 
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
         expect(result).toEqual({
-          'http.request.header.cookie.session': '[Filtered]',
-          'http.request.header.cookie.theme': 'dark',
+          'http.request.header.cookie': ['session=[Filtered]', 'theme=dark', '[Filtered]'],
         });
       });
 
-      it('filters the whole cookie header when it holds no name=value pair', () => {
+      it('filters a cookie header that holds no name=value pair', () => {
         const headers = { Cookie: 'y7Uu0Rk2QpLmXv3' };
 
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
-        expect(result).toEqual({ 'http.request.header.cookie': '[Filtered]' });
+        expect(result).toEqual({ 'http.request.header.cookie': ['[Filtered]'] });
+      });
+
+      it('splits cookies on ";" without a following space', () => {
+        const headers = { Cookie: 'theme=dark;__Secure-session=abc123' };
+
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
+
+        expect(result).toEqual({
+          'http.request.header.cookie': ['theme=dark', '__Secure-session=[Filtered]'],
+        });
       });
 
       it('filters common framework and provider session-style cookie names', () => {
@@ -747,7 +755,8 @@ describe('request utils', () => {
         ['pref=1; Max-Age=3600', { 'http.request.header.set-cookie': ['pref=1'] }],
         ['color=blue; Path=/dashboard', { 'http.request.header.set-cookie': ['color=blue'] }],
         ['token=eyJhbGc=.eyJzdWI=.SflKxw; Secure', { 'http.request.header.set-cookie': ['token=[Filtered]'] }],
-        ['auth_required; HttpOnly', { 'http.request.header.set-cookie': ['auth_required=[Filtered]'] }],
+        // A set-cookie string without "=" is a nameless cookie: the bare token is its value.
+        ['auth_required; HttpOnly', { 'http.request.header.set-cookie': ['[Filtered]'] }],
         ['empty=; Secure', { 'http.request.header.set-cookie': ['empty='] }],
       ])('should parse and filter Set-Cookie header: %s', (setCookieValue, expected) => {
         const headers = { 'Set-Cookie': setCookieValue };

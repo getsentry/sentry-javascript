@@ -322,7 +322,7 @@ function onRequestHeaders(config: NodeFetchOptions, { request, socket }: Request
       if (headersToAttribs.has(name)) {
         // An allowlist entry does not exempt a header from the denylist.
         spanAttributes[`http.request.header.${name}`] = _INTERNAL_shouldFilterDataKey(name, true)
-          ? _INTERNAL_FILTERED_VALUE
+          ? [_INTERNAL_FILTERED_VALUE]
           : Array.isArray(value)
             ? value
             : [value];
@@ -376,7 +376,7 @@ function onResponseHeaders(config: NodeFetchOptions, { request, response }: Resp
       if (headersToAttribs.has(name)) {
         const attrName = `http.response.header.${name}`;
         if (_INTERNAL_shouldFilterDataKey(name, true)) {
-          spanAttributes[attrName] = _INTERNAL_FILTERED_VALUE;
+          spanAttributes[attrName] = [_INTERNAL_FILTERED_VALUE];
         } else if (!Object.prototype.hasOwnProperty.call(spanAttributes, attrName)) {
           spanAttributes[attrName] = [value.toString()];
         } else {

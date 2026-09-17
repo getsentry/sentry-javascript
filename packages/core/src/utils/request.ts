@@ -303,28 +303,18 @@ export function httpHeadersToSpanAttributes(
           continue;
         }
 
-        /* previous approach
-
-        const parsed =
-          typeof value === 'string' && value !== '' ? parseCookieHeader(value, lowerKey === 'set-cookie') : undefined;
-        if (parsed) {
-          const filtered = filterKeyValueData(parsed, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS);
-          for (const [cookieKey, cookieValue] of Object.entries(filtered)) {
-            spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}.${normalizeAttributeKey(cookieKey)}`] =
-              cookieValue;
-          }
-        } else {
-          spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}`] = FILTERED_VALUE;
-        }
-         */
-
         const cookies = parseCookieHeader(value, lowerKey === 'set-cookie');
         spanAttributes[`${prefix}${lowerKey}`] = cookies.length
-          ? cookies.map(([cookieKey, cookieValue]) =>
-              shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
+          ? cookies.map(([cookieKey, cookieValue]) => {
+              // A nameless cookie's bare token is its value; no denylist could match it, so it is
+              // always filtered.
+              if (cookieKey === '') {
+                return FILTERED_VALUE;
+              }
+              return shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
                 ? `${cookieKey}=${FILTERED_VALUE}`
-                : `${cookieKey}=${cookieValue}`,
-            )
+                : `${cookieKey}=${cookieValue}`;
+            })
           : [FILTERED_VALUE];
       } else {
         if (headerBehavior === false) {
@@ -353,40 +343,31 @@ export function httpHeadersToSpanAttributes(
   return spanAttributes;
 }
 
-/** TODO: update this as this is the description before we sent cookie header strings
- * Splits a `Cookie` / `Set-Cookie` header into its name-value pairs, or returns `undefined` when it
- * holds none.
+/**
+ * Splits a `Cookie` / `Set-Cookie` header into its name-value pairs.
  *
- * A segment without an `=` is a nameless cookie, so the bare token is its value. Dropping it keeps
- * that value out of the attribute key, where no denylist could reach it.
+ * A segment without an `=` is a nameless cookie, so the bare token is its value (RFC 6265bis):
+ * it is returned as a pair with an empty name.
  */
 function parseCookieHeader(value: string | string[], isSetCookie: boolean): [string, string][] {
   // Set-Cookie: one cookie per value, with attributes ("name=value; HttpOnly; Secure")
-  // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
+  // Cookie: multiple cookies separated by ";" (the space after ";" is not guaranteed on the wire)
   const cookies = (Array.isArray(value) ? value : [value]).flatMap(headerValue => {
     if (typeof headerValue !== 'string' || headerValue === '') {
       return [];
     }
-    return isSetCookie ? [headerValue.split(';')[0]!] : headerValue.split('; ');
+    return isSetCookie ? [headerValue.split(';')[0]!] : headerValue.split(';');
   });
 
-  return cookies.map(cookie => {
-    const equalSignIndex = cookie.indexOf('=');
-    return equalSignIndex !== -1
-      ? [cookie.substring(0, equalSignIndex), cookie.substring(equalSignIndex + 1)]
-      : [cookie, ''];
-  });
-
-  /* previous
-    const result: Record<string, string> = {};
-  for (const cookie of cookies) {
-    const equalSignIndex = cookie.indexOf('=');
-    if (equalSignIndex > 0) {
-      result[cookie.substring(0, equalSignIndex).toLowerCase()] = cookie.substring(equalSignIndex + 1);
-    }
-  }
-  return Object.keys(result).length > 0 ? result : undefined;
-   */
+  return cookies
+    .map(cookie => cookie.trim())
+    .filter(cookie => cookie !== '')
+    .map(cookie => {
+      const equalSignIndex = cookie.indexOf('=');
+      return equalSignIndex !== -1
+        ? [cookie.substring(0, equalSignIndex), cookie.substring(equalSignIndex + 1)]
+        : ['', cookie];
+    });
 }
 
 /** Extract the query params from an URL. */
