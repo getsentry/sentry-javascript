@@ -1,6 +1,7 @@
 import type { Plugin } from 'vite';
 import { makeOrchestrionPlugin } from './orchestrionPlugin';
 import { makeRouteManifestPlugin } from './routeManifestPlugin';
+import { makeAddSentryVitePlugin, makeEnableSourceMapsPlugin } from './sourceMaps';
 import type { SentryRemixVitePluginOptions } from './types';
 
 export type { SentryRemixVitePluginOptions };
@@ -9,8 +10,9 @@ export type { SentryRemixVitePluginOptions };
  * Sentry Vite plugins for Remix.
  *
  * Add these to your Vite configuration to
- * - inject the Remix route manifest, so client-side transactions are parameterized, and
- * - build-time instrument supported server-side dependencies (such as database clients).
+ * - inject the Remix route manifest, so client-side transactions are parameterized,
+ * - build-time instrument supported server-side dependencies (such as database clients), and
+ * - inject debug IDs and upload source maps to Sentry.
  *
  * @example
  * ```typescript
@@ -24,11 +26,23 @@ export type { SentryRemixVitePluginOptions };
  *     remix(),
  *     sentryRemixVitePlugin({
  *       appDirPath: './app',
+ *       org: 'your-org',
+ *       project: 'your-project',
+ *       authToken: process.env.SENTRY_AUTH_TOKEN,
  *     }),
  *   ],
  * });
  * ```
  */
 export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}): Plugin[] {
-  return [makeRouteManifestPlugin(options), makeOrchestrionPlugin(options)];
+  const plugins: Plugin[] = [makeRouteManifestPlugin(options), makeOrchestrionPlugin(options)];
+
+  // Uploading from the dev server would create a new set of artifacts on every restart.
+  if (process.env.NODE_ENV === 'development' || options.sourcemaps?.disable === true) {
+    return plugins;
+  }
+
+  plugins.push(makeEnableSourceMapsPlugin(options), ...makeAddSentryVitePlugin(options));
+
+  return plugins;
 }

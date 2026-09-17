@@ -26,6 +26,16 @@ vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
   sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
 }));
 
+vi.mock('@sentry/bundler-plugins/vite', () => ({
+  sentryVitePlugin: () => [{ name: 'sentry-vite-plugin' }],
+}));
+
+const SOURCE_MAP_PLUGINS = [
+  'sentry-remix-update-source-map-setting',
+  'sentry-remix-files-to-delete-after-upload',
+  'sentry-vite-plugin',
+];
+
 const NODE_CONFIG = { ssr: { target: 'node' } } as UserConfig;
 const WORKER_CONFIG = { ssr: { target: 'webworker' } } as UserConfig;
 // Remix's own Vite plugin never sets `ssr.target`, so a Cloudflare app is only recognizable by its
@@ -48,13 +58,33 @@ function callHook(hook: unknown, ...args: unknown[]): unknown {
 describe('sentryRemixVitePlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
-  it('returns the route manifest plugin and the orchestrion plugin', () => {
+  it('returns the route manifest, orchestrion and source map plugins', () => {
+    const plugins = sentryRemixVitePlugin();
+
+    expect(plugins.map(plugin => plugin.name)).toEqual([
+      'sentry-remix-route-manifest',
+      'code-transformer',
+      ...SOURCE_MAP_PLUGINS,
+    ]);
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+  });
+
+  // Uploading from the dev server would upload a new set of artifacts on every restart.
+  it('leaves out the source map plugins in development', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+
     const plugins = sentryRemixVitePlugin();
 
     expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-remix-route-manifest', 'code-transformer']);
-    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+  });
+
+  it('leaves out the source map plugins when source maps are disabled', () => {
+    const plugins = sentryRemixVitePlugin({ sourcemaps: { disable: true } });
+
+    expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-remix-route-manifest', 'code-transformer']);
   });
 
   it('adds an inert orchestrion plugin when `buildTimeInstrumentation` is `false`', () => {
@@ -62,6 +92,13 @@ describe('sentryRemixVitePlugin', () => {
 
     expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: false });
     expect(plugins.map(plugin => plugin.name)).toContain('sentry-orchestrion-disabled');
+  });
+
+  // Turning off the build-time transform says nothing about source maps.
+  it('keeps the source map plugins when `buildTimeInstrumentation` is `false`', () => {
+    const plugins = sentryRemixVitePlugin({ buildTimeInstrumentation: false });
+
+    expect(plugins.map(plugin => plugin.name)).toEqual(expect.arrayContaining(SOURCE_MAP_PLUGINS));
   });
 
   it('keeps the upstream `enforce: "pre"` but defers its `config` hook to the end', () => {
