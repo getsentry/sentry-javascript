@@ -73,34 +73,25 @@ const debugIdPairs = getDebugIdPairs(bundles);
 const uploadedDebugIds = new Set(debugIdPairs.map(pair => pair.debugId.toLowerCase()));
 assert.ok(uploadedDebugIds.size > 0, 'Expected at least one uploaded JS/source map pair with a debug ID');
 
-// Vite emits some assets without a source map, so they can never be part of an uploaded pair. Key
-// off the uploaded JS file names instead of the maps on disk, which are deleted after upload.
-const uploadedJsFiles = new Set(debugIdPairs.map(pair => path.basename(pair.jsUrl)));
+// The uploaded artifacts are named after the debug ID (`~/<debugId>-<n>.js`), not after the chunk
+// they came from, so the two file name sets never line up. Cross-check the IDs themselves: every
+// debug ID that shipped has to have an artifact bundle behind it.
 let crossCheckedChunks = 0;
 
-for (const chunk of chunks) {
-  if (!uploadedJsFiles.has(path.basename(chunk))) {
-    continue;
-  }
-
-  const injectedDebugId = injectedDebugIds.get(chunk);
-  assert.ok(
-    injectedDebugId,
-    `Expected exactly one debug ID in ${chunk}, found none, even though its source map was uploaded.`,
-  );
-
+for (const [chunk, injectedDebugId] of injectedDebugIds) {
   assert.ok(
     uploadedDebugIds.has(injectedDebugId.toLowerCase()),
-    `Debug ID ${injectedDebugId} in ${chunk} was never uploaded.`,
+    `Debug ID ${injectedDebugId} in ${chunk} was never uploaded.\n` +
+      `Uploaded debug IDs: ${JSON.stringify([...uploadedDebugIds])}`,
   );
   crossCheckedChunks++;
 }
 
 assert.ok(
   crossCheckedChunks > 0,
-  'Expected at least one uploaded chunk to cross-check debug IDs against.\n' +
+  'Expected at least one chunk carrying a debug ID to cross-check against the upload.\n' +
     `Client chunks:      ${JSON.stringify(chunks.map(chunk => path.basename(chunk)))}\n` +
-    `Uploaded JS names:  ${JSON.stringify([...uploadedJsFiles])}\n` +
+    `Uploaded debug IDs: ${JSON.stringify([...uploadedDebugIds])}\n` +
     `Uploaded JS urls:   ${JSON.stringify(debugIdPairs.map(pair => pair.jsUrl))}`,
 );
 console.log(`${crossCheckedChunks} chunk(s) ship a debug ID that was uploaded\n`);
