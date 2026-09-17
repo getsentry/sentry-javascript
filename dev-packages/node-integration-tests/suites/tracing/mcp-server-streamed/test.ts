@@ -60,7 +60,16 @@ describe('MCP server spans (streamed)', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-start-v2.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('captures an MCP v2 initialize request queued before transport start once', async () => {
-      await createTestRunner().expect({ span: assertInitializeSpan }).start().completed();
+      await createTestRunner().unordered().expect({ span: assertInitializeSpan }).start().completed();
+    });
+
+    test('captures the queued request with Sentry OpenTelemetry setup enabled', async () => {
+      await createTestRunner()
+        .withEnv({ ENABLE_OTEL: 'true' })
+        .unordered()
+        .expect({ span: assertInitializeSpan })
+        .start()
+        .completed();
     });
   });
 
@@ -70,15 +79,9 @@ describe('MCP server spans (streamed)', () => {
     'instrument.mjs',
     (createTestRunner, test) => {
       test('captures an MCP v1 initialize request queued before transport start once', async () => {
-        await createTestRunner().expect({ span: assertInitializeSpan }).start().completed();
+        await createTestRunner().unordered().expect({ span: assertInitializeSpan }).start().completed();
       });
     },
     { additionalDependencies: { '@modelcontextprotocol/sdk': '1.30.0' } },
   );
-
-  createEsmAndCjsTests(__dirname, 'scenario-start-v2.mjs', 'instrument-otel.mjs', (createTestRunner, test) => {
-    test('captures the queued request with Sentry OpenTelemetry setup enabled', async () => {
-      await createTestRunner().expect({ span: assertInitializeSpan }).start().completed();
-    });
-  });
 });
