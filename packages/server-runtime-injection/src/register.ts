@@ -166,6 +166,12 @@ export function registerDiagnosticsChannelInjection(): void {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
       mod.registerHooks({ resolve, load });
+      // ALSO patch `Module.prototype._compile`, as the `Module.register` branch below does. A
+      // runner that compiles CommonJS itself (`tsx`, `ts-node`) takes over `require`, so the files
+      // it pulls in never reach the sync load hook and load untransformed; `_compile` still sees
+      // them. A file both of them see is transformed twice, and the second pass finds the call
+      // shapes it matches already wrapped, so no channel ends up published twice.
+      new ModulePatch({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS }).patch();
       debug.log('Registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0

@@ -37,7 +37,6 @@
     ]
   },
   "volta": {
-    "node": "22.15.0",
     "extends": "../../package.json"
   }
 }
