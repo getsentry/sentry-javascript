@@ -12,5 +12,13 @@ export default function globalTeardown() {
     return;
   }
 
-  deleteWorker(workerName);
+  try {
+    deleteWorker(workerName);
+  } catch (error) {
+    // A leaked worker is not an SDK failure, so it must not fail a run whose tests passed.
+    console.error(
+      `Failed to delete worker ${workerName}, delete it with \`wrangler delete --name ${workerName}\`:`,
+      error,
+    );
+  }
 }
