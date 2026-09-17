@@ -1,29 +1,42 @@
 import { execFileSync } from 'node:child_process';
-import { dirname } from 'node:path';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function wrangler(args) {
-  const output = execFileSync('pnpm', ['exec', 'wrangler', ...args], {
+function wrangler(args, env = {}) {
+  execFileSync('pnpm', ['exec', 'wrangler', ...args], {
     cwd: __dirname,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'inherit'],
+    env: { ...process.env, ...env },
+    stdio: ['ignore', 'inherit', 'inherit'],
   });
-  console.log(output);
-  return output;
 }
 
 /** Deploys the worker under `name` and returns its workers.dev URL. */
 export function deployWorker(name, dsn) {
-  const output = wrangler(['deploy', '--name', name, '--var', `E2E_TEST_DSN:${dsn}`]);
-  const url = output.match(/https:\/\/\S+\.workers\.dev/)?.[0];
+  const outputDir = mkdtempSync(join(tmpdir(), 'wrangler-output-'));
+  const outputFile = join(outputDir, 'output.ndjson');
 
-  if (!url) {
-    throw new Error(`Could not find the workers.dev URL in the wrangler deploy output for ${name}.`);
+  try {
+    wrangler(['deploy', '--name', name, '--var', `E2E_TEST_DSN:${dsn}`], { WRANGLER_OUTPUT_FILE_PATH: outputFile });
+
+    const url = readFileSync(outputFile, 'utf8')
+      .split('\n')
+      .filter(Boolean)
+      .map(line => JSON.parse(line))
+      .find(entry => entry.type === 'deploy')
+      ?.targets?.find(target => target.endsWith('.workers.dev'));
+
+    if (!url) {
+      throw new Error(`Could not find the workers.dev URL in the wrangler deploy output for ${name}.`);
+    }
+
+    return url;
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
   }
-
-  return url;
 }
 
 export function deleteWorker(name) {
