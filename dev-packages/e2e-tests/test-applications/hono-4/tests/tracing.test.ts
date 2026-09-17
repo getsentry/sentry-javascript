@@ -17,7 +17,12 @@ const ipvType = expect.stringMatching(/^ipv[46]$/) as unknown;
 //   adds, never clobbers).
 const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Record<string, unknown> }> = {
   node: {
-    added: { 'client.address': anyString, 'client.port': anyNumber, 'network.type': ipvType, 'network.transport': undefined },
+    added: {
+      'client.address': anyString,
+      'client.port': anyNumber,
+      'network.type': ipvType,
+      'network.transport': undefined,
+    },
     baseline: {
       'server.address': 'localhost',
       'server.port': anyNumber,
@@ -31,7 +36,12 @@ const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Rec
     },
   },
   bun: {
-    added: { 'client.address': anyString, 'client.port': anyNumber, 'network.type': ipvType, 'network.transport': undefined },
+    added: {
+      'client.address': anyString,
+      'client.port': anyNumber,
+      'network.type': ipvType,
+      'network.transport': undefined,
+    },
     baseline: { 'client.port': anyNumber, 'network.type': ipvType },
   },
   deno: {
