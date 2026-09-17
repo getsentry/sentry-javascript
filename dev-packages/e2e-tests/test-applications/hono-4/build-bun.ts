@@ -12,11 +12,8 @@ void (async () => {
     entrypoints: [join(__dirname, 'src/entry.bun.ts')],
     target: 'bun',
     outdir: join(__dirname, 'dist'),
-    // `@sentry/bun` (and its deps) stay external, so we don't bundle the whole SDK/OTel stack.
-    // `hono` is also listed, but the plugin strips instrumented packages back out of `external` so
-    // it gets bundled and transformed (channel injection only happens on code that passes through
-    // the bundler).
-    external: ['@sentry/bun', 'hono'],
+    // `@sentry/bun` (and its deps) stay external, so we don't bundle the whole SDK stack.
+    external: ['@sentry/bun'],
     plugins: [sentryBunPlugin()],
   });
 
