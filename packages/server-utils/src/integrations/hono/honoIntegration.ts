@@ -12,6 +12,7 @@ import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentat
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
 import { applyPatches } from './applyPatches';
 import { createHonoRequestMiddleware } from './createHonoMiddleware';
+import { isInternalRequestSpanActive } from './patchAppRequest';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 import type { SentryHonoMiddlewareOptions } from './types';
 
@@ -147,7 +148,9 @@ function injectHonoInstrumentation(
 
 function extractPathname(input: unknown): string {
   if (typeof input === 'string') {
-    return /^https?:\/\//.test(input) ? new URL(input).pathname : input;
+    // `app.request()` accepts absolute URLs as well as relative paths. Parse both against a dummy
+    // base so the query string is stripped from the span name (avoids leaking data / inflating cardinality).
+    return new URL(input, 'http://sentry-internal').pathname;
   }
   if (input instanceof Request) {
     return new URL(input.url).pathname;
@@ -164,6 +167,13 @@ function instrumentInternalRequests(): void {
     // oxlint-disable-next-line typescript/no-explicit-any
     diagnosticsChannel.tracingChannel<{ arguments: any[] }>(CHANNELS.HONO_REQUEST),
     data => {
+      // When the manual middleware is used alongside this default integration, the instance
+      // `app.request` Proxy already opened this span and is calling through to us — don't nest a
+      // duplicate. `getSpan` returning `undefined` opts the payload out cleanly.
+      if (isInternalRequestSpanActive()) {
+        return undefined;
+      }
+
       const [input, requestInit] = data.arguments;
       const method = (
         (requestInit as RequestInit | undefined)?.method ?? (input instanceof Request ? input.method : 'GET')
