@@ -87,13 +87,44 @@ test('emits exactly one event for an uncaught worker error', async ({ page }) =>
   await page.locator('#trigger-error').click();
   await firstErrorPromise;
 
-  // The bubbled copy of the first throw is queued right behind the forwarded
-  // one, so the second worker's event arriving without it in between is the
-  // signal that it was suppressed.
+  // The worker cancels the native error event, so page listeners on the
+  // worker object only see the replayed one, which carries the error object.
+  expect(await page.evaluate(() => (window as any).workerErrorEvents)).toEqual([
+    { message: 'Uncaught Error: Uncaught error in worker', hasError: true },
+  ]);
+
+  // A bubbled copy of the first throw would have been reported before the
+  // second worker's event, so its absence here shows it never happened.
   await page.locator('#trigger-error-2').click();
   await secondErrorPromise;
 
   expect(mechanisms).toEqual([WORKER_MECHANISM, WORKER_MECHANISM]);
+});
+
+test('locates a thrown primitive by its ErrorEvent position', async ({ page }) => {
+  const errorEventPromise = waitForError('browser-webworker-vite', event => {
+    return event.exception?.values?.[0]?.value === 'Primitive thrown in worker';
+  });
+
+  await page.goto('/');
+
+  await page.locator('#trigger-primitive-error').click();
+
+  const errorEvent = await errorEventPromise;
+  const exception = errorEvent.exception?.values?.[0];
+
+  expect(exception?.mechanism?.type).toBe(WORKER_MECHANISM);
+  expect(exception?.stacktrace?.frames).toEqual([
+    {
+      filename: expect.stringMatching(/worker-.+\.js$/),
+      lineno: expect.any(Number),
+      colno: expect.any(Number),
+      function: '?',
+      in_app: true,
+    },
+  ]);
+  expect(exception?.stacktrace?.frames?.[0]?.lineno).toBeGreaterThan(0);
+  expect(exception?.stacktrace?.frames?.[0]?.colno).toBeGreaterThan(0);
 });
 
 test("user worker message handlers don't trigger for sentry messages", async ({ page }) => {
