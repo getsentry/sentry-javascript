@@ -24,7 +24,13 @@ export function getWorkerName() {
 }
 
 export default async function globalSetup() {
+  if (!existsSync(join(__dirname, '.wrangler/deploy/config.json'))) {
+    throw new Error('Run `pnpm build` first: wrangler would deploy the uninstrumented source.');
+  }
   const { CLOUDFLARE_ACCOUNT_ID, E2E_TEST_DSN } = process.env;
+  if (!E2E_TEST_DSN) {
+    throw new Error('E2E_TEST_DSN must be set to deploy the test worker.');
+  }
 
   // Wrangler authenticates with `CLOUDFLARE_API_TOKEN` (CI) or a `wrangler login` session (local),
   // but it cannot pick an account on its own outside of a terminal.
