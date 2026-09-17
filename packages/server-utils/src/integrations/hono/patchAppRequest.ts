@@ -33,14 +33,40 @@ function setInternalRequestSpanActive(active: boolean): void {
   (globalThis as GuardCarrier)[INTERNAL_REQUEST_SPAN_ACTIVE] = active;
 }
 
-function extractPathname(input: string | Request | URL): string {
+function stripQueryAndHash(path: string): string {
+  const end = path.search(/[?#]/);
+  return end === -1 ? path : path.slice(0, end);
+}
+
+/**
+ * Derive the span-name path from an `app.request()` argument, mirroring Hono's own handling so the
+ * name matches the path actually dispatched, with the query/hash stripped so they can't leak into
+ * span names or inflate cardinality.
+ *
+ * Hono treats an absolute `http(s)://` input as a full URL and everything else as a path under
+ * `http://localhost` (see `hono-base`'s `request`). We prepend that same fixed host rather than
+ * resolving the string as a URL reference: resolution rewrites protocol-relative inputs
+ * (`//example.com/foo` → host `example.com`, dropping the segment Hono keeps in the path) and throws
+ * on inputs Hono accepts (`//`, `http:`). This runs before the underlying dispatch, so it must never
+ * throw — the `catch` is a final guard against any remaining malformed input.
+ */
+export function extractPathname(input: unknown): string {
   if (typeof input === 'string') {
-    // `app.request()` accepts absolute URLs as well as relative paths. Parse both
-    // against a dummy base so the query string is stripped from the span name.
-    return new URL(input, 'http://sentry-internal').pathname;
+    try {
+      const url = /^https?:\/\//.test(input)
+        ? new URL(input)
+        : new URL(`http://localhost${input.startsWith('/') ? '' : '/'}${input}`);
+      return url.pathname;
+    } catch {
+      return stripQueryAndHash(input);
+    }
   }
 
-  return input instanceof Request ? new URL(input.url).pathname : input.pathname;
+  if (input instanceof Request) {
+    return new URL(input.url).pathname;
+  }
+
+  return input instanceof URL ? input.pathname : '/';
 }
 
 /**

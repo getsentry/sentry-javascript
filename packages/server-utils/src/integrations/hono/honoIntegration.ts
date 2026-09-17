@@ -12,7 +12,7 @@ import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentat
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
 import { applyPatches } from './applyPatches';
 import { createHonoRequestMiddleware } from './createHonoMiddleware';
-import { isInternalRequestSpanActive } from './patchAppRequest';
+import { extractPathname, isInternalRequestSpanActive } from './patchAppRequest';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 import type { SentryHonoMiddlewareOptions } from './types';
 
@@ -144,18 +144,6 @@ function injectHonoInstrumentation(
   });
   const routeMeta = { basePath: '/', path: '/*', method: 'ALL', handler: middleware };
   handlers.unshift([[middleware, routeMeta], {}]);
-}
-
-function extractPathname(input: unknown): string {
-  if (typeof input === 'string') {
-    // `app.request()` accepts absolute URLs as well as relative paths. Parse both against a dummy
-    // base so the query string is stripped from the span name (avoids leaking data / inflating cardinality).
-    return new URL(input, 'http://sentry-internal').pathname;
-  }
-  if (input instanceof Request) {
-    return new URL(input.url).pathname;
-  }
-  return input instanceof URL ? input.pathname : '/';
 }
 
 /**
