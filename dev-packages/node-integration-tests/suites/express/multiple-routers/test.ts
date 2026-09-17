@@ -1,4 +1,4 @@
-import { afterAll, describe } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../utils/runner';
 
 describe('express multiple routers', () => {
@@ -9,7 +9,7 @@ describe('express multiple routers', () => {
   createCjsTests(__dirname, 'scenario-common-infix.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should construct correct url with common infixes with multiple routers.', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .ignore('span')
         .expect({ event: { message: 'Custom Message', transaction: 'GET /api2/v1/test' } })
         .start();
       runner.makeRequest('get', '/api2/v1/test');
@@ -20,7 +20,7 @@ describe('express multiple routers', () => {
   createCjsTests(__dirname, 'scenario-common-infix-parameterized.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should construct correct url with common infixes with multiple parameterized routers.', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .ignore('span')
         .expect({ event: { message: 'Custom Message', transaction: 'GET /api/v1/user/:userId' } })
         .start();
       runner.makeRequest('get', '/api/v1/user/3212');
@@ -31,7 +31,7 @@ describe('express multiple routers', () => {
   createCjsTests(__dirname, 'scenario-common-prefix.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should construct correct urls with multiple routers.', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .ignore('span')
         .expect({ event: { message: 'Custom Message', transaction: 'GET /api/v1/test' } })
         .start();
       runner.makeRequest('get', '/api/v1/test');
@@ -40,7 +40,7 @@ describe('express multiple routers', () => {
 
     test('should construct correct urls with multiple parameterized routers.', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .ignore('span')
         .expect({ event: { message: 'Custom Message', transaction: 'GET /api/v1/user/:userId' } })
         .start();
       runner.makeRequest('get', '/api/v1/user/1234/');
@@ -51,7 +51,7 @@ describe('express multiple routers', () => {
   createCjsTests(__dirname, 'scenario-common-prefix-reverse.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should construct correct urls with multiple parameterized routers (use order reversed).', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .ignore('span')
         .expect({ event: { message: 'Custom Message', transaction: 'GET /api/v1/user/:userId' } })
         .start();
       runner.makeRequest('get', '/api/v1/user/1234/');
@@ -62,7 +62,7 @@ describe('express multiple routers', () => {
   createCjsTests(__dirname, 'scenario-common-prefix-same-length.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should construct correct url with multiple parameterized routers of the same length.', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .ignore('span')
         .expect({ event: { message: 'Custom Message', transaction: 'GET /api/v1/:userId' } })
         .start();
       runner.makeRequest('get', '/api/v1/1234/');
@@ -76,11 +76,10 @@ describe('express multiple routers', () => {
         const runner = createRunner()
           .ignore('event')
           .expect({
-            transaction: {
-              transaction: 'GET /api/api/v1/sub-router/users/:userId/posts/:postId',
-              transaction_info: {
-                source: 'route',
-              },
+            span: container => {
+              const serverSpan = container.items.find(item => item.is_segment);
+              expect(serverSpan?.name).toBe('GET /api/api/v1/sub-router/users/:userId/posts/:postId');
+              expect(serverSpan?.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
             },
           })
           .start();
@@ -92,11 +91,10 @@ describe('express multiple routers', () => {
         const runner = createRunner()
           .ignore('event')
           .expect({
-            transaction: {
-              transaction: 'GET /api/api/v1/sub-router/users/:userId/posts/:postId',
-              transaction_info: {
-                source: 'route',
-              },
+            span: container => {
+              const serverSpan = container.items.find(item => item.is_segment);
+              expect(serverSpan?.name).toBe('GET /api/api/v1/sub-router/users/:userId/posts/:postId');
+              expect(serverSpan?.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
             },
           })
           .start();
@@ -108,11 +106,10 @@ describe('express multiple routers', () => {
         const runner = createRunner()
           .ignore('event')
           .expect({
-            transaction: {
-              transaction: 'GET /api/api/v1/sub-router/users/:userId/posts/:postId',
-              transaction_info: {
-                source: 'route',
-              },
+            span: container => {
+              const serverSpan = container.items.find(item => item.is_segment);
+              expect(serverSpan?.name).toBe('GET /api/api/v1/sub-router/users/:userId/posts/:postId');
+              expect(serverSpan?.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
             },
           })
           .start();
@@ -129,11 +126,10 @@ describe('express multiple routers', () => {
         const runner = createRunner()
           .ignore('event')
           .expect({
-            transaction: {
-              transaction: 'GET /api/v1/users/:userId/posts/:postId',
-              transaction_info: {
-                source: 'route',
-              },
+            span: container => {
+              const serverSpan = container.items.find(item => item.is_segment);
+              expect(serverSpan?.name).toBe('GET /api/v1/users/:userId/posts/:postId');
+              expect(serverSpan?.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
             },
           })
           .start();

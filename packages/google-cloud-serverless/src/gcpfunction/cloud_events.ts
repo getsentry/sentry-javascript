@@ -1,9 +1,26 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  FAAS_NAME,
+  FAAS_TRIGGER,
+  SENTRY_OP,
+  GCP_FUNCTION_CONTEXT_TYPE,
+  GCP_FUNCTION_CONTEXT_ID,
+  GCP_FUNCTION_CONTEXT_SOURCE,
+  GCP_FUNCTION_CONTEXT_SPECVERSION,
+  GCP_FUNCTION_CONTEXT_TIME,
+} from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
-import { debug, handleCallbackErrors, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import {
+  debug,
+  getClient,
+  handleCallbackErrors,
+  hasSpanStreamingEnabled,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
+} from '@sentry/core';
 import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
 import { DEBUG_BUILD } from '../debug-build';
-import { domainify, markEventUnhandled, proxyFunction } from '../utils';
+import { domainify, getFunctionName, markEventUnhandled, proxyFunction } from '../utils';
 import type { CloudEventFunction, CloudEventFunctionWithCallback, WrapperOptions } from './general';
 
 export type CloudEventFunctionWrapperOptions = WrapperOptions;
@@ -31,14 +48,28 @@ function _wrapCloudEventFunction(
     ...wrapOptions,
   };
   return (context, callback) => {
+    const client = getClient();
+
+    const functionName = getFunctionName();
+    const name =
+      client && hasSpanStreamingEnabled(client)
+        ? functionName || SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK
+        : context.type || '<unknown>';
+
     return startSpanManual(
       {
-        name: context.type || '<unknown>',
+        name,
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: functionName,
           [FAAS_TRIGGER]: 'cloud_event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+          [GCP_FUNCTION_CONTEXT_TYPE]: context.type,
+          [GCP_FUNCTION_CONTEXT_ID]: context.id,
+          [GCP_FUNCTION_CONTEXT_SOURCE]: context.source,
+          [GCP_FUNCTION_CONTEXT_SPECVERSION]: context.specversion,
+          [GCP_FUNCTION_CONTEXT_TIME]: context.time,
         },
       },
       span => {

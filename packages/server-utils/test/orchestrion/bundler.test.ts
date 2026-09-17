@@ -68,6 +68,46 @@ describe('sentryOrchestrionPlugin (rollup)', () => {
     // skips the warning when external is not a normalized predicate
     expect(warn).not.toHaveBeenCalled();
   });
+
+  it('forwards the resolveId options to this.resolve and falls back to self-resolution', async () => {
+    const plugin = rollupPlugin();
+    const resolveId = plugin.resolveId as (
+      this: unknown,
+      source: string,
+      importer: string | undefined,
+      opts: unknown,
+    ) => Promise<unknown>;
+
+    const resolve = vi.fn().mockResolvedValue(null);
+    // `custom` is what `@rollup/plugin-commonjs` uses to recognise its own `require()` resolution;
+    // dropping it makes the plugin warn (THIS_RESOLVE_WITHOUT_OPTIONS) and abandon the resolution.
+    const options = { attributes: {}, custom: { 'node-resolve': { isRequire: true } }, isEntry: false };
+
+    resolve.mockResolvedValueOnce({ id: '/resolved.js' });
+    await expect(resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', options)).resolves.toEqual({
+      id: '/resolved.js',
+    });
+    expect(resolve).toHaveBeenCalledWith('@sentry/server-utils', '/x.js', { ...options, skipSelf: true });
+
+    // When it fails (pnpm isolation), fall back to this package's own resolution.
+    const fallback = await resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', options);
+    expect(typeof fallback).toBe('string');
+    expect(fallback).toContain('server-utils');
+  });
+
+  it('ignores specifiers other than the injected snippet import', async () => {
+    const plugin = rollupPlugin();
+    const resolveId = plugin.resolveId as (
+      this: unknown,
+      source: string,
+      importer: string | undefined,
+      opts: unknown,
+    ) => Promise<unknown>;
+
+    const resolve = vi.fn();
+    await expect(resolveId.call({ resolve }, 'mysql', '/x.js', { attributes: {}, isEntry: false })).resolves.toBeNull();
+    expect(resolve).not.toHaveBeenCalled();
+  });
 });
 
 describe('sentryOrchestrionPlugin (esbuild)', () => {

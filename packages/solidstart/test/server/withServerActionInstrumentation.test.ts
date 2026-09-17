@@ -1,4 +1,4 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import * as SentryCoreServer from '@sentry/core/server';
 import * as SentryNode from '@sentry/node';
@@ -102,6 +102,7 @@ describe('withServerActionInstrumentation', () => {
         name: 'getPrefecture',
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+          [CODE_FUNCTION_NAME]: 'getPrefecture',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
         }),

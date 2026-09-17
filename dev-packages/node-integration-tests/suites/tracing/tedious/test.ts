@@ -27,8 +27,8 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Transaction',
     spans: expect.arrayContaining([
-      dbSpan({ description: 'SELECT 1 + 1 AS solution', status: 'ok' }),
-      dbSpan({ description: 'SELECT 42; SELECT 42;', status: 'ok' }),
+      dbSpan({ description: 'SELECT ? + ? AS solution', status: 'ok' }),
+      dbSpan({ description: 'SELECT ?; SELECT ?', status: 'ok' }),
       dbSpan({ description: 'select !', status: 'internal_error' }),
       dbSpan({ description: '[dbo].[test_proced]', status: 'ok' }),
       dbSpan({ description: 'INSERT INTO [dbo].[test_prepared] VALUES (@val1, @val2)', status: 'ok' }),
@@ -51,27 +51,25 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
             expect(transaction.spans).toEqual(EXPECTED_TRANSACTION.spans);
 
             const CREATE_PROCEDURE =
-              'CREATE OR ALTER PROCEDURE [dbo].[test_proced] @inputVal varchar(30), @outputCount int OUTPUT AS set @outputCount = LEN(@inputVal);';
-            const CREATE_PREPARED_TABLE =
-              "if object_id('[dbo].[test_prepared]') is null CREATE TABLE [dbo].[test_prepared] (c1 int, c2 int)";
-            const CREATE_BULK_TABLE =
-              "if object_id('[dbo].[test_bulk]') is null CREATE TABLE [dbo].[test_bulk] (c1 int, c2 varchar(30))";
+              'CREATE OR ALTER PROCEDURE [dbo].[test_proced] @inputVal varchar(?), @outputCount int OUTPUT AS set @outputCount = LEN(@inputVal)';
+            const CREATE_PREPARED_TABLE = 'if object_id(?) is null CREATE TABLE [dbo].[test_prepared] (c1 int, c2 int)';
+            const CREATE_BULK_TABLE = 'if object_id(?) is null CREATE TABLE [dbo].[test_bulk] (c1 int, c2 varchar(?))';
             const INSERT_PREPARED = 'INSERT INTO [dbo].[test_prepared] VALUES (@val1, @val2)';
-            const INSERT_BULK = 'insert bulk test_bulk([c1] int, [c2] nvarchar(50)) WITH (KEEP_NULLS)';
+            const INSERT_BULK = 'insert bulk test_bulk([c1] int, [c2] nvarchar(?)) WITH (KEEP_NULLS)';
             const SELECT_PREPARED = 'SELECT c1, c2 FROM [dbo].[test_prepared]';
             const SELECT_JOIN =
               'SELECT p.c1 FROM [dbo].[test_prepared] p INNER JOIN [dbo].[test_bulk] b ON p.c1 = b.c1';
-            const SELECT_INLINE_LITERAL = 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = 42';
+            const SELECT_INLINE_LITERAL = 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = ?';
             const SELECT_PARAMETERIZED = 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = @c1';
-            const SELECT_STRING_LITERAL = "SELECT c1, c2 FROM [dbo].[test_bulk] WHERE c2 = 'hello from acme'";
+            const SELECT_STRING_LITERAL = 'SELECT c1, c2 FROM [dbo].[test_bulk] WHERE c2 = ?';
 
             expect(
               (transaction.spans ?? [])
                 .filter(span => span.origin === ORIGIN)
                 .map(span => ({ name: span.description, text: span.data?.['db.query.text'] })),
             ).toEqual([
-              { name: 'SELECT 1 + 1 AS solution', text: 'SELECT 1 + 1 AS solution' },
-              { name: 'SELECT 42; SELECT 42;', text: 'SELECT 42; SELECT 42;' },
+              { name: 'SELECT ? + ? AS solution', text: 'SELECT ? + ? AS solution' },
+              { name: 'SELECT ?; SELECT ?', text: 'SELECT ?; SELECT ?' },
               { name: 'select !', text: 'select !' },
               { name: CREATE_PROCEDURE, text: CREATE_PROCEDURE },
               { name: '[dbo].[test_proced]', text: '[dbo].[test_proced]' },
@@ -108,19 +106,19 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
                 text: span.attributes['db.query.text']?.value,
               })),
             ).toEqual([
-              { name: 'SELECT', summary: 'SELECT', text: 'SELECT 1 + 1 AS solution' },
-              { name: 'SELECT', summary: 'SELECT', text: 'SELECT 42; SELECT 42;' },
+              { name: 'SELECT', summary: 'SELECT', text: 'SELECT ? + ? AS solution' },
+              { name: 'SELECT', summary: 'SELECT', text: 'SELECT ?; SELECT ?' },
               { name: 'select', summary: 'select', text: 'select !' },
               {
                 name: 'CREATE',
                 summary: 'CREATE',
-                text: 'CREATE OR ALTER PROCEDURE [dbo].[test_proced] @inputVal varchar(30), @outputCount int OUTPUT AS set @outputCount = LEN(@inputVal);',
+                text: 'CREATE OR ALTER PROCEDURE [dbo].[test_proced] @inputVal varchar(?), @outputCount int OUTPUT AS set @outputCount = LEN(@inputVal)',
               },
               { name: 'callProcedure [dbo].[test_proced]', summary: undefined, text: '[dbo].[test_proced]' },
               {
                 name: 'if',
                 summary: 'if',
-                text: "if object_id('[dbo].[test_prepared]') is null CREATE TABLE [dbo].[test_prepared] (c1 int, c2 int)",
+                text: 'if object_id(?) is null CREATE TABLE [dbo].[test_prepared] (c1 int, c2 int)',
               },
               {
                 name: 'INSERT [dbo].[test_prepared]',
@@ -135,12 +133,12 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
               {
                 name: 'if',
                 summary: 'if',
-                text: "if object_id('[dbo].[test_bulk]') is null CREATE TABLE [dbo].[test_bulk] (c1 int, c2 varchar(30))",
+                text: 'if object_id(?) is null CREATE TABLE [dbo].[test_bulk] (c1 int, c2 varchar(?))',
               },
               {
                 name: 'insert',
                 summary: 'insert',
-                text: 'insert bulk test_bulk([c1] int, [c2] nvarchar(50)) WITH (KEEP_NULLS)',
+                text: 'insert bulk test_bulk([c1] int, [c2] nvarchar(?)) WITH (KEEP_NULLS)',
               },
               { name: 'execBulkLoad test_bulk', summary: undefined, text: undefined },
               {
@@ -155,11 +153,9 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
                 text: 'SELECT p.c1 FROM [dbo].[test_prepared] p INNER JOIN [dbo].[test_bulk] b ON p.c1 = b.c1',
               },
               {
-                // TODO: (fix) tedious reports the statement as the caller wrote it, so an inlined literal reaches
-                // `db.query.text` unsanitized. Only the summary is sanitized.
                 name: 'SELECT [dbo].[test_prepared]',
                 summary: 'SELECT [dbo].[test_prepared]',
-                text: 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = 42',
+                text: 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = ?',
               },
               {
                 name: 'SELECT [dbo].[test_prepared]',
@@ -167,11 +163,9 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
                 text: 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = @c1',
               },
               {
-                // TODO: (fix) The `from` inside the string literal must not be read as a table: the statement is
-                // sanitized before it is summarized, so the summary is just the real table.
                 name: 'SELECT [dbo].[test_bulk]',
                 summary: 'SELECT [dbo].[test_bulk]',
-                text: "SELECT c1, c2 FROM [dbo].[test_bulk] WHERE c2 = 'hello from acme'",
+                text: 'SELECT c1, c2 FROM [dbo].[test_bulk] WHERE c2 = ?',
               },
             ]);
           },

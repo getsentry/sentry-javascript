@@ -14,7 +14,7 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@cloudflare/ai-chat": "^0.10.0",
+    "@cloudflare/ai-chat": "latest",
     "@sentry/cloudflare": "^10.68.0",
     "@sentry/core": "^10.68.0",
     "agents": "latest",
@@ -24,7 +24,7 @@
     "workers-ai-provider": "^3.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@cloudflare/vite-plugin": "^1.47.0",
     "@cloudflare/workers-types": "^5.20260727.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",

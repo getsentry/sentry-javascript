@@ -1,14 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+
+function waitForPageloadSpan() {
+  return waitForStreamedSpan('browser-webworker-vite', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
+  });
+}
 
 test('captures an error with debug ids and pageload trace context', async ({ page }) => {
   const errorEventPromise = waitForError('browser-webworker-vite', async event => {
     return !event.type && !!event.exception?.values?.[0];
   });
 
-  const transactionPromise = waitForTransaction('browser-webworker-vite', transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
+  const pageloadSpanPromise = waitForPageloadSpan();
 
   await page.goto('/');
 
@@ -17,10 +21,7 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
   await page.waitForTimeout(1000);
 
   const errorEvent = await errorEventPromise;
-  const transactionEvent = await transactionPromise;
-
-  const pageloadTraceId = transactionEvent.contexts?.trace?.trace_id;
-  const pageloadSpanId = transactionEvent.contexts?.trace?.span_id;
+  const pageloadSpan = await pageloadSpanPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker');
@@ -28,7 +29,7 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
   expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker-.+\.js$/);
 
   expect(errorEvent.transaction).toBe('/');
-  expect(transactionEvent.transaction).toBe('/');
+  expect(pageloadSpan.name).toBe('Pageload');
 
   expect(errorEvent.request).toEqual({
     url: 'http://localhost:3030/',
@@ -36,8 +37,8 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
   });
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: pageloadTraceId,
-    span_id: pageloadSpanId,
+    trace_id: pageloadSpan.trace_id,
+    span_id: pageloadSpan.span_id,
   });
 
   expect(errorEvent.debug_meta).toEqual({
@@ -77,9 +78,7 @@ test('captures an error from the second eagerly added worker', async ({ page }) 
     return !event.type && !!event.exception?.values?.[0];
   });
 
-  const transactionPromise = waitForTransaction('browser-webworker-vite', transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
+  const pageloadSpanPromise = waitForPageloadSpan();
 
   await page.goto('/');
 
@@ -88,10 +87,7 @@ test('captures an error from the second eagerly added worker', async ({ page }) 
   await page.waitForTimeout(1000);
 
   const errorEvent = await errorEventPromise;
-  const transactionEvent = await transactionPromise;
-
-  const pageloadTraceId = transactionEvent.contexts?.trace?.trace_id;
-  const pageloadSpanId = transactionEvent.contexts?.trace?.span_id;
+  const pageloadSpan = await pageloadSpanPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker 2');
@@ -99,7 +95,7 @@ test('captures an error from the second eagerly added worker', async ({ page }) 
   expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker2-.+\.js$/);
 
   expect(errorEvent.transaction).toBe('/');
-  expect(transactionEvent.transaction).toBe('/');
+  expect(pageloadSpan.name).toBe('Pageload');
 
   expect(errorEvent.request).toEqual({
     url: 'http://localhost:3030/',
@@ -107,8 +103,8 @@ test('captures an error from the second eagerly added worker', async ({ page }) 
   });
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: pageloadTraceId,
-    span_id: pageloadSpanId,
+    trace_id: pageloadSpan.trace_id,
+    span_id: pageloadSpan.span_id,
   });
 
   expect(errorEvent.debug_meta).toEqual({
@@ -127,9 +123,7 @@ test('captures an error from the third lazily added worker', async ({ page }) =>
     return !event.type && !!event.exception?.values?.[0];
   });
 
-  const transactionPromise = waitForTransaction('browser-webworker-vite', transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
+  const pageloadSpanPromise = waitForPageloadSpan();
 
   await page.goto('/');
 
@@ -138,10 +132,7 @@ test('captures an error from the third lazily added worker', async ({ page }) =>
   await page.waitForTimeout(1000);
 
   const errorEvent = await errorEventPromise;
-  const transactionEvent = await transactionPromise;
-
-  const pageloadTraceId = transactionEvent.contexts?.trace?.trace_id;
-  const pageloadSpanId = transactionEvent.contexts?.trace?.span_id;
+  const pageloadSpan = await pageloadSpanPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker 3');
@@ -149,7 +140,7 @@ test('captures an error from the third lazily added worker', async ({ page }) =>
   expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker3-.+\.js$/);
 
   expect(errorEvent.transaction).toBe('/');
-  expect(transactionEvent.transaction).toBe('/');
+  expect(pageloadSpan.name).toBe('Pageload');
 
   expect(errorEvent.request).toEqual({
     url: 'http://localhost:3030/',
@@ -157,8 +148,8 @@ test('captures an error from the third lazily added worker', async ({ page }) =>
   });
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: pageloadTraceId,
-    span_id: pageloadSpanId,
+    trace_id: pageloadSpan.trace_id,
+    span_id: pageloadSpan.span_id,
   });
 
   expect(errorEvent.debug_meta).toEqual({

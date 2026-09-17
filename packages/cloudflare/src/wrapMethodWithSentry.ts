@@ -1,13 +1,13 @@
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import type { SerializedTraceData } from '@sentry/core';
+import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import {
   isObjectLike,
   captureException,
   continueTrace,
   isThenable,
   type Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startNewTrace as startNewTraceCore,
   startSpan,
 } from '@sentry/core';
@@ -203,8 +203,10 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
             const attributes = wrapperOptions.spanOp
               ? {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+                  [SENTRY_OP]: wrapperOptions.spanOp,
+                  [SENTRY_ORIGIN]: origin,
+                  // `function` spans are already named like their function name, so we just set `code.function.name` here.
+                  ...(wrapperOptions.spanOp === FUNCTION && { [CODE_FUNCTION_NAME]: methodName }),
                 }
               : {};
 
@@ -215,10 +217,9 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
                   if (storedContext) {
                     span.addLinks(buildSpanLinks(storedContext));
-                    // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
-                    // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-                    // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
-                    // to check this at v11 time :)
+                    // TODO(v12): Remove this once the Sentry trace view finds linked traces via span links.
+                    // EAP stores span links, but the trace view still reads this attribute to navigate to the
+                    // previous/next trace.
                     const sampledFlag = storedContext.sampled ? '1' : '0';
                     span.setAttribute(
                       'sentry.previous_trace',

@@ -7,49 +7,57 @@ describe('fastify v5 auto-instrumentation', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates transaction with fastify hook, request-handler and manual spans', async () => {
+    test('creates segment span with fastify hook, request-handler and manual spans', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /test-transaction',
-            spans: expect.arrayContaining([
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /test-transaction');
+
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                op: 'middleware',
-                origin: 'auto.http.fastify',
-                data: expect.objectContaining({
-                  'fastify.type': 'hook',
-                  'sentry.op': 'middleware',
-                  'sentry.origin': 'auto.http.fastify',
+                attributes: expect.objectContaining({
+                  'fastify.type': { type: 'string', value: 'hook' },
+                  'sentry.op': { type: 'string', value: 'middleware' },
+                  'sentry.origin': { type: 'string', value: 'auto.http.fastify' },
                 }),
               }),
-              // Route-level hooks have no `op`, so the span name falls back to `${hook} - ${handler}`
-              // using the original hook identifier (not the prefixed `hook.name` attribute).
+            );
+
+            // Route-level hooks have no `op`, so the span name falls back to `${hook} - ${handler}`
+            // using the original hook identifier (not the prefixed `hook.name` attribute).
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                description: 'preHandler - routePreHandler',
-                origin: 'auto.http.fastify',
-                data: expect.objectContaining({
-                  'fastify.type': 'route-hook',
-                  'hook.callback.name': 'routePreHandler',
-                  'sentry.origin': 'auto.http.fastify',
+                name: 'preHandler - routePreHandler',
+                attributes: expect.objectContaining({
+                  'fastify.type': { type: 'string', value: 'route-hook' },
+                  'hook.callback.name': { type: 'string', value: 'routePreHandler' },
+                  'sentry.origin': { type: 'string', value: 'auto.http.fastify' },
                 }),
               }),
+            );
+
+            // The request span and the route handler span are both named after the route.
+            const handlerSpans = container.items.filter(item => item.attributes['sentry.op']?.value === 'handler');
+            expect(handlerSpans).toHaveLength(2);
+            for (const span of handlerSpans) {
+              expect(span.name).toBe('/test-transaction');
+              // The name has to stay in step with the attribute it comes from.
+              expect(span.attributes['http.route']?.value).toBe('/test-transaction');
+              expect(span.attributes['sentry.origin']?.value).toBe('auto.http.fastify');
+            }
+
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                op: 'handler',
-                origin: 'auto.http.fastify',
-                data: expect.objectContaining({
-                  'sentry.op': 'handler',
-                  'sentry.origin': 'auto.http.fastify',
-                }),
+                name: 'test-span',
+                attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
               }),
+            );
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                description: 'test-span',
-                origin: 'manual',
+                name: 'child-span',
+                attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
               }),
-              expect.objectContaining({
-                description: 'child-span',
-                origin: 'manual',
-              }),
-            ]),
+            );
           },
         })
         .start();
@@ -57,35 +65,9 @@ describe('fastify v5 auto-instrumentation', () => {
       await runner.completed();
     });
 
-    test('names request handler spans after their route when span streaming is enabled', async () => {
-      const runner = createRunner()
-        .withEnv({ STREAMED: 'true' })
-        .expect({
-          span: container => {
-            const handlerSpans = container.items.filter(item => item.attributes['sentry.op']?.value === 'handler');
-
-            // The request span and the route handler span.
-            expect(handlerSpans).toHaveLength(2);
-            for (const span of handlerSpans) {
-              expect(span.name).toBe('/test-transaction');
-              // The name has to stay in step with the attribute it comes from.
-              expect(span.attributes['http.route']?.value).toBe('/test-transaction');
-            }
-
-            // Spans of other ops keep their names.
-            expect(container.items.find(item => item.name === 'preHandler - routePreHandler')).toBeDefined();
-          },
-        })
-        .start();
-
-      await runner.makeRequest('get', '/test-transaction');
-
-      await runner.completed();
-    });
-
     test('captures errors thrown in route handlers', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           event: {
             exception: {
@@ -133,7 +115,7 @@ describe('fastify v5 auto-instrumentation', () => {
     (createRunner, test) => {
       test('shouldHandleError override works', async () => {
         const runner = createRunner()
-          .ignore('transaction')
+          .ignore('span')
           .expect({
             event: {
               exception: {

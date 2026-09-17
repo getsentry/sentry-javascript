@@ -1,5 +1,6 @@
 import type Route from '@ember/routing/route';
 import { startSpan } from '@sentry/browser';
+import { hasSpanStreamingEnabled } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@sentry/browser', () => ({
@@ -7,6 +8,8 @@ vi.mock('@sentry/browser', () => ({
 }));
 vi.mock('@sentry/core', () => ({
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
+  getClient: vi.fn(() => ({})),
+  hasSpanStreamingEnabled: vi.fn(() => false),
 }));
 
 describe('instrumentRoutePerformance', () => {
@@ -61,5 +64,66 @@ describe('instrumentRoutePerformance', () => {
     expect(setupController.mock.contexts[0]).toBe(route);
 
     expect(startSpan).toHaveBeenCalledTimes(4);
+  });
+
+  it('names the span after the route when span streaming is disabled', async () => {
+    const { instrumentRoutePerformance } = await import('../src/utils/instrumentRoutePerformance.ts');
+
+    class DummyRoute {
+      public fullRouteName = 'dummy';
+
+      public model(): void {}
+    }
+
+    const InstrumentedDummyRoute = instrumentRoutePerformance(
+      DummyRoute as unknown as new (...args: unknown[]) => Route,
+    );
+
+    await new InstrumentedDummyRoute().model();
+
+    expect(startSpan).toHaveBeenCalledWith(
+      {
+        attributes: {
+          'sentry.origin': 'auto.ui.ember',
+          'sentry.op': 'function',
+          'code.function.name': 'model',
+        },
+        name: 'dummy',
+        onlyIfParent: true,
+      },
+      expect.any(Function),
+    );
+  });
+
+  it('names the span after the hook and describes it with the route when span streaming is enabled', async () => {
+    vi.mocked(hasSpanStreamingEnabled).mockReturnValueOnce(true);
+
+    const { instrumentRoutePerformance } = await import('../src/utils/instrumentRoutePerformance.ts');
+
+    class DummyRoute {
+      public fullRouteName = 'dummy';
+
+      public model(): void {}
+    }
+
+    const InstrumentedDummyRoute = instrumentRoutePerformance(
+      DummyRoute as unknown as new (...args: unknown[]) => Route,
+    );
+
+    await new InstrumentedDummyRoute().model();
+
+    expect(startSpan).toHaveBeenCalledWith(
+      {
+        attributes: {
+          'sentry.origin': 'auto.ui.ember',
+          'sentry.op': 'function',
+          'code.function.name': 'model',
+          'sentry.description': 'dummy',
+        },
+        name: 'model',
+        onlyIfParent: true,
+      },
+      expect.any(Function),
+    );
   });
 });

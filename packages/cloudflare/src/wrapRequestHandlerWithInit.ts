@@ -19,6 +19,7 @@ import {
   winterCGHeadersToDict,
 } from '@sentry/core';
 import { captureIncomingRequestBody } from './integrations/httpServer';
+import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
 import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
@@ -81,6 +82,11 @@ export function wrapRequestHandlerWithInit(
 
     const client = initSdk({ ...options, ctx: context });
     isolationScope.setClient(client);
+
+    // Emit any orchestrion channel events deferred at module scope (e.g. a top-level
+    // `const app = new Hono()` wrapped by build-time instrumentation): we're now in a
+    // request, where workerd allows publish, and init() above has registered subscribers.
+    flushDeferredChannelEvents();
 
     const urlObject = parseStringToURLObject(request.url);
     const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Captures manually reported error in microservice handler', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-microservices', event => {
@@ -15,7 +15,7 @@ test('Captures manually reported error in microservice handler', async ({ baseUR
 });
 
 // To verify that an exception is NOT automatically captured, we trigger it,
-// wait for the transaction from that request to confirm it completed, flush,
+// wait for the segment span from that request to confirm it completed, flush,
 // and then assert no error event was received.
 test('Does not automatically capture exceptions thrown in microservice handler', async ({ baseURL }) => {
   let autoCaptureFired = false;
@@ -27,13 +27,13 @@ test('Does not automatically capture exceptions thrown in microservice handler',
     return false;
   });
 
-  const transactionPromise = waitForTransaction('nestjs-microservices', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-microservice-exception/:id';
+  const segmentSpanPromise = waitForStreamedSpan('nestjs-microservices', span => {
+    return span.is_segment && span.name === 'GET /test-microservice-exception/:id';
   });
 
   await fetch(`${baseURL}/test-microservice-exception/123`);
 
-  await transactionPromise;
+  await segmentSpanPromise;
 
   await fetch(`${baseURL}/flush`);
 

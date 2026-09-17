@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-vite-autoinstrument-workerentrypoint-reexport",
+  // `main` points at the source entry; the Sentry Vite plugin builds from it (so
+  // the auto-instrument transform runs) and the runner serves the built output.
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  // Self-service-binding: names the entrypoint class, which is how the
+  // transform knows to wrap the re-exported binding at all.
+  "services": [
+    {
+      "binding": "SELF",
+      "service": "cloudflare-vite-autoinstrument-workerentrypoint-reexport",
+      "entrypoint": "GreeterEntrypoint",
+    },
+  ],
+}
