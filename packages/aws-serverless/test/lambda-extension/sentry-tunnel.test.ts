@@ -54,17 +54,12 @@ describe('getSentryDSNFromEnv', () => {
 const UPSTREAM_HOLD_MS = 500;
 
 /**
- * `makeNodeTransport` gzips a body past this; it is a private const in `@sentry/node`, so it is
- * named here rather than imported. Below it the SDK sends nothing compressed at all.
+ * Comfortably past what the header read will inflate to, which is the bound a one-shot inflate
+ * would have tripped over. Derived from our own constant rather than from `@sentry/node`'s private
+ * 32KiB gzip threshold: this size clears that too, so the envelope is one the SDK would really
+ * have compressed, but the test does not silently stop being realistic if that threshold moves.
  */
-const SDK_GZIP_THRESHOLD = 32 * 1024;
-
-/**
- * Past both bounds that matter: the SDK only compresses above the first, and a one-shot inflate
- * capped at the second is what the streaming header read replaced — so a smaller envelope would
- * exercise neither.
- */
-const REALISTIC_GZIPPED_BYTES = Math.max(SDK_GZIP_THRESHOLD, ENVELOPE_HEADER_MAX_BYTES) * 2;
+const REALISTIC_GZIPPED_BYTES = ENVELOPE_HEADER_MAX_BYTES * 4;
 
 describe('AwsLambdaExtension tunnel', () => {
   let servers: http.Server[];
