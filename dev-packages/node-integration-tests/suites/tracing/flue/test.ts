@@ -41,18 +41,13 @@ conditionalTest({ min: 22 })('Flue integration', () => {
       }
 
       test('creates the invoke_agent / chat / execute_tool hierarchy', async () => {
-        let rootSpanId: string | undefined;
-
         await createRunner()
-          .expect({
-            transaction: event => {
-              expect(event.transaction).toBe('flue-test');
-              rootSpanId = event.contexts?.trace?.span_id;
-            },
-          })
           .expect({
             span: container => {
               const spans = container.items;
+
+              const root = spans.find(span => span.name === 'flue-test')!;
+              expect(root.is_segment).toBe(true);
 
               // Counted rather than looked up: the interceptor skips the submission wrapper
               // operation, so one dispatch opens exactly one agent span, and each turn and tool call
@@ -71,7 +66,7 @@ conditionalTest({ min: 22 })('Flue integration', () => {
               expect(agent.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
               expect(agent.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
               expect(agent.attributes[GEN_AI_AGENT_NAME]?.value).toBe('Hello');
-              expect(agent.parent_span_id).toBe(rootSpanId);
+              expect(agent.parent_span_id).toBe(root.span_id);
 
               const conversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
               expect(conversationId).toEqual(expect.any(String));
