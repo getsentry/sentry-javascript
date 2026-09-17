@@ -115,36 +115,18 @@ type WebpackCompilation = {
 
 type WebpackModule = {
   version?: string;
-  BannerPlugin?: PluginClass;
-  DefinePlugin?: PluginClass;
-  default?: WebpackModule;
+  default?: { version?: string };
 };
 
-// `webpack` is an optional peer dependency and may be absent (e.g. rspack), so this must not throw.
-function loadWebpack(): WebpackModule {
-  try {
-    return _req('webpack') as WebpackModule;
-  } catch {
-    return {};
-  }
-}
-
+// Only used for telemetry; `webpack` is an optional peer dependency and may be absent (e.g. rspack).
 function getWebpackMajorVersion(): string | undefined {
-  const webpack = loadWebpack();
-  const version = webpack.version ?? webpack.default?.version;
-  return version?.split('.')[0];
-}
-
-// `compiler.webpack` exists since webpack 5.1; older 5.0.x releases need the classes from the module.
-function getPluginClasses(compiler: WebpackCompiler): { BannerPlugin?: PluginClass; DefinePlugin?: PluginClass } {
-  if (compiler.webpack?.BannerPlugin && compiler.webpack.DefinePlugin) {
-    return compiler.webpack;
+  try {
+    const webpack = _req('webpack') as WebpackModule;
+    const version = webpack.version ?? webpack.default?.version;
+    return version?.split('.')[0];
+  } catch {
+    return undefined;
   }
-  const webpack = loadWebpack();
-  return {
-    BannerPlugin: compiler.webpack?.BannerPlugin ?? webpack.BannerPlugin ?? webpack.default?.BannerPlugin,
-    DefinePlugin: compiler.webpack?.DefinePlugin ?? webpack.DefinePlugin ?? webpack.default?.DefinePlugin,
-  };
 }
 
 /**
@@ -240,7 +222,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
         // Telemetry failures are acceptable
       });
 
-      const { BannerPlugin, DefinePlugin } = getPluginClasses(compiler);
+      const { BannerPlugin, DefinePlugin } = compiler.webpack ?? {};
 
       // Add BannerPlugin for code injection (release, metadata, debug IDs)
       if (!staticInjectionCode.isEmpty() || sourcemapsEnabled) {

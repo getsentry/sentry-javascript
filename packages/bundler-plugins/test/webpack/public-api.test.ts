@@ -1,4 +1,3 @@
-import { BannerPlugin as WebpackBannerPlugin } from 'webpack';
 import type { WebpackPluginInstance } from 'webpack';
 import { sentryWebpackPlugin } from '../../src/webpack';
 import { describe, it, expect, test, vi } from 'vitest';
@@ -56,11 +55,16 @@ describe('sentryWebpackPlugin', () => {
     expect(compiler.options.plugins).toEqual([expect.any(BannerPlugin)]);
   });
 
-  it('falls back to the plugin classes of the installed webpack module when `compiler.webpack` is unavailable', () => {
+  it('warns instead of throwing when `compiler.webpack` is unavailable', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const compiler = createCompiler(undefined);
 
-    sentryWebpackPlugin({ telemetry: false, release: { name: 'my-release' } }).apply(compiler);
+    expect(() =>
+      sentryWebpackPlugin({ telemetry: false, release: { name: 'my-release' } }).apply(compiler),
+    ).not.toThrow();
 
-    expect(compiler.options.plugins).toEqual([expect.any(WebpackBannerPlugin)]);
+    expect(compiler.options.plugins).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('BannerPlugin is not available'));
+    warn.mockRestore();
   });
 });
