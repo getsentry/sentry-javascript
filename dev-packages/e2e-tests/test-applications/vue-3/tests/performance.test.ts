@@ -168,28 +168,27 @@ test('sends a pageload span with a route name as span name if available', async 
 // late child never clears the root's earlier timer and the span ends at the root's mount. The
 // `app.mount()` wrap only observes the root, so it matches.
 test('ends the application render span before a delayed async component mounts', async ({ page }) => {
-  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.contexts?.trace?.data?.['url.path'] === '/delayed'
-    );
-  });
+  const spansPromise = collectStreamedSpans('vue-3', spans =>
+    spans.some(
+      span => span.is_segment && getSpanOp(span) === 'pageload' && span.attributes['url.path']?.value === '/delayed',
+    ),
+  );
 
   await page.goto('/delayed');
   // Proves the child really mounted after its delay; the duration assertion relies on it.
   await expect(page.locator('#delayed-child')).toBeVisible();
 
-  const rootSpan = await transactionPromise;
-  const uiSpans = (rootSpan.spans || []).filter(span => span.origin === 'auto.ui.vue');
+  const spans = await spansPromise;
+  const uiSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ui.vue');
 
   // Neither `DelayedView` nor its child is in `trackComponents`, so both variants expect the same set.
-  expect(uiSpans.map(span => span.description).sort()).toEqual(['Application Render', 'Vue <Root>']);
+  expect(uiSpans.map(span => span.name).sort()).toEqual(['Application Render', 'Vue <Root>']);
 
-  const applicationRenderSpan = uiSpans.find(span => span.description === 'Application Render');
+  const applicationRenderSpan = uiSpans.find(span => span.name === 'Application Render');
   expect(applicationRenderSpan?.start_timestamp).toEqual(expect.any(Number));
-  expect(applicationRenderSpan?.timestamp).toEqual(expect.any(Number));
+  expect(applicationRenderSpan?.end_timestamp).toEqual(expect.any(Number));
 
-  const duration = (applicationRenderSpan?.timestamp ?? 0) - (applicationRenderSpan?.start_timestamp ?? 0);
+  const duration = (applicationRenderSpan?.end_timestamp ?? 0) - (applicationRenderSpan?.start_timestamp ?? 0);
   expect(duration).toBeLessThan(ASYNC_CHILD_DELAY_S);
 });
 
