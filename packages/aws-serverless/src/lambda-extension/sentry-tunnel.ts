@@ -1,7 +1,7 @@
 import * as http from 'node:http';
 import { buffer } from 'node:stream/consumers';
-import { promisify } from 'node:util';
-import { brotliDecompress, gunzip, inflate } from 'node:zlib';
+import { Readable, type Transform } from 'node:stream';
+import { createBrotliDecompress, createGunzip, createInflate } from 'node:zlib';
 import {
   debug,
   type DsnComponents,
@@ -17,10 +17,10 @@ import type { EnvelopeHeader } from './types';
 import { logError, logWarn } from './utils';
 
 /** What `makeNodeTransport` can put on the wire; it gzips anything over 32 KiB. */
-const DECOMPRESSORS: Record<string, typeof gunzip> = {
-  gzip: gunzip,
-  deflate: inflate,
-  br: brotliDecompress,
+const DECOMPRESSORS: Record<string, () => Transform> = {
+  gzip: createGunzip,
+  deflate: createInflate,
+  br: createBrotliDecompress,
 };
 
 /** A header value is the sender's, so it arrives in whatever case and list form they chose. */
@@ -32,21 +32,50 @@ function codingOf(contentEncoding: string | string[] | undefined): string {
 
 /**
  * The envelope header is the first line and it carries the DSN the allowlist needs, so a compressed
- * body has to be read before it can be validated — but only that far. Inflating the whole body
- * would let a highly compressible one exhaust the memory the extension shares with the function.
+ * body has to be read before it can be validated — but only that far.
+ *
+ * Inflated a chunk at a time and stopped at the newline, rather than in one shot: a one-shot
+ * `maxOutputLength` bounds the whole body, and since `makeNodeTransport` only compresses past
+ * 32KiB, every envelope the SDK actually gzips would exceed any bound small enough to protect the
+ * memory the extension shares with the function.
  */
 async function readEnvelopeHeader(
   body: Buffer,
   contentEncoding: string | string[] | undefined,
 ): Promise<EnvelopeHeader | null> {
   const decompress = DECOMPRESSORS[codingOf(contentEncoding)];
-  const readable = decompress
-    ? await promisify(decompress)(body, { maxOutputLength: ENVELOPE_HEADER_MAX_BYTES })
-    : body;
 
   // Nullable because every JSON literal parses: `null`, a number and a string all get here, and
   // only the caller's optional chaining keeps them from throwing.
-  return JSON.parse(new TextDecoder().decode(readable).split('\n')[0] || '{}') as EnvelopeHeader | null;
+  return JSON.parse(await readFirstLine(body, decompress)) as EnvelopeHeader | null;
+}
+
+async function readFirstLine(body: Buffer, decompress?: () => Transform): Promise<string> {
+  if (!decompress) {
+    return new TextDecoder().decode(body).split('\n')[0] || '{}';
+  }
+
+  const stream = Readable.from(body).pipe(decompress());
+  let read = '';
+
+  try {
+    for await (const chunk of stream) {
+      read += chunk as string;
+
+      const newline = read.indexOf('\n');
+      if (newline >= 0) {
+        return read.slice(0, newline) || '{}';
+      }
+
+      if (read.length > ENVELOPE_HEADER_MAX_BYTES) {
+        throw new Error('The envelope header is longer than this extension will inflate to read it');
+      }
+    }
+  } finally {
+    stream.destroy();
+  }
+
+  return read || '{}';
 }
 
 /**

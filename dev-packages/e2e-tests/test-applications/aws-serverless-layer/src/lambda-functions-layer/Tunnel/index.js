@@ -17,6 +17,9 @@ exports.handler = async event => {
     event_id: makeHex(32),
     message: event?.marker ?? 'lambda-extension-tunnel-test',
     level: 'info',
+    // `makeNodeTransport` only gzips past 32KiB, so a compressed envelope smaller than that never
+    // exercises what the tunnel does with the ones the SDK actually compresses.
+    ...(event?.padTo ? { padding: 'x'.repeat(Number(event.padTo)) } : {}),
   };
   const envelope = `${JSON.stringify(envelopeHeader)}\n${JSON.stringify(envelopeItemHeader)}\n${JSON.stringify(
     envelopeItemPayload,

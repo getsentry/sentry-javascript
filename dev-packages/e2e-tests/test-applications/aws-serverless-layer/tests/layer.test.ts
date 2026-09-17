@@ -409,7 +409,8 @@ test.describe('Lambda layer', () => {
     const response = await lambdaClient.send(
       new InvokeCommand({
         FunctionName: 'LayerTunnel',
-        Payload: JSON.stringify({ gzip: 'gzip', marker }),
+        // Past `GZIP_THRESHOLD`, which is the only size at which the SDK compresses at all.
+        Payload: JSON.stringify({ gzip: 'gzip', marker, padTo: 40_000 }),
       }),
     );
 
@@ -422,7 +423,10 @@ test.describe('Lambda layer', () => {
     const probe = parseLambdaPayload(
       (
         await lambdaClient.send(
-          new InvokeCommand({ FunctionName: 'LayerTunnel', Payload: JSON.stringify({ marker: `gzip-dsn-probe-${Date.now()}` }) }),
+          new InvokeCommand({
+            FunctionName: 'LayerTunnel',
+            Payload: JSON.stringify({ marker: `gzip-dsn-probe-${Date.now()}` }),
+          }),
         )
       ).Payload,
     );

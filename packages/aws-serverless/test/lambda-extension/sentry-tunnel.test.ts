@@ -189,6 +189,32 @@ describe('AwsLambdaExtension tunnel', () => {
     },
   );
 
+  test.each([40_000, 400_000])(
+    'forwards a gzipped envelope of %i bytes, the size at which the SDK actually compresses',
+    async size => {
+      // `makeNodeTransport` only gzips past 32KiB, so every envelope that arrives compressed is
+      // larger than any bound small enough to protect the sandbox. Inflating the whole body to read
+      // one line therefore fails on exactly the envelopes this path exists for.
+      const upstream = await startUpstream();
+      vi.stubEnv('SENTRY_DSN', upstream.dsn);
+      const extension = new AwsLambdaExtension();
+      const url = await startTunnel(extension);
+      const envelope = `{"dsn":"${upstream.dsn}"}\n{"type":"event"}\n${'x'.repeat(size)}\n`;
+      const body = new Uint8Array(await promisify(gzip)(Buffer.from(envelope)));
+
+      const res = await fetch(`${url}/envelope`, {
+        method: 'POST',
+        body,
+        headers: { 'content-encoding': 'gzip' },
+      });
+      await extension.drainPendingUploads(Date.now() + SHUTDOWN_BUDGET_MS);
+
+      expect(res.status).toBe(200);
+      expect(upstream.received).toHaveLength(1);
+      expect(upstream.encodings).toEqual(['gzip']);
+    },
+  );
+
   test('refuses to inflate a body far past the envelope header, rather than exhausting the sandbox', async () => {
     // The extension shares the function's memory limit, so an unbounded inflate is an OOM the
     // platform reports as `Extension.Crash` against the invocation in flight. Measured without the
@@ -197,13 +223,9 @@ describe('AwsLambdaExtension tunnel', () => {
     vi.stubEnv('SENTRY_DSN', upstream.dsn);
     const extension = new AwsLambdaExtension();
     const url = await startTunnel(extension);
-    // A header the tunnel would happily accept, behind more payload than it is allowed to inflate:
-    // only the bound can reject this, so a test body that fails to parse anyway proves nothing.
-    const bomb = new Uint8Array(
-      await promisify(gzip)(
-        Buffer.concat([Buffer.from(envelope(upstream.dsn)), Buffer.alloc(ENVELOPE_HEADER_MAX_BYTES * 64, 0x20)]),
-      ),
-    );
+    // The bound applies to the header, which is all this ever inflates — so the body that trips it
+    // is one with no newline in reach, not one that is merely large.
+    const bomb = new Uint8Array(await promisify(gzip)(Buffer.alloc(ENVELOPE_HEADER_MAX_BYTES * 64, 0x20)));
 
     const res = await fetch(`${url}/envelope`, {
       method: 'POST',
@@ -219,7 +241,7 @@ describe('AwsLambdaExtension tunnel', () => {
     // ours to assert — it proves the bound rejected the body rather than the parse failing later.
     expect(errorSpy).toHaveBeenCalledWith(
       'Sentry Lambda extension: an envelope could not be read and was dropped.',
-      expect.objectContaining({ code: 'ERR_BUFFER_TOO_LARGE' }),
+      expect.objectContaining({ message: expect.stringContaining('longer than this extension will inflate') }),
     );
   });
 
