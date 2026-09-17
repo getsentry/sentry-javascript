@@ -266,7 +266,29 @@ describe('CloudflareClient', () => {
 
       releaseLock();
       await flushPromise;
-      expect(privateClient._transport.flush).toHaveBeenCalledWith(1000);
+      expect(privateClient._transport.flush).toHaveBeenCalledWith(expect.any(Number));
+      const transportTimeout = privateClient._transport.flush.mock.calls[0]?.[0];
+      expect(transportTimeout).toBeGreaterThan(0);
+      expect(transportTimeout).toBeLessThanOrEqual(1000);
+    });
+
+    it('includes the flush lock in the timeout', async () => {
+      const finalize = vi.fn(() => new Promise<void>(() => undefined));
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        flushLock: { ready: Promise.resolve(), finalize },
+      });
+
+      const privateClient = client as unknown as {
+        _transport: { flush: ReturnType<typeof vi.fn> };
+      };
+      const result = await Promise.race([
+        client.flush(10),
+        new Promise<'did-not-settle'>(resolve => setTimeout(() => resolve('did-not-settle'), 30)),
+      ]);
+
+      expect(result).toBe(false);
+      expect(privateClient._transport.flush).not.toHaveBeenCalled();
     });
   });
 

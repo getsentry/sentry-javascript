@@ -15,6 +15,22 @@ import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 
+async function waitForPromise(promise: PromiseLike<unknown>, timeout: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise).then(() => true),
+      new Promise<false>(resolve => {
+        timer = setTimeout(() => resolve(false), timeout);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 /**
  * The Sentry Cloudflare SDK Client.
  *
@@ -115,18 +131,34 @@ export class CloudflareClient extends ServerRuntimeClient {
    * @return {Promise<boolean>} A promise that resolves to a boolean indicating whether the flush operation was successful.
    */
   public async flush(timeout?: number): Promise<boolean> {
+    const deadline = timeout && timeout > 0 ? Date.now() + timeout : undefined;
+    const remainingTimeout = (): number | undefined =>
+      deadline === undefined ? timeout : Math.max(0, deadline - Date.now());
+
     // Wait for user waitUntil-registered work to settle before draining, so events
     // captured in that work are still in the buffer. Without this the final flush
     // can drain (and the client be disposed) before background captures land.
     if (this._flushLock) {
-      await this._flushLock.finalize();
+      const lockTimeout = remainingTimeout();
+      if (lockTimeout && lockTimeout > 0) {
+        if (!(await waitForPromise(this._flushLock.finalize(), lockTimeout))) {
+          return false;
+        }
+      } else if (deadline !== undefined) {
+        return false;
+      } else {
+        await this._flushLock.finalize();
+      }
     }
 
     if (this._pendingSpans.size > 0 && this._spanCompletionPromise) {
       DEBUG_BUILD &&
         debug.log('[CloudflareClient] Waiting for', this._pendingSpans.size, 'pending spans to complete...');
 
-      const timeoutMs = timeout ?? 5000;
+      const timeoutMs = remainingTimeout() ?? 5000;
+      if (deadline !== undefined && timeoutMs <= 0) {
+        return false;
+      }
       const spanCompletionRace = Promise.race([
         this._spanCompletionPromise,
         new Promise(resolve =>
@@ -146,7 +178,11 @@ export class CloudflareClient extends ServerRuntimeClient {
     // of them would also start an eager drain and a `waitUntil` registration.
     this._inBoundaryFlush = true;
     try {
-      return await super.flush(timeout);
+      const transportTimeout = remainingTimeout();
+      if (deadline !== undefined && (!transportTimeout || transportTimeout <= 0)) {
+        return false;
+      }
+      return await super.flush(transportTimeout);
     } finally {
       this._inBoundaryFlush = false;
     }
