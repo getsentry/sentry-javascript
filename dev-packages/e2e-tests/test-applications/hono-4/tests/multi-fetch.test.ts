@@ -347,8 +347,11 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
     });
 
     test('error from failed internal fetch is correlated with the storefront trace', async ({ baseURL }) => {
+      // Use a param unique to this test: the `no error status` test above fetches `/ghost` too, and its
+      // identical `Failed to fetch product: ghost` error would otherwise be dropped by the Dedupe
+      // integration, so this test's `waitForError` would never fire.
       const errorPromise = waitForError(APP_NAME, event => {
-        return event.exception?.values?.[0]?.value === 'Failed to fetch product: ghost';
+        return event.exception?.values?.[0]?.value === 'Failed to fetch product: phantom';
       });
 
       const segmentPromise = waitForStreamedSpan(
@@ -359,7 +362,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
           segment.name === `GET ${STOREFRONT}/product-or-throw/:productId`,
       );
 
-      await fetch(`${baseURL}${STOREFRONT}/product-or-throw/ghost`);
+      await fetch(`${baseURL}${STOREFRONT}/product-or-throw/phantom`);
 
       const [errorEvent, segment] = await Promise.all([errorPromise, segmentPromise]);
 
