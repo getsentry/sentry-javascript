@@ -30,7 +30,10 @@ const MODEL = 'openai/gpt-4o-mini';
 
 const SHORT_ANSWER = 'Answer in at most five words.';
 const CHAT_PROMPT = `What is the capital of France? ${SHORT_ANSWER}`;
-const WEATHER_PROMPT = `Use the get_weather tool to check the weather in Paris. ${SHORT_ANSWER}`;
+// Deliberately does not name the tool: `tool_choice: 'required'` forces the call, and keeping
+// "get_weather" out of the prompt means the string only appears in an actual recorded tool call, not
+// in `gen_ai.input.messages`.
+const WEATHER_PROMPT = `What is the weather in Paris? ${SHORT_ANSWER}`;
 const SYSTEM = 'You are a helpful assistant used by an automated test.';
 
 // OpenAI-style function tool, shared by the OpenAI-compatible SDKs.

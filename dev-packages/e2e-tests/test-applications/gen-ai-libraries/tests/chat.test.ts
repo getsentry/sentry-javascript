@@ -1,11 +1,16 @@
 import { expect, test } from '@playwright/test';
-import { waitForStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpans } from '@sentry-internal/test-utils';
 import { APP } from './constants';
-import { describeTree, expectCommonChatAttributes, isModelCallSpan, LIBRARIES } from './utils';
+import { describeTree, expectCommonChatAttributes, isModelCallSpan, LIBRARIES, traceHasToolEvidence } from './utils';
 
 for (const library of LIBRARIES) {
   test(`${library.id}: a chat query emits a ${library.op} span`, async ({ baseURL }) => {
-    const spansPromise = waitForStreamedSpans(APP, spans => spans.some(span => isModelCallSpan(span, library)));
+    // Scope to this chat request's own trace: it carries this library's model-call span and, unlike the
+    // tools request, no tool-call evidence — so a leftover trace from another request cannot satisfy it.
+    const spansPromise = collectStreamedSpans(
+      APP,
+      spansOfTrace => spansOfTrace.some(span => isModelCallSpan(span, library)) && !traceHasToolEvidence(spansOfTrace),
+    );
 
     const response = await fetch(`${baseURL}/${library.id}/chat`);
     expect(response.status).toBe(200);

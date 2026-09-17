@@ -1,29 +1,47 @@
 import { expect, test } from '@playwright/test';
-import { waitForStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { APP } from './constants';
-import { attr, describeTree, isModelCallSpan, LIBRARIES } from './utils';
+import { attr, describeTree, hasRecordedToolCalls, isExecuteToolSpan, isModelCallSpan, LIBRARIES } from './utils';
 
-for (const library of LIBRARIES) {
-  test(`${library.id}: a tool call is captured on the gen_ai spans`, async ({ baseURL }) => {
-    const spansPromise = waitForStreamedSpans(APP, spans =>
-      spans.some(span => JSON.stringify(span.attributes ?? {}).includes('get_weather')),
+// The direct-SDK libraries record the model's tool call on the chat span's `gen_ai.response.tool_calls`
+// attribute, which only exists when the model actually returned tool calls.
+const DIRECT_SDK_LIBRARIES = LIBRARIES.filter(library => library.provider);
+
+for (const library of DIRECT_SDK_LIBRARIES) {
+  test(`${library.id}: the model's tool call is recorded on the ${library.op} span`, async ({ baseURL }) => {
+    // Scope to this tools request's trace: this library's model-call span, carrying recorded tool calls.
+    const spansPromise = collectStreamedSpans(APP, spansOfTrace =>
+      spansOfTrace.some(span => isModelCallSpan(span, library) && hasRecordedToolCalls(span)),
     );
 
     const response = await fetch(`${baseURL}/${library.id}/tools`);
     expect(response.status).toBe(200);
 
     const spans = await spansPromise;
+    const modelSpan = spans.find(span => isModelCallSpan(span, library) && hasRecordedToolCalls(span));
 
-    // The tool name has to surface somewhere on the gen_ai spans — as a tool definition, a recorded
-    // tool call, or (Vercel AI) a dedicated execute-tool span.
-    const mentionsTool = spans.some(span => JSON.stringify(span.attributes ?? {}).includes('get_weather'));
-    expect(mentionsTool, `expected a span mentioning the tool in:\n${describeTree(spans)}`).toBe(true);
-
-    // The direct-SDK libraries record the model's tool call on the model-call span itself.
-    if (library.provider) {
-      const chatSpan = spans.find(span => isModelCallSpan(span, library));
-      expect(chatSpan, `expected a ${library.op} span in:\n${describeTree(spans)}`).toBeDefined();
-      expect(attr(chatSpan!, 'gen_ai.response.tool_calls')).toContain('get_weather');
-    }
+    expect(
+      modelSpan,
+      `expected a ${library.op} span with recorded tool calls in:\n${describeTree(spans)}`,
+    ).toBeDefined();
+    expect(attr(modelSpan!, 'gen_ai.response.tool_calls')).toContain('get_weather');
   });
 }
+
+// The Vercel AI SDK executes the tool and emits a dedicated `gen_ai.execute_tool` span instead.
+test('vercel-ai: the tool call is captured as a gen_ai.execute_tool span', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpans(
+    APP,
+    spansOfTrace =>
+      spansOfTrace.some(isExecuteToolSpan) && spansOfTrace.some(span => getSpanOp(span) === 'gen_ai.generate_content'),
+  );
+
+  const response = await fetch(`${baseURL}/vercel-ai/tools`);
+  expect(response.status).toBe(200);
+
+  const spans = await spansPromise;
+  const toolSpan = spans.find(isExecuteToolSpan);
+
+  expect(toolSpan, `expected a gen_ai.execute_tool span in:\n${describeTree(spans)}`).toBeDefined();
+  expect(attr(toolSpan!, 'gen_ai.tool.name')).toBe('get_weather');
+});

@@ -25,8 +25,24 @@ export const LIBRARIES: LibraryUnderTest[] = [
 
 export const attr = (span: SerializedStreamedSpan, key: string): unknown => span.attributes?.[key]?.value;
 
+/**
+ * The model-call span for a library. The four direct SDKs all report `gen_ai.chat`, so the provider
+ * name is what tells them apart — without it, a leftover span from another library's request could be
+ * mistaken for this one's.
+ */
 export const isModelCallSpan = (span: SerializedStreamedSpan, library: LibraryUnderTest): boolean =>
-  getSpanOp(span) === library.op;
+  getSpanOp(span) === library.op && (!library.provider || attr(span, 'gen_ai.provider.name') === library.provider);
+
+/** A span that recorded the model returning tool calls on a chat-completions request (direct SDKs). */
+export const hasRecordedToolCalls = (span: SerializedStreamedSpan): boolean =>
+  typeof attr(span, 'gen_ai.response.tool_calls') === 'string';
+
+/** The dedicated tool-execution span the Vercel AI SDK emits. */
+export const isExecuteToolSpan = (span: SerializedStreamedSpan): boolean => getSpanOp(span) === 'gen_ai.execute_tool';
+
+/** Whether a trace shows any evidence of a tool call, used to tell a chat request from a tools one. */
+export const traceHasToolEvidence = (spansOfTrace: SerializedStreamedSpan[]): boolean =>
+  spansOfTrace.some(span => hasRecordedToolCalls(span) || isExecuteToolSpan(span));
 
 /** A readable span tree, used as a failure message so a broken assertion is diagnosable. */
 export function describeTree(spans: SerializedStreamedSpan[]): string {
