@@ -5,7 +5,8 @@ import { HTTPError } from 'nitro/h3';
 import type { CapturedErrorContext } from 'nitropack/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryCaptureErrorHook } from '../../../src/runtime/hooks/captureErrorHook';
-import { sentryCaptureErrorHook as sentryCaptureErrorHookLegacy } from '../../../src/runtime/hooks/captureErrorHook-legacy';
+
+const setTransactionName = vi.fn();
 
 vi.mock('@sentry/core', async importOriginal => {
   const mod = await importOriginal();
@@ -13,9 +14,7 @@ vi.mock('@sentry/core', async importOriginal => {
     ...(mod as any),
     captureException: vi.fn(),
     getClient: vi.fn(),
-    getCurrentScope: vi.fn(() => ({
-      setTransactionName: vi.fn(),
-    })),
+    getCurrentScope: vi.fn(() => ({ setTransactionName })),
   };
 });
 
@@ -27,26 +26,27 @@ vi.mock('@sentry/core/server', async importOriginal => {
   };
 });
 
-vi.mock('../../../src/runtime/utils', () => ({
+vi.mock('../../../src/runtime/utils', async importOriginal => ({
+  ...(await importOriginal()),
   extractErrorContext: vi.fn(() => ({ test: 'context' })),
 }));
 
-// Each Nitro major throws its own HTTP error class, with its own status field, so both hooks are
-// exercised against the error shape they will actually see.
-const variants = [
+// Nuxt 3/4 run Nitro v2 on h3 v1, Nuxt 5 runs Nitro v3 on h3 v2. The two majors differ in both the
+// error class the hook sees and the shape of the event it reads the request from.
+const h3Majors = [
   {
-    name: 'Nitro v3 (h3 v2)',
-    hook: sentryCaptureErrorHook,
-    httpError: (message: string, status: number): Error => new HTTPError({ message, status }),
-  },
-  {
-    name: 'Nitro v2 (h3 v1)',
-    hook: sentryCaptureErrorHookLegacy,
-    httpError: (message: string, status: number): Error => {
+    name: 'h3 v1 (Nitro v2)',
+    httpError: (message: string, statusCode: number): Error => {
       const error = new H3Error(message);
-      error.statusCode = status;
+      error.statusCode = statusCode;
       return error;
     },
+    event: { method: 'GET', path: '/test-path' },
+  },
+  {
+    name: 'h3 v2 (Nitro v3)',
+    httpError: (message: string, statusCode: number): Error => new HTTPError({ message, status: statusCode }),
+    event: { req: new Request('http://localhost/test-path'), url: new URL('http://localhost/test-path') },
   },
 ];
 
@@ -56,13 +56,8 @@ function withCause(error: Error, cause: unknown): Error {
   return Object.defineProperty(error, 'cause', { value: cause, configurable: true });
 }
 
-describe.each(variants)('sentryCaptureErrorHook - $name', ({ hook, httpError }) => {
-  const mockErrorContext: CapturedErrorContext = {
-    event: {
-      _method: 'GET',
-      _path: '/test-path',
-    } as any,
-  };
+describe.each(h3Majors)('sentryCaptureErrorHook - $name', ({ httpError, event }) => {
+  const mockErrorContext = { event } as unknown as CapturedErrorContext;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,7 +70,7 @@ describe.each(variants)('sentryCaptureErrorHook - $name', ({ hook, httpError }) 
   it('should capture regular errors', async () => {
     const error = new Error('Test error');
 
-    await hook(error, mockErrorContext);
+    await sentryCaptureErrorHook(error, mockErrorContext);
 
     expect(SentryCore.captureException).toHaveBeenCalledWith(
       error,
@@ -85,18 +80,20 @@ describe.each(variants)('sentryCaptureErrorHook - $name', ({ hook, httpError }) 
     );
   });
 
-  it('should skip HTTP errors with 4xx status codes', async () => {
-    const error = httpError('Not found', 404);
+  it('sets the transaction name from the request method and path', async () => {
+    await sentryCaptureErrorHook(new Error('Test error'), mockErrorContext);
 
-    await hook(error, mockErrorContext);
+    expect(setTransactionName).toHaveBeenCalledWith('GET /test-path');
+  });
+
+  it('should skip HTTP errors with 4xx status codes', async () => {
+    await sentryCaptureErrorHook(httpError('Not found', 404), mockErrorContext);
 
     expect(SentryCore.captureException).not.toHaveBeenCalled();
   });
 
   it('should skip HTTP errors with 3xx status codes', async () => {
-    const error = httpError('Redirect', 302);
-
-    await hook(error, mockErrorContext);
+    await sentryCaptureErrorHook(httpError('Redirect', 302), mockErrorContext);
 
     expect(SentryCore.captureException).not.toHaveBeenCalled();
   });
@@ -104,7 +101,7 @@ describe.each(variants)('sentryCaptureErrorHook - $name', ({ hook, httpError }) 
   it('should capture HTTP errors with 5xx status codes', async () => {
     const error = httpError('Server error', 500);
 
-    await hook(error, mockErrorContext);
+    await sentryCaptureErrorHook(error, mockErrorContext);
 
     expect(SentryCore.captureException).toHaveBeenCalledWith(
       error,
@@ -122,18 +119,15 @@ describe.each(variants)('sentryCaptureErrorHook - $name', ({ hook, httpError }) 
       enumerable: false,
     });
 
-    const error = withCause(httpError('Wrapped error', 500), originalError);
-
-    await hook(error, mockErrorContext);
+    await sentryCaptureErrorHook(withCause(httpError('Wrapped error', 500), originalError), mockErrorContext);
 
     expect(SentryCore.captureException).not.toHaveBeenCalled();
   });
 
   it('should capture HTTP errors when cause does not have __sentry_captured__ flag', async () => {
-    const originalError = new Error('Original error');
-    const error = withCause(httpError('Wrapped error', 500), originalError);
+    const error = withCause(httpError('Wrapped error', 500), new Error('Original error'));
 
-    await hook(error, mockErrorContext);
+    await sentryCaptureErrorHook(error, mockErrorContext);
 
     expect(SentryCore.captureException).toHaveBeenCalledWith(
       error,
@@ -146,7 +140,7 @@ describe.each(variants)('sentryCaptureErrorHook - $name', ({ hook, httpError }) 
   it('should capture HTTP errors when cause is not an object', async () => {
     const error = withCause(httpError('Error with string cause', 500), 'string cause');
 
-    await hook(error, mockErrorContext);
+    await sentryCaptureErrorHook(error, mockErrorContext);
 
     expect(SentryCore.captureException).toHaveBeenCalledWith(
       error,
@@ -159,7 +153,7 @@ describe.each(variants)('sentryCaptureErrorHook - $name', ({ hook, httpError }) 
   it('should capture HTTP errors when there is no cause', async () => {
     const error = httpError('Error without cause', 500);
 
-    await hook(error, mockErrorContext);
+    await sentryCaptureErrorHook(error, mockErrorContext);
 
     expect(SentryCore.captureException).toHaveBeenCalledWith(
       error,
@@ -174,10 +168,23 @@ describe.each(variants)('sentryCaptureErrorHook - $name', ({ hook, httpError }) 
       getOptions: () => ({ enableNitroErrorHandler: false }),
     });
 
-    const error = new Error('Test error');
-
-    await hook(error, mockErrorContext);
+    await sentryCaptureErrorHook(new Error('Test error'), mockErrorContext);
 
     expect(SentryCore.captureException).not.toHaveBeenCalled();
+  });
+});
+
+describe('sentryCaptureErrorHook - errors that only look like h3 errors', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (SentryCore.getClient as any).mockReturnValue({ getOptions: () => ({}) });
+  });
+
+  it('still reports a plain error that carries a 4xx `statusCode`', async () => {
+    const error = Object.assign(new Error('Upstream API returned 404'), { statusCode: 404 });
+
+    await sentryCaptureErrorHook(error, {} as CapturedErrorContext);
+
+    expect(SentryCore.captureException).toHaveBeenCalledWith(error, expect.anything());
   });
 });
