@@ -28,5 +28,6 @@ export default function valueInjectionLoader(this: LoaderThis<ValueInjectionLoad
       .join('');
 
   const injectionIndex = getCodeInjectionPosition(userCode);
-  return `${userCode.slice(0, injectionIndex)}${injectedCode}${userCode.slice(injectionIndex)}`;
+  const codeToInject = injectionIndex === userCode.length ? `\n${injectedCode}` : injectedCode;
+  return `${userCode.slice(0, injectionIndex)}${codeToInject}${userCode.slice(injectionIndex)}`;
 }

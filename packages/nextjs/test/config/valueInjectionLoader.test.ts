@@ -225,4 +225,12 @@ describe.each([[clientConfigLoaderThis], [instrumentationLoaderThis]])('valueInj
 
     expect(result).toBe('"use client"\u2028;globalThis["foo"] = "bar";startApp();');
   });
+
+  it('separates an EOF injection from a trailing line comment', () => {
+    const userCode = '"use client" // trailing';
+
+    const result = valueInjectionLoader.call(loaderThis, userCode);
+
+    expect(result).toBe('"use client" // trailing\n;globalThis["foo"] = "bar";');
+  });
 });
