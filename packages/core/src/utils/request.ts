@@ -7,7 +7,7 @@ import type { RequestEventData } from '../types/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types/webfetchapi';
 import { debug } from './debug-logger';
 import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from './data-collection/filtering-snippets';
-import { filterKeyValueData, shouldFilterDataKey } from './data-collection/filterKeyValueData';
+import { shouldFilterDataKey } from './data-collection/filterKeyValueData';
 import { safeUnref } from './timer';
 import { getUrlQuery } from './url';
 
@@ -279,13 +279,13 @@ export function httpHeadersToSpanAttributes(
   headers: Record<string, string | string[] | undefined>,
   dataCollection: ResolvedDataCollection,
   lifecycle: 'request' | 'response' = 'request',
-): Record<string, string | string[]> {
+): Record<string, string[]> {
   const headerBehavior =
     lifecycle === 'request' ? dataCollection.httpHeaders.request : dataCollection.httpHeaders.response;
   const cookieBehavior = dataCollection.cookies;
   const prefix = `http.${lifecycle}.header.`;
 
-  const spanAttributes: Record<string, string | string[]> = {};
+  const spanAttributes: Record<string, string[]> = {};
 
   try {
     const regularHeaders: Record<string, string[]> = {};
@@ -303,15 +303,14 @@ export function httpHeadersToSpanAttributes(
           continue;
         }
 
-        if (typeof value === 'string' && value !== '') {
-          const parsed = parseCookieHeader(value, lowerKey === 'set-cookie');
-          const filtered = filterKeyValueData(parsed, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS);
-          for (const [cookieKey, cookieValue] of Object.entries(filtered)) {
-            spanAttributes[`${prefix}${lowerKey}.${cookieKey}`] = cookieValue;
-          }
-        } else {
-          spanAttributes[`${prefix}${lowerKey}`] = [FILTERED_VALUE];
-        }
+        const cookies = parseCookieHeader(value, lowerKey === 'set-cookie');
+        spanAttributes[`${prefix}${lowerKey}`] = cookies.length
+          ? cookies.map(([cookieKey, cookieValue]) =>
+              shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
+                ? `${cookieKey}=${FILTERED_VALUE}`
+                : `${cookieKey}=${cookieValue}`,
+            )
+          : [FILTERED_VALUE];
       } else {
         if (headerBehavior === false) {
           continue;
@@ -339,21 +338,22 @@ export function httpHeadersToSpanAttributes(
   return spanAttributes;
 }
 
-function parseCookieHeader(value: string, isSetCookie: boolean): Record<string, string> {
-  // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")
+function parseCookieHeader(value: string | string[], isSetCookie: boolean): [string, string][] {
+  // Set-Cookie: one cookie per value, with attributes ("name=value; HttpOnly; Secure")
   // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
-  const semicolonIndex = value.indexOf(';');
-  const cookieString = isSetCookie && semicolonIndex !== -1 ? value.substring(0, semicolonIndex) : value;
-  const cookies = isSetCookie ? [cookieString] : cookieString.split('; ');
+  const cookies = (Array.isArray(value) ? value : [value]).flatMap(headerValue => {
+    if (typeof headerValue !== 'string' || headerValue === '') {
+      return [];
+    }
+    return isSetCookie ? [headerValue.split(';')[0]!] : headerValue.split('; ');
+  });
 
-  const result: Record<string, string> = {};
-  for (const cookie of cookies) {
+  return cookies.map(cookie => {
     const equalSignIndex = cookie.indexOf('=');
-    const cookieKey = (equalSignIndex !== -1 ? cookie.substring(0, equalSignIndex) : cookie).toLowerCase();
-    const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
-    result[cookieKey] = cookieValue;
-  }
-  return result;
+    return equalSignIndex !== -1
+      ? [cookie.substring(0, equalSignIndex), cookie.substring(equalSignIndex + 1)]
+      : [cookie, ''];
+  });
 }
 
 /** Extract the query params from an URL. */

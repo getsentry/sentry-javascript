@@ -810,9 +810,11 @@ Legacy HTTP span attributes were replaced by their current semantic-convention e
 
 On server-side HTTP spans, the `content-length` header is now always reported as `http.request.body.size`/`http.response.body.size` instead of switching to `http.request_body_size_uncompressed` when the no encoding was present.
 
-The `http.request.header.<key>`/`http.response.header.<key>` attributes now write the header name lowercased as previously but no longer replaces dashes (`-`) with underscores (`_`). For example, the SDK now sets `http.request.header.user-agent` rather than `http.request.header.user_agent`. The same applies to the cookie names in `http.request.header.cookie.<name>` and `http.request.header.set-cookie.<name>`.
+The `http.request.header.<key>`/`http.response.header.<key>` attributes now write the header name lowercased as previously but no longer replaces dashes (`-`) with underscores (`_`). For example, the SDK now sets `http.request.header.user-agent` rather than `http.request.header.user_agent`.
 
-Furthermore, the values of `http.request.header.<key>`/`http.response.header.<key>` are now string arrays instead of single strings, as mandated by the semantic conventions. Headers that were sent multiple times previously had their values joined into one string with a semicolon (`;`); they now have one array entry per value. For example, the SDK now sets `http.request.header.accept-encoding` to `['gzip', 'deflate']` rather than `'gzip;deflate'`, and `http.request.header.user-agent` to `['Mozilla/5.0 ...']` rather than `'Mozilla/5.0 ...'`. The cookie attributes (`http.request.header.cookie.<name>`/`http.request.header.set-cookie.<name>`) continue to hold a single string, since a cookie only ever has one value.
+Furthermore, the values of `http.request.header.<key>`/`http.response.header.<key>` are now string arrays instead of single strings, as mandated by the semantic conventions. Headers that were sent multiple times previously had their values joined into one string with a semicolon (`;`); they now have one array entry per value. For example, the SDK now sets `http.request.header.accept-encoding` to `['gzip', 'deflate']` rather than `'gzip;deflate'`, and `http.request.header.user-agent` to `['Mozilla/5.0 ...']` rather than `'Mozilla/5.0 ...'`.
+
+Cookies are no longer split into one attribute per cookie name (`http.request.header.cookie.<name>`/`http.request.header.set-cookie.<name>`). The SDK now sets a single `http.request.header.cookie`/`http.request.header.set-cookie` attribute that holds one `<name>=<value>` entry per cookie, in the order the cookies were sent. Sensitive cookie values are still replaced with `[Filtered]`, and `Set-Cookie` attributes such as `HttpOnly` are still dropped. For example, the SDK now sets `http.request.header.cookie` to `['session=[Filtered]', 'theme=dark']` rather than setting `http.request.header.cookie.session` to `'[Filtered]'` and `http.request.header.cookie.theme` to `'dark'`.
 
 #### Network attributes
 
@@ -863,6 +865,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 - The `url.path.params.<key>` attribute was removed from the TanStack Router (library) integration. The replacement is `url.path.parameter.<key>` and holds the same values.
 - The `navigation.route.id` attribute set by the Vue Router instrumentation was renamed to `router.navigation.route.id`. It holds the same value (the matched route's name). The attribute moved to the `router.*` namespace to separate client-side router navigations from browser navigations.
 - The `faas.execution` and `faas.id` attributes on `function.aws` spans in `@sentry/aws-serverless` were renamed to `faas.invocation_id` and `cloud.resource_id`. They hold the same values (the Lambda request ID and the invoked function ARN). Lambda `Invoke` spans created by `awsIntegration` also report the response's request ID on `faas.invocation_id` instead of `faas.execution`.
+- The deprecated `koa.name` attribute is no longer set on Koa `router` and `middleware` spans. Router spans carry the route on `http.route` and middleware spans the handler name on `code.function.name`, both of which were already set alongside it.
 
 #### Attribute constants
 

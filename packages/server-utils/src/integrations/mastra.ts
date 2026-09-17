@@ -3,7 +3,15 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { IntegrationFn } from '@sentry/core';
-import { consoleSandbox, debug, defineIntegration, GLOBAL_OBJ, isObjectLike } from '@sentry/core';
+import {
+  captureException,
+  consoleSandbox,
+  debug,
+  defineIntegration,
+  GLOBAL_OBJ,
+  isObjectLike,
+  withActiveSpan,
+} from '@sentry/core';
 import {
   COMMUNITY_MASTRA_SENTRY_EXPORTER_NAME,
   MASTRA_EXPORTER_BRAND,
@@ -67,7 +75,8 @@ const _mastraIntegration = ((options: MastraOptions = {}) => {
   return {
     name: MASTRA_INTEGRATION_NAME,
     setup(client) {
-      // Attaching the exporter opens no spans, so a missing async-context binding must not defer it.
+      // Attaching the exporter and capturing errors open no spans, so a missing async-context binding
+      // must not defer them.
       invokeOrchestrionInstrumentation(client, mastraModuleNames, instrumentExporter, [options], {
         requiresTracingChannelBinding: false,
       });
@@ -85,6 +94,68 @@ function instrumentExporter(options: MastraOptions): void {
       attachExporter(self, options);
     });
   });
+
+  captureExecuteWithContextErrors();
+}
+
+/**
+ * Capture errors thrown by Mastra operations as Sentry issues. Mastra runs each operation's work
+ * inside `executeWithContext({ span, fn })`; when `fn` rejects, the channel's `error` carries the real
+ * `Error` (with a stack), so we capture that rather than the exporter's stack-less `errorInfo`.
+ * Associated with the exporter's span for that operation so it lands on the right trace. Capturing needs
+ * no async context binding, so it rides the attach-only path.
+ */
+function captureExecuteWithContextErrors(): void {
+  diagnosticsChannel
+    .tracingChannel<ExecuteWithContextChannelContext>(CHANNELS.MASTRA_EXECUTE_WITH_CONTEXT)
+    .error.subscribe(message => {
+      safeChannelCallback(() => {
+        const data = message as ExecuteWithContextChannelContext & { error: unknown };
+        captureMastraError(data.error, (data.arguments as unknown[] | undefined)?.[0]);
+      });
+    });
+}
+
+/** Bound on the `cause` walk; a self- or cyclic `cause` from a wrapped error would otherwise hang. */
+const MAX_CAUSE_CHAIN_DEPTH = 10;
+
+// Errors we've already captured, plus everything they wrap. Mastra re-throws failures wrapped in a
+// `new MastraError({ cause })`, so the same failure surfaces at outer operations as a *different*
+// object — `captureException`'s identity dedup can't see that, but the shared `cause` can.
+const capturedErrors = new WeakSet<object>();
+
+function errorCauseChain(error: unknown): object[] {
+  const chain: object[] = [];
+  let current = error;
+  for (let depth = 0; depth < MAX_CAUSE_CHAIN_DEPTH && isObjectLike(current); depth++) {
+    chain.push(current);
+    const cause = (current as { cause?: unknown }).cause;
+    if (cause === current) {
+      break;
+    }
+    current = cause;
+  }
+  return chain;
+}
+
+function captureMastraError(error: unknown, params: unknown): void {
+  const chain = errorCauseChain(error);
+  // Skip if this error — or anything it wraps, or anything wrapping it — was already captured.
+  if (chain.some(link => capturedErrors.has(link))) {
+    return;
+  }
+  chain.forEach(link => capturedErrors.add(link));
+
+  const id = isObjectLike(params) ? mastraSpanId(params.span) : undefined;
+  const span = id ? getSentrySpanForMastraId(id) : undefined;
+  const capture = (): string => captureException(error, { mechanism: { type: 'auto.ai.mastra', handled: true } });
+
+  // Attach to the operation's span so the issue lands on the right trace, when the span is still open.
+  if (span) {
+    withActiveSpan(span, capture);
+  } else {
+    capture();
+  }
 }
 
 /**
@@ -258,6 +329,15 @@ function tryRequireObservability(parent: string): Record<string, unknown> | unde
  * cannot see `@mastra/observability`, hence the fallbacks.
  */
 function loadMastraObservability(): Record<string, unknown> {
+  // A bundled runtime (e.g. Cloudflare Workers) has no on-disk `node_modules` to
+  // `createRequire` against. `@sentry/cloudflare/vite` splices a static provider import
+  // into this module that stashes the `@mastra/observability` namespace on the global
+  // marker, so prefer that when present.
+  const injected = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.providedModules?.['@mastra/observability'];
+  if (injected) {
+    return injected;
+  }
+
   const parents = new Set<string>();
   const injectedCore = findInjectedMastraCoreFilename();
   if (injectedCore) {

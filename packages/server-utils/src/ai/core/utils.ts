@@ -2,7 +2,7 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import { getClient, isThenable, stringify } from '@sentry/core';
+import { getClient, isObjectLike, isThenable, stringify } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import {
   GEN_AI_OUTPUT_MESSAGES,
@@ -83,6 +83,20 @@ export function resolveAIRecordingOptions<T extends GenAiOptions>(options?: T): 
  */
 export function buildMethodPath(currentPath: string, prop: string): string {
   return currentPath ? `${currentPath}.${prop}` : prop;
+}
+
+/**
+ * A minimal structural check for a web `ReadableStream`.
+ *
+ * The chunk type is the caller's assumption about the provider's stream (e.g. `Uint8Array` for SSE
+ * byte streams); the check itself only looks for the `ReadableStream` methods we rely on.
+ */
+export function isReadableStream<T = unknown>(value: unknown): value is ReadableStream<T> {
+  return (
+    isObjectLike(value) &&
+    typeof (value as { pipeThrough?: unknown }).pipeThrough === 'function' &&
+    typeof (value as { getReader?: unknown }).getReader === 'function'
+  );
 }
 
 /**

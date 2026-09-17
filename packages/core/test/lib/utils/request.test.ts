@@ -642,7 +642,7 @@ describe('request utils', () => {
 
         expect(result).toEqual({
           'http.request.header.content-type': ['application/json'],
-          'http.request.header.cookie.session': '[Filtered]',
+          'http.request.header.cookie': ['session=[Filtered]'],
           'http.request.header.x-api-key': ['[Filtered]'],
           'http.request.header.authorization': ['[Filtered]'],
         });
@@ -657,13 +657,15 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
         expect(result).toEqual({
-          'http.request.header.cookie.session': '[Filtered]',
-          'http.request.header.cookie.tracking': 'enabled',
-          'http.request.header.cookie.theme': 'dark',
-          'http.request.header.cookie.lang': 'en',
-          'http.request.header.cookie.user_session': '[Filtered]',
-          'http.request.header.cookie.cookie-authentication-key-without-value': '[Filtered]',
-          'http.request.header.cookie.pref': '1',
+          'http.request.header.cookie': [
+            'session=[Filtered]',
+            'tracking=enabled',
+            'cookie-authentication-key-without-value=[Filtered]',
+            'theme=dark',
+            'lang=en',
+            'user_session=[Filtered]',
+            'pref=1',
+          ],
         });
       });
 
@@ -676,12 +678,14 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
 
         expect(result).toEqual({
-          'http.request.header.cookie.connect.sid': '[Filtered]',
-          'http.request.header.cookie.express.sid': '[Filtered]',
-          'http.request.header.cookie.phpsessid': '[Filtered]',
-          'http.request.header.cookie.theme': 'light',
-          'http.request.header.cookie.sb-access-token': '[Filtered]',
-          'http.request.header.cookie.__stripe_mid': '[Filtered]',
+          'http.request.header.cookie': [
+            'connect.sid=[Filtered]',
+            'express.sid=[Filtered]',
+            'PHPSESSID=[Filtered]',
+            'theme=light',
+            'sb-access-token=[Filtered]',
+            '__stripe_mid=[Filtered]',
+          ],
         });
       });
 
@@ -702,13 +706,12 @@ describe('request utils', () => {
         });
 
         expect(result).toEqual({
-          'http.request.header.cookie.connect.sid': '[Filtered]',
-          'http.request.header.cookie.analytics': '1',
+          'http.request.header.cookie': ['connect.sid=[Filtered]', 'analytics=1'],
         });
       });
 
-      it('adds a filtered cookie header when cookie header is present, but has no valid key=value pairs', () => {
-        const headers1 = { Cookie: ['key', 'val'] };
+      it('adds a filtered cookie header when cookie header is present, but has no cookies', () => {
+        const headers1 = { Cookie: [] };
         const result1 = httpHeadersToSpanAttributes(headers1, resolveDataCollectionOptions({}));
         expect(result1).toEqual({ 'http.request.header.cookie': ['[Filtered]'] });
 
@@ -718,25 +721,37 @@ describe('request utils', () => {
       });
 
       it.each([
-        ['preferred-color-mode=light', { 'http.request.header.set-cookie.preferred-color-mode': 'light' }],
-        ['theme=dark; HttpOnly', { 'http.request.header.set-cookie.theme': 'dark' }],
-        ['session=abc123; Domain=example.com; HttpOnly', { 'http.request.header.set-cookie.session': '[Filtered]' }],
-        ['lang=en; Expires=Wed, 21 Oct 2025 07:28:00 GMT', { 'http.request.header.set-cookie.lang': 'en' }],
-        ['pref=1; Max-Age=3600', { 'http.request.header.set-cookie.pref': '1' }],
-        ['color=blue; Path=/dashboard', { 'http.request.header.set-cookie.color': 'blue' }],
-        ['token=eyJhbGc=.eyJzdWI=.SflKxw; Secure', { 'http.request.header.set-cookie.token': '[Filtered]' }],
-        ['auth_required; HttpOnly', { 'http.request.header.set-cookie.auth_required': '[Filtered]' }],
-        ['empty=; Secure', { 'http.request.header.set-cookie.empty': '' }],
+        ['preferred-color-mode=light', { 'http.request.header.set-cookie': ['preferred-color-mode=light'] }],
+        ['theme=dark; HttpOnly', { 'http.request.header.set-cookie': ['theme=dark'] }],
+        ['session=abc123; Domain=example.com; HttpOnly', { 'http.request.header.set-cookie': ['session=[Filtered]'] }],
+        ['lang=en; Expires=Wed, 21 Oct 2025 07:28:00 GMT', { 'http.request.header.set-cookie': ['lang=en'] }],
+        ['pref=1; Max-Age=3600', { 'http.request.header.set-cookie': ['pref=1'] }],
+        ['color=blue; Path=/dashboard', { 'http.request.header.set-cookie': ['color=blue'] }],
+        ['token=eyJhbGc=.eyJzdWI=.SflKxw; Secure', { 'http.request.header.set-cookie': ['token=[Filtered]'] }],
+        ['auth_required; HttpOnly', { 'http.request.header.set-cookie': ['auth_required=[Filtered]'] }],
+        ['empty=; Secure', { 'http.request.header.set-cookie': ['empty='] }],
       ])('should parse and filter Set-Cookie header: %s', (setCookieValue, expected) => {
         const headers = { 'Set-Cookie': setCookieValue };
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
         expect(result).toEqual(expected);
       });
 
+      it('adds one entry per cookie for multiple Set-Cookie headers and repeated cookie names', () => {
+        const headers = {
+          'Set-Cookie': ['theme=dark; HttpOnly', 'session=abc123; Secure'],
+          Cookie: 'lang=en; lang=de',
+        };
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
+        expect(result).toEqual({
+          'http.request.header.set-cookie': ['theme=dark', 'session=[Filtered]'],
+          'http.request.header.cookie': ['lang=en', 'lang=de'],
+        });
+      });
+
       it('only splits cookies once between key and value, even when more equals signs are present', () => {
         const headers = { Cookie: 'random-string=eyJhbGc=.eyJzdWI=.SflKxw' };
         const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
-        expect(result).toEqual({ 'http.request.header.cookie.random-string': 'eyJhbGc=.eyJzdWI=.SflKxw' });
+        expect(result).toEqual({ 'http.request.header.cookie': ['random-string=eyJhbGc=.eyJzdWI=.SflKxw'] });
       });
 
       it.each([
@@ -819,8 +834,8 @@ describe('request utils', () => {
           'http.request.header.accept': ['application/json'],
           'http.request.header.host': ['example.com'],
           'http.request.header.authorization': ['[Filtered]'],
-          'http.request.header.cookie.session': '[Filtered]',
-          'http.request.header.set-cookie.session': '[Filtered]',
+          'http.request.header.cookie': ['session=[Filtered]'],
+          'http.request.header.set-cookie': ['session=[Filtered]'],
           'http.request.header.x-api-key': ['[Filtered]'],
           'http.request.header.x-auth-token': ['[Filtered]'],
           'http.request.header.x-secret': ['[Filtered]'],
@@ -877,8 +892,8 @@ describe('request utils', () => {
           'http.response.header.x-bearer-token': ['[Filtered]'],
           'http.response.header.x-saml-token': ['[Filtered]'],
           'http.response.header.x-sso-token': ['[Filtered]'],
-          'http.response.header.set-cookie.session': '[Filtered]',
-          'http.response.header.cookie.session': '[Filtered]',
+          'http.response.header.set-cookie': ['session=[Filtered]'],
+          'http.response.header.cookie': ['session=[Filtered]'],
         });
       });
     });
@@ -963,7 +978,7 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc);
 
         expect(result).toEqual({
-          'http.request.header.cookie.theme': 'dark',
+          'http.request.header.cookie': ['theme=dark'],
         });
       });
 
@@ -999,9 +1014,7 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, dc);
 
         expect(result).toEqual({
-          'http.request.header.cookie.theme': 'dark',
-          'http.request.header.cookie.locale': 'en',
-          'http.request.header.cookie.session': '[Filtered]',
+          'http.request.header.cookie': ['theme=dark', 'locale=en', 'session=[Filtered]'],
         });
       });
 
