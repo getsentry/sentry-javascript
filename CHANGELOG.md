@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, @JosephDoUrden, @Tyagiquamar, and @Andarist. Thank you for your contributions!
+Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, @JosephDoUrden, @Tyagiquamar, @Andarist, and @msnelling. Thank you for your contributions!
 
 - feat(core): Add `createFetchIntegration`, the shared implementation behind the global-`fetch` integrations in `@sentry/bun`, `@sentry/cloudflare`, `@sentry/deno` and `@sentry/vercel-edge`. Those four packages carried four copies of it; they now share one. Two changes come out of that:
   - All four gain a `tracePropagation` option (default `true`). Turn it off to stop injecting `sentry-trace` and `baggage` without also turning off spans. To scope propagation to specific URLs, keep using `tracePropagationTargets` in the client options.
