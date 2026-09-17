@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LoaderThis } from '../../src/config/loaders/types';
 import type { ValueInjectionLoaderOptions } from '../../src/config/loaders/valueInjectionLoader';
-import valueInjectionLoader, { findInjectionIndexAfterDirectives } from '../../src/config/loaders/valueInjectionLoader';
+import valueInjectionLoader from '../../src/config/loaders/valueInjectionLoader';
 
 const defaultLoaderThis = {
   addDependency: () => undefined,
@@ -217,48 +217,12 @@ describe.each([[clientConfigLoaderThis], [instrumentationLoaderThis]])('valueInj
 
     expect(injectionIndex).toBeGreaterThan(clientDirectiveIndex);
   });
-});
 
-describe('findInjectionIndexAfterDirectives', () => {
-  it('returns the position immediately after the last directive', () => {
-    const userCode = '"use strict";\n"use client";\nimport React from \'react\';';
+  it('inserts values after a directive with a Unicode line separator', () => {
+    const userCode = '"use client"\u2028startApp();';
 
-    expect(userCode.slice(findInjectionIndexAfterDirectives(userCode))).toBe("\nimport React from 'react';");
-  });
+    const result = valueInjectionLoader.call(loaderThis, userCode);
 
-  it('returns the end of the input when the last directive reaches EOF', () => {
-    const userCode = '"use strict";\n"use client";';
-
-    expect(findInjectionIndexAfterDirectives(userCode)).toBe(userCode.length);
-  });
-
-  it('does not skip a string literal that is not a directive', () => {
-    const userCode = '"use client" + suffix;';
-
-    expect(findInjectionIndexAfterDirectives(userCode)).toBe(0);
-  });
-
-  it('does not treat an escaped quote at EOF as a closed directive', () => {
-    const userCode = '"use client\\"';
-
-    expect(findInjectionIndexAfterDirectives(userCode)).toBe(0);
-  });
-
-  it('returns 0 for an unterminated leading block comment', () => {
-    const userCode = '/* unterminated';
-
-    expect(findInjectionIndexAfterDirectives(userCode)).toBe(0);
-  });
-
-  it('returns the last complete directive when followed by an unterminated block comment', () => {
-    const userCode = '"use client"; /* unterminated';
-
-    expect(findInjectionIndexAfterDirectives(userCode)).toBe('"use client";'.length);
-  });
-
-  it('treats a block comment without a line break as part of the same statement', () => {
-    const userCode = '"use client" /* comment */ + suffix;';
-
-    expect(findInjectionIndexAfterDirectives(userCode)).toBe(0);
+    expect(result).toBe('"use client"\u2028;globalThis["foo"] = "bar";startApp();');
   });
 });

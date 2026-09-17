@@ -63,7 +63,7 @@ function startsWithBinaryOperatorKeyword(remainder: string, keyword: string): bo
 }
 
 function canContinueStringExpression(code: string, position: number): boolean {
-  const remainder = code.slice(position);
+  const remainder = code.slice(position, position + 'instanceof'.length + 1);
   if (/^(?:\+\+|--|!(?!=))/.test(remainder)) {
     return false;
   }
