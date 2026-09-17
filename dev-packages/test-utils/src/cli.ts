@@ -36,6 +36,7 @@ export function fetchTrace(traceId: string): TraceItem[] {
   const target = traceTarget(traceId);
   const result = spawnSync('pnpm', ['exec', 'sentry', 'trace', 'view', target, '--json', '--fresh'], {
     encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
     env: {
       ...process.env,
       // The E2E token is the only credential CI has. Locally the CLI would prefer a stored login
@@ -44,6 +45,13 @@ export function fetchTrace(traceId: string): TraceItem[] {
       SENTRY_FORCE_ENV_TOKEN: '1',
     },
   });
+  
+  if (result.error) {
+    throw new Error(
+      `Could not run \`pnpm exec sentry trace view\`: ${result.error.message}. ` +
+        'The test app needs `sentry` as a dev dependency.',
+    );
+  }
 
   if (result.status === 0) {
     return (JSON.parse(result.stdout) as { spans?: TraceItem[] }).spans ?? [];
