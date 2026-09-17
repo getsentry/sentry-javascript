@@ -13,8 +13,8 @@ import {
   replaceBooleanFlagsInCode,
   CodeInjection,
   stampDebugId,
+  getCodeInjectionPosition,
 } from '../core';
-import { getCodeInjectionPosition } from '../core/get-code-injection-position';
 import type {
   ComponentAnnotationTransformMeta,
   ComponentAnnotationTransformResult,
@@ -268,16 +268,8 @@ export function _rollupPluginInternal(
 
     const ms = meta?.magicString || new MagicString(code, { filename: chunk.fileName });
     const injectionPosition = getCodeInjectionPosition(code);
-    const codeToInject = injectionPosition === code.length ? `\n${injectCode.code()}` : `${injectCode.code()}\n`;
-
-    if (injectionPosition > 0) {
-      ms.appendLeft(injectionPosition, codeToInject);
-    } else {
-      // ms.replace() doesn't work when there is an empty string match (which happens if
-      // there is neither, a comment, nor a "use strict" at the top of the chunk) so we
-      // need this special case here.
-      ms.prepend(codeToInject);
-    }
+    const codeToInject = injectionPosition === code.length ? `\n${injectCode.code()}` : injectCode.code();
+    ms.appendLeft(injectionPosition, codeToInject);
 
     // Rolldown can pass a native MagicString instance in meta.magicString
     // https://rolldown.rs/in-depth/native-magic-string#usage-examples
@@ -288,7 +280,7 @@ export function _rollupPluginInternal(
 
     return {
       code: ms.toString(),
-      map: ms.generateMap({ file: chunk.fileName, hires: 'boundary' as unknown as undefined }),
+      map: ms.generateMap({ file: chunk.fileName, hires: 'boundary' }),
     };
   }
 
