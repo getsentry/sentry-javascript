@@ -20,6 +20,7 @@ const FLUE_DEPENDENCIES = {
   additionalDependencies: {
     '@flue/runtime': '2.0.3',
     '@earendil-works/pi-ai': '0.85.1',
+    valibot: '1.1.0',
   },
 };
 
@@ -97,6 +98,9 @@ conditionalTest({ min: 22 })('Flue integration', () => {
               ]);
 
               const tool = tools[0]!;
+              // The tool has to actually run: a schema mismatch still produces a correctly named and
+              // parented span, so only the status separates a real call from a rejected one.
+              expect(tool.status).toBe('ok');
               expect(tool.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
               expect(tool.attributes['sentry.origin']?.value).toBe('auto.ai.flue');
               expect(tool.attributes[GEN_AI_TOOL_NAME]?.value).toBe('get_weather');

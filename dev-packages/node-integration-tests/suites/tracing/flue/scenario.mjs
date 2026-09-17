@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/node';
 import { __flueBindAgentModule, init, instrument, useModel, useTool } from '@flue/runtime';
 import { start } from '@flue/runtime/node';
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
+import * as v from 'valibot';
 
 // `pi-ai`'s faux provider scripts model responses in-process, so the run is deterministic and needs
 // no provider key or mock server. Two steps: a tool call, then the final answer.
@@ -21,7 +22,10 @@ function Hello() {
   useTool({
     name: 'get_weather',
     description: 'Get the current weather for a city.',
-    run: ({ city }) => `It is 21 degrees and sunny in ${city}.`,
+    // Without an `input` schema Flue validates the call against an empty one and rejects the
+    // model's arguments, so the tool never runs and its span settles as an error.
+    input: v.object({ city: v.string() }),
+    run: ({ data }) => `It is 21 degrees and sunny in ${data.city}.`,
   });
   return 'You are a helpful assistant.';
 }
