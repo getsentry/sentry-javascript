@@ -142,8 +142,10 @@ export class AwsLambdaExtension {
 
       try {
         event = await this.next();
-        // Before the contract check below: the API answering at all is what releases the init
-        // phase, whatever it answered with.
+        // Before the contract check below, and deliberately weaker than the platform's own rule:
+        // the init phase releases when the poll *reaches* the API, which a client cannot observe
+        // once the transport dies. A resolved `next()` is the nearest thing it can see, so this
+        // errs towards reporting the gate closed — see `main` for why that is the cheap direction.
         pollAccepted = true;
 
         // Nothing else was subscribed to, so this is the API answering outside its own contract.

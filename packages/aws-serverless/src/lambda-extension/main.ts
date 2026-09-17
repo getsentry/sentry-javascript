@@ -37,10 +37,14 @@ export async function main(
     return;
   }
 
-  // The same hazard registration has. Lambda releases the init phase on the first poll the API
-  // accepts, so giving up before then leaves this extension holding every invocation to the
-  // function timeout — measured at 30,000ms billed per invocation, against 1.5s for a crash that
-  // lets Lambda recycle. Once a poll has been accepted the gate is open and staying is free.
+  // The same hazard registration has. Giving up while the init phase is still waiting on us leaves
+  // this extension holding every invocation to the function timeout — measured at 30,000ms billed
+  // per invocation, against under half a second for a crash that lets Lambda recycle.
+  //
+  // `pollAccepted` under-reports, because the gate releases when a poll reaches the API rather than
+  // when one is answered, and only the latter is observable here. Erring this way is deliberate:
+  // exiting when the gate was already open costs one invocation, while parking when it was not
+  // costs every invocation for the life of the environment.
   if (!outcome.pollAccepted) {
     logError('never started polling the Extensions API, events will not be tunnelled.', outcome.error);
     exit(1);
