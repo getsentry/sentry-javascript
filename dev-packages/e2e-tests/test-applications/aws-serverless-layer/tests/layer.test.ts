@@ -396,11 +396,13 @@ test.describe('Lambda layer', () => {
   });
 
   test('extension tunnel forwards a gzipped envelope', async ({ lambdaClient }) => {
-    // `makeNodeTransport` gzips any body over 32KiB, and the tunnel read the envelope header off
-    // the raw bytes — which throws on the gzip magic bytes, so every large event was answered 500
-    // and dropped. Only the encoding the SDK actually sends is exercised here; the case and
-    // list-valued forms of the header are covered in the extension's unit tests, and the event
-    // proxy only decompresses this exact value.
+    // The tunnel read the envelope header off the raw bytes, which throws on the gzip magic bytes,
+    // so every large event was answered 500 and dropped. `makeNodeTransport` only gzips past this
+    // size — a private const in `@sentry/node`, so it is named rather than imported — and doubling
+    // it keeps the envelope over the line whatever the header costs. Only the encoding the SDK
+    // actually sends is exercised: the case and list-valued forms are covered in the extension's
+    // unit tests, and the event proxy decompresses this exact value only.
+    const sdkGzipThreshold = 32 * 1024;
     const marker = `extension-tunnel-gzip-${Date.now()}`;
     const requestPromise = waitForRequest('aws-serverless-layer', requestData => {
       return requestData.rawProxyRequestBody.includes(marker);
@@ -409,8 +411,7 @@ test.describe('Lambda layer', () => {
     const response = await lambdaClient.send(
       new InvokeCommand({
         FunctionName: 'LayerTunnel',
-        // Past `GZIP_THRESHOLD`, which is the only size at which the SDK compresses at all.
-        Payload: JSON.stringify({ gzip: 'gzip', marker, padTo: 40_000 }),
+        Payload: JSON.stringify({ gzip: 'gzip', marker, padTo: sdkGzipThreshold * 2 }),
       }),
     );
 

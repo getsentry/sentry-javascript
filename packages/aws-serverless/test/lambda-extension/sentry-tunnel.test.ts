@@ -53,6 +53,19 @@ describe('getSentryDSNFromEnv', () => {
 
 const UPSTREAM_HOLD_MS = 500;
 
+/**
+ * `makeNodeTransport` gzips a body past this; it is a private const in `@sentry/node`, so it is
+ * named here rather than imported. Below it the SDK sends nothing compressed at all.
+ */
+const SDK_GZIP_THRESHOLD = 32 * 1024;
+
+/**
+ * Past both bounds that matter: the SDK only compresses above the first, and a one-shot inflate
+ * capped at the second is what the streaming header read replaced — so a smaller envelope would
+ * exercise neither.
+ */
+const REALISTIC_GZIPPED_BYTES = Math.max(SDK_GZIP_THRESHOLD, ENVELOPE_HEADER_MAX_BYTES) * 2;
+
 describe('AwsLambdaExtension tunnel', () => {
   let servers: http.Server[];
   let errorSpy: ReturnType<typeof vi.spyOn>;
@@ -189,7 +202,7 @@ describe('AwsLambdaExtension tunnel', () => {
     },
   );
 
-  test.each([40_000, 400_000])(
+  test.each([REALISTIC_GZIPPED_BYTES, REALISTIC_GZIPPED_BYTES * 10])(
     'forwards a gzipped envelope of %i bytes, the size at which the SDK actually compresses',
     async size => {
       // `makeNodeTransport` only gzips past 32KiB, so every envelope that arrives compressed is
@@ -241,7 +254,7 @@ describe('AwsLambdaExtension tunnel', () => {
     // ours to assert — it proves the bound rejected the body rather than the parse failing later.
     expect(errorSpy).toHaveBeenCalledWith(
       'Sentry Lambda extension: an envelope could not be read and was dropped.',
-      expect.objectContaining({ message: expect.stringContaining('longer than this extension will inflate') }),
+      new Error('The envelope header is longer than this extension will inflate to read it'),
     );
   });
 
