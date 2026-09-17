@@ -43,8 +43,7 @@
     "optionalVariants": [
       {
         "assert-command": "pnpm test:assert:cloudflare",
-        "label": "gen-ai-libraries (cloudflare)",
-        "optional": true
+        "label": "gen-ai-libraries (cloudflare)"
       }
     ]
   },
