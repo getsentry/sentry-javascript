@@ -19,6 +19,7 @@ import { koaConfig } from './koa';
 import { langchainConfig } from './langchain';
 import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
+import { flueConfig } from './flue';
 import { mastraConfig } from './mastra';
 import { mistralConfig } from './mistral';
 import { mongodbConfig } from './mongodb';
@@ -68,6 +69,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...langgraphConfig,
   ...lruMemoizerConfig,
   ...mastraConfig,
+  ...flueConfig,
   ...mistralConfig,
   ...mongodbConfig,
   ...mongooseConfig,
