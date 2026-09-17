@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { deleteWorker, deployWorker, keepsWorker, waitForWorker } from './deployed-worker.mjs';
 
 const WORKER_PREFIX = 'e2e-send-to-sentry';
@@ -24,7 +25,7 @@ export function getWorkerName() {
 }
 
 export default async function globalSetup() {
-  if (!existsSync(join(__dirname, '.wrangler/deploy/config.json'))) {
+  if (!existsSync(new URL('.wrangler/deploy/config.json', import.meta.url))) {
     throw new Error('Run `pnpm build` first: wrangler would deploy the uninstrumented source.');
   }
   const { CLOUDFLARE_ACCOUNT_ID, E2E_TEST_DSN } = process.env;
