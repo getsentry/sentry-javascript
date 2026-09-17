@@ -7,7 +7,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist .wrangler",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm typecheck && pnpm test"
   },
