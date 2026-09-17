@@ -149,6 +149,18 @@ describe('makeAddSentryVitePlugin', () => {
     await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toBeUndefined();
   });
 
+  // `disable: 'disable-upload'` injects debug IDs but leaves the upload to the user. The bundler
+  // plugin deletes in a `finally` block even when it skipped uploading, so defaulting the deletion
+  // here would remove the maps they still have to upload by hand.
+  it('keeps the source maps when only the upload is disabled', async () => {
+    const plugins = makeAddSentryVitePlugin({ sourcemaps: { disable: 'disable-upload' } });
+    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
+
+    (configPlugin?.config as (config: UserConfig) => void)({});
+
+    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toBeUndefined();
+  });
+
   it('honours a user-specified filesToDeleteAfterUpload', async () => {
     const plugins = makeAddSentryVitePlugin({ sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] } });
     const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');

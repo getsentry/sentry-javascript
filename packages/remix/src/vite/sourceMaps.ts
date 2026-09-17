@@ -41,7 +41,15 @@ export function makeAddSentryVitePlugin(options: SentryRemixVitePluginOptions): 
       // Only clean up after ourselves: if the user asked for source maps, they are theirs to keep.
       // Scoped to the build output rather than `./**/*.map`, which the bundler plugin globs without
       // ignoring `node_modules` and then deletes with `force: true`.
-      if (typeof userFilesToDelete === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
+      //
+      // `disable: 'disable-upload'` injects debug IDs but leaves uploading to the user, and the
+      // bundler plugin deletes in a `finally` block even when it skipped the upload - so defaulting
+      // the deletion there would remove the very maps they still have to upload by hand.
+      if (
+        typeof userFilesToDelete === 'undefined' &&
+        typeof config.build?.sourcemap === 'undefined' &&
+        !sourcemaps?.disable
+      ) {
         if (debug) {
           // eslint-disable-next-line no-console
           console.log(
