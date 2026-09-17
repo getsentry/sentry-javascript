@@ -164,6 +164,19 @@ describe('makeAddSentryVitePlugin', () => {
     ]);
   });
 
+  // `glob` reads a backslash as an escape, so an unnormalised Windows `outDir` matches nothing and
+  // leaves the maps on disk. Both path flavours are checked, so this holds on POSIX runners too.
+  it('normalises a Windows absolute outDir', async () => {
+    const plugins = makeAddSentryVitePlugin({});
+    const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
+
+    (configPlugin?.config as (config: UserConfig) => void)({ build: { outDir: 'C:\\proj\\build\\client' } });
+
+    await expect(capturedOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual([
+      'C:/proj/build/client/**/*.map',
+    ]);
+  });
+
   it('keeps the source maps when the user set their own build.sourcemap', async () => {
     const plugins = makeAddSentryVitePlugin({});
     const configPlugin = plugins.find(plugin => plugin.name === 'sentry-remix-files-to-delete-after-upload');
