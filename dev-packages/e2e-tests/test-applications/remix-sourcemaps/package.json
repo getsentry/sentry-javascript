@@ -3,7 +3,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "build": "node start-mock-sentry-server.mjs & remix vite:build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; exit $BUILD_EXIT",
+    "build": "node start-mock-sentry-server.mjs & remix vite:build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; cat .tmp_build_stdout .tmp_build_stderr; exit $BUILD_EXIT",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm tsx assert-build.ts"

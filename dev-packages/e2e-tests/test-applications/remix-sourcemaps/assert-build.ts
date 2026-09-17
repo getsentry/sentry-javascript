@@ -96,7 +96,13 @@ for (const chunk of chunks) {
   crossCheckedChunks++;
 }
 
-assert.ok(crossCheckedChunks > 0, 'Expected at least one uploaded chunk to cross-check debug IDs against');
+assert.ok(
+  crossCheckedChunks > 0,
+  'Expected at least one uploaded chunk to cross-check debug IDs against.\n' +
+    `Client chunks:      ${JSON.stringify(chunks.map(chunk => path.basename(chunk)))}\n` +
+    `Uploaded JS names:  ${JSON.stringify([...uploadedJsFiles])}\n` +
+    `Uploaded JS urls:   ${JSON.stringify(debugIdPairs.map(pair => pair.jsUrl))}`,
+);
 console.log(`${crossCheckedChunks} chunk(s) ship a debug ID that was uploaded\n`);
 
 console.log('All remix source map assertions passed!');
