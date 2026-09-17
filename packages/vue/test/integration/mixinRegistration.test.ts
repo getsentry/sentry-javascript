@@ -2,7 +2,6 @@
  * @vitest-environment jsdom
  */
 
-import type { Span } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it as baseIt, vi } from 'vitest';
@@ -316,7 +315,6 @@ describe('tracing mixin span creation', () => {
     });
 
     // Matches the mixin-path twin above: the mixin never waited for late children either.
-    // Framework SDKs can push the end out through `INTERNAL_extendVueRootRenderSpan` (the Nuxt SDK does).
     it('ends the root render span before a deferred child mounts', ({ uiSpans, initSentry }) => {
       const { app } = createAppWithDeferredChild();
       disableOptionsApi(app);
@@ -347,67 +345,6 @@ describe('tracing mixin span creation', () => {
       ]);
     });
 
-    it('extendVueRootRenderSpan pushes back the root render span end', ({ app, uiSpans, initSentry }) => {
-      disableOptionsApi(app);
-      initSentry();
-      const container = document.createElement('div');
-
-      Sentry.startSpan({ name: 'pageload' }, () => {
-        app.mount(container);
-        vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2);
-        Sentry.INTERNAL_extendVueRootRenderSpan(app);
-        // The original debounce deadline has passed by now; only the extension keeps the span open.
-        vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2 + 1);
-        expect(uiSpans).toEqual([{ name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP }]);
-        vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2);
-      });
-
-      expect(uiSpans).toEqual([
-        { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
-        { name: 'Application Render', op: UI_RENDER_SPAN_OP },
-      ]);
-    });
-
-    // Guards against re-arming a timer on every call (e.g. each Nuxt `page:finish`, forever).
-    it('extendVueRootRenderSpan does nothing once the root render span has ended', ({ app, uiSpans, initSentry }) => {
-      disableOptionsApi(app);
-      initSentry();
-      mountUnderActiveSpan(app);
-
-      const timersBeforeExtend = vi.getTimerCount();
-      Sentry.INTERNAL_extendVueRootRenderSpan(app);
-
-      expect(vi.getTimerCount()).toBe(timersBeforeExtend);
-      expect(uiSpans).toEqual([
-        { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
-        { name: 'Application Render', op: UI_RENDER_SPAN_OP },
-      ]);
-    });
-
-    it('extendVueRootRenderSpan does not re-arm the debounce for an externally ended span', ({ app, initSentry }) => {
-      disableOptionsApi(app);
-      initSentry();
-      let renderSpan: Span | undefined;
-      Sentry.getClient()?.on('spanStart', span => {
-        if (spanToJSON(span).name === 'Application Render') {
-          renderSpan = span;
-        }
-      });
-      Sentry.startSpan({ name: 'pageload' }, () => {
-        app.mount(document.createElement('div'));
-      });
-      expect(renderSpan).toBeDefined();
-      // Simulates a navigation ending the pageload and its running children before the debounce fires.
-      renderSpan?.end();
-
-      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2);
-      Sentry.INTERNAL_extendVueRootRenderSpan(app);
-      // Past the original debounce deadline, before any re-armed one could fire.
-      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS / 2 + 10);
-
-      expect(vi.getTimerCount()).toBe(0);
-    });
-
     it('attaches the Vue error handler', ({ app, initSentry }) => {
       disableOptionsApi(app);
 
@@ -415,21 +352,6 @@ describe('tracing mixin span creation', () => {
 
       expect(app.config.errorHandler).toBeDefined();
     });
-  });
-
-  // On the mixin path no fallback is registered, so there is nothing for the helper to extend.
-  it('extendVueRootRenderSpan is a no-op for an app instrumented through the mixin', ({ app, uiSpans, initSentry }) => {
-    initSentry();
-    mountUnderActiveSpan(app);
-
-    const timersBeforeExtend = vi.getTimerCount();
-    Sentry.INTERNAL_extendVueRootRenderSpan(app);
-
-    expect(vi.getTimerCount()).toBe(timersBeforeExtend);
-    expect(uiSpans).toEqual([
-      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
-      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
-    ]);
   });
 });
 

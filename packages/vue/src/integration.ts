@@ -78,7 +78,7 @@ const vueInit = (app: Vue, options: Options): void => {
     const mixins = createTracingMixins(options.tracingOptions);
     app.mixin(mixins);
     if (!mixinWasApplied(app, mixins)) {
-      instrumentAppMountWithoutMixin(app, mixins, options.tracingOptions?.timeout || DEFAULT_ROOT_SPAN_TIMEOUT);
+      instrumentAppMountWithoutMixin(app, mixins);
       warnAboutLostComponentTracking(app, options.tracingOptions);
     }
   }

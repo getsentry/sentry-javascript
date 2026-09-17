@@ -42,7 +42,7 @@ const HOOKS: { [key in Operation]: Hook[] } = {
 };
 
 /** End the top-level component span and activity with a debounce configured using `timeout` option */
-export function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
+function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
   if (vm.$_sentryRootComponentSpanTimer) {
     clearTimeout(vm.$_sentryRootComponentSpanTimer);
   }

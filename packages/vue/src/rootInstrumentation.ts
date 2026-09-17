@@ -1,14 +1,7 @@
-import { timestampInSeconds } from '@sentry/core';
 import type { Mixins, VueSentry } from './tracing';
-import { maybeEndRootComponentSpan } from './tracing';
 import type { Vue } from './types';
 
-interface RootInstrumentation {
-  vm: VueSentry;
-  timeout: number;
-}
-
-const instrumentedApps = new WeakMap<Vue, RootInstrumentation>();
+const instrumentedApps = new WeakSet<Vue>();
 
 /**
  * The mixin hooks only check `$root === this` to detect the root component, so a self-referential
@@ -27,7 +20,7 @@ function createRootViewModel(): VueSentry {
  * Vue runs all `mounted` hooks before `mount()` returns, so the wrap covers the same window as the
  * mixin's root hooks. Late mounts extend neither path; the mixin's debounce timers are per component.
  */
-export function instrumentAppMountWithoutMixin(app: Vue, mixins: Mixins, timeout: number): void {
+export function instrumentAppMountWithoutMixin(app: Vue, mixins: Mixins): void {
   // A second wrap would duplicate the root spans (e.g. user and Nuxt SDK both add the integration).
   if (instrumentedApps.has(app)) {
     return;
@@ -41,7 +34,7 @@ export function instrumentAppMountWithoutMixin(app: Vue, mixins: Mixins, timeout
   }
 
   const vm = createRootViewModel();
-  instrumentedApps.set(app, { vm, timeout });
+  instrumentedApps.add(app);
 
   // `createTracingMixins` always merges `DEFAULT_HOOKS`, so the `mount` pair exists.
   const mountHooks = mixins as Partial<Record<'beforeMount' | 'mounted', (this: VueSentry) => void>>;
@@ -55,28 +48,4 @@ export function instrumentAppMountWithoutMixin(app: Vue, mixins: Mixins, timeout
       mountHooks.mounted?.call(vm);
     }
   };
-}
-
-/**
- * Extends the debounce that ends the `Application Render` span, so framework SDKs can report
- * render activity the root cannot see (e.g. Nuxt's `<Suspense>` resolving). No-op on the mixin
- * path and after the span has ended.
- *
- * @internal Exported for the Sentry Nuxt SDK, not part of the stable public API.
- * @experimental May change or be removed in any release.
- */
-export function INTERNAL_extendVueRootRenderSpan(app: Vue): void {
-  const instrumentation = instrumentedApps.get(app);
-  const span = instrumentation?.vm.$_sentryRootComponentSpan;
-  // No span: mixin path, or the debounce already ended it.
-  if (!instrumentation || !span) {
-    return;
-  }
-
-  if (span.isRecording()) {
-    maybeEndRootComponentSpan(instrumentation.vm, timestampInSeconds(), instrumentation.timeout);
-  } else {
-    // Ended externally, e.g. by a navigation cancelling the pageload. Drop the stale reference.
-    instrumentation.vm.$_sentryRootComponentSpan = undefined;
-  }
 }
