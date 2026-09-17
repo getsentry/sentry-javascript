@@ -7,16 +7,22 @@ import { extractErrorContext, getEventRequestInfo } from '../utils';
  * Returns the status code of an error thrown by h3, or `undefined` for any other error.
  *
  * Mirrors each h3 major's own `isError` instead of importing h3: an `h3` import puts this module
- * behind Nuxt 5's transitional Nitro v2 compatibility layer (NUXT_B9003), and `nitro/h3` does not
- * resolve on Nuxt 3/4. h3 v2 (Nitro v3) recognizes its errors by name, h3 v1 (Nitro v2) by a static
- * flag on the class. Both expose `statusCode`.
+ * behind Nuxt 5's transitional Nitro v2 compatibility layer, and `nitro/h3` does not resolve on Nuxt 3/4.
+ * h3 v2 (Nitro v3) recognizes its errors by name and stores the code on
+ * `status`, h3 v1 (Nitro v2) by a static flag on the class and on `statusCode`.
  */
 function getH3ErrorStatusCode(error: Error): number | undefined {
   const isH3Error =
     error.name === 'HTTPError' || (error.constructor as { __h3_error__?: boolean } | undefined)?.__h3_error__ === true;
 
-  return isH3Error ? (error as { statusCode?: number }).statusCode : undefined;
+  if (!isH3Error) {
+    return undefined;
+  }
+
+  const { status, statusCode } = error as { status?: number; statusCode?: number };
+  return status ?? statusCode;
 }
+
 
 /**
  *  Hook that can be added in a Nitro plugin. It captures an error and sends it to Sentry.
