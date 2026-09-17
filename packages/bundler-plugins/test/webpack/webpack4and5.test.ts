@@ -75,7 +75,7 @@ describe('sentryWebpackPluginFactory', () => {
     const code = '"use strict";\nglobalThis.applicationStarted = true;';
     const inputMap = new MagicString(code).generateMap({
       source: 'application.js',
-      hires: 'boundary' as unknown as undefined,
+      hires: 'boundary',
       includeContent: true,
     });
     const source = new webpack.sources.SourceMapSource(code, 'bundle.js', inputMap.toString());
@@ -85,7 +85,7 @@ describe('sentryWebpackPluginFactory', () => {
 
     expect(outputMap?.sources).toEqual(['application.js']);
     expect(outputMap?.sourcesContent).toEqual([code]);
-    expect(outputMap?.mappings).toBe('AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;AACZ;AAAA,UAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI');
+    expect(outputMap?.mappings).toBe('AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;AACZ,+YAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI');
   });
 
   it('derives the debug ID from the Webpack chunk hash', () => {

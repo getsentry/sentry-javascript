@@ -1,26 +1,14 @@
-import type { SentryWebpackPluginOptions } from './webpack4and5';
+import type { SentryWebpackPluginOptions, WebpackCompilationApi, WebpackSources } from './webpack4and5';
 import { sentryWebpackPluginFactory } from './webpack4and5';
 import { createRequire } from 'node:module';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PluginClass = new (options: any) => unknown;
 
-type WebpackSource = {
-  source: () => string | Uint8Array;
-};
-
 type WebpackModule = {
   DefinePlugin?: PluginClass;
-  Compilation?: {
-    PROCESS_ASSETS_STAGE_ADDITIONS: number;
-    PROCESS_ASSETS_STAGE_DEV_TOOLING?: number;
-  };
-  sources?: {
-    ReplaceSource: new (source: WebpackSource) => WebpackSource & {
-      insert: (position: number, value: string) => void;
-    };
-    RawSource?: new (source: string) => WebpackSource;
-  };
+  Compilation?: WebpackCompilationApi;
+  sources?: WebpackSources;
   default?: WebpackModule;
 };
 

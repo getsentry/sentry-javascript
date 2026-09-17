@@ -13,8 +13,8 @@ import {
   createDebugIdUploadFunction,
   isJsFile,
   stampDebugId,
+  getCodeInjectionPosition,
 } from '../core/index';
-import { getCodeInjectionPosition } from '../core/get-code-injection-position';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -47,12 +47,12 @@ type UnsafeDefinePlugin = {
   new (options: any): unknown;
 };
 
-type WebpackCompilationApi = {
+export type WebpackCompilationApi = {
   PROCESS_ASSETS_STAGE_ADDITIONS: number;
   PROCESS_ASSETS_STAGE_DEV_TOOLING?: number;
 };
 
-type WebpackSources = {
+export type WebpackSources = {
   ReplaceSource: new (source: WebpackSource) => WebpackReplaceSource;
   RawSource?: WebpackRawSource;
 };
@@ -300,7 +300,7 @@ export function sentryWebpackPluginFactory({
 
                 const injectionPosition = getCodeInjectionPosition(codeString);
                 const injection =
-                  injectionPosition === codeString.length ? `\n${codeToInject.code()}` : `${codeToInject.code()}\n`;
+                  injectionPosition === codeString.length ? `\n${codeToInject.code()}` : codeToInject.code();
                 const updatedSource = new ReplaceSource(source);
                 updatedSource.insert(injectionPosition, injection);
                 compilation.updateAsset(assetName, updatedSource);
