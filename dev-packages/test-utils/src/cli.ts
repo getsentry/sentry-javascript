@@ -45,7 +45,7 @@ export function fetchTrace(traceId: string): TraceItem[] {
       SENTRY_FORCE_ENV_TOKEN: '1',
     },
   });
-  
+
   if (result.error) {
     throw new Error(
       `Could not run \`pnpm exec sentry trace view\`: ${result.error.message}. ` +
@@ -70,12 +70,12 @@ export function fetchTrace(traceId: string): TraceItem[] {
   }
 
   const traceMissing = result.status === 23 && result.stderr.includes(`Trace '${traceId}' not found`);
+
   if (traceMissing) {
     return [];
   }
-  throw new Error(`sentry trace view ${target} exited with ${result.status}: ${result.stderr}`);
 
-  return [];
+  throw new Error(`sentry trace view ${target} exited with ${result.status}: ${result.stderr}`);
 }
 
 /**
