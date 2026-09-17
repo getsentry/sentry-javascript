@@ -134,43 +134,46 @@ export class CloudflareClient extends ServerRuntimeClient {
     const deadline = timeout && timeout > 0 ? Date.now() + timeout : undefined;
     const remainingTimeout = (): number | undefined =>
       deadline === undefined ? timeout : Math.max(0, deadline - Date.now());
+    const hasPendingSpans = this._pendingSpans.size > 0 && this._spanCompletionPromise;
+    let remainingStages = 2 + (this._flushLock ? 1 : 0) + (hasPendingSpans ? 1 : 0);
+    let preDrainWorkCompleted = true;
+    const timeoutForNextStage = (): number | undefined => {
+      const remaining = remainingTimeout();
+      return remaining === undefined ? undefined : Math.floor(remaining / remainingStages);
+    };
 
     // Wait for user waitUntil-registered work to settle before draining, so events
     // captured in that work are still in the buffer. Without this the final flush
     // can drain (and the client be disposed) before background captures land.
     if (this._flushLock) {
-      const lockTimeout = remainingTimeout();
+      const lockTimeout = timeoutForNextStage();
       if (lockTimeout && lockTimeout > 0) {
         if (!(await waitForPromise(this._flushLock.finalize(), lockTimeout))) {
-          return false;
+          preDrainWorkCompleted = false;
         }
       } else if (deadline !== undefined) {
-        return false;
+        preDrainWorkCompleted = false;
       } else {
         await this._flushLock.finalize();
       }
+      remainingStages--;
     }
 
-    if (this._pendingSpans.size > 0 && this._spanCompletionPromise) {
+    if (hasPendingSpans) {
       DEBUG_BUILD &&
         debug.log('[CloudflareClient] Waiting for', this._pendingSpans.size, 'pending spans to complete...');
 
-      const timeoutMs = remainingTimeout() ?? 5000;
-      if (deadline !== undefined && timeoutMs <= 0) {
-        return false;
+      const spanTimeout = timeoutForNextStage() ?? 5000;
+      if (spanTimeout > 0) {
+        if (!(await waitForPromise(hasPendingSpans, spanTimeout))) {
+          DEBUG_BUILD &&
+            debug.log('[CloudflareClient] Span completion timeout after', spanTimeout, 'ms, flushing anyway');
+          preDrainWorkCompleted = false;
+        }
+      } else {
+        preDrainWorkCompleted = false;
       }
-      const spanCompletionRace = Promise.race([
-        this._spanCompletionPromise,
-        new Promise(resolve =>
-          setTimeout(() => {
-            DEBUG_BUILD &&
-              debug.log('[CloudflareClient] Span completion timeout after', timeoutMs, 'ms, flushing anyway');
-            resolve(undefined);
-          }, timeoutMs),
-        ),
-      ]);
-
-      await spanCompletionRace;
+      remainingStages--;
     }
 
     // Envelopes created while this flush drains (log/metric/span buffers turning into
@@ -178,11 +181,13 @@ export class CloudflareClient extends ServerRuntimeClient {
     // of them would also start an eager drain and a `waitUntil` registration.
     this._inBoundaryFlush = true;
     try {
-      const transportTimeout = remainingTimeout();
-      if (deadline !== undefined && (!transportTimeout || transportTimeout <= 0)) {
+      // BaseClient.flush uses its timeout once for client processing and once for
+      // transport draining, so give it one stage's share for each internal wait.
+      const baseFlushTimeout = timeoutForNextStage();
+      if (deadline !== undefined && (!baseFlushTimeout || baseFlushTimeout <= 0)) {
         return false;
       }
-      return await super.flush(transportTimeout);
+      return (await super.flush(baseFlushTimeout)) && preDrainWorkCompleted;
     } finally {
       this._inBoundaryFlush = false;
     }
