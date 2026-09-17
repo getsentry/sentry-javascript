@@ -16,7 +16,9 @@ const INTERNAL_REQUEST_ORIGIN = 'auto.http.hono.internal_request';
 
 function extractPathname(input: string | Request | URL): string {
   if (typeof input === 'string') {
-    return /^https?:\/\//.test(input) ? new URL(input).pathname : input;
+    // `app.request()` accepts absolute URLs as well as relative paths. Parse both
+    // against a dummy base so the query string is stripped from the span name.
+    return new URL(input, 'http://sentry-internal').pathname;
   }
 
   return input instanceof Request ? new URL(input.url).pathname : input.pathname;
