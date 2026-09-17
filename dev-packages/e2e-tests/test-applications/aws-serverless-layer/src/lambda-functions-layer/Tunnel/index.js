@@ -1,3 +1,5 @@
+const zlib = require('node:zlib');
+
 function makeHex(length) {
   return Array.from({ length }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 }
@@ -20,12 +22,17 @@ exports.handler = async event => {
     envelopeItemPayload,
   )}\n`;
 
+  // `makeNodeTransport` gzips any body over 32KiB, so the tunnel has to read a compressed
+  // envelope header. It could not, and answered 500 — silently dropping every large event.
+  const compressed = event?.gzip ? zlib.gzipSync(Buffer.from(envelope)) : undefined;
+
   const response = await fetch('http://localhost:9000/envelope', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-sentry-envelope',
+      ...(compressed ? { 'content-encoding': event.gzip } : {}),
     },
-    body: envelope,
+    body: compressed ?? envelope,
   });
 
   const responseBody = await response.text();
