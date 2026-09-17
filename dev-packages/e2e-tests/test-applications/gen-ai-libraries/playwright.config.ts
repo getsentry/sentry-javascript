@@ -9,7 +9,7 @@ const NODE_PORT = 3030;
 
 const config = getPlaywrightConfig(
   {
-    startCommand: RUNTIME === 'cloudflare' ? 'pnpm preview' : 'pnpm dev:node',
+    startCommand: RUNTIME === 'cloudflare' ? 'pnpm dev:cloudflare' : 'pnpm dev:node',
     port: RUNTIME === 'cloudflare' ? CF_PORT : NODE_PORT,
   },
   // Every test drives a real OpenRouter model call (a tool-calling turn does two) and then waits for

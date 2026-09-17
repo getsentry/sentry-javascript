@@ -6,12 +6,13 @@
   "type": "module",
   "scripts": {
     "dev:node": "node --import tsx/esm --import ./src/instrument.node.ts src/entry.node.ts",
-    "build": "vite build",
+    "dev:cloudflare": "vite build && wrangler dev --config ./dist/gen_ai_libraries/wrangler.json --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --var \"E2E_OPENROUTER_API_KEY:$E2E_OPENROUTER_API_KEY\" --port 38787",
     "preview": "vite preview --port 38787",
     "test": "playwright test",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
-    "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test"
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test",
+    "test:assert:cloudflare": "RUNTIME=cloudflare pnpm test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.63.0",
@@ -34,14 +35,14 @@
     "@types/node": "^18.19.1",
     "tsx": "4.21.0",
     "typescript": "^5.5.2",
-    "vite": "7.3.5",
+    "vite": "8.3.0",
     "wrangler": "^4.86.0"
   },
   "sentryTest": {
     "optional": true,
     "optionalVariants": [
       {
-        "assert-command": "RUNTIME=cloudflare pnpm test:assert",
+        "assert-command": "pnpm test:assert:cloudflare",
         "label": "gen-ai-libraries (cloudflare)",
         "optional": true
       }
