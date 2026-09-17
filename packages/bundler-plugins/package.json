@@ -24,11 +24,6 @@
       "import": "./build/esm/webpack/index.js",
       "require": "./build/cjs/webpack/index.js"
     },
-    "./webpack5": {
-      "types": "./build/types/webpack/webpack5.d.ts",
-      "import": "./build/esm/webpack/webpack5.js",
-      "require": "./build/cjs/webpack/webpack5.js"
-    },
     "./rollup": {
       "types": "./build/types/rollup/index.d.ts",
       "import": "./build/esm/rollup/index.js",
@@ -121,7 +116,7 @@
   },
   "peerDependencies": {
     "rollup": ">=3.2.0",
-    "webpack": ">=5.0.0"
+    "webpack": ">=5.1.0"
   },
   "peerDependenciesMeta": {
     "rollup": {
