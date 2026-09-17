@@ -98,7 +98,11 @@ type MatchedHandlerEntry = [[any, any], any];
 // for a given route, so guard against prepending the Sentry middleware more than once.
 const _injectedHandlerLists = new WeakSet<object>();
 
-let channelsSubscribed = false;
+// The Sentry request/response middleware is stateless (all per-request state lives on the request
+// scope), so build it once and reuse it across every dispatched Context instead of recreating it on
+// each `new Context()`. `options` is fixed for the single channel subscription, so a single cached
+// instance is always correct.
+let cachedRequestMiddleware: MiddlewareHandler | undefined;
 
 /**
  * Per-request Context hook: the heart of the automatic instrumentation.
@@ -138,10 +142,10 @@ function injectHonoInstrumentation(
 
   // Prepend the Sentry request/response middleware. `routeMeta` is what the `matchedRoutes` getter
   // reads; a middleware-arity handler means route-name resolution skips it.
-  const middleware = createHonoRequestMiddleware({
+  const middleware = (cachedRequestMiddleware ??= createHonoRequestMiddleware({
     getConnInfo: resolveGetConnInfo(),
     shouldHandleError: options.shouldHandleError,
-  });
+  }));
   const routeMeta = { basePath: '/', path: '/*', method: 'ALL', handler: middleware };
   handlers.unshift([[middleware, routeMeta], {}]);
 }
@@ -179,11 +183,6 @@ function instrumentInternalRequests(): void {
 }
 
 function instrumentHono(options: HonoIntegrationOptions): void {
-  if (channelsSubscribed) {
-    return;
-  }
-  channelsSubscribed = true;
-
   // Per-request Context hook — injects the Sentry middleware and wraps matched middleware handlers.
   // The `end` of the Context constructor fires synchronously during `new Context()`, before
   // `#dispatch` reads `matchResult[0].length`, so the prepend takes effect for the same request.
