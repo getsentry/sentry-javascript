@@ -16,9 +16,6 @@ test('Sends a captured exception to Sentry', async () => {
 });
 
 test('Sends an unhandled exception and its request span to Sentry', async () => {
-  // The worker cannot report ids for a request it fails, so the test picks the trace id and the
-  // SDK continues it from the incoming headers. Relay drops streamed spans of a trace without a
-  // dynamic sampling context, so `baggage` has to come along with `sentry-trace`.
   const traceId = randomBytes(16).toString('hex');
   const publicKey = new URL(process.env.E2E_TEST_DSN!).username;
   const response = await fetch(`${workerUrl}/test-unhandled-error`, {
