@@ -26,14 +26,21 @@ vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
   sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
 }));
 
+type CapturedSentryOptions = { sourcemaps?: { filesToDeleteAfterUpload?: Promise<unknown> } };
+
+let capturedSentryOptions: CapturedSentryOptions | undefined;
+
 vi.mock('@sentry/bundler-plugins/vite', () => ({
-  sentryVitePlugin: () => [{ name: 'sentry-vite-plugin' }],
+  sentryVitePlugin: (options: CapturedSentryOptions) => {
+    capturedSentryOptions = options;
+    return [{ name: 'sentry-vite-plugin' }];
+  },
 }));
 
 const SOURCE_MAP_PLUGINS = [
-  'sentry-remix-update-source-map-setting',
   'sentry-remix-files-to-delete-after-upload',
   'sentry-vite-plugin',
+  'sentry-remix-update-source-map-setting',
 ];
 
 const NODE_CONFIG = { ssr: { target: 'node' } } as UserConfig;
@@ -59,6 +66,32 @@ describe('sentryRemixVitePlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    capturedSentryOptions = undefined;
+  });
+
+  // Vite hands every `config` hook the already-merged config, so the deletion plugin has to read
+  // `build.sourcemap` before `makeEnableSourceMapsPlugin` sets it. Running the hooks in isolation
+  // hides that, which is why this drives them in plugin order over one shared config.
+  it('still deletes the generated source maps once the hooks run in plugin order', async () => {
+    const plugins = sentryRemixVitePlugin();
+    const config: UserConfig = {};
+
+    for (const plugin of plugins) {
+      if (!plugin.config) {
+        continue;
+      }
+
+      const result = callHook(plugin.config, config, BUILD_ENV) as UserConfig | null;
+      const sourcemap = result?.build?.sourcemap;
+
+      if (sourcemap !== undefined) {
+        config.build = { ...config.build, sourcemap };
+      }
+    }
+
+    await expect(capturedSentryOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual([
+      './build/**/*.map',
+    ]);
   });
 
   it('returns the route manifest, orchestrion and source map plugins', () => {

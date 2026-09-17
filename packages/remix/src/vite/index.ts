@@ -42,7 +42,10 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
     return plugins;
   }
 
-  plugins.push(makeEnableSourceMapsPlugin(options), ...makeAddSentryVitePlugin(options));
+  // Order matters: Vite passes the already-merged config to every `config` hook, so the deletion
+  // plugin has to read `build.sourcemap` before `makeEnableSourceMapsPlugin` sets it to 'hidden' -
+  // otherwise it treats the setting as user-owned and leaves the generated maps on disk.
+  plugins.push(...makeAddSentryVitePlugin(options), makeEnableSourceMapsPlugin(options));
 
   return plugins;
 }

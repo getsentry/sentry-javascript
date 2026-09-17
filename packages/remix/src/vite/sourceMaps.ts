@@ -95,11 +95,11 @@ export function makeEnableSourceMapsPlugin(options: SentryRemixVitePluginOptions
     name: 'sentry-remix-update-source-map-setting',
     apply: 'build',
     enforce: 'post',
+    // Returning only the changed key: Vite concatenates arrays when merging a `config` return
+    // value, so echoing the whole config back duplicates `ssr.noExternal`, `resolve.alias` etc.
     config(viteConfig) {
       return {
-        ...viteConfig,
         build: {
-          ...viteConfig.build,
           sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
         },
       };
