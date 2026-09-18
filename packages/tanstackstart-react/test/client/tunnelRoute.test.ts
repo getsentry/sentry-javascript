@@ -1,6 +1,11 @@
 import type { BrowserOptions } from '@sentry/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Loaded for its side effect: the module under test reaches `@sentry/core`, and transforming that
+// graph is charged to whichever test imports it first, which timed out on slower CI runners.
+// Importing it here pays that once at collect time instead.
+import '@sentry/core';
+
 describe('applyTunnelRouteOption()', () => {
   beforeEach(() => {
     vi.resetModules();
