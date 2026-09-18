@@ -89,6 +89,8 @@ function interceptTransportStart(transport: MCPTransport, beforeStart: () => voi
  * Compatible with versions `^1.9.0` of the `@modelcontextprotocol/sdk` package (legacy `tool`/`resource`/`prompt` API)
  * and `@modelcontextprotocol/server` version 2.x (`registerTool`/`registerResource`/`registerPrompt` API).
  * Automatically instruments transport methods and handler functions for comprehensive monitoring.
+ * Records the transport class as `mcp.transport` and HTTP User-Agent when available.
+ * Network protocol versions are recorded only when provided by the request runtime.
  *
  * Both call orderings are supported: wrapping before or after registering tools, resources,
  * and prompts. Sentry patches the registration methods for future handlers and retroactively
