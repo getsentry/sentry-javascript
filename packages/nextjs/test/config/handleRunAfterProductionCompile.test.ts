@@ -782,4 +782,65 @@ describe('stripSourceMappingURLComments', () => {
     const content = await fs.promises.readFile(filePath, 'utf-8');
     expect(content).toBe('var a = 1;');
   });
+
+  it('strips sourceMappingURL comment followed by trailing whitespace', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'trailing-whitespace.js');
+    await fs.promises.writeFile(filePath, 'var a = 1;\n//# sourceMappingURL=trailing-whitespace.js.map \r\n');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('var a = 1;');
+  });
+
+  it('strips sourceMappingURL comment from CSS files when it is on the same line', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'same-line.css');
+    await fs.promises.writeFile(filePath, '.foo{color:red}/*# sourceMappingURL=same-line.css.map */');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('.foo{color:red}');
+  });
+
+  it('strips an indented sourceMappingURL comment', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'indented.js');
+    await fs.promises.writeFile(filePath, 'var a = 1;\n  //# sourceMappingURL=indented.js.map');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('var a = 1;');
+  });
+
+  it('strips only the last sourceMappingURL comment from CSS files with multiple comments on one line', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'concat.css');
+    await fs.promises.writeFile(filePath, '.a{}/*# sourceMappingURL=a.css.map */.b{}/*# sourceMappingURL=b.css.map */');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('.a{}/*# sourceMappingURL=a.css.map */.b{}');
+  });
+
+  it('does not strip a sourceMappingURL comment that is not at the end of the file', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'not-at-eof.js');
+    const originalContent = '//# sourceMappingURL=not-at-eof.js.map\nvar a = 1;';
+    await fs.promises.writeFile(filePath, originalContent);
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe(originalContent);
+  });
+
+  it.fails('strips sourceMappingURL comment from JS files when it is on the same line', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'same-line.js');
+    await fs.promises.writeFile(filePath, 'var a=1;//# sourceMappingURL=same-line.js.map');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('var a=1;');
+  });
 });
