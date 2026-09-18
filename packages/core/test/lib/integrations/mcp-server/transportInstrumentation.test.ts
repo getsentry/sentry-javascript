@@ -209,7 +209,7 @@ describe('MCP Server Transport Instrumentation', () => {
       };
       await mockTransport.send?.(jsonRpcErrorResponse as any);
 
-      expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
+      expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: jsonRpcErrorResponse.error.message });
       expect(mockSpan.end).toHaveBeenCalled();
     });
 

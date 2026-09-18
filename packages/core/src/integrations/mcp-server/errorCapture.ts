@@ -11,6 +11,12 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import { getActiveSpan } from '../../utils/spanUtils';
 import type { McpErrorType } from './types';
 
+/** Classifies JSON-RPC responses using the MCP server (not client) semantic conventions. */
+export function isJsonRpcServerError(code: number): boolean {
+  // https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/mcp.md#server
+  return ![-32700, -32600, -32601, -32602, -32002].includes(code);
+}
+
 /**
  * Captures an error without affecting MCP server operation.
  *
