@@ -1,6 +1,5 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/bun';
 import { instrumentedModuleNames, withoutInstrumentedExternals } from '../config';
-import { jscSafeConstructorTransform } from './jscSafeConstructor';
 import { ORCHESTRION_BUNDLER_MARKER_BANNER } from './moduleInjectedTransform';
 import type { PluginOptions } from './options';
 import { orchestrionTransformOptions } from './options';
@@ -41,26 +40,11 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): UnknownPlu
   // the transformer's own `injectDiagnostics` — Bun injects the marker banner via its native
   // `banner` config below (which, unlike the upstream path, needs no `outdir`).
   //
-  // Override the built-in `traceSync` operator with the JSC-safe variant: Bun runs on
-  // JavaScriptCore, which rejects the default constructor instrumentation for DERIVED classes (e.g.
-  // `class Hono extends HonoBase`) because it reads `this` in a `finally` that doesn't lexically
-  // enclose `super()`. The override relocates that capture; it is a no-op for everything else, and
-  // is wired here (not in the shared options) because JSC is the only engine that needs it.
-  //
-  // This is ideally fixed upstream in the code transformer (so the default output is JSC-safe
-  // everywhere). It also only works because Bun instrumentation is BUILD-time today: this transform
-  // runs in the bundler. If/when Bun runtime instrumentation lands (see the class doc above — it
-  // does not exist yet), that path would use the built-in `traceSync` and start crashing again, so
-  // the upstream fix becomes necessary. For now, build-only Bun means this is sufficient.
-  //
   // Typed upstream as an esbuild `Plugin`, but Bun passes its own `PluginBuilder` (which has the
   // `onLoad` the transform uses) to `setup`. Cast to the Bun-compatible shape so we can forward
   // Bun's builder to its `setup`.
   const transformer = codeTransformer(
-    orchestrionTransformOptions(
-      { ...options, customTransforms: { ...options.customTransforms, traceSync: jscSafeConstructorTransform } },
-      { injectDiagnostics: false },
-    ),
+    orchestrionTransformOptions(options, { injectDiagnostics: false }),
   ) as unknown as {
     setup: (build: BunPluginBuilder) => void;
   };
