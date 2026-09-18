@@ -8,6 +8,7 @@ import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/web-vitals/lcp';
 import { _emitWebVitalSpan } from '../../src/web-vitals/emitSpan';
 import * as reportEvents from '../../src/web-vitals/reportEvents';
 import * as softNavs from '../../src/web-vitals/softNavs';
+import * as webVitalUtils from '../../src/web-vitals/utils';
 import {
   _sendClsSpan,
   _sendInpSpan,
@@ -282,26 +283,6 @@ describe('_emitWebVitalSpan', () => {
     );
   });
 
-  it('includes reportEvent when provided', () => {
-    _emitWebVitalSpan({
-      name: 'Test',
-      op: 'ui.webvital.cls',
-      origin: 'auto.http.browser.cls',
-      metricName: 'cls',
-      value: 0.1,
-      reportEvent: 'pagehide',
-      startTime: 1.0,
-    });
-
-    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
-          'browser.web_vital.cls.report_event': 'pagehide',
-        }),
-      }),
-    );
-  });
-
   it('merges additional attributes', () => {
     _emitWebVitalSpan({
       name: 'Test',
@@ -421,7 +402,7 @@ describe('_sendLcpSpan', () => {
 
     const mockPageloadSpan = createMockPageloadSpan('pageload-123');
 
-    _sendLcpSpan(250, mockEntry, mockPageloadSpan as any, 'pagehide');
+    _sendLcpSpan(250, mockEntry, mockPageloadSpan as any);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -437,7 +418,6 @@ describe('_sendLcpSpan', () => {
           'browser.web_vital.lcp.load_time': 100,
           'browser.web_vital.lcp.render_time': 150,
           'browser.web_vital.lcp.size': 50000,
-          'browser.web_vital.lcp.report_event': 'pagehide',
           'sentry.transaction': 'test-route',
           'sentry.segment.name': 'test-route',
         }),
@@ -464,7 +444,7 @@ describe('_sendLcpSpan', () => {
   it('lasts the reported value when there is no entry to end at', () => {
     // A soft navigation 2000ms into the page. Ending at the time origin would put the end before
     // the start.
-    _sendLcpSpan(250, undefined, undefined, undefined, 2, 'soft-navigation', 2000);
+    _sendLcpSpan(250, undefined, undefined, 2, 'soft-navigation', 2000);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 3 }));
     expect(mockSpan.end).toHaveBeenCalledWith(3.25);
@@ -530,7 +510,7 @@ describe('_sendClsSpan', () => {
 
     const mockPageloadSpan = createMockPageloadSpan('pageload-789');
 
-    _sendClsSpan(0.1, mockEntry, mockPageloadSpan as any, 'navigation');
+    _sendClsSpan(0.1, mockEntry, mockPageloadSpan as any);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -541,7 +521,6 @@ describe('_sendClsSpan', () => {
           'sentry.pageload.span_id': 'pageload-789',
           'browser.web_vital.cls.source.1': '<div>',
           'browser.web_vital.cls.source.2': '<span>',
-          'browser.web_vital.cls.report_event': 'navigation',
           'sentry.transaction': 'test-route',
           'sentry.segment.name': 'test-route',
         }),
@@ -1069,5 +1048,76 @@ describe('soft navigation web vitals', () => {
     trackClsAsSpan(client, true);
 
     expect(listenSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('page load web vitals without per-navigation reporting', () => {
+  const pageloadSpan = createMockPageloadSpan('pageload-1');
+
+  let lcpCallback: (arg: { metric: any }) => void;
+  let hooks: Record<string, (...args: any[]) => void>;
+  let hide: () => void;
+  let client: any;
+
+  beforeEach(() => {
+    vi.stubGlobal('PerformanceObserver', { supportedEntryTypes: ['largest-contentful-paint'] });
+    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.getCurrentScope).mockReturnValue({
+      getScopeData: vi.fn().mockReturnValue({ transactionName: 'test-route' }),
+    } as any);
+    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: { 'sentry.op': 'pageload' } } as any);
+    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
+    vi.mocked(htmlTreeAsString).mockReturnValue('<div>');
+    vi.spyOn(instrument, 'addLcpInstrumentationHandler').mockImplementation((cb: any) => {
+      lcpCallback = cb;
+      return () => undefined;
+    });
+    vi.spyOn(webVitalUtils, 'onHidden').mockImplementation(cb => {
+      hide = cb as () => void;
+    });
+
+    hooks = {};
+    client = {
+      on: vi.fn((hook: string, cb: any) => {
+        hooks[hook] = cb;
+        return () => undefined;
+      }),
+    };
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('finalizes the page load LCP at the first navigation and ignores later report events', () => {
+    trackLcpAsSpan(client);
+    hooks.afterStartPageLoadSpan!(pageloadSpan);
+    lcpCallback({ metric: { value: 800, navigationType: 'navigate', entries: [{ startTime: 800, element: {} }] } });
+
+    hooks.beforeStartNavigationSpan!({}, { isRedirect: true });
+    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalled();
+
+    hooks.beforeStartNavigationSpan!({}, {});
+    hide();
+
+    const calls = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0]![0].parentSpan).toBe(pageloadSpan);
+    expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
+    expect(calls[0]![0].attributes).not.toHaveProperty('browser.web_vital.lcp.report_event');
+  });
+
+  it('finalizes the page load LCP when the page is hidden before any navigation', () => {
+    trackLcpAsSpan(client);
+    hooks.afterStartPageLoadSpan!(pageloadSpan);
+    lcpCallback({ metric: { value: 800, navigationType: 'navigate', entries: [{ startTime: 800, element: {} }] } });
+
+    hide();
+    hooks.beforeStartNavigationSpan!({}, {});
+
+    const calls = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
   });
 });
