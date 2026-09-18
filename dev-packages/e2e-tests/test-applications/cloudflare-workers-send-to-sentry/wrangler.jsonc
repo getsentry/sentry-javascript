@@ -6,6 +6,7 @@
   "compatibility_date": "2026-05-20",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "ai": { "binding": "AI" },
   // Workers Logs keep the invocations of the last 7 days, so a failed CI run can still be inspected.
   "observability": { "enabled": true },
 }
