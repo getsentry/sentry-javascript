@@ -395,6 +395,62 @@ test.describe('Lambda layer', () => {
     expect(missingDsnResult.responseBody).toContain('missing DSN');
   });
 
+  test('extension tunnel forwards a gzipped envelope', async ({ lambdaClient }) => {
+    // The tunnel read the envelope header off the raw bytes, which throws on the gzip magic bytes,
+    // so every large event was answered 500 and dropped. `makeNodeTransport` only gzips past this
+    // size — a private const in `@sentry/node`, so it is named rather than imported — and doubling
+    // it keeps the envelope over the line whatever the header costs. Only the encoding the SDK
+    // actually sends is exercised: the case and list-valued forms are covered in the extension's
+    // unit tests, and the event proxy decompresses this exact value only.
+    const sdkGzipThreshold = 32 * 1024;
+    const marker = `extension-tunnel-gzip-${Date.now()}`;
+    const requestPromise = waitForRequest('aws-serverless-layer', requestData => {
+      return requestData.rawProxyRequestBody.includes(marker);
+    });
+
+    const response = await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerTunnel',
+        Payload: JSON.stringify({ gzip: 'gzip', marker, padTo: sdkGzipThreshold * 2 }),
+      }),
+    );
+
+    expect(parseLambdaPayload(response.Payload).status).toBe(200);
+    await requestPromise;
+  });
+
+  test('extension tunnel rejects a gzipped envelope carrying an unauthorized DSN', async ({ lambdaClient }) => {
+    // The allowlist has to survive compression, or it is bypassed by setting one header.
+    const probe = parseLambdaPayload(
+      (
+        await lambdaClient.send(
+          new InvokeCommand({
+            FunctionName: 'LayerTunnel',
+            Payload: JSON.stringify({ marker: `gzip-dsn-probe-${Date.now()}` }),
+          }),
+        )
+      ).Payload,
+    );
+    // Asserted, not assumed: without a real DSN to mangle, the tunnel answers 403 `Invalid DSN`
+    // and this test would pass without the allowlist ever being consulted.
+    expect(probe.status).toBe(200);
+    expect(probe.attemptedDsn).toContain('://public@');
+
+    const response = await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerTunnel',
+        Payload: JSON.stringify({
+          gzip: 'gzip',
+          dsn: probe.attemptedDsn!.replace('://public@', '://unauthorized@'),
+        }),
+      }),
+    );
+
+    const result = parseLambdaPayload(response.Payload);
+    expect(result.status).toBe(403);
+    expect(result.responseBody).toContain('DSN not allowed');
+  });
+
   test('extension tunnel forwards requests when SENTRY_DSN is missing', async ({ lambdaClient }) => {
     const marker = `extension-tunnel-no-sentry-dsn-${Date.now()}`;
     const noDsnRequestPromise = waitForRequest('aws-serverless-layer', requestData => {
