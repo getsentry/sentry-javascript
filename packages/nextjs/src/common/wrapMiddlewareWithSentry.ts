@@ -13,7 +13,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
-import { isPathnameUnderSentryTunnelRoute } from '../common/utils/tunnelPathnameMatch';
+import { isSentryTunnelRequest } from '../common/utils/tunnelPathnameMatch';
 import type { EdgeRouteHandler } from '../edge/types';
 
 /**
@@ -41,22 +41,16 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
       // TODO: This can never work with Turbopack, need to remove it for consistency between builds.
       if (tunnelRoute && typeof tunnelRoute === 'string') {
         const req: unknown = args[0];
-        // Check if the current request matches the tunnel route
-        if (req instanceof Request) {
-          const url = new URL(req.url);
-          const isTunnelRequest = isPathnameUnderSentryTunnelRoute(url.pathname, tunnelRoute);
-
-          if (isTunnelRequest) {
-            // Create a simple response that mimics NextResponse.next() so we don't need to import internals here
-            // which breaks next 13 apps
-            // https://github.com/vercel/next.js/blob/c12c9c1f78ad384270902f0890dc4cd341408105/packages/next/src/server/web/spec-extension/response.ts#L146
-            return new Response(null, {
-              status: 200,
-              headers: {
-                'x-middleware-next': '1',
-              },
-            }) as ReturnType<H>;
-          }
+        if (req instanceof Request && isSentryTunnelRequest(req, tunnelRoute)) {
+          // Create a simple response that mimics NextResponse.next() so we don't need to import internals here
+          // which breaks next 13 apps
+          // https://github.com/vercel/next.js/blob/c12c9c1f78ad384270902f0890dc4cd341408105/packages/next/src/server/web/spec-extension/response.ts#L146
+          return new Response(null, {
+            status: 200,
+            headers: {
+              'x-middleware-next': '1',
+            },
+          }) as ReturnType<H>;
         }
       }
 
