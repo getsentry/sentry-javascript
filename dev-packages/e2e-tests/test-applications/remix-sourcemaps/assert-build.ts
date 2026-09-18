@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getArtifactBundles, getDebugIdPairs, getSourcemaps, loadMockServerResults } from '@sentry-internal/test-utils';
 
+const BUILD_DIR = 'build';
 const CLIENT_ASSETS_DIR = 'build/client/assets';
 
 // Both injectors write this assignment, so counting it per file counts injections regardless of
@@ -95,5 +96,33 @@ assert.ok(
     `Uploaded JS urls:   ${JSON.stringify(debugIdPairs.map(pair => pair.jsUrl))}`,
 );
 console.log(`${crossCheckedChunks} chunk(s) ship a debug ID that was uploaded\n`);
+
+// 4. No source map survived the build.
+//
+// The plugin defaults `filesToDeleteAfterUpload` when the app configures no source map setting, so
+// a leftover `.map` means one of the builds was never cleaned up. Remix runs a client and an SSR
+// pass with different `outDir`s, while the deletion glob is held in a promise that settles once -
+// this is what catches the second pass being left behind.
+function findSourceMaps(dir: string): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    const entryPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      return findSourceMaps(entryPath);
+    }
+
+    return entry.name.endsWith('.map') ? [entryPath] : [];
+  });
+}
+
+const leftoverSourceMaps = findSourceMaps(BUILD_DIR);
+assert.deepEqual(
+  leftoverSourceMaps,
+  [],
+  `Expected every source map to be deleted after upload, found ${leftoverSourceMaps.length}:\n${leftoverSourceMaps.join(
+    '\n',
+  )}`,
+);
+console.log('no source maps left in the build output\n');
 
 console.log('All remix source map assertions passed!');
