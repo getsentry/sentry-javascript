@@ -38,14 +38,22 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
   const plugins: Plugin[] = [makeRouteManifestPlugin(options), makeOrchestrionPlugin(options)];
 
   // Uploading from the dev server would create a new set of artifacts on every restart.
-  if (process.env.NODE_ENV === 'development' || options.sourcemaps?.disable === true) {
+  if (process.env.NODE_ENV === 'development') {
     return plugins;
   }
 
+  // Added even when source maps are disabled: the bundler plugin also applies bundle size
+  // optimizations, module metadata, the application key and release management, and it already
+  // skips the upload itself.
+  //
   // Order matters: Vite passes the already-merged config to every `config` hook, so the deletion
-  // plugin has to read `build.sourcemap` before `makeEnableSourceMapsPlugin` sets it to 'hidden' -
-  // otherwise it treats the setting as user-owned and leaves the generated maps on disk.
-  plugins.push(...makeAddSentryVitePlugin(options), makeEnableSourceMapsPlugin(options));
+  // plugin has to read `build.sourcemap` before `makeEnableSourceMapsPlugin` sets it to 'hidden'.
+  plugins.push(...makeAddSentryVitePlugin(options));
+
+  // `'disable-upload'` still generates them - debug IDs are injected and the user uploads by hand.
+  if (options.sourcemaps?.disable !== true) {
+    plugins.push(makeEnableSourceMapsPlugin(options));
+  }
 
   return plugins;
 }

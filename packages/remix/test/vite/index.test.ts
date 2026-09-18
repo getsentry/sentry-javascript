@@ -26,7 +26,11 @@ vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
   sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
 }));
 
-type CapturedSentryOptions = { sourcemaps?: { filesToDeleteAfterUpload?: Promise<unknown> } };
+type CapturedSentryOptions = {
+  applicationKey?: string;
+  bundleSizeOptimizations?: { excludeTracing?: boolean };
+  sourcemaps?: { filesToDeleteAfterUpload?: Promise<unknown> };
+};
 
 let capturedSentryOptions: CapturedSentryOptions | undefined;
 
@@ -112,10 +116,29 @@ describe('sentryRemixVitePlugin', () => {
     expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-remix-route-manifest', 'code-transformer']);
   });
 
-  it('leaves out the source map plugins when source maps are disabled', () => {
+  // Disabling source maps must not drop the bundler plugin: it also applies bundle size
+  // optimizations, module metadata, the application key and release management, and it skips the
+  // upload on its own.
+  it('only drops the source map setting plugin when source maps are disabled', () => {
     const plugins = sentryRemixVitePlugin({ sourcemaps: { disable: true } });
 
-    expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-remix-route-manifest', 'code-transformer']);
+    expect(plugins.map(plugin => plugin.name)).toEqual([
+      'sentry-remix-route-manifest',
+      'code-transformer',
+      'sentry-remix-files-to-delete-after-upload',
+      'sentry-vite-plugin',
+    ]);
+  });
+
+  it('forwards the non-source-map options when source maps are disabled', () => {
+    sentryRemixVitePlugin({
+      sourcemaps: { disable: true },
+      applicationKey: 'my-app-key',
+      bundleSizeOptimizations: { excludeTracing: true },
+    });
+
+    expect(capturedSentryOptions?.applicationKey).toBe('my-app-key');
+    expect(capturedSentryOptions?.bundleSizeOptimizations).toEqual({ excludeTracing: true });
   });
 
   it('adds an inert orchestrion plugin when `buildTimeInstrumentation` is `false`', () => {
