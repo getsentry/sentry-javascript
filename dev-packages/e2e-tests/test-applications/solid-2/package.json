@@ -1,0 +1,37 @@
+{
+  "name": "solid-2",
+  "version": "0.0.0",
+  "//": "Solid 2 on @solidjs/vite-plugin start mode: an observe build (`observe: true`), the server SDK initialized through `start.instrument` (awaited before the server graph loads — no `--import`), the browser SDK from the app's client module. server.mjs is the whole production host. @sentry/node is a direct dependency so the server build externalizes it: the plugin inlines @sentry/solid-2 (a consumer of the Solid runtime), and under pnpm a transitive @sentry/node would be bundled with it, where import-in-the-middle cannot find itself.",
+  "scripts": {
+    "clean": "pnpx rimraf node_modules pnpm-lock.yaml dist",
+    "build": "vite build",
+    "start": "PORT=3030 node server.mjs",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "type": "module",
+  "dependencies": {
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry/solid-2": "file:../../packed/sentry-solid-2-packed.tgz",
+    "@solidjs/web": "^2.0.0-rc.9",
+    "solid-js": "^2.0.0-rc.9"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.63.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@solidjs/vite-plugin": "^3.0.0-next.44",
+    "typescript": "^5.4.5",
+    "vite": "^8.1.5"
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "24.15.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "sentryTest": {
+    "optional": true
+  }
+}
