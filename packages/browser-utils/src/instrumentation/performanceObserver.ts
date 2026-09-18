@@ -59,8 +59,7 @@ export interface PerformanceLongAnimationFrameTiming extends PerformanceEntry {
 // TypeScript lib version (e.g. `NavigationType`), which leaks into and breaks consumers on older
 // TS. Keeping this local keeps web-vitals' global augmentations out of our published types.
 /**
- * The navigation types web-vitals reports a metric for. Wider than the set the
- * `browser.navigation.type` attribute uses - see `toBrowserNavigationType`.
+ * The navigation types web-vitals reports a metric for, reported as-is on `browser.navigation.type`.
  */
 export type MetricNavigationType =
   | 'navigate'
