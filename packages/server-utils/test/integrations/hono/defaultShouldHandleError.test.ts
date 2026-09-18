@@ -1,6 +1,15 @@
-import { HTTPException } from 'hono/http-exception';
 import { describe, expect, it } from 'vitest';
-import { defaultShouldHandleError } from '../../src/shared/defaultShouldHandleError';
+import { defaultShouldHandleError } from '../../../src/integrations/hono/defaultShouldHandleError';
+
+// Minimal stand-in for hono's `HTTPException` (which carries a numeric `status`), so this unit test
+// stays free of a `hono` dependency in `@sentry/server-utils`.
+class HTTPException extends Error {
+  public status: number;
+  public constructor(status: number, options?: { message?: string }) {
+    super(options?.message);
+    this.status = status;
+  }
+}
 
 describe('defaultShouldHandleError', () => {
   describe('HTTPException', () => {

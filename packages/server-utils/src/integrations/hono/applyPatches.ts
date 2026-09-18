@@ -1,6 +1,6 @@
 import { debug } from '@sentry/core';
-import type { Env, Hono } from 'hono';
-import { DEBUG_BUILD } from '../debug-build';
+import { DEBUG_BUILD } from '../../debug-build';
+import type { Env, Hono } from './honoTypes';
 import { patchAppRequest } from './patchAppRequest';
 import { patchAppUse, patchHttpMethodHandlers } from './patchAppUse';
 import { type RouteHookHandle, installRouteHookOnPrototype, wrapSubAppMiddleware } from './patchRoute';
@@ -11,10 +11,13 @@ let _routeHook: RouteHookHandle | undefined;
 /**
  * Hooks `HonoBase.prototype.route` at import time, before `sentry()` runs.
  *
- * Collecting sub-app references early ensures nothing is missed if sub-apps are mounted synchronously before the `sentry()` middleware is registered.
+ * Collecting sub-app references early ensures nothing is missed if sub-apps are mounted synchronously
+ * before the `sentry()` middleware is registered. The `Hono` class is passed in by the caller (the
+ * `@sentry/hono` SDK, where `hono` is a peer dependency) so this module never imports `hono` itself;
+ * `HonoBase.prototype` is one level above the class prototype.
  */
-export function earlyPatchHono(): void {
-  _routeHook ??= installRouteHookOnPrototype();
+export function earlyPatchHono(honoClass: { prototype: object }): void {
+  _routeHook ??= installRouteHookOnPrototype(Object.getPrototypeOf(honoClass.prototype));
 }
 
 /**
@@ -25,8 +28,10 @@ export function earlyPatchHono(): void {
  * - Retroactively instruments sub-apps mounted before `sentry()` was called.
  */
 export function applyPatches<E extends Env>(app: Hono<E>): void {
+  // `HonoBase.prototype` (where `route` lives) is two levels up from the app instance:
+  // app → Hono.prototype → HonoBase.prototype. Deriving it from the live app avoids importing `hono`.
   // Always call — installRouteHookOnPrototype is idempotent and returns existing handle when prototype already patched
-  _routeHook = installRouteHookOnPrototype();
+  _routeHook = installRouteHookOnPrototype(Object.getPrototypeOf(Object.getPrototypeOf(app)));
 
   // `app.use` (instance own property) — wraps middleware at registration time on this instance.
   patchAppUse(app);
