@@ -34,6 +34,9 @@ export const MCP_CLIENT_TITLE_ATTRIBUTE = 'mcp.client.title';
 /** Version of the MCP client application */
 export const MCP_CLIENT_VERSION_ATTRIBUTE = 'mcp.client.version';
 
+/** Registered OAuth client name. Sentry extension, independent of the MCP client implementation name. */
+export const MCP_AUTH_CLIENT_NAME_ATTRIBUTE = 'mcp.auth.client.name';
+
 // =============================================================================
 // SERVER ATTRIBUTES
 // =============================================================================

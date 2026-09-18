@@ -118,8 +118,19 @@ function interceptTransportStart(transport: MCPTransport, beforeStart: () => voi
  * await server.connect(transport);
  * ```
  *
+ * @example
+ * ```typescript
+ * // Read application-defined metadata supplied by the authentication middleware.
+ * const server = Sentry.wrapMcpServerWithSentry(mcpServer, {
+ *   getOAuthClientName: authInfo => {
+ *     const name = authInfo?.extra?.clientName;
+ *     return typeof name === 'string' ? name : undefined;
+ *   },
+ * });
+ * ```
+ *
  * @param mcpServerInstance - MCP server instance to instrument
- * @param options - Optional configuration for recording inputs and outputs
+ * @param options - Optional capture and OAuth client attribution configuration
  * @returns Instrumented server instance (same reference)
  */
 export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, options?: McpServerWrapperOptions): S {
@@ -132,7 +143,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
   }
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
-  const captureOptions: McpServerWrapperOptions = { ...options };
+  const wrapperOptions: McpServerWrapperOptions = { ...options };
 
   fill(serverInstance, 'connect', originalConnect => {
     return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
@@ -143,7 +154,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
         }
 
         isTransportInstrumented = true;
-        instrumentTransport(transport, captureOptions);
+        instrumentTransport(transport, wrapperOptions);
       };
       const restoreStart = interceptTransportStart(transport, instrumentTransportOnce);
 
