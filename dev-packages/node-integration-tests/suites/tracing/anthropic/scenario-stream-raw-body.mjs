@@ -73,6 +73,13 @@ async function run() {
 
     // 1) Drain the raw `Response` body, never touching the SDK `Stream`
     const response = await client.messages.create({ ...params }).asResponse();
+
+    // Wrapping the body must not disturb it, or `text()`, `arrayBuffer()` and `clone()` would throw
+    // on a response the caller has not read yet.
+    if (response.bodyUsed) {
+      throw new Error('raw Response body was consumed before the caller read it');
+    }
+
     for await (const _ of response.body) {
       void _;
     }

@@ -336,36 +336,44 @@ export function instrumentRawSseBody(
     endStreamSpan(span, state, recordOutputs);
   };
 
-  const reader = body.getReader();
-  const instrumented = new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      try {
-        const { done, value } = await reader.read();
-        if (done) {
-          settle();
-          controller.close();
-          return;
+  // Acquired on the first read, never at wrap time: taking a reader disturbs the body, which would
+  // make `response.text()`, `arrayBuffer()` and `clone()` throw on a response nobody has read yet.
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+
+  const instrumented = new ReadableStream<Uint8Array>(
+    {
+      async pull(controller) {
+        try {
+          reader ??= body.getReader();
+          const { done, value } = await reader.read();
+          if (done) {
+            settle();
+            controller.close();
+            return;
+          }
+          if (!claimed) {
+            consume(value);
+          }
+          controller.enqueue(value);
+        } catch (error) {
+          settle(error);
+          controller.error(error);
         }
-        if (!claimed) {
-          consume(value);
-        }
-        controller.enqueue(value);
-      } catch (error) {
-        settle(error);
-        controller.error(error);
-      }
+      },
+      async cancel(reason) {
+        settle();
+        await (reader ? reader.cancel(reason) : body.cancel(reason));
+      },
     },
-    async cancel(reason) {
-      settle();
-      await reader.cancel(reason);
-    },
-  });
+    // A high-water mark of 0 keeps the stream from pulling a chunk before anyone asks for one. The
+    // default of 1 would read ahead the moment we wrap, disturbing a body the caller may never read.
+    { highWaterMark: 0 },
+  );
 
   try {
     // `body` is a prototype getter, so an own data property shadows it for every later read.
     Object.defineProperty(response, 'body', { value: instrumented, configurable: true });
   } catch {
-    reader.releaseLock();
     return undefined;
   }
 
