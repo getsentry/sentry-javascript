@@ -233,6 +233,7 @@ export function sentryWebpackPluginFactory({
       ? createComponentNameAnnotateHooks(
           options.reactComponentAnnotation?.ignoredComponents || [],
           !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
+          { logger },
         )
       : undefined;
 

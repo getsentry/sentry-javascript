@@ -500,25 +500,31 @@ describe('createOxcComponentNameAnnotateHooks', () => {
     expect(result?.code.toString()).toContain(`data-sentry-component="App"`);
   });
 
-  it('returns null without parsing when the file cannot contain annotations', async () => {
-    const parse = vi.fn(parseAstAsync);
-    const hooks = createOxcComponentNameAnnotateHooks([], async () => parse);
+  it('returns null without loading a parser when the file cannot contain annotations', async () => {
+    const getParseAstAsync = vi.fn(async () => parseAstAsync);
+    const hooks = createOxcComponentNameAnnotateHooks([], getParseAstAsync);
 
     await expect(hooks.transform('const value = 1;', '/src/app.js')).resolves.toBeNull();
-    expect(parse).not.toHaveBeenCalled();
+    expect(getParseAstAsync).not.toHaveBeenCalled();
   });
 
-  it('returns undefined when parsing fails so callers can fall back to Babel', async () => {
+  it('returns null when the parser cannot be loaded', async () => {
+    const hooks = createOxcComponentNameAnnotateHooks([], async () => null);
+
+    await expect(hooks.transform('export const App = () => <Custom />;', '/src/app.jsx')).resolves.toBeNull();
+  });
+
+  it('returns null when parsing fails', async () => {
     const hooks = createOxcComponentNameAnnotateHooks([], async () => {
       throw new Error('parser unavailable');
     });
 
-    await expect(hooks.transform('export const App = () => <Custom />;', '/src/app.jsx')).resolves.toBeUndefined();
+    await expect(hooks.transform('export const App = () => <Custom />;', '/src/app.jsx')).resolves.toBeNull();
   });
 
-  it('returns undefined when oxc-parser reports a syntax error so callers can fall back to Babel', async () => {
+  it('returns null when oxc-parser reports a syntax error', async () => {
     const hooks = createOxcComponentNameAnnotateHooks([], getOxcParseAstAsync);
 
-    await expect(hooks.transform('export const App = () => <Custom>;', '/src/app.tsx')).resolves.toBeUndefined();
+    await expect(hooks.transform('export const App = () => <Custom>;', '/src/app.tsx')).resolves.toBeNull();
   });
 });
