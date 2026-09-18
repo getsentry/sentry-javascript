@@ -5,8 +5,9 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default async function globalSetup() {
-  // Start PostgreSQL via Docker Compose. `--wait` blocks until the healthcheck
-  // in docker-compose.yml passes, so the Deno app can connect immediately.
+  // Start MySQL, Postgres and Redis via Docker Compose. `--wait` blocks
+  // until the healthchecks in docker-compose.yml pass, so the Deno app can
+  // connect immediately.
   execSync('docker compose up -d --wait', {
     cwd: __dirname,
     stdio: 'inherit',
