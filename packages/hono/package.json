@@ -77,7 +77,7 @@
     "@sentry/conventions": "^0.23.0"
   },
   "peerDependencies": {
-    "@cloudflare/workers-types": "^4.x",
+    "@cloudflare/workers-types": "^4.x || ^5.x",
     "@hono/node-server": "^1.x || ^2.x",
     "@sentry/bun": "11.0.0-rc.0",
     "@sentry/cloudflare": "11.0.0-rc.0",
