@@ -14,7 +14,6 @@ export default {
       {
         options: {
           dsn: env.SENTRY_DSN,
-          traceLifecycle: 'static',
           tracesSampleRate: 1,
           enableOpenTelemetrySetup: true,
         },
