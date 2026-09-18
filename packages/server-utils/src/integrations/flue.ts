@@ -32,10 +32,11 @@ const _flueIntegration = ((options: FlueOptions = {}) => {
       try {
         instrument(createFlueInstrumentation(options));
       } catch (error) {
-        // A repeated `instrument()` throws `InstrumentationAlreadyInstalledError`, which is what an
-        // app that also registers manually will hit. Its own registration is already in place, so
-        // there is nothing to recover.
-        DEBUG_BUILD && debug.log('[Flue] auto-registration skipped:', error);
+        // Expected when the app registers manually too. Anything else is a real failure.
+        if ((error as Error | undefined)?.name !== 'InstrumentationAlreadyInstalledError') {
+          throw error;
+        }
+        DEBUG_BUILD && debug.log('[Flue] already instrumented by the app; skipping auto-registration');
       }
     },
   };

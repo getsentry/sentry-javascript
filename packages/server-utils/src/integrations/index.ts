@@ -1,6 +1,5 @@
 import { amqplibIntegration } from './amqplib';
 import { dataloaderIntegration } from './dataloader';
-import { flueIntegration } from './flue';
 import { knexIntegration } from './knex';
 import { mongoIntegration } from './mongodb';
 import { graphqlIntegration } from './graphql';
@@ -55,7 +54,6 @@ export function getTracingIntegrations(): Integration[] {
     langChainIntegration(),
     langGraphIntegration(),
     mastraIntegration(),
-    flueIntegration(),
     vercelAIIntegration(),
     openAIIntegration(),
     anthropicAIIntegration(),

@@ -1,5 +1,4 @@
 import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import MagicString from 'magic-string';
 
@@ -11,8 +10,7 @@ const FLUE_MODULE = '@flue/runtime';
 
 // The bundled `@sentry/server-utils` Flue integration module (ESM build — the only one a
 // worker loads). It reads `@flue/runtime` off the global marker this provider populates,
-// because `instrument()` registers into module-scope state that cannot be reached from a
-// diagnostics channel.
+// because `instrument()` registers into module-scope state no channel payload can carry.
 const FLUE_INTEGRATION_ID = /@sentry\/server-utils\/build\/esm\/integrations\/flue\.js$/;
 
 /** Whether `id` is the Sentry Flue integration module the provider injects into. */
@@ -22,16 +20,13 @@ export function isFlueIntegrationModuleId(id: string): boolean {
 }
 
 /**
- * Splices a static `import * as … from '@flue/runtime'` into Sentry's own Flue integration
- * module and stashes the namespace on the global orchestrion marker.
+ * Splices a static `import * as … from '@flue/runtime'` into Sentry's own Flue integration module
+ * and exposes the namespace on the global orchestrion marker.
  *
- * Flue is registered rather than patched: `instrument()` writes into module-scope state, so
- * instrumenting it needs a reference to that module's own binding, and no channel payload
- * carries one. On Node the user supplies it by calling `instrument()` themselves; in a
- * bundled worker this provider supplies it at build time instead, so the integration can
- * register on its own. The import is static (statically analyzable, no lazy `import()`),
- * lands in Sentry's module rather than the user's code, and is only emitted when the package
- * actually resolves; if it is absent the marker stays empty and the integration no-ops.
+ * Flue is registered rather than patched — `instrument()` writes into module-scope state — so
+ * instrumenting it needs that module's own binding, and no channel payload carries one. On Node the
+ * user passes it by calling `instrument()` themselves; a bundled worker has no `node_modules` to
+ * resolve from, so it is supplied at build time instead.
  */
 export function sentryFlueRuntimeProviderPlugin(): {
   name: string;
@@ -44,24 +39,19 @@ export function sentryFlueRuntimeProviderPlugin(): {
     name: 'sentry-cloudflare-flue-runtime-provider',
 
     configResolved(config: { root: string }): void {
-      // Resolved at build time (Node), so none of this ships to the worker. `@flue/runtime` is
-      // ESM-only with no `require` condition, so `createRequire().resolve()` throws
-      // `ERR_PACKAGE_PATH_NOT_EXPORTED` on it — resolve through the ESM resolver instead, and only
-      // fall back to CJS for hosts where `import.meta.resolve` is unavailable.
-      const from = pathToFileURL(resolve(config.root, 'noop.js'));
+      // Build-time only; never ships to the worker. `@flue/runtime` is ESM-only, so an installed
+      // copy throws `ERR_PACKAGE_PATH_NOT_EXPORTED` and only a missing one throws `MODULE_NOT_FOUND`.
+      // Not `import.meta.resolve`: `parentURL` is ignored without a flag, and it is absent from the
+      // CJS build.
       try {
-        import.meta.resolve(FLUE_MODULE, from.href);
-      } catch {
-        try {
-          createRequire(from).resolve(FLUE_MODULE);
-        } catch {
+        createRequire(resolve(config.root, 'noop.js')).resolve(FLUE_MODULE);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException | undefined)?.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
           return;
         }
       }
-      // A getter, not a snapshot: the snippet is prepended to Sentry's module, which the bundler
-      // may evaluate before `@flue/runtime`'s namespace is initialized. Assigning the namespace
-      // there stores `undefined` — the key appears on `providedModules` with nothing behind it.
-      // Reading it through a getter defers that to first access, by which point it is populated.
+      // A getter where Mastra assigns: the bundler may evaluate Sentry's module before
+      // `@flue/runtime` is initialized, and assigning there would store `undefined`.
       providerSnippet =
         `import * as ${PROVIDER_IDENTIFIER} from '${FLUE_MODULE}';\n` +
         '(globalThis.__SENTRY_ORCHESTRION__ = globalThis.__SENTRY_ORCHESTRION__ || {});\n' +

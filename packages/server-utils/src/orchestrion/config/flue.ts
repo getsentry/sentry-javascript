@@ -1,5 +1,4 @@
 import type { InstrumentationConfig } from '../apmTypes';
-import { getModuleNames } from './module-names';
 import { registrationOnly } from './registration-only';
 
 /**
@@ -9,7 +8,5 @@ import { registrationOnly } from './registration-only';
  * like `@sentry/cloudflare`.
  */
 export const flueConfig = [
-  registrationOnly({ name: '@flue/runtime', versionRange: '>=2.0.0', filePath: 'dist/index.mjs' }),
+  registrationOnly({ name: '@flue/runtime', versionRange: '>=2.0.0 <3.0.0', filePath: 'dist/index.mjs' }),
 ] satisfies InstrumentationConfig[];
-
-export const flueModuleNames = getModuleNames(flueConfig);
