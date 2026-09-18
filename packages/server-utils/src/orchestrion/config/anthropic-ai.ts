@@ -26,6 +26,20 @@ export const anthropicAiConfig = [
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
     functionQuery: { className: 'Messages', methodName: 'stream', kind: 'Sync' as const },
   })),
+  // `Stream.fromSSEResponse` is the one place the SDK's `Stream` and the raw `Response` meet. Hooking
+  // it lets the span survive the consumption paths the `Stream`'s async iterator never sees — chiefly
+  // `.asResponse()`/`.withResponse()`, where the caller drains `response.body` itself.
+  {
+    channelName: 'sse-stream',
+    module: {
+      name: '@anthropic-ai/sdk',
+      versionRange: '>=0.19.2 <1',
+      // `class Stream` sits at the package root up to 0.5x and under `core/` from 0.59 on, where the
+      // root file is left behind as a re-export shim that matches nothing.
+      filePath: /^(?:core\/)?streaming\.(?:js|mjs)$/,
+    },
+    functionQuery: { className: 'Stream', methodName: 'fromSSEResponse', kind: 'Sync' as const },
+  },
 ] satisfies InstrumentationConfig[];
 
 export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
@@ -33,4 +47,5 @@ export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
 export const anthropicAiChannels = {
   ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',
   ANTHROPIC_MESSAGES_STREAM: 'orchestrion:@anthropic-ai/sdk:messages-stream',
+  ANTHROPIC_SSE_STREAM: 'orchestrion:@anthropic-ai/sdk:sse-stream',
 } as const;

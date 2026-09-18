@@ -6,8 +6,10 @@ import { mapAnthropicErrorToStatusMessage } from './utils';
 
 /**
  * State object used to accumulate information from a stream of Anthropic AI events.
+ *
+ * @internal Exported for the SSE body wrapper.
  */
-interface StreamingState {
+export interface StreamingState {
   /** Collected response text fragments (for output recording). */
   responseTexts: string[];
   /** Reasons for finishing the response, as reported by the API. */
@@ -35,6 +37,22 @@ interface StreamingState {
       inputJsonParts: string[];
     }
   >;
+}
+
+/** @internal Exported for the SSE body wrapper. */
+export function createStreamingState(): StreamingState {
+  return {
+    responseTexts: [],
+    finishReasons: [],
+    responseId: '',
+    responseModel: '',
+    promptTokens: undefined,
+    completionTokens: undefined,
+    cacheCreationInputTokens: undefined,
+    cacheReadInputTokens: undefined,
+    toolCalls: [],
+    activeToolBlocks: {},
+  };
 }
 
 /**
@@ -165,12 +183,14 @@ function handleContentBlockStop(event: AnthropicAiStreamingEvent, state: Streami
 
 /**
  * Processes an event
+ *
+ * @internal Exported for the SSE body wrapper.
  * @param event - The event to process
  * @param state - The state of the streaming process
  * @param recordOutputs - Whether to record outputs
  * @param span - The span to update
  */
-function processEvent(
+export function processEvent(
   event: AnthropicAiStreamingEvent,
   state: StreamingState,
   recordOutputs: boolean,
@@ -199,24 +219,15 @@ function processEvent(
  * Instruments an async iterable stream of Anthropic events, updates the span with
  * streaming attributes and (optionally) the aggregated output text, and yields
  * each event from the input stream unchanged.
+ *
+ * @internal Exported for the Anthropic instrumentation.
  */
 export async function* instrumentAsyncIterableStream(
   stream: AsyncIterable<AnthropicAiStreamingEvent>,
   span: Span,
   recordOutputs: boolean,
 ): AsyncGenerator<AnthropicAiStreamingEvent, void, unknown> {
-  const state: StreamingState = {
-    responseTexts: [],
-    finishReasons: [],
-    responseId: '',
-    responseModel: '',
-    promptTokens: undefined,
-    completionTokens: undefined,
-    cacheCreationInputTokens: undefined,
-    cacheReadInputTokens: undefined,
-    toolCalls: [],
-    activeToolBlocks: {},
-  };
+  const state = createStreamingState();
 
   try {
     for await (const event of stream) {
@@ -230,24 +241,15 @@ export async function* instrumentAsyncIterableStream(
 
 /**
  * Instruments a MessageStream by registering event handlers and preserving the original stream API.
+ *
+ * @internal Exported for the Anthropic instrumentation.
  */
 export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void }>(
   stream: R,
   span: Span,
   recordOutputs: boolean,
 ): R {
-  const state: StreamingState = {
-    responseTexts: [],
-    finishReasons: [],
-    responseId: '',
-    responseModel: '',
-    promptTokens: undefined,
-    completionTokens: undefined,
-    cacheCreationInputTokens: undefined,
-    cacheReadInputTokens: undefined,
-    toolCalls: [],
-    activeToolBlocks: {},
-  };
+  const state = createStreamingState();
 
   stream.on('streamEvent', (event: unknown) => {
     processEvent(event as AnthropicAiStreamingEvent, state, recordOutputs, span);
