@@ -37,6 +37,21 @@ interface StreamingState {
   >;
 }
 
+function createStreamingState(): StreamingState {
+  return {
+    responseTexts: [],
+    finishReasons: [],
+    responseId: '',
+    responseModel: '',
+    promptTokens: undefined,
+    completionTokens: undefined,
+    cacheCreationInputTokens: undefined,
+    cacheReadInputTokens: undefined,
+    toolCalls: [],
+    activeToolBlocks: {},
+  };
+}
+
 /**
  * Checks if an event is an error event
  * @param event - The event to process
@@ -205,18 +220,7 @@ export async function* instrumentAsyncIterableStream(
   span: Span,
   recordOutputs: boolean,
 ): AsyncGenerator<AnthropicAiStreamingEvent, void, unknown> {
-  const state: StreamingState = {
-    responseTexts: [],
-    finishReasons: [],
-    responseId: '',
-    responseModel: '',
-    promptTokens: undefined,
-    completionTokens: undefined,
-    cacheCreationInputTokens: undefined,
-    cacheReadInputTokens: undefined,
-    toolCalls: [],
-    activeToolBlocks: {},
-  };
+  const state = createStreamingState();
 
   try {
     for await (const event of stream) {
@@ -236,18 +240,7 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   span: Span,
   recordOutputs: boolean,
 ): R {
-  const state: StreamingState = {
-    responseTexts: [],
-    finishReasons: [],
-    responseId: '',
-    responseModel: '',
-    promptTokens: undefined,
-    completionTokens: undefined,
-    cacheCreationInputTokens: undefined,
-    cacheReadInputTokens: undefined,
-    toolCalls: [],
-    activeToolBlocks: {},
-  };
+  const state = createStreamingState();
 
   stream.on('streamEvent', (event: unknown) => {
     processEvent(event as AnthropicAiStreamingEvent, state, recordOutputs, span);
@@ -276,4 +269,109 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   });
 
   return stream;
+}
+
+/** Handle returned by {@link instrumentRawSseBody} for the `Stream`-iterator path to claim the span. */
+export interface RawSseBodyHandle {
+  /** Called when the SDK `Stream`'s async iterator takes over, so the body wrapper stays a pass-through. */
+  claim: () => void;
+}
+
+/**
+ * Replace `response.body` with a pass-through that accumulates the SSE frames flowing through it and
+ * ends `span` when the body is exhausted, cancelled or errors.
+ *
+ * Every way of draining an Anthropic stream bottoms out in `response.body`: the SDK `Stream`'s async
+ * iterator, `tee()`, and a caller reading `.asResponse()`/`.withResponse()`'s raw `Response`. Only the
+ * first of those is visible to {@link instrumentAsyncIterableStream}, so without this the other two end
+ * no span at all. When the iterator path does run it claims the span and this wrapper goes quiet, so a
+ * chunk is never accounted for twice.
+ *
+ * Returns `undefined` — leaving the response untouched — for a body we can't wrap.
+ */
+export function instrumentRawSseBody(
+  response: { body?: unknown },
+  span: Span,
+  recordOutputs: boolean,
+): RawSseBodyHandle | undefined {
+  const body = response.body as ReadableStream<Uint8Array> | null | undefined;
+  if (!body || typeof body.getReader !== 'function') {
+    return undefined;
+  }
+
+  const state = createStreamingState();
+  const decoder = new TextDecoder();
+  let buffered = '';
+  let claimed = false;
+  let settled = false;
+
+  // Never lets an accumulation failure reach the caller: their stream matters more than our attributes.
+  const consume = (chunk: Uint8Array): void => {
+    try {
+      buffered += decoder.decode(chunk, { stream: true });
+
+      let newline = buffered.indexOf('\n');
+      while (newline !== -1) {
+        const line = buffered.slice(0, newline).trim();
+        buffered = buffered.slice(newline + 1);
+        // An SSE frame's `event:` line only repeats the `type` already carried by the JSON payload.
+        if (line.startsWith('data:')) {
+          processEvent(JSON.parse(line.slice(5)) as AnthropicAiStreamingEvent, state, recordOutputs, span);
+        }
+        newline = buffered.indexOf('\n');
+      }
+    } catch {
+      // A frame we can't decode or parse is not worth breaking the caller's stream over.
+    }
+  };
+
+  const settle = (error?: unknown): void => {
+    if (settled || claimed) {
+      return;
+    }
+    settled = true;
+    if (error !== undefined) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    }
+    endStreamSpan(span, state, recordOutputs);
+  };
+
+  const reader = body.getReader();
+  const instrumented = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          settle();
+          controller.close();
+          return;
+        }
+        if (!claimed) {
+          consume(value);
+        }
+        controller.enqueue(value);
+      } catch (error) {
+        settle(error);
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      settle();
+      await reader.cancel(reason);
+    },
+  });
+
+  try {
+    // `body` is a prototype getter, so an own data property shadows it for every later read.
+    Object.defineProperty(response, 'body', { value: instrumented, configurable: true });
+  } catch {
+    reader.releaseLock();
+    return undefined;
+  }
+
+  return {
+    claim: () => {
+      claimed = true;
+    },
+  };
 }

@@ -265,6 +265,35 @@ describe('Anthropic integration', () => {
     });
   });
 
+  createEsmAndCjsTests(__dirname, 'scenario-stream-raw-body.mjs', 'instrument-raw-body.mjs', (createRunner, test) => {
+    test('ends the span when a stream is drained through the raw Response body', async () => {
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const genAiSpans = container.items.filter(span => span.attributes['sentry.op']?.value === 'gen_ai.chat');
+            // Two calls, one drained via `.asResponse()` and one via the SDK `Stream`. Both must end,
+            // and both must carry the response attributes accumulated off the SSE frames.
+            expect(genAiSpans).toHaveLength(2);
+            for (const span of genAiSpans) {
+              expect(span.name).toBe('chat claude-3-haiku-20240307');
+              expect(span.status).toBe('ok');
+              expect(span.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+              expect(span.attributes[GEN_AI_RESPONSE_ID].value).toBe('msg_raw_body');
+              expect(span.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('claude-3-haiku-20240307');
+              expect(span.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
+              expect(span.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('Raw body!');
+              expect(span.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
+              expect(span.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
+              expect(span.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
+            }
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('streams record response text when PII true', async () => {
       await createRunner()

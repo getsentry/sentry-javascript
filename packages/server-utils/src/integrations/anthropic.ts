@@ -4,14 +4,21 @@ import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
+  getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
+  isObjectLike,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
-import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
+import type { RawSseBodyHandle } from '../ai/anthropic-ai/streaming';
+import {
+  instrumentAsyncIterableStream,
+  instrumentMessageStream,
+  instrumentRawSseBody,
+} from '../ai/anthropic-ai/streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -41,6 +48,14 @@ interface AnthropicChannelContext {
   result?: unknown;
 }
 
+// Spans opened for `messages.create({ stream: true })`, i.e. the ones whose stream is drained through
+// the SDK's `Stream`. `messages.stream()` spans are excluded: `instrumentMessageStream` already owns
+// when those end, so the raw-body wrapper must keep its hands off them.
+const asyncIterableStreamSpans = new WeakSet<Span>();
+
+// The `Stream` a raw-body wrapper was installed for, so the iterator path can claim the span.
+const rawSseBodyHandles = new WeakMap<object, RawSseBodyHandle>();
+
 const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
@@ -54,7 +69,7 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
   for (const { channel, operation, stream } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
-      data => createGenAiSpan(data, operation, options),
+      data => createGenAiSpan(data, operation, stream, options),
       {
         beforeSpanEnd: (span, data) => {
           addResponseAttributes(
@@ -67,6 +82,34 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
       },
     );
   }
+
+  subscribeToSseStream(options);
+}
+
+/**
+ * Wrap the raw `Response` behind every SSE stream so the span ends no matter how the caller drains it.
+ *
+ * `Stream.fromSSEResponse` runs inside the traced `messages.create` call, so the active span here is
+ * the `gen_ai` span that call opened — that is what links a response to its span, since nothing on the
+ * `Stream` the SDK hands back points at the `Response` it was built from.
+ */
+function subscribeToSseStream(options: AnthropicAiOptions): void {
+  const { recordOutputs } = resolveAIRecordingOptions(options);
+
+  diagnosticsChannel.tracingChannel<AnthropicChannelContext>(CHANNELS.ANTHROPIC_SSE_STREAM).end.subscribe(message => {
+    const data = message as AnthropicChannelContext;
+    const span = getActiveSpan();
+    const stream = data.result;
+    const response = data.arguments?.[0];
+    if (!span || !asyncIterableStreamSpans.has(span) || !isObjectLike(stream) || !isObjectLike(response)) {
+      return;
+    }
+
+    const handle = instrumentRawSseBody(response, span, recordOutputs);
+    if (handle) {
+      rawSseBodyHandles.set(stream, handle);
+    }
+  });
 }
 
 /**
@@ -76,6 +119,7 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
 function createGenAiSpan(
   data: AnthropicChannelContext,
   operation: string,
+  stream: StreamMode,
   options: AnthropicAiOptions,
 ): Span | undefined {
   const args = data.arguments ?? [];
@@ -114,6 +158,10 @@ function createGenAiSpan(
     addPrivateRequestAttributes(span, params);
   }
 
+  if (stream === 'async-iterable') {
+    asyncIterableStreamSpans.add(span);
+  }
+
   return span;
 }
 
@@ -146,9 +194,13 @@ function wrapStreamResult(
   const result = data.result;
 
   if (stream === 'async-iterable' && isAsyncIterable(result)) {
+    const handle = rawSseBodyHandles.get(result);
     const iterate = result[Symbol.asyncIterator].bind(result);
     const instrumented = instrumentAsyncIterableStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs);
-    result[Symbol.asyncIterator] = () => instrumented;
+    result[Symbol.asyncIterator] = () => {
+      handle?.claim();
+      return instrumented;
+    };
     return true;
   }
 
