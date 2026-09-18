@@ -49,7 +49,11 @@ function resolveOriginalStorage(
 }
 
 type MethodWrapperOptions = {
-  spanName?: string;
+  /**
+   * The span name, or a resolver called with the RPC metadata of the current call.
+   * Returning `undefined` skips the span and only captures errors.
+   */
+  spanName?: string | ((rpcMeta: SerializedTraceData | undefined) => string | undefined);
   spanOp?: string;
   options: CloudflareOptions;
   context: ExecutionContext | InstrumentedDurableObjectState;
@@ -110,6 +114,9 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             rpcMeta = extracted.rpcMeta;
           }
 
+          const spanName =
+            typeof wrapperOptions.spanName === 'function' ? wrapperOptions.spanName(rpcMeta) : wrapperOptions.spanName;
+
           const wrappedFunction = (scope: Scope): unknown | Promise<unknown> => {
             // In certain situations, the passed context can become undefined.
             // For example, for Astro while prerendering pages at build time.
@@ -137,7 +144,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
             }
 
             const clientToDispose = scopeClient;
-            const methodName = wrapperOptions.spanName || 'unknown';
+            const methodName = spanName || 'unknown';
 
             const teardown = async (): Promise<void> => {
               if (startNewTrace && storage) {
@@ -162,7 +169,7 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
               throw e;
             };
 
-            if (!wrapperOptions.spanName) {
+            if (!spanName) {
               try {
                 if (callback) {
                   callback(...args);
