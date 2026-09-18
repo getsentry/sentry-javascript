@@ -108,6 +108,7 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
   firebaseIntegration,
+  honoIntegration,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
