@@ -7,6 +7,11 @@ function waitForPageloadSpan() {
   });
 }
 
+// The throw still bubbles to the page after the worker forwards it, but
+// the integration makes globalHandlers skip that frameless copy. So the
+// first error event to arrive must be the forwarded one.
+const WORKER_MECHANISM = 'auto.browser.web_worker.onerror';
+
 test('captures an error with debug ids and pageload trace context', async ({ page }) => {
   const errorEventPromise = waitForError('browser-webworker-vite', async event => {
     return !event.type && !!event.exception?.values?.[0];
@@ -24,9 +29,16 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
   const pageloadSpan = await pageloadSpanPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker');
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker-.+\.js$/);
+  expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe(WORKER_MECHANISM);
+  expect(errorEvent.exception?.values?.[0]?.type).toBe('Error');
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught error in worker');
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toEqual(
+    expect.arrayContaining([expect.objectContaining({ filename: expect.stringMatching(/worker-.+\.js$/) })]),
+  );
+
+  expect(errorEvent.contexts?.worker).toEqual({
+    filename: expect.stringMatching(/worker-.+\.js$/),
+  });
 
   expect(errorEvent.transaction).toBe('/');
   expect(pageloadSpan.name).toBe('Pageload');
@@ -50,6 +62,69 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
       },
     ],
   });
+});
+
+test('emits exactly one event for an uncaught worker error', async ({ page }) => {
+  const mechanisms: Array<string | undefined> = [];
+  // Never resolves. It only records every error event that arrives, so
+  // the global handler's copy of a throw would show up here.
+  void waitForError('browser-webworker-vite', event => {
+    if (!event.type && event.exception?.values?.[0]) {
+      mechanisms.push(event.exception.values[0].mechanism?.type);
+    }
+    return false;
+  });
+
+  const firstErrorPromise = waitForError('browser-webworker-vite', event => {
+    return event.exception?.values?.[0]?.value === 'Uncaught error in worker';
+  });
+  const secondErrorPromise = waitForError('browser-webworker-vite', event => {
+    return event.exception?.values?.[0]?.value === 'Uncaught error in worker 2';
+  });
+
+  await page.goto('/');
+
+  await page.locator('#trigger-error').click();
+  await firstErrorPromise;
+
+  // The worker cancels the native error event, so page listeners on the
+  // worker object only see the replayed one, which carries the error object.
+  expect(await page.evaluate(() => (window as any).workerErrorEvents)).toEqual([
+    { message: 'Uncaught Error: Uncaught error in worker', hasError: true },
+  ]);
+
+  // A bubbled copy of the first throw would have been reported before the
+  // second worker's event, so its absence here shows it never happened.
+  await page.locator('#trigger-error-2').click();
+  await secondErrorPromise;
+
+  expect(mechanisms).toEqual([WORKER_MECHANISM, WORKER_MECHANISM]);
+});
+
+test('locates a thrown primitive by its ErrorEvent position', async ({ page }) => {
+  const errorEventPromise = waitForError('browser-webworker-vite', event => {
+    return event.exception?.values?.[0]?.value === 'Primitive thrown in worker';
+  });
+
+  await page.goto('/');
+
+  await page.locator('#trigger-primitive-error').click();
+
+  const errorEvent = await errorEventPromise;
+  const exception = errorEvent.exception?.values?.[0];
+
+  expect(exception?.mechanism?.type).toBe(WORKER_MECHANISM);
+  expect(exception?.stacktrace?.frames).toEqual([
+    {
+      filename: expect.stringMatching(/worker-.+\.js$/),
+      lineno: expect.any(Number),
+      colno: expect.any(Number),
+      function: '?',
+      in_app: true,
+    },
+  ]);
+  expect(exception?.stacktrace?.frames?.[0]?.lineno).toBeGreaterThan(0);
+  expect(exception?.stacktrace?.frames?.[0]?.colno).toBeGreaterThan(0);
 });
 
 test("user worker message handlers don't trigger for sentry messages", async ({ page }) => {
@@ -90,9 +165,11 @@ test('captures an error from the second eagerly added worker', async ({ page }) 
   const pageloadSpan = await pageloadSpanPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker 2');
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker2-.+\.js$/);
+  expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe(WORKER_MECHANISM);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught error in worker 2');
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toEqual(
+    expect.arrayContaining([expect.objectContaining({ filename: expect.stringMatching(/worker2-.+\.js$/) })]),
+  );
 
   expect(errorEvent.transaction).toBe('/');
   expect(pageloadSpan.name).toBe('Pageload');
@@ -135,9 +212,11 @@ test('captures an error from the third lazily added worker', async ({ page }) =>
   const pageloadSpan = await pageloadSpanPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker 3');
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker3-.+\.js$/);
+  expect(errorEvent.exception?.values?.[0]?.mechanism?.type).toBe(WORKER_MECHANISM);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught error in worker 3');
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toEqual(
+    expect.arrayContaining([expect.objectContaining({ filename: expect.stringMatching(/worker3-.+\.js$/) })]),
+  );
 
   expect(errorEvent.transaction).toBe('/');
   expect(pageloadSpan.name).toBe('Pageload');
@@ -165,7 +244,7 @@ test('captures an error from the third lazily added worker', async ({ page }) =>
 
 test('worker errors are not tagged as third-party when module metadata is present', async ({ page }) => {
   const errorEventPromise = waitForError('browser-webworker-vite', async event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Uncaught Error: Uncaught error in worker';
+    return !event.type && event.exception?.values?.[0]?.value === 'Uncaught error in worker';
   });
 
   await page.goto('/');

@@ -23,6 +23,14 @@ const worker2 = new MyWorker2();
 const webWorkerIntegration = Sentry.webWorkerIntegration({ worker: [worker, worker2] });
 Sentry.addIntegration(webWorkerIntegration);
 
+worker.addEventListener('error', event => {
+  // this is part of the test, do not delete
+  (window as any).workerErrorEvents = [
+    ...((window as any).workerErrorEvents ?? []),
+    { message: event.message, hasError: !!event.error },
+  ];
+});
+
 worker.addEventListener('message', event => {
   // this is part of the test, do not delete
   console.log('received message from worker:', event.data.msg);
@@ -31,6 +39,12 @@ worker.addEventListener('message', event => {
 document.querySelector<HTMLButtonElement>('#trigger-error')!.addEventListener('click', () => {
   worker.postMessage({
     msg: 'TRIGGER_ERROR',
+  });
+});
+
+document.querySelector<HTMLButtonElement>('#trigger-primitive-error')!.addEventListener('click', () => {
+  worker.postMessage({
+    msg: 'TRIGGER_PRIMITIVE_ERROR',
   });
 });
 

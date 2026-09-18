@@ -156,7 +156,10 @@ export function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
   };
 }
 
-function _enhanceEventWithInitialFrame(
+/**
+ * Adds a frame built from the error location when the event has none.
+ */
+export function _enhanceEventWithInitialFrame(
   event: Event,
   url: string | undefined,
   lineno: number | undefined,
