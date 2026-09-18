@@ -30,6 +30,8 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'anthropicAIIntegration', modules: ['@anthropic-ai/sdk'] },
   { exportName: 'googleGenAIIntegration', modules: ['@google/genai'] },
   { exportName: 'mistralAIIntegration', modules: ['@mistralai/mistralai'] },
+  { exportName: 'groqIntegration', modules: ['groq-sdk'] },
+  { exportName: 'togetherAIIntegration', modules: ['together-ai'] },
   { exportName: 'vercelAIIntegration', modules: ['ai'] },
   {
     exportName: 'langChainIntegration',

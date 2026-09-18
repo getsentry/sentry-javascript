@@ -16883,6 +16883,11 @@ gray-matter@^4.0.3:
     section-matter "^1.0.0"
     strip-bom-string "^1.0.0"
 
+groq-sdk@1.6.0:
+  version "1.6.0"
+  resolved "https://sfw.security.sentry.io/npm/groq-sdk/-/groq-sdk-1.6.0.tgz#6938848229935425e29aa5a9b225b50f4fbc89a9"
+  integrity sha512-ggMgo6n84aZdNObgkSbSxWrdAq4wABsViIRb5e4N15bMUtDLZVhqlgZOI7X4TeqdBMdaVUOuUdZxAZIp06u0vw==
+
 gtoken@^5.0.4:
   version "5.2.1"
   resolved "https://registry.yarnpkg.com/gtoken/-/gtoken-5.2.1.tgz#4dae1fea17270f457954b4a45234bba5fc796d16"
@@ -26442,6 +26447,11 @@ toad-cache@^3.7.0:
   version "3.7.1"
   resolved "https://registry.yarnpkg.com/toad-cache/-/toad-cache-3.7.1.tgz#33441aab508e15a35fb5292c61ee3322c0853822"
   integrity sha512-5DXWzE4Vz7xNHsv+xQ+MGfJYyC78Aok3tEr0MNwHoRf7vZnga1mQXZ4/Nsodld4VR6Wd+VhfmqnNrsRJyYPfrQ==
+
+together-ai@0.54.0:
+  version "0.54.0"
+  resolved "https://sfw.security.sentry.io/npm/together-ai/-/together-ai-0.54.0.tgz#dd1345de5662ef5c4778da9d9f8bc184db07c17a"
+  integrity sha512-SiAzvfHCQMaX/omwpCpbFJmUFP8vUQntT2wpAgfUknOc/UpdjF0mORg/IHIAXfa35FurNyCjfBPsexHaHbpy0w==
 
 toidentifier@1.0.1, toidentifier@~1.0.1:
   version "1.0.1"
