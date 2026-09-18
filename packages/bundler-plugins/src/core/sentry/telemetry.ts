@@ -60,6 +60,11 @@ export function createSentryInstance(
   const scope = new Scope();
   scope.setClient(client);
 
+  // Integration tests snapshot the emitted transaction, so the sampling decision must not depend on chance.
+  if (process.env['SENTRY_TEST_OUT_DIR']) {
+    scope.setPropagationContext({ ...scope.getPropagationContext(), sampleRand: 0 });
+  }
+
   setTelemetryDataOnScope(options, scope, buildTool, buildToolMajorVersion);
 
   return { sentryScope: scope, sentryClient: client };
