@@ -1,8 +1,7 @@
-import type { Envelope, SerializedStreamedSpanContainer } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../../spanUtils';
 
 it('preserves a positive sampling decision across an ignored child span', async ({ signal }) => {
   const [serverUrl, closeTestServer] = await createTestServer()
@@ -17,14 +16,14 @@ it('preserves a positive sampling decision across an ignored child span', async 
   const runner = createRunner(__dirname)
     .withServerUrl(serverUrl)
     .expect(envelope => {
-      const container = getSpanContainer(envelope);
-      const serverSpan = container.items.find(item => item.attributes[SENTRY_OP]?.value === 'http.server');
-      const fetchSpan = container.items.find(item => item.attributes[SENTRY_OP]?.value === 'http.client');
+      const spans = getSpansFromEnvelope(envelope);
+      const serverSpan = spans.find(span => getSpanOp(span) === 'http.server');
+      const fetchSpan = spans.find(span => getSpanOp(span) === 'http.client');
 
       expect(serverSpan?.is_segment).toBe(true);
       expect(serverSpan?.trace_id).toBe('12345678901234567890123456789012');
       expect(fetchSpan?.parent_span_id).toBe(serverSpan?.span_id);
-      expect(container.items.some(item => item.name === 'ignored-child')).toBe(false);
+      expect(spans.some(span => span.name === 'ignored-child')).toBe(false);
     })
     .start(signal);
 
@@ -43,9 +42,3 @@ it('preserves a positive sampling decision across an ignored child span', async 
     closeTestServer();
   }
 });
-
-function getSpanContainer(envelope: Envelope): SerializedStreamedSpanContainer {
-  const spanItem = envelope[1].find(item => item[0].type === 'span');
-  expect(spanItem).toBeDefined();
-  return spanItem![1] as SerializedStreamedSpanContainer;
-}
