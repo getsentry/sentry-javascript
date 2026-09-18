@@ -8,6 +8,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/core';
 import {
+  BROWSER_NAVIGATION_TYPE,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
@@ -124,6 +125,10 @@ sentryTest(
           'browser.web_vital.ttfb.value': {
             type: expect.stringMatching(/^(integer)|(double)$/),
             value: expect.any(Number),
+          },
+          [BROWSER_NAVIGATION_TYPE]: {
+            type: 'string',
+            value: 'navigate',
           },
         }),
         'sentry.idle_span_finish_reason': {
