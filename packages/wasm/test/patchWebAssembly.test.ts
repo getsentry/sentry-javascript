@@ -221,3 +221,24 @@ describe('patchWebAssembly() non-streaming argument forwarding', () => {
     await expect(WebAssembly.compile(buffer)).resolves.toBeInstanceOf(WebAssembly.Module);
   });
 });
+
+describe('patchWebAssembly() guards', () => {
+  const savedGlobals = saveWasmGlobals();
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    restoreWasmGlobals(savedGlobals);
+  });
+
+  it('does not throw when WebAssembly is frozen', () => {
+    vi.stubGlobal('WebAssembly', Object.freeze(Object.create(WebAssembly)));
+
+    expect(() => patchWebAssembly(registerModule)).not.toThrow();
+  });
+
+  it('does not throw when WebAssembly is missing', () => {
+    vi.stubGlobal('WebAssembly', undefined);
+
+    expect(() => patchWebAssembly(registerModule)).not.toThrow();
+  });
+});
