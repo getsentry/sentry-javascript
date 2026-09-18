@@ -3,7 +3,6 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
-  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -20,7 +19,9 @@ import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { extractSystemInstructions, setTokenUsageAttributes } from '../core/utils';
+import { extractSystemInstructions, setOutputMessagesAttribute, setTokenUsageAttributes } from '../core/utils';
+// Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
+export { setOutputMessagesAttribute };
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
 
@@ -126,55 +127,6 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
   }
 
   span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(filteredMessages));
-}
-
-/**
- * Build the `gen_ai.output.messages` value (a single assistant message with text and/or
- * tool-call parts) from the response text and tool calls.
- *
- * We set this in addition to the deprecated `gen_ai.response.text` / `gen_ai.response.tool_calls`
- * attributes because Sentry's product reads the model output from `gen_ai.output.messages` first.
- * Relay migrates `gen_ai.response.text` into `gen_ai.output.messages`, but the tool-calls half of
- * that migration is lossy — so tool-call turns would otherwise render an empty Output. Emitting the
- * normalized message here (mirroring the Vercel AI integration) keeps tool calls visible.
- */
-export function setOutputMessagesAttribute(
-  span: Span,
-  { responseText, toolCalls }: { responseText?: string; toolCalls?: unknown[] },
-): void {
-  const parts: Array<Record<string, unknown>> = [];
-
-  if (typeof responseText === 'string' && responseText.length > 0) {
-    parts.push({ type: 'text', content: responseText });
-  }
-
-  if (Array.isArray(toolCalls)) {
-    for (const toolCall of toolCalls) {
-      if (!toolCall || typeof toolCall !== 'object') {
-        continue;
-      }
-      const call = toolCall as {
-        id?: unknown;
-        function?: { name?: unknown; arguments?: unknown };
-        name?: unknown;
-        arguments?: unknown;
-      };
-      // Normalize both the OpenAI-compatible shape (name/arguments nested under `function`)
-      // and the native Workers AI shape (name/arguments at the top level).
-      const name = call.function?.name ?? call.name;
-      const args = call.function?.arguments ?? call.arguments;
-      parts.push({
-        type: 'tool_call',
-        id: call.id,
-        name,
-        arguments: stringify(args ?? {}, String),
-      });
-    }
-  }
-
-  if (parts.length > 0) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify([{ role: 'assistant', parts }]));
-  }
 }
 
 /**

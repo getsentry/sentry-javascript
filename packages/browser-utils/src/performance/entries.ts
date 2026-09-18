@@ -481,7 +481,7 @@ export function _addResourceSpans(
 
 /**
  * Capture the information of the user agent.
- * TODO v11: Remove non-span-streaming attributes and measurements once we removed transactions
+ * TODO(v12): Remove non-span-streaming attributes and measurements once the static trace lifecycle is removed
  */
 function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined): void {
   const navigator = WINDOW.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);

@@ -1,3 +1,4 @@
+import { getVercelEnv } from '@sentry/core';
 import type { Logger } from './logger';
 import type {
   Options as UserOptions,
@@ -162,9 +163,10 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     }
   }
 
-  if (options.release.deploy === undefined && process.env['VERCEL'] && process.env['VERCEL_TARGET_ENV']) {
+  const vercelEnv = getVercelEnv();
+  if (options.release.deploy === undefined && process.env['VERCEL'] && vercelEnv) {
     options.release.deploy = {
-      env: `vercel-${process.env['VERCEL_TARGET_ENV']}`,
+      env: vercelEnv,
       url: process.env['VERCEL_URL'] ? `https://${process.env['VERCEL_URL']}` : undefined,
     };
   }

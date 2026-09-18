@@ -91,9 +91,15 @@ export {
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   langChainIntegration,
   langGraphIntegration,
+  createFlueInstrumentation,
+  mastraIntegration,
+  SentryMastraExporter,
   parameterize,
   pinoIntegration,
   postgresIntegration,
@@ -155,6 +161,7 @@ export {
   withScope,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -182,6 +189,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   metrics,
+  eveConversationHook,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

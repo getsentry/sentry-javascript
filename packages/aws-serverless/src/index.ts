@@ -59,9 +59,15 @@ export {
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
+  createFlueInstrumentation,
   modulesIntegration,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,
@@ -138,6 +144,7 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -168,6 +175,8 @@ export {
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
+  eveConversationHook,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export {

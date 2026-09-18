@@ -1,5 +1,6 @@
-import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/core';
+import type { Integration, IntegrationFn, MaxRequestBodySize, SpanAttributes } from '@sentry/core';
 import {
+  captureBodyFromWinterCGRequest,
   captureException,
   continueTrace,
   defineIntegration,
@@ -15,6 +16,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   startSpan,
+  winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
   filterCollectedUrlQuery,
@@ -35,9 +37,22 @@ import { HTTP_SERVER } from '@sentry/conventions/op';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
-const _bunServerIntegration = (() => {
+export type BunServerIntegrationOptions = {
+  /**
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
+   * An explicit value overrides `dataCollection.httpBodies`.
+   *
+   * If `dataCollection.httpBodies` excludes `'incomingRequest'`, body capture defaults to `'none'`.
+   *
+   * @default 'medium'
+   */
+  maxRequestBodySize?: MaxRequestBodySize;
+};
+
+const _bunServerIntegration = ((options: BunServerIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
+    maxRequestBodySize: options.maxRequestBodySize,
     setupOnce() {
       instrumentBunServe();
     },
@@ -192,8 +207,8 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
   thisArg: unknown,
   args: Parameters<T>,
   route?: string,
-): ReturnType<T> {
-  return withIsolationScope(isolationScope => {
+): Promise<Awaited<ReturnType<T>>> {
+  return withIsolationScope(async isolationScope => {
     const request = args[0];
     const upperCaseMethod = request.method.toUpperCase();
     if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
@@ -232,13 +247,19 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     }
 
     isolationScope.setSDKProcessingMetadata({
-      normalizedRequest: {
-        url: request.url,
-        method: request.method,
-        headers: request.headers.toJSON(),
-        query_string: parsedUrl?.search,
-      } satisfies RequestEventData,
+      normalizedRequest: winterCGRequestToRequestData(request),
     });
+
+    if (client && dataCollection) {
+      const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(
+        INTEGRATION_NAME,
+      )?.maxRequestBodySize;
+      const effectiveBodySize =
+        configuredBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+      if (upperCaseMethod !== 'GET' && effectiveBodySize !== 'none') {
+        await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
+      }
+    }
 
     return continueTrace(
       {

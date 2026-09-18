@@ -74,6 +74,7 @@ export {
   functionToStringIntegration,
   requestDataIntegration,
   captureConsoleIntegration,
+  consoleIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
@@ -101,13 +102,16 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { instrumentPostgresJsSql, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { wrapMcpServerWithSentry } from '@sentry/core/server';
+export { instrumentPostgresJsSql } from '@sentry/server-utils';
 
 export { DenoClient } from './client';
 
 export { getDefaultIntegrations, init } from './sdk';
 export { denoServeIntegration } from './integrations/deno-serve';
 export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
+export { fetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 
@@ -132,15 +136,23 @@ export {
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
+  createFlueInstrumentation,
   lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
+  eveConversationHook,
+  getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared

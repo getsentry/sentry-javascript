@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('nuxt-5', span => {
@@ -51,8 +51,9 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
   // tracking works without it.
   test.fail(true, 'Vue tracing is registered through app.mixin(), which needs the Options API');
 
-  const spansPromise = collectStreamedSpans('nuxt-5', spans =>
-    spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nuxt-5',
+    span => span.name === '/client-error' && getSpanOp(span) === 'pageload',
   );
 
   await page.goto(`/client-error`);
@@ -80,8 +81,9 @@ test('sends an application render span and a root component span on pageload', a
   // the root spans stop depending on the mixin.
   test.fail(true, 'Vue tracing is registered through app.mixin(), which needs the Options API');
 
-  const spansPromise = collectStreamedSpans('nuxt-5', spans =>
-    spans.some(span => span.name === '/client-error' && span.is_segment && getSpanOp(span) === 'pageload'),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nuxt-5',
+    span => span.name === '/client-error' && getSpanOp(span) === 'pageload',
   );
 
   await page.goto(`/client-error`);

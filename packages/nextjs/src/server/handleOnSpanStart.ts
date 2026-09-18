@@ -112,7 +112,7 @@ export function handleOnSpanStart(span: Span, client: Client): void {
 
   maybeForkIsolationScopeForRootSpan(span, spanAttributes);
 
-  maybeEnhanceServerComponentSpanName(span, spanAttributes, rootSpanAttributes);
+  maybeEnhanceServerComponentSpanName(span, spanAttributes, rootSpanAttributes, client);
 
   // Enrich outgoing http.client spans targeting the Vercel Queues API (producer)
   maybeEnrichQueueProducerSpan(span);

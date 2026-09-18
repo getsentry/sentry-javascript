@@ -36,6 +36,7 @@ sentryTest('logs debug messages correctly', async ({ getLocalTestUrl, page }) =>
           'Sentry Logger [log]: Integration installed: ConversationId',
           'Sentry Logger [log]: Integration installed: BrowserApiErrors',
           'Sentry Logger [log]: Integration installed: Breadcrumbs',
+          'Sentry Logger [log]: Integration installed: Console',
           'Sentry Logger [log]: Global Handler attached: onerror',
           'Sentry Logger [log]: Global Handler attached: onunhandledrejection',
           'Sentry Logger [log]: Integration installed: GlobalHandlers',

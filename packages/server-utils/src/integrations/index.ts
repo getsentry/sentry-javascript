@@ -1,4 +1,6 @@
 import { amqplibIntegration } from './amqplib';
+import { dataloaderIntegration } from './dataloader';
+import { knexIntegration } from './knex';
 import { mongoIntegration } from './mongodb';
 import { graphqlIntegration } from './graphql';
 import { redisIntegration } from './redis';
@@ -13,10 +15,14 @@ import { mongooseIntegration } from './mongoose';
 import { lruMemoizerIntegration } from './lru-memoizer';
 import { langChainIntegration } from './langchain';
 import { langGraphIntegration } from './langgraph';
+import { mastraIntegration } from './mastra';
 import { vercelAIIntegration } from './vercel-ai';
 import { openAIIntegration } from './openai';
 import { anthropicAIIntegration } from './anthropic';
 import { googleGenAIIntegration } from './google-genai';
+import { mistralAIIntegration } from './mistral';
+import { groqIntegration } from './groq';
+import { togetherAIIntegration } from './together-ai';
 import { postgresJsIntegration } from './postgres-js';
 import { firebaseIntegration } from './firebase';
 import { expressIntegration } from './express';
@@ -38,19 +44,25 @@ export function getTracingIntegrations(): Integration[] {
     postgresIntegration(),
     prismaIntegration(),
     tediousIntegration(),
+    knexIntegration(),
     genericPoolIntegration(),
     kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
+    dataloaderIntegration(),
     awsIntegration(),
     // AI providers
     // LangChain must come first to disable AI provider integrations before they instrument
     langChainIntegration(),
     langGraphIntegration(),
+    mastraIntegration(),
     vercelAIIntegration(),
     openAIIntegration(),
     anthropicAIIntegration(),
     googleGenAIIntegration(),
+    mistralAIIntegration(),
+    groqIntegration(),
+    togetherAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
   ];

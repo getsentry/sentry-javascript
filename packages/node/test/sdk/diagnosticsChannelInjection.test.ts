@@ -14,7 +14,9 @@ vi.mock('@sentry/server-utils', async importOriginal => {
   return { ...actual, detectOrchestrionSetup };
 });
 
+import { NodeClient } from '../../src/sdk/client';
 import { init } from '../../src/sdk';
+import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 import { cleanupOtel, resetGlobals } from '../helpers/mockSdkInit';
 
 // eslint-disable-next-line no-var
@@ -78,6 +80,47 @@ describe('diagnostics-channel injection', () => {
 
       expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
       expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+// The registration lives in the `NodeClient` constructor, so downstream SDKs that build a client
+// directly (without going through the Node SDK's `init()`) still install the injection hooks.
+describe('diagnostics-channel injection on direct client construction', () => {
+  beforeEach(() => {
+    global.__SENTRY__ = {};
+    vi.spyOn(debug, 'enable').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    cleanupOtel();
+    resetGlobals();
+    vi.clearAllMocks();
+  });
+
+  it('registers the injection hooks when a NodeClient is constructed directly', () => {
+    new NodeClient(getDefaultNodeClientOptions({ enableOpenTelemetrySetup: false }));
+
+    expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not register the injection hooks when `enableRuntimeChannelInjection` is false', () => {
+    new NodeClient(
+      getDefaultNodeClientOptions({ enableRuntimeChannelInjection: false, enableOpenTelemetrySetup: false }),
+    );
+
+    expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
+  });
+
+  it('does not register the injection hooks when the `__SENTRY_CHANNEL_INJECTION__` build flag is false', () => {
+    vi.stubGlobal('__SENTRY_CHANNEL_INJECTION__', false);
+
+    try {
+      new NodeClient(getDefaultNodeClientOptions({ enableOpenTelemetrySetup: false }));
+
+      expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();
     }

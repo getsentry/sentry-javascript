@@ -62,14 +62,8 @@ export interface StreamedModelCallResult {
   providerMetadata?: unknown;
 }
 
-/** A minimal structural check — the streamed model call exposes a web `ReadableStream` on `result.stream`. */
-export function isReadableStream(value: unknown): value is ReadableStream<unknown> {
-  return (
-    isObjectLike(value) &&
-    typeof (value as { pipeThrough?: unknown }).pipeThrough === 'function' &&
-    typeof (value as { getReader?: unknown }).getReader === 'function'
-  );
-}
+/** The streamed model call exposes a web `ReadableStream` on `result.stream`. */
+export { isReadableStream } from '../../ai/core/utils';
 
 /**
  * Wrap a streamed model call's `ReadableStream` so its chunks are observed as the SDK consumes them,

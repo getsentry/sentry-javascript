@@ -181,6 +181,20 @@ export interface GoogleGenerativeAIProviderMetadata {
    * @see https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
    */
   safetyRatings?: null | unknown;
+
+  /**
+   * Raw token usage returned by the Gemini API. Reasoning ("thoughts") tokens are reported here in
+   * `thoughtsTokenCount`, separately from the candidate output count, so they have to be added back
+   * into `gen_ai.usage.output_tokens`.
+   * @see https://ai.google.dev/api/generate-content#UsageMetadata
+   * @see https://github.com/vercel/ai/blob/main/packages/google/src/google-language-model.ts
+   */
+  usageMetadata?: null | {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    thoughtsTokenCount?: number;
+    totalTokenCount?: number;
+  };
 }
 
 /**

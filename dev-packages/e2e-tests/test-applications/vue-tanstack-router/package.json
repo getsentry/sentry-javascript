@@ -18,7 +18,7 @@
     "vue": "^3.4.15"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@tsconfig/node20": "^20.1.2",
     "@types/node": "^18.19.1",

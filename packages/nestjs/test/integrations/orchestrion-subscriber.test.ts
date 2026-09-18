@@ -237,6 +237,7 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
     expect(contextSpanJson!.attributes['sentry.origin']).toBe('auto.http.nestjs');
     expect(contextSpanJson!.attributes).toMatchObject({
       component: '@nestjs/core',
+      'code.function.name': 'CatsController.getCats',
       'nestjs.type': 'request_context',
       'nestjs.controller': 'CatsController',
       'nestjs.callback': 'getCats',

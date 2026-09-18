@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Sends a segment span for a successful route', async ({ baseURL, request }) => {
   const spanPromise = waitForStreamedSpan('elysia-bun', span => {
@@ -70,9 +70,7 @@ test('Sends a segment span for an errored route', async ({ baseURL, request }) =
 });
 
 test('Includes manually started spans with parent-child relationship', async ({ baseURL, request }) => {
-  const spansPromise = collectStreamedSpans('elysia-bun', spans =>
-    spans.some(span => span.name === 'GET /test-transaction' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('elysia-bun', 'GET /test-transaction');
 
   await request.get(`${baseURL}/test-transaction`);
 
@@ -102,9 +100,7 @@ test('Includes manually started spans with parent-child relationship', async ({ 
 });
 
 test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) => {
-  const spansPromise = collectStreamedSpans('elysia-bun', spans =>
-    spans.some(span => span.name === 'GET /test-success' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('elysia-bun', 'GET /test-success');
 
   await request.get(`${baseURL}/test-success`);
 
@@ -128,9 +124,7 @@ test('Creates lifecycle spans for Elysia hooks', async ({ baseURL, request }) =>
 });
 
 test('Names handler spans after the route instead of "<unknown>"', async ({ baseURL, request }) => {
-  const spansPromise = collectStreamedSpans('elysia-bun', spans =>
-    spans.some(span => span.name === 'GET /with-middleware/test' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('elysia-bun', 'GET /with-middleware/test');
 
   // Use a route with middleware so there are child handler spans
   await request.get(`${baseURL}/with-middleware/test`);
@@ -153,9 +147,7 @@ test('Names handler spans after the route instead of "<unknown>"', async ({ base
 });
 
 test('Creates lifecycle spans for route-specific middleware', async ({ baseURL, request }) => {
-  const spansPromise = collectStreamedSpans('elysia-bun', spans =>
-    spans.some(span => span.name === 'GET /with-middleware/test' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('elysia-bun', 'GET /with-middleware/test');
 
   await request.get(`${baseURL}/with-middleware/test`);
 

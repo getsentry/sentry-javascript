@@ -20,11 +20,11 @@ test('Instruments DB calls made during server-side rendering of a page', async (
     expect.objectContaining({
       op: 'db',
       origin: 'auto.db.postgres',
-      description: 'SELECT 40 + 2 AS answer',
+      description: 'SELECT ? + ? AS answer',
       status: 'ok',
       data: expect.objectContaining({
         'db.system.name': 'postgresql',
-        'db.query.text': 'SELECT 40 + 2 AS answer',
+        'db.query.text': 'SELECT ? + ? AS answer',
       }),
     }),
   );

@@ -61,6 +61,21 @@ describe('getPackageJson', () => {
 
     expect(packageJson).toBeUndefined();
   });
+
+  test('it stops at the file system root when `stopAt` is never reached', () => {
+    const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+
+    try {
+      const packageJson = getPackageJson({
+        cwd: getCwdFor('/fixtures/no-valid-package/deeply/nested'),
+        stopAt: getCwdFor('/fixtures/this-directory-is-not-an-ancestor'),
+      });
+
+      expect(packageJson).toBeUndefined();
+    } finally {
+      existsSyncSpy.mockRestore();
+    }
+  });
 });
 
 describe('parseMajorVersion', () => {

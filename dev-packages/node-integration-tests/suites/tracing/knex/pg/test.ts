@@ -24,7 +24,7 @@ describe('knex auto instrumentation', () => {
               }),
               status: 'ok',
               description:
-                'create table "User" ("id" serial primary key, "createdAt" timestamptz(3) not null default CURRENT_TIMESTAMP(3), "email" text not null, "name" text not null)',
+                'create table "User" ("id" serial primary key, "createdAt" timestamptz(?) not null default CURRENT_TIMESTAMP(?), "email" text not null, "name" text not null)',
               origin: ORIGIN,
             }),
             expect.objectContaining({
@@ -100,7 +100,7 @@ describe('knex auto instrumentation', () => {
                 {
                   name: 'create table "User"',
                   summary: 'create table "User"',
-                  text: 'create table "User" ("id" serial primary key, "createdAt" timestamptz(3) not null default CURRENT_TIMESTAMP(3), "email" text not null, "name" text not null)',
+                  text: 'create table "User" ("id" serial primary key, "createdAt" timestamptz(?) not null default CURRENT_TIMESTAMP(?), "email" text not null, "name" text not null)',
                 },
                 {
                   name: 'insert "User"',

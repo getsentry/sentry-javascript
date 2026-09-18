@@ -10,7 +10,6 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
-import type { PostgresConnectionContext } from '@sentry/core/server';
 import {
   debug,
   defineIntegration,
@@ -20,15 +19,15 @@ import {
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
-import {
-  _INTERNAL_buildPostgresConnectionContext,
-  _INTERNAL_getConnectionAttributes,
-  _INTERNAL_getPostgresOperationName,
-  _INTERNAL_getSqlQuerySummary,
-  _INTERNAL_reconstructPostgresQuery,
-  _INTERNAL_sanitizeSqlQuery,
-} from '@sentry/core/server';
 import { DEBUG_BUILD } from '../debug-build';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import {
+  _buildConnectionContext,
+  _getConnectionAttributes,
+  _getOperationName,
+  _reconstructQuery,
+  type PostgresConnectionContext,
+} from './postgresjs';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { postgresJsModuleNames } from '../orchestrion/config/postgres';
@@ -125,7 +124,7 @@ function recordConnectionFromChannel(message: PostgresJsQueryContext): void {
   if (!connection || typeof connection !== 'object' || !options) {
     return;
   }
-  const context = _INTERNAL_buildPostgresConnectionContext(options);
+  const context = _buildConnectionContext(options);
   connectionContexts.set(connection, context);
   registerEndpoint(context);
 }
@@ -137,7 +136,7 @@ function setConnectionAttributes(span: Span, query: PostgresQuery, context: Post
   }
   queryRecord[CONNECTION_ATTRS_SET] = true;
   if (context) {
-    span.setAttributes(_INTERNAL_getConnectionAttributes(context));
+    span.setAttributes(_getConnectionAttributes(context));
   }
 }
 
@@ -189,7 +188,7 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
       try {
         const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
         // Re-set the operation name with the server-reported command, which is more reliable than the query text.
-        span.setAttribute(DB_OPERATION_NAME, _INTERNAL_getPostgresOperationName(sanitizedSqlQuery, command));
+        span.setAttribute(DB_OPERATION_NAME, _getOperationName(sanitizedSqlQuery, command));
         span.end();
       } catch (e) {
         DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in resolve:', e);
@@ -278,10 +277,10 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
         return undefined;
       }
 
-      const fullQuery = _INTERNAL_reconstructPostgresQuery(query.strings);
-      const sanitizedSqlQuery = _INTERNAL_sanitizeSqlQuery(fullQuery);
+      const fullQuery = _reconstructQuery(query.strings);
+      const sanitizedSqlQuery = sanitizeSqlQuery(fullQuery);
 
-      const querySummary = _INTERNAL_getSqlQuerySummary(sanitizedSqlQuery);
+      const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
 
       const client = getClient();
 
@@ -304,7 +303,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
           [DB_QUERY_TEXT]: sanitizedSqlQuery,
           [DB_QUERY_SUMMARY]: querySummary,
-          [DB_OPERATION_NAME]: _INTERNAL_getPostgresOperationName(sanitizedSqlQuery),
+          [DB_OPERATION_NAME]: _getOperationName(sanitizedSqlQuery),
         },
       });
 

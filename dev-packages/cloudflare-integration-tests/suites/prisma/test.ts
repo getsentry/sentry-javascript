@@ -55,9 +55,9 @@ it('captures a transaction with Prisma spans for a D1 query via the @sentry/clou
             origin: 'auto.db.cloudflare.d1',
           },
           {
-            description: expect.stringMatching(
-              /^SELECT `main`\.`User`\.`id`, `main`\.`User`\.`email`, `main`\.`User`\.`name` FROM `main`\.`User` WHERE 1=1 LIMIT \? OFFSET \? \/\* traceparent='00-[\da-f]{32}-[\da-f]{16}-01' \*\/$/,
-            ),
+            // The sanitizer strips the D1 adapter's traceparent comment and replaces the literals.
+            description:
+              'SELECT `main`.`User`.`id`, `main`.`User`.`email`, `main`.`User`.`name` FROM `main`.`User` WHERE ?=? LIMIT ? OFFSET ?',
             op: 'db.query',
             origin: 'auto.db.cloudflare.d1',
           },

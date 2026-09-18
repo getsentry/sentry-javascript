@@ -100,6 +100,50 @@ describe('Server init()', () => {
       expect(onUncaughtExceptionIntegration).toBeDefined();
     });
 
+    describe('`use cache` integration', () => {
+      const CACHE_HANDLERS_INSTRUMENTED = Symbol.for('sentry.nextjs.cacheHandlersInstrumented');
+      const DSN = 'https://public@dsn.ingest.sentry.io/1337';
+
+      function isUseCacheInstrumented(): boolean {
+        return (globalThis as Record<symbol, unknown>)[CACHE_HANDLERS_INSTRUMENTED] === true;
+      }
+
+      afterEach(() => {
+        vi.unstubAllEnvs();
+        Reflect.deleteProperty(globalThis, CACHE_HANDLERS_INSTRUMENTED);
+      });
+
+      it('adds the integration to the default integrations', () => {
+        init({});
+
+        expect(nodeInit).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            defaultIntegrations: expect.arrayContaining([expect.objectContaining({ name: 'NextjsUseCache' })]),
+          }),
+        );
+      });
+
+      it('instruments the cache handlers when tracing is enabled', () => {
+        init({ dsn: DSN, tracesSampleRate: 1 });
+
+        expect(isUseCacheInstrumented()).toBe(true);
+      });
+
+      it('instruments the cache handlers when tracing is enabled via `SENTRY_TRACES_SAMPLE_RATE`', () => {
+        vi.stubEnv('SENTRY_TRACES_SAMPLE_RATE', '1');
+
+        init({ dsn: DSN });
+
+        expect(isUseCacheInstrumented()).toBe(true);
+      });
+
+      it('does not instrument the cache handlers when tracing is disabled', () => {
+        init({ dsn: DSN });
+
+        expect(isUseCacheInstrumented()).toBe(false);
+      });
+    });
+
     it('supports passing unrelated integrations through options', () => {
       init({ integrations: [SentryNode.consoleIntegration()] });
 

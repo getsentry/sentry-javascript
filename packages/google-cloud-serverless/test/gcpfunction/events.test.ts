@@ -1,8 +1,18 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  FAAS_TRIGGER,
+  SENTRY_OP,
+  FAAS_NAME,
+  GCP_FUNCTION_CONTEXT_EVENT_TYPE,
+  GCP_FUNCTION_CONTEXT_EVENT_ID,
+  GCP_FUNCTION_CONTEXT_RESOURCE,
+  GCP_FUNCTION_CONTEXT_TIMESTAMP,
+} from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
-import type { Event } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { Client, Event } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { wrapEventFunction } from '../../src/gcpfunction/events';
 import type { EventFunction, EventFunctionWithCallback } from '../../src/gcpfunction/general';
 
@@ -47,8 +57,10 @@ describe('wrapEventFunction', () => {
   function handleEvent(fn: EventFunctionWithCallback): Promise<any> {
     return new Promise((resolve, reject) => {
       const context = {
-        eventType: 'event.type',
-        resource: 'some.resource',
+        eventId: '1144231683168617',
+        timestamp: '2026-09-04T09:00:00.123Z',
+        eventType: 'providers/cloud.firestore/eventTypes/document.write',
+        resource: 'projects/my-project/databases/(default)/documents/users/abc123',
       };
 
       fn({}, context, (err: any, result: any) => {
@@ -69,17 +81,22 @@ describe('wrapEventFunction', () => {
       const wrappedHandler = wrapEventFunction(func);
       await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
 
-      const fakeTransactionContext = {
-        name: 'event.type',
+      const expectedStartSpanOptions = {
+        name: 'providers/cloud.firestore/eventTypes/document.write',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
+          [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
+          [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
+          [GCP_FUNCTION_CONTEXT_TIMESTAMP]: '2026-09-04T09:00:00.123Z',
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(expectedStartSpanOptions, expect.any(Function));
       expect(mockSpan.end).toBeCalled();
       expect(mockFlush).toBeCalledWith(2000);
     });
@@ -92,17 +109,22 @@ describe('wrapEventFunction', () => {
       const wrappedHandler = wrapEventFunction(handler);
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
 
-      const fakeTransactionContext = {
-        name: 'event.type',
+      const expectedStartSpanOptions = {
+        name: 'providers/cloud.firestore/eventTypes/document.write',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
+          [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
+          [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
+          [GCP_FUNCTION_CONTEXT_TIMESTAMP]: '2026-09-04T09:00:00.123Z',
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(expectedStartSpanOptions, expect.any(Function));
       expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
       expect(mockSpan.end).toBeCalled();
       expect(mockFlush).toBeCalled();
@@ -120,17 +142,22 @@ describe('wrapEventFunction', () => {
       const wrappedHandler = wrapEventFunction(func);
       await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
 
-      const fakeTransactionContext = {
-        name: 'event.type',
+      const expectedStartSpanOptions = {
+        name: 'providers/cloud.firestore/eventTypes/document.write',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
+          [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
+          [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
+          [GCP_FUNCTION_CONTEXT_TIMESTAMP]: '2026-09-04T09:00:00.123Z',
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(expectedStartSpanOptions, expect.any(Function));
       expect(mockSpan.end).toBeCalled();
       expect(mockFlush).toBeCalledWith(2000);
     });
@@ -147,17 +174,22 @@ describe('wrapEventFunction', () => {
       const wrappedHandler = wrapEventFunction(handler);
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
 
-      const fakeTransactionContext = {
-        name: 'event.type',
+      const expectedStartSpanOptions = {
+        name: 'providers/cloud.firestore/eventTypes/document.write',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
+          [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
+          [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
+          [GCP_FUNCTION_CONTEXT_TIMESTAMP]: '2026-09-04T09:00:00.123Z',
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(expectedStartSpanOptions, expect.any(Function));
       expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
       expect(mockSpan.end).toBeCalled();
       expect(mockFlush).toBeCalled();
@@ -172,17 +204,22 @@ describe('wrapEventFunction', () => {
       const wrappedHandler = wrapEventFunction(func);
       await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
 
-      const fakeTransactionContext = {
-        name: 'event.type',
+      const expectedStartSpanOptions = {
+        name: 'providers/cloud.firestore/eventTypes/document.write',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
+          [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
+          [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
+          [GCP_FUNCTION_CONTEXT_TIMESTAMP]: '2026-09-04T09:00:00.123Z',
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(expectedStartSpanOptions, expect.any(Function));
       expect(mockSpan.end).toBeCalled();
       expect(mockFlush).toBeCalledWith(2000);
     });
@@ -195,17 +232,22 @@ describe('wrapEventFunction', () => {
       const wrappedHandler = wrapEventFunction(handler);
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
 
-      const fakeTransactionContext = {
-        name: 'event.type',
+      const expectedStartSpanOptions = {
+        name: 'providers/cloud.firestore/eventTypes/document.write',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
+          [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
+          [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
+          [GCP_FUNCTION_CONTEXT_TIMESTAMP]: '2026-09-04T09:00:00.123Z',
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(expectedStartSpanOptions, expect.any(Function));
       expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
       expect(mockSpan.end).toBeCalled();
       expect(mockFlush).toBeCalled();
@@ -219,18 +261,124 @@ describe('wrapEventFunction', () => {
       const wrappedHandler = wrapEventFunction(handler);
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
 
-      const fakeTransactionContext = {
-        name: 'event.type',
+      const expectedStartSpanOptions = {
+        name: 'providers/cloud.firestore/eventTypes/document.write',
         attributes: {
           [SENTRY_OP]: FUNCTION_GCP,
+          [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
+          [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
+          [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
+          [GCP_FUNCTION_CONTEXT_TIMESTAMP]: '2026-09-04T09:00:00.123Z',
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(expectedStartSpanOptions, expect.any(Function));
       expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+    });
+  });
+
+  describe('wrapEventFunction() with span streaming enabled', () => {
+    beforeEach(() => {
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+        getOptions: () => ({ traceLifecycle: 'stream' }),
+      } as unknown as Client);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.unstubAllEnvs();
+    });
+
+    test('names the span after the function name from FUNCTION_TARGET', async () => {
+      vi.stubEnv('FUNCTION_TARGET', 'myCloudFunction');
+
+      const func: EventFunction = (_data, _context) => 42;
+      const wrappedHandler = wrapEventFunction(func);
+      await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
+
+      expect(mockStartSpanManual).toBeCalledWith(
+        expect.objectContaining({
+          name: 'myCloudFunction',
+          attributes: expect.objectContaining({
+            [FAAS_NAME]: 'myCloudFunction',
+            // The event type stays on the span so the description can still be derived from it.
+            [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('falls back to K_SERVICE when FUNCTION_TARGET is unset', async () => {
+      vi.stubEnv('FUNCTION_TARGET', '');
+      vi.stubEnv('K_SERVICE', 'my-cloud-run-service');
+
+      const func: EventFunction = (_data, _context) => 42;
+      const wrappedHandler = wrapEventFunction(func);
+      await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
+
+      expect(mockStartSpanManual).toBeCalledWith(
+        expect.objectContaining({
+          name: 'my-cloud-run-service',
+          attributes: expect.objectContaining({ [FAAS_NAME]: 'my-cloud-run-service' }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('falls back to the static span name when no function name is resolvable', async () => {
+      vi.stubEnv('FUNCTION_TARGET', '');
+      vi.stubEnv('K_SERVICE', '');
+
+      const func: EventFunction = (_data, _context) => 42;
+      const wrappedHandler = wrapEventFunction(func);
+      await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
+
+      expect(mockStartSpanManual).toBeCalledWith(
+        expect.objectContaining({
+          name: SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
+          attributes: expect.objectContaining({ [FAAS_NAME]: undefined }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('names the span after the function name for callback-style handlers', async () => {
+      vi.stubEnv('FUNCTION_TARGET', 'myCloudFunction');
+
+      const func: EventFunctionWithCallback = (_data, _context, cb) => {
+        cb(null, 42);
+      };
+      const wrappedHandler = wrapEventFunction(func);
+      await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
+
+      expect(mockStartSpanManual).toBeCalledWith(
+        expect.objectContaining({ name: 'myCloudFunction' }),
+        expect.any(Function),
+      );
+    });
+
+    test('keeps naming the span after the event type when span streaming is disabled', async () => {
+      vi.stubEnv('FUNCTION_TARGET', 'myCloudFunction');
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+        getOptions: () => ({ traceLifecycle: 'static' }),
+      } as unknown as Client);
+
+      const func: EventFunction = (_data, _context) => 42;
+      const wrappedHandler = wrapEventFunction(func);
+      await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
+
+      expect(mockStartSpanManual).toBeCalledWith(
+        expect.objectContaining({
+          name: 'providers/cloud.firestore/eventTypes/document.write',
+          attributes: expect.objectContaining({ [FAAS_NAME]: 'myCloudFunction' }),
+        }),
+        expect.any(Function),
+      );
     });
   });
 
@@ -262,8 +410,10 @@ describe('wrapEventFunction', () => {
     const wrappedHandler = wrapEventFunction(handler);
     await handleEvent(wrappedHandler);
     expect(mockScope.setContext).toBeCalledWith('gcp.function.context', {
-      eventType: 'event.type',
-      resource: 'some.resource',
+      eventId: '1144231683168617',
+      timestamp: '2026-09-04T09:00:00.123Z',
+      eventType: 'providers/cloud.firestore/eventTypes/document.write',
+      resource: 'projects/my-project/databases/(default)/documents/users/abc123',
     });
   });
 });
