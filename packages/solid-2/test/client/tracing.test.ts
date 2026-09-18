@@ -158,7 +158,41 @@ describe('solidTracingIntegration', () => {
     app.dispose();
   });
 
-  it('a call with no interaction, and a failed one, are root spans with the failure captured', async () => {
+  it("a call that lands after its interaction settled is still the interaction's child, marked after_settle", async () => {
+    const { client, captured } = clientWith();
+    const app = readerApp();
+    let origin: ReturnType<typeof OBSERVE.attribution.currentOrigin>;
+
+    // `onClick={async () => set(await call())}`: the handler makes no
+    // synchronous write, so the interaction settles as `idle` at once…
+    OBSERVE!.attribution.withInteraction({ type: 'click', target: 'button#save' }, () => {
+      origin = OBSERVE!.attribution.currentOrigin();
+    });
+    flush();
+    await settle();
+    // …and the call it dispatched lands later, carrying that frame.
+    OBSERVE!.records.emit(
+      'call',
+      { id: 'saveTodo', method: 'POST', at: performance.now(), durationMs: 12, outcome: 'ok', status: 200, origin },
+      { args: [1], response: new Response(''), result: 'ok' },
+    );
+    await settle();
+    await client.flush(100);
+
+    const segment = captured.spans.find(
+      span => span.is_segment && span.attributes['sentry.op'] === 'ui.interaction.click',
+    );
+    const call = captured.spans.find(span => span.attributes['sentry.op'] === 'function.solid.call');
+    expect(segment).toBeDefined();
+    expect(call).toMatchObject({
+      parent_span_id: segment!.span_id,
+      attributes: expect.objectContaining({ 'solid.server_function.after_settle': true }),
+    });
+    expect(call!.start_timestamp).toBeGreaterThanOrEqual(segment!.end_timestamp!);
+    app.dispose();
+  });
+
+  it('a call with no interaction, and a failed one, are root spans; a failure is status only', async () => {
     const { client, captured } = clientWith();
     const boom = new Error('server said no');
     OBSERVE!.records.emit(
@@ -178,10 +212,8 @@ describe('solidTracingIntegration', () => {
     expect(roots.map(span => span.name).sort()).toEqual(['deleteTodo', 'loadFeed']);
     const failed = roots.find(span => span.name === 'deleteTodo')!;
     expect(failed.status).toBe('error');
-    expect(captured.events[0]?.exception?.values?.[0]).toMatchObject({
-      value: 'server said no',
-      mechanism: { type: 'auto.function.solid.server_function.call', handled: true },
-    });
+    // The error reached the caller; whatever catches it there reports it. Not here.
+    expect(captured.events).toEqual([]);
   });
 
   it('an applied frame stream is a span with its chunk census; a truncated one is an error', async () => {

@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { captureException, startInactiveSpan } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core';
 import type { CallEvent, CallLive, FrameEvent, FrameLive } from '@solidjs/web';
 import { describeOrigin } from '../common/target';
 import { epochSeconds, round } from '../common/time';
@@ -12,9 +12,17 @@ const FRAME_ORIGIN = 'auto.ui.solid.frame';
  * the twin of the server's `"invocation"` span (same `id`; the difference is
  * the wire). The browser SDK's own `http.client` span for the fetch is the
  * transport's view — this one is the runtime's, includes decode, and knows
- * the function rather than the URL.
+ * the function rather than the URL. A failed call sets the span's status
+ * only: the error itself reaches the caller, and whatever catches it there
+ * (an `<Errored>`, the server error hook on the other side) reports it once.
  */
-export function callSpan(event: CallEvent, live: CallLive, parent: Span | null, keepText: boolean): Span {
+export function callSpan(
+  event: CallEvent,
+  _live: CallLive,
+  parent: Span | null,
+  keepText: boolean,
+  afterSettle = false,
+): Span {
   const origin = event.origin;
   const span = startInactiveSpan({
     name: event.id,
@@ -29,19 +37,19 @@ export function callSpan(event: CallEvent, live: CallLive, parent: Span | null, 
       'solid.server_function.origin': origin ? describeOrigin(origin, keepText) : undefined,
       'solid.server_function.origin.kind': origin?.kind,
       'http.response.status_code': event.status,
+      'solid.server_function.after_settle': afterSettle ? true : undefined,
       'sentry.origin': CALL_ORIGIN,
     },
   });
   if (event.outcome === 'error') {
     span.setStatus({ code: 2, message: event.status !== undefined ? `http ${event.status}` : 'network_error' });
-    captureException(live.error, { mechanism: { type: 'auto.function.solid.server_function.call', handled: true } });
   }
   span.end(epochSeconds(event.at + event.durationMs));
   return span;
 }
 
 /** One span per frame stream the server-component transport applied, with the chunk census. */
-export function frameSpan(event: FrameEvent, live: FrameLive): void {
+export function frameSpan(event: FrameEvent, _live: FrameLive): void {
   if (event.side !== 'client') return;
   const span = startInactiveSpan({
     name: event.id || 'frame',
@@ -63,9 +71,6 @@ export function frameSpan(event: FrameEvent, live: FrameLive): void {
   });
   if (event.outcome !== 'complete') {
     span.setStatus({ code: 2, message: event.outcome });
-    if (live.error !== undefined) {
-      captureException(live.error, { mechanism: { type: 'auto.function.solid.frame.apply', handled: true } });
-    }
   }
   span.end(epochSeconds(event.at + event.durationMs));
 }

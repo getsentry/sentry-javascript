@@ -1,13 +1,5 @@
 import type { Span } from '@sentry/core';
-import {
-  captureException,
-  debug,
-  defineIntegration,
-  getActiveSpan,
-  getTraceData,
-  spanToJSON,
-  startInactiveSpan,
-} from '@sentry/core';
+import { debug, defineIntegration, getActiveSpan, getTraceData, spanToJSON, startInactiveSpan } from '@sentry/core';
 import type { FrameEvent, FrameLive, InvocationEvent, InvocationLive, TraceContext } from '@solidjs/web';
 import type { BoundaryEvent, BoundaryLive } from 'solid-js';
 import { OBSERVE } from 'solid-js';
@@ -91,7 +83,7 @@ function traceProvider(): Partial<TraceContext> | undefined {
   };
 }
 
-function invocationSpan(event: InvocationEvent, live: InvocationLive): Span {
+function invocationSpan(event: InvocationEvent, _live: InvocationLive): Span {
   const start = epochSeconds(event.at);
   const span = startInactiveSpan({
     name: event.id,
@@ -106,15 +98,14 @@ function invocationSpan(event: InvocationEvent, live: InvocationLive): Span {
       'sentry.origin': ORIGIN,
     },
   });
-  if (event.outcome === 'error') {
-    span.setStatus({ code: 2, message: 'internal_error' });
-    captureException(live.error, { mechanism: { type: 'auto.function.solid.server_function', handled: false } });
-  }
+  // Status only: the server error hook already captured the throw, once,
+  // with where it was met (`solidServerErrorsIntegration`).
+  if (event.outcome === 'error') span.setStatus({ code: 2, message: 'internal_error' });
   span.end(epochSeconds(event.at + event.durationMs));
   return span;
 }
 
-function boundarySpan(event: BoundaryEvent, live: BoundaryLive): Span {
+function boundarySpan(event: BoundaryEvent, _live: BoundaryLive): Span {
   const span = startInactiveSpan({
     name: event.ownerPath ? event.ownerPath.join(' › ') : `boundary ${event.id}`,
     op: 'solid.boundary',
@@ -129,15 +120,12 @@ function boundarySpan(event: BoundaryEvent, live: BoundaryLive): Span {
       'sentry.origin': ORIGIN,
     },
   });
-  if (event.outcome === 'error') {
-    span.setStatus({ code: 2, message: 'internal_error' });
-    captureException(live.error, { mechanism: { type: 'auto.function.solid.boundary', handled: true } });
-  }
+  if (event.outcome === 'error') span.setStatus({ code: 2, message: 'internal_error' });
   span.end(epochSeconds(event.at + event.durationMs + event.heldMs));
   return span;
 }
 
-function frameSpan(event: FrameEvent, live: FrameLive): Span {
+function frameSpan(event: FrameEvent, _live: FrameLive): Span {
   const span = startInactiveSpan({
     name: event.id || 'frame',
     op: 'solid.frame.produce',
@@ -155,10 +143,7 @@ function frameSpan(event: FrameEvent, live: FrameLive): Span {
       'sentry.origin': ORIGIN,
     },
   });
-  if (event.outcome === 'error') {
-    span.setStatus({ code: 2, message: 'internal_error' });
-    captureException(live.error, { mechanism: { type: 'auto.function.solid.frame', handled: true } });
-  }
+  if (event.outcome === 'error') span.setStatus({ code: 2, message: 'internal_error' });
   span.end(epochSeconds(event.at + event.durationMs));
   return span;
 }

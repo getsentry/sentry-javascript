@@ -99,7 +99,7 @@ describe('solidServerTracingIntegration', () => {
     expect(ctx.entries.traceparent).toBe(`00-${span.trace_id}-${span.span_id}-01`);
   });
 
-  it('server-function executions are spans; a failed one captures the error as thrown, unhandled', async () => {
+  it('server-function executions are spans; a failed one is status only — the error hook reports it', async () => {
     const { client, captured } = clientWith();
     const boom = new Error('connect ECONNREFUSED postgres://app:hunter2@db');
     const at = performance.now();
@@ -130,10 +130,8 @@ describe('solidServerTracingIntegration', () => {
       'solid.server_function.boundary': '0-1',
       'solid.server_function.deferred': true,
     });
-    expect(captured.events[0]?.exception?.values?.[0]).toMatchObject({
-      value: 'connect ECONNREFUSED postgres://app:hunter2@db',
-      mechanism: { type: 'auto.function.solid.server_function', handled: false },
-    });
+    // Status only: the server error hook is the one path an error takes to Sentry.
+    expect(captured.events).toEqual([]);
   });
 
   it('a produced frame stream is a span with its census; the client half is left to the browser', async () => {

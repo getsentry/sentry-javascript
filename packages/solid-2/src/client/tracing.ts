@@ -169,6 +169,8 @@ class Tracer {
   /** Self-time per node name for each open interaction — the record has totals, not the breakdown. */
   private readonly _hot: WeakMap<ChangeOrigin, Map<string, number>>;
   private readonly _settled: WeakSet<ChangeOrigin>;
+  /** The root span each settled interaction became — the parent for work it caused after its window closed. */
+  private readonly _spans: WeakMap<ChangeOrigin, Span>;
   /** Server-function calls dispatched under an interaction still open, awaiting its segment. */
   private readonly _calls: WeakMap<ChangeOrigin, Array<{ event: CallEvent; live: CallLive }>>;
   /** Settled interactions kept for the time join, newest last. */
@@ -177,6 +179,7 @@ class Tracer {
   public constructor(public readonly keepText: boolean) {
     this._hot = new WeakMap();
     this._settled = new WeakSet();
+    this._spans = new WeakMap();
     this._calls = new WeakMap();
     this._recent = [];
   }
@@ -191,14 +194,24 @@ class Tracer {
   }
 
   /**
-   * A call whose `origin` runs under an interaction still open is the
-   * interaction's — held for its span, joined by the engine's object
-   * identity rather than by time. Anything else is a root span of its own.
+   * A call whose `origin` is an interaction is the interaction's, joined by
+   * the engine's object identity rather than by time. Made while the
+   * interaction is still open, it is held for the interaction's span; made
+   * after the interaction settled — the usual shape of `onClick={async () =>
+   * set(await call())}`, where the handler's synchronous window closes long
+   * before the call lands — it becomes a child of that span at once, marked
+   * `after_settle`. Only a call with no interaction at all is a root span.
    */
   public claimCall(event: CallEvent, live: CallLive): boolean {
     const origin = event.origin;
     const interaction = origin === undefined ? undefined : origin.kind === 'interaction' ? origin : origin.interaction;
-    if (interaction === undefined || this._settled.has(interaction)) return false;
+    if (interaction === undefined) return false;
+    if (this._settled.has(interaction)) {
+      const parent = this._spans.get(interaction);
+      if (parent === undefined) return false;
+      queueMicrotask(() => callSpan(event, live, parent, this.keepText, true));
+      return true;
+    }
     let calls = this._calls.get(interaction);
     if (calls === undefined) this._calls.set(interaction, (calls = []));
     calls.push({ event, live });
@@ -240,6 +253,7 @@ class Tracer {
       for (const call of calls) callSpan(call.event, call.live, span, this.keepText);
     }
     span.end(epochSeconds(event.at + (event.settledMs ?? event.handlerMs)));
+    this._spans.set(origin, span);
     this._recent.push({ at: event.at, until: event.at + event.handlerMs, context: span.spanContext() });
     if (this._recent.length > RECENT_LIMIT) this._recent.shift();
   }
