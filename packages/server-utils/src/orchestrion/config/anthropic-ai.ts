@@ -34,7 +34,8 @@ export const anthropicAiConfig = [
     module: {
       name: '@anthropic-ai/sdk',
       versionRange: '>=0.19.2 <1',
-      // `streaming.js` moved under `core/` in 0.60.
+      // `class Stream` sits at the package root up to 0.5x and under `core/` from 0.59 on, where the
+      // root file is left behind as a re-export shim that matches nothing.
       filePath: /^(?:core\/)?streaming\.(?:js|mjs)$/,
     },
     functionQuery: { className: 'Stream', methodName: 'fromSSEResponse', kind: 'Sync' as const },
