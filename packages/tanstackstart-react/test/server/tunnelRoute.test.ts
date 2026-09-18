@@ -88,10 +88,10 @@ describe('createSentryTunnelRoute', () => {
     await createSentryTunnelRoute({ allowedDsns: ['https://public@o0.ingest.sentry.io/0'] }).handlers.POST({ request });
 
     const matcher = options.ignoreSpans?.find(
-      (entry): entry is { attributes: { 'http.target': RegExp } } =>
-        !!(entry as { attributes?: { 'http.target'?: unknown } })?.attributes?.['http.target'],
+      (entry): entry is { attributes: { 'url.path': RegExp } } =>
+        !!(entry as { attributes?: { 'url.path'?: unknown } })?.attributes?.['url.path'],
     );
-    expect(matcher?.attributes['http.target'].test('/handler-selfreg')).toBe(true);
+    expect(matcher?.attributes['url.path'].test('/handler-selfreg')).toBe(true);
   });
 
   it('returns 500 when allowedDsns is omitted and no active server Sentry client DSN exists', async () => {
@@ -121,8 +121,8 @@ describe('registerSentryServerTunnelRoute', () => {
     registerSentryServerTunnelRoute('/abcd1234');
 
     expect(options.ignoreSpans).toHaveLength(2);
-    const matcher = options.ignoreSpans?.[1] as { attributes: { 'http.target': RegExp } };
-    const pattern = matcher.attributes['http.target'];
+    const matcher = options.ignoreSpans?.[1] as { attributes: { 'url.path': RegExp } };
+    const pattern = matcher.attributes['url.path'];
 
     expect(pattern.test('/abcd1234')).toBe(true);
     expect(pattern.test('/abcd1234?o=1&p=2')).toBe(true);

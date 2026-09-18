@@ -21,6 +21,12 @@ export function addRoutes(app: HonoType<{ Bindings?: { E2E_TEST_DSN: string } }>
     });
   });
 
+  app.get('/linked-error', () => {
+    const cause = new Error('Failure 1');
+    const errorCause = new Error('Failure 2', { cause });
+    throw new Error('Failure 3', { cause: errorCause });
+  });
+
   app.get('/http-exception/:code', c => {
     // oxlint-disable-next-line typescript/no-explicit-any
     const code = Number(c.req.param('code')) as any;
@@ -65,6 +71,16 @@ export function addRoutes(app: HonoType<{ Bindings?: { E2E_TEST_DSN: string } }>
       await next();
     },
     c => c.text('main inline all'),
+  );
+  app.query(
+    '/test-main-inline/query',
+    async function mainInlineQuery(_c, next) {
+      await next();
+    },
+    async c => {
+      const body = await c.req.json<{ value: string }>();
+      return c.json({ method: c.req.method, value: body.value });
+    },
   );
 
   // Combined: .use() middleware + inline middleware via .get() on the same path.

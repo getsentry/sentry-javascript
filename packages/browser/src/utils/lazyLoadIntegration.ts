@@ -1,5 +1,5 @@
-import type { IntegrationFn } from '@sentry/core/browser';
-import { getClient, SDK_VERSION } from '@sentry/core/browser';
+import type { IntegrationFn } from '@sentry/core';
+import { getClient, SDK_VERSION } from '@sentry/core';
 import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
 
@@ -22,13 +22,9 @@ const LAZY_LOADABLE_NAMES = [
   'reportingObserverIntegration',
   'rewriteFramesIntegration',
   'browserProfilingIntegration',
+  'userTimingIntegration',
+  'interactionsIntegration',
   'moduleMetadataIntegration',
-  'instrumentAnthropicAiClient',
-  'instrumentOpenAiClient',
-  'instrumentGoogleGenAIClient',
-  'instrumentLangGraph',
-  'createLangChainCallbackHandler',
-  'instrumentLangChainEmbeddings',
 ] as const;
 
 type ElementOf<T extends readonly unknown[]> = T[number];

@@ -17,10 +17,9 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
     console.log("hello world");
     //#endregion
     ",
-      "sentry-cli-mock.json": "["releases","new","CURRENT_SHA"],
-    ["releases","set-commits","CURRENT_SHA","--auto","--ignore-missing"],
-    ["releases","finalize","CURRENT_SHA"],
-    ["sourcemaps","upload","-p","fake-project","--release","CURRENT_SHA","sentry-bundler-plugin-upload-path","--ignore","node_modules","--no-rewrite"],
+      "sentry-cli-mock.json": "["release","create","CURRENT_SHA","--project","fake-project"],
+    ["release","set-commits","CURRENT_SHA","--auto"],
+    ["release","finalize","CURRENT_SHA"],
     ",
     }
   `);

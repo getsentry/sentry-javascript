@@ -1,5 +1,6 @@
 import type { Envelope, Event, Log } from '@sentry/core';
-import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
+import { createStackParser, forEachEnvelopeItem } from '@sentry/core';
+import { nodeStackLineParser } from '@sentry/core/server';
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
 import { DenoClient, getCurrentScope, getDefaultIntegrations, logger, metrics, Scope } from '../build/esm/index.js';
@@ -12,6 +13,8 @@ function getTestClient(callback: (event?: Event) => void): DenoClient {
     debug: true,
     integrations: getDefaultIntegrations({}),
     stackParser: createStackParser(nodeStackLineParser()),
+    attachStacktrace: false,
+    traceLifecycle: 'static',
     transport: makeTestTransport(envelope => {
       callback(getNormalizedEvent(envelope));
     }),
@@ -29,7 +32,7 @@ function delay(time: number): Promise<void> {
   });
 }
 
-Deno.test('captureException', async t => {
+Deno.test('captureException', async () => {
   let ev: Event | undefined;
   const client = getTestClient(event => {
     ev = event;
@@ -42,8 +45,43 @@ Deno.test('captureException', async t => {
   client.captureException(something());
 
   await delay(200);
-  await assertSnapshot(t, ev);
+  expectCaptureExceptionEvent(ev);
 });
+
+function expectCaptureExceptionEvent(event: Event | undefined): void {
+  const exception = event?.exception?.values?.[0];
+
+  assertEquals(exception?.type, 'Error');
+  assertEquals(exception?.value, 'Some unhandled error');
+  assertEquals(
+    exception?.stacktrace?.frames?.map(frame => ({
+      colno: frame.colno,
+      context_line: frame.context_line,
+      filename: frame.filename,
+      function: frame.function,
+      in_app: frame.in_app,
+      lineno: frame.lineno,
+    })),
+    [
+      {
+        colno: 27,
+        context_line: '  client.captureException(something());',
+        filename: 'app:///test/mod.test.ts',
+        function: '?',
+        in_app: true,
+        lineno: 45,
+      },
+      {
+        colno: 12,
+        context_line: "    return new Error('Some unhandled error');",
+        filename: 'app:///test/mod.test.ts',
+        function: 'something',
+        in_app: true,
+        lineno: 42,
+      },
+    ],
+  );
+}
 
 Deno.test('captureMessage', async t => {
   let ev: Event | undefined;
@@ -72,6 +110,21 @@ Deno.test('captureMessage twice', async t => {
 
   await delay(200);
   await assertSnapshot(t, ev);
+});
+
+Deno.test('records console calls as breadcrumbs', async () => {
+  let ev: Event | undefined;
+  const client = getTestClient(event => {
+    ev = event;
+  });
+
+  // eslint-disable-next-line no-console
+  console.log('console breadcrumb');
+  client.captureMessage('Message with console breadcrumb');
+
+  await delay(200);
+  const consoleBreadcrumb = ev?.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'console');
+  assertEquals(consoleBreadcrumb?.message, 'console breadcrumb');
 });
 
 Deno.test('metrics.count captures a counter metric', async () => {
@@ -115,7 +168,6 @@ Deno.test('logger.info captures a log envelope item', async () => {
   const envelopes: Array<Envelope> = [];
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
-    enableLogs: true,
     integrations: getDefaultIntegrations({}),
     stackParser: createStackParser(nodeStackLineParser()),
     transport: makeTestTransport(envelope => {
@@ -151,7 +203,6 @@ Deno.test('logger.info captures a log envelope item', async () => {
 Deno.test('adds server.address to log attributes', () => {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
-    enableLogs: true,
     serverName: 'test-server',
     integrations: getDefaultIntegrations({}),
     stackParser: createStackParser(nodeStackLineParser()),
@@ -167,7 +218,6 @@ Deno.test('adds server.address to log attributes', () => {
 Deno.test('preserves existing log attributes when adding server.address', () => {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
-    enableLogs: true,
     serverName: 'test-server',
     integrations: getDefaultIntegrations({}),
     stackParser: createStackParser(nodeStackLineParser()),
@@ -181,7 +231,7 @@ Deno.test('preserves existing log attributes when adding server.address', () => 
   assertEquals(log.attributes?.['server.address'], 'test-server');
 });
 
-Deno.test('close() removes unload listener when enableLogs is true', async () => {
+Deno.test('close() removes unload listener', async () => {
   const removeEventListenerCalls: Array<string> = [];
   const originalRemoveEventListener = globalThis.removeEventListener;
   globalThis.removeEventListener = ((event: string, ...args: unknown[]) => {
@@ -193,7 +243,6 @@ Deno.test('close() removes unload listener when enableLogs is true', async () =>
   try {
     const client = new DenoClient({
       dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
-      enableLogs: true,
       integrations: getDefaultIntegrations({}),
       stackParser: createStackParser(nodeStackLineParser()),
       transport: makeTestTransport(() => {}),

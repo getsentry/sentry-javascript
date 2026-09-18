@@ -33,16 +33,12 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   contextLinesIntegration: 'contextlines',
   extraErrorDataIntegration: 'extraerrordata',
   reportingObserverIntegration: 'reportingobserver',
+  userTimingIntegration: 'usertiming',
+  interactionsIntegration: 'interactions',
   feedbackIntegration: 'feedback',
   moduleMetadataIntegration: 'modulemetadata',
   graphqlClientIntegration: 'graphqlclient',
   browserProfilingIntegration: 'browserprofiling',
-  instrumentAnthropicAiClient: 'instrumentanthropicaiclient',
-  instrumentOpenAiClient: 'instrumentopenaiclient',
-  instrumentGoogleGenAIClient: 'instrumentgooglegenaiclient',
-  instrumentLangGraph: 'instrumentlanggraph',
-  createLangChainCallbackHandler: 'createlangchaincallbackhandler',
-  instrumentLangChainEmbeddings: 'instrumentlangchainembeddings',
   // technically, this is not an integration, but let's add it anyway for simplicity
   makeMultiplexedTransport: 'multiplexedtransport',
 };

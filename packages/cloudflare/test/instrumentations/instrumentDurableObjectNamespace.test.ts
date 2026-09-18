@@ -112,6 +112,57 @@ describe('instrumentDurableObjectNamespace', () => {
     });
   });
 
+  describe('jurisdiction', () => {
+    function createJurisdictionNamespace() {
+      const rpcMethod = vi.fn().mockReturnValue('rpc-result');
+      const { namespace: subnamespace } = createMockNamespace();
+      subnamespace.get.mockReturnValue({
+        id: { toString: () => 'mock-id', equals: () => false, name: 'test' },
+        fetch: vi.fn(),
+        myRpcMethod: rpcMethod,
+      });
+      const { namespace } = createMockNamespace();
+      namespace.jurisdiction.mockReturnValue(subnamespace);
+
+      return { namespace, subnamespace, rpcMethod };
+    }
+
+    it('propagates RPC trace context from stubs of the jurisdiction-restricted namespace', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
+      });
+      const { namespace, subnamespace, rpcMethod } = createJurisdictionNamespace();
+      const instrumented = instrumentDurableObjectNamespace(namespace, true);
+
+      const eu = instrumented.jurisdiction('eu');
+      const stub = eu.get({ toString: () => 'id', equals: () => false } as any);
+      (stub as any).myRpcMethod('arg1');
+
+      expect(namespace.jurisdiction).toHaveBeenCalledWith('eu');
+      expect(subnamespace.get).toHaveBeenCalledOnce();
+      expect(rpcMethod).toHaveBeenCalledWith('arg1', {
+        __sentry_rpc_meta__: {
+          'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+          baggage: 'sentry-environment=production',
+        },
+      });
+    });
+
+    it('does not propagate RPC trace context when propagation is off for the binding', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      });
+      const { namespace, rpcMethod } = createJurisdictionNamespace();
+      const instrumented = instrumentDurableObjectNamespace(namespace);
+
+      const stub = instrumented.jurisdiction('eu').get({ toString: () => 'id', equals: () => false } as any);
+      (stub as any).myRpcMethod('arg1');
+
+      expect(rpcMethod).toHaveBeenCalledWith('arg1');
+    });
+  });
+
   describe('stub instrumentation', () => {
     it('calls stub.fetch with URL object', async () => {
       const { namespace, mockStub } = createMockNamespace();
@@ -195,7 +246,7 @@ describe('instrumentDurableObjectNamespace', () => {
           myRpcMethod: rpcMethod,
         }),
       };
-      const instrumented = instrumentDurableObjectNamespace(namespace);
+      const instrumented = instrumentDurableObjectNamespace(namespace, true);
 
       const stub = instrumented.get({ toString: () => 'id', equals: () => false } as any);
       (stub as any).myRpcMethod('arg1', 42);
@@ -221,12 +272,35 @@ describe('instrumentDurableObjectNamespace', () => {
           myRpcMethod: rpcMethod,
         }),
       };
-      const instrumented = instrumentDurableObjectNamespace(namespace);
+      const instrumented = instrumentDurableObjectNamespace(namespace, true);
 
       const stub = instrumented.get({ toString: () => 'id', equals: () => false } as any);
       (stub as any).myRpcMethod('arg1');
 
       expect(rpcMethod).toHaveBeenCalledWith('arg1');
+    });
+
+    it('does not inject meta when RPC trace propagation is off for the binding', () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      });
+
+      const rpcMethod = vi.fn();
+      const { namespace: originalNamespace } = createMockNamespace();
+      const namespace = {
+        ...originalNamespace,
+        get: vi.fn().mockReturnValue({
+          id: { toString: () => 'mock-id', equals: () => false, name: 'test' },
+          fetch: vi.fn(),
+          myRpcMethod: rpcMethod,
+        }),
+      };
+      const instrumented = instrumentDurableObjectNamespace(namespace);
+
+      const stub = instrumented.get({ toString: () => 'id', equals: () => false } as any);
+      (stub as any).myRpcMethod('arg1', 42);
+
+      expect(rpcMethod).toHaveBeenCalledWith('arg1', 42);
     });
 
     it('does not wrap built-in stub methods (connect, dup)', () => {
@@ -246,7 +320,7 @@ describe('instrumentDurableObjectNamespace', () => {
           dup: dupFn,
         }),
       };
-      const instrumented = instrumentDurableObjectNamespace(namespace);
+      const instrumented = instrumentDurableObjectNamespace(namespace, true);
 
       const stub = instrumented.get({ toString: () => 'id', equals: () => false } as any);
 
@@ -263,7 +337,7 @@ describe('instrumentDurableObjectNamespace', () => {
         ...originalNamespace,
         someProperty: 'value',
       };
-      const instrumented = instrumentDurableObjectNamespace(namespace);
+      const instrumented = instrumentDurableObjectNamespace(namespace, true);
 
       expect((instrumented as any).someProperty).toBe('value');
     });

@@ -11,7 +11,7 @@ import {
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
-import type { RemixOptions } from '../utils/remixOptions';
+import { resolveFormDataCapture } from '../utils/formData';
 import { storeFormDataKeys } from '../utils/utils';
 import { extractData, isResponse } from '../utils/vendor/response';
 
@@ -93,14 +93,10 @@ export async function errorHandleDataFunction(
   return handleCallbackErrors(
     async () => {
       if (name === 'action' && span) {
-        const client = getClient();
-        const options = client?.getOptions() as RemixOptions | undefined;
+        const formDataCapture = resolveFormDataCapture(getClient());
 
-        if (
-          client?.getDataCollectionOptions().httpBodies.includes('incomingRequest') &&
-          options?.captureActionFormDataKeys
-        ) {
-          await storeFormDataKeys(args, span, options.captureActionFormDataKeys);
+        if (formDataCapture) {
+          await storeFormDataKeys(args, span, formDataCapture);
         }
       }
 

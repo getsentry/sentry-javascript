@@ -25,11 +25,11 @@ import { readFileSync } from 'node:fs';
  * other parentheticals (e.g. `(nextjs-app, 20)`) intact:
  *
  *   "Node (22) Integration Tests"              -> "Node Integration Tests"
- *   "Node (24) (TS 3.8) Integration Tests"     -> "Node Integration Tests"
+ *   "Node (24) (TS 5.0) Integration Tests"     -> "Node Integration Tests"
  *   "aws-serverless-layer (Node 22) Test"      -> "aws-serverless-layer Test"
  *   "Playwright bundle_tracing_replay Tests"   -> "Playwright Tests"
  *   "Playwright esm (1/4) Tests"               -> "Playwright Tests"
- *   "E2E react-router-7-framework-node-20-18 Test" -> "E2E react-router-7-framework Test"
+ *   "E2E some-app-node-20-18 Test"             -> "E2E some-app Test"
  */
 function normalizeJobName(name) {
   return name

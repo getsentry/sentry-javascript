@@ -1,6 +1,5 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import { RunnableLambda, RunnableSequence } from '@langchain/core/runnables';
-import { createLangChainCallbackHandler } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
@@ -51,7 +50,7 @@ async function run() {
 
     const chain = RunnableSequence.from([formatStep, model, parseStep]);
 
-    const handler = createLangChainCallbackHandler();
+    const handler = Sentry.createLangChainCallbackHandler();
 
     await chain.invoke({ topic: 'weather' }, { callbacks: [handler] });
   });

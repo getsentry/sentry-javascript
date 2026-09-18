@@ -1,10 +1,6 @@
 import * as Sentry from '@sentry/node';
 
 async function run() {
-  // Yield a microtick so the DC subscriber (deferred via Promise.resolve().then)
-  // is registered before ioredis creates its native TracingChannels on import.
-  await Promise.resolve();
-
   const { default: Redis } = await import('ioredis-5');
   const redisClient = new Redis({ host: '127.0.0.1', port: 6382, lazyConnect: true });
 

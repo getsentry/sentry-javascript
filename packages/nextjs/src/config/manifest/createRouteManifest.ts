@@ -1,6 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { getBuildLogger } from '../buildLogger';
 import type { RouteInfo, RouteManifest } from './types';
+
+/**
+ * Param names that are treated as an optional i18n prefix, so that unprefixed paths of the default
+ * locale (e.g. next-intl's `localePrefix: 'as-needed'`) still match their localized route pattern.
+ */
+export const DEFAULT_LOCALE_PARAM_NAMES = ['locale', 'lang', 'language', 'lng'];
 
 export type CreateRouteManifestOptions = {
   // For starters we only support app router
@@ -14,11 +21,21 @@ export type CreateRouteManifestOptions = {
    * Base path for the application, if any. This will be prefixed to all routes.
    */
   basePath?: string;
+  /**
+   * Param names to treat as an optional i18n prefix. Replaces (does not extend) the defaults.
+   * Pass an empty array to disable optional prefix matching entirely.
+   */
+  localeParamNames?: string[];
+  /**
+   * Suppresses the SDK's own build-time logs.
+   */
+  silent?: boolean;
 };
 
 let manifestCache: RouteManifest | null = null;
 let lastAppDirPath: string | null = null;
 let lastIncludeRouteGroups: boolean | undefined = undefined;
+let lastLocaleParamNames: string[] | undefined = undefined;
 
 function isPageFile(filename: string): boolean {
   return filename === 'page.tsx' || filename === 'page.jsx' || filename === 'page.ts' || filename === 'page.js';
@@ -48,7 +65,10 @@ function getDynamicRouteSegment(name: string): string {
   return `:${name.slice(1, -1)}`;
 }
 
-function buildRegexForDynamicRoute(routePath: string): {
+function buildRegexForDynamicRoute(
+  routePath: string,
+  localeParamNames: string[],
+): {
   regex: string;
   paramNames: string[];
   hasOptionalPrefix: boolean;
@@ -100,20 +120,19 @@ function buildRegexForDynamicRoute(routePath: string): {
     pattern = `^/${regexSegments.join('/')}$`;
   }
 
-  return { regex: pattern, paramNames, hasOptionalPrefix: hasOptionalPrefix(paramNames) };
+  return { regex: pattern, paramNames, hasOptionalPrefix: hasOptionalPrefix(paramNames, localeParamNames) };
 }
 
 /**
- * Detect if the first parameter is a common i18n prefix segment
- * Common patterns: locale, lang, language
+ * Detect if the first parameter is an i18n prefix segment
  */
-function hasOptionalPrefix(paramNames: string[]): boolean {
+function hasOptionalPrefix(paramNames: string[], localeParamNames: string[]): boolean {
   const firstParam = paramNames[0];
   if (firstParam === undefined) {
     return false;
   }
 
-  return firstParam === 'locale' || firstParam === 'lang' || firstParam === 'language';
+  return localeParamNames.includes(firstParam);
 }
 
 /**
@@ -130,7 +149,13 @@ function checkForGenerateStaticParams(pageFilePath: string): boolean {
   }
 }
 
-function scanAppDirectory(dir: string, basePath: string = '', includeRouteGroups: boolean = false): RouteManifest {
+function scanAppDirectory(
+  dir: string,
+  basePath: string = '',
+  includeRouteGroups: boolean = false,
+  localeParamNames: string[] = DEFAULT_LOCALE_PARAM_NAMES,
+  silent?: boolean,
+): RouteManifest {
   const dynamicRoutes: RouteInfo[] = [];
   const staticRoutes: RouteInfo[] = [];
   const isrRoutes: string[] = [];
@@ -153,7 +178,7 @@ function scanAppDirectory(dir: string, basePath: string = '', includeRouteGroups
       }
 
       if (isDynamic) {
-        const { regex, paramNames, hasOptionalPrefix } = buildRegexForDynamicRoute(routePath);
+        const { regex, paramNames, hasOptionalPrefix } = buildRegexForDynamicRoute(routePath, localeParamNames);
         dynamicRoutes.push({
           path: routePath,
           regex,
@@ -188,7 +213,7 @@ function scanAppDirectory(dir: string, basePath: string = '', includeRouteGroups
         }
 
         const newBasePath = routeSegment ? `${basePath}/${routeSegment}` : basePath;
-        const subRoutes = scanAppDirectory(fullPath, newBasePath, includeRouteGroups);
+        const subRoutes = scanAppDirectory(fullPath, newBasePath, includeRouteGroups, localeParamNames, silent);
 
         dynamicRoutes.push(...subRoutes.dynamicRoutes);
         staticRoutes.push(...subRoutes.staticRoutes);
@@ -196,8 +221,7 @@ function scanAppDirectory(dir: string, basePath: string = '', includeRouteGroups
       }
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Error building route manifest:', error);
+    getBuildLogger(silent).warn('[@sentry/nextjs] Error building route manifest:', error);
   }
 
   return { dynamicRoutes, staticRoutes, isrRoutes };
@@ -231,8 +255,15 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
     };
   }
 
+  const localeParamNames = options?.localeParamNames ?? DEFAULT_LOCALE_PARAM_NAMES;
+
   // Check if we can use cached version
-  if (manifestCache && lastAppDirPath === targetDir && lastIncludeRouteGroups === options?.includeRouteGroups) {
+  if (
+    manifestCache &&
+    lastAppDirPath === targetDir &&
+    lastIncludeRouteGroups === options?.includeRouteGroups &&
+    lastLocaleParamNames?.join(',') === localeParamNames.join(',')
+  ) {
     return manifestCache;
   }
 
@@ -240,6 +271,8 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
     targetDir,
     options?.basePath,
     options?.includeRouteGroups,
+    localeParamNames,
+    options?.silent,
   );
 
   const manifest: RouteManifest = {
@@ -252,6 +285,7 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
   manifestCache = manifest;
   lastAppDirPath = targetDir;
   lastIncludeRouteGroups = options?.includeRouteGroups;
+  lastLocaleParamNames = localeParamNames;
 
   return manifest;
 }

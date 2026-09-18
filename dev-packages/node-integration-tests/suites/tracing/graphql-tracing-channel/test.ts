@@ -56,8 +56,8 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
           .expect({
             transaction: event => {
               const spans = event.spans || [];
-              // The vendored OTel path (origin `auto.graphql.otel.graphql`) must be inactive on 17+.
-              expect(spans.find(span => span.origin === 'auto.graphql.otel.graphql')).toBeUndefined();
+              // The vendored OTel path (origin `auto.graphql.graphql`) must be inactive on 17+.
+              expect(spans.find(span => span.origin === 'auto.graphql.graphql')).toBeUndefined();
               // ...while the diagnostics-channel path is active.
               expect(spans.find(span => span.origin === 'auto.graphql.diagnostic_channel')).toBeDefined();
             },

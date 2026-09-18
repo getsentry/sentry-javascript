@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import cors from 'cors';
 import express from 'express';
@@ -10,7 +9,5 @@ app.use(cors());
 app.get('/test', (_req, res) => {
   res.send({ response: 'ok' });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

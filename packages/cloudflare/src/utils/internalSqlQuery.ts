@@ -14,25 +14,40 @@ import { stringMatchesSomePattern } from '@sentry/core';
  *
  * The check operates on the query summary produced by `getSqlQuerySummary` (`{operation} {table} ...`,
  * the same value used as the span name), so table targets are already isolated from the rest of the
- * query.
+ * query. The one exception is `CREATE INDEX`: its summary carries the index name, not the indexed
+ * table (upstream OTel convention), so the `cf_` target only appears in the ON clause of the full
+ * statement, which `queryText` is needed for.
  */
 export function targetsCloudflareInternalTable(
   querySummary: string | undefined,
   allowlist?: Array<string | RegExp>,
+  queryText?: string,
 ): boolean {
   if (!querySummary) {
     return false;
   }
 
+  const indexedTable = queryText ? CREATE_INDEX_TABLE_RE.exec(queryText)?.groups?.['table'] : undefined;
+  if (indexedTable) {
+    return isCloudflareInternalTable(indexedTable, allowlist);
+  }
+
   const [, ...tables] = querySummary.split(' ');
 
-  return tables.some(table => {
-    if (!table.toLowerCase().startsWith('cf_')) {
-      return false;
-    }
+  return tables.some(table => isCloudflareInternalTable(table, allowlist));
+}
 
-    // A table on the allowlist is treated as a user table and stays instrumented, even though it
-    // matches the reserved prefix.
-    return !allowlist?.length || !stringMatchesSomePattern(table, allowlist, true);
-  });
+// `CREATE [UNIQUE] INDEX [IF NOT EXISTS] <name> ON <table>` — the IF EXISTS shape mirrors DDL_RE
+// in @sentry/core.
+const CREATE_INDEX_TABLE_RE =
+  /^\s*CREATE\s+(?:UNIQUE\s+)?INDEX(?:\s+IF\s+(?:NOT\s+)?EXISTS)?\s+[^\s(,;)]+\s+ON\s+(?<table>[^\s(,;)]+)/i;
+
+function isCloudflareInternalTable(table: string, allowlist?: Array<string | RegExp>): boolean {
+  if (!table.toLowerCase().startsWith('cf_')) {
+    return false;
+  }
+
+  // A table on the allowlist is treated as a user table and stays instrumented, even though it
+  // matches the reserved prefix.
+  return !allowlist?.length || !stringMatchesSomePattern(table, allowlist, true);
 }

@@ -1,3 +1,4 @@
+import { runInNewContext } from 'node:vm';
 import { describe, expect, it, test } from 'vitest';
 import type { Client } from '../../../src/client';
 import { eventFromMessage, eventFromUnknownInput, exceptionFromError } from '../../../src/utils/eventbuilder';
@@ -104,6 +105,22 @@ describe('eventFromUnknownInput', () => {
         },
       },
     });
+  });
+
+  test('object with error prop created in another realm', () => {
+    const error = runInNewContext(`new Error('Some error')`) as Error;
+    expect(error).not.toBeInstanceOf(Error);
+
+    const event = eventFromUnknownInput(fakeClient, stackParser, {
+      err: error,
+    });
+
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'Error',
+        value: 'Some error',
+      }),
+    );
   });
 
   it('handles class with error prop', () => {

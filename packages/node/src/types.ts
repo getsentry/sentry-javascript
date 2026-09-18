@@ -1,35 +1,47 @@
-import type { Span as WriteableSpan } from '@opentelemetry/api';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options, SamplingContext, Scope, Span } from '@sentry/core';
-import type { NodeTransportOptions, OpenTelemetryServerRuntimeOptions } from '@sentry/node-core';
+import type { ClientOptions, Options, Scope } from '@sentry/core';
+import type { ServerRuntimeOptions } from '@sentry/core/server';
+import type { NodeTransportOptions } from './transports';
 
 /**
  * Base options for the Sentry Node SDK.
- * Extends the common WinterTC options with OpenTelemetry support shared with Bun and other server-side SDKs.
  */
-export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
+export interface BaseNodeOptions extends ServerRuntimeOptions {
   /**
-   * Sets profiling sample rate when @sentry/profiling-node is installed
+   * Controls whether the SDK registers its own Sentry OpenTelemetry tracer provider.
    *
-   * @deprecated
+   * When `false` (the default for most SDKs), no tracer provider is set up. The SDK isolates scopes
+   * with a native AsyncLocalStorage context strategy and still emits spans via its own
+   * instrumentation, but spans created through `@opentelemetry/api` are not captured.
+   *
+   * When `true`, the SDK registers its own `SentryTracerProvider` (and `SentryPropagator`) as the
+   * global OpenTelemetry tracer provider, so spans created through `@opentelemetry/api` become Sentry
+   * spans. This is the default for the Next.js and SvelteKit SDKs. If you run your own tracer provider,
+   * keep this `false` so the SDK does not register a competing provider; note the SDK no longer feeds
+   * spans into a user-owned provider, so those spans stay in your OpenTelemetry pipeline.
+   *
+   * @default false
    */
-  profilesSampleRate?: number;
+  enableOpenTelemetrySetup?: boolean;
 
   /**
-   * Function to compute profiling sample rate dynamically and filter unwanted profiles.
+   * Controls whether the SDK installs its runtime diagnostics-channel injection hooks. These hooks
+   * transform supported modules (e.g. Express) at load time so they emit the diagnostics channels
+   * that the channel-based integrations subscribe to.
    *
-   * Profiling is enabled if either this or `profilesSampleRate` is defined. If both are defined, `profilesSampleRate` is
-   * ignored.
+   * Set this to `false` to opt out — for example when the channels are injected at build
+   * time via the bundler plugin, or when the runtime module hooks are unavailable.
    *
-   * Will automatically be passed a context object of default and optional custom data.
-   *
-   * @returns A sample rate between 0 and 1 (0 drops the profile, 1 guarantees it will be sent). Returning `true` is
-   * equivalent to returning 1 and returning `false` is equivalent to returning 0.
-   *
-   * @deprecated
+   * @default true
    */
-  profilesSampler?: (samplingContext: SamplingContext) => number | boolean;
+  enableRuntimeChannelInjection?: boolean;
 
+  /**
+   * Override the runtime name reported in events.
+   * Defaults to 'node' with the current process version if not specified.
+   *
+   * @hidden This is primarily used internally to support platforms like Next on OpenNext/Cloudflare.
+   */
+  runtime?: { name: string; version?: string };
   /**
    * Sets profiling session sample rate for the entire profiling session (evaluated once per SDK initialization).
    *
@@ -55,16 +67,6 @@ export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
    * Requires the `LocalVariables` integration.
    */
   includeLocalVariables?: boolean;
-
-  /**
-   * Whether to register ESM loader hooks to automatically instrument libraries.
-   * This is necessary to auto instrument libraries that are loaded via ESM imports, but it can cause issues
-   * with certain libraries. If you run into problems running your app with this enabled,
-   * please raise an issue in https://github.com/getsentry/sentry-javascript.
-   *
-   * Defaults to `true`.
-   */
-  registerEsmLoaderHooks?: boolean;
 }
 
 /**
@@ -83,14 +85,3 @@ export interface CurrentScopes {
   scope: Scope;
   isolationScope: Scope;
 }
-
-/**
- * The base `Span` type is basically a `WriteableSpan`.
- * There are places where we basically want to allow passing _any_ span,
- * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
- * You'll have to make sur to check relevant fields before accessing them.
- *
- * Note that technically, the `Span` exported from `@opentelemetry/sdk-trace-base` matches this,
- * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
- */
-export type AbstractSpan = WriteableSpan | ReadableSpan | Span;

@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { getTracePropagationData } from '../../src/server-common/utils';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  getCloudflareExecutionContext,
+  getTracePropagationData,
+  setCloudflareExecutionContextFallback,
+} from '../../src/server-common/utils';
 
 const MOCK_REQUEST_EVENT: any = {
   request: {
@@ -46,5 +50,41 @@ describe('getTracePropagationData', () => {
 
     expect(sentryTrace).toBe('');
     expect(baggage).toBeUndefined();
+  });
+});
+
+describe('getCloudflareExecutionContext', () => {
+  afterEach(() => {
+    setCloudflareExecutionContextFallback(undefined);
+  });
+
+  it.each([
+    ['context', 'adapter-cloudflare <= 7'],
+    ['ctx', 'adapter-cloudflare 8'],
+  ])('reads platform.%s (%s)', platformKey => {
+    const ctx = { waitUntil: vi.fn() };
+
+    expect(getCloudflareExecutionContext({ [platformKey]: ctx })).toBe(ctx);
+  });
+
+  it('returns undefined without a platform and without a registered fallback', () => {
+    expect(getCloudflareExecutionContext(undefined)).toBeUndefined();
+    expect(getCloudflareExecutionContext({})).toBeUndefined();
+  });
+
+  // `adapter-cloudflare` >= 8.0.0-next.7 passes no `platform` object at all
+  it('falls back to the registered provider when the platform carries no execution context', () => {
+    const fallbackCtx = { waitUntil: vi.fn() };
+    setCloudflareExecutionContextFallback(() => fallbackCtx);
+
+    expect(getCloudflareExecutionContext(undefined)).toBe(fallbackCtx);
+    expect(getCloudflareExecutionContext({})).toBe(fallbackCtx);
+  });
+
+  it('prefers the execution context on the platform over the fallback', () => {
+    const ctx = { waitUntil: vi.fn() };
+    setCloudflareExecutionContextFallback(() => ({ waitUntil: vi.fn() }));
+
+    expect(getCloudflareExecutionContext({ ctx })).toBe(ctx);
   });
 });

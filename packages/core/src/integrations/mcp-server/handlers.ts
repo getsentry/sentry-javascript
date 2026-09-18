@@ -122,7 +122,7 @@ function captureHandlerError(error: Error, methodName: keyof MCPServerInstance, 
       extraData.prompt_name = handlerName;
       captureError(error, 'prompt_execution', extraData);
     }
-  } catch (_captureErr) {
+  } catch {
     // noop
   }
 }

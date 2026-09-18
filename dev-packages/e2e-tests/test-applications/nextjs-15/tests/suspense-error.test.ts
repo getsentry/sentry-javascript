@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('should not capture serverside suspense errors', async ({ page }) => {
-  const pageServerComponentTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /suspense-error';
+  const pageServerComponentSpanPromise = waitForStreamedSpan('nextjs-15', span => {
+    return span.name === 'GET /suspense-error' && span.is_segment;
   });
 
   let errorEvent;
@@ -18,8 +18,8 @@ test('should not capture serverside suspense errors', async ({ page }) => {
   // Just to be a little bit more sure
   await page.waitForTimeout(5000);
 
-  const pageServerComponentTransaction = await pageServerComponentTransactionPromise;
-  expect(pageServerComponentTransaction).toBeDefined();
+  const pageServerComponentSpan = await pageServerComponentSpanPromise;
+  expect(pageServerComponentSpan).toBeDefined();
 
   expect(errorEvent).toBeUndefined();
 });

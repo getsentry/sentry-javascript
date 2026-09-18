@@ -1,5 +1,4 @@
-import { addBreadcrumb, captureException, withIsolationScope, withScope } from '@sentry/core';
-import { startSpan } from '@sentry/opentelemetry';
+import { startSpan, addBreadcrumb, captureException, withIsolationScope, withScope } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getClient } from '../../src/';
 import type { NodeClient } from '../../src/sdk/client';

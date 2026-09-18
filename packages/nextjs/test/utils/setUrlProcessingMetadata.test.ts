@@ -9,9 +9,9 @@ describe('setUrlProcessingMetadata', () => {
     setUrlProcessingMetadata(event);
   });
 
-  it('adds URL without sendDefaultPii', () => {
+  it('adds URL with data collection disabled', () => {
     vi.spyOn(SentryCore, 'getClient').mockReturnValue({
-      getOptions: () => ({ sendDefaultPii: false }),
+      getOptions: () => ({ dataCollection: { userInfo: false } }),
     } as unknown as SentryCore.Client);
 
     const scopeData = {

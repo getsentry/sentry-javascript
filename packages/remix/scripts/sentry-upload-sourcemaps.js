@@ -77,8 +77,15 @@ if (!argv.uploadSourcemaps) {
 const buildPath = argv.buildPath || DEFAULT_BUILD_PATH;
 const urlPrefix = argv.urlPrefix || DEFAULT_URL_PREFIX;
 
-if (!argv.disableDebugIds) {
-  injectDebugId(buildPath);
-}
+// eslint-disable-next-line no-console
+(async () => {
+  if (!argv.disableDebugIds) {
+    await injectDebugId(buildPath);
+  }
 
-createRelease(argv, urlPrefix, buildPath);
+  await createRelease(argv, urlPrefix, buildPath);
+})().catch(error => {
+  // eslint-disable-next-line no-console
+  console.error(error);
+  process.exit(1);
+});

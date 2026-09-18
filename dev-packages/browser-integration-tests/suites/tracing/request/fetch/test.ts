@@ -31,10 +31,8 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
       data: {
-        'http.method': 'GET',
-        'http.url': `http://sentry-test-site.example/${index}`,
+        'http.request.method': 'GET',
         'url.full': `http://sentry-test-site.example/${index}`,
-        url: `http://sentry-test-site.example/${index}`,
         'server.address': 'sentry-test-site.example',
         type: 'fetch',
       },

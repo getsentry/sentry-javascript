@@ -1,4 +1,4 @@
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import type { UserConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -14,7 +14,7 @@ const mockedSentryVitePlugin = {
 
 const sentryVitePluginSpy = vi.fn((_options: SentryVitePluginOptions) => [mockedSentryVitePlugin]);
 
-vi.mock('@sentry/vite-plugin', () => ({
+vi.mock('@sentry/bundler-plugins/vite', () => ({
   sentryVitePlugin: (options: SentryVitePluginOptions) => sentryVitePluginSpy(options),
 }));
 
@@ -94,6 +94,23 @@ describe('makeAddSentryVitePlugin()', () => {
         bundleSizeOptimizations: {
           excludeTracing: true,
         },
+      }),
+    );
+  });
+
+  it('passes moduleMetadata and sourcemaps hooks to sentryVitePlugin', () => {
+    const rewriteSources = (source: string): string => source;
+    const resolveSourceMap = (artifactPath: string): string => `${artifactPath}.map`;
+
+    makeAddSentryVitePlugin({
+      moduleMetadata: { team: 'sdk' },
+      sourcemaps: { rewriteSources, resolveSourceMap },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moduleMetadata: { team: 'sdk' },
+        sourcemaps: expect.objectContaining({ rewriteSources, resolveSourceMap }),
       }),
     );
   });

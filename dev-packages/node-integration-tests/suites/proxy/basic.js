@@ -7,6 +7,7 @@ proxy.listen(0, () => {
   const proxyPort = proxy.address().port;
 
   Sentry.init({
+    traceLifecycle: 'static',
     dsn: process.env.SENTRY_DSN,
     transportOptions: {
       proxy: `http://localhost:${proxyPort}`,

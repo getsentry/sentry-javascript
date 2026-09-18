@@ -7,13 +7,18 @@ interface Env {
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   {
     async fetch(_request, _env, _ctx) {
       return new Response('OK');
     },
-    async scheduled(_controller, _env, _ctx) {
+    async scheduled(controller, _env, _ctx) {
+      if (controller.cron === '0 0 * * *') {
+        throw new Error('Test error from scheduled handler');
+      }
+
       // Successful scheduled handler - just does some work
       await new Promise(resolve => setTimeout(resolve, 10));
     },

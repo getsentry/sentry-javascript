@@ -1,6 +1,5 @@
 import Boom from '@hapi/boom';
 import Hapi from '@hapi/hapi';
-import * as Sentry from '@sentry/node';
 import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 
 const port = 5999;
@@ -51,7 +50,7 @@ const run = async () => {
     },
   });
 
-  // Route registered via a plugin produces a `plugin.hapi` span.
+  // Route registered via a plugin produces a `function` op span.
   await server.register({
     name: 'testPlugin',
     version: '1.0.0',
@@ -64,10 +63,9 @@ const run = async () => {
     },
   });
 
-  // Server extension produces a `server.ext.hapi` span.
+  // Server extension produces a `middleware` span.
   server.ext('onPreResponse', (request, h) => h.continue);
 
-  await Sentry.setupHapiErrorHandler(server);
   await server.start();
 
   sendPortToRunner(port);

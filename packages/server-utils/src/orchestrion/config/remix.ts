@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
 
 // Four concepts, one channel each:
 //   - `requestHandler`    → the async handler returned by `createRequestHandler` (the server span)

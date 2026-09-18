@@ -1,14 +1,11 @@
-import type { env as cloudflareEnv } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from './async';
-import type { CloudflareOptions } from './client';
-import { ensureInstrumented } from './instrument';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { instrumentExportedHandlerEmail } from './instrumentations/worker/instrumentEmail';
 import { instrumentExportedHandlerFetch } from './instrumentations/worker/instrumentFetch';
 import { instrumentExportedHandlerQueue } from './instrumentations/worker/instrumentQueue';
 import { instrumentExportedHandlerScheduled } from './instrumentations/worker/instrumentScheduled';
 import { instrumentExportedHandlerTail } from './instrumentations/worker/instrumentTail';
-import { getHonoIntegration } from './integrations/hono';
 import { isCloudflareClass } from './utils/isCloudflareClass';
+import type { AnyExportedHandler, DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
 import {
   instrumentWorkerEntrypoint,
   type WorkerEntrypointConstructor,
@@ -25,18 +22,16 @@ import {
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
-// TODO(v11): The generic types need to be rewritten to following to improve type safety:
-// T extends ExportedHandler<any, any, any> | WorkerEntrypointConstructor<any, any>
 export function withSentry<
-  Env = typeof cloudflareEnv,
+  Env = DefaultEnv,
   QueueHandlerMessage = unknown,
   CfHostMetadata = unknown,
-  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> | WorkerEntrypointConstructor = ExportedHandler<
-    Env,
-    QueueHandlerMessage,
-    CfHostMetadata
-  >,
->(optionsCallback: (env: Env) => CloudflareOptions | undefined, handler: T): T {
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends AnyExportedHandler | WorkerEntrypointConstructor<any, any> =
+    | ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata>
+    | WorkerEntrypointConstructor<Env>,
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<T, Env>) => StrictCloudflareOptions<O> | undefined, handler: T): T {
   if (isCloudflareClass(handler, 'WorkerEntrypoint')) {
     // oxlint-disable-next-line typescript/no-explicit-any
     return instrumentWorkerEntrypoint(optionsCallback as any, handler);
@@ -47,7 +42,6 @@ export function withSentry<
   try {
     // oxlint-disable-next-line typescript/no-explicit-any
     instrumentExportedHandlerFetch(handler, optionsCallback as any);
-    instrumentHonoErrorHandler(handler);
     // oxlint-disable-next-line typescript/no-explicit-any
     instrumentExportedHandlerScheduled(handler, optionsCallback as any);
     // oxlint-disable-next-line typescript/no-explicit-any
@@ -62,23 +56,4 @@ export function withSentry<
   }
 
   return handler;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function instrumentHonoErrorHandler<T extends ExportedHandler<any, any, any>>(handler: T): void {
-  if ('onError' in handler && 'errorHandler' in handler && typeof handler.errorHandler === 'function') {
-    handler.errorHandler = ensureInstrumented(
-      handler.errorHandler,
-      original =>
-        new Proxy(original, {
-          apply(target, thisArg, args) {
-            const [err, context] = args;
-
-            getHonoIntegration()?.handleHonoException(err, context);
-
-            return Reflect.apply(target, thisArg, args);
-          },
-        }),
-    );
-  }
 }

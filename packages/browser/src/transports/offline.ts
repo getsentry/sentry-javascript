@@ -1,11 +1,5 @@
-import type {
-  BaseTransportOptions,
-  Envelope,
-  OfflineStore,
-  OfflineTransportOptions,
-  Transport,
-} from '@sentry/core/browser';
-import { makeOfflineTransport, parseEnvelope, serializeEnvelope } from '@sentry/core/browser';
+import type { BaseTransportOptions, Envelope, OfflineStore, OfflineTransportOptions, Transport } from '@sentry/core';
+import { makeOfflineTransport, parseEnvelope, serializeEnvelope } from '@sentry/core';
 import { WINDOW } from '../helpers';
 import { makeFetchTransport } from './fetch';
 

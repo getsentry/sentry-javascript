@@ -3,14 +3,17 @@ import {
   filterInstrumentedExternals,
   ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
 } from '../diagnosticsChannelInjection';
+import { getBuildLogger } from '../buildLogger';
 import { handleRunAfterProductionCompile } from '../handleRunAfterProductionCompile';
 import type { RouteManifest } from '../manifest/types';
 import { constructTurbopackConfig } from '../turbopack';
 import type { NextConfigObject, SentryBuildOptions, TurbopackOptions } from '../types';
-import { detectActiveBundler, supportsProductionCompileHook } from '../util';
+import { detectActiveBundler, supportsProductionCompileHook, supportsTurbopackRuleCondition } from '../util';
 import { constructWebpackConfigFunction } from '../webpack';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from './constants';
 import type { VercelCronsConfigResult } from './getFinalConfigObjectUtils';
+
+const UNSUPPORTED_TURBOPACK_WARNING_SHOWN = '__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__';
 
 /**
  * Information about the active bundler and feature support based on Next.js version.
@@ -36,12 +39,40 @@ export function getBundlerInfo(nextJsVersion: string | undefined): BundlerInfo {
 /**
  * Warns if turbopack is in use but the detected Next.js version is unsupported.
  */
-export function maybeWarnAboutUnsupportedTurbopack(nextJsVersion: string | undefined, bundlerInfo: BundlerInfo): void {
+export function maybeWarnAboutUnsupportedTurbopack(
+  nextJsVersion: string | undefined,
+  bundlerInfo: BundlerInfo,
+  silent?: boolean,
+): void {
   // Warn if using turbopack with an unsupported Next.js version
-  if (!bundlerInfo.isTurbopackSupported && bundlerInfo.isTurbopack) {
-    // eslint-disable-next-line no-console
-    console.warn(
+  if (
+    !bundlerInfo.isTurbopackSupported &&
+    bundlerInfo.isTurbopack &&
+    !silent &&
+    process.env[UNSUPPORTED_TURBOPACK_WARNING_SHOWN] !== '1'
+  ) {
+    // Next.js may evaluate its config in child processes, which inherit this state from their parent.
+    process.env[UNSUPPORTED_TURBOPACK_WARNING_SHOWN] = '1';
+    getBuildLogger(silent).warn(
       `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
+    );
+  }
+}
+
+/**
+ * Warns if `moduleMetadata` is set on a Turbopack build, where it currently has no effect.
+ *
+ * The Turbopack metadata loader only injects `applicationKey`; arbitrary `moduleMetadata` is
+ * webpack-only for now. Without this warning the option would be a silent no-op on Next.js 16+,
+ * where Turbopack is the default.
+ */
+export function maybeWarnAboutTurbopackModuleMetadata(
+  userSentryOptions: SentryBuildOptions,
+  bundlerInfo: BundlerInfo,
+): void {
+  if (bundlerInfo.isTurbopack && userSentryOptions.moduleMetadata) {
+    getBuildLogger(userSentryOptions.silent).warn(
+      '[@sentry/nextjs] WARNING: `moduleMetadata` is currently only applied on webpack builds and has no effect on Turbopack builds. Use `applicationKey` if you need `thirdPartyErrorFilterIntegration` support, which works on both bundlers.',
     );
   }
 }
@@ -60,8 +91,7 @@ export function maybeWarnAboutUnsupportedRunAfterProductionCompileHook(
     !supportsProductionCompileHook(nextJsVersion ?? '') &&
     bundlerInfo.isWebpack
   ) {
-    // eslint-disable-next-line no-console
-    console.warn(
+    getBuildLogger(userSentryOptions.silent).warn(
       '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
     );
   }
@@ -92,6 +122,29 @@ export function maybeConstructTurbopackConfig(
     nextJsVersion,
     vercelCronsConfig,
   });
+}
+
+/**
+ * Resolves whether to wire up orchestrion build-time instrumentation.
+ *
+ * Only on when the transform can actually run: Turbopack needs rule `condition`s (Next.js 16+), and
+ * webpack needs Sentry's config. Otherwise un-externalizing the bundle-safe packages would leave
+ * them bundled *and* uninstrumented, so keep the feature off.
+ */
+export function resolveBuildTimeInstrumentationOption(
+  userSentryOptions: SentryBuildOptions,
+  bundlerInfo: BundlerInfo,
+  nextJsVersion: string | undefined,
+): boolean {
+  if (userSentryOptions.buildTimeInstrumentation === false) {
+    return false;
+  }
+
+  if (bundlerInfo.isTurbopack) {
+    return !!nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion);
+  }
+
+  return !userSentryOptions.webpack?.disableSentryConfig;
 }
 
 /**
@@ -176,8 +229,7 @@ export function maybeSetUpRunAfterProductionCompileHook({
     return;
   }
 
-  // eslint-disable-next-line no-console
-  console.warn(
+  getBuildLogger(userSentryOptions.silent).warn(
     '[@sentry/nextjs] The configured `compiler.runAfterProductionCompile` option is not a function. Will not run source map and release management logic.',
   );
 }
@@ -202,9 +254,10 @@ export function maybeEnableTurbopackSourcemaps(
     return;
   }
 
+  const logger = getBuildLogger(userSentryOptions.silent);
+
   if (userSentryOptions.debug) {
-    // eslint-disable-next-line no-console
-    console.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
+    logger.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
   }
   incomingUserNextConfigObject.productionBrowserSourceMaps = true;
 
@@ -214,8 +267,7 @@ export function maybeEnableTurbopackSourcemaps(
   }
 
   if (userSentryOptions.debug) {
-    // eslint-disable-next-line no-console
-    console.warn(
+    logger.warn(
       '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
     );
   }
@@ -232,19 +284,19 @@ export function maybeEnableTurbopackSourcemaps(
 export function getServerExternalPackagesPatch(
   incomingUserNextConfigObject: NextConfigObject,
   nextMajor: number | undefined,
-  useDiagnosticsChannelInjection = false,
+  buildTimeInstrumentation = false,
 ): Partial<NextConfigObject> {
-  // Diagnostics-channel injection: only bundle-safe packages leave OUR defaults (→ build-time
+  // With build-time instrumentation, only bundle-safe packages leave OUR defaults (→ build-time
   // loader); everything else stays external (→ runtime module hook), including the orchestrion
   // machinery itself, which breaks when bundled.
   const mergeExternals = (userProvided: string[] | undefined): string[] => {
-    const defaults = useDiagnosticsChannelInjection
+    const defaults = buildTimeInstrumentation
       ? filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES)
       : DEFAULT_SERVER_EXTERNAL_PACKAGES;
     return [
       ...(userProvided || []),
       ...defaults,
-      ...(useDiagnosticsChannelInjection ? ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES : []),
+      ...(buildTimeInstrumentation ? ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES : []),
     ];
   };
 

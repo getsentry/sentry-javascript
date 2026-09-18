@@ -20,6 +20,4 @@ app.post('/drop', (_req, res) => {
   res.send({ status: 'dropped' });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

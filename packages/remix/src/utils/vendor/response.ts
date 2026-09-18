@@ -85,37 +85,3 @@ export function matchServerRoutes(
     pathnameBase: match.pathnameBase,
   }));
 }
-
-/**
- * https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/server.ts#L573-L586
- */
-export function isIndexRequestUrl(url: URL): boolean {
-  for (const param of url.searchParams.getAll('index')) {
-    // only use bare `?index` params without a value
-    // ✅ /foo?index
-    // ✅ /foo?index&index=123
-    // ✅ /foo?index=123&index
-    // ❌ /foo?index=123
-    if (param === '') {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/server.ts#L588-L596
- */
-export function getRequestMatch(
-  url: URL,
-  matches: AgnosticRouteMatch[],
-): AgnosticRouteMatch<string, AgnosticRouteObject> {
-  const match = matches.slice(-1)[0] as AgnosticRouteMatch<string, AgnosticRouteObject>;
-
-  if (!isIndexRequestUrl(url) && match.route.id?.endsWith('/index')) {
-    return matches.slice(-2)[0] as AgnosticRouteMatch<string, AgnosticRouteObject>;
-  }
-
-  return match;
-}

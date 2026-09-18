@@ -8,6 +8,7 @@ class CustomIntegration {
 
 Sentry.onLoad(function () {
   Sentry.init({
+    traceLifecycle: 'static',
     integrations: integrations => [new CustomIntegration()].concat(integrations),
   });
 

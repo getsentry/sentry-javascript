@@ -1,14 +1,12 @@
 import { escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin, UserConfig } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
-import type { BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
-import { getAdapterOutputDir } from './svelteConfig';
 import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -44,10 +42,12 @@ type FilesToDeleteAfterUpload = string | string[] | undefined;
  */
 export async function makeCustomSentryVitePlugins(
   options: CustomSentryVitePluginOptions,
-  svelteConfig: BackwardsForwardsCompatibleSvelteConfig,
+  deps: {
+    /** Resolved once and shared with the other Sentry plugins - see the note in `sentrySvelteKit()` */
+    getAdapterOutputDir: () => Promise<string>;
+  },
 ): Promise<Plugin[]> {
-  const usedAdapter = options?.adapter || 'other';
-  const adapterOutputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
+  const { getAdapterOutputDir } = deps;
 
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {
@@ -93,7 +93,7 @@ export async function makeCustomSentryVitePlugins(
     debug &&
       // eslint-disable-next-line no-console
       console.warn(
-        'sentry-vite-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
+        '@sentry/bundler-plugins/vite not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
 
     _resolveFilesToDeleteAfterUpload?.(undefined);
@@ -125,13 +125,26 @@ export async function makeCustomSentryVitePlugins(
     },
   };
 
+  // Whether `build.sourcemap` is already set when this `config` hook runs. Read here rather than in
+  // `configResolved`, where it is always set - but note that nothing here may *await* the SvelteKit
+  // config from a `config` hook, see the note in `kitConfig.ts`.
+  let sourcemapSettingAlreadySet = false;
+
   const filesToDeleteAfterUploadConfigPlugin: Plugin = {
     name: 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     apply: 'build', // only apply this plugin at build time
     config: (config: UserConfig) => {
+      sourcemapSettingAlreadySet = typeof config.build?.sourcemap !== 'undefined';
+      return config;
+    },
+    configResolved: async () => {
+      // Resolved here (not in `closeBundle`) so the adapter is invoked before the build writes its
+      // output - see the note on the adapter output dir in `sentrySvelteKit()`.
+      const adapterOutputDir = await getAdapterOutputDir();
+
       const originalFilesToDeleteAfterUpload = options?.sourcemaps?.filesToDeleteAfterUpload;
 
-      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
+      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && !sourcemapSettingAlreadySet) {
         // Including all hidden (`.*`) directories by default so that folders like .vercel,
         // .netlify, etc are also cleaned up. Additionally, we include the adapter output
         // dir which could be a non-hidden directory, like `build` for the Node adapter.
@@ -140,7 +153,7 @@ export async function makeCustomSentryVitePlugins(
         debug &&
           // eslint-disable-next-line no-console
           console.info(
-            `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
+            `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
               .map(file => `"${file}"`)
               .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
           );
@@ -149,8 +162,6 @@ export async function makeCustomSentryVitePlugins(
       } else {
         _resolveFilesToDeleteAfterUpload?.(originalFilesToDeleteAfterUpload);
       }
-
-      return config;
     },
   };
 
@@ -176,7 +187,7 @@ export async function makeCustomSentryVitePlugins(
         return;
       }
 
-      const outDir = path.resolve(process.cwd(), adapterOutputDir);
+      const outDir = path.resolve(process.cwd(), await getAdapterOutputDir());
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Looking up source maps in', outDir);
 

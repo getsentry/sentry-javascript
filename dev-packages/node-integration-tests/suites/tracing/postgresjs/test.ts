@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -10,7 +9,7 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
   // Under orchestrion (INJECT_ORCHESTRION), the OTel `PostgresJs` integration is
   // swapped for the diagnostics-channel one, so query spans carry a different
   // origin. Every other attribute is identical.
-  const ORIGIN = isOrchestrionEnabled() ? 'auto.db.orchestrion.postgresjs' : 'auto.db.postgresjs';
+  const ORIGIN = 'auto.db.postgresjs';
 
   describe('basic', () => {
     const EXPECTED_TRANSACTION = {

@@ -2,7 +2,7 @@ import { getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { type Event } from '../types/event';
 import { debug } from './debug-logger';
-import { getActiveSpan, spanToJSON } from './spanUtils';
+import { getActiveSpan, spanToStaticSpanJSON } from './spanUtils';
 
 /**
  * Ordered LRU cache for storing feature flags in the scope context. The name
@@ -143,7 +143,7 @@ export function _INTERNAL_addFeatureFlagToActiveSpan(
     return;
   }
 
-  const attributes = spanToJSON(span).data;
+  const attributes = spanToStaticSpanJSON(span).data;
 
   // If the flag already exists, always update it
   if (`${SPAN_FLAG_ATTRIBUTE_PREFIX}${name}` in attributes) {

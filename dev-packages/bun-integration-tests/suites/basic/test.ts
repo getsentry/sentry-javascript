@@ -28,7 +28,7 @@ it('captures an error thrown in Bun.serve fetch handler', async ({ signal }) => 
         { includeSampleRand: true, includeTransaction: false },
       ),
     )
-    .ignore('transaction')
+    .ignore('span')
     .start(signal);
   await runner.makeRequest('get', '/error', { expectError: true });
   await runner.completed();
@@ -47,7 +47,7 @@ it('captures a manually sent message', async ({ signal }) => {
         message: 'Hello from Bun',
       });
     })
-    .ignore('transaction')
+    .ignore('span')
     .start(signal);
   await runner.makeRequest('get', '/message');
   await runner.completed();

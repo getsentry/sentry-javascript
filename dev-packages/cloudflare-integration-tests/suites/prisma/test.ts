@@ -18,7 +18,7 @@ function envelopeItem(envelope: Envelope): Record<string, unknown> {
   return envelope[1][0]![1] as Record<string, unknown>;
 }
 
-it('captures a transaction with Prisma spans for a D1 query via the @sentry/cloudflare/nodejs_compat prismaIntegration', async ({
+it('captures a transaction with Prisma spans for a D1 query via the @sentry/cloudflare prismaIntegration', async ({
   signal,
 }) => {
   const runner = createRunner(__dirname)
@@ -55,25 +55,25 @@ it('captures a transaction with Prisma spans for a D1 query via the @sentry/clou
             origin: 'auto.db.cloudflare.d1',
           },
           {
-            description: expect.stringMatching(
-              /^SELECT `main`\.`User`\.`id`, `main`\.`User`\.`email`, `main`\.`User`\.`name` FROM `main`\.`User` WHERE 1=1 LIMIT \? OFFSET \? \/\* traceparent='00-[\da-f]{32}-[\da-f]{16}-01' \*\/$/,
-            ),
+            // The sanitizer strips the D1 adapter's traceparent comment and replaces the literals.
+            description:
+              'SELECT `main`.`User`.`id`, `main`.`User`.`email`, `main`.`User`.`name` FROM `main`.`User` WHERE ?=? LIMIT ? OFFSET ?',
             op: 'db.query',
             origin: 'auto.db.cloudflare.d1',
           },
-          { description: 'prisma:client:connect', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:client:load_engine', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:client:operation', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:client:serialize', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:connect', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:connection', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:query', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: selectUsersQuery, op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:js:query:args', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:js:query:sql', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:js:query:result', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:serialize', op: undefined, origin: 'auto.db.otel.prisma' },
-          { description: 'prisma:engine:response_json_serialization', op: undefined, origin: 'auto.db.otel.prisma' },
+          { description: 'prisma:client:connect', op: undefined, origin: 'auto.db.prisma' },
+          { description: 'prisma:client:load_engine', op: undefined, origin: 'auto.db.prisma' },
+          { description: 'prisma:client:operation', op: undefined, origin: 'auto.db.prisma' },
+          { description: 'prisma:client:serialize', op: undefined, origin: 'auto.db.prisma' },
+          { description: 'prisma:engine:connect', op: undefined, origin: 'auto.db.prisma' },
+          { description: 'prisma:engine:connection', op: 'db', origin: 'auto.db.prisma' },
+          { description: 'prisma:engine:query', op: undefined, origin: 'auto.db.prisma' },
+          { description: selectUsersQuery, op: 'db', origin: 'auto.db.prisma' },
+          { description: 'prisma:engine:js:query:args', op: undefined, origin: 'auto.db.prisma' },
+          { description: 'prisma:engine:js:query:sql', op: 'db', origin: 'auto.db.prisma' },
+          { description: 'prisma:engine:js:query:result', op: undefined, origin: 'auto.db.prisma' },
+          { description: 'prisma:engine:serialize', op: undefined, origin: 'auto.db.prisma' },
+          { description: 'prisma:engine:response_json_serialization', op: undefined, origin: 'auto.db.prisma' },
         ]),
       );
       expect(spans.filter(span => span.description === 'prisma:engine:connection')).toHaveLength(2);

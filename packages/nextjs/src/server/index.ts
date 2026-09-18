@@ -8,36 +8,34 @@ import {
   debug,
   getClient,
   getGlobalScope,
+  getRootSpan,
+  getVercelEnv,
   GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import {
-  experimentalUseDiagnosticsChannelInjection as nodeExperimentalUseDiagnosticsChannelInjection,
-  getDefaultIntegrations,
-  httpIntegration,
-  init as nodeInit,
-  isDiagnosticsChannelInjectionEnabled,
-} from '@sentry/node';
+import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
-import { getVercelEnv } from '../common/getVercelEnv';
+import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
 import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
+import { backfillHttpServerStatus } from '../common/utils/backfillHttpServerStatus';
+import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
+import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
 
-// Explicitly re-export so it is statically detectable by turbopack
-export { pinoIntegration } from '@sentry/node';
+// Explicitly re-export so these are statically detectable by turbopack
+export { pinoIntegration, vercelAIIntegration } from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
@@ -47,25 +45,7 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
-  _sentryUseDiagnosticsChannelInjection?: string;
-  _sentryOrchestrionTracingHooksDir?: string;
 };
-
-/**
- * EXPERIMENTAL: Next.js-aware variant of `Sentry.experimentalUseDiagnosticsChannelInjection()`
- * from `@sentry/node` (see its docs for behavior and caveats).
- *
- * Next.js bundles the SDK into the server build, from where the runtime module hook can't resolve
- * the `@apm-js-collab/tracing-hooks` bare specifier under isolated installs (pnpm). This variant
- * points the hook at the package location that `withSentryConfig` resolved at build time.
- *
- * @experimental May change or be removed in any release.
- */
-export function experimentalUseDiagnosticsChannelInjection(): void {
-  const tracingHooksDir =
-    process.env._sentryOrchestrionTracingHooksDir || globalWithInjectedValues._sentryOrchestrionTracingHooksDir;
-  nodeExperimentalUseDiagnosticsChannelInjection(tracingHooksDir ? { tracingHooksDir } : undefined);
-}
 
 // Call at module level so `next build` prerender workers still register the runner without `init`
 prepareSafeIdGeneratorContext();
@@ -135,7 +115,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   if (!DEBUG_BUILD && options.debug) {
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
     );
   }
 
@@ -151,7 +131,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // Turn off Next.js' own fetch instrumentation (only when we manage OTEL)
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
   // Enable with custom OTel setup: https://github.com/getsentry/sentry-javascript/issues/17581
-  if (!options.skipOpenTelemetrySetup) {
+  if (options.enableOpenTelemetrySetup ?? true) {
     process.env.NEXT_OTEL_FETCH_DISABLED = '1';
   }
 
@@ -162,24 +142,18 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
-  // The build wired the orchestrion loader but the runtime opt-in is missing → no DB spans.
-  const useDiagnosticsChannelInjection =
-    process.env._sentryUseDiagnosticsChannelInjection || globalWithInjectedValues._sentryUseDiagnosticsChannelInjection;
-  if (DEBUG_BUILD && useDiagnosticsChannelInjection && !isDiagnosticsChannelInjectionEnabled()) {
-    debug.warn(
-      '[@sentry/nextjs] `useDiagnosticsChannelInjection` is enabled in `withSentryConfig`, but ' +
-        '`Sentry.experimentalUseDiagnosticsChannelInjection()` was not called before `Sentry.init()`. ' +
-        'Server DB spans will not be recorded.',
-    );
-  }
+  customDefaultIntegrations.push(nextjsUseCacheIntegration());
 
   // Detect if running on OpenNext/Cloudflare and get runtime config
   const cloudflareConfig = getCloudflareRuntimeConfig();
 
   const opts: NodeOptions = {
-    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv() || process.env.NODE_ENV,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
+    // Next.js emits its own OpenTelemetry spans, so it defaults to registering the Sentry tracer
+    // provider (unlike most Node-based SDKs). A user-provided value still overrides this via `...options`.
+    enableOpenTelemetrySetup: true,
     ...options,
     // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
     ...cloudflareConfig,
@@ -194,7 +168,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     /^\/404$/,
     // App router /404 and /_not-found segments (any HTTP method)
     /^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/,
-    // Next.js 13 root transactions named "NextServer.getRequestHandler" containing useless tracing
+    // Root transactions named "NextServer.getRequestHandler" containing useless tracing
     /^NextServer\.getRequestHandler$/,
     // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
@@ -238,7 +212,22 @@ export function init(options: NodeOptions): NodeClient | undefined {
     }
   });
 
-  client?.on('spanStart', handleOnSpanStart);
+  client?.on('spanStart', span => handleOnSpanStart(span, client));
+
+  // Normalize name/op/source/status on the request root span at span end, before it is serialized into
+  // a transaction event (legacy) or streamed span JSON. Running on the live span means both lifecycles
+  // pick up the changes from one place, and the cron/queue hooks below see the finalized status.
+  client?.on('spanEnd', span => {
+    if (span !== getRootSpan(span)) {
+      return;
+    }
+
+    const mutableRootSpan = createLiveRootSpanAdapter(span);
+    enhanceHandleRequestRootSpan(mutableRootSpan);
+    enhanceMiddlewareRootSpan(mutableRootSpan);
+    backfillHttpServerStatus(span);
+  });
+
   client?.on('spanEnd', maybeCompleteCronCheckIn);
   client?.on('spanEnd', maybeCleanupQueueSpan);
 
@@ -262,6 +251,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
           return null;
         }
 
+        if (isPrerenderControlFlowError(originalException)) {
+          // Next.js aborts prerenders by rejecting the promises it handed out (e.g. `fetch()` under Cache
+          // Components) and throws to bail out of static rendering. These never reach the user, so drop them
+          // here as well - the wrappers cannot cover every path they escape through.
+          return null;
+        }
+
         // We don't want to capture suspense errors as they are simply used by React/Next.js for control flow
         const exceptionMessage = event.exception?.values?.[0]?.value;
         if (
@@ -277,49 +273,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ),
   );
 
-  // Use the preprocessEvent hook instead of an event processor, so that the users event processors receive the most
-  // up-to-date value, but also so that the logic that detects changes to the transaction names to set the source to
-  // "custom", doesn't trigger.
-  // This handles the legacy (non-streamed) path where the segment span is emitted as a transaction event;
-  // `enhanceHandleRequestRootSpan` is adapted to operate on the event's trace context, which is the segment span's data.
-  // Span streaming bypasses event processors entirely - see the `processSegmentSpan` hook below for that path.
   client?.on('preprocessEvent', event => {
-    if (event.type === 'transaction' && event.contexts?.trace?.data) {
-      const mutableRootSpan = {
-        attributes: event.contexts.trace.data,
-        getName: () => event.transaction,
-        setName: (name: string) => {
-          event.transaction = name;
-        },
-        setOp: (op: string) => {
-          event.contexts!.trace!.op = op;
-        },
-      };
-      enhanceHandleRequestRootSpan(mutableRootSpan);
-      enhanceMiddlewareRootSpan(mutableRootSpan);
-    }
-
     setUrlProcessingMetadata(event);
-  });
-
-  // Streamed-span counterpart of the `preprocessEvent` hook above. Streamed segment spans never become
-  // transaction events, so the same enhancement has to be applied here directly on the span JSON.
-  client?.on('processSegmentSpan', span => {
-    const attributes = (span.attributes ??= {});
-    const mutableRootSpan = {
-      attributes,
-      getName: () => span.name,
-      setName: (name: string) => {
-        span.name = name;
-      },
-      // For streamed spans, op lives in `attributes['sentry.op']` - mirror it there so middleware
-      // overrides land somewhere readable (the legacy path uses a separate `event.contexts.trace.op`).
-      setOp: (op: string) => {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
-      },
-    };
-    enhanceHandleRequestRootSpan(mutableRootSpan);
-    enhanceMiddlewareRootSpan(mutableRootSpan);
   });
 
   if (process.env.NODE_ENV === 'development') {

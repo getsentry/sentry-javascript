@@ -94,6 +94,7 @@ describe('Sentry.init', () => {
     });
 
     Sentry.init({
+      traceLifecycle: 'static',
       dsn: PUBLIC_DSN,
       defaultIntegrations: false,
       integrations: [],
@@ -117,5 +118,6 @@ function runInit(options: Partial<Options>): Client | undefined {
     defaultIntegrations: false,
     integrations: [integration],
     ...options,
+    traceLifecycle: 'static',
   });
 }

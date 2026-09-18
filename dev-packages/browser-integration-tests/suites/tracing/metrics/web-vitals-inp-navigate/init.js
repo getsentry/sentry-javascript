@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/browser';
 window.Sentry = Sentry;
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     Sentry.browserTracingIntegration({
@@ -22,6 +23,6 @@ const client = Sentry.getClient();
 Sentry.startBrowserTracingPageLoadSpan(client, {
   name: 'test-url',
   attributes: {
-    [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    ['sentry.segment.name.source']: 'url',
   },
 });

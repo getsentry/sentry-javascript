@@ -1,4 +1,4 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
 
 const MODULE_NAME = 'knex';
 

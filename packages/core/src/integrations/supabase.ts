@@ -3,14 +3,19 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
+import { DB_OPERATION_NAME, DB_SYSTEM_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
+import { startSpanManual } from '../tracing/trace';
 import type { IntegrationFn } from '../types/integration';
+import type { WebFetchHeaders } from '../types/webfetchapi';
 import { debug } from '../utils/debug-logger';
 import { isObjectLike, isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
@@ -84,9 +89,15 @@ export interface PostgRESTQueryBuilder {
   [key: string]: PostgRESTQueryOperationFn;
 }
 
+/**
+ * `postgrest-js` stores the request headers as a plain object up to v1.19.x and as a `Headers`
+ * instance from v2.74.0 on (shipped with `supabase-js` 2.74.0), so we have to handle both shapes.
+ */
+export type PostgRESTHeaders = Record<string, string> | WebFetchHeaders;
+
 export interface PostgRESTFilterBuilder {
   method: string;
-  headers: Record<string, string>;
+  headers: PostgRESTHeaders;
   url: URL;
   schema: string;
   body: any;
@@ -169,18 +180,42 @@ function hasMutationBodyForDescription(rawBody: unknown, plainBody: Record<strin
 }
 
 /**
+ * Reads a header off a PostgREST builder, regardless of whether it holds a plain object or a
+ * `Headers` instance. Lookup is case-insensitive because `Headers` lower-cases all of its keys.
+ * @param headers - The request headers
+ * @param name - The header name to look up
+ * @returns The header value, or `undefined` if it is not set
+ */
+export function getHeader(headers: PostgRESTHeaders | undefined, name: string): string | undefined {
+  if (!headers) {
+    return undefined;
+  }
+
+  if (typeof (headers as WebFetchHeaders).get === 'function') {
+    return (headers as WebFetchHeaders).get(name) ?? undefined;
+  }
+
+  const plainHeaders = headers as Record<string, string>;
+  const lowerCaseName = name.toLowerCase();
+  const key = Object.keys(plainHeaders).find(headerName => headerName.toLowerCase() === lowerCaseName);
+
+  return key !== undefined ? plainHeaders[key] : undefined;
+}
+
+/**
  * Extracts the database operation type from the HTTP method and headers
  * @param method - The HTTP method of the request
  * @param headers - The request headers
  * @returns The database operation type ('select', 'insert', 'upsert', 'update', or 'delete')
  */
-export function extractOperation(method: string, headers: Record<string, string> = {}): string {
+export function extractOperation(method: string, headers: PostgRESTHeaders = {}): string {
   switch (method) {
-    case 'GET': {
+    case 'GET':
+    case 'QUERY': {
       return 'select';
     }
     case 'POST': {
-      if (headers['Prefer']?.includes('resolution=')) {
+      if (getHeader(headers, 'Prefer')?.includes('resolution=')) {
         return 'upsert';
       } else {
         return 'insert';
@@ -239,14 +274,33 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
   return new Proxy(operation, {
     apply(target, thisArg, argumentsList) {
-      return startSpan(
+      const operationName = `auth${isAdmin ? '.admin' : ''}.${operation.name}`;
+
+      const client = getClient();
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? // Usually, the operation name alone is not a valid span name according to conventions.
+            // However, for this span, we neither have a table, nor a namespace, since this is a Supabase-SDK
+            // operation that internally makes the respective request to the database.
+            // So I think we can interpret this as a "db.query.summary"-esque span name.
+            // Either way, it's definitely low-cardinality.
+            // see: https://getsentry.github.io/sentry-conventions/names/#db-queries
+            operationName
+          : // This name makes little sense semantically but preserving it for now to
+            // avoid a breaking change in the transaction path. Will be removed once we remove
+            // transactions.
+            `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`;
+
+      // The span is ended by hand once the wrapped promise settles, so `startSpanManual` is used to keep
+      // `startSpan`'s automatic end from ending it a second time.
+      return startSpanManual(
         {
-          name: `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`,
+          name,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
-            'db.system': 'postgresql',
-            'db.operation': `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [SENTRY_OP]: DB,
+            [DB_SYSTEM_NAME]: 'postgresql',
+            [DB_OPERATION_NAME]: operationName,
           },
         },
         span => {
@@ -400,15 +454,18 @@ function instrumentPostgRESTFilterBuilder(
         const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
         const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
+        const name =
+          client && hasSpanStreamingEnabled(client) ? `${operation}${table ? ` ${table}` : ''}` : description;
+
         const attributes: Record<string, any> = {
           'db.table': table,
           'db.schema': typedThis.schema,
           'db.url': typedThis.url.origin,
-          'db.sdk': typedThis.headers['X-Client-Info'],
-          'db.system': 'postgresql',
-          'db.operation': operation,
+          'db.sdk': getHeader(typedThis.headers, 'X-Client-Info'),
+          [DB_SYSTEM_NAME]: 'postgresql',
+          [DB_OPERATION_NAME]: operation,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
         };
 
         if (queryItems.length && shouldSendData) {
@@ -419,9 +476,10 @@ function instrumentPostgRESTFilterBuilder(
           attributes['db.body'] = bodyPayload;
         }
 
-        return startSpan(
+        // Same as the auth wrapper above: the span is ended by hand, so avoid the automatic second end.
+        return startSpanManual(
           {
-            name: description,
+            name,
             attributes,
           },
           span => {

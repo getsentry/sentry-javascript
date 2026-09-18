@@ -46,6 +46,7 @@ it('Tracing headers', async ({ signal }) => {
             },
           ],
           request: {
+            cookies: {},
             headers: expect.any(Object),
             method: 'GET',
             url: expect.any(String),
@@ -57,7 +58,7 @@ it('Tracing headers', async ({ signal }) => {
     )
     .start(signal);
 
-  await runner.makeRequest('get', '/');
+  await runner.makeRequest('get', '/', { expectError: true });
   await runner.completed();
   closeTestServer();
 });

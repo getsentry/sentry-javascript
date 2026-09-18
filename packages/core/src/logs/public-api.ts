@@ -30,7 +30,7 @@ interface CaptureLogMetadata {
 }
 
 /**
- * @summary Capture a log with the `trace` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `trace` level.
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { userId: 100, route: '/dashboard' }.
@@ -64,7 +64,7 @@ export function trace(
 }
 
 /**
- * @summary Capture a log with the `debug` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `debug` level.
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { component: 'Header', state: 'loading' }.
@@ -99,7 +99,7 @@ export function debug(
 }
 
 /**
- * @summary Capture a log with the `info` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `info` level.
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { feature: 'checkout', status: 'completed' }.
@@ -134,7 +134,7 @@ export function info(
 }
 
 /**
- * @summary Capture a log with the `warn` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `warn` level.
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { browser: 'Chrome', version: '91.0' }.
@@ -170,7 +170,7 @@ export function warn(
 }
 
 /**
- * @summary Capture a log with the `error` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `error` level.
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { error: 'NetworkError', url: '/api/data' }.
@@ -207,7 +207,7 @@ export function error(
 }
 
 /**
- * @summary Capture a log with the `fatal` level. Requires the `enableLogs` option to be enabled.
+ * @summary Capture a log with the `fatal` level.
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { appState: 'corrupted', sessionId: 'abc-123' }.

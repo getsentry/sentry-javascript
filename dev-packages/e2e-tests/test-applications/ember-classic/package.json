@@ -24,7 +24,7 @@
     "@ember/optional-features": "~2.0.0",
     "@glimmer/component": "~1.1.2",
     "@glimmer/tracking": "~1.1.2",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@ember/string": "~3.1.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/ember": "file:../../packed/sentry-ember-packed.tgz",
@@ -72,7 +72,7 @@
     "webpack": "~5.104.1"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "resolutions": {
     "@babel/traverse": "~7.25.9",

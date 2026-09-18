@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build"
@@ -22,20 +22,15 @@
       "import": "./build/esm/index.js",
       "require": "./build/cjs/index.js"
     },
-    "./orchestrion": {
-      "types": "./build/types/orchestrion/index.d.ts",
-      "import": "./build/esm/orchestrion/index.js",
-      "require": "./build/cjs/orchestrion/index.js"
+    "./no-diagnostic-channels": {
+      "types": "./build/types/index.no-diagnostic-channels.d.ts",
+      "import": "./build/esm/index.no-diagnostic-channels.js",
+      "require": "./build/cjs/index.no-diagnostic-channels.js"
     },
     "./orchestrion/config": {
       "types": "./build/types/orchestrion/config/index.d.ts",
       "import": "./build/esm/orchestrion/config/index.js",
       "require": "./build/cjs/orchestrion/config/index.js"
-    },
-    "./orchestrion/register": {
-      "types": "./build/types/orchestrion/runtime/register.d.ts",
-      "import": "./build/esm/orchestrion/runtime/register.js",
-      "require": "./build/cjs/orchestrion/runtime/register.js"
     },
     "./orchestrion/vite": {
       "types": "./build/types/orchestrion/bundler/vite.d.ts",
@@ -52,51 +47,25 @@
       "import": "./build/esm/orchestrion/bundler/webpack.js",
       "require": "./build/cjs/orchestrion/bundler/webpack.js"
     },
+    "./orchestrion/webpack-loader": {
+      "import": "./build/esm/orchestrion/bundler/webpack-loader.js",
+      "require": "./build/cjs/orchestrion/bundler/webpack-loader.js"
+    },
     "./orchestrion/esbuild": {
       "types": "./build/types/orchestrion/bundler/esbuild.d.ts",
       "import": "./build/esm/orchestrion/bundler/esbuild.js",
       "require": "./build/cjs/orchestrion/bundler/esbuild.js"
     },
-    "./orchestrion/import-hook": {
-      "import": "./build/orchestrion/import-hook.mjs"
+    "./orchestrion/bun": {
+      "types": "./build/types/orchestrion/bundler/bun.d.ts",
+      "import": "./build/esm/orchestrion/bundler/bun.js",
+      "require": "./build/cjs/orchestrion/bundler/bun.js"
     }
   },
   "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ],
-      "orchestrion": [
-        "build/types-ts3.8/orchestrion/index.d.ts"
-      ],
-      "orchestrion/config": [
-        "build/types-ts3.8/orchestrion/config/index.d.ts"
-      ],
-      "orchestrion/register": [
-        "build/types-ts3.8/orchestrion/runtime/register.d.ts"
-      ],
-      "orchestrion/vite": [
-        "build/types-ts3.8/orchestrion/bundler/vite.d.ts"
-      ],
-      "orchestrion/rollup": [
-        "build/types-ts3.8/orchestrion/bundler/rollup.d.ts"
-      ],
-      "orchestrion/webpack": [
-        "build/types-ts3.8/orchestrion/bundler/webpack.d.ts"
-      ],
-      "orchestrion/esbuild": [
-        "build/types-ts3.8/orchestrion/bundler/esbuild.d.ts"
-      ]
-    },
     "*": {
-      "orchestrion": [
-        "build/types/orchestrion/index.d.ts"
-      ],
       "orchestrion/config": [
         "build/types/orchestrion/config/index.d.ts"
-      ],
-      "orchestrion/register": [
-        "build/types/orchestrion/runtime/register.d.ts"
       ],
       "orchestrion/vite": [
         "build/types/orchestrion/bundler/vite.d.ts"
@@ -109,6 +78,9 @@
       ],
       "orchestrion/esbuild": [
         "build/types/orchestrion/bundler/esbuild.d.ts"
+      ],
+      "orchestrion/bun": [
+        "build/types/orchestrion/bundler/bun.d.ts"
       ]
     }
   },
@@ -116,29 +88,29 @@
     "access": "public"
   },
   "dependencies": {
-    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.1",
-    "@apm-js-collab/tracing-hooks": "^0.13.0",
-    "@sentry/conventions": "^0.16.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@sentry/conventions": "^0.23.0",
     "@sentry/core": "10.67.0"
   },
   "devDependencies": {
+    "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.4",
     "@types/node": "^18.19.1",
+    "meriyah": "^6.1.4",
     "vite": "^6.4.3"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8 && node scripts/inject-ts38-shims.mjs",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "run-p build:transpile:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "clean": "rimraf build coverage sentry-server-utils-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test:unit": "vitest run",
     "test": "vitest run",
@@ -157,7 +129,7 @@
           "{projectRoot}/build/cjs",
           "{projectRoot}/build/npm/esm",
           "{projectRoot}/build/npm/cjs",
-          "{projectRoot}/build/orchestrion"
+          "{projectRoot}/build/THIRD-PARTY-LICENSES.txt"
         ]
       }
     }

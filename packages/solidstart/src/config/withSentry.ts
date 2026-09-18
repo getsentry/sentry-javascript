@@ -1,4 +1,6 @@
 import { debug } from '@sentry/core';
+import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
 import type { Nitro } from 'nitropack';
 import { addSentryPluginToVite } from '../vite/sentrySolidStartVite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
@@ -8,6 +10,10 @@ import {
   addSentryTopImport,
 } from './addInstrumentation';
 import type { RollupConfig, SolidStartInlineConfig, SolidStartInlineServerConfig } from './types';
+
+// ioredis requires this CommonJS helper to be bundled with it. Leaving it
+// external makes Nitro resolve the default export as a namespace object.
+const IORedisDependencies = ['standard-as-callback'];
 
 const defaultSentrySolidStartPluginOptions: Omit<
   SentrySolidStartPluginOptions,
@@ -42,13 +48,25 @@ export function withSentry(
       ? (...args: Parameters<typeof viteConfig>) => addSentryPluginToVite(viteConfig(...args), sentryPluginOptions)
       : addSentryPluginToVite(viteConfig, sentryPluginOptions);
 
+  const addBuildTimeInstrumentation = sentryPluginOptions.buildTimeInstrumentation !== false;
+
   // Use a module so we don't override preset hooks.
   const sentryNitroModule = (nitro: Nitro) => {
     nitro.hooks.hook('rollup:before', async (nitro, rollupConfig) => {
+      // Nitro types the `rollup:before` hook's `rollupConfig.plugins` as `string[]` (plugin paths),
+      // but at runtime it holds resolved plugin objects we can push onto, so narrow to our own shape.
+      const sentryRollupConfig = rollupConfig as unknown as RollupConfig;
+
+      if (addBuildTimeInstrumentation) {
+        sentryRollupConfig.plugins.push(
+          sentryOrchestrionPlugin({ buildTimeInstrumentation: sentryPluginOptions.buildTimeInstrumentation }),
+        );
+      }
+
       if (sentrySolidStartPluginOptions?.autoInjectServerSentry === 'experimental_dynamic-import') {
         await addDynamicImportEntryFileWrapper({
           nitro,
-          rollupConfig: rollupConfig as unknown as RollupConfig,
+          rollupConfig: sentryRollupConfig,
           sentryPluginOptions,
         });
 
@@ -68,11 +86,24 @@ export function withSentry(
 
   const existingModules = (server as SolidStartInlineServerConfig & { modules?: unknown[] }).modules || [];
 
+  // An externalized dependency never passes through the orchestrion code transform, so force-inline
+  // the instrumented modules. This has to be set statically on the Nitro config (not in a hook)
+  // because externalization is a resolution-time decision made before Rollup normalizes `external`.
+  let externals = (server as SolidStartInlineServerConfig & { externals?: { inline?: string[] } }).externals;
+  if (addBuildTimeInstrumentation) {
+    const existingInline = externals?.inline || [];
+    externals = {
+      ...externals,
+      inline: [...new Set([...existingInline, ...INSTRUMENTED_MODULE_NAMES, ...IORedisDependencies])],
+    };
+  }
+
   return {
     ...solidStartConfig,
     vite,
     server: {
       ...server,
+      externals,
       modules: [...existingModules, sentryNitroModule],
     },
   };

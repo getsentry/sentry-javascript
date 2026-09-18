@@ -2,12 +2,13 @@
  * @vitest-environment jsdom
  */
 
-import { addNonEnumerableProperty } from '@sentry/core/browser';
+import { runInNewContext } from 'node:vm';
+import { addNonEnumerableProperty } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultStackParser } from '../src';
 import { eventFromMessage, eventFromUnknownInput, extractMessage, extractType } from '../src/eventbuilder';
 
-vi.mock('@sentry/core/browser', async requireActual => {
+vi.mock('@sentry/core', async requireActual => {
   return {
     ...((await requireActual()) as any),
     getClient() {
@@ -140,6 +141,22 @@ describe('eventFromUnknownInput', () => {
     });
   });
 
+  it('handles object with error prop created in another realm', () => {
+    const error = runInNewContext(`new Error('Some error')`) as Error;
+    expect(error).not.toBeInstanceOf(Error);
+
+    const event = eventFromUnknownInput(defaultStackParser, {
+      err: error,
+    });
+
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'Error',
+        value: 'Some error',
+      }),
+    );
+  });
+
   it('handles class with error prop', () => {
     const error = new Error('Some error');
 
@@ -167,6 +184,30 @@ describe('eventFromUnknownInput', () => {
         },
       },
     });
+  });
+
+  it('uses the stringified value for a non-Error input when attachStacktrace is true', async () => {
+    const syntheticException = new Error('Test message');
+    const event = await eventFromUnknownInput(defaultStackParser, new Response('test body'), syntheticException, true);
+
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        mechanism: { handled: true, synthetic: true, type: 'generic' },
+        type: 'Error',
+        value: '[object Response]',
+      }),
+    );
+  });
+
+  it('does not throw and stringifies the value for a Symbol input', async () => {
+    const event = await eventFromUnknownInput(defaultStackParser, Symbol('foo'));
+
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'Error',
+        value: 'Symbol(foo)',
+      }),
+    );
   });
 
   it('add a synthetic stack trace to DOMException with empty stack traces if attachStacktrace is true', async () => {
@@ -252,6 +293,15 @@ describe('eventFromUnknownInput', () => {
         value: 'The string did not match the expected pattern.',
       }),
     );
+  });
+
+  it('does not set the deprecated DOMException.code as an event tag', () => {
+    const exception = new DOMException('Permission denied', 'NotAllowedError');
+
+    const event = eventFromUnknownInput(defaultStackParser, exception);
+
+    expect(event.exception?.values?.[0]?.type).toBe('NotAllowedError');
+    expect(event.tags).toBeUndefined();
   });
 });
 

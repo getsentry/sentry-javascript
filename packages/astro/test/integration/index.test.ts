@@ -1,3 +1,4 @@
+import type * as FsModule from 'fs';
 import type { AstroConfig, AstroIntegrationLogger } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _getUpdatedSourceMapSettings, sentryAstro } from '../../src/integration';
@@ -5,10 +6,46 @@ import type { SentryOptions } from '../../src/integration/types';
 
 const sentryVitePluginSpy = vi.fn(() => 'sentryVitePlugin');
 
-vi.mock('@sentry/vite-plugin', () => ({
+vi.mock('@sentry/bundler-plugins/vite', () => ({
   // @ts-expect-error - just mocking around
   sentryVitePlugin: vi.fn(args => sentryVitePluginSpy(args)),
 }));
+
+// Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
+// Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
+const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
+  name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
+}));
+vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
+  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
+}));
+
+// The cloudflare adapter path resolves `@sentry/cloudflare` via `createRequire` and calls
+// `process.exit(1)` when it's missing. Stub the resolver so it always "finds" the package,
+// keeping these tests hermetic regardless of what's installed in `node_modules`.
+vi.mock('module', async requireActual => {
+  const actual = await requireActual<any>();
+  return {
+    ...actual,
+    createRequire: () => ({ resolve: () => '@sentry/cloudflare' }),
+  };
+});
+
+// `isCloudflarePages()` probes for a wrangler config with `pages_build_output_dir`. By default no
+// such file exists (Workers); the Pages test flips `wranglerPagesConfig` to a Pages config.
+let wranglerPagesConfig: string | undefined;
+vi.mock('fs', async requireActual => {
+  const actual = await requireActual<typeof FsModule>();
+  return {
+    ...actual,
+    existsSync: (p: unknown) =>
+      wranglerPagesConfig !== undefined && String(p).endsWith('wrangler.jsonc') ? true : actual.existsSync(p as string),
+    readFileSync: (p: unknown, ...rest: unknown[]) =>
+      wranglerPagesConfig !== undefined && String(p).endsWith('wrangler.jsonc')
+        ? wranglerPagesConfig
+        : (actual.readFileSync as (...args: unknown[]) => string)(p, ...rest),
+  };
+});
 
 process.env = {
   ...process.env,
@@ -23,7 +60,8 @@ const config = {
 } as AstroConfig;
 
 const baseConfigHookObject = {
-  logger: { warn: vi.fn(), info: vi.fn() },
+  logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
+  addMiddleware: vi.fn(),
 };
 
 describe('sentryAstro integration', () => {
@@ -38,20 +76,28 @@ describe('sentryAstro integration', () => {
 
   it('enables "hidden" source maps, adds filesToDeleteAfterUpload and adds the sentry vite plugin if an auth token is detected', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: false,
     });
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
-    expect(updateConfig).toHaveBeenCalledTimes(1);
+    // one call for the sourcemaps vite plugin, one for the orchestrion plugin
+    expect(updateConfig).toHaveBeenCalledTimes(2);
     expect(updateConfig).toHaveBeenCalledWith({
       vite: {
         build: {
           sourcemap: 'hidden',
         },
         plugins: ['sentryVitePlugin'],
+      },
+    });
+    expect(updateConfig).toHaveBeenCalledWith({
+      vite: {
+        plugins: [{ name: 'sentry-orchestrion-vite' }],
       },
     });
 
@@ -79,7 +125,9 @@ describe('sentryAstro integration', () => {
 
   it('falls back to default output dir, if out and root dir are not available', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: false,
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config: {} });
@@ -108,7 +156,9 @@ describe('sentryAstro integration', () => {
 
   it('sets the correct assets glob for vercel if the Vercel adapter is used', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: false,
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
@@ -145,12 +195,9 @@ describe('sentryAstro integration', () => {
 
   it('prefers user-specified assets-globs over the default values', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: {
-        enabled: true,
-        org: 'my-org',
-        project: 'my-project',
-        assets: ['dist/server/**/*, dist/client/**/*'],
-      },
+      org: 'my-org',
+      project: 'my-project',
+      sourcemaps: { assets: ['dist/server/**/*, dist/client/**/*'] },
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
@@ -187,12 +234,9 @@ describe('sentryAstro integration', () => {
 
   it('prefers user-specified filesToDeleteAfterUpload over the default values', async () => {
     const integration = sentryAstro({
-      sourceMapsUploadOptions: {
-        enabled: true,
-        org: 'my-org',
-        project: 'my-project',
-        filesToDeleteAfterUpload: ['./custom/path/**/*'],
-      },
+      org: 'my-org',
+      project: 'my-project',
+      sourcemaps: { filesToDeleteAfterUpload: ['./custom/path/**/*'] },
     });
     // @ts-expect-error - the hook exists, and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
@@ -215,64 +259,45 @@ describe('sentryAstro integration', () => {
     );
   });
 
-  it('prefers user-specified unstable vite plugin options and merges them with default values', async () => {
+  it('ignores the removed `sourceMapsUploadOptions` when computing the vite plugin options', async () => {
     const integration = sentryAstro({
-      bundleSizeOptimizations: {
-        excludeReplayShadowDom: true,
-      },
-      sourceMapsUploadOptions: {
-        enabled: true,
-        org: 'my-org',
-        project: 'my-project',
-        assets: ['dist/server/**/*, dist/client/**/*'],
-        unstable_sentryVitePluginOptions: {
-          org: 'my-other-org',
-          project: 'my-other-project',
-          applicationKey: 'my-application-key',
-          sourcemaps: {
-            assets: ['foo/*.js'],
-            ignore: ['bar/*.js'],
-          },
-          bundleSizeOptimizations: {
-            excludeReplayIframe: true,
-          },
-        },
-      },
+      org: 'my-org',
+      // @ts-expect-error - removed in v11
+      sourceMapsUploadOptions: { org: 'my-other-org', enabled: false },
     });
     // @ts-expect-error - the hook exists, and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({
-      ...baseConfigHookObject,
-      updateConfig,
-      injectScript,
-      // @ts-expect-error - only passing in partial config
-      config: {
-        outDir: new URL('file://path/to/project/build'),
-      },
-    });
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        org: 'my-other-org',
-        project: 'my-other-project',
-        applicationKey: 'my-application-key',
-        sourcemaps: {
-          assets: ['foo/*.js'],
-          ignore: ['bar/*.js'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
-        },
-        bundleSizeOptimizations: {
-          excludeReplayShadowDom: true,
-          excludeReplayIframe: true,
-        },
-      }),
-    );
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(expect.objectContaining({ org: 'my-org' }));
   });
+
+  it('forwards moduleMetadata to the vite plugin', async () => {
+    const integration = sentryAstro({ moduleMetadata: { team: 'sdk' } });
+    // @ts-expect-error - the hook exists, and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(expect.objectContaining({ moduleMetadata: { team: 'sdk' } }));
+  });
+
+  // TypeScript rejects the key (see `buildOptions.test-d.ts`); this covers JS configs, which get no
+  // type checking.
+  it.each(['unstable_sentryVitePluginOptions', 'sourceMapsUploadOptions'])(
+    'warns via the Astro logger when the removed `%s` is still set',
+    async removedOption => {
+      const integration = sentryAstro({ [removedOption]: { org: 'my-other-org' } });
+      // @ts-expect-error - the hook exists, and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+      expect(baseConfigHookObject.logger.warn).toHaveBeenCalledWith(expect.stringContaining(removedOption));
+    },
+  );
 
   it('passes top-level applicationKey to the vite plugin', async () => {
     const integration = sentryAstro({
       applicationKey: 'my-app-key',
-      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project' },
+      org: 'my-org',
+      project: 'my-project',
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
@@ -284,19 +309,6 @@ describe('sentryAstro integration', () => {
     );
   });
 
-  it("doesn't enable source maps if `sourceMapsUploadOptions.enabled` is `false`", async () => {
-    const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: false },
-    });
-
-    expect(integration.hooks['astro:config:setup']).toBeDefined();
-    // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
-
-    expect(updateConfig).toHaveBeenCalledTimes(0);
-    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
-  });
-
   it("doesn't enable source maps if `sourcemaps.disable` is `true`", async () => {
     const integration = sentryAstro({
       sourcemaps: { disable: true },
@@ -306,7 +318,13 @@ describe('sentryAstro integration', () => {
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
-    expect(updateConfig).toHaveBeenCalledTimes(0);
+    // only the orchestrion plugin is wired, no sourcemaps plugin
+    expect(updateConfig).toHaveBeenCalledTimes(1);
+    expect(updateConfig).toHaveBeenCalledWith({
+      vite: {
+        plugins: [{ name: 'sentry-orchestrion-vite' }],
+      },
+    });
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
   });
 
@@ -317,14 +335,13 @@ describe('sentryAstro integration', () => {
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
-    expect(updateConfig).toHaveBeenCalledTimes(1);
+    // one call for the sourcemaps vite plugin, one for the orchestrion plugin
+    expect(updateConfig).toHaveBeenCalledTimes(2);
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("doesn't add the Vite plugin in dev mode", async () => {
-    const integration = sentryAstro({
-      sourceMapsUploadOptions: { enabled: true },
-    });
+  it("doesn't add the sourcemaps Vite plugin in dev mode", async () => {
+    const integration = sentryAstro({});
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
@@ -336,7 +353,13 @@ describe('sentryAstro integration', () => {
       command: 'dev',
     });
 
-    expect(updateConfig).toHaveBeenCalledTimes(0);
+    // the sourcemaps plugin is skipped in dev, but the orchestrion plugin is still wired
+    expect(updateConfig).toHaveBeenCalledTimes(1);
+    expect(updateConfig).toHaveBeenCalledWith({
+      vite: {
+        plugins: [{ name: 'sentry-orchestrion-vite' }],
+      },
+    });
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
   });
 
@@ -347,10 +370,106 @@ describe('sentryAstro integration', () => {
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
+    // neither the sourcemaps nor the orchestrion plugin should be wired
     expect(updateConfig).toHaveBeenCalledTimes(0);
+    expect(orchestrionVite).not.toHaveBeenCalled();
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it('adds the orchestrion plugin by default', async () => {
+    const integration = sentryAstro({});
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+    expect(updateConfig).toHaveBeenCalledWith({
+      vite: {
+        plugins: [{ name: 'sentry-orchestrion-vite' }],
+      },
+    });
+  });
+
+  it('adds an inert orchestrion plugin when `buildTimeInstrumentation` is `false`', async () => {
+    const integration = sentryAstro({ buildTimeInstrumentation: false });
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: false });
+    expect(updateConfig).toHaveBeenCalledWith({
+      vite: {
+        plugins: [{ name: 'sentry-orchestrion-disabled' }],
+      },
+    });
+  });
+
+  it('adds the orchestrion plugin for the cloudflare workers adapter', async () => {
+    const integration = sentryAstro({});
+
+    const cloudflareConfig = { ...config, adapter: { name: '@astrojs/cloudflare' } } as AstroConfig;
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      ...baseConfigHookObject,
+      updateConfig,
+      injectScript,
+      config: cloudflareConfig,
+    });
+
+    // No wrangler config with `pages_build_output_dir` is present, so this resolves as Workers.
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+    expect(updateConfig).toHaveBeenCalledWith({
+      vite: {
+        plugins: [{ name: 'sentry-orchestrion-vite' }],
+      },
+    });
+  });
+
+  it("doesn't add the orchestrion plugin for the cloudflare pages adapter", async () => {
+    // Simulate a Pages project: a wrangler config containing `pages_build_output_dir`.
+    wranglerPagesConfig = '{ "pages_build_output_dir": "./dist" }';
+
+    try {
+      const integration = sentryAstro({});
+      const cloudflareConfig = { ...config, adapter: { name: '@astrojs/cloudflare' } } as AstroConfig;
+
+      expect(integration.hooks['astro:config:setup']).toBeDefined();
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      // Pages has no `withSentry` wrap to read the marker, so orchestrion stays off there.
+      expect(orchestrionVite).not.toHaveBeenCalled();
+      expect(updateConfig).not.toHaveBeenCalledWith({
+        vite: {
+          plugins: [{ name: 'sentry-orchestrion-vite' }],
+        },
+      });
+    } finally {
+      wranglerPagesConfig = undefined;
+    }
+  });
+
+  it("doesn't warn about deprecated options when `buildTimeInstrumentation` is set", async () => {
+    const integration = sentryAstro({ buildTimeInstrumentation: false });
+
+    const logger = { warn: vi.fn(), info: vi.fn() };
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config, logger });
+
+    expect(logger.warn).not.toHaveBeenCalledWith(expect.stringContaining('buildTimeInstrumentation'));
   });
 
   it.each([{}, { enabled: true }])('injects client and server init scripts', async options => {
@@ -365,38 +484,33 @@ describe('sentryAstro integration', () => {
     expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
   });
 
-  it('injects runtime config into client and server init scripts and warns about deprecation', async () => {
+  it('passes build-time release options to the Sentry vite plugin and init snippets', async () => {
     const integration = sentryAstro({
       project: 'my-project',
-      environment: 'test',
-      release: '1.0.0',
-      dsn: 'https://test.sentry.io/123',
-      bundleSizeOptimizations: {},
-      // this also warns when debug is not enabled
+      release: { name: '1.0.0' },
+      debug: true,
     });
-
-    const logger = {
-      warn: vi.fn(),
-      info: vi.fn(),
-    };
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config, logger });
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
-    expect(logger.warn).toHaveBeenCalledWith(
-      'You passed in additional options (environment, release, dsn) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.',
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        release: { name: '1.0.0' },
+        debug: true,
+      }),
     );
 
     expect(injectScript).toHaveBeenCalledTimes(2);
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('Sentry.init'));
-    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('dsn: "https://test.sentry.io/123"'));
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('release: "1.0.0"'));
-    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('environment: "test"'));
-    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
-    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('dsn: "https://test.sentry.io/123"'));
+    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('debug: true'));
+    expect(injectScript).toHaveBeenCalledWith(
+      'page',
+      expect.stringContaining('dsn: import.meta.env.PUBLIC_SENTRY_DSN'),
+    );
     expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('release: "1.0.0"'));
-    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('environment: "test"'));
   });
 
   it("doesn't inject client init script if `enabled.client` is `false`", async () => {
@@ -452,31 +566,28 @@ describe('sentryAstro integration', () => {
     );
   });
 
-  it.each(['server', 'hybrid'])(
-    'adds middleware by default if in %s mode and `addMiddleware` is available',
-    async mode => {
-      const integration = sentryAstro({});
-      const addMiddleware = vi.fn();
-      const updateConfig = vi.fn();
-      const injectScript = vi.fn();
+  it.each(['server', 'hybrid'])('adds middleware by default if in %s mode', async mode => {
+    const integration = sentryAstro({});
+    const addMiddleware = vi.fn();
+    const updateConfig = vi.fn();
+    const injectScript = vi.fn();
 
-      expect(integration.hooks['astro:config:setup']).toBeDefined();
-      // @ts-expect-error - the hook exists and we only need to pass what we actually use
-      await integration.hooks['astro:config:setup']({
-        // @ts-expect-error - we only need to pass what we actually use
-        config: { output: mode },
-        addMiddleware,
-        updateConfig,
-        injectScript,
-      });
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      // @ts-expect-error - we only need to pass what we actually use
+      config: { output: mode },
+      addMiddleware,
+      updateConfig,
+      injectScript,
+    });
 
-      expect(addMiddleware).toHaveBeenCalledTimes(1);
-      expect(addMiddleware).toHaveBeenCalledWith({
-        order: 'pre',
-        entrypoint: '@sentry/astro/middleware',
-      });
-    },
-  );
+    expect(addMiddleware).toHaveBeenCalledTimes(1);
+    expect(addMiddleware).toHaveBeenCalledWith({
+      order: 'pre',
+      entrypoint: '@sentry/astro/middleware',
+    });
+  });
 
   it.each([{ output: 'static' }, { output: undefined }])(
     "doesn't add middleware if in static mode (config %s)",
@@ -516,24 +627,6 @@ describe('sentryAstro integration', () => {
     });
 
     expect(addMiddleware).toHaveBeenCalledTimes(0);
-  });
-
-  it("doesn't add middleware (i.e. crash) if `addMiddleware` is N/A", async () => {
-    const integration = sentryAstro({ autoInstrumentation: { requestHandler: false } });
-    const updateConfig = vi.fn();
-    const injectScript = vi.fn();
-
-    expect(integration.hooks['astro:config:setup']).toBeDefined();
-    // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({
-      // @ts-expect-error - we only need to pass what we actually use
-      config: { output: 'server' },
-      updateConfig,
-      injectScript,
-    });
-
-    expect(updateConfig).toHaveBeenCalledTimes(1);
-    expect(injectScript).toHaveBeenCalledTimes(2);
   });
 
   it("doesn't add middleware if the SDK is disabled", () => {

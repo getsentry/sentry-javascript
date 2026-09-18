@@ -1,0 +1,5 @@
+{
+  // this tsconfig.json is only here so the IDE can find the types
+  // the actual lint:types goes against tsconfig.v4.json and tsconfig.v5.json directly
+  "extends": "./tsconfig.v5.json"
+}

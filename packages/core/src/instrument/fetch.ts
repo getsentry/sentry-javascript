@@ -3,6 +3,7 @@ import { getClient } from '../currentScopes';
 import type { HandlerDataFetch } from '../types/instrument';
 import type { WebFetchHeaders } from '../types/webfetchapi';
 import { isError, isObjectLike, isRequest } from '../utils/is';
+import { isBrowser } from '../utils/isBrowser';
 import { addNonEnumerableProperty, fill } from '../utils/object';
 import { supportsNativeFetch } from '../utils/supports';
 import { timestampInSeconds } from '../utils/time';
@@ -20,13 +21,10 @@ type FetchResource = string | { toString(): string } | { url: string };
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
  */
-export function addFetchInstrumentationHandler(
-  handler: (data: HandlerDataFetch) => void,
-  skipNativeFetchCheck?: boolean,
-): () => void {
+export function addFetchInstrumentationHandler(handler: (data: HandlerDataFetch) => void): () => void {
   const type = 'fetch';
   const removeHandler = addHandler(type, handler);
-  maybeInstrument(type, () => instrumentFetch(undefined, skipNativeFetchCheck));
+  maybeInstrument(type, () => instrumentFetch());
   return removeHandler;
 }
 
@@ -46,113 +44,122 @@ export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFet
   return removeHandler;
 }
 
-function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNativeFetchCheck: boolean = false): void {
-  if (skipNativeFetchCheck && !supportsNativeFetch()) {
+function instrumentFetch(onFetchResolved?: (response: Response) => void): void {
+  // The native-fetch check is only meaningful in the browser: it probes for `[native code]` and
+  // falls back to an iframe DOM check to detect a polyfilled/wrapped `fetch` (which we don't want to
+  // double-instrument alongside XHR). Outside the browser there is no DOM, and `fetch` may be
+  // legitimately wrapped by the host (e.g. Next.js on Bun), so we always patch the global there.
+  if (isBrowser() && !supportsNativeFetch()) {
     return;
   }
 
-  fill(GLOBAL_OBJ, 'fetch', function (originalFetch: () => void): () => void {
-    return function (...args: any[]): void {
-      // We capture the error right here and not in the Promise error callback because Safari (and probably other
-      // browsers too) will wipe the stack trace up to this point, only leaving us with this file which is useless.
+  // We wrap `fetch` in a `Proxy` rather than a plain closure so that non-standard own properties some
+  // runtimes hang off the global `fetch` (e.g. Bun's `fetch.preconnect`) keep working - property access
+  // and `toString()` transparently forward to the native implementation.
+  fill(GLOBAL_OBJ, 'fetch', function (originalFetch: (...args: any[]) => Promise<Response>): unknown {
+    return new Proxy(originalFetch, {
+      apply(target, _thisArg, args: any[]): Promise<Response> {
+        // We capture the error right here and not in the Promise error callback because Safari (and probably other
+        // browsers too) will wipe the stack trace up to this point, only leaving us with this file which is useless.
 
-      // NOTE: If you are a Sentry user, and you are seeing this stack frame,
-      //       it means the error, that was caused by your fetch call did not
-      //       have a stack trace, so the SDK backfilled the stack trace so
-      //       you can see which fetch call failed.
-      const virtualError = new Error();
+        // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+        //       it means the error, that was caused by your fetch call did not
+        //       have a stack trace, so the SDK backfilled the stack trace so
+        //       you can see which fetch call failed.
+        const virtualError = new Error();
 
-      const { method, url } = parseFetchArgs(args);
-      const handlerData: HandlerDataFetch = {
-        args,
-        fetchData: {
-          method,
-          url,
-        },
-        startTimestamp: timestampInSeconds() * 1000,
-        // // Adding the error to be able to fingerprint the failed fetch event in HttpClient instrumentation
-        virtualError,
-        headers: getHeadersFromFetchArgs(args),
-      };
+        const { method, url } = parseFetchArgs(args);
+        const handlerData: HandlerDataFetch = {
+          args,
+          fetchData: {
+            method,
+            url,
+          },
+          startTimestamp: timestampInSeconds() * 1000,
+          // // Adding the error to be able to fingerprint the failed fetch event in HttpClient instrumentation
+          virtualError,
+          headers: getHeadersFromFetchArgs(args),
+        };
 
-      // if there is no callback, fetch is instrumented directly
-      if (!onFetchResolved) {
-        triggerHandlers('fetch', {
-          ...handlerData,
-        });
-      }
+        // if there is no callback, fetch is instrumented directly
+        if (!onFetchResolved) {
+          triggerHandlers('fetch', {
+            ...handlerData,
+          });
+        }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return originalFetch.apply(GLOBAL_OBJ, args).then(
-        async (response: Response) => {
-          if (onFetchResolved) {
-            onFetchResolved(response);
-          } else {
+        return Reflect.apply(target, GLOBAL_OBJ, args).then(
+          async (response: Response) => {
+            if (onFetchResolved) {
+              onFetchResolved(response);
+            } else {
+              triggerHandlers('fetch', {
+                ...handlerData,
+                endTimestamp: timestampInSeconds() * 1000,
+                response,
+              });
+            }
+
+            return response;
+          },
+          (error: Error) => {
             triggerHandlers('fetch', {
               ...handlerData,
               endTimestamp: timestampInSeconds() * 1000,
-              response,
+              error,
             });
-          }
 
-          return response;
-        },
-        (error: Error) => {
-          triggerHandlers('fetch', {
-            ...handlerData,
-            endTimestamp: timestampInSeconds() * 1000,
-            error,
-          });
-
-          if (isError(error) && error.stack === undefined) {
-            // NOTE: If you are a Sentry user, and you are seeing this stack frame,
-            //       it means the error, that was caused by your fetch call did not
-            //       have a stack trace, so the SDK backfilled the stack trace so
-            //       you can see which fetch call failed.
-            error.stack = virtualError.stack;
-            addNonEnumerableProperty(error, 'framesToPop', 1);
-          }
-
-          // We enhance fetch error messages with hostname information based on the configuration.
-          // Possible messages we handle here:
-          // * "Failed to fetch" (chromium)
-          // * "Load failed" (webkit)
-          // * "NetworkError when attempting to fetch resource." (firefox)
-          const client = getClient();
-          const enhanceOption = client?.getOptions().enhanceFetchErrorMessages ?? 'always';
-          const shouldEnhance = enhanceOption !== false;
-
-          if (
-            shouldEnhance &&
-            error instanceof TypeError &&
-            (error.message === 'Failed to fetch' ||
-              error.message === 'Load failed' ||
-              error.message === 'NetworkError when attempting to fetch resource.')
-          ) {
-            try {
-              const url = new URL(handlerData.fetchData.url);
-              const hostname = url.host;
-
-              if (enhanceOption === 'always') {
-                // Modify the error message directly
-                error.message = `${error.message} (${hostname})`;
-              } else {
-                // Store hostname as non-enumerable property for Sentry-only enhancement
-                // This preserves the original error message for third-party packages
-                addNonEnumerableProperty(error, '__sentry_fetch_url_host__', hostname);
-              }
-            } catch {
-              // ignore it if errors happen here
+            if (isError(error) && error.stack === undefined) {
+              // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+              //       it means the error, that was caused by your fetch call did not
+              //       have a stack trace, so the SDK backfilled the stack trace so
+              //       you can see which fetch call failed.
+              error.stack = virtualError.stack;
+              addNonEnumerableProperty(error, 'framesToPop', 1);
             }
-          }
 
-          // NOTE: If you are a Sentry user, and you are seeing this stack frame,
-          //       it means the sentry.javascript SDK caught an error invoking your application code.
-          //       This is expected behavior and NOT indicative of a bug with sentry.javascript.
-          throw error;
-        },
-      );
-    };
+            // We enhance fetch error messages with hostname information based on the configuration.
+            // Possible messages we handle here:
+            // * "Failed to fetch" (chromium)
+            // * "Load failed" (webkit)
+            // * "NetworkError when attempting to fetch resource." (firefox)
+            const client = getClient();
+            const enhanceOption = client?.getOptions().enhanceFetchErrorMessages ?? 'always';
+            const shouldEnhance = enhanceOption !== false;
+
+            if (
+              shouldEnhance &&
+              isError(error) &&
+              error.name === 'TypeError' &&
+              (error.message === 'Failed to fetch' ||
+                error.message === 'Load failed' ||
+                error.message === 'NetworkError when attempting to fetch resource.')
+            ) {
+              try {
+                const url = new URL(handlerData.fetchData.url);
+                const hostname = url.host;
+
+                if (enhanceOption === 'always') {
+                  // Modify the error message directly
+                  error.message = `${error.message} (${hostname})`;
+                } else {
+                  // Store hostname as non-enumerable property for Sentry-only enhancement
+                  // This preserves the original error message for third-party packages
+                  addNonEnumerableProperty(error, '__sentry_fetch_url_host__', hostname);
+                }
+              } catch {
+                // ignore it if errors happen here
+              }
+            }
+
+            // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+            //       it means the sentry.javascript SDK caught an error invoking your application code.
+            //       This is expected behavior and NOT indicative of a bug with sentry.javascript.
+            throw error;
+          },
+        );
+      },
+    });
   });
 }
 

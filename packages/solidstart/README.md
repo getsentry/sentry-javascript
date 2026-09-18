@@ -24,6 +24,15 @@ SDK is for [SolidStart](https://start.solidjs.com/). If you're using [Solid](htt
 This package is a wrapper around `@sentry/node` for the server and `@sentry/solid` for the client side, with added
 functionality related to SolidStart.
 
+## SolidStart version support
+
+The setup differs by SolidStart major, because SolidStart 2 dropped vinxi and `app.config.ts`:
+
+- **SolidStart 1** — configure the SDK with `withSentry` in `app.config.ts`. This is what the "Manual Setup" section
+  below describes.
+- **SolidStart 2** — configure the SDK with the `sentrySolidStart` Vite plugin in `vite.config.ts`. See
+  [SolidStart 2 setup](#solidstart-2-setup).
+
 ## Manual Setup
 
 If the setup through the wizard doesn't work for you, you can also set up the SDK manually.
@@ -188,6 +197,62 @@ export default defineConfig(
 
 This has a **fundamental restriction**: It only supports limited performance instrumentation. **Only basic http
 instrumentation** will work, and no DB or framework-specific instrumentation will be available.
+
+# SolidStart 2 setup
+
+SolidStart 2 has no `app.config.ts`, so `withSentry` does not apply. Configure the SDK with the `sentrySolidStart`
+Vite plugin instead. Client-side setup (`Sentry.init` in `entry-client.tsx`) and the Solid Router and
+`ErrorBoundary` wrappers below are unchanged.
+
+### 1. Add the Vite plugin
+
+```typescript
+// vite.config.ts
+import { sentrySolidStart } from '@sentry/solidstart/vite';
+import { solidStart } from '@solidjs/start/config';
+import { nitro } from 'nitro/vite';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  plugins: [
+    solidStart(),
+    sentrySolidStart({
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
+    // `serverDir` is required for Nitro to pick up the Sentry plugin below.
+    nitro({ serverDir: './server' }),
+  ],
+});
+```
+
+### 2. Initialize Sentry on the server
+
+Create a Nitro plugin. Nitro runs it once at server startup, before any request is handled:
+
+```typescript
+// server/plugins/sentry.ts
+import * as Sentry from '@sentry/solidstart';
+import { definePlugin } from 'nitro';
+
+export default definePlugin(() => {
+  Sentry.init({
+    dsn: '__PUBLIC_DSN__',
+    tracesSampleRate: 1.0,
+  });
+});
+```
+
+Nitro's `serverDir` defaults to `false`, which disables plugin scanning entirely. If it is not set (step 1), this
+file is silently ignored and Sentry never initializes on the server.
+
+Unlike SolidStart 1, there is **no `--import` flag and no instrumentation file to copy** into the build output. The
+SDK instruments your server dependencies at build time, so a plain start command is all that is needed:
+
+```bash
+node .output/server/index.mjs
+```
 
 # Solid Router
 

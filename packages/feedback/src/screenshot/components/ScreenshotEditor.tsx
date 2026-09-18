@@ -1,5 +1,5 @@
 import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
-import type { ComponentType, h as hType, VNode } from 'preact';
+import type { ComponentType, h as hType, MouseEventHandler, VNode } from 'preact';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
@@ -244,7 +244,7 @@ export function ScreenshotEditorFactory({
           y: Math.min(startingPoint.y, y),
           w: Math.abs(x - startingPoint.x),
           h: Math.abs(y - startingPoint.y),
-        } as DrawCommand;
+        };
       };
 
       const handleMouseMove = (e: MouseEvent): void => {
@@ -269,7 +269,7 @@ export function ScreenshotEditorFactory({
       DOCUMENT.addEventListener('mouseup', handleMouseUp);
     };
 
-    const deleteRect = hooks.useCallback((index: number): hType.JSX.MouseEventHandler<HTMLButtonElement> => {
+    const deleteRect = hooks.useCallback((index: number): MouseEventHandler<HTMLButtonElement> => {
       return (e: MouseEvent): void => {
         e.preventDefault();
         e.stopPropagation();

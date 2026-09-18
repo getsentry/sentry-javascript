@@ -1,4 +1,6 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 // Two shapes of `acquire`, both publishing to the same `orchestrion:generic-pool:acquire` channel:
 // - v3+: `class Pool { acquire(priority) }` returns a promise, so `kind: 'Auto'` resolves to `wrapPromise`.
@@ -17,6 +19,8 @@ export const genericPoolConfig = [
     functionQuery: { expressionName: 'acquire', kind: 'Callback' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const genericPoolModuleNames = getModuleNames(genericPoolConfig);
 
 export const genericPoolChannels = {
   GENERIC_POOL_ACQUIRE: 'orchestrion:generic-pool:acquire',

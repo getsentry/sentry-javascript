@@ -1,0 +1,5 @@
+{
+  "name": "cloudflare-opentelemetry-tracer-subpath-request-handler",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+}

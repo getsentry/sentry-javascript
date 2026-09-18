@@ -1,5 +1,6 @@
-import * as otelApi from '@opentelemetry/api';
+import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
+import * as coreServer from '@sentry/core/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSentryServerInstrumentation,
@@ -13,35 +14,23 @@ vi.mock('@sentry/core', async () => {
     ...actual,
     startSpan: vi.fn(),
     captureException: vi.fn(),
-    flushIfServerless: vi.fn(),
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
+    getClient: vi.fn(),
     updateSpanName: vi.fn(),
     GLOBAL_OBJ: globalThis,
     SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
-    SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   };
 });
+
+vi.mock('@sentry/core/server', () => ({
+  flushIfServerless: vi.fn(),
+}));
 
 vi.mock('../../src/server/serverBuild', () => ({
   getMiddlewareName: vi.fn(),
 }));
-
-vi.mock('@opentelemetry/api', async () => {
-  const actual = await vi.importActual('@opentelemetry/api');
-  return {
-    ...actual,
-    context: {
-      active: vi.fn(() => ({
-        getValue: vi.fn(),
-        setValue: vi.fn(),
-      })),
-      with: vi.fn((ctx, fn) => fn()),
-    },
-    createContextKey: actual.createContextKey,
-  };
-});
 
 describe('createSentryServerInstrumentation', () => {
   beforeEach(() => {
@@ -67,10 +56,51 @@ describe('createSentryServerInstrumentation', () => {
 
     createSentryServerInstrumentation();
 
-    // Creating the instrumentation must not mark the API active. On React Router versions that
-    // don't support the instrumentations API, the registration callbacks are never invoked, so
-    // the legacy OTel data-loader path and wrapServerLoader/wrapServerAction must stay active.
+    // Creating the instrumentation must not mark the API active - the flag should only flip once
+    // React Router actually invokes the registration callbacks.
     expect((globalThis as any).__sentryReactRouterServerInstrumentationUsed).toBeUndefined();
+  });
+
+  describe('with span streaming enabled', () => {
+    beforeEach(() => {
+      (core.getClient as any).mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }) });
+    });
+
+    // `vi.clearAllMocks()` clears calls but not implementations, so this would leak into later tests.
+    afterEach(() => {
+      (core.getClient as any).mockReturnValue(undefined);
+    });
+
+    it('names an unparameterized root span after the request method', async () => {
+      const mockRequest = new Request('http://example.com/test-path');
+      const mockInstrument = vi.fn();
+      const mockRootSpan = { setAttributes: vi.fn() };
+
+      (core.getActiveSpan as any).mockReturnValue({});
+      (core.getRootSpan as any).mockReturnValue(mockRootSpan);
+
+      const instrumentation = createSentryServerInstrumentation();
+      instrumentation.handler?.({ instrument: mockInstrument });
+      const hooks = mockInstrument.mock.calls[0]![0];
+
+      await hooks.request(vi.fn().mockResolvedValue({ status: 'success', error: undefined }), {
+        request: mockRequest,
+        context: undefined,
+      });
+
+      expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET');
+    });
+
+    it('keeps the parameterized route once React Router matches one', async () => {
+      const { mockRootSpan } = await callMiddlewareHook({
+        middlewareName: undefined,
+        routeId: 'test-route',
+        routePath: '/users/:id',
+        url: 'http://example.com/users/123',
+      });
+
+      expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /users/:id');
+    });
   });
 
   it('should set the global flag when React Router invokes the handler registration', () => {
@@ -115,10 +145,12 @@ describe('createSentryServerInstrumentation', () => {
     expect(mockSetAttributes).toHaveBeenCalledWith({
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.react_router.instrumentation_api',
-      'sentry.source': 'url',
+      'sentry.segment.name.source': 'url',
+      [URL_FULL]: 'http://example.com/test-path',
+      [URL_PATH]: '/test-path',
     });
     expect(mockHandleRequest).toHaveBeenCalled();
-    expect(core.flushIfServerless).toHaveBeenCalled();
+    expect(coreServer.flushIfServerless).toHaveBeenCalled();
   });
 
   it('should create own root span when no active span exists', async () => {
@@ -137,15 +169,14 @@ describe('createSentryServerInstrumentation', () => {
 
     await hooks.request(mockHandleRequest, { request: mockRequest, context: undefined });
 
-    // Should create a new root span with forceTransaction
+    // Should create a new root span
     expect(core.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'GET /api/users',
-        forceTransaction: true,
         attributes: expect.objectContaining({
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.react_router.instrumentation_api',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'http.request.method': 'GET',
           'url.path': '/api/users',
           'url.full': 'http://example.com/api/users',
@@ -154,7 +185,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.any(Function),
     );
     expect(mockHandleRequest).toHaveBeenCalled();
-    expect(core.flushIfServerless).toHaveBeenCalled();
+    expect(coreServer.flushIfServerless).toHaveBeenCalled();
   });
 
   it('should capture errors and set span status when root span exists', async () => {
@@ -180,7 +211,7 @@ describe('createSentryServerInstrumentation', () => {
       mechanism: {
         type: 'react_router.request_handler',
         handled: false,
-        data: { 'http.method': 'GET', 'http.url': '/api/users' },
+        data: { 'http.request.method': 'GET', 'url.full': '/api/users' },
       },
     });
   });
@@ -207,7 +238,7 @@ describe('createSentryServerInstrumentation', () => {
       mechanism: {
         type: 'react_router.request_handler',
         handled: false,
-        data: { 'http.method': 'GET', 'http.url': '/api/users' },
+        data: { 'http.request.method': 'GET', 'url.full': '/api/users' },
       },
     });
   });
@@ -227,7 +258,7 @@ describe('createSentryServerInstrumentation', () => {
 
     // Handler should still be called even if URL parsing fails
     expect(mockHandleRequest).toHaveBeenCalled();
-    expect(core.flushIfServerless).toHaveBeenCalled();
+    expect(coreServer.flushIfServerless).toHaveBeenCalled();
   });
 
   it('should handle relative URLs by using a dummy base', async () => {
@@ -281,7 +312,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.loader',
+          'sentry.op': 'function',
+          'code.function.name': 'loader',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -321,7 +353,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.action',
+          'sentry.op': 'function',
+          'code.function.name': 'action',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -378,7 +411,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.middleware',
+          'sentry.op': 'middleware',
+          'code.function.name': 'middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
           'react_router.route.id': 'test-route',
           'http.route': '/users/:id',
@@ -392,7 +426,7 @@ describe('createSentryServerInstrumentation', () => {
     expect(mockSetAttributes).toHaveBeenCalledWith(
       expect.objectContaining({
         'http.route': '/users/:id',
-        'sentry.source': 'route',
+        'sentry.segment.name.source': 'route',
       }),
     );
   });
@@ -409,7 +443,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'middleware authMiddleware',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.middleware',
+          'sentry.op': 'middleware',
+          'code.function.name': 'middleware',
           'react_router.route.id': 'routes/protected',
           'http.route': '/protected',
           'react_router.middleware.name': 'authMiddleware',
@@ -423,18 +458,7 @@ describe('createSentryServerInstrumentation', () => {
   it('should increment middleware index for multiple middleware calls on same route', async () => {
     const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
-    const mockSetAttributes = vi.fn();
-    const mockRootSpan = { setAttributes: mockSetAttributes };
     const routeId = 'routes/multi-middleware';
-
-    // Simulate counter store that would be created by handler and stored in OTel context
-    const counterStore = { counters: {} as Record<string, number> };
-
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    vi.mocked(otelApi.context.active).mockReturnValue({
-      getValue: vi.fn(() => counterStore),
-      setValue: vi.fn(),
-    } as any);
 
     vi.mocked(serverBuildModule.getMiddlewareName).mockReturnValue(undefined);
 
@@ -443,7 +467,9 @@ describe('createSentryServerInstrumentation', () => {
       startSpanCalls.push(opts);
       return fn();
     });
-    (core.getActiveSpan as any).mockReturnValue({});
+    // The per-request middleware counter is keyed by the (stable) root span, so the 3 calls increment.
+    const mockRootSpan = { setAttributes: vi.fn() };
+    (core.getActiveSpan as any).mockReturnValue(mockRootSpan);
     (core.getRootSpan as any).mockReturnValue(mockRootSpan);
 
     const instrumentation = createSentryServerInstrumentation();
@@ -462,15 +488,12 @@ describe('createSentryServerInstrumentation', () => {
       context: undefined,
     };
 
-    // Call middleware 3 times (simulating 3 middlewares on same route)
     await hooks.middleware(mockCallMiddleware, requestInfo);
     await hooks.middleware(mockCallMiddleware, requestInfo);
     await hooks.middleware(mockCallMiddleware, requestInfo);
 
     // Filter to only middleware spans
-    const middlewareSpans = startSpanCalls.filter(
-      opts => opts.attributes?.['sentry.op'] === 'function.react_router.middleware',
-    );
+    const middlewareSpans = startSpanCalls.filter(opts => opts.attributes?.['code.function.name'] === 'middleware');
 
     expect(middlewareSpans).toHaveLength(3);
     expect(middlewareSpans[0].attributes['react_router.middleware.index']).toBe(0);
@@ -501,7 +524,8 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react_router.lazy',
+          'sentry.op': 'function',
+          'code.function.name': 'lazy',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -542,7 +566,7 @@ describe('createSentryServerInstrumentation', () => {
       mechanism: {
         type: 'react_router.loader',
         handled: false,
-        data: { 'http.method': 'GET', 'http.url': '/test' },
+        data: { 'http.request.method': 'GET', 'url.full': '/test' },
       },
     });
 

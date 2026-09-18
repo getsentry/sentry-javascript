@@ -1,15 +1,15 @@
-import type { Mechanism, WrappedFunction } from '@sentry/core/browser';
+import type { Mechanism, WrappedFunction } from '@sentry/core';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
   addNonEnumerableProperty,
   captureException,
-  getLocationHref,
   getOriginalFunction,
   GLOBAL_OBJ,
   markFunctionWrapped,
   withScope,
-} from '@sentry/core/browser';
+} from '@sentry/core';
+import { getLocationHref } from '@sentry/browser-utils';
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 

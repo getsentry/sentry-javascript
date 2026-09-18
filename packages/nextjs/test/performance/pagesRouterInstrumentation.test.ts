@@ -4,10 +4,8 @@ import { JSDOM } from 'jsdom';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import Router from 'next/router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  pagesRouterInstrumentNavigation,
-  pagesRouterInstrumentPageLoad,
-} from '../../src/client/routing/pagesRouterRoutingInstrumentation';
+import { pagesRouterInstrumentPageLoad } from '../../src/client/routing/pagesRouterRoutingInstrumentation';
+import { pagesRouterInstrumentNavigation } from '../../src/client/routing/pagesRouterNavigationInstrumentation';
 import { URL_TEMPLATE } from '@sentry/conventions/attributes';
 
 const globalObject = WINDOW as typeof WINDOW & {
@@ -128,7 +126,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
         attributes: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           [URL_TEMPLATE]: '/[user]/posts/[id]',
           user: 'chargome',
           id: '1337',
@@ -152,7 +150,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
         attributes: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           [URL_TEMPLATE]: '/some-page',
         },
       },
@@ -168,7 +166,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
         attributes: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           [URL_TEMPLATE]: '/',
         },
       },
@@ -184,7 +182,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
         attributes: {
           'sentry.op': 'pageload',
           'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
         },
       },
     ],
@@ -334,7 +332,7 @@ describe('pagesRouterInstrumentNavigation', () => {
         attributes: {
           'sentry.op': 'navigation',
           'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
-          'sentry.source': expectedTransactionSource,
+          'sentry.segment.name.source': expectedTransactionSource,
           ...(expectedTransactionSource === 'route' ? { [URL_TEMPLATE]: expectedTransactionName } : {}),
         },
       };

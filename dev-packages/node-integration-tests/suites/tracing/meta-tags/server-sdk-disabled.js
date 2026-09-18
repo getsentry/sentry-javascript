@@ -2,6 +2,7 @@ const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 const Sentry = require('@sentry/node');
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
@@ -28,7 +29,5 @@ app.get('/test', (_req, res) => {
     `,
   });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

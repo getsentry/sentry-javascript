@@ -11,9 +11,16 @@ describe('makeServerBuildCapturePlugin', () => {
     expect(plugin.enforce).toBe('post');
   });
 
-  it('should return null for non-SSR builds', () => {
+  it('should return null for non-SSR transforms', () => {
     const plugin = makeServerBuildCapturePlugin();
-    (plugin as any).configResolved({ build: { ssr: false } });
+
+    const result = (plugin as any).transform(SERVER_BUILD_CODE, SERVER_BUILD_MODULE_ID, { ssr: false });
+
+    expect(result).toBeNull();
+  });
+
+  it('should return null when no options are passed', () => {
+    const plugin = makeServerBuildCapturePlugin();
 
     const result = (plugin as any).transform(SERVER_BUILD_CODE, SERVER_BUILD_MODULE_ID);
 
@@ -22,18 +29,18 @@ describe('makeServerBuildCapturePlugin', () => {
 
   it('should return null for non-server-build modules in SSR mode', () => {
     const plugin = makeServerBuildCapturePlugin();
-    (plugin as any).configResolved({ build: { ssr: true } });
 
-    const result = (plugin as any).transform('export function helper() {}', 'src/utils.ts');
+    const result = (plugin as any).transform('export function helper() {}', 'src/utils.ts', { ssr: true });
 
     expect(result).toBeNull();
   });
 
-  it('should inject capture snippet into the server build module in SSR mode', () => {
+  // `options.ssr` is true for the SSR module in both dev (`react-router dev`) and production builds,
+  // so a single assertion covers both cases - the plugin cannot (and need not) distinguish them.
+  it('should inject capture snippet into the server build module for SSR transforms', () => {
     const plugin = makeServerBuildCapturePlugin();
-    (plugin as any).configResolved({ build: { ssr: true } });
 
-    const result = (plugin as any).transform(SERVER_BUILD_CODE, SERVER_BUILD_MODULE_ID);
+    const result = (plugin as any).transform(SERVER_BUILD_CODE, SERVER_BUILD_MODULE_ID, { ssr: true });
 
     expect(result).not.toBeNull();
     expect(result.code).toContain(SERVER_BUILD_CODE);

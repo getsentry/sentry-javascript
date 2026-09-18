@@ -23,7 +23,7 @@ sentryTest(
 
     expect(navigationTransactionEvent.contexts?.trace?.op).toBe('navigation');
 
-    const loafSpans = navigationTransactionEvent.spans?.filter(s => s.op?.startsWith('ui.long-animation-frame'));
+    const loafSpans = navigationTransactionEvent.spans?.filter(s => s.op?.startsWith('ui.long_animation_frame'));
 
     expect(loafSpans?.length).toEqual(0);
   },

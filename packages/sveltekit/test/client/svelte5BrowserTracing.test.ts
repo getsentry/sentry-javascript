@@ -4,9 +4,9 @@
 
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentSvelteKitTracing } from '../../src/client/svelte5BrowserTracing';
 
@@ -63,7 +63,7 @@ describe('svelte5 browser tracing', () => {
     () => ({ setTransactionName: setTransactionNameSpy }) as unknown as ReturnType<typeof SentrySvelte.getCurrentScope>,
   );
 
-  const client = {} as Parameters<typeof instrumentSvelteKitTracing>[0];
+  const client = { getOptions: () => ({}) } as Parameters<typeof instrumentSvelteKitTracing>[0];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -81,10 +81,10 @@ describe('svelte5 browser tracing', () => {
 
       expect(startPageLoadSpanSpy).toHaveBeenCalledWith(client, {
         name: '/',
-        op: 'pageload',
         attributes: {
+          'sentry.op': 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         },
       });
 
@@ -92,7 +92,7 @@ describe('svelte5 browser tracing', () => {
 
       expect(createdRootSpan?.updateName).toHaveBeenCalledWith('/users/[id]');
       expect(createdRootSpan?.setAttributes).toHaveBeenCalledWith({
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/users/[id]',
       });
       expect(setTransactionNameSpy).toHaveBeenCalledWith('/users/[id]');
@@ -122,10 +122,10 @@ describe('svelte5 browser tracing', () => {
         client,
         expect.objectContaining({
           name: '/users/[id]',
-          op: 'navigation',
           attributes: expect.objectContaining({
+            'sentry.op': 'navigation',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [URL_TEMPLATE]: '/users/[id]',
           }),
         }),

@@ -6,7 +6,7 @@ const EXPECTED_TRANSCATION = {
   spans: expect.arrayContaining([
     expect.objectContaining({
       description: 'query GetHello',
-      origin: 'auto.graphql.otel.graphql',
+      origin: 'auto.graphql.diagnostic_channel',
       status: 'ok',
     }),
   ]),

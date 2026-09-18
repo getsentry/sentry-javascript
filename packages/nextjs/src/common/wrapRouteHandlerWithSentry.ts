@@ -8,18 +8,23 @@ import {
   handleCallbackErrors,
   propagationContextFromHeaders,
   Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   setHttpStatus,
+  SPAN_STATUS_ERROR,
   winterCGHeadersToDict,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
+import {
+  isNotFoundNavigationError,
+  isPrerenderControlFlowError,
+  isRedirectNavigationError,
+} from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
 import { flushSafelyWithTimeout, waitUntil } from './utils/responseEnd';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
+import { HTTP_ROUTE, SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 
 /**
  * Wraps a Next.js App Router Route handler with Sentry error and performance instrumentation.
@@ -47,8 +52,11 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         edgeRuntimeIsolationScopeOverride = isolationScope;
 
         rootSpan.updateName(`${method} ${parameterizedRoute}`);
-        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+        rootSpan.setAttributes({
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          [SENTRY_OP]: HTTP_SERVER,
+          [HTTP_ROUTE]: parameterizedRoute,
+        });
       }
 
       return withIsolationScope(
@@ -85,7 +93,13 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                   if (rootSpan) {
                     setHttpStatus(rootSpan, 404);
                   }
+                } else if (isPrerenderControlFlowError(error)) {
+                  // Next.js aborts prerenders by rejecting the promises it handed out. React discards those
+                  // rejections, so they are expected, do not affect the response, and must not be reported.
                 } else {
+                  const errorStatus = { code: SPAN_STATUS_ERROR, message: 'internal_error' } as const;
+                  activeSpan?.setStatus(errorStatus);
+                  rootSpan?.setStatus(errorStatus);
                   captureException(error, {
                     mechanism: {
                       handled: false,

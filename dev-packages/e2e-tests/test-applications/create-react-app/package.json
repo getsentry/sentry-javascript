@@ -19,7 +19,6 @@
     "eject": "react-scripts eject",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:build-ts3.8": "pnpm install && pnpm add typescript@3.8 && pnpm build",
     "test:build-canary": "pnpm install && pnpm add react@canary react-dom@canary && pnpm build",
     "test:assert": "pnpm -v"
   },
@@ -43,13 +42,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sentryTest": {
-    "variants": [
-      {
-        "build-command": "pnpm test:build-ts3.8",
-        "label": "create-react-app (TS 3.8)"
-      }
-    ]
   }
 }

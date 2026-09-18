@@ -89,7 +89,7 @@ describe('captureInstrumentationError', () => {
   it('should capture error when captureErrors is true', () => {
     const error = new Error('test error');
     const result = { status: 'error' as const, error };
-    const data = { 'http.url': '/test' };
+    const data = { 'url.full': '/test' };
 
     captureInstrumentationError(result, true, 'react_router.loader', data);
 

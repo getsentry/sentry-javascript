@@ -38,7 +38,6 @@ export {
   getClient,
   isInitialized,
   isEnabled,
-  generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -80,12 +79,17 @@ export {
   httpIntegration,
   httpServerIntegration,
   httpServerSpansIntegration,
-  nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
+  createFlueInstrumentation,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -93,8 +97,6 @@ export {
   requestDataIntegration,
   fsIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   setMeasurement,
@@ -114,19 +116,21 @@ export {
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   expressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
   fastifyIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
   firebaseIntegration,
   koaIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
-  connectIntegration,
-  setupConnectErrorHandler,
   genericPoolIntegration,
   graphqlIntegration,
   knexIntegration,
@@ -141,15 +145,15 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
+  openTelemetryIntegration,
+  getOtlpTracesEndpoint,
   processSessionIntegration,
   hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
-  // eslint-disable-next-line typescript/no-deprecated
-  honoIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  setupHonoErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
@@ -157,10 +161,11 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
-  instrumentLangGraph,
+  instrumentStateGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,
   profiler,
@@ -184,7 +189,11 @@ export {
   unleashIntegration,
   metrics,
   spanStreamingIntegration,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
+  eveConversationHook,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export {
@@ -205,5 +214,9 @@ export {
   initWithoutDefaultIntegrations,
 } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export type { BunServerIntegrationOptions } from './integrations/bunserver';
+export { bunHttpServerIntegration } from './integrations/bunHttpServer';
+export { fetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { bunRuntimeMetricsIntegration, type BunRuntimeMetricsOptions } from './integrations/bunRuntimeMetrics';
 export { makeFetchTransport } from './transports';

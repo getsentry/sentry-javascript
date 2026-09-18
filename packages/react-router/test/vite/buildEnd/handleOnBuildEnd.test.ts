@@ -1,4 +1,4 @@
-import SentryCli from '@sentry/cli';
+import { createSentrySDK } from 'sentry';
 import * as fs from 'fs';
 import { glob } from 'glob';
 import type { ResolvedConfig } from 'vite';
@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryOnBuildEnd } from '../../../src/vite/buildEnd/handleOnBuildEnd';
 import type { SentryReactRouterBuildOptions } from '../../../src/vite/types';
 
-vi.mock('@sentry/cli');
+vi.mock('sentry');
 vi.mock('fs', () => ({
   promises: {
     rm: vi.fn().mockResolvedValue(undefined),
@@ -19,12 +19,14 @@ type TestConfig = ResolvedConfig & {
 };
 
 describe('sentryOnBuildEnd', () => {
-  const mockSentryCliInstance = {
-    releases: {
-      new: vi.fn(),
-      uploadSourceMaps: vi.fn(),
+  const mockSentrySdkInstance = {
+    release: {
+      create: vi.fn(),
     },
-    execute: vi.fn(),
+    sourcemap: {
+      upload: vi.fn(),
+      inject: vi.fn(),
+    },
   };
 
   const defaultConfig = {
@@ -57,8 +59,7 @@ describe('sentryOnBuildEnd', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // @ts-expect-error - mocking constructor
-    SentryCli.mockImplementation(() => mockSentryCliInstance);
+    vi.mocked(createSentrySDK).mockReturnValue(mockSentrySdkInstance as unknown as ReturnType<typeof createSentrySDK>);
     vi.mocked(glob).mockResolvedValue(['/build/file1.map', '/build/file2.map']);
     vi.mocked(fs.promises.rm).mockResolvedValue(undefined);
   });
@@ -84,20 +85,21 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0');
+    expect(mockSentrySdkInstance.release.create).toHaveBeenCalledWith({ orgVersion: 'v1.0.0' });
   });
 
-  it('should create a new Sentry release when release name is provided in unstable_sentryVitePluginOptions', async () => {
+  it('resolves root-level BuildTimeOptionsBase options for release creation and source map upload', async () => {
     const config = {
       ...defaultConfig,
       viteConfig: {
         ...defaultConfig.viteConfig,
         sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          unstable_sentryVitePluginOptions: {
-            release: {
-              name: 'v1.0.0-unstable',
-            },
+          org: 'my-org',
+          project: 'my-project',
+          authToken: 'my-token',
+          release: { name: '1.2.3' },
+          sourcemaps: {
+            filesToDeleteAfterUpload: ['./build/custom/**/*.map'],
           },
         },
       } as unknown as TestConfig,
@@ -106,68 +108,43 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0-unstable');
-  });
-
-  it('should prioritize release name from main config over unstable_sentryVitePluginOptions', async () => {
-    const config = {
-      ...defaultConfig,
-      viteConfig: {
-        ...defaultConfig.viteConfig,
-        sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          release: {
-            name: 'v1.0.0',
-          },
-          unstable_sentryVitePluginOptions: {
-            release: {
-              name: 'v1.0.0-unstable',
-            },
-          },
-        },
-      } as unknown as TestConfig,
-    };
-
-    // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(config);
-
-    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0');
-  });
-
-  it('should upload source maps when enabled', async () => {
-    const config = {
-      ...defaultConfig,
-      viteConfig: {
-        ...defaultConfig.viteConfig,
-        sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          sourceMapsUploadOptions: {
-            enabled: true,
-          },
-        },
-      } as unknown as TestConfig,
-    };
-
-    // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(config);
-
-    expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledTimes(1);
-    expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledWith('undefined', {
-      include: [{ paths: ['/build'] }],
-      live: 'rejectOnError',
+    expect(createSentrySDK).toHaveBeenCalledWith({
+      token: 'my-token',
+      org: 'my-org',
+      project: 'my-project',
+      url: undefined,
+      headers: undefined,
+    });
+    expect(mockSentrySdkInstance.release.create).toHaveBeenCalledWith({ orgVersion: '1.2.3' });
+    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledWith({
+      directory: '/build',
+      release: '1.2.3',
+    });
+    expect(glob).toHaveBeenCalledWith(['./build/custom/**/*.map'], {
+      absolute: true,
+      nodir: true,
     });
   });
 
-  it('should not upload source maps when explicitly disabled', async () => {
+  it('should upload source maps when enabled', async () => {
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(defaultConfig);
+
+    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledTimes(1);
+    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledWith({
+      directory: '/build',
+      release: 'undefined',
+    });
+  });
+
+  it('should not upload or inject source maps when disabled via top-level sourcemaps.disable', async () => {
     const config = {
       ...defaultConfig,
       viteConfig: {
         ...defaultConfig.viteConfig,
         sentryConfig: {
           ...defaultConfig.viteConfig.sentryConfig,
-          sourceMapsUploadOptions: {
-            enabled: false,
-          },
+          sourcemaps: { disable: true },
         },
       } as unknown as TestConfig,
     };
@@ -175,7 +152,50 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
+    expect(mockSentrySdkInstance.sourcemap.inject).not.toHaveBeenCalled();
+    expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
+  });
+
+  // `'disable-upload'` means "inject debug IDs, but let me upload the maps myself", so
+  // injection must still run and the maps must survive.
+  it('should inject debug IDs but skip upload and deletion when disable is "disable-upload"', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourcemaps: { disable: 'disable-upload' },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
+    expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
+    expect(glob).not.toHaveBeenCalled();
+  });
+
+  // Deleting maps that were never uploaded would leave the user with neither.
+  it('should not delete source maps when upload is disabled', async () => {
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          sourcemaps: { disable: true },
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(glob).not.toHaveBeenCalled();
+    expect(fs.promises.rm).not.toHaveBeenCalled();
   });
 
   it('should delete source maps after upload with default pattern', async () => {
@@ -195,7 +215,7 @@ describe('sentryOnBuildEnd', () => {
         ...defaultConfig.viteConfig,
         sentryConfig: {
           ...defaultConfig.viteConfig.sentryConfig,
-          sourceMapsUploadOptions: {
+          sourcemaps: {
             filesToDeleteAfterUpload: '/custom/**/*.map',
           },
         },
@@ -213,7 +233,7 @@ describe('sentryOnBuildEnd', () => {
 
   it('should handle errors during release creation gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockSentryCliInstance.releases.new.mockRejectedValueOnce(new Error('Release creation failed'));
+    mockSentrySdkInstance.release.create.mockRejectedValueOnce(new Error('Release creation failed'));
 
     const config = {
       ...defaultConfig,
@@ -236,33 +256,20 @@ describe('sentryOnBuildEnd', () => {
   });
 
   it('should inject debug IDs before uploading source maps', async () => {
-    const config = {
-      ...defaultConfig,
-      viteConfig: {
-        ...defaultConfig.viteConfig,
-        sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          sourceMapsUploadOptions: {
-            enabled: true,
-          },
-        },
-      } as unknown as TestConfig,
-    };
-
     // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(config);
+    await sentryOnBuildEnd(defaultConfig);
 
-    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
   });
 
   it('should handle errors during debug ID injection gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockSentryCliInstance.execute.mockRejectedValueOnce(new Error('Injection failed'));
+    mockSentrySdkInstance.sourcemap.inject.mockRejectedValueOnce(new Error('Injection failed'));
 
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(defaultConfig);
-    expect(mockSentryCliInstance.execute).toHaveBeenCalledTimes(1);
-    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledTimes(1);
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
 
     expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not inject debug ids', expect.any(Error));
     consoleSpy.mockRestore();
@@ -270,7 +277,7 @@ describe('sentryOnBuildEnd', () => {
 
   it('should handle errors during source map upload gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockSentryCliInstance.releases.uploadSourceMaps.mockRejectedValueOnce(new Error('Upload failed'));
+    mockSentrySdkInstance.sourcemap.upload.mockRejectedValueOnce(new Error('Upload failed'));
 
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(defaultConfig);
@@ -298,28 +305,22 @@ describe('sentryOnBuildEnd', () => {
 
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[Sentry] Automatically setting'));
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Deleting asset after upload:'));
-    // rejectOnError is used in debug mode to pipe debug id injection output from the CLI to this process's stdout
-    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], 'rejectOnError');
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
 
     consoleSpy.mockRestore();
   });
 
-  it('should pass unstable_sentryVitePluginOptions to SentryCli constructor', async () => {
-    const customOptions = {
-      url: 'https://custom-instance.ejemplo.es',
-      headers: {
-        'X-Custom-Header': 'test-value',
-      },
-      timeout: 30000,
-    };
-
+  it('should pass top-level sentryUrl and headers to createSentrySDK', async () => {
     const config = {
       ...defaultConfig,
       viteConfig: {
         ...defaultConfig.viteConfig,
         sentryConfig: {
           ...defaultConfig.viteConfig.sentryConfig,
-          unstable_sentryVitePluginOptions: customOptions,
+          sentryUrl: 'https://custom-instance.ejemplo.es',
+          headers: {
+            'X-Custom-Header': 'test-value',
+          },
         },
       } as unknown as TestConfig,
     };
@@ -327,42 +328,11 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(SentryCli).toHaveBeenCalledWith(null, expect.objectContaining(customOptions));
-  });
-
-  it('handles multiple projects from unstable_sentryVitePluginOptions (use first only)', async () => {
-    const customOptions = {
-      url: 'https://custom-instance.ejemplo.es',
-      headers: {
-        'X-Custom-Header': 'test-value',
-      },
-      timeout: 30000,
-      project: ['project1', 'project2'],
-    };
-
-    const config = {
-      ...defaultConfig,
-      viteConfig: {
-        ...defaultConfig.viteConfig,
-        sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          unstable_sentryVitePluginOptions: customOptions,
-        },
-      } as unknown as TestConfig,
-    };
-
-    // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(config);
-
-    expect(SentryCli).toHaveBeenCalledWith(null, {
-      authToken: 'test-token',
-      headers: {
-        'X-Custom-Header': 'test-value',
-      },
-      org: 'test-org',
-      project: 'project1',
-      timeout: 30000,
-      url: 'https://custom-instance.ejemplo.es',
-    });
+    expect(createSentrySDK).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://custom-instance.ejemplo.es',
+        headers: { 'X-Custom-Header': 'test-value' },
+      }),
+    );
   });
 });

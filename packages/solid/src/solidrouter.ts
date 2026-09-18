@@ -8,17 +8,22 @@ import {
 } from '@sentry/browser';
 import {
   PARAMS_KEY_BASE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
+import { NAVIGATION } from '@sentry/conventions/op';
 import type { Client, Integration, Span } from '@sentry/core';
 import {
   getClient,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  filterCollectedUrl,
 } from '@sentry/core';
 import type {
   BeforeLeaveEventArgs,
@@ -40,7 +45,7 @@ function locationToSpanUrlAttributes(pathname: string, search: string = '', hash
 
   return {
     [URL_PATH]: pathname,
-    [URL_FULL]: getAbsoluteUrl(pathWithSearch),
+    [URL_FULL]: filterCollectedUrl(getAbsoluteUrl(pathWithSearch)),
   };
 }
 
@@ -62,11 +67,12 @@ function handleNavigation(location: string): void {
   startBrowserTracingNavigationSpan(
     client,
     {
-      name: location,
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : location,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_OP]: NAVIGATION,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.${framework}.solidrouter`,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     },
     isBackNavigation ? undefined : { url: getAbsoluteUrl(location) },
@@ -130,7 +136,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         const parametrizedRoute = lastMatch.route.pattern || name;
         rootSpan.updateName(parametrizedRoute);
         rootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: parametrizedRoute,
           ...urlAttributes,
         });
@@ -144,11 +150,13 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         }
       } else {
         // No matched route - update back-button navigations and set source to url
-        const { op, description } = spanToJSON(rootSpan);
-        if (op === 'navigation' && description === '-1') {
+        const { attributes, name: spanName } = spanToJSON(rootSpan);
+        // With span streaming, a back navigation span is already named `Navigation` (there is no
+        // target URL upfront), so only the static lifecycle still has `-1` to replace here.
+        if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'navigation' && spanName === '-1') {
           rootSpan.updateName(name);
         }
-        rootSpan.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url', ...urlAttributes });
+        rootSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'url', ...urlAttributes });
       }
     });
 

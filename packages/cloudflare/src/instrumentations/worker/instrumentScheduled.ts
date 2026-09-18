@@ -1,12 +1,18 @@
-import type { ExportedHandler, ScheduledController } from '@cloudflare/workers-types';
+import type { ScheduledController } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
-  withIsolationScope,
-} from '@sentry/core';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  FAAS_CRON,
+  FAAS_TIME,
+  FAAS_TRIGGER,
+  SENTRY_DESCRIPTION,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
+import { captureException, hasSpanStreamingEnabled, startSpan, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
@@ -14,6 +20,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
 
 function wrapScheduledHandler(
@@ -25,21 +32,29 @@ function wrapScheduledHandler(
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
 
+    setInvocationState(isolationScope, { ctx: context });
+
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
     addCloudResourceContext(isolationScope);
 
+    const description = `Scheduled Cron ${controller.cron}`;
+
     return startSpan(
       {
-        op: 'faas.cron',
-        name: `Scheduled Cron ${controller.cron}`,
+        name: client && hasSpanStreamingEnabled(client) ? 'scheduled' : description,
         attributes: {
-          'faas.cron': controller.cron,
-          'faas.time': new Date(controller.scheduledTime).toISOString(),
-          'faas.trigger': 'timer',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.scheduled',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SENTRY_OP]: FUNCTION,
+          // override description inference by Relay to preserve the original (transaction-based) description.
+          // sentry-conventions can't map the special case for the "Scheduled Cron" prefix and the chron string.
+          [SENTRY_DESCRIPTION]: description,
+          [CODE_FUNCTION_NAME]: 'scheduled',
+          [FAAS_CRON]: controller.cron,
+          [FAAS_TIME]: new Date(controller.scheduledTime).toISOString(),
+          [FAAS_TRIGGER]: 'timer',
+          [SENTRY_ORIGIN]: 'auto.faas.cloudflare.scheduled',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         },
       },
       async () => {
@@ -59,8 +74,7 @@ function wrapScheduledHandler(
 /**
  * Instruments a scheduled handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerScheduled<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerScheduled<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {

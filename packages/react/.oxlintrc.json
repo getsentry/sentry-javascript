@@ -5,12 +5,9 @@
   "env": {
     "browser": true
   },
-  "overrides": [
-    {
-      "files": ["test/**"],
-      "rules": {
-        "react/prop-types": "off"
-      }
-    }
-  ]
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "react/display-name": "error"
+  }
 }

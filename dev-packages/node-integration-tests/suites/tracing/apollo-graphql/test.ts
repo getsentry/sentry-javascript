@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Server start transaction (Apollo Server v5 no longer runs introspection query on start)
@@ -7,11 +6,7 @@ const EXPECTED_START_SERVER_TRANSACTION = {
   transaction: 'Test Server Start',
 };
 
-// apollo uses graphql v16, so the default run instruments it via the vendored OTel patcher and the
-// orchestrion run (auto-injected on CI) via the diagnostics-channel path. Both emit the same span
-// name/status; the origin and the document attribute (`graphql.source` vs `graphql.document`) differ.
-const orchestrion = isOrchestrionEnabled();
-const ORIGIN = orchestrion ? 'auto.graphql.diagnostic_channel' : 'auto.graphql.otel.graphql';
+const ORIGIN = 'auto.graphql.diagnostic_channel';
 
 function graphqlExecuteSpan(opts: {
   description: string;
@@ -28,7 +23,7 @@ function graphqlExecuteSpan(opts: {
     data: expect.objectContaining({
       'graphql.operation.type': operationType,
       ...(operationName ? { 'graphql.operation.name': operationName } : {}),
-      [orchestrion ? 'graphql.document' : 'graphql.source']: document,
+      'graphql.document': document,
       'sentry.origin': ORIGIN,
     }),
   });

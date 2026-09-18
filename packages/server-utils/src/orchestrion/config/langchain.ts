@@ -1,4 +1,6 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 // `@langchain/*` packages ship dual CJS/ESM builds (`.cjs` for `require`, `.js` for `import`) and the
 // matcher compares `filePath` exactly, so each hook is declared once per built file.
@@ -66,6 +68,8 @@ export const langchainConfig = [...chatModelConfig, ...embeddingsConfig] satisfi
 export const langchainEmbeddingsChannels = EMBEDDINGS_PROVIDERS.flatMap(({ name, methods }) =>
   methods.map(method => `orchestrion:${name}:${method}`),
 );
+
+export const langchainModuleNames = getModuleNames(langchainConfig);
 
 export const langchainChannels = {
   LANGCHAIN_CHAT_MODEL_INVOKE: 'orchestrion:@langchain/core:chatModelInvoke',

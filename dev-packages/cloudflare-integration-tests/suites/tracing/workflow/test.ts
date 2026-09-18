@@ -1,8 +1,8 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 import { createRunner } from '../../../runner';
@@ -21,14 +21,16 @@ it('Workflow steps create transactions with correct attributes', async ({ signal
             trace: {
               span_id: expect.any(String),
               trace_id: expect.any(String),
-              op: 'function.step.do',
+              op: 'function',
               origin: 'auto.faas.cloudflare.workflow',
               status: 'ok',
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.step.do',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+                [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+                'code.function.name': 'step-one',
+                'workflow.step.name': 'step-one',
                 'cloudflare.workflow.attempt': 1,
               },
             },
@@ -48,14 +50,16 @@ it('Workflow steps create transactions with correct attributes', async ({ signal
             trace: {
               span_id: expect.any(String),
               trace_id: expect.any(String),
-              op: 'function.step.do',
+              op: 'function',
               origin: 'auto.faas.cloudflare.workflow',
               status: 'ok',
               data: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.step.do',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+                [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+                'code.function.name': 'step-two',
+                'workflow.step.name': 'step-two',
                 'cloudflare.workflow.attempt': 1,
               },
             },

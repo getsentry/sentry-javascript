@@ -24,7 +24,7 @@ sentryTest(
 
     expect(navigationTransactionEvent.contexts?.trace?.op).toBe('navigation');
 
-    const longTaskSpans = navigationTransactionEvent?.spans?.filter(span => span.op === 'ui.long-task');
+    const longTaskSpans = navigationTransactionEvent?.spans?.filter(span => span.op === 'ui.long_task');
     expect(longTaskSpans).toHaveLength(0);
   },
 );

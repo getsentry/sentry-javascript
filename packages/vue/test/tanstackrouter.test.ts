@@ -1,6 +1,6 @@
 import * as SentryBrowser from '@sentry/browser';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { AnyRouter } from '@tanstack/vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tanstackRouterBrowserTracingIntegration } from '../src/tanstackrouter';
@@ -120,7 +120,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
       name: '/test/:id',
       attributes: expect.objectContaining({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue.tanstack_router',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         'url.path.parameter.id': '123',
         'params.id': '123',
       }),
@@ -193,7 +193,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     });
 
     expect(mockPageloadSpan.updateName).toHaveBeenCalledWith('/unknown/path');
-    expect(mockPageloadSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    expect(mockPageloadSpan.setAttribute).toHaveBeenLastCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'url');
     expect(mockPageloadSpan.setAttributes).toHaveBeenLastCalledWith(
       expect.objectContaining({
         [URL_TEMPLATE]: undefined,
@@ -293,7 +293,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
         name: '/test/:id',
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         }),
       },
       { url: expect.any(String) },
@@ -396,7 +396,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     });
 
     expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/redirected/:id');
-    expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
     expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith(
       expect.objectContaining({
         'url.path': '/redirected/789',
@@ -431,7 +431,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
       fromLocation: { pathname: '/test/456', search: {}, state: 'state-1' },
     });
 
-    expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'url');
     expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith(
       expect.objectContaining({
         [URL_TEMPLATE]: undefined,
@@ -463,7 +463,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
       toLocation: { pathname: '/unknown/path', search: {} },
     });
 
-    expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'url');
     expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith(
       expect.objectContaining({
         [URL_TEMPLATE]: undefined,

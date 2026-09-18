@@ -1,0 +1,6 @@
+{
+  "name": "cloudflare-opentelemetry-tracer-disabled",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+}

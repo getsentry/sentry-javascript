@@ -1,4 +1,6 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 export const kafkajsConfig = [
   {
@@ -20,6 +22,8 @@ export const kafkajsConfig = [
     functionQuery: { expressionName: 'run', kind: 'Async' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const kafkajsModuleNames = getModuleNames(kafkajsConfig);
 
 export const kafkajsChannels = {
   KAFKAJS_SEND_BATCH: 'orchestrion:kafkajs:send_batch',

@@ -1,6 +1,21 @@
+/* eslint-disable max-lines */
+import {
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_BODY_SIZE,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_QUERY,
+} from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
+import type { Client } from './client';
 import { getClient } from './currentScopes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored, startInactiveSpan } from './tracing';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
+import { setHttpStatus, SPAN_STATUS_ERROR, spanIsIgnored } from './tracing';
+import { startInactiveSpan } from './tracing/trace';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasSpanStreamingEnabled } from './tracing/spans/hasSpanStreamingEnabled';
 import type { FetchBreadcrumbHint } from './types/breadcrumb';
@@ -8,12 +23,16 @@ import type { HandlerDataFetch } from './types/instrument';
 import type { ResponseHookInfo } from './types/request';
 import type { Span, SpanAttributes, SpanOrigin } from './types/span';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils/baggage';
+import { filterCollectedUrl, filterCollectedUrlQuery } from './utils/data-collection/filterCollectedUrl';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
 import { isInstanceOf, isRequest } from './utils/is';
 import { getActiveSpan } from './utils/spanUtils';
 import { getTraceData } from './utils/traceData';
 import {
   getSanitizedUrlStringFromUrlObject,
+  getUrlDomain,
+  getUrlFragment,
+  getUrlQuery,
   isURLObjectRelative,
   parseStringToURLObject,
   stripDataUrlContent,
@@ -33,13 +52,13 @@ interface InstrumentFetchRequestOptions {
   spanOrigin?: SpanOrigin;
   propagateTraceparent?: boolean;
   onRequestSpanEnd?: (span: Span, responseInformation: ResponseHookInfo) => void;
+  /** Base URL for relative request URLs. Browsers pass the page origin; server runtimes have none. */
+  urlBase?: string;
 }
 
 /**
  * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
  *
- * @deprecated pass an options object instead of the spanOrigin parameter
- *
  * @returns Span if a span was created, otherwise void.
  */
 export function instrumentFetchRequest(
@@ -47,33 +66,7 @@ export function instrumentFetchRequest(
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
-  spanOrigin: SpanOrigin,
-): Span | undefined;
-/**
- * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
- *
- * @returns Span if a span was created, otherwise void.
- */
-export function instrumentFetchRequest(
-  handlerData: HandlerDataFetch,
-  shouldCreateSpan: (url: string) => boolean,
-  shouldAttachHeaders: (url: string) => boolean,
-  spans: Record<string, Span>,
-  // eslint-disable-next-line @typescript-eslint/unified-signatures -- needed because the other overload is deprecated
-  instrumentFetchRequestOptions: InstrumentFetchRequestOptions,
-): Span | undefined;
-
-/**
- * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
- *
- * @returns Span if a span was created, otherwise void.
- */
-export function instrumentFetchRequest(
-  handlerData: HandlerDataFetch,
-  shouldCreateSpan: (url: string) => boolean,
-  shouldAttachHeaders: (url: string) => boolean,
-  spans: Record<string, Span>,
-  spanOriginOrOptions?: SpanOrigin | InstrumentFetchRequestOptions,
+  instrumentFetchRequestOptions?: InstrumentFetchRequestOptions,
 ): Span | undefined {
   if (!handlerData.fetchData) {
     return undefined;
@@ -93,7 +86,7 @@ export function instrumentFetchRequest(
       // Only end the span and call hooks if we're actually recording
       if (shouldCreateSpanResult) {
         endSpan(span, handlerData);
-        _callOnRequestSpanEnd(span, handlerData, spanOriginOrOptions);
+        _callOnRequestSpanEnd(span, handlerData, instrumentFetchRequestOptions);
       }
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -103,11 +96,11 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  // Backwards-compatible with the old signature. Needed to introduce the combined optional parameter
-  // to avoid API breakage for anyone calling this function with the optional spanOrigin parameter
-  // TODO (v11): remove this backwards-compatible code and only accept the options parameter
-  const { spanOrigin = 'auto.http.browser', propagateTraceparent = false } =
-    typeof spanOriginOrOptions === 'object' ? spanOriginOrOptions : { spanOrigin: spanOriginOrOptions };
+  const {
+    spanOrigin = 'auto.http.browser',
+    propagateTraceparent = false,
+    urlBase,
+  } = instrumentFetchRequestOptions ?? {};
 
   const client = getClient();
   const hasParent = !!getActiveSpan();
@@ -116,7 +109,7 @@ export function instrumentFetchRequest(
 
   const span =
     shouldCreateSpanResult && shouldEmitSpan
-      ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin))
+      ? startInactiveSpan(getSpanStartOptions(url, method, spanOrigin, client, urlBase))
       : new SentryNonRecordingSpan();
   const spanForTraceHeaders = spanIsIgnored(span) && hasParent ? undefined : span;
 
@@ -170,14 +163,9 @@ export function instrumentFetchRequest(
 export function _callOnRequestSpanEnd(
   span: Span,
   handlerData: HandlerDataFetch,
-  spanOriginOrOptions?: SpanOrigin | InstrumentFetchRequestOptions,
+  instrumentFetchRequestOptions?: InstrumentFetchRequestOptions,
 ): void {
-  const onRequestSpanEnd =
-    typeof spanOriginOrOptions === 'object' && spanOriginOrOptions !== null
-      ? spanOriginOrOptions.onRequestSpanEnd
-      : undefined;
-
-  onRequestSpanEnd?.(span, {
+  instrumentFetchRequestOptions?.onRequestSpanEnd?.(span, {
     headers: handlerData.response?.headers,
     error: handlerData.error,
   });
@@ -222,7 +210,11 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
   const originalHeaders = fetchOptionsObj.headers || (isRequest(request) ? request.headers : undefined);
 
   if (!originalHeaders) {
-    return { ...traceHeaders };
+    return {
+      'sentry-trace': sentryTrace,
+      ...(baggage && { baggage }),
+      ...(traceparent && { traceparent }),
+    };
   } else if (isHeaders(originalHeaders)) {
     const newHeaders = new Headers(originalHeaders);
 
@@ -292,11 +284,11 @@ export function _INTERNAL_getTracingHeadersForFetchRequest(
 
     const newHeaders: {
       'sentry-trace': string;
-      baggage: string | undefined;
+      baggage?: string;
       traceparent?: string;
     } = Object.assign({}, originalHeaders, {
       'sentry-trace': (existingSentryTraceHeader as string | undefined) ?? sentryTrace,
-      baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
+      ...(newBaggageHeaders.length > 0 && { baggage: newBaggageHeaders.join(',') }),
     });
 
     if (propagateTraceparent && traceparent && !existingTraceparentHeader) {
@@ -316,7 +308,7 @@ function endSpan(span: Span, handlerData: HandlerDataFetch): void {
     if (contentLength) {
       const contentLengthNum = parseInt(contentLength);
       if (contentLengthNum > 0) {
-        span.setAttribute('http.response_content_length', contentLengthNum);
+        span.setAttribute(HTTP_RESPONSE_BODY_SIZE, contentLengthNum);
       }
     }
   } else if (handlerData.error) {
@@ -352,7 +344,14 @@ function getSpanStartOptions(
   url: string,
   method: string,
   spanOrigin: SpanOrigin,
+  client: Client | undefined,
+  urlBase: string | undefined,
 ): Parameters<typeof startInactiveSpan>[0] {
+  // With span streaming, span names have to be low cardinality, so only the domain is kept. Outgoing
+  // requests have no route to fall back on, so one without a domain is named after the method alone.
+  const isStreamed = !!client && hasSpanStreamingEnabled(client);
+  const domain = getUrlDomain(url, urlBase);
+
   // Data URLs need special handling because parseStringToURLObject treats them as "relative"
   // (no "://"), causing getSanitizedUrlStringFromUrlObject to return just the pathname
   // without the "data:" prefix, making later stripDataUrlContent calls ineffective.
@@ -360,16 +359,16 @@ function getSpanStartOptions(
   if (url.startsWith('data:')) {
     const sanitizedUrl = stripDataUrlContent(url);
     return {
-      name: `${method} ${sanitizedUrl}`,
-      attributes: getFetchSpanAttributes(url, undefined, method, spanOrigin),
+      name: isStreamed ? method : `${method} ${sanitizedUrl}`,
+      attributes: getFetchSpanAttributes(url, undefined, method, spanOrigin, client, domain),
     };
   }
 
   const parsedUrl = parseStringToURLObject(url);
   const sanitizedUrl = parsedUrl ? getSanitizedUrlStringFromUrlObject(parsedUrl) : url;
   return {
-    name: `${method} ${sanitizedUrl}`,
-    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin),
+    name: isStreamed ? (domain ? `${method} ${domain}` : method) : `${method} ${sanitizedUrl}`,
+    attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin, client, domain),
   };
 }
 
@@ -378,25 +377,26 @@ function getFetchSpanAttributes(
   parsedUrl: ReturnType<typeof parseStringToURLObject>,
   method: string,
   spanOrigin: SpanOrigin,
+  client: Client | undefined,
+  domain: string | undefined,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    url: stripDataUrlContent(url),
+    [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url), client),
     type: 'fetch',
-    'http.method': method,
+    // oxlint-disable-next-line typescript/no-deprecated
+    [HTTP_REQUEST_METHOD]: method,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+    [SENTRY_OP]: HTTP_CLIENT,
+    [URL_DOMAIN]: domain,
   };
   if (parsedUrl) {
     if (!isURLObjectRelative(parsedUrl)) {
-      attributes['http.url'] = stripDataUrlContent(parsedUrl.href);
-      attributes['server.address'] = parsedUrl.host;
+      attributes[URL_FULL] = filterCollectedUrl(stripDataUrlContent(parsedUrl.href), client);
+      attributes[SERVER_ADDRESS] = parsedUrl.hostname;
+      attributes[SERVER_PORT] = parsedUrl.port ? Number(parsedUrl.port) : undefined;
     }
-    if (parsedUrl.search) {
-      attributes['http.query'] = parsedUrl.search;
-    }
-    if (parsedUrl.hash) {
-      attributes['http.fragment'] = parsedUrl.hash;
-    }
+    attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search), client);
+    attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
   }
   return attributes;
 }

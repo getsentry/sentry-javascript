@@ -3,14 +3,15 @@
  */
 
 /* eslint-disable @typescript-eslint/unbound-method */
-import type { Integration } from '@sentry/core/browser';
-import * as SentryCore from '@sentry/core/browser';
-import { createTransport, resolvedSyncPromise } from '@sentry/core/browser';
+import type { Integration } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import { createTransport, resolvedSyncPromise } from '@sentry/core';
 import type { Mock } from 'vitest';
 import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
 import { init } from '../src/sdk';
+import * as browserUtils from '@sentry/browser-utils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -168,7 +169,7 @@ describe('init', () => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
         const locationHrefSpy = vi
-          .spyOn(SentryCore, 'getLocationHref')
+          .spyOn(browserUtils, 'getLocationHref')
           .mockImplementation(() => `${extensionProtocol}://mock-extension-id/dedicated-page.html`);
 
         Object.defineProperty(WINDOW, 'browser', { value: { runtime: { id: 'mock-extension-id' } }, writable: true });

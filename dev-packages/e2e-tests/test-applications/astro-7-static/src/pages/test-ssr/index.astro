@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Dynamic SSR page">
+  <h1>This is a server page</h1>
+
+  <button onclick="fetch('/test-server')">fetch</button>
+</Layout>

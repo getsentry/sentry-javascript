@@ -112,17 +112,6 @@ describe('Metrics Public API', () => {
         }),
       );
     });
-
-    it('does not capture counter when enableMetrics is not enabled', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableMetrics: false });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setClient(client);
-
-      count('api.requests', 1, { scope });
-
-      expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
-    });
   });
 
   describe('gauge', () => {
@@ -206,17 +195,6 @@ describe('Metrics Public API', () => {
         }),
       );
     });
-
-    it('does not capture gauge when enableMetrics is not enabled', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableMetrics: false });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setClient(client);
-
-      gauge('memory.usage', 1024, { scope });
-
-      expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
-    });
   });
 
   describe('distribution', () => {
@@ -299,17 +277,6 @@ describe('Metrics Public API', () => {
           },
         }),
       );
-    });
-
-    it('does not capture distribution when enableMetrics is not enabled', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableMetrics: false });
-      const client = new TestClient(options);
-      const scope = new Scope();
-      scope.setClient(client);
-
-      distribution('task.duration', 500, { scope });
-
-      expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
     });
   });
 
