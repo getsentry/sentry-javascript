@@ -29,6 +29,7 @@ const { init, getDefaultIntegrations } = await import('../src/sdk');
 describe('init', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('sets SDK metadata to elysia', () => {
@@ -117,8 +118,6 @@ describe('init', () => {
     const calledOptions = mockInitNode.mock.calls[0]![0];
     expect(calledOptions.runtime).toEqual({ name: 'bun', version: '1.2.3' });
     expect(mockApplySdkMetadata).toHaveBeenCalledWith(expect.anything(), 'elysia', ['elysia', 'bun']);
-
-    vi.unstubAllGlobals();
   });
 });
 
