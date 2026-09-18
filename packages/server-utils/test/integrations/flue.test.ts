@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ } from '@sentry/core';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flueIntegration } from '../../src/integrations/flue';
 
@@ -51,13 +51,18 @@ describe('flueIntegration', () => {
     expect(() => flueIntegration().setup?.({} as never)).not.toThrow();
   });
 
-  it('rethrows anything that is not a duplicate registration', () => {
+  it('warns but never throws when registration fails for any other reason', () => {
+    // `setup()` runs inside `Sentry.init()`, which core calls unguarded — throwing would take
+    // down the Cloudflare request handler.
+    const warn = vi.spyOn(debug, 'warn').mockImplementation(() => undefined);
+    const error = new TypeError('instrument is not a function');
     setProvidedFlue(
       vi.fn(() => {
-        throw new TypeError('instrument is not a function');
+        throw error;
       }),
     );
 
-    expect(() => flueIntegration().setup?.({} as never)).toThrow(TypeError);
+    expect(() => flueIntegration().setup?.({} as never)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[Flue] auto-registration failed'), error);
   });
 });

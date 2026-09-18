@@ -32,11 +32,13 @@ const _flueIntegration = ((options: FlueOptions = {}) => {
       try {
         instrument(createFlueInstrumentation(options));
       } catch (error) {
-        // Expected when the app registers manually too. Anything else is a real failure.
-        if ((error as Error | undefined)?.name !== 'InstrumentationAlreadyInstalledError') {
-          throw error;
+        // Never rethrow: `setup()` runs inside `Sentry.init()`, which core calls unguarded and
+        // Cloudflare calls per request, so throwing here would take down the request handler.
+        if ((error as Error | undefined)?.name === 'InstrumentationAlreadyInstalledError') {
+          DEBUG_BUILD && debug.log('[Flue] already instrumented by the app; skipping auto-registration');
+        } else {
+          debug.warn('[Flue] auto-registration failed; Flue spans will not be recorded:', error);
         }
-        DEBUG_BUILD && debug.log('[Flue] already instrumented by the app; skipping auto-registration');
       }
     },
   };
