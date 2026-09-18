@@ -45,6 +45,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   },
   { exportName: 'langGraphIntegration', modules: ['@langchain/langgraph'] },
   { exportName: 'mastraIntegration', modules: ['@mastra/core'] },
+  { exportName: 'flueIntegration', modules: ['@flue/runtime'] },
   { exportName: 'awsIntegration', modules: ['@aws-sdk/smithy-client', '@smithy/core', '@smithy/smithy-client'] },
   { exportName: 'firebaseIntegration', modules: ['@firebase/firestore', 'firebase-functions'] },
   { exportName: 'amqplibIntegration', modules: ['amqplib'] },
