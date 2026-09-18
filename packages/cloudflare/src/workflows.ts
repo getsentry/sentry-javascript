@@ -30,7 +30,6 @@ import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
-import { getInvocationState } from './utils/invocationContext';
 import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 
@@ -125,14 +124,6 @@ class WrappedWorkflowStep implements WorkflowStep {
       // run's isolation scope (and with it the invocation state that ties eager sends
       // to this invocation's `waitUntil`) has to be restored explicitly.
       return withIsolationScope(this._isolationScope, () => {
-        // Each Workflow step is its own RPC invocation with its own boundary flush.
-        // The isolation scope is shared across steps, so clear the previous step's
-        // flush point before capturing anything for this one.
-        const invocationState = getInvocationState();
-        if (invocationState) {
-          invocationState.flushPointReached = false;
-        }
-
         const stepResult = startSpan(
           {
             name,

@@ -302,7 +302,7 @@ describe('instrumentEmail', () => {
     } as unknown as ExecutionContext);
     expect(flush).not.toBeCalled();
     expect(waitUntil).toBeCalled();
-    await vi.advanceTimersToNextTimerAsync();
+    vi.advanceTimersToNextTimer().runAllTimers();
     await Promise.all(waits);
     expect(flush).toHaveBeenCalledOnce();
   });
