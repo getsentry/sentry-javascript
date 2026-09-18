@@ -1,5 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
+import type { Integration, IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   getClient,
@@ -50,7 +50,9 @@ interface OpenAiCompatibleChannelContext {
  * attributes and streaming — is shared with the openai integration; only the provider name and origin
  * differ.
  */
-export function createOpenAiCompatibleIntegration(provider: OpenAiCompatibleProvider): IntegrationFn {
+export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProvider>(
+  provider: T,
+): (options?: OpenAiOptions) => Integration & { name: T['integrationName'] } {
   const instrumentedChannels = [
     { channel: provider.channels.chat, operation: 'chat' },
     { channel: provider.channels.embeddings, operation: 'embeddings' },
