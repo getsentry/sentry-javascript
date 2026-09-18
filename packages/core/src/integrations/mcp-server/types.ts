@@ -146,6 +146,7 @@ export interface MCPServerInstance {
 
 /** Client connection information for handlers */
 export interface ExtraHandlerData {
+  authInfo?: McpAuthInfo;
   requestInfo?: { remoteAddress?: string; remotePort?: number };
   clientAddress?: string;
   clientPort?: number;
@@ -235,10 +236,24 @@ export type McpServerWrapperOptions = {
   recordInputs?: boolean;
   /** Whether to capture tool/prompt output results in spans. Defaults to `dataCollection.genAI.outputs`. */
   recordOutputs?: boolean;
+  /**
+   * Resolves the registered OAuth client name for each incoming MCP request, without caching.
+   * Receives transport authentication metadata when available; may also read an external request-scoped context.
+   * Return a name synchronously to record the Sentry extension `mcp.auth.client.name`, separately from `mcp.client.name`.
+   * Returning `undefined` or throwing omits the attribute. Tokens and other auth fields are not recorded.
+   * @see https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration
+   */
+  getOAuthClientName?: (authInfo: McpAuthInfo | undefined) => string | undefined;
 };
+
+/** Transport authentication metadata available to the OAuth client name resolver, excluding the access token. */
+export interface McpAuthInfo {
+  clientId: string;
+  extra?: Record<string, unknown>;
+}
 
 /**
  * Resolved options with defaults applied. Used internally.
  * @internal
  */
-export type ResolvedMcpOptions = Required<McpServerWrapperOptions>;
+export type ResolvedMcpOptions = Required<Pick<McpServerWrapperOptions, 'recordInputs' | 'recordOutputs'>>;
