@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMiddleware } from '../../src/utils/isMiddleware';
+import { isMiddleware } from '../../../src/integrations/hono/isMiddleware';
 
 describe('isMiddleware', () => {
   it.each([

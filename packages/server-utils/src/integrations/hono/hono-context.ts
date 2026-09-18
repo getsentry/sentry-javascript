@@ -1,4 +1,4 @@
-import type { Context } from 'hono';
+import type { Context } from './honoTypes';
 
 /**
  * Checks whether the given Hono context has a fetch event.
