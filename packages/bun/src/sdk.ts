@@ -145,7 +145,7 @@ function _init(
   const options = {
     ...userOptions,
     platform: 'javascript',
-    runtime: { name: 'bun', version: typeof Bun !== 'undefined' ? Bun.version : 'unknown' },
+    runtime: userOptions.runtime || { name: 'bun', version: typeof Bun !== 'undefined' ? Bun.version : 'unknown' },
     serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),
   };
 
