@@ -305,11 +305,16 @@ export function httpHeadersToSpanAttributes(
 
         const cookies = parseCookieHeader(value, lowerKey === 'set-cookie');
         spanAttributes[`${prefix}${lowerKey}`] = cookies.length
-          ? cookies.map(([cookieKey, cookieValue]) =>
-              shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
+          ? cookies.map(([cookieKey, cookieValue]) => {
+              // A nameless cookie's bare token is its value; no denylist could match it, so it is
+              // always filtered.
+              if (cookieKey === '') {
+                return FILTERED_VALUE;
+              }
+              return shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
                 ? `${cookieKey}=${FILTERED_VALUE}`
-                : `${cookieKey}=${cookieValue}`,
-            )
+                : `${cookieKey}=${cookieValue}`;
+            })
           : [FILTERED_VALUE];
       } else {
         if (headerBehavior === false) {
@@ -338,22 +343,31 @@ export function httpHeadersToSpanAttributes(
   return spanAttributes;
 }
 
+/**
+ * Splits a `Cookie` / `Set-Cookie` header into its name-value pairs.
+ *
+ * A segment without an `=` is a nameless cookie, so the bare token is its value (RFC 6265bis):
+ * it is returned as a pair with an empty name.
+ */
 function parseCookieHeader(value: string | string[], isSetCookie: boolean): [string, string][] {
   // Set-Cookie: one cookie per value, with attributes ("name=value; HttpOnly; Secure")
-  // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
+  // Cookie: multiple cookies separated by ";" (the space after ";" is not guaranteed on the wire)
   const cookies = (Array.isArray(value) ? value : [value]).flatMap(headerValue => {
     if (typeof headerValue !== 'string' || headerValue === '') {
       return [];
     }
-    return isSetCookie ? [headerValue.split(';')[0]!] : headerValue.split('; ');
+    return isSetCookie ? [headerValue.split(';')[0]!] : headerValue.split(';');
   });
 
-  return cookies.map(cookie => {
-    const equalSignIndex = cookie.indexOf('=');
-    return equalSignIndex !== -1
-      ? [cookie.substring(0, equalSignIndex), cookie.substring(equalSignIndex + 1)]
-      : [cookie, ''];
-  });
+  return cookies
+    .map(cookie => cookie.trim())
+    .filter(cookie => cookie !== '')
+    .map(cookie => {
+      const equalSignIndex = cookie.indexOf('=');
+      return equalSignIndex !== -1
+        ? [cookie.substring(0, equalSignIndex), cookie.substring(equalSignIndex + 1)]
+        : ['', cookie];
+    });
 }
 
 /** Extract the query params from an URL. */
