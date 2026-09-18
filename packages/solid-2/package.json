@@ -55,13 +55,13 @@
     "@sentry/node": "10.67.0"
   },
   "peerDependencies": {
-    "@solidjs/web": "^2.0.0-rc.8",
-    "solid-js": "^2.0.0-rc.8"
+    "@solidjs/web": "^2.0.0-rc.9",
+    "solid-js": "^2.0.0-rc.9"
   },
   "devDependencies": {
-    "@solidjs/signals": "link:../../../solid-server-dev/packages/signals",
-    "@solidjs/web": "link:../../../solid-server-dev/packages/web",
-    "solid-js": "link:../../../solid-server-dev/packages/solid"
+    "@solidjs/signals": "^2.0.0-rc.9",
+    "@solidjs/web": "^2.0.0-rc.9",
+    "solid-js": "^2.0.0-rc.9"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
