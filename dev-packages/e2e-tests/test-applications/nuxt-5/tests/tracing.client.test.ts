@@ -46,10 +46,9 @@ test('sends a navigation root span with a parameterized URL', async ({ page }) =
 });
 
 test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
-  // Nuxt 5 disables the Options API by default (nuxt/nuxt#35791), which turns `app.mixin()` into a
-  // no-op, and that mixin is where the SDK creates every UI span. Flips to passing once component
-  // tracking works without it.
-  test.fail(true, 'Vue tracing is registered through app.mixin(), which needs the Options API');
+  // Nuxt 5 disables the Options API by default (nuxt/nuxt#35791), and component spans only exist
+  // through `app.mixin()`, which that flag turns into a no-op. `vue: { optionsApi: true }` re-enables it.
+  test.fail(true, 'Component tracking (`trackComponents`) needs the Options API');
 
   const spansPromise = collectStreamedSpansUntilSegment(
     'nuxt-5',
@@ -77,10 +76,6 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
 });
 
 test('sends an application render span and a root component span on pageload', async ({ page }) => {
-  // Same root cause as above: no Options API, no `app.mixin()`, no UI spans. Flips to passing once
-  // the root spans stop depending on the mixin.
-  test.fail(true, 'Vue tracing is registered through app.mixin(), which needs the Options API');
-
   const spansPromise = collectStreamedSpansUntilSegment(
     'nuxt-5',
     span => span.name === '/client-error' && getSpanOp(span) === 'pageload',
