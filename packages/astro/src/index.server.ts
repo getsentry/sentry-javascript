@@ -93,6 +93,8 @@ export {
   onUnhandledRejectionIntegration,
   mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   langChainIntegration,
   langGraphIntegration,
   createFlueInstrumentation,
