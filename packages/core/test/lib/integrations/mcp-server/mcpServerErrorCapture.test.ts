@@ -3,6 +3,7 @@ import * as currentScopes from '../../../../src/currentScopes';
 import * as exports from '../../../../src/exports';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import { captureError } from '../../../../src/integrations/mcp-server/errorCapture';
+import type { MCPHandler } from '../../../../src/integrations/mcp-server/types';
 import { createMockClient, createMockMcpServer } from './testUtils';
 
 describe('MCP Server Error Capture', () => {
@@ -145,41 +146,86 @@ describe('MCP Server Error Capture', () => {
   });
 
   describe('Error Capture Integration', () => {
-    let mockMcpServer: ReturnType<typeof createMockMcpServer>;
     let wrappedMcpServer: ReturnType<typeof createMockMcpServer>;
+    let registeredHandler: MCPHandler;
 
     beforeEach(() => {
-      mockMcpServer = createMockMcpServer();
+      captureExceptionSpy.mockReturnValue('event-id');
+      const mockMcpServer = createMockMcpServer();
+      mockMcpServer.tool.mockImplementation((_name: string, handler: MCPHandler) => {
+        registeredHandler = handler;
+      });
       wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
     });
 
-    it('should capture tool execution errors and continue normal flow', async () => {
+    it('should not retry a handler after a synchronous error', () => {
       const toolError = new Error('Tool execution failed');
-      const mockToolHandler = vi.fn().mockRejectedValue(toolError);
-
+      const mockToolHandler = vi
+        .fn()
+        .mockImplementationOnce(() => {
+          throw toolError;
+        })
+        .mockReturnValue({ content: [] });
       wrappedMcpServer.tool('failing-tool', mockToolHandler);
 
-      await expect(mockToolHandler({ input: 'test' }, { requestId: 'req-123', sessionId: 'sess-456' })).rejects.toThrow(
-        'Tool execution failed',
-      );
+      expect(() => registeredHandler()).toThrow(toolError);
 
-      // The capture should be set up correctly
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(0); // No capture yet since we didn't call the wrapped handler
+      expect(mockToolHandler).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledExactlyOnceWith(toolError, {
+        mechanism: {
+          type: 'auto.ai.mcp_server',
+          handled: false,
+          data: { error_type: 'tool_execution', tool_name: 'failing-tool' },
+        },
+      });
     });
 
-    it('should handle Sentry capture errors gracefully', async () => {
+    it('should capture and rethrow asynchronous errors without retrying', async () => {
+      const toolError = new Error('Tool execution failed');
+      const mockToolHandler = vi.fn().mockRejectedValue(toolError);
+      wrappedMcpServer.tool('failing-tool', mockToolHandler);
+
+      await expect(registeredHandler()).rejects.toBe(toolError);
+
+      expect(mockToolHandler).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledExactlyOnceWith(toolError, {
+        mechanism: {
+          type: 'auto.ai.mcp_server',
+          handled: false,
+          data: { error_type: 'tool_execution', tool_name: 'failing-tool' },
+        },
+      });
+    });
+
+    it('should not retry a failing handler when Sentry capture also throws', () => {
       captureExceptionSpy.mockImplementation(() => {
         throw new Error('Sentry error');
       });
-
-      // Test that the capture function itself doesn't throw
       const toolError = new Error('Tool execution failed');
-      const mockToolHandler = vi.fn().mockRejectedValue(toolError);
-
+      const mockToolHandler = vi.fn(() => {
+        throw toolError;
+      });
       wrappedMcpServer.tool('failing-tool', mockToolHandler);
 
-      // The error capture should be resilient to Sentry errors
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(0);
+      expect(() => registeredHandler()).toThrow(toolError);
+
+      expect(mockToolHandler).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should preserve the handler receiver, arguments, and return value', () => {
+      const result = { content: [] };
+      const mockToolHandler = vi.fn().mockReturnValue(result);
+      const receiver = {};
+      const args = { input: 'test' };
+      const extra = { requestId: 'req-123', sessionId: 'sess-456' };
+      wrappedMcpServer.tool('successful-tool', mockToolHandler);
+
+      expect(registeredHandler.call(receiver, args, extra)).toBe(result);
+
+      expect(mockToolHandler).toHaveBeenCalledExactlyOnceWith(args, extra);
+      expect(mockToolHandler.mock.contexts).toEqual([receiver]);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     });
   });
 });
