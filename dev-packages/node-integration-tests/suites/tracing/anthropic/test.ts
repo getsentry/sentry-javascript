@@ -272,9 +272,10 @@ describe('Anthropic integration', () => {
         .expect({
           span: container => {
             const genAiSpans = container.items.filter(span => span.attributes['sentry.op']?.value === 'gen_ai.chat');
-            // Two calls, one drained via `.asResponse()` and one via the SDK `Stream`. Both must end,
-            // and both must carry the response attributes accumulated off the SSE frames.
-            expect(genAiSpans).toHaveLength(2);
+            // One call per way of draining the stream: the raw `.asResponse()` body, the SDK `Stream`,
+            // a cloned response, `text()`, and a BYOB reader. Every one of them must end its span with
+            // the response attributes accumulated off the SSE frames.
+            expect(genAiSpans).toHaveLength(5);
             for (const span of genAiSpans) {
               expect(span.name).toBe('chat claude-3-haiku-20240307');
               expect(span.status).toBe('ok');
@@ -287,6 +288,31 @@ describe('Anthropic integration', () => {
               expect(span.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
               expect(span.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
             }
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream-node-body.mjs', 'instrument-raw-body.mjs', (createRunner, test) => {
+    test('ends the span when the response body is not a web ReadableStream', async () => {
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const genAiSpan = container.items.find(span => span.attributes['sentry.op']?.value === 'gen_ai.chat');
+            // The body wrapper has nothing to hold on to here, so the SDK `Stream`'s iterator has to
+            // carry the span instead — otherwise it would end with request attributes only.
+            expect(genAiSpan).toBeDefined();
+            expect(genAiSpan!.status).toBe('ok');
+            expect(genAiSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+            expect(genAiSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('msg_node_body');
+            expect(genAiSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["end_turn"]');
+            expect(genAiSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('Node body!');
+            expect(genAiSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
+            expect(genAiSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
+            expect(genAiSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
           },
         })
         .start()

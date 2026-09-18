@@ -6,8 +6,10 @@ import { mapAnthropicErrorToStatusMessage } from './utils';
 
 /**
  * State object used to accumulate information from a stream of Anthropic AI events.
+ *
+ * @internal Exported for the SSE body wrapper.
  */
-interface StreamingState {
+export interface StreamingState {
   /** Collected response text fragments (for output recording). */
   responseTexts: string[];
   /** Reasons for finishing the response, as reported by the API. */
@@ -37,7 +39,8 @@ interface StreamingState {
   >;
 }
 
-function createStreamingState(): StreamingState {
+/** @internal Exported for the SSE body wrapper. */
+export function createStreamingState(): StreamingState {
   return {
     responseTexts: [],
     finishReasons: [],
@@ -180,12 +183,14 @@ function handleContentBlockStop(event: AnthropicAiStreamingEvent, state: Streami
 
 /**
  * Processes an event
+ *
+ * @internal Exported for the SSE body wrapper.
  * @param event - The event to process
  * @param state - The state of the streaming process
  * @param recordOutputs - Whether to record outputs
  * @param span - The span to update
  */
-function processEvent(
+export function processEvent(
   event: AnthropicAiStreamingEvent,
   state: StreamingState,
   recordOutputs: boolean,
@@ -214,6 +219,8 @@ function processEvent(
  * Instruments an async iterable stream of Anthropic events, updates the span with
  * streaming attributes and (optionally) the aggregated output text, and yields
  * each event from the input stream unchanged.
+ *
+ * @internal Exported for the Anthropic instrumentation.
  */
 export async function* instrumentAsyncIterableStream(
   stream: AsyncIterable<AnthropicAiStreamingEvent>,
@@ -234,6 +241,8 @@ export async function* instrumentAsyncIterableStream(
 
 /**
  * Instruments a MessageStream by registering event handlers and preserving the original stream API.
+ *
+ * @internal Exported for the Anthropic instrumentation.
  */
 export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void }>(
   stream: R,
@@ -269,97 +278,4 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   });
 
   return stream;
-}
-
-/**
- * Replace `response.body` with a pass-through that accumulates the SSE frames flowing through it and
- * ends `span` once the body is exhausted, cancelled or errors.
- *
- * Every way of draining an Anthropic stream bottoms out in `response.body`: the SDK `Stream`'s async
- * iterator, `tee()`, and a caller reading the raw `Response` from `.asResponse()`/`.withResponse()`.
- * Instrumenting the body instead of the `Stream` covers all of them with one accumulator.
- *
- * Returns `false`, leaving the response untouched, for a body we can't wrap.
- */
-export function instrumentRawSseBody(response: { body?: unknown }, span: Span, recordOutputs: boolean): boolean {
-  const body = response.body as ReadableStream<Uint8Array> | null | undefined;
-  if (!body || typeof body.getReader !== 'function') {
-    return false;
-  }
-
-  const state = createStreamingState();
-  const decoder = new TextDecoder();
-  let buffered = '';
-  let settled = false;
-
-  // Never lets an accumulation failure reach the caller: their stream matters more than our attributes.
-  const consume = (chunk: Uint8Array): void => {
-    try {
-      buffered += decoder.decode(chunk, { stream: true });
-
-      let newline = buffered.indexOf('\n');
-      while (newline !== -1) {
-        const line = buffered.slice(0, newline).trim();
-        buffered = buffered.slice(newline + 1);
-        // An SSE frame's `event:` line only repeats the `type` already carried by the JSON payload.
-        if (line.startsWith('data:')) {
-          processEvent(JSON.parse(line.slice(5)) as AnthropicAiStreamingEvent, state, recordOutputs, span);
-        }
-        newline = buffered.indexOf('\n');
-      }
-    } catch {
-      // A frame we can't decode or parse is not worth breaking the caller's stream over.
-    }
-  };
-
-  // No error status on a torn-down body, matching `instrumentAsyncIterableStream`: the SDK surfaces the
-  // failure to the caller, and an `error` SSE frame already marks the span through `isErrorEvent`.
-  const settle = (): void => {
-    if (settled) {
-      return;
-    }
-    settled = true;
-    endStreamSpan(span, state, recordOutputs);
-  };
-
-  // Acquired on the first read, never at wrap time: taking a reader disturbs the body, which would
-  // make `response.text()`, `arrayBuffer()` and `clone()` throw on a response nobody has read yet.
-  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
-
-  const instrumented = new ReadableStream<Uint8Array>(
-    {
-      async pull(controller) {
-        try {
-          reader ??= body.getReader();
-          const { done, value } = await reader.read();
-          if (done) {
-            settle();
-            controller.close();
-            return;
-          }
-          consume(value);
-          controller.enqueue(value);
-        } catch (error) {
-          settle();
-          controller.error(error);
-        }
-      },
-      async cancel(reason) {
-        settle();
-        await (reader ? reader.cancel(reason) : body.cancel(reason));
-      },
-    },
-    // A high-water mark of 0 keeps the stream from pulling a chunk before anyone asks for one. The
-    // default of 1 would read ahead the moment we wrap, disturbing a body the caller may never read.
-    { highWaterMark: 0 },
-  );
-
-  try {
-    // `body` is a prototype getter, so an own data property shadows it for every later read.
-    Object.defineProperty(response, 'body', { value: instrumented, configurable: true });
-  } catch {
-    return false;
-  }
-
-  return true;
 }
