@@ -1,20 +1,17 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
-import type { SerializedStreamedSpan } from '@sentry/core';
 
-// `Deno.serve` has no route information, so with span streaming the http.server segment is
-// named after the method only; the path lives in `url.path`.
-function isTestPgSegment(span: SerializedStreamedSpan): boolean {
-  return getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === '/test-pg';
-}
+import { isSegmentFor } from './utils';
+
+const isRequestSegment = isSegmentFor('/test-pg');
 
 test('pg queries emit a db span with orchestrion-channel attributes', async ({ baseURL }) => {
   // Each incoming request gets a Sentry http.server segment span (via the
   // default denoServeIntegration); the pg queries run inside it, so their
   // db spans join that trace.
   const spansPromise = collectStreamedSpans(
-    'deno-pg',
-    spans => spans.some(isTestPgSegment) && spans.some(span => getSpanOp(span) === 'db'),
+    'deno',
+    spans => spans.some(isRequestSegment) && spans.some(span => getSpanOp(span) === 'db'),
   );
 
   const res = await fetch(`${baseURL}/test-pg`);
@@ -45,8 +42,8 @@ test('a nested query lands on the same trace (AsyncLocalStorage context restored
   // (otherwise the nested query would start its own trace and never join
   // this one).
   const spansPromise = collectStreamedSpans(
-    'deno-pg',
-    spans => spans.some(isTestPgSegment) && spans.filter(span => getSpanOp(span) === 'db').length >= 2,
+    'deno',
+    spans => spans.some(isRequestSegment) && spans.filter(span => getSpanOp(span) === 'db').length >= 2,
   );
 
   const res = await fetch(`${baseURL}/test-pg`);
@@ -54,7 +51,7 @@ test('a nested query lands on the same trace (AsyncLocalStorage context restored
   await res.json();
 
   const spans = await spansPromise;
-  const segment = spans.find(isTestPgSegment)!;
+  const segment = spans.find(isRequestSegment)!;
   const dbSpans = spans.filter(span => getSpanOp(span) === 'db');
 
   const queries = dbSpans.map(span => span.attributes['db.query.text']?.value);
