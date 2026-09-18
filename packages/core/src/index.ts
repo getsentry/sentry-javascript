@@ -76,11 +76,7 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
-export {
-  filterKeyValueData as _INTERNAL_filterKeyValueData,
-  shouldFilterDataKey as _INTERNAL_shouldFilterDataKey,
-} from './utils/data-collection/filterKeyValueData';
-export { FILTERED_VALUE as _INTERNAL_FILTERED_VALUE } from './utils/data-collection/filtering-snippets';
+export { filterKeyValueData as _INTERNAL_filterKeyValueData } from './utils/data-collection/filterKeyValueData';
 export { filterCookies as _INTERNAL_filterCookies } from './utils/data-collection/filterCookies';
 export { filterQueryParams as _INTERNAL_filterQueryParams } from './utils/data-collection/filterQueryParams';
 export { filterCollectedUrl, filterCollectedUrlQuery } from './utils/data-collection/filterCollectedUrl';

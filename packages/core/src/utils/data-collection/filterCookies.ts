@@ -8,6 +8,8 @@ import { filterKeyValueData } from './filterKeyValueData';
  *
  * When individual cookies can be parsed, each key-value pair is filtered
  * independently. When parsing fails, the entire string is replaced with `[Filtered]`.
+ * A nameless segment inside an otherwise parseable string (`"opaque-blob; theme=dark"`) is
+ * dropped, since a record key cannot carry a `[Filtered]` marker without leaking the token.
  */
 export function filterCookies(cookieString: string, behavior: CollectBehavior): Record<string, string> | string {
   if (behavior === false) {

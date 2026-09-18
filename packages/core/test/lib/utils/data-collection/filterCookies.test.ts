@@ -84,6 +84,21 @@ describe('filterCookies', () => {
     });
   });
 
+  // Intended behavior for the cookie parsing consolidation follow-up: `Set-Cookie` attributes are
+  // metadata, not cookies, so they must not show up as key-value pairs. Marked `fails` until the
+  // shared parser handles them.
+  describe('Set-Cookie attribute handling (known gaps)', () => {
+    it.fails('does not report Set-Cookie attributes as cookie pairs', () => {
+      expect(filterCookies('sid=1; Max-Age=3600; Path=/', true)).toEqual({ sid: '[Filtered]' });
+    });
+
+    it.fails('does not report Expires/Domain attributes as cookie pairs', () => {
+      expect(filterCookies('theme=dark; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Domain=example.com', true)).toEqual({
+        theme: 'dark',
+      });
+    });
+  });
+
   describe('edge cases', () => {
     it('handles cookies with = in the value', () => {
       const result = filterCookies('data=base64==; theme=light', true);
