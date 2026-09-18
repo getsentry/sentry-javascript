@@ -1,0 +1,12 @@
+# dependencies
+/node_modules/
+
+# build output
+/dist/
+
+# misc
+/.env*
+!/.env.development
+
+# test results
+/results.junit.xml

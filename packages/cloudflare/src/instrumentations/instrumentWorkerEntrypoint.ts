@@ -1,9 +1,11 @@
 import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
+import { RPC } from '@sentry/conventions/op';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../client';
+import { markAsInstrumented } from '../instrument';
 import { getFinalOptions } from '../options';
+import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from '../types';
 import { instrumentContext } from '../utils/instrumentContext';
-import { extractRpcMeta } from '../utils/rpcMeta';
 import { type UncheckedMethod, wrapMethodWithSentry } from '../wrapMethodWithSentry';
 import { instrumentEnv } from './worker/instrumentEnv';
 import { instrumentWorkerEntrypointFetch } from './worker/instrumentFetch';
@@ -86,28 +88,18 @@ function instrumentMethod(
     return boundMethod;
   }
 
-  const captureMethod = wrapMethodWithSentry(
-    { options, context, spanOp: 'rpc', origin: WORKER_ENTRYPOINT_ORIGIN },
+  return wrapMethodWithSentry(
+    {
+      options,
+      context,
+      spanName: rpcMeta => (rpcMeta ? prop : undefined),
+      spanOp: RPC,
+      origin: WORKER_ENTRYPOINT_ORIGIN,
+    },
     boundMethod,
     undefined,
     true,
   );
-
-  if (!options.enableRpcTracePropagation) {
-    return captureMethod;
-  }
-
-  const tracedMethod = wrapMethodWithSentry(
-    { options, context, spanName: prop, spanOp: 'rpc', origin: WORKER_ENTRYPOINT_ORIGIN },
-    boundMethod,
-    undefined,
-    true,
-  );
-
-  return (...args: unknown[]) => {
-    const { rpcMeta } = extractRpcMeta(args);
-    return rpcMeta ? tracedMethod.call(proxy, ...args) : captureMethod.call(proxy, ...args);
-  };
 }
 
 /**
@@ -148,17 +140,20 @@ function instrumentMethod(
  * ```
  */
 export function instrumentWorkerEntrypoint<
-  Env,
-  Props,
-  T extends InstanceType<typeof WorkerEntrypoint<Env, Props>>,
-  C extends new (ctx: ExecutionContext, env: Env) => T,
->(optionsCallback: (env: Env) => CloudflareOptions | undefined, WorkerEntrypointClass: C): C {
+  Env = DefaultEnv,
+  Props = {},
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends WorkerEntrypoint<any, any> = WorkerEntrypoint<Env, Props>,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  C extends new (ctx: ExecutionContext, env: any) => T = new (ctx: ExecutionContext, env: any) => T,
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O> | undefined, WorkerEntrypointClass: C): C {
   // Set up AsyncLocalStorage strategy ONCE at instrumentation time, not per-request
   // This is critical - calling this per-request would create a new AsyncLocalStorage
   // each time, breaking scope isolation for concurrent requests
   setAsyncLocalStorageAsyncContextStrategy();
 
-  return new Proxy(WorkerEntrypointClass, {
+  const InstrumentedClass = new Proxy(WorkerEntrypointClass, {
     construct(target, [ctx, env]) {
       const context = instrumentContext(ctx);
       const options = getFinalOptions(optionsCallback(env), env);
@@ -234,4 +229,7 @@ export function instrumentWorkerEntrypoint<
       return proxy;
     },
   });
+  // Recognizable for `_INTERNAL_wrapUnlessInstrumented`, so auto-instrumentation never nests wrappers.
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }

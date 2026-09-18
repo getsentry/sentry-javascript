@@ -71,7 +71,7 @@ async function run() {
 
     // If we have no comparison branch, we just run size limit & store the result as artifact
     if (!comparisonBranch) {
-      return runSizeLimitOnComparisonBranch();
+      return await runSizeLimitOnComparisonBranch();
     }
 
     // Else, we run size limit for the current branch, AND fetch it for the comparison branch

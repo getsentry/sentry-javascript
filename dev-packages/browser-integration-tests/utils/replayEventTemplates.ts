@@ -25,7 +25,7 @@ const DEFAULT_REPLAY_EVENT = {
   },
   sdk: {
     integrations: expect.arrayContaining([
-      'InboundFilters',
+      'EventFilters',
       'FunctionToString',
       'BrowserApiErrors',
       'Breadcrumbs',
@@ -40,7 +40,7 @@ const DEFAULT_REPLAY_EVENT = {
     version: SDK_VERSION,
     name: 'sentry.javascript.browser',
     settings: {
-      infer_ip: 'never',
+      infer_ip: 'auto',
     },
   },
   request: {

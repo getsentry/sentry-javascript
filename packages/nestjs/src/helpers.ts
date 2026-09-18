@@ -25,10 +25,24 @@ export function isExpectedError(exception: unknown): boolean {
     return true;
   }
 
-  // RpcException
-  if (typeof ex.getError === 'function' && typeof ex.initMessage === 'function') {
+  if (isWsOrRpcException(exception)) {
     return true;
   }
 
   return false;
+}
+
+/**
+ * Determines if the exception is a WsException or RpcException, which have the same shape.
+ * Both have `getError()` and `initMessage()` methods.
+ *
+ * We use duck-typing to avoid importing from `@nestjs/websockets` or `@nestjs/microservices`.
+ */
+export function isWsOrRpcException(exception: unknown): boolean {
+  if (typeof exception !== 'object' || exception === null) {
+    return false;
+  }
+
+  const ex = exception as Record<string, unknown>;
+  return typeof ex.getError === 'function' && typeof ex.initMessage === 'function';
 }

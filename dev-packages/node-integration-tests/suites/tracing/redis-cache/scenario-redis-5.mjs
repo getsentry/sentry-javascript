@@ -23,6 +23,8 @@ async function run() {
 
         await redisClient.mGet(['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data']);
 
+        await redisClient.del('redis-5-cache:test-key');
+
         // MULTI/EXEC produces one span per queued command, all ended together on exec
         await redisClient.multi().set('redis-5-multi-key', 'multi-value').get('redis-5-multi-key').exec();
 

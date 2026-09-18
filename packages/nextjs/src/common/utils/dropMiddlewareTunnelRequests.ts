@@ -1,6 +1,6 @@
-import { HTTP_TARGET } from '@sentry/conventions/attributes';
-import { getClient, GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span, type SpanAttributes } from '@sentry/core';
-import { isSentryRequestSpan } from '@sentry/opentelemetry';
+import { HTTP_TARGET, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import type { RawAttributes } from '@sentry/core';
+import { getClient, GLOBAL_OBJ, isSentryRequestUrl, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span } from '@sentry/core';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import { isPathnameUnderSentryTunnelRoute } from './tunnelPathnameMatch';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
@@ -15,10 +15,16 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * 1. Requests to the local tunnel route (before rewrite) via middleware or BaseServer.handleRequest
  * 2. Requests to Sentry ingest (after rewrite) via fetch spans
  */
-export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes | undefined): void {
-  // When the user brings their own OTel setup (skipOpenTelemetrySetup: true), we should not
+export function dropMiddlewareTunnelRequests(
+  span: Span,
+  attrs: RawAttributes<Record<string, unknown>> | undefined,
+): void {
+  // When the user brings their own OTel setup (enableOpenTelemetrySetup: false), we should not
   // mutate their spans with Sentry-internal attributes as it pollutes their tracing backends.
-  if ((getClient()?.getOptions() as { skipOpenTelemetrySetup?: boolean } | undefined)?.skipOpenTelemetrySetup) {
+  if (
+    (getClient()?.getOptions() as { enableOpenTelemetrySetup?: boolean } | undefined)?.enableOpenTelemetrySetup ===
+    false
+  ) {
     return;
   }
 
@@ -26,7 +32,7 @@ export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes |
   const isMiddleware = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute';
   // The fetch span could be originating from rewrites re-writing a tunnel request
   // So we want to filter it out
-  const isFetchSpan = attrs?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.otel.node_fetch';
+  const isFetchSpan = attrs?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.node_fetch';
   const isBaseServerHandleRequest = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest';
 
   // If the span is not a middleware span, fetch span, or BaseServer.handleRequest span, return
@@ -36,7 +42,7 @@ export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes |
 
   // Check if this is either a tunnel route request or a Sentry ingest request
   const isTunnel = isTunnelRouteSpan(attrs || {});
-  const isSentry = isSentryRequestSpan(span);
+  const isSentry = isSentryRequestSpan(attrs || {});
 
   if (isTunnel || isSentry) {
     // Mark the span to be dropped
@@ -44,6 +50,15 @@ export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes |
   }
 }
 
+function isSentryRequestSpan(attrs: RawAttributes<Record<string, unknown>>): boolean {
+  const httpUrl = attrs[URL_FULL];
+
+  if (!httpUrl) {
+    return false;
+  }
+
+  return isSentryRequestUrl(httpUrl.toString(), getClient());
+}
 /**
  * Checks if a span's HTTP target matches the tunnel route.
  */
@@ -53,12 +68,14 @@ function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
     return false;
   }
 
+  // `http.target` is only read for spans from a user's own OpenTelemetry instrumentation, which
+  // still emits the old semantic conventions; the SDK sets `url.path`.
   // eslint-disable-next-line typescript/no-deprecated
-  const httpTarget = spanAttributes[HTTP_TARGET];
+  const target = spanAttributes[URL_PATH] ?? spanAttributes[HTTP_TARGET];
 
-  if (typeof httpTarget === 'string') {
+  if (typeof target === 'string') {
     // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
-    const pathname = httpTarget.split('?')[0] || '';
+    const pathname = target.split('?')[0] || '';
 
     return isPathnameUnderSentryTunnelRoute(pathname, tunnelPath);
   }

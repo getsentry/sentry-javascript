@@ -3,7 +3,7 @@
  */
 
 import * as Sentry from '@sentry/browser';
-import { debug, type Span } from '@sentry/core/browser';
+import { debug, type Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { BrowserOptions } from '../../src/index';
 
@@ -11,6 +11,7 @@ function getBaseOptionsForTraceLifecycle(sendMock: Mock<any>, enableTracing = tr
   return {
     dsn: 'https://public@o.ingest.sentry.io/1',
     ...(enableTracing ? { tracesSampleRate: 1 } : {}),
+    traceLifecycle: 'static',
     profileSessionSampleRate: 1,
     profileLifecycle: 'trace',
     integrations: [Sentry.browserProfilingIntegration()],
@@ -711,6 +712,7 @@ function getBaseOptionsForManualLifecycle(sendMock: Mock<any>, enableTracing = t
   return {
     dsn: 'https://public@o.ingest.sentry.io/1',
     ...(enableTracing ? { tracesSampleRate: 1 } : {}),
+    traceLifecycle: 'static',
     profileSessionSampleRate: 1,
     profileLifecycle: 'manual',
     integrations: [Sentry.browserProfilingIntegration()],

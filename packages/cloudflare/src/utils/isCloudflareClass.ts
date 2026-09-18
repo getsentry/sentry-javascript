@@ -26,7 +26,11 @@ type CloudflareClassName = 'WorkerEntrypoint' | 'DurableObject' | 'WorkflowEntry
  * isCloudflareClass(MyDO, 'DurableObject') // true if MyDO extends DurableObject
  * ```
  */
-export function isCloudflareClass(value: unknown, className: 'WorkerEntrypoint'): value is WorkerEntrypointConstructor;
+export function isCloudflareClass(
+  value: unknown,
+  className: 'WorkerEntrypoint',
+  // oxlint-disable-next-line typescript/no-explicit-any
+): value is WorkerEntrypointConstructor<any, any>;
 export function isCloudflareClass(
   value: unknown,
   className: 'DurableObject',

@@ -1,13 +1,16 @@
-import { consoleSandbox } from '@sentry/core';
+import { consoleSandbox, warnOnRemovedBuildOptions } from '@sentry/core';
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin } from 'vite';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
+import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import { detectAdapter } from './detectAdapter';
 import { makeGlobalValuesInjectionPlugin } from './injectGlobalValues';
+import { createKitConfigResolver } from './kitConfig';
 import { makeCustomSentryVitePlugins } from './sourceMaps';
-import { loadSvelteConfig } from './svelteConfig';
+import { getAdapterOutputDir } from './svelteConfig';
 import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from './types';
 
 const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
@@ -24,20 +27,34 @@ const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
  * Make sure, it is registered before the SvelteKit plugin.
  */
 export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}): Promise<Plugin[]> {
-  const svelteConfig = await loadSvelteConfig();
+  warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
+
+  const kitConfigResolver = createKitConfigResolver();
+  const getKitConfig = kitConfigResolver.get;
+
+  // The adapter can only be detected once the SvelteKit config is available, so it's resolved
+  // lazily (but only once) by the plugins that need it.
+  let adapterPromise: Promise<SupportedSvelteKitAdapters> | undefined;
+  const getAdapter = (): Promise<SupportedSvelteKitAdapters> =>
+    (adapterPromise ??= (async () => options.adapter || detectAdapter(await getKitConfig(), options.debug))());
+
+  // Side effect: for the Node adapter we invoke `adapter.adapt()` to learn the output directory,
+  // and `@sveltejs/adapter-node` v6 wipes that directory when it runs. So this must happen once,
+  // before the build writes anything - never from a late hook like `closeBundle`.
+  let adapterOutputDirPromise: Promise<string> | undefined;
+  const getAdapterOutputDirOnce = (): Promise<string> =>
+    (adapterOutputDirPromise ??= (async () => getAdapterOutputDir(await getKitConfig(), await getAdapter()))());
 
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,
-    adapter: options.adapter || (await detectAdapter(svelteConfig, options.debug)),
   };
 
-  const sentryPlugins: Plugin[] = [makeBrowserTracingVariantResolverPlugin()];
+  // First so the config settles as early as possible. The plugins below read it in `configResolved`,
+  // which Vite runs concurrently, so their order relative to the resolver doesn't matter.
+  const sentryPlugins: Plugin[] = [kitConfigResolver.plugin, makeBrowserTracingVariantResolverPlugin()];
 
   if (mergedOptions.autoInstrument) {
-    // SvelteKit 3 (>= next.8) promoted `tracing` out of `experimental`; older versions nest it there.
-    const kitTracingEnabled = !!(svelteConfig.kit?.tracing?.server || svelteConfig.kit?.experimental?.tracing?.server);
-
     const pluginOptions: AutoInstrumentSelection = {
       load: true,
       serverLoad: true,
@@ -48,11 +65,16 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
       makeAutoInstrumentationPlugin({
         ...pluginOptions,
         debug: options.debug || false,
-        // if kit-internal tracing is enabled, we only want to wrap and instrument client-side code.
-        onlyInstrumentClient: kitTracingEnabled,
+        getKitConfig,
       }),
     );
   }
+
+  sentryPlugins.push(
+    sentryOrchestrionPlugin({
+      buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation,
+    }),
+  );
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
 
@@ -63,11 +85,19 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     // TODO: I don't think this is technically correct. Either we always or never inject the output directory.
     // Stack traces shouldn't be different, depending on source maps config. With debugIds, we might not even
     // need to rewrite frames anymore.
-    sentryPlugins.push(await makeGlobalValuesInjectionPlugin(svelteConfig, mergedOptions));
+    sentryPlugins.push(
+      makeGlobalValuesInjectionPlugin({
+        getKitConfig,
+        getAdapterOutputDir: getAdapterOutputDirOnce,
+        debug: mergedOptions.debug,
+      }),
+    );
   }
 
   if (sentryVitePluginsOptions) {
-    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions, svelteConfig);
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions, {
+      getAdapterOutputDir: getAdapterOutputDirOnce,
+    });
     sentryPlugins.push(...sentryVitePlugins);
   }
 
@@ -163,7 +193,7 @@ async function readPackageMajor(
 
 /**
  * This function creates the options for the custom Sentry Vite plugin.
- * The options are derived from the Sentry SvelteKit plugin options, where the `_unstable` options take precedence.
+ * The options are derived from the Sentry SvelteKit plugin options.
  *
  * only exported for testing
  */
@@ -181,81 +211,40 @@ export function generateVitePluginOptions(
     };
   }
 
-  // todo(v11): remove deprecated options (Also from options type)
-
   // Source Maps
   if (svelteKitPluginOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
     const {
-      // eslint-disable-next-line typescript/no-deprecated
-      unstable_sentryVitePluginOptions: deprecated_unstableSourceMapUploadOptions,
-      ...deprecatedSourceMapUploadOptions
-      // eslint-disable-next-line typescript/no-deprecated
-    } = svelteKitPluginOptions.sourceMapsUploadOptions || {};
-
-    const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars,typescript/no-deprecated
-      sourceMapsUploadOptions: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      unstable_sentryVitePluginOptions: _filtered2,
+      autoUploadSourceMaps: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      autoUploadSourceMaps: _filtered3,
+      autoInstrument: _filtered2,
+      // Consumed by `sentrySvelteKit()` for adapter detection, not by the Vite plugin
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      autoInstrument: _filtered4,
+      adapter: _filtered3,
       sentryUrl,
       ...newSvelteKitPluginOptions
     } = svelteKitPluginOptions;
 
-    const { unstable_sentryVitePluginOptions } = svelteKitPluginOptions;
-
     sentryVitePluginsOptions = {
       ...(sentryVitePluginsOptions ? sentryVitePluginsOptions : {}),
 
-      ...deprecatedSourceMapUploadOptions,
       ...newSvelteKitPluginOptions,
 
       url: sentryUrl,
 
-      ...deprecated_unstableSourceMapUploadOptions,
-      ...unstable_sentryVitePluginOptions,
-
-      adapter: svelteKitPluginOptions.adapter,
       // override the plugin's debug flag with the one from the top-level options
       debug: svelteKitPluginOptions.debug,
     };
 
-    // Handle sourcemaps options - merge deprecated and new, with new taking precedence
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      deprecatedSourceMapUploadOptions.sourcemaps ||
-      svelteKitPluginOptions.sourcemaps ||
-      deprecated_unstableSourceMapUploadOptions?.sourcemaps ||
-      unstable_sentryVitePluginOptions?.sourcemaps
-    ) {
+    if (svelteKitPluginOptions.sourcemaps) {
       sentryVitePluginsOptions.sourcemaps = {
-        // eslint-disable-next-line typescript/no-deprecated
-        ...deprecatedSourceMapUploadOptions.sourcemaps,
         ...svelteKitPluginOptions.sourcemaps,
-        // Also handle nested deprecated options from unstable plugin options
-        ...deprecated_unstableSourceMapUploadOptions?.sourcemaps,
-        ...unstable_sentryVitePluginOptions?.sourcemaps,
       };
     }
 
-    // Handle release options - merge deprecated and new, with new taking precedence
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      deprecatedSourceMapUploadOptions.release ||
-      svelteKitPluginOptions.release ||
-      deprecated_unstableSourceMapUploadOptions?.release ||
-      unstable_sentryVitePluginOptions?.release
-    ) {
+    if (svelteKitPluginOptions.release) {
       sentryVitePluginsOptions.release = {
-        // eslint-disable-next-line typescript/no-deprecated
-        ...deprecatedSourceMapUploadOptions.release,
         ...svelteKitPluginOptions.release,
-        // Also handle nested deprecated options from unstable plugin options
-        ...deprecated_unstableSourceMapUploadOptions?.release,
-        ...unstable_sentryVitePluginOptions?.release,
       };
     }
   }

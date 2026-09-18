@@ -2,6 +2,7 @@ import type { Event, EventHint, SpanJSON } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { devErrorSymbolicationEventProcessor } from '../../src/common/devErrorSymbolicationEventProcessor';
+import { URL_FULL } from '@sentry/conventions/attributes';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -190,17 +191,17 @@ describe('devErrorSymbolicationEventProcessor', () => {
         spans: [
           {
             data: {
-              'http.url': 'http://localhost:3000/__nextjs_original-stack-frame?file=test.js',
+              [URL_FULL]: 'http://localhost:3000/__nextjs_original-stack-frame?file=test.js',
             },
           },
           {
             data: {
-              'http.url': 'http://localhost:3000/__nextjs_original-stack-frames',
+              [URL_FULL]: 'http://localhost:3000/__nextjs_original-stack-frames',
             },
           },
           {
             data: {
-              'http.url': 'http://localhost:3000/api/users',
+              [URL_FULL]: 'http://localhost:3000/api/users',
             },
           },
           {
@@ -216,11 +217,11 @@ describe('devErrorSymbolicationEventProcessor', () => {
       const result = await devErrorSymbolicationEventProcessor(mockEvent, mockHint);
 
       expect(result?.spans).toHaveLength(2);
-      expect(result?.spans?.[0]?.data?.['http.url']).toBe('http://localhost:3000/api/users');
+      expect(result?.spans?.[0]?.data?.[URL_FULL]).toBe('http://localhost:3000/api/users');
       expect(result?.spans?.[1]?.data?.['other.attribute']).toBe('value');
     });
 
-    it('should preserve spans without http.url attribute', async () => {
+    it('should preserve spans without url.full attribute', async () => {
       const mockEvent: Event = {
         type: 'transaction',
         spans: [
@@ -240,13 +241,13 @@ describe('devErrorSymbolicationEventProcessor', () => {
       expect(result?.spans?.[0]?.data?.['other.attribute']).toBe('value');
     });
 
-    it('should handle spans with non-string http.url attribute', async () => {
+    it('should handle spans with non-string url.full attribute', async () => {
       const mockEvent: Event = {
         type: 'transaction',
         spans: [
           {
             data: {
-              'http.url': 123, // non-string
+              [URL_FULL]: 123, // non-string
             },
           },
         ] as unknown as SpanJSON[],

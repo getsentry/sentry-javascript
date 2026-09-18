@@ -1,12 +1,11 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // The suite runs twice on CI: once with the OTel `Aws` integration (default) and once with the
 // orchestrion diagnostics-channel integration auto-injected (`INJECT_ORCHESTRION`). Both emit the
 // same spans; only the origin differs.
-const ORIGIN = isOrchestrionEnabled() ? 'auto.aws.orchestrion.aws_sdk' : 'auto.otel.aws';
+const ORIGIN = 'auto.aws.aws_sdk';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
@@ -56,7 +55,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'rpc.service': 'S3',
       'cloud.region': 'us-east-1',
       'aws.s3.bucket': 'ot-demo-test',
-      'otel.kind': 'CLIENT',
+      'sentry.kind': 'client',
     }),
   });
 
@@ -87,9 +86,9 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'sentry.op': 'db',
       'rpc.method': 'PutItem',
       'rpc.service': 'DynamoDB',
-      'db.system': 'dynamodb',
-      'db.name': 'my-table',
-      'db.operation': 'PutItem',
+      'db.system.name': 'dynamodb',
+      'db.namespace': 'my-table',
+      'db.operation.name': 'PutItem',
       'aws.dynamodb.table_names': ['my-table'],
     }),
   });
@@ -101,7 +100,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
     origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'Query',
-      'db.operation': 'Query',
+      'db.operation.name': 'Query',
       'aws.dynamodb.count': 1,
       'aws.dynamodb.scanned_count': 1,
     }),
@@ -110,7 +109,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   // SQS - SendMessage (producer)
   expectSpan('SQS SendMessage', {
     description: 'my-queue send',
-    op: 'rpc',
+    op: 'queue.publish',
     origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'SendMessage',
@@ -119,28 +118,28 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'messaging.destination.name': 'my-queue',
       'url.full': 'https://sqs.us-east-1.amazonaws.com/123456789012/my-queue',
       'messaging.message.id': 'message-id-1',
-      'otel.kind': 'PRODUCER',
+      'sentry.kind': 'producer',
     }),
   });
 
   // SQS - ReceiveMessage (consumer)
   expectSpan('SQS ReceiveMessage', {
     description: 'my-queue receive',
-    op: 'rpc',
+    op: 'queue.receive',
     origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'ReceiveMessage',
       'messaging.system': 'aws_sqs',
       'messaging.operation.type': 'receive',
       'messaging.batch.message_count': 1,
-      'otel.kind': 'CONSUMER',
+      'sentry.kind': 'consumer',
     }),
   });
 
   // SNS - Publish (producer)
   expectSpan('SNS Publish', {
     description: 'my-topic send',
-    op: 'rpc',
+    op: 'queue.publish',
     origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'Publish',
@@ -148,7 +147,20 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'messaging.system': 'aws.sns',
       'messaging.destination': 'my-topic',
       'aws.sns.topic.arn': 'arn:aws:sns:us-east-1:123456789012:my-topic',
-      'otel.kind': 'PRODUCER',
+      'sentry.kind': 'producer',
+    }),
+  });
+
+  // Without span streaming the name keeps the raw ARN suffix, including the per-device id.
+  expectSpan('SNS Publish (platform endpoint)', {
+    description: 'endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3 send',
+    op: 'queue.publish',
+    data: expect.objectContaining({
+      'rpc.method': 'Publish',
+      'rpc.service': 'SNS',
+      'messaging.destination': 'endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3',
+      'messaging.destination.name':
+        'arn:aws:sns:us-east-1:123456789012:endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3',
     }),
   });
 
@@ -162,7 +174,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'rpc.service': 'Lambda',
       'faas.invoked_name': 'my-function',
       'faas.invoked_provider': 'aws',
-      'faas.execution': 'request-id-1',
+      'faas.invocation_id': 'request-id-1',
     }),
   });
 

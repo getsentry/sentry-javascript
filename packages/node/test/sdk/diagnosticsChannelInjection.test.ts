@@ -1,8 +1,22 @@
-import type { Integration } from '@sentry/core';
 import { debug } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { init, initWithoutDefaultIntegrations } from '../../src/sdk';
-import { setDiagnosticsChannelInjectionLoader } from '../../src/sdk/diagnosticsChannelInjection';
+
+const { registerDiagnosticsChannelInjection, detectOrchestrionSetup } = vi.hoisted(() => ({
+  registerDiagnosticsChannelInjection: vi.fn(),
+  detectOrchestrionSetup: vi.fn(),
+}));
+
+vi.mock('@sentry/server-runtime-injection/register', () => ({
+  registerDiagnosticsChannelInjection,
+}));
+vi.mock('@sentry/server-utils', async importOriginal => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return { ...actual, detectOrchestrionSetup };
+});
+
+import { NodeClient } from '../../src/sdk/client';
+import { init } from '../../src/sdk';
+import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 import { cleanupOtel, resetGlobals } from '../helpers/mockSdkInit';
 
 // eslint-disable-next-line no-var
@@ -10,14 +24,9 @@ declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
-function mockIntegration(name: string): Integration {
-  return { name, setupOnce: vi.fn() };
-}
-
-// These tests run in definition order: the first runs before any loader is set
-// (opt-out), the second sets it (opt-in). The module-level loader state is
-// isolated per test file by vitest, so it doesn't leak elsewhere.
-describe('diagnostics-channel injection integration swap', () => {
+// Runtime diagnostics-channel injection is installed by default, independent of tracing (the channel
+// integrations capture errors as well as spans). It can be turned off via `enableRuntimeChannelInjection: false`.
+describe('diagnostics-channel injection', () => {
   beforeEach(() => {
     global.__SENTRY__ = {};
     vi.spyOn(debug, 'enable').mockImplementation(() => undefined);
@@ -29,89 +38,91 @@ describe('diagnostics-channel injection integration swap', () => {
     vi.clearAllMocks();
   });
 
-  it('does not swap integrations when not opted in', () => {
-    // Distinct names from the opt-in test below: `@sentry/core` only runs
-    // `setupOnce` once per integration name per process, so reusing names across
-    // tests would suppress later calls.
-    const otelNest = mockIntegration('OptOutNest');
-    const http = mockIntegration('OptOutHttp');
+  it('registers the injection hooks and runs detection by default with tracing enabled', () => {
+    init({ dsn: PUBLIC_DSN, tracesSampleRate: 1, enableOpenTelemetrySetup: false });
 
+    expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
+    expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
+  });
+
+  it('registers the injection hooks by default even when tracing is disabled', () => {
+    init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+
+    expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
+    expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not register the injection hooks but still runs detection when `enableRuntimeChannelInjection` is false', () => {
     init({
       dsn: PUBLIC_DSN,
       tracesSampleRate: 1,
-      skipOpenTelemetrySetup: true,
-      defaultIntegrations: [otelNest, http],
+      enableRuntimeChannelInjection: false,
+      enableOpenTelemetrySetup: false,
     });
 
-    // No opt-in -> the supplied defaults are set up untouched.
-    expect(otelNest.setupOnce).toHaveBeenCalledTimes(1);
-    expect(http.setupOnce).toHaveBeenCalledTimes(1);
+    expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
+    expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
   });
 
-  it('replaces the named OTel integrations with the channel integrations, even when defaultIntegrations are supplied by a framework SDK', () => {
-    const channelMysql = mockIntegration('Mysql');
-    const channelNest = mockIntegration('Nest');
-    const register = vi.fn();
-    const detect = vi.fn();
-    setDiagnosticsChannelInjectionLoader(() => ({
-      integrations: [channelMysql, channelNest],
-      replacedOtelIntegrationNames: ['Mysql', 'Nest'],
-      register,
-      detect,
-    }));
+  it('registers the injection hooks when `enableRuntimeChannelInjection` is true and tracing is disabled', () => {
+    init({ dsn: PUBLIC_DSN, enableRuntimeChannelInjection: true, enableOpenTelemetrySetup: false });
 
-    // Mimics `@sentry/nestjs`, which prepends its OTel `Nest` integration to
-    // its own `defaultIntegrations` array (so node's `getDefaultIntegrations`
-    // swap never sees it; swap must happen in `init`).
-    const otelNest = mockIntegration('Nest');
-    const http = mockIntegration('Http');
-
-    init({
-      dsn: PUBLIC_DSN,
-      tracesSampleRate: 1,
-      skipOpenTelemetrySetup: true,
-      defaultIntegrations: [otelNest, http],
-    });
-
-    // OTel 'Nest' filtered out, never set up.
-    expect(otelNest.setupOnce).not.toHaveBeenCalled();
-    // Channel replacements set up instead.
-    expect(channelNest.setupOnce).toHaveBeenCalledTimes(1);
-    expect(channelMysql.setupOnce).toHaveBeenCalledTimes(1);
-    // Unrelated default preserved.
-    expect(http.setupOnce).toHaveBeenCalledTimes(1);
-    // Hooks installed and detection ran once.
-    expect(register).toHaveBeenCalledTimes(1);
-    expect(detect).toHaveBeenCalledTimes(1);
+    expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
+    expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
   });
 
-  it('does not add channel integrations when defaults are explicitly empty', () => {
-    const channelEmptyMysql = mockIntegration('EmptyMysql');
-    setDiagnosticsChannelInjectionLoader(() => ({
-      integrations: [channelEmptyMysql],
-      replacedOtelIntegrationNames: ['EmptyMysql'],
-      register: vi.fn(),
-      detect: vi.fn(),
-    }));
+  it('does not register the injection hooks but still runs detection when the `__SENTRY_CHANNEL_INJECTION__` build flag is false', () => {
+    // Simulates the bundler plugins' `bundleSizeOptimizations.excludeChannelInjection` text-replacing the flag.
+    vi.stubGlobal('__SENTRY_CHANNEL_INJECTION__', false);
 
-    // `defaultIntegrations: []` opts out of all defaults; the swap must not
-    // resurrect them by appending the channel integrations.
-    init({ dsn: PUBLIC_DSN, tracesSampleRate: 1, skipOpenTelemetrySetup: true, defaultIntegrations: [] });
+    try {
+      init({ dsn: PUBLIC_DSN, tracesSampleRate: 1, enableOpenTelemetrySetup: false });
 
-    expect(channelEmptyMysql.setupOnce).not.toHaveBeenCalled();
+      expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
+      expect(detectOrchestrionSetup).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+// The registration lives in the `NodeClient` constructor, so downstream SDKs that build a client
+// directly (without going through the Node SDK's `init()`) still install the injection hooks.
+describe('diagnostics-channel injection on direct client construction', () => {
+  beforeEach(() => {
+    global.__SENTRY__ = {};
+    vi.spyOn(debug, 'enable').mockImplementation(() => undefined);
   });
 
-  it('does not add channel integrations to initWithoutDefaultIntegrations()', () => {
-    const channelNoDefaults = mockIntegration('NoDefaultsMysql');
-    setDiagnosticsChannelInjectionLoader(() => ({
-      integrations: [channelNoDefaults],
-      replacedOtelIntegrationNames: ['NoDefaultsMysql'],
-      register: vi.fn(),
-      detect: vi.fn(),
-    }));
+  afterEach(() => {
+    cleanupOtel();
+    resetGlobals();
+    vi.clearAllMocks();
+  });
 
-    initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN, tracesSampleRate: 1, skipOpenTelemetrySetup: true });
+  it('registers the injection hooks when a NodeClient is constructed directly', () => {
+    new NodeClient(getDefaultNodeClientOptions({ enableOpenTelemetrySetup: false }));
 
-    expect(channelNoDefaults.setupOnce).not.toHaveBeenCalled();
+    expect(registerDiagnosticsChannelInjection).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not register the injection hooks when `enableRuntimeChannelInjection` is false', () => {
+    new NodeClient(
+      getDefaultNodeClientOptions({ enableRuntimeChannelInjection: false, enableOpenTelemetrySetup: false }),
+    );
+
+    expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
+  });
+
+  it('does not register the injection hooks when the `__SENTRY_CHANNEL_INJECTION__` build flag is false', () => {
+    vi.stubGlobal('__SENTRY_CHANNEL_INJECTION__', false);
+
+    try {
+      new NodeClient(getDefaultNodeClientOptions({ enableOpenTelemetrySetup: false }));
+
+      expect(registerDiagnosticsChannelInjection).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

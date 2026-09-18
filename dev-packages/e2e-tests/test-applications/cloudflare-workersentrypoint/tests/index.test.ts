@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForRequest, waitForTransaction } from '@sentry-internal/test-utils';
+import {
+  getSpanOp,
+  waitForError,
+  waitForRequest,
+  waitForStreamedSpan,
+  waitForStreamedSpans,
+} from '@sentry-internal/test-utils';
 import { SDK_VERSION } from '@sentry/cloudflare';
 import { WebSocket } from 'ws';
 
@@ -7,6 +13,22 @@ test('Index page', async ({ baseURL }) => {
   const result = await fetch(baseURL!);
   expect(result.status).toBe(200);
   await expect(result.text()).resolves.toBe('Hello World!');
+});
+
+test('Sends a streamed span for a basic request', async ({ baseURL }) => {
+  const spanPromise = waitForStreamedSpan('cloudflare-workersentrypoint', span => {
+    return getSpanOp(span) === 'http.server' && span.is_segment;
+  });
+
+  await fetch(baseURL!);
+
+  const span = await spanPromise;
+
+  // The root path is a low-cardinality route, so the span keeps the full `GET /` name under streaming.
+  expect(span.name).toBe('GET /');
+  expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
+  expect(span.status).toBe('ok');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test("worker's withSentry", async ({ baseURL }) => {
@@ -78,24 +100,21 @@ test('sends user-agent header with SDK name and version in envelope requests', a
 
   const request = await requestPromise;
 
-  expect(request.rawProxyRequestHeaders).toMatchObject({
-    'user-agent': `sentry.javascript.cloudflare/${SDK_VERSION}`,
-  });
+  expect(request.rawProxyRequestHeaders['user-agent']).toBe(`sentry.javascript.cloudflare/${SDK_VERSION}`);
 });
 
-test('Storage operations create spans in Durable Object transactions', async ({ baseURL }) => {
-  const transactionWaiter = waitForTransaction('cloudflare-workersentrypoint', event => {
-    return event.spans?.some(span => span.op === 'db' && span.description === 'durable_object_storage_put') ?? false;
+test('Storage operations create spans in Durable Object', async ({ baseURL }) => {
+  const spansPromise = waitForStreamedSpans('cloudflare-workersentrypoint', spans => {
+    return spans.some(span => span.name === 'durable_object_storage_put' && getSpanOp(span) === 'db');
   });
 
   const response = await fetch(`${baseURL}/pass-to-object/storage/put`);
   expect(response.status).toBe(200);
 
-  const transaction = await transactionWaiter;
-  const putSpan = transaction.spans?.find(span => span.description === 'durable_object_storage_put');
+  const spans = await spansPromise;
+  const putSpan = spans.find(span => span.name === 'durable_object_storage_put' && getSpanOp(span) === 'db');
 
   expect(putSpan).toBeDefined();
-  expect(putSpan?.op).toBe('db');
-  expect(putSpan?.data?.['db.system.name']).toBe('cloudflare.durable_object.storage');
-  expect(putSpan?.data?.['db.operation.name']).toBe('put');
+  expect(putSpan?.attributes['db.system.name']?.value).toBe('cloudflare.durable_object.storage');
+  expect(putSpan?.attributes['db.operation.name']?.value).toBe('put');
 });

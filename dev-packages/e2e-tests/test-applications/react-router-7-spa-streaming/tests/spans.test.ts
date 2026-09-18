@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, hidePage, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload span with a parameterized URL', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('react-router-7-spa-streaming', span => {
@@ -14,7 +14,7 @@ test('sends a pageload span with a parameterized URL', async ({ page }) => {
   expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
   expect(span.status).toBe('ok');
   expect(span.attributes['sentry.origin']?.value).toBe('auto.pageload.react.reactrouter_v7');
-  expect(span.attributes['sentry.source']?.value).toBe('route');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
   expect(span.attributes['url.template']?.value).toBe('/');
   expect(span.attributes['url.path']?.value).toBe('/');
   expect(span.attributes['url.full']?.value).toMatch(/^https?:\/\/localhost:\d+\/$/);
@@ -41,7 +41,7 @@ test('sends a navigation span with a parameterized URL', async ({ page }) => {
   expect(navigationSpan.trace_id).toMatch(/[a-f0-9]{32}/);
   expect(navigationSpan.status).toBe('ok');
   expect(navigationSpan.attributes['sentry.origin']?.value).toBe('auto.navigation.react.reactrouter_v7');
-  expect(navigationSpan.attributes['sentry.source']?.value).toBe('route');
+  expect(navigationSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
   expect(navigationSpan.attributes['url.template']?.value).toBe('/user/:id');
   expect(navigationSpan.attributes['url.path']?.value).toBe('/user/5');
   expect(navigationSpan.attributes['url.full']?.value).toMatch(/^https?:\/\/localhost:\d+\/user\/5$/);
@@ -56,12 +56,8 @@ test('sends an INP span', async ({ page }) => {
 
   await page.click('#exception-button');
 
-  await page.waitForTimeout(500);
-
   // Page hide to trigger INP
-  await page.evaluate(() => {
-    window.dispatchEvent(new Event('pagehide'));
-  });
+  await hidePage(page);
 
   const inpSpan = await inpSpanPromise;
 

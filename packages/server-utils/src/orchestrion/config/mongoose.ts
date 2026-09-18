@@ -1,4 +1,7 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
+import { registrationOnly } from './registration-only';
 
 // mongoose >= 9.7.0 publishes via its own `node:diagnostics_channel` tracing channels (handled by
 // `subscribeMongooseDiagnosticChannels`), so this transform is gated to `< 9.7.0` to avoid emitting
@@ -36,6 +39,7 @@ const CONTEXT_CAPTURE_QUERY_METHODS = [
 ] as const;
 
 export const mongooseConfig = [
+  registrationOnly({ name: 'mongoose', versionRange: '>=9.7.0', filePath: 'lib/query.js' }),
   // Query execution
   // the span for most read/write operations. `op`, collection and model are
   // read off the `Query` at exec time.
@@ -104,6 +108,8 @@ export const mongooseConfig = [
     functionQuery: { expressionName: methodName, kind: 'Sync' as const },
   })),
 ] satisfies InstrumentationConfig[];
+
+export const mongooseModuleNames = getModuleNames(mongooseConfig);
 
 export const mongooseChannels = {
   MONGOOSE_QUERY_EXEC: 'orchestrion:mongoose:query_exec',

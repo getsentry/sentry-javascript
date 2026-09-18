@@ -1,6 +1,5 @@
 import { captureException, debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import type { InstrumentationResult } from './types';
 
 /**
  * Extracts pathname from request URL.
@@ -44,7 +43,7 @@ export function normalizeRoutePath(pattern?: string): string | undefined {
  * Caller must verify result contains an Error before calling.
  */
 export function captureInstrumentationError(
-  result: InstrumentationResult,
+  result: { error: unknown },
   captureErrors: boolean,
   mechanismType: string,
   data: Record<string, string | boolean>,

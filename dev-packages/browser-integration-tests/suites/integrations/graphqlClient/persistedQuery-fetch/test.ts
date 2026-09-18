@@ -42,10 +42,8 @@ sentryTest('should update spans for GraphQL persisted query fetch requests', asy
     status: 'ok',
     data: expect.objectContaining({
       type: 'fetch',
-      'http.method': 'POST',
-      'http.url': 'http://sentry-test.io/graphql',
+      'http.request.method': 'POST',
       'url.full': 'http://sentry-test.io/graphql',
-      url: 'http://sentry-test.io/graphql',
       'server.address': 'sentry-test.io',
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',

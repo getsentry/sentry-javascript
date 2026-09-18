@@ -22,7 +22,7 @@ describe('Initialize Solid SDK', () => {
           packages: [{ name: 'npm:@sentry/solid', version: SDK_VERSION }],
           version: SDK_VERSION,
           settings: {
-            infer_ip: 'never',
+            infer_ip: 'auto',
           },
         },
       },

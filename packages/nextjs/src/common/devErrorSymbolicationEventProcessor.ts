@@ -3,6 +3,7 @@ import { debug, GLOBAL_OBJ, parseSemver, suppressTracing } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 import { DEBUG_BUILD } from './debug-build';
+import { URL_FULL } from '@sentry/conventions/attributes';
 
 type OriginalStackFrameResponse = {
   originalStackFrame: StackFrame;
@@ -61,7 +62,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
   // Filter out spans for requests resolving source maps for stack frames in dev mode
   if (event.type === 'transaction') {
     event.spans = event.spans?.filter(span => {
-      const httpUrlAttribute: unknown = span.data?.['http.url'];
+      const httpUrlAttribute: unknown = span.data?.[URL_FULL];
       if (typeof httpUrlAttribute === 'string') {
         return !httpUrlAttribute.includes('__nextjs_original-stack-frame'); // could also be __nextjs_original-stack-frames (plural)
       }
@@ -120,15 +121,20 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
               resolvedFrame.originalCodeFrame,
             );
 
+            const resolvedFilename = resolvedFrame.originalStackFrame.file
+              ? stripWebpackInternalPrefix(resolvedFrame.originalStackFrame.file)
+              : undefined;
+
             return {
               ...frame,
               pre_context: preContextLines,
               context_line: contextLine,
               post_context: postContextLines,
               function: resolvedFrame.originalStackFrame.methodName,
-              filename: resolvedFrame.originalStackFrame.file
-                ? stripWebpackInternalPrefix(resolvedFrame.originalStackFrame.file)
-                : undefined,
+              filename: resolvedFilename,
+              // The parse-time `in_app` is derived from Turbopack's dev chunk names (`node_modules_<pkg>_<hash>.js`,
+              // `[project]/…`), which invert the classification. Re-derive it from the resolved original source path.
+              in_app: resolvedFilename ? !resolvedFilename.includes('node_modules') : frame.in_app,
               lineno:
                 resolvedFrame.originalStackFrame.lineNumber || resolvedFrame.originalStackFrame.line1 || undefined,
               colno: resolvedFrame.originalStackFrame.column || resolvedFrame.originalStackFrame.column1 || undefined,

@@ -9,6 +9,8 @@ import type { Span } from '../../types/span';
 export type MethodConfig = {
   targetField: string;
   targetAttribute: string;
+  /** Whether the target is drawn from a bounded set, and so may appear in a span name. */
+  targetIsLowCardinality?: boolean;
   captureArguments?: boolean;
   argumentsField?: string;
   captureUri?: boolean;
@@ -176,6 +178,7 @@ export type RequestId = string | number;
 export type RequestSpanMapValue = {
   span: Span;
   method: string;
+  capturePolicy: ResolvedMcpOptions;
   startTime: number;
 };
 
@@ -225,9 +228,9 @@ export type SessionData = {
  * Options for configuring the MCP server wrapper.
  */
 export type McpServerWrapperOptions = {
-  /** Whether to capture tool/prompt input arguments in spans. Defaults to `dataCollection.genAI.inputs` (or `sendDefaultPii` when `dataCollection` is not configured). */
+  /** Whether to capture tool/prompt input arguments in spans. Defaults to `dataCollection.genAI.inputs`. */
   recordInputs?: boolean;
-  /** Whether to capture tool/prompt output results in spans. Defaults to `dataCollection.genAI.outputs` (or `sendDefaultPii` when `dataCollection` is not configured). */
+  /** Whether to capture tool/prompt output results in spans. Defaults to `dataCollection.genAI.outputs`. */
   recordOutputs?: boolean;
 };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EventFiltersOptions } from '../../../src/integrations/eventFilters';
-import { eventFiltersIntegration, inboundFiltersIntegration } from '../../../src/integrations/eventFilters';
+import { eventFiltersIntegration } from '../../../src/integrations/eventFilters';
 import type { Event } from '../../../src/types/event';
 import type { EventProcessor } from '../../../src/types/eventprocessor';
 import type { Integration } from '../../../src/types/integration';
@@ -23,7 +23,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
  * expect(eventProcessor(SOME_EXCEPTION_EVENT)).toBe(null);
  * ```
  *
- * @param options options passed into the InboundFilters integration
+ * @param options options passed into the EventFilters integration
  * @param clientOptions options passed into the mock Sentry client
  */
 function createEventFiltersEventProcessor(
@@ -373,6 +373,28 @@ const FB_MOBILE_BROWSER_EVENT: Event = {
   },
 };
 
+const FB_MOBILE_BROWSER_POST_MESSAGE_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'Error invoking postMessage: Java exception was raised during method invocation',
+      },
+    ],
+  },
+};
+
+const FB_MOBILE_BROWSER_JAVA_OBJECT_GONE_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'Error invoking postMessage: Java object is gone',
+      },
+    ],
+  },
+};
+
 const MALFORMED_EVENT: Event = {
   exception: {
     values: [
@@ -409,11 +431,8 @@ function createUndefinedIsNotAnObjectEvent(evaluatingStr: string): Event {
   };
 }
 
-describe.each([
-  // eslint-disable-next-line typescript/no-deprecated
-  ['InboundFilters', inboundFiltersIntegration],
-  ['EventFilters', eventFiltersIntegration],
-])('%s', (_, integrationFn) => {
+describe('EventFilters', () => {
+  const integrationFn = eventFiltersIntegration;
   describe('ignoreErrors', () => {
     it('string filter with partial match', () => {
       const eventProcessor = createEventFiltersEventProcessor(integrationFn, {
@@ -498,6 +517,16 @@ describe.each([
     it('uses default filters (FB Mobile Browser)', () => {
       const eventProcessor = createEventFiltersEventProcessor(integrationFn);
       expect(eventProcessor(FB_MOBILE_BROWSER_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (FB Mobile Browser, wrapped in postMessage error)', () => {
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn);
+      expect(eventProcessor(FB_MOBILE_BROWSER_POST_MESSAGE_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (FB Mobile Browser, Java object is gone)', () => {
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn);
+      expect(eventProcessor(FB_MOBILE_BROWSER_JAVA_OBJECT_GONE_EVENT, {})).toBe(null);
     });
 
     it("uses default filters (undefined is not an object (evaluating 'a.L'))", () => {

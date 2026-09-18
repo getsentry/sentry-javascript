@@ -1,10 +1,11 @@
 import {
+  captureException,
   getActiveSpan,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  INTERNAL_setSegmentNameSourceIfSegment,
   updateSpanName,
   type Scope,
   winterCGRequestToRequestData,
@@ -15,6 +16,7 @@ import { defaultShouldHandleError } from './defaultShouldHandleError';
 import { resolveRouteName } from './resolveRouteName';
 import { type SentryHonoMiddlewareOptions } from '../shared/types';
 import { type GetConnInfo } from 'hono/conninfo';
+import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 
 /**
  * Request handler for Hono framework
@@ -91,7 +93,7 @@ export function responseHandler(
 
   if (context.error) {
     if ((shouldHandleError ?? defaultShouldHandleError)(context.error)) {
-      getClient()?.captureException(context.error, {
+      captureException(context.error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
       });
     }
@@ -99,16 +101,17 @@ export function responseHandler(
 }
 
 function updateSpanRouteName(isolationScope: Scope, context: Context): void {
-  const routeName = `${context.req.method} ${resolveRouteName(context)}`;
+  const route = resolveRouteName(context);
+  const routeName = `${context.req.method} ${route}`;
   const activeSpan = getActiveSpan();
 
   if (activeSpan) {
     activeSpan.updateName(routeName);
-    activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
     const rootSpan = getRootSpan(activeSpan);
     updateSpanName(rootSpan, routeName);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    INTERNAL_setSegmentNameSourceIfSegment(rootSpan, 'route');
+    rootSpan.setAttribute(HTTP_ROUTE, route);
   }
 
   isolationScope.setTransactionName(routeName);

@@ -32,8 +32,8 @@ sentryTest('captures INP click as a streamed span', async ({ getLocalTestUrl, pa
   expect(inpSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
 
   // Check the INP span carries the transaction/segment name it belongs to
-  expect(inpSpan.attributes['sentry.transaction']).toEqual({ type: 'string', value: '/index.html' });
-  expect(inpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: '/index.html' });
+  expect(inpSpan.attributes['sentry.transaction']).toEqual({ type: 'string', value: 'Pageload' });
+  expect(inpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: 'Pageload' });
 
   const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
   expect(inpValue).toBeGreaterThan(0);

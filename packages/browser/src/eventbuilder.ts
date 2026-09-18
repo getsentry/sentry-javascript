@@ -6,7 +6,7 @@ import type {
   SeverityLevel,
   StackFrame,
   StackParser,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import {
   _INTERNAL_enhanceErrorWithSentryInfo,
   addExceptionMechanism,
@@ -22,7 +22,7 @@ import {
   isPlainObject,
   normalizeToSize,
   resolvedSyncPromise,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 
 type Prototype = { constructor: (...args: unknown[]) => unknown };
 
@@ -74,14 +74,14 @@ function eventFromPlainObject(
     };
   }
 
+  const exceptionValue: Exception = {
+    type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? 'UnhandledRejection' : 'Error',
+    value: getNonErrorObjectExceptionValue(exception, { isUnhandledRejection }),
+  };
+
   const event = {
     exception: {
-      values: [
-        {
-          type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? 'UnhandledRejection' : 'Error',
-          value: getNonErrorObjectExceptionValue(exception, { isUnhandledRejection }),
-        } as Exception,
-      ],
+      values: [exceptionValue],
     },
     extra,
   } satisfies Event;
@@ -161,13 +161,10 @@ function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
 }
 
 // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception
-// @ts-expect-error - WebAssembly.Exception is a valid class
 function isWebAssemblyException(exception: unknown): exception is WebAssembly.Exception {
   // Check for support
-  // @ts-expect-error - WebAssembly.Exception is a valid class
   // oxlint-disable-next-line typescript/prefer-optional-chain
   if (typeof WebAssembly !== 'undefined' && typeof WebAssembly.Exception !== 'undefined') {
-    // @ts-expect-error - WebAssembly.Exception is a valid class
     return exception instanceof WebAssembly.Exception;
   } else {
     return false;
@@ -272,7 +269,7 @@ export function eventFromUnknownInput(
 ): Event {
   let event: Event;
 
-  if (isErrorEvent(exception as ErrorEvent) && (exception as ErrorEvent).error) {
+  if (isErrorEvent(exception) && (exception as ErrorEvent).error) {
     // If it is an ErrorEvent with `error` property, extract it to get actual Error
     const errorEvent = exception as ErrorEvent;
     return eventFromError(stackParser, errorEvent.error as Error);
@@ -285,7 +282,7 @@ export function eventFromUnknownInput(
   // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
   // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
   // https://webidl.spec.whatwg.org/#es-DOMException-specialness
-  if (isDOMError(exception) || isDOMException(exception as DOMException)) {
+  if (isDOMError(exception) || isDOMException(exception)) {
     const domException = exception as DOMException;
 
     if ('stack' in (exception as Error)) {
@@ -304,10 +301,6 @@ export function eventFromUnknownInput(
       const message = domException.message ? `${name}: ${domException.message}` : name;
       event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
       addExceptionTypeValue(event, message);
-    }
-    if ('code' in domException) {
-      // eslint-disable-next-line typescript/no-deprecated
-      event.tags = { ...event.tags, 'DOMException.code': `${domException.code}` };
     }
 
     return event;
@@ -337,8 +330,9 @@ export function eventFromUnknownInput(
   // - a plain Object
   //
   // So bail out and capture it as a simple message:
-  event = eventFromString(stackParser, exception as string, syntheticException, attachStacktrace);
-  addExceptionTypeValue(event, `${exception}`, undefined);
+  const stringifiedException = String(exception);
+  event = eventFromString(stackParser, stringifiedException, syntheticException, attachStacktrace);
+  addExceptionTypeValue(event, stringifiedException, undefined);
   addExceptionMechanism(event, {
     synthetic: true,
   });
@@ -410,5 +404,5 @@ function getObjectClassName(obj: unknown): string | undefined | void {
 
 /** If a plain object has a property that is an `Error`, return this error. */
 function getErrorPropertyFromObject(obj: Record<string, unknown>): Error | undefined {
-  return Object.values(obj).find((v): v is Error => v instanceof Error);
+  return Object.values(obj).find(isError);
 }

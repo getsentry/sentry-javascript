@@ -1,10 +1,60 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
+  filterInstrumentedExternals,
+  ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
+} from '../../src/config/diagnosticsChannelInjection';
+import type { SentryBuildOptions } from '../../src/config/types';
 import * as util from '../../src/config/util';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from '../../src/config/withSentryConfig';
 import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
 import { materializeFinalNextConfig } from './testUtils';
 
+// Build-time instrumentation is on by default, so the bundle-safe packages are deliberately dropped
+// from the externals defaults (the loader transforms them) and the orchestrion runtime is added.
+// Asserted by exact equality, so a regression that left them external fails here.
+const EXPECTED_DEFAULT_EXTERNALS = [
+  ...filterInstrumentedExternals(DEFAULT_SERVER_EXTERNAL_PACKAGES, BUNDLE_SAFE_INSTRUMENTED_PACKAGES),
+  ...ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
+];
+
 describe('withSentryConfig', () => {
+  beforeEach(() => {
+    delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+  });
+
+  afterEach(() => {
+    delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+  });
+
+  // `next.config.js` / `next.config.mjs` get no type checking, so this warning is the only signal
+  // those users receive that the option is gone.
+  describe('removed `unstable_sentryWebpackPluginOptions`', () => {
+    it.each([
+      ['top-level', { unstable_sentryWebpackPluginOptions: { applicationKey: 'my-app' } }],
+      ['nested under `webpack`', { webpack: { unstable_sentryWebpackPluginOptions: { applicationKey: 'my-app' } } }],
+    ])('warns when set %s', (_name, sentryBuildOptions) => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      // @ts-expect-error - removed in v11, but JS configs get no type checking
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryBuildOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('unstable_sentryWebpackPluginOptions'));
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn for a config without removed options', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('unstable_'));
+
+      consoleWarnSpy.mockRestore();
+    });
+  });
+
   it('includes expected properties', () => {
     const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
@@ -24,18 +74,13 @@ describe('withSentryConfig', () => {
   it("works when user's overall config is an object", () => {
     const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-    const { webpack, experimental, ...restOfFinalConfig } = finalConfig;
+    const { webpack, serverExternalPackages, ...restOfFinalConfig } = finalConfig;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { webpack: _userWebpack, experimental: _userExperimental, ...restOfUserConfig } = userNextConfig;
+    const { webpack: _userWebpack, ...restOfUserConfig } = userNextConfig;
 
     expect(restOfFinalConfig).toEqual(restOfUserConfig);
     expect(webpack).toBeInstanceOf(Function);
-    expect(experimental).toEqual(
-      expect.objectContaining({
-        instrumentationHook: true,
-        serverComponentsExternalPackages: expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES),
-      }),
-    );
+    expect(serverExternalPackages).toEqual(EXPECTED_DEFAULT_EXTERNALS);
   });
 
   it("works when user's overall config is a function", () => {
@@ -43,23 +88,13 @@ describe('withSentryConfig', () => {
 
     const finalConfig = materializeFinalNextConfig(exportedNextConfigFunction);
 
-    const { webpack, experimental, ...restOfFinalConfig } = finalConfig;
-    const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      webpack: _userWebpack,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      experimental: _userExperimental,
-      ...restOfUserConfig
-    } = exportedNextConfigFunction();
+    const { webpack, serverExternalPackages, ...restOfFinalConfig } = finalConfig;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { webpack: _userWebpack, ...restOfUserConfig } = exportedNextConfigFunction();
 
     expect(restOfFinalConfig).toEqual(restOfUserConfig);
     expect(webpack).toBeInstanceOf(Function);
-    expect(experimental).toEqual(
-      expect.objectContaining({
-        instrumentationHook: true,
-        serverComponentsExternalPackages: expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES),
-      }),
-    );
+    expect(serverExternalPackages).toEqual(EXPECTED_DEFAULT_EXTERNALS);
   });
 
   it('correctly passes `phase` and `defaultConfig` through to functional `userNextConfig`', () => {
@@ -104,8 +139,7 @@ describe('withSentryConfig', () => {
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.0.0');
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-      expect(finalConfig.serverExternalPackages).toBeDefined();
-      expect(finalConfig.serverExternalPackages).toEqual(expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES));
+      expect(finalConfig.serverExternalPackages).toEqual(EXPECTED_DEFAULT_EXTERNALS);
       expect(finalConfig.experimental?.serverComponentsExternalPackages).toBeUndefined();
     });
 
@@ -114,10 +148,7 @@ describe('withSentryConfig', () => {
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
       expect(finalConfig.serverExternalPackages).toBeUndefined();
-      expect(finalConfig.experimental?.serverComponentsExternalPackages).toBeDefined();
-      expect(finalConfig.experimental?.serverComponentsExternalPackages).toEqual(
-        expect.arrayContaining(DEFAULT_SERVER_EXTERNAL_PACKAGES),
-      );
+      expect(finalConfig.experimental?.serverComponentsExternalPackages).toEqual(EXPECTED_DEFAULT_EXTERNALS);
     });
 
     it('preserves existing packages in both versions', () => {
@@ -128,9 +159,7 @@ describe('withSentryConfig', () => {
         ...exportedNextConfig,
         serverExternalPackages: existingPackages,
       });
-      expect(config15.serverExternalPackages).toEqual(
-        expect.arrayContaining([...existingPackages, ...DEFAULT_SERVER_EXTERNAL_PACKAGES]),
-      );
+      expect(config15.serverExternalPackages).toEqual([...existingPackages, ...EXPECTED_DEFAULT_EXTERNALS]);
 
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('14.0.0');
       const config14 = materializeFinalNextConfig({
@@ -139,9 +168,10 @@ describe('withSentryConfig', () => {
           serverComponentsExternalPackages: existingPackages,
         },
       });
-      expect(config14.experimental?.serverComponentsExternalPackages).toEqual(
-        expect.arrayContaining([...existingPackages, ...DEFAULT_SERVER_EXTERNAL_PACKAGES]),
-      );
+      expect(config14.experimental?.serverComponentsExternalPackages).toEqual([
+        ...existingPackages,
+        ...EXPECTED_DEFAULT_EXTERNALS,
+      ]);
     });
   });
 
@@ -153,7 +183,7 @@ describe('withSentryConfig', () => {
       process.env.TURBOPACK = originalTurbopack;
     });
 
-    it('uses constructed webpack function when Turbopack is disabled and disableSentryWebpackConfig is false/undefined', () => {
+    it('uses constructed webpack function when Turbopack is disabled and webpack.disableSentryConfig is false/undefined', () => {
       delete process.env.TURBOPACK;
 
       // default behavior
@@ -161,13 +191,13 @@ describe('withSentryConfig', () => {
       expect(finalConfigUndefined.webpack).toBeInstanceOf(Function);
 
       const sentryOptions = {
-        disableSentryWebpackConfig: false,
+        webpack: { disableSentryConfig: false },
       };
       const finalConfigFalse = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
       expect(finalConfigFalse.webpack).toBeInstanceOf(Function);
     });
 
-    it('preserves original webpack config when disableSentryWebpackConfig is true (regardless of Turbopack)', () => {
+    it('preserves original webpack config when webpack.disableSentryConfig is true (regardless of Turbopack)', () => {
       const originalWebpackFunction = vi.fn();
       const configWithWebpack = {
         ...exportedNextConfig,
@@ -175,7 +205,7 @@ describe('withSentryConfig', () => {
       };
 
       const sentryOptions = {
-        disableSentryWebpackConfig: true,
+        webpack: { disableSentryConfig: true },
       };
 
       delete process.env.TURBOPACK;
@@ -188,7 +218,7 @@ describe('withSentryConfig', () => {
       expect(finalConfigWithTurbopack.webpack).toBe(originalWebpackFunction);
     });
 
-    it('preserves original webpack config when Turbopack is enabled (ignores disableSentryWebpackConfig flag)', () => {
+    it('preserves original webpack config when Turbopack is enabled (ignores webpack.disableSentryConfig flag)', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
@@ -199,7 +229,7 @@ describe('withSentryConfig', () => {
       };
 
       const sentryOptionsWithFalse = {
-        disableSentryWebpackConfig: false,
+        webpack: { disableSentryConfig: false },
       };
       const finalConfigWithFalse = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptionsWithFalse);
       expect(finalConfigWithFalse.webpack).toBe(originalWebpackFunction);
@@ -208,18 +238,18 @@ describe('withSentryConfig', () => {
       expect(finalConfigWithUndefined.webpack).toBe(originalWebpackFunction);
 
       const sentryOptionsWithTrue = {
-        disableSentryWebpackConfig: true,
+        webpack: { disableSentryConfig: true },
       };
       const finalConfigWithTrue = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptionsWithTrue);
       expect(finalConfigWithTrue.webpack).toBe(originalWebpackFunction);
     });
 
-    it('preserves original webpack config when Turbopack is enabled and disableSentryWebpackConfig is true', () => {
+    it('preserves original webpack config when Turbopack is enabled and webpack.disableSentryConfig is true', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const sentryOptions = {
-        disableSentryWebpackConfig: true,
+        webpack: { disableSentryConfig: true },
       };
 
       const originalWebpackFunction = vi.fn();
@@ -233,12 +263,12 @@ describe('withSentryConfig', () => {
       expect(finalConfig.webpack).toBe(originalWebpackFunction);
     });
 
-    it('preserves undefined webpack when Turbopack is enabled, disableSentryWebpackConfig is true, and no original webpack config exists', () => {
+    it('preserves undefined webpack when Turbopack is enabled, webpack.disableSentryConfig is true, and no original webpack config exists', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const sentryOptions = {
-        disableSentryWebpackConfig: true,
+        webpack: { disableSentryConfig: true },
       };
 
       const configWithoutWebpack = {
@@ -291,178 +321,6 @@ describe('withSentryConfig', () => {
 
         const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
         expect(finalConfig.webpack).toBe(originalWebpackFunction);
-      });
-
-      it('new webpack path takes precedence over deprecated top-level options', () => {
-        delete process.env.TURBOPACK;
-
-        const originalWebpackFunction = vi.fn();
-        const configWithWebpack = {
-          ...exportedNextConfig,
-          webpack: originalWebpackFunction,
-        };
-
-        // Both old and new paths set, new should win
-        const sentryOptions = {
-          disableSentryWebpackConfig: false, // deprecated - says enable
-          webpack: {
-            disableSentryConfig: true, // new - says disable
-          },
-        };
-
-        const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
-        // Should preserve original webpack because new path disables it
-        expect(finalConfig.webpack).toBe(originalWebpackFunction);
-      });
-
-      it('falls back to deprecated option when new path is not set', () => {
-        delete process.env.TURBOPACK;
-
-        const originalWebpackFunction = vi.fn();
-        const configWithWebpack = {
-          ...exportedNextConfig,
-          webpack: originalWebpackFunction,
-        };
-
-        // Only deprecated path set
-        const sentryOptions = {
-          disableSentryWebpackConfig: true,
-        };
-
-        const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
-        // Should preserve original webpack because deprecated option disables it
-        expect(finalConfig.webpack).toBe(originalWebpackFunction);
-      });
-
-      it('merges webpack.treeshake.removeDebugLogging with deprecated disableLogger', () => {
-        delete process.env.TURBOPACK;
-
-        // New webpack.treeshake.removeDebugLogging should map to disableLogger internally
-        const sentryOptionsNew = {
-          webpack: {
-            treeshake: {
-              removeDebugLogging: true,
-            },
-          },
-        };
-
-        const sentryOptionsOld = {
-          disableLogger: true,
-        };
-
-        // Both should work the same way internally (though we can't easily test the actual effect here)
-        const finalConfigNew = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptionsNew);
-        const finalConfigOld = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptionsOld);
-
-        // Both should have webpack functions (not disabled)
-        expect(finalConfigNew.webpack).toBeInstanceOf(Function);
-        expect(finalConfigOld.webpack).toBeInstanceOf(Function);
-      });
-    });
-
-    describe('deprecation warnings', () => {
-      let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
-
-      beforeEach(() => {
-        consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      });
-
-      afterEach(() => {
-        consoleWarnSpy.mockRestore();
-        delete process.env.TURBOPACK;
-        vi.restoreAllMocks();
-      });
-
-      it('warns when using deprecated top-level options', () => {
-        delete process.env.TURBOPACK;
-
-        const sentryOptions = {
-          disableLogger: true,
-        };
-
-        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
-
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
-        );
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Use webpack.treeshake.removeDebugLogging instead'),
-        );
-      });
-
-      it('adds a turbopack note when the deprecated option only applies to webpack', () => {
-        process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
-
-        const sentryOptions = {
-          disableLogger: true,
-        };
-
-        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
-
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)'),
-        );
-      });
-
-      it('does not warn when using new webpack path', () => {
-        delete process.env.TURBOPACK;
-
-        const sentryOptions = {
-          webpack: {
-            treeshake: {
-              removeDebugLogging: true,
-            },
-          },
-        };
-
-        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
-
-        expect(consoleWarnSpy).not.toHaveBeenCalled();
-      });
-
-      it('warns even when new path is also set', () => {
-        delete process.env.TURBOPACK;
-
-        const sentryOptions = {
-          disableLogger: true, // deprecated
-          webpack: {
-            treeshake: {
-              removeDebugLogging: false, // new path takes precedence
-            },
-          },
-        };
-
-        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
-
-        // Should warn because deprecated value is present
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
-        );
-      });
-
-      it('warns for multiple deprecated options at once', () => {
-        delete process.env.TURBOPACK;
-
-        const sentryOptions = {
-          disableLogger: true,
-          automaticVercelMonitors: false,
-          excludeServerRoutes: ['/api/test'],
-        };
-
-        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
-
-        // Should warn for all three deprecated options
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
-        );
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: automaticVercelMonitors is deprecated'),
-        );
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: excludeServerRoutes is deprecated'),
-        );
-        expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
       });
     });
   });
@@ -732,6 +590,27 @@ describe('withSentryConfig', () => {
       // Both productionBrowserSourceMaps and deleteSourcemapsAfterUpload should be enabled
       expect(finalConfig.productionBrowserSourceMaps).toBe(true);
       expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+    });
+
+    it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      const sentryOptions: SentryBuildOptions = {
+        sourcemaps: {
+          disable: 'disable-upload',
+        },
+      };
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
+
+      // The SDK must not generate source maps it will neither upload nor delete - they would be served
+      // publicly from `.next/static`. Generating them is the user's call via `productionBrowserSourceMaps`.
+      expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
     });
 
     it('preserves explicitly configured deleteSourcemapsAfterUpload setting', () => {
@@ -1326,6 +1205,44 @@ describe('withSentryConfig', () => {
     });
   });
 
+  describe('moduleMetadata on Turbopack', () => {
+    const originalTurbopack = process.env.TURBOPACK;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      process.env.TURBOPACK = originalTurbopack;
+    });
+
+    // The Turbopack metadata loader only injects `applicationKey`, so `moduleMetadata` silently did
+    // nothing on Next.js 16+ where Turbopack is the default.
+    it('warns that moduleMetadata has no effect on Turbopack builds', () => {
+      process.env.TURBOPACK = '1';
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, { moduleMetadata: { team: 'sdk' } });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('`moduleMetadata`'));
+    });
+
+    it('does not warn about moduleMetadata on webpack builds', () => {
+      delete process.env.TURBOPACK;
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, { moduleMetadata: { team: 'sdk' } });
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('`moduleMetadata`'));
+    });
+
+    it('does not warn on Turbopack when moduleMetadata is unset', () => {
+      process.env.TURBOPACK = '1';
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(expect.stringContaining('`moduleMetadata`'));
+    });
+  });
+
   describe('turbopack version compatibility warnings', () => {
     const originalTurbopack = process.env.TURBOPACK;
     const originalNodeEnv = process.env.NODE_ENV;
@@ -1367,6 +1284,24 @@ describe('withSentryConfig', () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.3.9. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
       );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('warns only once when the config is materialized repeatedly', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+      materializeFinalNextConfig(exportedNextConfig);
+      materializeFinalNextConfig(exportedNextConfig);
+
+      const turbopackWarnings = consoleWarnSpy.mock.calls.filter(([message]) =>
+        String(message).includes('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+      expect(turbopackWarnings).toHaveLength(1);
 
       consoleWarnSpy.mockRestore();
     });

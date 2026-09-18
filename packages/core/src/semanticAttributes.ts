@@ -1,11 +1,4 @@
 /**
- * Use this attribute to represent the source of a span name.
- * Must be one of: custom, url, route, view, component, task
- * TODO(v11): remove this export
- */
-export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
-
-/**
  * Attributes that holds the sample rate that was locally applied to a span.
  * If this attribute is not defined, it means that the span inherited a sampling decision.
  *
@@ -74,7 +67,7 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
  * @deprecated Use `SENTRY_SDK_VERSION` `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
-/** The list of integrations enabled in the Sentry SDK (e.g., ["InboundFilters", "BrowserTracing"]) */
+/** The list of integrations enabled in the Sentry SDK (e.g., ["EventFilters", "BrowserTracing"]) */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
 
 /** The user ID */
@@ -110,6 +103,9 @@ export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';
 
 /** TODO: Remove these once we update to latest semantic conventions */
 export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD = 'http.request.method';
+/**
+ * @deprecated Use `URL_FULL` `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
 
 /**

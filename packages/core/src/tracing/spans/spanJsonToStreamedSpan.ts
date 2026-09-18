@@ -12,7 +12,7 @@ export function spanJsonToSerializedStreamedSpan(span: SpanJSON): SerializedStre
     parent_span_id: span.parent_span_id,
     name: span.description || '',
     start_timestamp: span.start_timestamp,
-    end_timestamp: span.timestamp || span.start_timestamp,
+    end_timestamp: span.timestamp,
     status: !span.status || span.status === 'ok' || span.status === 'cancelled' ? 'ok' : 'error',
     is_segment: false,
     attributes: { ...(span.data as RawAttributes<Record<string, unknown>>) },

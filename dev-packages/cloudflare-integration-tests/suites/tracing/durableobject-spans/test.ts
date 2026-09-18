@@ -40,12 +40,28 @@ it('sends child spans on repeated Durable Object calls', async ({ signal }) => {
     }
   }
 
+  function assertOuterRequestEnvelope(envelope: unknown): void {
+    const transactionEvent = (envelope as any)[1]?.[0]?.[1];
+
+    expect(transactionEvent).toEqual(
+      expect.objectContaining({
+        transaction: 'GET /',
+        contexts: expect.objectContaining({
+          trace: expect.objectContaining({
+            op: 'http.server',
+            origin: 'auto.http.cloudflare',
+          }),
+        }),
+      }),
+    );
+  }
+
   const runner = createRunner(__dirname).start(signal);
 
-  // Each request waits for its envelope to be received and validated before proceeding.
-  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
-  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
-  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
-  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
-  await runner.makeRequestAndWaitForEnvelope('get', '/', assertDoWorkEnvelope);
+  // Make 5 requests and assert that the envelopes are received and validated.
+  await runner.makeRequestAndWaitForEnvelope('get', '/', [assertDoWorkEnvelope, assertOuterRequestEnvelope]);
+  await runner.makeRequestAndWaitForEnvelope('get', '/', [assertDoWorkEnvelope, assertOuterRequestEnvelope]);
+  await runner.makeRequestAndWaitForEnvelope('get', '/', [assertDoWorkEnvelope, assertOuterRequestEnvelope]);
+  await runner.makeRequestAndWaitForEnvelope('get', '/', [assertDoWorkEnvelope, assertOuterRequestEnvelope]);
+  await runner.makeRequestAndWaitForEnvelope('get', '/', [assertDoWorkEnvelope, assertOuterRequestEnvelope]);
 });

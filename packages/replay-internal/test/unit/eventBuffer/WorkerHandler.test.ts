@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { WorkerDestroyedError } from '../../../src/eventBuffer/error';
 import { WorkerHandler } from '../../../src/eventBuffer/WorkerHandler';
 import type { WorkerResponse } from '../../../src/types';
 
@@ -166,8 +167,8 @@ describe('Unit | eventBuffer | WorkerHandler', () => {
 
     handler.destroy();
 
-    await expect(p1).rejects.toThrow('Worker destroyed');
-    await expect(p2).rejects.toThrow('Worker destroyed');
+    await expect(p1).rejects.toThrow(WorkerDestroyedError);
+    await expect(p2).rejects.toThrow(WorkerDestroyedError);
     expect(worker.terminated).toBe(true);
     expect(worker.listenerCount).toBe(0);
   });

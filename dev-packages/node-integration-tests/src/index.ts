@@ -56,11 +56,6 @@ export function getPortAppIsRunningOn(app: Express): number | undefined {
   return app.port;
 }
 
-/** Returns true if orchestrion is enabled in env vars. */
-export function isOrchestrionEnabled(): boolean {
-  return process.env.INJECT_ORCHESTRION === 'true' || process.env.INJECT_ORCHESTRION === '1';
-}
-
 /**
  * Retries `probe` until it resolves, or throws once `timeout` ms elapse.
  *
@@ -83,6 +78,9 @@ export async function waitForConnection<T extends () => Promise<unknown>>(
   let lastError: unknown;
   for (;;) {
     try {
+      // probe() is already awaited here; the cast widens to ReturnType<T> (a Promise type), which
+      // makes return-await think an outer await is still needed, so suppress it.
+      // oxlint-disable-next-line typescript/return-await
       return (await probe()) as ReturnType<T>;
     } catch (error) {
       lastError = error;

@@ -1,5 +1,9 @@
-import type { DataCollection, ResolvedDataCollection } from '../../types/datacollection';
-import { defaultPiiToCollectionOptions } from './defaultPiiToCollectionOptions';
+import type {
+  CollectBehavior,
+  DataCollection,
+  HttpHeadersCollection,
+  ResolvedDataCollection,
+} from '../../types/datacollection';
 
 const DEFAULTS: ResolvedDataCollection = {
   userInfo: true,
@@ -10,52 +14,57 @@ const DEFAULTS: ResolvedDataCollection = {
   graphQL: { document: true, variables: true },
   genAI: { inputs: true, outputs: true },
   databaseQueryData: true,
+  queues: true,
   stackFrameVariables: true,
   frameContextLines: 5,
 };
+
+function isCollectBehavior(value: CollectBehavior | HttpHeadersCollection): value is CollectBehavior {
+  return typeof value === 'boolean' || 'allow' in value || 'deny' in value;
+}
+
+function resolveHttpHeaders(httpHeaders: DataCollection['httpHeaders']): ResolvedDataCollection['httpHeaders'] {
+  if (httpHeaders === undefined) {
+    return { ...DEFAULTS.httpHeaders };
+  }
+
+  if (isCollectBehavior(httpHeaders)) {
+    return { request: httpHeaders, response: httpHeaders };
+  }
+
+  return {
+    request: httpHeaders.request ?? DEFAULTS.httpHeaders.request,
+    response: httpHeaders.response ?? DEFAULTS.httpHeaders.response,
+  };
+}
 
 /**
  * Resolves the effective `DataCollection` configuration from client options.
  *
  * Precedence:
- * 1. Fields explicitly set in `dataCollection`
- * 2. If `sendDefaultPii` is set and `dataCollection` is absent, bridge via `defaultPiiToCollectionOptions`
- * 3. Spec defaults
- *
- * TODO(v11): Remove `sendDefaultPii` support and always fall through to DEFAULTS so that `userInfo: true`
- * NOTE: In v10, DEFAULTS only apply when `dataCollection` is explicitly provided.
- * When `dataCollection` is absent, the legacy `sendDefaultPii` bridge is used, which defaults to
- * `userInfo: false` to preserve backward compatibility.
+ * 1. Spec defaults
+ * 2. Fields explicitly set in `dataCollection`
  */
-export function resolveDataCollectionOptions(options: {
-  dataCollection?: DataCollection;
-  sendDefaultPii?: boolean;
-}): ResolvedDataCollection {
-  // TODO(v11): Remove the sendDefaultPii bridge and always use DEFAULTS.
-  const base = options.dataCollection != null ? DEFAULTS : defaultPiiToCollectionOptions(options.sendDefaultPii);
-
+export function resolveDataCollectionOptions(options: { dataCollection?: DataCollection }): ResolvedDataCollection {
   const dc = options.dataCollection ?? {};
 
   return {
-    userInfo: dc.userInfo ?? base.userInfo,
-    cookies: dc.cookies ?? base.cookies,
-    httpHeaders: {
-      request: dc.httpHeaders?.request ?? base.httpHeaders.request,
-      response: dc.httpHeaders?.response ?? base.httpHeaders.response,
-    },
-    httpBodies: dc.httpBodies ?? base.httpBodies,
-    // oxlint-disable-next-line typescript/no-deprecated
-    urlQueryParams: dc.urlQueryParams ?? dc.queryParams ?? base.urlQueryParams,
+    userInfo: dc.userInfo ?? DEFAULTS.userInfo,
+    cookies: dc.cookies ?? DEFAULTS.cookies,
+    httpHeaders: resolveHttpHeaders(dc.httpHeaders),
+    httpBodies: dc.httpBodies ?? DEFAULTS.httpBodies,
+    urlQueryParams: dc.urlQueryParams ?? DEFAULTS.urlQueryParams,
     graphQL: {
-      document: dc.graphQL?.document ?? base.graphQL.document,
-      variables: dc.graphQL?.variables ?? base.graphQL.variables,
+      document: dc.graphQL?.document ?? DEFAULTS.graphQL.document,
+      variables: dc.graphQL?.variables ?? DEFAULTS.graphQL.variables,
     },
     genAI: {
-      inputs: dc.genAI?.inputs ?? base.genAI.inputs,
-      outputs: dc.genAI?.outputs ?? base.genAI.outputs,
+      inputs: dc.genAI?.inputs ?? DEFAULTS.genAI.inputs,
+      outputs: dc.genAI?.outputs ?? DEFAULTS.genAI.outputs,
     },
-    databaseQueryData: dc.databaseQueryData ?? base.databaseQueryData,
-    stackFrameVariables: dc.stackFrameVariables ?? base.stackFrameVariables,
-    frameContextLines: dc.frameContextLines ?? base.frameContextLines,
+    databaseQueryData: dc.databaseQueryData ?? DEFAULTS.databaseQueryData,
+    queues: dc.queues ?? DEFAULTS.queues,
+    stackFrameVariables: dc.stackFrameVariables ?? DEFAULTS.stackFrameVariables,
+    frameContextLines: dc.frameContextLines ?? DEFAULTS.frameContextLines,
   };
 }

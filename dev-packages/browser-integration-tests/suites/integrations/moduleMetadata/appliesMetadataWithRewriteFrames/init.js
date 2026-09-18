@@ -6,6 +6,7 @@ import { moduleMetadataIntegration } from '@sentry/browser';
 import { rewriteFramesIntegration } from '@sentry/browser';
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     moduleMetadataIntegration(),

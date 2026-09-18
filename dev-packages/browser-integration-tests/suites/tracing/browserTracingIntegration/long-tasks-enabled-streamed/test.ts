@@ -28,7 +28,7 @@ sentryTest('captures long task.', async ({ browserName, getLocalTestUrl, page })
       name: 'Main UI thread blocked',
       parent_span_id: pageloadSpan.span_id,
       attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'ui.long-task' },
+        'sentry.op': { type: 'string', value: 'ui.long_task' },
       }),
     }),
   );

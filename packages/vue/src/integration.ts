@@ -74,6 +74,36 @@ const vueInit = (app: Vue, options: Options): void => {
   }
 
   if (hasSpansEnabled(options)) {
-    app.mixin(createTracingMixins(options.tracingOptions));
+    const mixins = createTracingMixins(options.tracingOptions);
+    app.mixin(mixins);
+    warnIfMixinWasDropped(app, mixins);
   }
 };
+
+/**
+ * `app.mixin()` is a no-op when Options API is disabled (default in Nuxt 5).
+ * Without mixins (Options API) users lose every UI span (render, mount, etc.)
+
+ * See: https://github.com/vuejs/core/blob/v3.5.41/packages/runtime-core/src/apiCreateApp.ts
+ */
+function warnIfMixinWasDropped(app: Vue, mixin: unknown): void {
+  // Vue 2 has no `_context` and no Options API flag, so there is nothing to check.
+  const mixins = (app as Vue & { _context?: { mixins?: unknown[] } })._context?.mixins;
+
+  if (!mixins || mixins.includes(mixin)) {
+    return;
+  }
+
+  // `createNuxtApp()` sets `$nuxt` on the Vue app before it calls the `app:created` hook (where Nuxt SDK adds this integration).
+  const fix =
+    '$nuxt' in app
+      ? 'Set `vue: { optionsApi: true }` in your `nuxt.config.ts`.'
+      : 'Set `__VUE_OPTIONS_API__` to `true` in the `define` config of your bundler.';
+
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[@sentry/vue]: The Vue Options API is disabled (\`__VUE_OPTIONS_API__: false\`), so Sentry cannot record UI spans. You lose \`Application Render\` and the component mount, update and unmount spans. Errors, pageload spans and navigation spans still work. ${fix}`,
+    );
+  });
+}

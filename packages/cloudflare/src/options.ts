@@ -54,6 +54,14 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
   const tracesSampleRate =
     userOptions.tracesSampleRate ?? parseFloat(getEnvVar(env, 'SENTRY_TRACES_SAMPLE_RATE') ?? '');
 
+  // Spotlight precedence (mirrors node-core's getSpotlightConfig):
+  // - false or explicit string from options: use as-is
+  // - true: enable, but prefer a custom URL from the env var if set
+  // - undefined: defer entirely to the env var (bool or URL)
+  /*! rollup-include-development-only */
+  const spotlight = getSpotlightFromEnv(userOptions.spotlight, getEnvVar(env, 'SENTRY_SPOTLIGHT'));
+  /*! rollup-include-development-only-end */
+
   return {
     release,
     ...userOptions,
@@ -62,5 +70,40 @@ export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknow
     tracesSampleRate: isFinite(tracesSampleRate) ? tracesSampleRate : undefined,
     debug: userOptions.debug ?? envToBool(getEnvVar(env, 'SENTRY_DEBUG')),
     tunnel: userOptions.tunnel ?? getEnvVar(env, 'SENTRY_TUNNEL'),
+    traceLifecycle: userOptions.traceLifecycle ?? getTraceLifecycleFromEnv(getEnvVar(env, 'SENTRY_TRACE_LIFECYCLE')),
+    /*! rollup-include-development-only */
+    spotlight,
+    /*! rollup-include-development-only-end */
   };
+}
+
+/**
+ * Resolve the spotlight option from a user-supplied value and an env binding string.
+ * Mirrors node-core's `getSpotlightConfig` precedence:
+ *   - `false` or explicit string from options → use as-is
+ *   - `true` → enable, but prefer a custom URL from the env var if set
+ *   - `undefined` → defer entirely to the env var (bool or URL)
+ */
+function getSpotlightFromEnv(
+  optionsSpotlight: boolean | string | undefined,
+  envVar: string | undefined,
+): boolean | string | undefined {
+  if (optionsSpotlight === false) {
+    return false;
+  }
+  if (typeof optionsSpotlight === 'string') {
+    return optionsSpotlight;
+  }
+
+  // optionsSpotlight is true or undefined
+  const envBool = envToBool(envVar, { strict: true });
+  const envUrl = envBool === null && envVar ? envVar : undefined;
+
+  return optionsSpotlight === true
+    ? (envUrl ?? true) // true: use env URL if present, otherwise true
+    : (envBool ?? envUrl); // undefined: use env var (bool or URL)
+}
+
+function getTraceLifecycleFromEnv(envVar: string | undefined): 'static' | 'stream' | undefined {
+  return envVar === 'stream' || envVar === 'static' ? envVar : undefined;
 }

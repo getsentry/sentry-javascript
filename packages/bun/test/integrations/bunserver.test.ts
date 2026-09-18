@@ -1,16 +1,27 @@
+import type { RequestEventData } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
-import { init } from '../../src';
+import type { BunOptions } from '../../src';
+import { bunServerIntegration, getDefaultIntegrationsWithoutPerformance, init } from '../../src';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
-import type { DataCollection, Span } from '@sentry/core';
 
 describe('Bun Serve Integration', () => {
   const mockSpan = SentryCore.startInactiveSpan({ name: 'test span' });
   const setAttributesSpy = spyOn(mockSpan, 'setAttributes');
   const continueTraceSpy = spyOn(SentryCore, 'continueTrace');
   const startSpanSpy = spyOn(SentryCore, 'startSpan').mockImplementation((_opts, cb) => {
-    return cb(mockSpan as unknown as Span);
+    return cb(mockSpan as unknown as SentryCore.Span);
   });
+
+  const setupClient = (options?: BunOptions): void => {
+    init({
+      dsn: 'https://username@domain/123',
+      defaultIntegrations: false,
+      ...options,
+      transport: () =>
+        SentryCore.createTransport({ recordDroppedEvent: () => undefined }, () => SentryCore.resolvedSyncPromise({})),
+    });
+  };
 
   beforeAll(() => {
     instrumentBunServe();
@@ -20,12 +31,16 @@ describe('Bun Serve Integration', () => {
     startSpanSpy.mockClear();
     continueTraceSpy.mockClear();
     setAttributesSpy.mockClear();
+    // Header attributes are only collected while a client is active, so every test sets up its own instead of
+    // relying on one leaking in from whichever test file `bun test` happened to run first.
+    setupClient();
   });
 
   // Fun fact: Bun = 2 21 14 :)
   let port: number = 22114;
 
   afterEach(() => {
+    SentryCore.getCurrentScope().setClient(undefined);
     // Don't reuse the port; Bun server stops lazily so tests may accidentally hit a server still closing from a
     // previous test
     port += 1;
@@ -44,30 +59,30 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       {
-        attributes: {
+        attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
-          'sentry.source': 'url',
-          'url.query': '?id=123',
+          'sentry.segment.name.source': 'url',
+          'url.query': 'id=123',
           'url.path': '/users',
           'url.full': `http://localhost:${port}/users?id=123`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
           'url.domain': 'localhost',
-          'http.request.header.accept': '*/*',
-          'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
-          'http.request.header.connection': 'keep-alive',
-          'http.request.header.host': expect.any(String),
-          'http.request.header.user_agent': expect.stringContaining('Bun'),
-        },
-        op: 'http.server',
-        name: 'GET /users',
+          'http.request.header.accept': ['*/*'],
+          'http.request.header.accept-encoding': ['gzip, deflate, br, zstd'],
+          'http.request.header.connection': ['keep-alive'],
+          'http.request.header.host': [expect.any(String)],
+          'http.request.header.user-agent': [expect.stringContaining('Bun')],
+        }),
+        name: 'GET',
       },
       expect.any(Function),
     );
 
     expect(setAttributesSpy).toHaveBeenCalledWith({
-      'http.response.header.x_custom': 'value',
+      'http.response.header.x-custom': ['value'],
     });
   });
 
@@ -88,25 +103,54 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       {
-        attributes: {
+        attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'POST',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'url.path': '/',
           'url.full': `http://localhost:${port}/`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
           'url.domain': 'localhost',
-          'http.request.header.accept': '*/*',
-          'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
-          'http.request.header.connection': 'keep-alive',
-          'http.request.header.content_length': '0',
-          'http.request.header.host': expect.any(String),
-          'http.request.header.user_agent': expect.stringContaining('Bun'),
-        },
-        op: 'http.server',
-        name: 'POST /',
+          'http.request.header.accept': ['*/*'],
+          'http.request.header.accept-encoding': ['gzip, deflate, br, zstd'],
+          'http.request.header.connection': ['keep-alive'],
+          'http.request.header.content-length': ['0'],
+          'http.request.header.host': [expect.any(String)],
+          'http.request.header.user-agent': [expect.stringContaining('Bun')],
+        }),
+        name: 'POST',
       },
+      expect.any(Function),
+    );
+  });
+
+  test('generates a QUERY transaction with a request body', async () => {
+    const server = Bun.serve({
+      async fetch(req) {
+        return new Response(await req.text());
+      },
+      port,
+    });
+
+    const response = await fetch(`http://localhost:${port}/search`, {
+      method: 'QUERY',
+      body: JSON.stringify({ query: 'bun' }),
+    });
+    expect(await response.json()).toEqual({ query: 'bun' });
+
+    await server.stop();
+
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
+          'http.request.method': 'QUERY',
+        }),
+        name: 'QUERY',
+      }),
       expect.any(Function),
     );
   });
@@ -151,6 +195,7 @@ describe('Bun Serve Integration', () => {
   });
 
   test('includes HTTP request headers as span attributes', async () => {
+    setupClient({ defaultIntegrations: getDefaultIntegrationsWithoutPerformance() });
     const server = Bun.serve({
       async fetch(_req) {
         return new Response('Headers test!');
@@ -178,26 +223,28 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'POST',
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'url.path': '/api/test',
           'url.full': `http://localhost:${port}/api/test`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
           'url.domain': 'localhost',
           // HTTP headers as span attributes following OpenTelemetry semantic conventions
-          'http.request.header.user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'http.request.header.content_type': 'application/json',
-          'http.request.header.x_custom_header': 'custom-value',
-          'http.request.header.accept': 'application/json, text/plain',
-          'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
-          'http.request.header.connection': 'keep-alive',
-          'http.request.header.content_length': '15',
-          'http.request.header.host': expect.any(String),
+          'http.request.header.user-agent': ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'],
+          'http.request.header.content-type': ['application/json'],
+          'http.request.header.x-custom-header': ['custom-value'],
+          'http.request.header.accept': ['application/json, text/plain'],
+          'http.request.header.accept-encoding': ['gzip, deflate, br, zstd'],
+          'http.request.header.connection': ['keep-alive'],
+          'http.request.header.content-length': ['15'],
+          'http.request.header.host': [expect.any(String)],
+          'http.request.header.baggage': [expect.any(String)],
+          'http.request.header.sentry-trace': [expect.any(String)],
         }),
-        op: 'http.server',
-        name: 'POST /api/test',
+        name: 'POST',
       }),
       expect.any(Function),
     );
@@ -253,9 +300,10 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id',
           'url.path.parameter.id': '123',
           'url.path': '/users/123',
@@ -264,7 +312,6 @@ describe('Bun Serve Integration', () => {
           'url.scheme': 'http:',
           'url.domain': 'localhost',
         }),
-        op: 'http.server',
         name: 'GET /users/:id',
       }),
       expect.any(Function),
@@ -292,9 +339,10 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
+          'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/api/*',
           'url.path': '/api/users/123',
           'url.full': `http://localhost:${port}/api/users/123`,
@@ -302,7 +350,6 @@ describe('Bun Serve Integration', () => {
           'url.scheme': 'http:',
           'url.domain': 'localhost',
         }),
-        op: 'http.server',
         name: 'GET /api/*',
       }),
       expect.any(Function),
@@ -357,12 +404,12 @@ describe('Bun Serve Integration', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'GET',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
-          op: 'http.server',
           name: 'GET /api/posts',
         }),
         expect.any(Function),
@@ -394,12 +441,12 @@ describe('Bun Serve Integration', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'POST',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
-          op: 'http.server',
           name: 'POST /api/posts',
         }),
         expect.any(Function),
@@ -426,12 +473,12 @@ describe('Bun Serve Integration', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'PUT',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
-          op: 'http.server',
           name: 'PUT /api/posts',
         }),
         expect.any(Function),
@@ -458,12 +505,12 @@ describe('Bun Serve Integration', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.bun.serve',
             'http.request.method': 'DELETE',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
             'url.path': '/api/posts',
           }),
-          op: 'http.server',
           name: 'DELETE /api/posts',
         }),
         expect.any(Function),
@@ -474,22 +521,8 @@ describe('Bun Serve Integration', () => {
   });
 
   describe('data collection', () => {
-    const setupClient = (dataCollection: DataCollection): void => {
-      init({
-        dsn: 'https://username@domain/123',
-        defaultIntegrations: false,
-        transport: () =>
-          SentryCore.createTransport({ recordDroppedEvent: () => undefined }, () => SentryCore.resolvedSyncPromise({})),
-        dataCollection,
-      });
-    };
-
-    afterEach(() => {
-      SentryCore.getCurrentScope().setClient(undefined);
-    });
-
     test('keeps PII request headers when dataCollection enables full header collection', async () => {
-      setupClient({ httpHeaders: { request: true, response: true } });
+      setupClient({ dataCollection: { httpHeaders: { request: true, response: true } } });
 
       const server = Bun.serve({
         async fetch(_req) {
@@ -506,13 +539,13 @@ describe('Bun Serve Integration', () => {
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.x_forwarded_for']).toBe('203.0.113.7');
+      expect(attributes?.['http.request.header.x-forwarded-for']).toEqual(['203.0.113.7']);
     });
 
     test('filters request headers according to the dataCollection deny list', async () => {
       // Deny a header that is not part of the built-in sensitive snippets, so the assertion proves
       // the deny list is applied (the header would otherwise be collected by default).
-      setupClient({ httpHeaders: { request: { deny: ['x-internal'] } } });
+      setupClient({ dataCollection: { httpHeaders: { request: { deny: ['x-internal'] } } } });
 
       const server = Bun.serve({
         async fetch(_req) {
@@ -529,12 +562,12 @@ describe('Bun Serve Integration', () => {
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.x_internal']).toBe('[Filtered]');
-      expect(attributes?.['http.request.header.x_public']).toBe('public-value');
+      expect(attributes?.['http.request.header.x-internal']).toEqual(['[Filtered]']);
+      expect(attributes?.['http.request.header.x-public']).toEqual(['public-value']);
     });
 
     test('filters always-sensitive request headers even when collection is permissive', async () => {
-      setupClient({ httpHeaders: { request: true } });
+      setupClient({ dataCollection: { httpHeaders: { request: true } } });
 
       const server = Bun.serve({
         async fetch(_req) {
@@ -551,11 +584,11 @@ describe('Bun Serve Integration', () => {
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.authorization']).toBe('[Filtered]');
+      expect(attributes?.['http.request.header.authorization']).toEqual(['[Filtered]']);
     });
 
     test('applies the dataCollection response header collection behavior', async () => {
-      setupClient({ httpHeaders: { response: { deny: ['x-internal'] } } });
+      setupClient({ dataCollection: { httpHeaders: { response: { deny: ['x-internal'] } } } });
 
       const server = Bun.serve({
         async fetch(_req) {
@@ -572,8 +605,182 @@ describe('Bun Serve Integration', () => {
 
       expect(setAttributesSpy).toHaveBeenCalledTimes(1);
       const responseAttributes = setAttributesSpy.mock.calls[0]?.[0];
-      expect(responseAttributes?.['http.response.header.x_internal']).toBe('[Filtered]');
-      expect(responseAttributes?.['http.response.header.x_public']).toBe('public-value');
+      expect(responseAttributes?.['http.response.header.x-internal']).toEqual(['[Filtered]']);
+      expect(responseAttributes?.['http.response.header.x-public']).toEqual(['public-value']);
+    });
+  });
+
+  describe('request bodies', () => {
+    const captureBodySpy = spyOn(SentryCore, 'captureBodyFromWinterCGRequest');
+
+    beforeEach(() => {
+      captureBodySpy.mockClear();
+    });
+
+    // Serves one request and returns the `normalizedRequest` the handler saw on its isolation scope. The body is
+    // read after the SDK has had its turn, so this also proves capturing does not consume it.
+    async function serveAndCapture(path: string, requestInit: RequestInit): Promise<RequestEventData | undefined> {
+      let normalizedRequest: RequestEventData | undefined;
+      const server = Bun.serve({
+        async fetch(req) {
+          normalizedRequest = SentryCore.getIsolationScope().getScopeData().sdkProcessingMetadata.normalizedRequest;
+          return new Response(await req.text());
+        },
+        port,
+      });
+
+      const response = await fetch(`http://localhost:${port}${path}`, requestInit);
+      expect(await response.text()).toBe(typeof requestInit.body === 'string' ? requestInit.body : '');
+
+      await server.stop();
+      return normalizedRequest;
+    }
+
+    test('normalizes the request like the other WinterCG runtimes', async () => {
+      const normalizedRequest = await serveAndCapture('/users?id=123&sort=asc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain', 'X-Custom-Header': 'custom-value' },
+        body: 'hello',
+      });
+
+      expect(normalizedRequest).toEqual({
+        method: 'POST',
+        url: `http://localhost:${port}/users?id=123&sort=asc`,
+        // No leading `?`, matching `winterCGRequestToRequestData` on Deno and Cloudflare
+        query_string: 'id=123&sort=asc',
+        headers: expect.objectContaining({
+          'content-type': 'text/plain',
+          'x-custom-header': 'custom-value',
+          'content-length': '5',
+        }),
+        data: 'hello',
+      });
+    });
+
+    test('captures incoming request bodies by default', async () => {
+      const body = JSON.stringify({ username: 'test', action: 'login' });
+      const normalizedRequest = await serveAndCapture('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+
+      expect(captureBodySpy).toHaveBeenCalledTimes(1);
+      expect(captureBodySpy).toHaveBeenCalledWith(expect.any(Request), expect.any(SentryCore.Scope), 'medium');
+      expect(normalizedRequest?.data).toBe(body);
+    });
+
+    test('captures bodies on route handlers', async () => {
+      let normalizedRequest: RequestEventData | undefined;
+      const server = Bun.serve({
+        routes: {
+          '/api/posts': {
+            POST: async req => {
+              normalizedRequest = SentryCore.getIsolationScope().getScopeData().sdkProcessingMetadata.normalizedRequest;
+              return new Response(await req.text());
+            },
+          },
+        },
+        port,
+      });
+
+      const response = await fetch(`http://localhost:${port}/api/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"title":"New Post"}',
+      });
+      expect(await response.text()).toBe('{"title":"New Post"}');
+      await server.stop();
+
+      expect(normalizedRequest?.data).toBe('{"title":"New Post"}');
+    });
+
+    test('does not read bodies of GET requests', async () => {
+      const normalizedRequest = await serveAndCapture('/users', { method: 'GET' });
+
+      expect(captureBodySpy).not.toHaveBeenCalled();
+      expect(normalizedRequest?.method).toBe('GET');
+      expect(normalizedRequest?.data).toBeUndefined();
+    });
+
+    test('truncates bodies larger than the default medium size', async () => {
+      const body = 'a'.repeat(10_001);
+      const normalizedRequest = await serveAndCapture('/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body,
+      });
+
+      expect(normalizedRequest?.data).toBe(`${'a'.repeat(9_997)}...`);
+    });
+
+    test('does not capture bodies when dataCollection.httpBodies excludes incoming requests', async () => {
+      setupClient({ dataCollection: { httpBodies: [] } });
+
+      const normalizedRequest = await serveAndCapture('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"secret":"do-not-capture"}',
+      });
+
+      expect(captureBodySpy).not.toHaveBeenCalled();
+      expect(normalizedRequest?.data).toBeUndefined();
+    });
+
+    test('an explicit maxRequestBodySize overrides disabled body collection', async () => {
+      setupClient({
+        dataCollection: { httpBodies: [] },
+        integrations: [bunServerIntegration({ maxRequestBodySize: 'small' })],
+      });
+
+      const normalizedRequest = await serveAndCapture('/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: 'a'.repeat(1_001),
+      });
+
+      expect(captureBodySpy).toHaveBeenCalledWith(expect.any(Request), expect.any(SentryCore.Scope), 'small');
+      expect(normalizedRequest?.data).toBe(`${'a'.repeat(997)}...`);
+    });
+
+    test('an explicit none overrides enabled body collection', async () => {
+      setupClient({
+        dataCollection: { httpBodies: ['incomingRequest'] },
+        integrations: [bunServerIntegration({ maxRequestBodySize: 'none' })],
+      });
+
+      const normalizedRequest = await serveAndCapture('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: 'do-not-capture',
+      });
+
+      expect(captureBodySpy).not.toHaveBeenCalled();
+      expect(normalizedRequest?.data).toBeUndefined();
+    });
+
+    test('always captures bodies beyond the medium size', async () => {
+      setupClient({ integrations: [bunServerIntegration({ maxRequestBodySize: 'always' })] });
+
+      const body = 'a'.repeat(20_000);
+      const normalizedRequest = await serveAndCapture('/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body,
+      });
+
+      expect(captureBodySpy).toHaveBeenCalledWith(expect.any(Request), expect.any(SentryCore.Scope), 'always');
+      expect(normalizedRequest?.data).toBe(body);
+    });
+
+    test('skips non-textual bodies', async () => {
+      const normalizedRequest = await serveAndCapture('/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: 'binary-ish',
+      });
+
+      expect(normalizedRequest?.data).toBeUndefined();
     });
   });
 });

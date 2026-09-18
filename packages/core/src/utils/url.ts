@@ -1,10 +1,21 @@
 import {
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
-} from '../semanticAttributes';
+  HTTP_ROUTE,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_PORT,
+  URL_QUERY,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_SCHEME,
+  URL_TEMPLATE,
+} from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import type { Client } from '../client';
 import type { SpanAttributes } from '../types/span';
+import type { TransactionSource } from '../types/transaction';
+import { filterCollectedUrl, filterCollectedUrlQuery } from './data-collection/filterCollectedUrl';
 
 type PartialURL = {
   host?: string;
@@ -115,6 +126,42 @@ export function getSanitizedUrlStringFromUrlObject(url: URLObject): string {
   return newUrl.toString();
 }
 
+/**
+ * Normalizes a query string for the `url.query` attribute, which is specced without the leading `?`.
+ *
+ * Accepts either a raw query string (`URL.search`, which includes the `?`) or an already-stripped one.
+ * Empty results become `undefined` so callers can assign the return value to an attribute
+ * unconditionally — setting an attribute to `undefined` is a no-op.
+ */
+export function getUrlQuery(query: string | undefined): string | undefined {
+  return query?.replace(/^\?/, '') || undefined;
+}
+
+/**
+ * Normalizes a fragment for the `url.fragment` attribute, which is specced without the leading `#`.
+ *
+ * Accepts either a raw fragment (`URL.hash`, which includes the `#`) or an already-stripped one.
+ * Empty results become `undefined` so callers can assign the return value to an attribute
+ * unconditionally — setting an attribute to `undefined` is a no-op.
+ */
+export function getUrlFragment(fragment: string | undefined): string | undefined {
+  return fragment?.replace(/^#/, '') || undefined;
+}
+
+/**
+ * The domain a request goes to, for the `url.domain` attribute and low-cardinality span names.
+ *
+ * Relative URLs need a `base` to resolve against — browsers have the page origin, server runtimes do
+ * not. URLs with no domain at all, such as data URLs, return `undefined`.
+ */
+export function getUrlDomain(url: string, base?: string): string | undefined {
+  try {
+    return new URL(url, base).hostname || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 type PartialRequest = {
   method?: string;
 };
@@ -149,6 +196,8 @@ function getHttpSpanNameFromUrlObject(
  * @param spanOrigin - The origin of the span
  * @param request - The request object, see {@link PartialRequest}
  * @param routeName - The name of the route, must be low cardinality
+ * @param client - The client the span belongs to, used to resolve `dataCollection.urlQueryParams`.
+ * Falls back to the current scope's client when omitted, which is the wrong one in a multi-client setup.
  * @returns The span name and attributes for the HTTP operation
  */
 export function getHttpSpanDetailsFromUrlObject(
@@ -157,16 +206,18 @@ export function getHttpSpanDetailsFromUrlObject(
   spanOrigin: string,
   request?: PartialRequest,
   routeName?: string,
+  client?: Client,
 ): [name: string, attributes: SpanAttributes] {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
   };
+
+  let nameSource: TransactionSource = 'url';
 
   if (routeName) {
     // This is based on https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
-    attributes[kind === 'server' ? 'http.route' : 'url.template'] = routeName;
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+    attributes[kind === 'server' ? HTTP_ROUTE : URL_TEMPLATE] = routeName;
+    nameSource = 'route';
   }
 
   if (request?.method) {
@@ -174,31 +225,38 @@ export function getHttpSpanDetailsFromUrlObject(
   }
 
   if (urlObject) {
-    if (urlObject.search) {
-      attributes['url.query'] = urlObject.search;
-    }
-    if (urlObject.hash) {
-      attributes['url.fragment'] = urlObject.hash;
-    }
+    // Relative URLs have no meaningful `href`, so fall back to the sanitized path.
+    attributes[URL_FULL] = filterCollectedUrl(
+      isURLObjectRelative(urlObject) ? getSanitizedUrlStringFromUrlObject(urlObject) : urlObject.href,
+      client,
+    );
+
+    attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(urlObject.search), client);
+    attributes[URL_FRAGMENT] = getUrlFragment(urlObject.hash);
     if (urlObject.pathname) {
-      attributes['url.path'] = urlObject.pathname;
+      attributes[URL_PATH] = urlObject.pathname;
       if (urlObject.pathname === '/') {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+        nameSource = 'route';
       }
     }
 
     if (!isURLObjectRelative(urlObject)) {
-      attributes[SEMANTIC_ATTRIBUTE_URL_FULL] = urlObject.href;
       if (urlObject.port) {
-        attributes['url.port'] = urlObject.port;
+        attributes[URL_PORT] = urlObject.port;
       }
       if (urlObject.protocol) {
-        attributes['url.scheme'] = urlObject.protocol;
+        attributes[URL_SCHEME] = urlObject.protocol;
       }
       if (urlObject.hostname) {
-        attributes[kind === 'server' ? 'server.address' : 'url.domain'] = urlObject.hostname;
+        attributes[kind === 'server' ? SERVER_ADDRESS : URL_DOMAIN] = urlObject.hostname;
       }
     }
+  }
+
+  // Outgoing HTTP (`kind === 'client'`) is not a segment span. Incoming HTTP usually is;
+  // if it is nested under a local parent, `addChildSpanToSpan` strips this attribute.
+  if (kind === 'server') {
+    attributes[SENTRY_SEGMENT_NAME_SOURCE] = nameSource;
   }
 
   return [getHttpSpanNameFromUrlObject(urlObject, kind, request, routeName), attributes];
@@ -261,7 +319,9 @@ export function getSanitizedUrlString(url: PartialURL): string {
       .replace(/(:80)$/, '')
       .replace(/(:443)$/, '') || '';
 
-  return `${protocol ? `${protocol}://` : ''}${filteredHost}${path}`;
+  // `parseUrl` returns `{}` for an empty or unparseable URL, and interpolating a missing path
+  // would render the string 'undefined'.
+  return `${protocol ? `${protocol}://` : ''}${filteredHost}${path || ''}`;
 }
 
 /**

@@ -1,18 +1,17 @@
+import { URL_PATH } from '@sentry/conventions/attributes';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
 
 const LOW_QUALITY_TRANSACTIONS_FILTERS = [
   /GET \/node_modules\//,
   /GET \/favicon\.ico/,
   /GET \/@id\//,
   // The span description for the `__manifest` endpoint is `GET *` (`http.route` resolves to `*`).
-  // Filter by `http.target` instead, which carries the raw request path.
-  { attributes: { 'http.target': /\/__manifest/ } },
+  // Filter by `url.path` instead, which carries the raw request path.
+  { attributes: { [URL_PATH]: /\/__manifest/ } },
 ];
 
-// TODO(v11): Remove the `_options` parameter (unused and only kept for back-compat with the previous signature)
-const _lowQualityTransactionsFilterIntegration = ((_options?: NodeOptions) => ({
+const _lowQualityTransactionsFilterIntegration = (() => ({
   name: 'LowQualityTransactionsFilter' as const,
   beforeSetup(client) {
     const opts = client.getOptions();

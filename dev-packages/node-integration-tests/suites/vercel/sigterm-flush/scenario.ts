@@ -22,6 +22,7 @@ function bufferedLoggingTransport(_options: BaseTransportOptions): Transport {
 }
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: bufferedLoggingTransport,
 });

@@ -1,15 +1,20 @@
+import { HTTP_REQUEST_METHOD, SENTRY_OP, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT_STREAM } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   defineIntegration,
   getSanitizedUrlStringFromUrlObject,
+  getUrlDomain,
+  hasSpanStreamingEnabled,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
   stripDataUrlContent,
+  filterCollectedUrl,
 } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core/browser';
+import { WINDOW } from '../helpers';
 
 const responseToStreamSpan = new WeakMap<object, Span>();
 const responseToFallbackTimeout = new WeakMap<object, ReturnType<typeof setTimeout>>();
@@ -35,7 +40,7 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
   return {
     name: 'FetchStreamPerformance' as const,
 
-    setup() {
+    setup(client) {
       // End the stream span when the response body finishes resolving
       addFetchEndInstrumentationHandler(handlerData => {
         if (handlerData.response) {
@@ -76,14 +81,18 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
               ? getSanitizedUrlStringFromUrlObject(parsedUrl)
               : url;
 
+          // `http.client.stream` follows the same name rules as `http.client`.
+          const domain = getUrlDomain(url, WINDOW.location?.origin);
+          const streamedName = domain ? `${method} ${domain}` : method;
           const streamSpan = startInactiveSpan({
-            name: `${method} ${sanitizedUrl}`,
+            name: hasSpanStreamingEnabled(client) ? streamedName : `${method} ${sanitizedUrl}`,
             startTime: handlerData.endTimestamp,
             attributes: {
-              url: stripDataUrlContent(url),
-              'http.method': method,
+              [URL_FULL]: filterCollectedUrl(stripDataUrlContent(url)),
+              [URL_DOMAIN]: domain,
+              [HTTP_REQUEST_METHOD]: method,
               type: 'fetch',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client.stream',
+              [SENTRY_OP]: HTTP_CLIENT_STREAM,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.stream',
             },
           });

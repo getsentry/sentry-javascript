@@ -1,0 +1,17 @@
+import { Link } from 'react-router';
+
+export default function PerformancePage() {
+  return (
+    <div>
+      <h1>Performance Page</h1>
+      <nav>
+        <Link to="/performance/ssr">SSR Page</Link>
+        <Link to="/performance/with/sentry">With Param Page</Link>
+        <Link to={{ pathname: '/performance/with/object-nav', search: '?foo=bar' }}>Object Navigate</Link>
+        <Link to={{ search: '?query=test' }}>Search Only Navigate</Link>
+        <Link to="/performance/server-loader">Server Loader</Link>
+        <Link to="/performance/redis">Redis</Link>
+      </nav>
+    </div>
+  );
+}

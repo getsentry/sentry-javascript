@@ -29,7 +29,7 @@ const run = async () => {
   // Keep the span open until the memoized callback fires, recording on the transaction whether the
   // callback ran in the originating span's context.
   const spanFinished = Sentry.startSpan(
-    { op: 'run' },
+    { name: 'test-name', op: 'run' },
     span =>
       new Promise(resolve => {
         memoizedFoo({ foo: 'bar' }, () => {

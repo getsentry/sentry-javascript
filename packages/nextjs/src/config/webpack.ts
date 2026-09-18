@@ -1,11 +1,14 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 
-import { debug, escapeStringForRegex, loadModule, parseSemver } from '@sentry/core';
+import { debug, escapeStringForRegex, parseSemver } from '@sentry/core';
+import { loadModule } from '@sentry/core/server';
 import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';
 import type { VercelCronsConfig } from '../common/types';
+import { getBuildLogger } from './buildLogger';
+import { externalizeOrchestrionRuntimePackages } from './diagnosticsChannelInjection';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
@@ -67,6 +70,7 @@ export function constructWebpackConfigFunction({
     buildContext: BuildContext,
   ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
+    const logger = getBuildLogger(userSentryOptions.silent);
     const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'server') : 'client';
     // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
     const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
@@ -81,12 +85,12 @@ export function constructWebpackConfigFunction({
     const instrumentationFile = getInstrumentationFile(projectDir, dotPrefixedPageExtensions.concat(['.ts', '.js']));
 
     if (runtime !== 'client') {
-      warnAboutDeprecatedConfigFiles(projectDir, instrumentationFile, runtime);
+      warnAboutDeprecatedConfigFiles(projectDir, instrumentationFile, runtime, userSentryOptions.silent);
     }
     if (runtime === 'server') {
       // was added in v15 (https://github.com/vercel/next.js/pull/67539)
       if (major && major >= 15) {
-        warnAboutMissingOnRequestErrorHandler(instrumentationFile);
+        warnAboutMissingOnRequestErrorHandler(instrumentationFile, userSentryOptions.silent);
       }
     }
 
@@ -122,11 +126,6 @@ export function constructWebpackConfigFunction({
     });
 
     addOtelWarningIgnoreRule(newConfig);
-
-    // Add edge runtime polyfills when building for edge in dev mode
-    if (major && major === 13 && runtime === 'edge' && isDev) {
-      addEdgeRuntimePolyfills(newConfig, buildContext);
-    }
 
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
@@ -164,6 +163,7 @@ export function constructWebpackConfigFunction({
         rawNewConfig.resolve?.modules,
       ),
       isDev,
+      silent: userSentryOptions.silent,
     };
 
     const normalizeLoaderResourcePath = (resourcePath: string): string => {
@@ -324,8 +324,7 @@ export function constructWebpackConfigFunction({
         !showedMissingGlobalErrorWarningMsg &&
         !process.env.SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING
       ) {
-        // eslint-disable-next-line no-console
-        console.log(
+        logger.log(
           "[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)",
         );
         showedMissingGlobalErrorWarningMsg = true;
@@ -342,12 +341,12 @@ export function constructWebpackConfigFunction({
       // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
       // be fixed by using `bind`, but this is way simpler.)
       const origEntryProperty = newConfig.entry;
-      newConfig.entry = async () => addSentryToClientEntryProperty(origEntryProperty, buildContext);
+      newConfig.entry = async () =>
+        addSentryToClientEntryProperty(origEntryProperty, buildContext, userSentryOptions.silent);
 
       const clientSentryConfigFileName = getClientSentryConfigFile(projectDir);
       if (clientSentryConfigFileName) {
-        // eslint-disable-next-line no-console
-        console.warn(
+        logger.warn(
           `[@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your \`${clientSentryConfigFileName}\` file, or moving its content to \`instrumentation-client.ts\`. When using Turbopack \`${clientSentryConfigFileName}\` will no longer work. Read more about the \`instrumentation-client.ts\` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client`,
         );
       }
@@ -358,8 +357,9 @@ export function constructWebpackConfigFunction({
     // We don't want to do any webpack plugin stuff OR any source maps stuff in dev mode or for the server on static-only builds.
     // Symbolication for dev-mode errors is done elsewhere.
     if (!(isDev || (isStaticExport && isServer))) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { sentryWebpackPlugin } = loadModule<{ sentryWebpackPlugin: any }>('@sentry/webpack-plugin', module) ?? {};
+      const { sentryWebpackPlugin } =
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        loadModule<{ sentryWebpackPlugin: any }>('@sentry/bundler-plugins/webpack', module) ?? {};
 
       if (sentryWebpackPlugin) {
         if (!userSentryOptions.sourcemaps?.disable) {
@@ -432,8 +432,9 @@ export function constructWebpackConfigFunction({
     );
 
     // Orchestrion code-transform loader — Node server runtime only, never the edge compilation
-    if (runtime === 'server' && userSentryOptions._experimental?.useDiagnosticsChannelInjection) {
+    if (runtime === 'server' && userSentryOptions.buildTimeInstrumentation !== false) {
       newConfig.plugins.push(sentryOrchestrionWebpackPlugin() as unknown as WebpackPluginInstance);
+      prependOrchestrionRuntimeExternals(newConfig);
     }
 
     return newConfig;
@@ -452,6 +453,7 @@ export function constructWebpackConfigFunction({
 async function addSentryToClientEntryProperty(
   currentEntryProperty: WebpackEntryProperty,
   buildContext: BuildContext,
+  silent?: boolean,
 ): Promise<EntryPropertyObject> {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
@@ -484,7 +486,7 @@ async function addSentryToClientEntryProperty(
       // entrypoint for `/app` pages
       entryPointName === 'main-app'
     ) {
-      addFilesToWebpackEntryPoint(newEntryProperty, entryPointName, filesToInject, isDevMode);
+      addFilesToWebpackEntryPoint(newEntryProperty, entryPointName, filesToInject, isDevMode, silent);
     }
   }
 
@@ -514,11 +516,12 @@ function getInstrumentationFile(projectDir: string, dotPrefixedExtensions: strin
 /**
  * Make sure the instrumentation file has a `onRequestError` Handler
  */
-function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | null): void {
+function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | null, silent?: boolean): void {
+  const logger = getBuildLogger(silent);
+
   if (!instrumentationFile) {
     if (!process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logger.warn(
         '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
       );
     }
@@ -526,8 +529,7 @@ function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | nul
   }
 
   if (!instrumentationFile.includes('onRequestError')) {
-    // eslint-disable-next-line no-console
-    console.warn(
+    logger.warn(
       '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
     );
   }
@@ -544,6 +546,7 @@ function warnAboutDeprecatedConfigFiles(
   projectDir: string,
   instrumentationFile: string | null,
   platform: 'server' | 'edge',
+  silent?: boolean,
 ): void {
   const hasInstrumentationHookWithIndicationsOfSentry =
     instrumentationFile &&
@@ -556,8 +559,7 @@ function warnAboutDeprecatedConfigFiles(
 
   for (const filename of [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`]) {
     if (fs.existsSync(path.resolve(projectDir, filename))) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      getBuildLogger(silent).warn(
         `[@sentry/nextjs] It appears you've configured a \`${filename}\` file. Please ensure to put this file's content into the \`register()\` function of a Next.js instrumentation file instead. To ensure correct functionality of the SDK, \`Sentry.init\` must be called inside of an instrumentation file. Learn more about setting up an instrumentation file in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the \`${filename}\` file afterward.`,
       );
     }
@@ -611,6 +613,7 @@ function addFilesToWebpackEntryPoint(
   entryPointName: string,
   filesToInsert: string[],
   isDevMode: boolean,
+  silent?: boolean,
 ): void {
   // BIG FAT NOTE: Order of insertion seems to matter here. If we insert the new files before the `currentEntrypoint`s,
   // the Next.js dev server breaks. Because we generally still want the SDK to be initialized as early as possible we
@@ -655,11 +658,9 @@ function addFilesToWebpackEntryPoint(
       import: newImportValue,
     };
   }
-  // malformed entry point (use `console.error` rather than `debug.error` because it will always be printed, regardless
-  // of SDK settings)
+  // malformed entry point (printed regardless of `debug`, since it means SDK init was not injected at all)
   else {
-    // eslint-disable-next-line no-console
-    console.error(
+    getBuildLogger(silent).error(
       'Sentry Logger [Error]:',
       `Could not inject SDK initialization code into entry point ${entryPointName}, as its current value is not in a recognized format.\n`,
       'Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n',
@@ -798,9 +799,6 @@ function resolveNextPackageDirFromDirectory(basedir: string): string | undefined
 }
 
 const POTENTIAL_REQUEST_ASYNC_STORAGE_LOCATIONS = [
-  // Original location of RequestAsyncStorage
-  // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
-  'next/dist/client/components/request-async-storage.js',
   // Introduced in Next.js 13.4.20
   // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
   'next/dist/client/components/request-async-storage.external.js',
@@ -872,22 +870,21 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
   }
 }
 
-function addEdgeRuntimePolyfills(newConfig: WebpackConfigObjectWithModuleRules, buildContext: BuildContext): void {
-  // Use ProvidePlugin to inject performance global only when accessed
-  newConfig.plugins = newConfig.plugins || [];
-  newConfig.plugins.push(
-    new buildContext.webpack.ProvidePlugin({
-      performance: [path.resolve(__dirname, 'polyfills', 'perf_hooks.js'), 'performance'],
-    }),
-  );
+/**
+ * Prepends {@link externalizeOrchestrionRuntimePackages} to `newConfig.externals`, ahead of
+ * Next.js's own externals handler, so the orchestrion runtime packages stay external even where
+ * `serverExternalPackages` can't keep them so. See that function's docs for why this is necessary.
+ */
+function prependOrchestrionRuntimeExternals(newConfig: WebpackConfigObjectWithModuleRules): void {
+  const existingExternals = newConfig.externals;
 
-  // Add module resolution aliases for problematic Node.js modules in edge runtime
-  newConfig.resolve = newConfig.resolve || {};
-  newConfig.resolve.alias = {
-    ...newConfig.resolve.alias,
-    // Redirect perf_hooks imports to a polyfilled version
-    perf_hooks: path.resolve(__dirname, 'polyfills', 'perf_hooks.js'),
-  };
+  if (Array.isArray(existingExternals)) {
+    existingExternals.unshift(externalizeOrchestrionRuntimePackages);
+  } else if (existingExternals === undefined) {
+    newConfig.externals = [externalizeOrchestrionRuntimePackages];
+  } else {
+    newConfig.externals = [externalizeOrchestrionRuntimePackages, existingExternals];
+  }
 }
 
 /**

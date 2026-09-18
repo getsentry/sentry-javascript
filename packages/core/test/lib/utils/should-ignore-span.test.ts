@@ -94,9 +94,7 @@ describe('shouldIgnoreSpan', () => {
   });
 
   it('matches middleware span names with regex', () => {
-    expect(
-      shouldIgnoreSpan({ description: 'middleware - expressInit', op: 'middleware.express' }, [/middleware/]),
-    ).toBe(true);
+    expect(shouldIgnoreSpan({ description: 'middleware - expressInit', op: 'middleware' }, [/middleware/])).toBe(true);
   });
 
   it('matches IgnoreSpanFilter with op only', () => {

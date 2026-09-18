@@ -1,0 +1,69 @@
+import type { TransactionEvent } from '@sentry/core';
+import { expect, it } from 'vitest';
+import { createRunner } from '../../../runner';
+
+// A fetch-invoked Durable Object emits an `http.server` transaction whose only
+// children are the two `auto.db.cloudflare.durable_object` storage spans
+// (`get` + `put`) — present only when the class was auto-instrumented.
+function expectDurableObjectTransaction(transactionEvent: TransactionEvent): void {
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      contexts: expect.objectContaining({
+        trace: expect.objectContaining({ op: 'http.server', origin: 'auto.http.cloudflare' }),
+      }),
+    }),
+  );
+  expect(transactionEvent.spans).toHaveLength(2);
+  expect(transactionEvent.spans).toEqual([
+    expect.objectContaining({
+      op: 'db',
+      description: 'durable_object_storage_get',
+      origin: 'auto.db.cloudflare.durable_object',
+    }),
+    expect.objectContaining({
+      op: 'db',
+      description: 'durable_object_storage_put',
+      origin: 'auto.db.cloudflare.durable_object',
+    }),
+  ]);
+}
+
+// A workflow step runs in its own invocation and reports a `function` /
+// `auto.faas.cloudflare.workflow` transaction named after the step — present
+// only when the Workflow class was wrapped with `instrumentWorkflowWithSentry`.
+function expectWorkflowStepTransaction(transactionEvent: TransactionEvent): void {
+  expect(transactionEvent.transaction).toBe('step-one');
+  expect(transactionEvent.contexts?.trace?.op).toBe('function');
+  expect(transactionEvent.contexts?.trace?.origin).toBe('auto.faas.cloudflare.workflow');
+}
+
+// The main worker transaction for `/increment` just forwards to the DO, so it
+// carries no child spans. The empty-spans assertion keeps it disjoint from the
+// DO and workflow transactions regardless of arrival order.
+function expectMainWorkerTransaction(transactionEvent: TransactionEvent): void {
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      contexts: expect.objectContaining({
+        trace: expect.objectContaining({ op: 'http.server', origin: 'auto.http.cloudflare' }),
+      }),
+    }),
+  );
+  expect(transactionEvent.spans).toHaveLength(0);
+}
+
+// A single entry exports both a Durable Object and a Workflow, neither wrapped by
+// hand. The transform must wrap each with its kind-specific helper: hitting the
+// DO yields a storage-bearing DO transaction and triggering the workflow yields a
+// `step-one` transaction. Both only arrive if both classes were auto-wrapped.
+it('auto-instruments a Durable Object and a Workflow in the same entry', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .unordered()
+    .expect(envelope => expectDurableObjectTransaction(envelope[1]?.[0]?.[1] as TransactionEvent))
+    .expect(envelope => expectWorkflowStepTransaction(envelope[1]?.[0]?.[1] as TransactionEvent))
+    .expect(envelope => expectMainWorkerTransaction(envelope[1]?.[0]?.[1] as TransactionEvent))
+    .start(signal);
+
+  await runner.makeRequest('get', '/increment');
+  await runner.makeRequest('get', '/workflow/trigger');
+  await runner.completed();
+});

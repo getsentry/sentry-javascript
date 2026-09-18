@@ -3,6 +3,7 @@
   "include": ["./lib.deno.d.ts", "src/**/*"],
   "compilerOptions": {
     "outDir": "build",
+    "rootDir": "./src",
     "lib": ["esnext"],
     "module": "esnext",
     "target": "esnext",

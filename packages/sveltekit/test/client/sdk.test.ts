@@ -1,6 +1,7 @@
 import type { BrowserClient } from '@sentry/svelte';
+import { getMainCarrier } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
-import { getClient, getCurrentScope, getGlobalScope, getIsolationScope, SDK_VERSION } from '@sentry/svelte';
+import { getClient, SDK_VERSION } from '@sentry/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client';
 
@@ -11,10 +12,7 @@ describe('Sentry client SDK', () => {
     afterEach(() => {
       vi.clearAllMocks();
 
-      getGlobalScope().clear();
-      getIsolationScope().clear();
-      getCurrentScope().clear();
-      getCurrentScope().setClient(undefined);
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     it('adds SvelteKit metadata to the SDK options', () => {
@@ -34,7 +32,7 @@ describe('Sentry client SDK', () => {
                 { name: 'npm:@sentry/svelte', version: SDK_VERSION },
               ],
               settings: {
-                infer_ip: 'never',
+                infer_ip: 'auto',
               },
             },
           },

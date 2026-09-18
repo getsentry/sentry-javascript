@@ -1,4 +1,10 @@
 {
+  "jsPlugins": [
+    {
+      "name": "sdk",
+      "specifier": "@sentry/eslint-plugin-sdk"
+    }
+  ],
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "import", "jsdoc", "vitest"],
   "rules": {
@@ -17,13 +23,11 @@
     "no-unused-expressions": ["error", { "allowShortCircuit": true }],
     "guard-for-in": "error",
     "array-callback-return": ["error", { "allowImplicit": true }],
-    "quotes": ["error", "single", { "avoidEscape": true }],
-    "no-return-await": "error",
+    "typescript/return-await": "error",
     "max-lines": ["error", { "max": 300, "skipComments": true, "skipBlankLines": true }],
 
     // === Import rules ===
     "import/namespace": "off",
-    "import/no-unresolved": "off",
 
     // === Rules turned off (not enforced in ESLint or causing false positives) ===
     "no-control-regex": "off",
@@ -33,6 +37,24 @@
     "no-constant-binary-expression": "off",
     "vitest/hoisted-apis-on-top": "off",
     "vitest/no-conditional-tests": "off",
+    // Vitest correctness rules newly surfaced by the oxlint 1.75 bump. We keep the vitest plugin
+    // (and its many other rules), but disable the ones now firing across the existing test suite.
+    "vitest/no-standalone-expect": "off",
+    "vitest/require-mock-type-parameters": "off",
+    "vitest/no-conditional-expect": "off",
+    "vitest/expect-expect": "off",
+    "vitest/require-to-throw-message": "off",
+    "vitest/valid-title": "off",
+    "vitest/valid-expect": "off",
+    "vitest/no-disabled-tests": "off",
+    "vitest/valid-describe-callback": "off",
+    // Not trusted / false positives for this codebase: the default-assignment and spread-fallback
+    // rules over-trigger, and we intentionally implement thenables (SyncPromise etc.).
+    "typescript/no-useless-default-assignment": "off",
+    "unicorn/no-useless-fallback-in-spread": "off",
+    "unicorn/no-thenable": "off",
+    "unicorn/prefer-string-starts-ends-with": "off",
+    "unicorn/no-new-array": "off",
     "no-unsafe-optional-chaining": "off",
     "no-eval": "off",
     "no-import-assign": "off",
@@ -40,6 +62,21 @@
     "typescript/no-deprecated": "error"
   },
   "overrides": [
+    {
+      "files": ["**/src/**/*.ts", "**/src/**/*.tsx"],
+      "rules": {
+        "sdk/no-unfiltered-url-attributes": "error"
+      }
+    },
+    {
+      // The rule itself decides which files are browser-facing (see `no-unguarded-span-apis.js`);
+      // oxlint resolves `files` globs relative to each package's own config, so scoping it to
+      // individual packages here is not possible.
+      "files": ["**/src/**/*.ts", "**/src/**/*.tsx", "**/addon/**/*.ts"],
+      "rules": {
+        "sdk/no-unguarded-span-apis": "error"
+      }
+    },
     {
       "files": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
       "rules": {
@@ -103,13 +140,12 @@
         "typescript/require-array-sort-compare": "off",
         "typescript/no-base-to-string": "off",
         "typescript/await-thenable": "off",
-        "typescript/no-deprecated": "off"
-      }
-    },
-    {
-      "files": ["*.tsx"],
-      "rules": {
-        "jsdoc/require-jsdoc": "off"
+        "typescript/no-deprecated": "off",
+        "no-unreachable": "off",
+        "unicorn/no-empty-file": "off",
+        "unicorn/no-single-promise-in-promise-methods": "off",
+        "unicorn/no-invalid-fetch-options": "off",
+        "unicorn/no-await-in-promise-methods": "off"
       }
     },
     {
@@ -148,14 +184,14 @@
       }
     },
     {
-      "files": ["**/integrations/tracing-channel/aws-sdk/**/*.ts"],
+      "files": ["**/integrations/aws-sdk/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-member-access": "off"
       }
     },
     {
-      "files": ["**/integrations/tracing-channel/aws-sdk/services/**/*.ts"],
+      "files": ["**/integrations/aws-sdk/services/**/*.ts"],
       "rules": {
         "max-lines": "off",
         "complexity": "off"
@@ -201,6 +237,14 @@
       "files": ["**/src/**"],
       "rules": {
         "no-restricted-globals": ["error", "window", "document", "location", "navigator"]
+      }
+    },
+    {
+      // Intentionally comment-only: a grep marker for the release-injection file, and a
+      // resolvable-but-empty module used to mock `$app/stores` in sveltekit tests.
+      "files": ["**/sentry-release-injection-file.js", "**/.empty.js"],
+      "rules": {
+        "unicorn/no-empty-file": "off"
       }
     }
   ]

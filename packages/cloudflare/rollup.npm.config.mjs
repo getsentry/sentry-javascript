@@ -2,6 +2,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
-    entrypoints: ['src/index.ts', 'src/nodejs_compat/index.ts'],
+    entrypoints: ['src/index.ts', 'src/request.ts', 'src/vite/index.ts', 'src/orchestrion-diagnostics-channel.ts'],
   }),
+  { splitDevProd: true },
 );

@@ -1,5 +1,7 @@
 import type { MessageSendRequest, Queue, QueueSendBatchOptions, QueueSendOptions } from '@cloudflare/workers-types';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { QUEUE_PUBLISH } from '@sentry/conventions/op';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 
 const ORIGIN = 'auto.faas.cloudflare.queue';
 
@@ -15,7 +17,6 @@ function startPublishSpan<T>(
 
   return startSpan(
     {
-      op: 'queue.publish',
       name: `send ${bindingName}`,
       attributes: {
         'messaging.system': 'cloudflare',
@@ -24,7 +25,7 @@ function startPublishSpan<T>(
         'messaging.operation.name': 'send',
         ...(messageCount !== undefined && { 'messaging.batch.message_count': messageCount }),
         'messaging.message.body.size': bodySize,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.publish',
+        [SENTRY_OP]: QUEUE_PUBLISH,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
       },
     },

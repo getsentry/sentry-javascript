@@ -46,8 +46,6 @@ const app = fastify();
 const port = 3030;
 const port2 = 3040;
 
-Sentry.setupFastifyErrorHandler(app);
-
 app.get('/test-success', function (_req, res) {
   res.send({ version: 'v1' });
 });

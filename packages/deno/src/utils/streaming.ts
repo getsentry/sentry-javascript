@@ -66,7 +66,7 @@ export async function streamResponse(span: Span, res: Response): Promise<Respons
         headers: res.headers,
       },
     );
-  } catch (_e) {
+  } catch {
     // tee() failed - handle without streaming
     span.end();
     return res;
@@ -102,6 +102,9 @@ function monitorStream(
       } while (!result.done);
       controller.close();
       reader.releaseLock();
+    },
+    cancel(reason) {
+      return reader.cancel(reason);
     },
   });
 }

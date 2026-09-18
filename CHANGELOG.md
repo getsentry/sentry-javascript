@@ -4,9 +4,50 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, @JosephDoUrden, @Tyagiquamar, @Andarist, and @msnelling. Thank you for your contributions!
+
+- feat(core): Add `createFetchIntegration`, the shared implementation behind the global-`fetch` integrations in `@sentry/bun`, `@sentry/cloudflare`, `@sentry/deno` and `@sentry/vercel-edge`. Those four packages carried four copies of it; they now share one. Two changes come out of that:
+  - All four gain a `tracePropagation` option (default `true`). Turn it off to stop injecting `sentry-trace` and `baggage` without also turning off spans. To scope propagation to specific URLs, keep using `tracePropagationTargets` in the client options.
+  - Integration options now follow the client. Previously a second `Sentry.init()` in the same process silently reused the options of the first one.
+- fix(bun, cloudflare, deno, vercel-edge): Outgoing `fetch` breadcrumbs now route their URL through the data-collection filters, matching the `node:http` breadcrumb. `data.url` is sanitized (credentials stripped, query and fragment removed) and the query moves to `url.query`, where `dataCollection.urlQueryParams` applies to it. Previously the raw URL was recorded, so sensitive query values reached Sentry even with query collection turned off.
+- fix(vercel-edge): `winterCGFetchIntegration` now honors the client's `propagateTraceparent` option. It was the one copy of the fetch integration that never forwarded it, so the `traceparent` header was never sent.
+- feat(deno)!: Fetch breadcrumbs are now recorded by `fetchIntegration` rather than `breadcrumbsIntegration`, matching the other runtime SDKs. Disable them with `fetchIntegration({ breadcrumbs: false })`. `breadcrumbsIntegration({ fetch: false })` is deprecated, no longer has any effect, and will be removed in a future major version.
+- feat(core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders`. Passing `true`, `false`, `{ allow: [...] }` or `{ deny: [...] }` now applies to both request and response headers; `{ request, response }` still controls each direction independently.
+- feat(langchain)!: Emit `gen_ai.pipeline.name` instead of `langchain.chain.name` on LangChain chain spans. The attribute is omitted when the chain is unnamed.
+- feat(deno)!: Rename several default integrations to match the other SDKs ([#22404](https://github.com/getsentry/sentry-javascript/pull/22404)). The `deno*Integration` exports are kept as deprecated aliases. If you were relying on the names (for example, to disable them), then note that these have changed:
+  - `DenoAmqplib` => `Amqplib`
+  - `DenoKoa` => `Koa`
+  - `DenoMongodb` => `Mongodb`
+  - `DenoMongoose` => `Mongoose`
+  - `DenoMysql` => `Mysql`
+  - `DenoPostgres` => `Postgres`
+- feat(node): Add first-party Mastra integration ([#23823](https://github.com/getsentry/sentry-javascript/pull/23823)). Enabled by default; disable with `defaultIntegrations: integrations => integrations.filter(i => i.name !== 'Mastra')`.
+- feat(node): Enable the `dataloader` and `knex` integrations by default. Both were previously opt-in — `dataloader` was removed from the defaults in v8 due to an upstream OpenTelemetry bug that has since been fixed, and `knex` was never enabled by default. You no longer need to add `dataloaderIntegration()` or `knexIntegration()` manually. Disable either with `defaultIntegrations: integrations => integrations.filter(i => i.name !== 'Dataloader' /* or 'Knex' */)`.
+- **feat(browser): Add `bfcacheMetricsIntegration` to track back/forward cache health**
+
+  The new opt-in `bfcacheMetricsIntegration` emits metrics about browser back/forward cache (bfcache) navigations, so you can
+  measure how often back-button navigation is instant and what's blocking it.
+
+  ```js
+  Sentry.init({
+    integrations: [Sentry.bfcacheMetricsIntegration()],
+  });
+  ```
+
+  It emits:
+  - `browser.bfcache.navigation` — a counter split by outcome (`hit`/`miss`).
+  - `browser.bfcache.not_restored` — a counter of the (Chromium-only) `notRestoredReasons` for a miss.
+  - `browser.bfcache.reload.duration` — a distribution of how expensive the fallback reload was on a miss.
+
 ## 10.67.0
 
 ### Important Changes
+
+- **feat(effect): Capture errors through the Effect v4 `ErrorReporter` API**
+
+  On Effect v4, `Sentry.effectLayer` now registers a Sentry `ErrorReporter`. Failures that pass through `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC reporting boundaries are captured automatically, with `ErrorReporter.ignore`, `ErrorReporter.severity` and `ErrorReporter.attributes` annotations respected. Nothing changes on Effect v3.
+
+  The server SDK now enables the `contextLines` and `linkedErrors` integrations by default, so captured errors carry source context and their `cause` chain. No other Node default integration is enabled.
 
 - **feat(sveltekit): Add support for SvelteKit 3 ([#22264](https://github.com/getsentry/sentry-javascript/pull/22264))**
 
@@ -74,6 +115,10 @@
 </details>
 
 Work in this release was contributed by @PeterWadie and @akshitsinha. Thank you for your contributions!
+
+### Other Changes
+
+- fix(replay): Set `text/javascript` MIME type on the compression worker Blob ([#22377](https://github.com/getsentry/sentry-javascript/pull/22377))
 
 ## 10.66.0
 
@@ -3252,6 +3297,7 @@ await compiled.invoke({
   <summary> <strong>Internal Changes</strong> </summary>
 
 - chore(build): Fix incorrect versions after merge ([#18154](https://github.com/getsentry/sentry-javascript/pull/18154))
+
 </details>
 
 ## 10.24.0
@@ -3280,6 +3326,7 @@ await compiled.invoke({
 - chore(eslint): Add eslint-plugin-regexp rule (dev-packages) ([#18063](https://github.com/getsentry/sentry-javascript/pull/18063))
 - test(next): fix flakey tests ([#18100](https://github.com/getsentry/sentry-javascript/pull/18100))
 - test(node-core): Proof that withMonitor doesn't create a new trace ([#18057](https://github.com/getsentry/sentry-javascript/pull/18057))
+
 </details>
 
 ## 10.23.0

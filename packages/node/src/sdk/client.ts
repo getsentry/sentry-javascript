@@ -1,0 +1,210 @@
+import * as os from 'node:os';
+import type { Tracer } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
+import type { ServerRuntimeClientOptions } from '@sentry/core/server';
+import {
+  _INTERNAL_clearAiProviderSkips,
+  _INTERNAL_flushLogsBuffer,
+  _INTERNAL_setDeferSegmentSpanCapture,
+  applySdkMetadata,
+  debug,
+  SDK_VERSION,
+} from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry/core/server';
+import {
+  type AsyncLocalStorageLookup,
+  registerPrepareSpanScope,
+  type SentryTracerProvider,
+  setOpenTelemetryContextAsyncContextStrategy,
+} from '@sentry/opentelemetry';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-runtime-injection/register';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
+import { isMainThread, threadId } from 'worker_threads';
+import { DEBUG_BUILD } from '../debug-build';
+import type { NodeClientOptions } from '../types';
+
+const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitrarily
+
+// Treeshakable guard to remove all code related to runtime diagnostics-channel injection. Set to
+// `false` at build time by the Sentry bundler plugins' `bundleSizeOptimizations.excludeChannelInjection`.
+declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
+
+/** A client for using Sentry with Node & OpenTelemetry. */
+export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
+  public traceProvider: SentryTracerProvider | undefined;
+  public asyncLocalStorageLookup: AsyncLocalStorageLookup | undefined;
+
+  private _tracer: Tracer | undefined;
+  private _clientReportInterval: NodeJS.Timeout | undefined;
+  private _clientReportOnExitFlushListener: (() => void) | undefined;
+  private _logOnExitFlushListener: (() => void) | undefined;
+
+  public constructor(options: NodeClientOptions) {
+    const serverName =
+      options.includeServerName === false
+        ? undefined
+        : options.serverName || global.process.env.SENTRY_NAME || os.hostname();
+
+    const clientOptions: ServerRuntimeClientOptions = {
+      ...options,
+      platform: 'node',
+      // Use provided runtime or default to 'node' with current process version
+      runtime: options.runtime || { name: 'node', version: global.process.version },
+      serverName,
+    };
+
+    applySdkMetadata(clientOptions, 'node');
+
+    debug.log(`Initializing Sentry: process: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`);
+
+    super(clientOptions);
+
+    this._logOnExitFlushListener = () => {
+      _INTERNAL_flushLogsBuffer(this);
+    };
+
+    if (serverName) {
+      this.on('beforeCaptureLog', log => {
+        log.attributes = {
+          ...log.attributes,
+          'server.address': serverName,
+        };
+      });
+    }
+
+    process.on('beforeExit', this._logOnExitFlushListener);
+
+    // Enable deferred segment-span transaction capture here, in the constructor, rather than in
+    // `initOtel`. Every client runs its constructor exactly once, whereas `initOtel` only runs on
+    // `Sentry.init()` and only fully wires up the first client (a second `init` loses the
+    // `setGlobalTracerProvider` race and bails early, and a manually constructed `NodeClient` never
+    // runs `initOtel` at all). Anchoring on the constructor means every client — first, second, or
+    // manual — defers correctly. It's unconditional and cheap: clients on the OpenTelemetry SDK
+    // provider path produce OTel spans that never reach `SentrySpan`, so the strategy is simply never
+    // consulted for them.
+    _INTERNAL_setDeferSegmentSpanCapture(this);
+
+    // Same constructor anchoring as above: every client must continue incoming (remote) traces,
+    // also manually constructed ones that never run `initOtel`.
+    registerPrepareSpanScope(this);
+
+    // Install the channel-based (orchestrion diagnostics-channel) instrumentation hooks here, in the
+    // constructor, so that every client installs them — not only the one built by the Node SDK's
+    // `init()`. Downstream SDKs construct a client without going through that path, and would
+    // otherwise never install the hooks. Registration is idempotent (a global marker guards it), so
+    // a second construction is harmless. The channel integrations capture errors as well as spans,
+    // so this is independent of tracing. Opt out at runtime with `enableRuntimeChannelInjection:
+    // false`, or at build time via the bundler plugins'
+    // `bundleSizeOptimizations.excludeChannelInjection` (which tree-shakes this whole block away).
+    if (
+      (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
+      options.enableRuntimeChannelInjection !== false
+    ) {
+      registerDiagnosticsChannelInjection();
+    }
+  }
+
+  /** @inheritDoc */
+  public init(): void {
+    // Must run before `super.init()`: channel-based integrations capture the strategy's
+    // AsyncLocalStorage via `getTracingChannelBinding()` during integration setup.
+    if (this.getOptions().enableOpenTelemetrySetup) {
+      this.asyncLocalStorageLookup = setOpenTelemetryContextAsyncContextStrategy();
+    } else {
+      this.asyncLocalStorageLookup = { asyncLocalStorage: setAsyncLocalStorageAsyncContextStrategy() };
+    }
+
+    super.init();
+  }
+
+  /** Get the OTEL tracer. */
+  public get tracer(): Tracer {
+    if (this._tracer) {
+      return this._tracer;
+    }
+
+    const name = '@sentry/node';
+    const version = SDK_VERSION;
+    const tracer = trace.getTracer(name, version);
+    this._tracer = tracer;
+
+    return tracer;
+  }
+
+  /** @inheritDoc */
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async flush(timeout?: number): PromiseLike<boolean> {
+    await this.traceProvider?.forceFlush();
+
+    if (this.getOptions().sendClientReports) {
+      this._flushOutcomes();
+    }
+
+    return super.flush(timeout);
+  }
+
+  /** @inheritDoc */
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async close(timeout?: number | undefined): PromiseLike<boolean> {
+    if (this._clientReportInterval) {
+      clearInterval(this._clientReportInterval);
+    }
+
+    if (this._clientReportOnExitFlushListener) {
+      process.off('beforeExit', this._clientReportOnExitFlushListener);
+    }
+
+    if (this._logOnExitFlushListener) {
+      process.off('beforeExit', this._logOnExitFlushListener);
+    }
+
+    const allEventsSent = await super.close(timeout);
+    if (this.traceProvider) {
+      await this.traceProvider.shutdown();
+    }
+
+    return allEventsSent;
+  }
+
+  /**
+   * Will start tracking client reports for this client.
+   *
+   * NOTICE: This method will create an interval that is periodically called and attach a `process.on('beforeExit')`
+   * hook. To clean up these resources, call `.close()` when you no longer intend to use the client. Not doing so will
+   * result in a memory leak.
+   */
+  // The reason client reports need to be manually activated with this method instead of just enabling them in a
+  // constructor, is that if users periodically and unboundedly create new clients, we will create more and more
+  // intervals and beforeExit listeners, thus leaking memory. In these situations, users are required to call
+  // `client.close()` in order to dispose of the acquired resources.
+  // We assume that calling this method in Sentry.init() is a sensible default, because calling Sentry.init() over and
+  // over again would also result in memory leaks.
+  // Note: We have experimented with using `FinalizationRegisty` to clear the interval when the client is garbage
+  // collected, but it did not work, because the cleanup function never got called.
+  public startClientReportTracking(): void {
+    const clientOptions = this.getOptions();
+    if (clientOptions.sendClientReports) {
+      this._clientReportOnExitFlushListener = () => {
+        this._flushOutcomes();
+      };
+
+      this._clientReportInterval = setInterval(() => {
+        DEBUG_BUILD && debug.log('Flushing client reports based on interval.');
+        this._flushOutcomes();
+      }, clientOptions.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS)
+        // Unref is critical for not preventing the process from exiting because the interval is active.
+        .unref();
+
+      process.on('beforeExit', this._clientReportOnExitFlushListener);
+    }
+  }
+
+  /** @inheritDoc */
+  protected _setupIntegrations(): void {
+    // Clear AI provider skip registrations before setting up integrations
+    // This ensures a clean state between different client initializations
+    // (e.g., when LangChain skips OpenAI in one client, but a subsequent client uses OpenAI standalone)
+    _INTERNAL_clearAiProviderSkips();
+    super._setupIntegrations();
+  }
+}

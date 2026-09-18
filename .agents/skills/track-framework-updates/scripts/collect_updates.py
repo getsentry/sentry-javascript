@@ -116,8 +116,16 @@ def main() -> None:
         len(f["discussions"]) + len(f["rfcs"]) + len(f["rssItems"])
         for f in frameworks
     )
+    # Report a cwd-relative path: in CI this script runs inside a sandbox whose
+    # absolute paths (e.g. /github/workspace/...) don't exist outside it, so an
+    # absolute path would mislead the digest-writing step.
+    out_display = args.out
+    try:
+        out_display = os.path.relpath(args.out)
+    except ValueError:
+        pass
     print(
-        f"Wrote {args.out}: {len(frameworks)} frameworks with activity, "
+        f"Wrote {out_display}: {len(frameworks)} frameworks with activity, "
         f"{total_releases} releases, {total_links} links "
         f"(last {args.since_days} days)."
     )

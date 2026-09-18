@@ -1,17 +1,17 @@
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import {
   captureException,
   debug,
-  flushIfServerless,
   getClient,
   httpHeadersToSpanAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   type SpanAttributes,
   startSpan,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import type {
   _ResponseMiddleware as ResponseMiddleware,
   EventHandler,
@@ -164,8 +164,8 @@ function getSpanAttributes(
   index?: number,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+    [SENTRY_OP]: MIDDLEWARE,
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nuxt',
     'nuxt.middleware.name': middlewareName,
     'nuxt.middleware.hook.name': hookName ?? 'handler',
@@ -201,10 +201,10 @@ function getSpanAttributes(
     headers = Object.fromEntries(eventH3v2?.req.headers.entries());
   }
 
-  const headerAttributes = httpHeadersToSpanAttributes(headers, getClient()?.getDataCollectionOptions() ?? false);
-
-  // Merge header attributes with existing attributes
-  Object.assign(attributes, headerAttributes);
+  const client = getClient();
+  if (client) {
+    Object.assign(attributes, httpHeadersToSpanAttributes(headers, client.getDataCollectionOptions()));
+  }
 
   return attributes;
 }

@@ -1,7 +1,6 @@
 import * as childProcess from 'child_process';
 import * as path from 'path';
 import { describe, expect, test } from 'vitest';
-import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
 describe('OnUncaughtException integration', () => {
@@ -47,6 +46,26 @@ describe('OnUncaughtException integration', () => {
         done();
       });
     }));
+
+  test('should exit rather than recurse when stderr is a broken pipe', async () => {
+    const testScriptPath = path.resolve(__dirname, 'broken-stdio-pipe-test-script.js');
+
+    // The heap cap makes a regression fail in ~1s; at the default size it takes a minute
+    // and just looks like a hang.
+    const child = childProcess.spawn(process.execPath, ['--max-old-space-size=64', testScriptPath], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    child.stdout.destroy();
+    child.stderr.destroy();
+
+    const exited = await new Promise<{ code: number | null; signal: string | null }>(resolve => {
+      child.on('exit', (code, signal) => resolve({ code, signal }));
+    });
+
+    // Unbounded recursion shows up as SIGABRT from the V8 OOM abort.
+    expect(exited).toEqual({ code: 1, signal: null });
+  });
 
   describe('with `exitEvenIfOtherHandlersAreRegistered` set to false', () => {
     test('should close process on uncaught error with no additional listeners registered', () =>
@@ -103,43 +122,10 @@ describe('OnUncaughtException integration', () => {
       .completed();
   });
 
-  conditionalTest({ max: 18 })('Worker thread error handling Node 18', () => {
-    test('should capture uncaught worker thread errors - without childProcess integration', async () => {
-      await createRunner(__dirname, 'worker-thread/uncaught-worker.mjs')
-        .withInstrument(path.join(__dirname, 'worker-thread/instrument.mjs'))
-        .expect({
-          event: {
-            level: 'fatal',
-            exception: {
-              values: [
-                {
-                  type: 'Error',
-                  value: 'job failed',
-                  mechanism: {
-                    type: 'auto.node.onuncaughtexception',
-                    handled: false,
-                  },
-                  stacktrace: {
-                    frames: expect.any(Array),
-                  },
-                },
-              ],
-            },
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
-  // childProcessIntegration only exists in Node 20+
-  conditionalTest({ min: 20 })('Worker thread error handling Node 20+', () => {
+  describe('Worker thread error handling', () => {
     test.each(['mjs', 'js'])('should not interfere with worker thread error handling ".%s"', async extension => {
       const runner = createRunner(__dirname, `worker-thread/caught-worker.${extension}`)
-        .withFlags(
-          extension === 'mjs' ? '--import' : '--require',
-          path.join(__dirname, `worker-thread/instrument.${extension}`),
-        )
+        .withFlags('--import', path.join(__dirname, `worker-thread/instrument.${extension}`))
         .expect({
           event: {
             level: 'error',
@@ -149,7 +135,7 @@ describe('OnUncaughtException integration', () => {
                   type: 'Error',
                   value: 'job failed',
                   mechanism: {
-                    type: 'auto.child_process.worker_thread',
+                    type: 'auto.node.worker_threads',
                     handled: false,
                   },
                   stacktrace: {
@@ -180,7 +166,7 @@ describe('OnUncaughtException integration', () => {
                   type: 'Error',
                   value: 'job failed',
                   mechanism: {
-                    type: 'auto.child_process.worker_thread',
+                    type: 'auto.node.worker_threads',
                     handled: false,
                   },
                   stacktrace: {
@@ -212,7 +198,7 @@ describe('OnUncaughtException integration', () => {
                   type: 'Error',
                   value: 'job failed',
                   mechanism: {
-                    type: 'auto.child_process.worker_thread',
+                    type: 'auto.node.worker_threads',
                     handled: false,
                   },
                   stacktrace: {

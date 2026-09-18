@@ -50,6 +50,7 @@ describe('Sentry.VueIntegration', () => {
 
   it('allows to initialize integration later', () => {
     Sentry.init({
+      traceLifecycle: 'static',
       dsn: PUBLIC_DSN,
       defaultIntegrations: false,
     });
@@ -73,6 +74,7 @@ describe('Sentry.VueIntegration', () => {
 
   it('warns when mounting before SDK.VueIntegration', () => {
     Sentry.init({
+      traceLifecycle: 'static',
       dsn: PUBLIC_DSN,
       defaultIntegrations: false,
     });
@@ -99,6 +101,7 @@ describe('Sentry.VueIntegration', () => {
     // where VNodes in console arguments would trigger recursive warning spam with captureConsoleIntegration
 
     Sentry.init({
+      traceLifecycle: 'static',
       dsn: PUBLIC_DSN,
       defaultIntegrations: false,
       normalizeDepth: 10, // High depth that would cause the issue

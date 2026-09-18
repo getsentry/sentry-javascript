@@ -19,8 +19,9 @@ export function addMiddlewareImports(): void {
  * Adds middleware instrumentation to the Nitro build.
  *
  * @param nitro Nitro instance
+ * @param isNitroV3 Whether the app builds with Nitro v3 (Nuxt 5)
  */
-export function addMiddlewareInstrumentation(nitro: Nitro): void {
+export function addMiddlewareInstrumentation(nitro: Nitro, isNitroV3: boolean): void {
   nitro.hooks.hook('rollup:before', (nitro, rollupConfig) => {
     if (!rollupConfig.plugins) {
       rollupConfig.plugins = [];
@@ -30,7 +31,7 @@ export function addMiddlewareInstrumentation(nitro: Nitro): void {
       rollupConfig.plugins = [rollupConfig.plugins];
     }
 
-    rollupConfig.plugins.push(middlewareInstrumentationPlugin(nitro));
+    rollupConfig.plugins.push(middlewareInstrumentationPlugin(nitro, isNitroV3));
   });
 }
 
@@ -38,10 +39,12 @@ export function addMiddlewareInstrumentation(nitro: Nitro): void {
  * Creates a rollup plugin for the middleware instrumentation by transforming the middleware code.
  *
  * @param nitro Nitro instance
+ * @param isNitroV3 Whether the app builds with Nitro v3 (Nuxt 5)
  * @returns The rollup plugin for the middleware instrumentation.
  */
-function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
+function middlewareInstrumentationPlugin(nitro: Nitro, isNitroV3: boolean): InputPluginOption {
   const middlewareFiles = new Set<string>();
+  const wrapperModule = isNitroV3 ? '#imports/server' : '#imports';
 
   return {
     name: 'sentry-nuxt-middleware-instrumentation',
@@ -58,7 +61,7 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
       if (middlewareFiles.has(id)) {
         const fileName = path.basename(id);
         return {
-          code: wrapMiddlewareCode(code, fileName),
+          code: wrapMiddlewareCode(code, fileName, wrapperModule),
           map: null,
         };
       }
@@ -72,15 +75,16 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
  *
  * @param originalCode The original user code of the middleware.
  * @param fileName The name of the middleware file, used for the span name and logging.
+ * @param wrapperModule Import specifier resolving to `wrapMiddlewareHandlerWithSentry`.
  *
  * @returns The wrapped user code of the middleware.
  */
-function wrapMiddlewareCode(originalCode: string, fileName: string): string {
+function wrapMiddlewareCode(originalCode: string, fileName: string, wrapperModule: string): string {
   // Remove common file extensions
   const cleanFileName = fileName.replace(/\.(ts|js|mjs|mts|cts)$/, '');
 
   return `
-import { wrapMiddlewareHandlerWithSentry } from '#imports';
+import { wrapMiddlewareHandlerWithSentry } from '${wrapperModule}';
 
 function defineInstrumentedEventHandler(handlerOrObject) {
   return defineEventHandler(wrapMiddlewareHandlerWithSentry(handlerOrObject, '${cleanFileName}'));

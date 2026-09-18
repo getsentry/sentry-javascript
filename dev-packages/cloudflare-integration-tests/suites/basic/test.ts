@@ -21,6 +21,7 @@ it('Basic error in fetch handler', async ({ signal }) => {
             ],
           },
           request: {
+            cookies: {},
             headers: expect.any(Object),
             method: 'GET',
             url: expect.any(String),

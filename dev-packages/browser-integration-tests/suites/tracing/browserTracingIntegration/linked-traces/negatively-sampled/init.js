@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/browser';
 window.Sentry = Sentry;
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   // We want to ignore redirects for this test
   integrations: [Sentry.browserTracingIntegration({ detectRedirects: false })],

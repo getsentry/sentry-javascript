@@ -10,6 +10,7 @@ window.Replay = Sentry.replayIntegration({
 });
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   sampleRate: 1,
   replaysSessionSampleRate: 1.0,

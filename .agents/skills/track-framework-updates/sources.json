@@ -201,7 +201,7 @@
     },
     {
       "name": "TanStack Start",
-      "sentryPackages": ["@sentry/tanstackstart", "@sentry/tanstackstart-react"],
+      "sentryPackages": ["@sentry/tanstackstart-react"],
       "category": "meta-framework",
       "github": {
         "repo": "TanStack/router",

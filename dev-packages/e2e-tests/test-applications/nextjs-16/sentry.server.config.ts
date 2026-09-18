@@ -6,10 +6,8 @@ Sentry.init({
   dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
-  dataCollection: { userInfo: true },
   // debug: true,
   integrations: [Sentry.vercelAIIntegration(), Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 })],
-  streamGenAiSpans: true,
   // Verify Log type is available
   beforeSendLog(log: Log) {
     return log;

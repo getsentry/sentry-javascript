@@ -7,11 +7,10 @@ import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
-import { getVercelEnv } from '../common/getVercelEnv';
+import { getClientVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
-import { INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME } from './routing/appRouterRoutingInstrumentation';
 import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
@@ -19,8 +18,6 @@ export * from '@sentry/react';
 export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
-// Override core span methods with Next.js-specific implementations that support Cache Components
-export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/nextSpan';
 export { browserTracingIntegration } from './browserTracingIntegration';
 export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
 
@@ -53,7 +50,7 @@ export function init(options: BrowserOptions): Client | undefined {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
       );
     });
   }
@@ -65,7 +62,7 @@ export function init(options: BrowserOptions): Client | undefined {
   }
 
   const opts = {
-    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(true) || process.env.NODE_ENV,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getClientVercelEnv() || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
@@ -76,12 +73,8 @@ export function init(options: BrowserOptions): Client | undefined {
 
   opts.ignoreSpans = [
     ...(opts.ignoreSpans || []),
-    // we filter out segment spans for /404 pages
+    // we filter out segment spans for /404 pages (exact match, so a string match isn't safe)
     /^\/404$/,
-    // segment spans where we didn't get a reasonable transaction name
-    // in this case, constructing a dynamic RegExp is fine because the variable is a constant
-    // we need to ensure to exact-match, so a string match isn't safe (same for /404 above)
-    new RegExp(`^${INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME}$`),
   ];
 
   const client = reactInit(opts);
@@ -139,11 +132,4 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   );
 
   return customDefaultIntegrations;
-}
-
-/**
- * Just a passthrough in case this is imported from the client.
- */
-export function withSentryConfig<T>(exportedUserNextConfig: T): T {
-  return exportedUserNextConfig;
 }

@@ -4,9 +4,7 @@ import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
   selector: 'app-sample-component',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div>Component</div>
-  `,
+  template: ` <div>Component</div> `,
 })
 export class SampleComponent implements OnInit {
   ngOnInit() {

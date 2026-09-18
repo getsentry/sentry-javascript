@@ -10,10 +10,10 @@ test(import.meta.url, ({ runBundler, readOutputFiles, runFileInNode }) => {
     //# sourceMappingURL=basic.js.map
     ",
       "basic.js.map": "{"version":3,"file":"basic.js","sources":["../../src/basic.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"hello world\\");\\n"],"names":[],"mappings":"AAAA,CAAA,CAAA,CAAA,MAAA,CAAA,OAAA,CAAA,IAAA,CAAA,IAAA,CAAA,EAAA,CAAA;scACA,OAAO,CAAC,GAAG,CAAC,CAAA,KAAA,CAAA,KAAA,CAAa,CAAC"}",
-      "sentry-cli-mock.json": "["releases","new","CURRENT_SHA"],
-    ["releases","set-commits","CURRENT_SHA","--auto","--ignore-missing"],
-    ["releases","finalize","CURRENT_SHA"],
-    ["sourcemaps","upload","-p","fake-project","--release","CURRENT_SHA","sentry-bundler-plugin-upload-path","--ignore","node_modules","--no-rewrite"],
+      "sentry-cli-mock.json": "["release","create","CURRENT_SHA","--project","fake-project"],
+    ["release","set-commits","CURRENT_SHA","--auto"],
+    ["release","finalize","CURRENT_SHA"],
+    ["sourcemap","upload","-p","fake-project","--release","CURRENT_SHA","sentry-bundler-plugin-upload-path"],
     ",
     }
   `);

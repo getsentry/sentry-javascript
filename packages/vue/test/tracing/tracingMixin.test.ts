@@ -121,7 +121,7 @@ describe('Vue Tracing Mixins', () => {
       expect(startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Application Render',
-          op: 'ui.vue.render',
+          attributes: expect.objectContaining({ 'sentry.op': 'ui.render' }),
         }),
       );
     });
@@ -158,7 +158,7 @@ describe('Vue Tracing Mixins', () => {
       expect(startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Vue TestComponent',
-          op: 'ui.vue.mount',
+          attributes: expect.objectContaining({ 'sentry.op': 'ui.mount' }),
         }),
       );
       expect(mockVueInstance.$_sentryComponentSpans.mount).toBeDefined();
@@ -227,7 +227,7 @@ describe('Vue Tracing Mixins', () => {
       expect(startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Vue TestComponent',
-          op: 'ui.vue.mount',
+          attributes: expect.objectContaining({ 'sentry.op': 'ui.mount' }),
         }),
       );
     });

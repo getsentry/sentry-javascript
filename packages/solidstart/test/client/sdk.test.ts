@@ -26,7 +26,7 @@ describe('Initialize Solid Start SDK', () => {
           ],
           version: SDK_VERSION,
           settings: {
-            infer_ip: 'never',
+            infer_ip: 'auto',
           },
         },
       },

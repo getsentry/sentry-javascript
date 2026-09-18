@@ -31,9 +31,9 @@ export function init(options: RemixOptions): NodeClient | undefined {
     return;
   }
 
-  options.defaultIntegrations = getRemixDefaultIntegrations(options as NodeOptions);
+  options.defaultIntegrations = getRemixDefaultIntegrations(options);
 
-  const client = nodeInit(options as NodeOptions);
+  const client = nodeInit(options);
 
   instrumentServer();
 

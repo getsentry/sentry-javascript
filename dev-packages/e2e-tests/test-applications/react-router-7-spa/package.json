@@ -11,7 +11,7 @@
     "react-router": "^7.13.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "vite": "^6.4.2",
     "@vitejs/plugin-react": "^4.3.4",
@@ -24,7 +24,6 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:build-ts3.8": "pnpm install && pnpm add typescript@3.8 && pnpm build",
     "test:build-canary": "pnpm install && pnpm add react@canary react-dom@canary && pnpm build",
     "test:assert": "pnpm test"
   },
@@ -48,18 +47,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sentryTest": {
-    "variants": [
-      {
-        "build-command": "pnpm test:build-ts3.8",
-        "label": "react-router-7-spa (TS 3.8)"
-      }
-    ]
-  },
-  "pnpm": {
-    "overrides": {
-      "esbuild": "0.24.0"
-    }
   }
 }

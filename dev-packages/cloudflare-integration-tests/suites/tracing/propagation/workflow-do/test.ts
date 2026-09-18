@@ -15,9 +15,9 @@ it('traces a workflow that calls a durable object with the same trace id', async
         expect.objectContaining({
           contexts: expect.objectContaining({
             trace: expect.objectContaining({
-              op: 'function.step.do',
+              op: 'function',
               data: expect.objectContaining({
-                'sentry.op': 'function.step.do',
+                'sentry.op': 'function',
                 'sentry.origin': 'auto.faas.cloudflare.workflow',
               }),
               origin: 'auto.faas.cloudflare.workflow',

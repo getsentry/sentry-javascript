@@ -1,11 +1,5 @@
-import type {
-  BrowserClientReplayOptions,
-  Client,
-  Integration,
-  IntegrationFn,
-  ReplayRecordingMode,
-  StreamedSpanJSON,
-} from '@sentry/core';
+import type { Client, Integration, IntegrationFn, ReplayRecordingMode, StreamedSpanJSON } from '@sentry/core';
+import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 import { consoleSandbox, GLOBAL_OBJ, isBrowser, parseSampleRate, safeSetSpanJSONAttributes } from '@sentry/core';
 import {
   DEFAULT_FLUSH_MAX_DELAY,

@@ -32,7 +32,7 @@ const lambdaMaxInitInMilliseconds = 10_000;
 type LambdaEvent = Parameters<typeof getAwsTraceData>[0];
 
 /**
- * Wraps a Lambda handler with full auto-instrumentation: a `function.aws.lambda`
+ * Wraps a Lambda handler with full auto-instrumentation: a `function.aws`
  * transaction that continues incoming traces, plus the scope, error-capture, timeout
  * warning, and flushing behavior of {@link wrapHandler}.
  *

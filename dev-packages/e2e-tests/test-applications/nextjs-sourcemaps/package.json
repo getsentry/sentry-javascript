@@ -10,13 +10,13 @@
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
-    "next": "16.2.3",
+    "next": "16.2.11",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^18.19.1",
     "@types/react": "^19",

@@ -7,7 +7,6 @@ Sentry.init({
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
-  enableLogs: true,
   traceLifecycle: 'stream',
   integrations: [
     Sentry.spanStreamingIntegration(),
@@ -97,8 +96,6 @@ app.get('/test-local-variables-caught', function (req, res) {
 
   res.send({ exceptionId, randomVariableToRecord });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 // @ts-ignore
 app.use(function onError(err, req, res, next) {

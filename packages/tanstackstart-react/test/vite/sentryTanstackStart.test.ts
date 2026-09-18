@@ -41,6 +41,17 @@ const mockRoutePatternPlugin: Plugin = {
   config: vi.fn(),
 };
 
+// Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
+// Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
+const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
+  name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-vite',
+}));
+vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
+  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
+}));
+
+const mockOrchestrionPlugin: Plugin = { name: 'sentry-orchestrion-vite' };
+
 vi.mock('../../src/vite/routePatterns', () => ({
   makeRoutePatternPlugin: vi.fn(() => mockRoutePatternPlugin),
 }));
@@ -74,13 +85,14 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockEnableSourceMapsPlugin,
       ]);
     });
 
-    it('returns no plugins in development mode when tunnelRoute is not configured', () => {
+    it('returns no build-time plugins in development mode when tunnelRoute is not configured', () => {
       process.env.NODE_ENV = 'development';
 
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
@@ -105,7 +117,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockOrchestrionPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+      ]);
     });
 
     it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is "disable-upload"', () => {
@@ -114,7 +131,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: 'disable-upload' },
       });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockOrchestrionPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+      ]);
     });
 
     it('returns Sentry Vite plugins and enable source maps plugin when sourcemaps.disable is false', () => {
@@ -125,6 +147,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockEnableSourceMapsPlugin,
@@ -138,6 +161,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockMiddlewarePlugin,
@@ -152,6 +176,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockMiddlewarePlugin,
@@ -164,7 +189,12 @@ describe('sentryTanstackStart()', () => {
         sourcemaps: { disable: true },
       });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockOrchestrionPlugin,
+        mockSourceMapsConfigPlugin,
+        mockSentryVitePlugin,
+      ]);
     });
 
     it('passes correct options to makeAutoInstrumentMiddlewarePlugin', () => {
@@ -193,6 +223,7 @@ describe('sentryTanstackStart()', () => {
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
         mockTunnelRoutePlugin,
+        mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockMiddlewarePlugin,
@@ -211,6 +242,35 @@ describe('sentryTanstackStart()', () => {
       sentryTanstackStart(options);
 
       expect(makeTunnelRoutePlugin).toHaveBeenCalledWith(options.tunnelRoute, undefined);
+    });
+  });
+
+  describe('orchestrion build-time instrumentation', () => {
+    it('adds the orchestrion plugin by default', () => {
+      const plugins = sentryTanstackStart({ sourcemaps: { disable: true } });
+
+      expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+      expect(plugins.map(plugin => plugin.name)).toContain('sentry-orchestrion-vite');
+    });
+
+    it('does not add the orchestrion plugin in development mode', () => {
+      process.env.NODE_ENV = 'development';
+
+      const plugins = sentryTanstackStart({ sourcemaps: { disable: true } });
+
+      // Orchestrion force-bundles the instrumented (CommonJS) deps via `ssr.noExternal`, which the
+      // `vite dev` SSR module runner can't evaluate — so it's a production-only transform.
+      expect(orchestrionVite).not.toHaveBeenCalled();
+      expect(plugins.map(plugin => plugin.name)).not.toContain('sentry-orchestrion-vite');
+    });
+
+    it('adds an inert orchestrion plugin when `buildTimeInstrumentation` is `false`', () => {
+      const plugins = sentryTanstackStart({ buildTimeInstrumentation: false, sourcemaps: { disable: true } });
+      const pluginNames = plugins.map(plugin => plugin.name);
+
+      expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: false });
+      expect(pluginNames).toContain('sentry-orchestrion-disabled');
+      expect(pluginNames).not.toContain('sentry-orchestrion-vite');
     });
   });
 });

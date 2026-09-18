@@ -8,8 +8,9 @@ import type { Integration } from '../types/integration';
 import type { Log, SerializedLog } from '../types/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
+import { CALLBACK_ERROR, safeCallback } from '../utils/safeCallback';
 import { getCombinedScopeData } from '../utils/scopeData';
-import { _getSpanForScope } from '../utils/spanOnScope';
+import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
@@ -84,11 +85,7 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { release, environment, enableLogs = false, beforeSendLog } = client.getOptions();
-  if (!enableLogs) {
-    DEBUG_BUILD && debug.warn('logging option not enabled, log will not be captured.');
-    return;
-  }
+  const { release, environment, beforeSendLog } = client.getOptions();
 
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
 
@@ -98,7 +95,7 @@ export function _INTERNAL_captureLog(
 
   const {
     user: { id, email, username },
-    attributes: scopeAttributes = {},
+    attributes: scopeAttributes,
   } = getCombinedScopeData(getIsolationScope(), currentScope);
 
   setLogAttribute(processedLogAttributes, 'user.id', id, false);
@@ -138,7 +135,7 @@ export function _INTERNAL_captureLog(
     });
   }
 
-  const span = _getSpanForScope(currentScope);
+  const span = getActiveSpan(currentScope);
   // Add the parent span ID to the log attributes for trace context
   setLogAttribute(processedLogAttributes, 'sentry.trace.parent_span_id', span?.spanContext().spanId);
 
@@ -146,8 +143,18 @@ export function _INTERNAL_captureLog(
 
   client.emit('beforeCaptureLog', processedLog);
 
-  // We need to wrap this in `consoleSandbox` to avoid recursive calls to `beforeSendLog`
-  const log = beforeSendLog ? consoleSandbox(() => beforeSendLog(processedLog)) : processedLog;
+  const log = beforeSendLog
+    ? safeCallback<Log | null | typeof CALLBACK_ERROR>(
+        DEBUG_BUILD ? 'The `beforeSendLog` callback threw an error, dropping the log:' : '',
+        // We need to wrap this in `consoleSandbox` to avoid recursive calls to `beforeSendLog`
+        () => consoleSandbox(() => beforeSendLog(processedLog)),
+        () => CALLBACK_ERROR,
+      )
+    : processedLog;
+  if (log === CALLBACK_ERROR) {
+    client.recordDroppedEvent('callback_error', 'log_item', 1);
+    return;
+  }
   if (!log) {
     client.recordDroppedEvent('before_send', 'log_item', 1);
     DEBUG_BUILD && debug.warn('beforeSendLog returned null, log will not be captured.');

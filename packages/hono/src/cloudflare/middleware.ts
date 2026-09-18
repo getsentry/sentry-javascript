@@ -19,14 +19,18 @@ export function sentry<E extends Env>(
 ): MiddlewareHandler {
   withSentry(
     env => {
-      const honoOptions = typeof options === 'function' ? options(env as E['Bindings']) : options;
+      const honoOptions = typeof options === 'function' ? options(env) : options;
 
       applySdkMetadata(honoOptions, 'hono', ['hono', 'cloudflare']);
 
       honoOptions.debug && debug.log('Initialized Sentry Hono middleware (Cloudflare)');
 
+      // `shouldHandleError` is a middleware option, not an SDK option — it is read from
+      // `options` directly in the response handler below.
+      const { shouldHandleError: _shouldHandleError, ...sdkOptions } = honoOptions;
+
       return {
-        ...honoOptions,
+        ...sdkOptions,
         ignoreSpans: [...(honoOptions.ignoreSpans || []), ...LOW_QUALITY_TRANSACTION_PATTERNS],
         // Always filter out the Hono integration from defaults and user integrations.
         // The Hono integration is already set up by withSentry, so adding it again would cause capturing too early (in Cloudflare SDK) and non-parametrized URLs.

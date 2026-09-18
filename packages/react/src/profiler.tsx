@@ -1,8 +1,9 @@
 import { startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
+import { SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { UI_MOUNT, UI_RENDER, UI_UPDATE } from '@sentry/conventions/op';
 import * as React from 'react';
-import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 export const UNKNOWN_COMPONENT = 'unknown';
@@ -49,10 +50,10 @@ class Profiler extends React.Component<ProfilerProps> {
     this._mountSpan = startInactiveSpan({
       name: `<${name}>`,
       onlyIfParent: true,
-      op: REACT_MOUNT_OP,
       attributes: {
+        [SENTRY_OP]: UI_MOUNT,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        'ui.component_name': name,
+        [UI_COMPONENT_NAME]: name,
       },
     });
   }
@@ -78,11 +79,11 @@ class Profiler extends React.Component<ProfilerProps> {
           return startInactiveSpan({
             name: `<${this.props.name}>`,
             onlyIfParent: true,
-            op: REACT_UPDATE_OP,
             startTime: now,
             attributes: {
+              [SENTRY_OP]: UI_UPDATE,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-              'ui.component_name': this.props.name,
+              [UI_COMPONENT_NAME]: this.props.name,
               'ui.react.changed_props': changedProps,
             },
           });
@@ -107,16 +108,16 @@ class Profiler extends React.Component<ProfilerProps> {
     const { name, includeRender = true } = this.props;
 
     if (this._mountSpan && includeRender) {
-      const startTime = spanToJSON(this._mountSpan).timestamp;
+      const startTime = spanToJSON(this._mountSpan).end_timestamp;
       withActiveSpan(this._mountSpan, () => {
         const renderSpan = startInactiveSpan({
           onlyIfParent: true,
           name: `<${name}>`,
-          op: REACT_RENDER_OP,
           startTime,
           attributes: {
+            [SENTRY_OP]: UI_RENDER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            'ui.component_name': name,
+            [UI_COMPONENT_NAME]: name,
           },
         });
         if (renderSpan) {
@@ -177,7 +178,6 @@ function withProfiler<P extends Record<string, any>>(
  *
  * `useProfiler` is a React hook that profiles a React component.
  *
- * Requires React 16.8 or above.
  * @param name displayName of component being profiled
  */
 function useProfiler(
@@ -195,10 +195,10 @@ function useProfiler(
     return startInactiveSpan({
       name: `<${name}>`,
       onlyIfParent: true,
-      op: REACT_MOUNT_OP,
       attributes: {
+        [SENTRY_OP]: UI_MOUNT,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        'ui.component_name': name,
+        [UI_COMPONENT_NAME]: name,
       },
     });
   });
@@ -210,17 +210,17 @@ function useProfiler(
 
     return (): void => {
       if (mountSpan && options.hasRenderSpan) {
-        const startTime = spanToJSON(mountSpan).timestamp;
+        const startTime = spanToJSON(mountSpan).end_timestamp;
         const endTimestamp = timestampInSeconds();
 
         const renderSpan = startInactiveSpan({
           name: `<${name}>`,
           onlyIfParent: true,
-          op: REACT_RENDER_OP,
           startTime,
           attributes: {
+            [SENTRY_OP]: UI_RENDER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            'ui.component_name': name,
+            [UI_COMPONENT_NAME]: name,
           },
         });
         if (renderSpan) {

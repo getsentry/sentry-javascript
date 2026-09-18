@@ -3,9 +3,13 @@ await import('./src/env.js');
 /** @type {import("next").NextConfig} */
 const config = {};
 
-import { withSentryConfig } from '@sentry/nextjs';
+import { withSentryConfig } from '@sentry/nextjs/config';
 
 export default withSentryConfig(config, {
-  disableLogger: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
   silent: true,
 });

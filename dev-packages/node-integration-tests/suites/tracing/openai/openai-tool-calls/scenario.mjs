@@ -1,4 +1,3 @@
-import { instrumentOpenAiClient } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 
 class MockOpenAIToolCalls {
@@ -240,7 +239,7 @@ async function run() {
       apiKey: 'mock-api-key',
     });
 
-    const client = instrumentOpenAiClient(mockClient);
+    const client = Sentry.instrumentOpenAiClient(mockClient);
 
     const weatherTool = {
       type: 'function',

@@ -1,13 +1,9 @@
-import type { ExportedHandler, MessageBatch } from '@cloudflare/workers-types';
+import type { MessageBatch } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
-import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
-  withIsolationScope,
-} from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { QUEUE_PROCESS } from '@sentry/conventions/op';
+import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
@@ -15,6 +11,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
 
 /**
@@ -29,6 +26,8 @@ function wrapQueueHandler(
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
 
+    setInvocationState(isolationScope, { ctx: context });
+
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
@@ -36,9 +35,9 @@ function wrapQueueHandler(
 
     return startSpan(
       {
-        op: 'faas.queue',
         name: `process ${batch.queue}`,
         attributes: {
+          [SENTRY_OP]: QUEUE_PROCESS,
           'faas.trigger': 'pubsub',
           'messaging.destination.name': batch.queue,
           'messaging.system': 'cloudflare',
@@ -46,9 +45,8 @@ function wrapQueueHandler(
           'messaging.operation.name': 'process',
           'messaging.batch.message_count': batch.messages.length,
           'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.queue',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         },
       },
       async () => {
@@ -68,8 +66,7 @@ function wrapQueueHandler(
 /**
  * Instruments a queue handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerQueue<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerQueue<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {

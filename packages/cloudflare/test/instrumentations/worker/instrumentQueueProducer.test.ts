@@ -36,7 +36,6 @@ describe('instrumentQueueProducer', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const [spanCtx] = startSpanSpy.mock.calls[0]!;
       expect(spanCtx).toMatchObject({
-        op: 'queue.publish',
         name: 'send MY_QUEUE',
         attributes: {
           'messaging.system': 'cloudflare',
@@ -108,7 +107,6 @@ describe('instrumentQueueProducer', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const [spanCtx] = startSpanSpy.mock.calls[0]!;
       expect(spanCtx).toMatchObject({
-        op: 'queue.publish',
         name: 'send MY_QUEUE',
         attributes: {
           'messaging.system': 'cloudflare',

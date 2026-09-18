@@ -1,4 +1,6 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 export const mysqlConfig = [
   {
@@ -7,6 +9,8 @@ export const mysqlConfig = [
     functionQuery: { expressionName: 'query', kind: 'Auto' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const mysqlModuleNames = getModuleNames(mysqlConfig);
 
 export const mysqlChannels = {
   MYSQL_QUERY: 'orchestrion:mysql:query',

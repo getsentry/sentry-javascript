@@ -4,6 +4,7 @@ import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry
 export type TestAPIResponse = { test_data: { host: string; 'sentry-trace': string; baggage: string } };
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@o01234987.ingest.sentry.io/1337',
   release: '1.0',
   environment: 'prod',
@@ -28,7 +29,5 @@ app.get('/test/express', (_req, res) => {
 
   res.send({ test_data: headers });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

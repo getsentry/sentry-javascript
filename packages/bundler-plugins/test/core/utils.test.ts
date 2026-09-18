@@ -6,7 +6,6 @@ import {
   getPackageJson,
   parseMajorVersion,
   replaceBooleanFlagsInCode,
-  serializeIgnoreOptions,
   stringToUUID,
 } from '../../src/core/utils';
 
@@ -61,6 +60,21 @@ describe('getPackageJson', () => {
     });
 
     expect(packageJson).toBeUndefined();
+  });
+
+  test('it stops at the file system root when `stopAt` is never reached', () => {
+    const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+
+    try {
+      const packageJson = getPackageJson({
+        cwd: getCwdFor('/fixtures/no-valid-package/deeply/nested'),
+        stopAt: getCwdFor('/fixtures/this-directory-is-not-an-ancestor'),
+      });
+
+      expect(packageJson).toBeUndefined();
+    } finally {
+      existsSyncSpy.mockRestore();
+    }
   });
 });
 
@@ -267,28 +281,6 @@ describe('generateModuleMetadataInjectorCode', () => {
       },
     });
     expect(generatedCode.code()).toMatchSnapshot();
-  });
-});
-
-describe('serializeIgnoreOptions', () => {
-  it('returns default ignore options when undefined', () => {
-    const result = serializeIgnoreOptions(undefined);
-    expect(result).toEqual(['--ignore', 'node_modules']);
-  });
-
-  it('handles array of ignore patterns', () => {
-    const result = serializeIgnoreOptions(['dist', '**/build/**', '*.log']);
-    expect(result).toEqual(['--ignore', 'dist', '--ignore', '**/build/**', '--ignore', '*.log']);
-  });
-
-  it('handles single string pattern', () => {
-    const result = serializeIgnoreOptions('dist');
-    expect(result).toEqual(['--ignore', 'dist']);
-  });
-
-  it('handles empty array', () => {
-    const result = serializeIgnoreOptions([]);
-    expect(result).toEqual([]);
   });
 });
 

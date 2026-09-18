@@ -1,5 +1,5 @@
-import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core/browser';
-import { createTransport, makePromiseBuffer } from '@sentry/core/browser';
+import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
+import { createTransport, makePromiseBuffer } from '@sentry/core';
 import { clearCachedImplementation, getNativeImplementation } from '@sentry/browser-utils';
 import type { WINDOW } from '../helpers';
 import type { BrowserTransportOptions } from './types';
@@ -22,7 +22,7 @@ export function makeFetchTransport(
     pendingCount++;
 
     const requestOptions: RequestInit = {
-      body: request.body,
+      body: request.body as BodyInit,
       method: 'POST',
       referrerPolicy: 'strict-origin',
       headers: options.headers,

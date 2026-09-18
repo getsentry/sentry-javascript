@@ -6,18 +6,19 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 
 sentryTest(
@@ -63,7 +64,7 @@ sentryTest(
         { content_type: 'application/vnd.sentry.items.span.v2+json', item_count: 4, type: 'span' },
         {
           version: 2,
-          ingest_settings: { infer_ip: 'never', infer_user_agent: 'never' },
+          ingest_settings: { infer_ip: 'auto', infer_user_agent: 'auto' },
           items: expect.any(Array),
         },
       ],
@@ -107,6 +108,10 @@ sentryTest(
             type: 'string',
             value: 'stream',
           },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -146,6 +151,10 @@ sentryTest(
           [SENTRY_TRACE_LIFECYCLE]: {
             type: 'string',
             value: 'stream',
+          },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
           },
         },
         end_timestamp: expect.any(Number),
@@ -191,6 +200,10 @@ sentryTest(
             type: 'string',
             value: 'stream',
           },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -215,7 +228,7 @@ sentryTest(
             type: 'string',
             value: expect.any(String),
           },
-          'http.request.header.user_agent': {
+          [USER_AGENT_ORIGINAL]: {
             type: 'string',
             value: expect.any(String),
           },
@@ -255,11 +268,7 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
-            type: 'string',
-            value: 'custom',
-          },
-          'sentry.segment.name.source': {
+          [SENTRY_SEGMENT_NAME_SOURCE]: {
             type: 'string',
             value: 'custom',
           },

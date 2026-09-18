@@ -179,7 +179,7 @@ it('propagates trace from scheduled handler to durable object', async ({ signal 
         expect.objectContaining({
           contexts: expect.objectContaining({
             trace: expect.objectContaining({
-              op: 'faas.cron',
+              op: 'function',
               data: expect.objectContaining({
                 'sentry.origin': 'auto.faas.cloudflare.scheduled',
               }),

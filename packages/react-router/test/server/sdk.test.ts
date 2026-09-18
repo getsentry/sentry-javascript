@@ -1,4 +1,5 @@
 import type { Integration } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
@@ -13,10 +14,7 @@ describe('React Router server SDK', () => {
     afterEach(() => {
       vi.clearAllMocks();
 
-      SentryNode.getGlobalScope().clear();
-      SentryNode.getIsolationScope().clear();
-      SentryNode.getCurrentScope().clear();
-      SentryNode.getCurrentScope().setClient(undefined);
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     it('adds React Router metadata to the SDK options', () => {

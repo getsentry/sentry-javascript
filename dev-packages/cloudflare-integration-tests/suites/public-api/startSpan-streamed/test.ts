@@ -7,9 +7,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import {
+  SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_SEGMENT_ID,
@@ -199,9 +199,8 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.server' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { type: 'string', value: 'route' },
+          [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'route' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-          'sentry.segment.name.source': { type: 'string', value: 'route' },
           'server.address': {
             type: 'string',
             value: 'localhost',
@@ -227,32 +226,36 @@ it('sends a streamed span envelope with correct spans for a manually started spa
             value: 'node',
           },
           'http.request.header.accept': {
-            type: 'string',
-            value: '*/*',
+            type: 'array',
+            value: ['*/*'],
           },
-          'http.request.header.accept_encoding': {
-            type: 'string',
-            value: 'br, gzip',
+          'http.request.header.accept-encoding': {
+            type: 'array',
+            value: ['br, gzip'],
           },
-          'http.request.header.accept_language': {
-            type: 'string',
-            value: '*',
+          'http.request.header.accept-language': {
+            type: 'array',
+            value: ['*'],
           },
-          'http.request.header.cf_connecting_ip': {
+          'http.request.header.cf-connecting-ip': {
+            type: 'array',
+            value: ['127.0.0.1'],
+          },
+          'user.ip_address': {
             type: 'string',
-            value: '[Filtered]',
+            value: '127.0.0.1',
           },
           'http.request.header.host': {
-            type: 'string',
-            value: expect.stringMatching(/^localhost:.+$/),
+            type: 'array',
+            value: [expect.stringMatching(/^localhost:.+$/)],
           },
-          'http.request.header.sec_fetch_mode': {
-            type: 'string',
-            value: 'cors',
+          'http.request.header.sec-fetch-mode': {
+            type: 'array',
+            value: ['cors'],
           },
-          'http.request.header.user_agent': {
-            type: 'string',
-            value: 'node',
+          'http.request.header.user-agent': {
+            type: 'array',
+            value: ['node'],
           },
           'http.request.method': {
             type: 'string',
@@ -272,7 +275,11 @@ it('sends a streamed span envelope with correct spans for a manually started spa
           },
           'network.protocol.name': {
             type: 'string',
-            value: 'HTTP/1.1',
+            value: 'http',
+          },
+          'network.protocol.version': {
+            type: 'string',
+            value: '1.1',
           },
         },
         is_segment: true,

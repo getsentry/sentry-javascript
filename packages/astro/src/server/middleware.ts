@@ -1,16 +1,31 @@
 /* eslint-disable max-lines */
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_QUERY,
+} from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  flushIfServerless,
   getIsolationScope,
   getRootSpan,
+  getUrlFragment,
+  getUrlQuery,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   objectify,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
-  stripUrlQueryAndFragment,
   winterCGRequestToRequestData,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import {
   captureException,
   continueTrace,
@@ -20,13 +35,13 @@ import {
   getTraceMetaTags,
   httpHeadersToSpanAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpan,
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/node';
-import type { APIContext, MiddlewareResponseHandler, RoutePart } from 'astro';
+import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
+import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 
 type MiddlewareOptions = {
   /**
@@ -38,7 +53,7 @@ type MiddlewareOptions = {
    *
    * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
    *
-   * @default false (recommended)
+   * @default `dataCollection.userInfo` (`true` unless disabled)
    */
   trackClientIp?: boolean;
 };
@@ -62,11 +77,8 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
   __sentry_wrapped__?: boolean;
 };
 
-export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseHandler = options => {
-  const handlerOptions = {
-    trackClientIp: false,
-    ...options,
-  };
+export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler = options => {
+  const handlerOptions = { ...options };
 
   return async (ctx, next) => {
     // If no Sentry client exists, just bail
@@ -93,7 +105,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
     // if there is an active span, we just want to enhance it with routing data etc.
-    if (rootSpan && spanToJSON(rootSpan).op === 'http.server') {
+    if (rootSpan && spanToJSON(rootSpan).attributes[SENTRY_OP] === 'http.server') {
       return enhanceHttpServerSpan(ctx, next, rootSpan);
     }
 
@@ -101,10 +113,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
   };
 };
 
-async function handleStaticRoute(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
-): Promise<Response> {
+async function handleStaticRoute(ctx: APIContext, next: MiddlewareNext): Promise<Response> {
   const parametrizedRoute = getParametrizedRoute(ctx);
   try {
     const originalResponse = await next();
@@ -119,11 +128,7 @@ async function handleStaticRoute(
   }
 }
 
-async function enhanceHttpServerSpan(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
-  rootSpan: Span,
-): Promise<Response> {
+async function enhanceHttpServerSpan(ctx: APIContext, next: MiddlewareNext, rootSpan: Span): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
   const locals = ctx.locals as AstroLocalsWithSentry | undefined;
   if (locals?.__sentry_wrapped__) {
@@ -147,11 +152,7 @@ async function enhanceHttpServerSpan(
     });
 
     if (parametrizedRoute) {
-      rootSpan.setAttributes({
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        'http.route': parametrizedRoute,
-      });
-
+      setHttpServerSpanRouteAttribute(parametrizedRoute);
       isolationScope.setTransactionName(`${method} ${parametrizedRoute}`);
     }
 
@@ -169,8 +170,8 @@ async function enhanceHttpServerSpan(
 }
 
 async function instrumentRequestStartHttpServerSpan(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
+  ctx: APIContext,
+  next: MiddlewareNext,
   options: MiddlewareOptions,
 ): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
@@ -183,6 +184,10 @@ async function instrumentRequestStartHttpServerSpan(
   }
 
   const request = ctx.request;
+  const client = getClient();
+  if (!client) {
+    return next();
+  }
 
   // Note: We guard outside of this function call that the request is dynamic
   // accessing headers on a static route would throw
@@ -201,7 +206,8 @@ async function instrumentRequestStartHttpServerSpan(
           normalizedRequest: winterCGRequestToRequestData(request),
         });
 
-        if (options.trackClientIp) {
+        // The integration option wins when set; otherwise `dataCollection.userInfo` decides.
+        if (options.trackClientIp ?? client.getDataCollectionOptions().userInfo) {
           isolationScope.setUser({ ip_address: ctx.clientAddress });
         }
 
@@ -213,37 +219,39 @@ async function instrumentRequestStartHttpServerSpan(
           // invoke the catch block if next() throws
 
           const attributes: SpanAttributes = {
+            [SENTRY_OP]: HTTP_SERVER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            [SENTRY_SEGMENT_NAME_SOURCE]: source,
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
             // This is here for backwards compatibility, we used to set this here before
             method,
-            url: stripUrlQueryAndFragment(ctx.url.href),
-            ...httpHeadersToSpanAttributes(
-              winterCGHeadersToDict(request.headers),
-              getClient()?.getDataCollectionOptions() ?? false,
-            ),
+            [URL_FULL]: filterCollectedUrl(ctx.url.href),
+            [URL_PATH]: ctx.url.pathname,
+            ...httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), client.getDataCollectionOptions()),
           };
 
           if (parametrizedRoute) {
-            attributes['http.route'] = parametrizedRoute;
+            attributes[HTTP_ROUTE] = parametrizedRoute;
           }
 
-          if (ctx.url.search) {
-            attributes['http.query'] = ctx.url.search;
-          }
+          attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(ctx.url.search));
+          attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
 
-          if (ctx.url.hash) {
-            attributes['http.fragment'] = ctx.url.hash;
-          }
+          const transactionName = `${method} ${parametrizedRoute || ctx.url.pathname}`;
 
-          isolationScope.setTransactionName(`${method} ${parametrizedRoute || ctx.url.pathname}`);
+          // The scope's transaction name is what error events are grouped by, so it keeps the URL path.
+          isolationScope.setTransactionName(transactionName);
+
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+          const name =
+            parametrizedRoute || !hasSpanStreamingEnabled(client)
+              ? transactionName
+              : method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
           const res = await startSpan(
             {
               attributes,
-              name: `${method} ${parametrizedRoute || ctx.url.pathname}`,
-              op: 'http.server',
+              name,
             },
             async span => {
               try {
@@ -395,7 +403,7 @@ function tryDecodeUrl(url: string): string | undefined {
  * We can check this by looking at the middleware's `clientAddress` context property because accessing
  * this prop in a static route will throw an error which we can conveniently catch.
  */
-function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler>[0]): boolean {
+function checkIsDynamicPageRequest(context: APIContext): boolean {
   try {
     return context.clientAddress != null;
   } catch {
@@ -406,7 +414,8 @@ function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler
 /**
  * Join Astro route segments into a case-sensitive single path string.
  *
- * Astro lowercases the parametrized route. Joining segments manually is recommended to get the correct casing of the routes.
+ * Astro v5 and v6 lowercase the parametrized route. Joining segments manually
+ * is recommended to get the correct casing of the routes.
  * Recommendation in comment: https://github.com/withastro/astro/issues/13885#issuecomment-2934203029
  * Function Reference: https://github.com/joanrieu/astro-typed-links/blob/b3dc12c6fe8d672a2bc2ae2ccc57c8071bbd09fa/package/src/integration.ts#L16
  */
@@ -418,11 +427,9 @@ function joinRouteSegments(segments: RoutePart[][]): string {
   return `/${parthArray.join('/')}`;
 }
 
-function getParametrizedRoute(
-  ctx: Parameters<MiddlewareResponseHandler>[0] & { routePattern?: string },
-): string | undefined {
+function getParametrizedRoute(ctx: APIContext & { routePattern?: string }): string | undefined {
   try {
-    // `routePattern` is available after Astro 5
+    // `routePattern` is available from Astro 5 on.
     const contextWithRoutePattern = ctx;
     const rawRoutePattern = contextWithRoutePattern.routePattern;
 
@@ -441,9 +448,12 @@ function getParametrizedRoute(
     )?.routeData?.segments;
 
     return (
-      // Astro v5+ - Joining the segments to get the correct casing of the parametrized route
+      // Astro v5 and v6 - Joining the segments to get the correct casing of the parametrized route
       (matchedRouteSegmentsFromManifest && joinRouteSegments(matchedRouteSegmentsFromManifest)) ||
-      // Fallback (Astro v4 and earlier)
+      // Astro v7 - the manifest is no longer reachable from the context, but
+      // `routePattern` keeps the author's casing, so it needs no correction.
+      rawRoutePattern ||
+      // Fallback (Astro v4 and earlier, which has no `routePattern`)
       interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params)
     );
   } catch {

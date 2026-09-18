@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
 
 vi.mock('@sentry/core', () => ({
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
   getActiveSpan: vi.fn(),
   getRootSpan: vi.fn(),
@@ -117,6 +116,34 @@ describe('getMetaTagTransformer', () => {
       transformer.write('<html><head>');
       transformer.write('</head><body>Test content</body>');
       transformer.write('</html>');
+      transformer.end();
+    }));
+
+  test('should not corrupt a multi-byte character split across the head-closing chunk', () =>
+    new Promise<void>((resolve, reject) => {
+      const bodyStream = new PassThrough();
+      const transformer = getMetaTagTransformer(bodyStream);
+
+      const outputChunks: Buffer[] = [];
+      bodyStream.on('data', chunk => {
+        outputChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      });
+
+      bodyStream.on('end', () => {
+        try {
+          const output = Buffer.concat(outputChunks).toString('utf-8');
+          expect(output).not.toContain('�');
+          expect(output).toContain('<p>© 2026</p>');
+          expect(output).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
+
+      // `©` is 0xC2 0xA9 in UTF-8; the closing-head chunk ends mid-character.
+      transformer.write(Buffer.from([...Buffer.from('<html><head></head><body><p>'), 0xc2]));
+      transformer.write(Buffer.from([0xa9, ...Buffer.from(' 2026</p></body></html>')]));
       transformer.end();
     }));
 });

@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import bodyParser from 'body-parser';
 import express from 'express';
@@ -25,7 +24,5 @@ app.post('/ignore-request-body', (req, res) => {
     message: 'Payload processed successfully',
   });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

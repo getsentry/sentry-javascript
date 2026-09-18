@@ -1,5 +1,6 @@
-import type { Attachment, Event, EventHint, ViewHierarchyData, ViewHierarchyWindow } from '@sentry/core/browser';
-import { defineIntegration, getComponentName } from '@sentry/core/browser';
+import type { Attachment, Event, EventHint, ViewHierarchyData, ViewHierarchyWindow } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import { getComponentName } from '@sentry/browser-utils';
 import { WINDOW } from '../helpers';
 
 interface OnElementArgs {
@@ -91,6 +92,7 @@ export const viewHierarchyIntegration = defineIntegration((options: Options = {}
       const { x, y, width, height } = child.getBoundingClientRect();
 
       const window: ViewHierarchyWindow = {
+        // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast drops `undefined` to satisfy `identifier: string`; tsc errors without it
         identifier: (child.id || undefined) as string,
         type: componentName || tagName,
         visible: true,
