@@ -11,6 +11,7 @@
 [![npm dt](https://img.shields.io/npm/dt/@sentry/solid-2.svg)](https://www.npmjs.com/package/@sentry/solid-2)
 
 This SDK is for Solid 2 (`solid-js` ^2). For Solid 1.x use [`@sentry/solid`](https://www.npmjs.com/package/@sentry/solid).
+What the runtime exposes and what this package relies on: [docs/solid-2-observe.md](../../docs/solid-2-observe.md).
 
 One package, both halves: the browser SDK (`@sentry/browser`) for the client and the Node SDK (`@sentry/node`) for
 the server, resolved by the `browser`/`node` export conditions, or explicitly as `@sentry/solid-2/client` and
