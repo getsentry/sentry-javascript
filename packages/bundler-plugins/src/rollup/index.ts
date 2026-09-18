@@ -15,10 +15,7 @@ import {
   CodeInjection,
   stampDebugId,
 } from '../core';
-import type {
-  ComponentAnnotationTransformMeta,
-  ComponentAnnotationTransformResult,
-} from '../core/component-annotation-oxc';
+import type { ComponentAnnotationTransformMeta } from '../core/component-annotation-oxc';
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
@@ -41,13 +38,6 @@ type ViteModule = {
 };
 
 type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
-type FastAnnotationHooks = {
-  transform(
-    code: string,
-    id: string,
-    meta?: ComponentAnnotationTransformMeta,
-  ): Promise<ComponentAnnotationTransformResult>;
-};
 
 let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
 
@@ -166,30 +156,9 @@ export function _rollupPluginInternal(
     ? createComponentNameAnnotateHooks(
         options.reactComponentAnnotation?.ignoredComponents || [],
         !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
+        // Vite 8 already loads an oxc-based parser, so reuse it.
+        buildTool === 'vite' && buildToolMajorVersion === '8' ? getViteParseAstAsync : undefined,
       )
-    : undefined;
-  const transformFastAnnotations = options.reactComponentAnnotation?.enabled
-    ? (() => {
-        let fastAnnotationHooksPromise: Promise<FastAnnotationHooks> | undefined;
-
-        return {
-          transform(code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
-            if (!fastAnnotationHooksPromise) {
-              fastAnnotationHooksPromise = import('../core/component-annotation-oxc').then(
-                ({ createOxcComponentNameAnnotateHooks, getOxcParseAstAsync }) =>
-                  createOxcComponentNameAnnotateHooks(
-                    options.reactComponentAnnotation?.ignoredComponents || [],
-                    // Vite 8 already loads an oxc-based parser, so reuse it.
-                    buildTool === 'vite' && buildToolMajorVersion === '8' ? getViteParseAstAsync : getOxcParseAstAsync,
-                    !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
-                  ),
-              );
-            }
-
-            return fastAnnotationHooksPromise.then(hooks => hooks.transform(code, id, meta));
-          },
-        };
-      })()
     : undefined;
 
   const transformReplace = Object.keys(replacementValues).length > 0;
@@ -208,21 +177,8 @@ export function _rollupPluginInternal(
   ): Promise<TransformResult> {
     // Component annotations are only in user code and boolean flag replacements are
     // only in Sentry code. If we successfully add annotations, we can return early.
-    let shouldRunBabelAnnotations = true;
-
-    if (transformFastAnnotations?.transform) {
-      const result = await transformFastAnnotations.transform(code, id, meta);
-      if (result) {
-        return result;
-      }
-
-      if (result === null) {
-        shouldRunBabelAnnotations = false;
-      }
-    }
-
-    if (shouldRunBabelAnnotations && transformAnnotations?.transform) {
-      const result = await transformAnnotations.transform(code, id);
+    if (transformAnnotations) {
+      const result = await transformAnnotations.transform(code, id, meta);
       if (result) {
         return result;
       }

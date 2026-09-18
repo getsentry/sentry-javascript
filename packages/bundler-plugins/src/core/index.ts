@@ -3,6 +3,19 @@ import { CodeInjection, containsOnlyImports, stripQueryAndHashFromPath } from '.
 import type { transformAsync as babelTransformAsync } from '@babel/core';
 import type componentNameAnnotatePlugin from '../babel-plugin';
 import type { experimentalComponentNameAnnotatePlugin } from '../babel-plugin';
+import type {
+  ComponentAnnotationTransformMeta,
+  ComponentAnnotationTransformResult,
+  ParseAstAsync,
+} from './component-annotation-oxc-ast';
+
+type FastAnnotationHooks = {
+  transform(
+    code: string,
+    id: string,
+    meta?: ComponentAnnotationTransformMeta,
+  ): Promise<ComponentAnnotationTransformResult>;
+};
 
 type BabelTransformAsync = typeof babelTransformAsync;
 type BabelParserPlugins = NonNullable<NonNullable<Parameters<BabelTransformAsync>[1]>['parserOpts']>['plugins'];
@@ -76,59 +89,86 @@ export function shouldSkipCodeInjection(code: string, facadeModuleId: string | n
 export { globFiles } from './glob';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createComponentNameAnnotateHooks(ignoredComponents: string[], injectIntoHtml: boolean) {
+export function createComponentNameAnnotateHooks(
+  ignoredComponents: string[],
+  injectIntoHtml: boolean,
+  getParseAstAsync?: () => Promise<ParseAstAsync | null>,
+) {
+  let fastHooksPromise: Promise<FastAnnotationHooks> | undefined;
+
   return {
-    async transform(this: void, code: string, id: string) {
-      // id may contain query and hash which will trip up our file extension logic below
-      const idWithoutQueryAndHash = stripQueryAndHashFromPath(id);
-
-      if (idWithoutQueryAndHash.match(/\\node_modules\\|\/node_modules\//)) {
-        return null;
+    async transform(this: void, code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
+      if (!fastHooksPromise) {
+        fastHooksPromise = import('./component-annotation-oxc').then(
+          ({ createOxcComponentNameAnnotateHooks, getOxcParseAstAsync }) =>
+            createOxcComponentNameAnnotateHooks(
+              ignoredComponents,
+              getParseAstAsync ?? getOxcParseAstAsync,
+              injectIntoHtml,
+            ),
+        );
       }
 
-      // We will only apply this plugin on jsx and tsx files
-      if (!['.jsx', '.tsx'].some(ending => idWithoutQueryAndHash.endsWith(ending))) {
-        return null;
+      const fastResult = await (await fastHooksPromise).transform(code, id, meta);
+      if (fastResult !== undefined) {
+        return fastResult;
       }
 
-      const parserPlugins: BabelParserPlugins = [];
-      if (idWithoutQueryAndHash.endsWith('.jsx')) {
-        parserPlugins.push('jsx');
-      } else if (idWithoutQueryAndHash.endsWith('.tsx')) {
-        parserPlugins.push('jsx', 'typescript');
-      }
-
-      const { transformAsync, componentNameAnnotatePlugin, experimentalComponentNameAnnotatePlugin } =
-        await loadBabelAnnotationRuntime();
-      const plugin = injectIntoHtml ? experimentalComponentNameAnnotatePlugin : componentNameAnnotatePlugin;
-
-      try {
-        const result = await transformAsync(code, {
-          plugins: [[plugin, { ignoredComponents }]],
-          filename: id,
-          sourceFileName: idWithoutQueryAndHash,
-          parserOpts: {
-            sourceType: 'module',
-            allowAwaitOutsideFunction: true,
-            plugins: parserPlugins,
-          },
-          generatorOpts: {
-            decoratorsBeforeExport: true,
-          },
-          sourceMaps: true,
-        });
-
-        return {
-          code: result?.code ?? code,
-          map: result?.map,
-        };
-      } catch (e) {
-        debug.error(`Failed to apply react annotate plugin`, e);
-      }
-
-      return { code };
+      return transformWithBabel(code, id, ignoredComponents, injectIntoHtml);
     },
   };
+}
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+async function transformWithBabel(code: string, id: string, ignoredComponents: string[], injectIntoHtml: boolean) {
+  // id may contain query and hash which will trip up our file extension logic below
+  const idWithoutQueryAndHash = stripQueryAndHashFromPath(id);
+
+  if (idWithoutQueryAndHash.match(/\\node_modules\\|\/node_modules\//)) {
+    return null;
+  }
+
+  // We will only apply this plugin on jsx and tsx files
+  if (!['.jsx', '.tsx'].some(ending => idWithoutQueryAndHash.endsWith(ending))) {
+    return null;
+  }
+
+  const parserPlugins: BabelParserPlugins = [];
+  if (idWithoutQueryAndHash.endsWith('.jsx')) {
+    parserPlugins.push('jsx');
+  } else if (idWithoutQueryAndHash.endsWith('.tsx')) {
+    parserPlugins.push('jsx', 'typescript');
+  }
+
+  const { transformAsync, componentNameAnnotatePlugin, experimentalComponentNameAnnotatePlugin } =
+    await loadBabelAnnotationRuntime();
+  const plugin = injectIntoHtml ? experimentalComponentNameAnnotatePlugin : componentNameAnnotatePlugin;
+
+  try {
+    const result = await transformAsync(code, {
+      plugins: [[plugin, { ignoredComponents }]],
+      filename: id,
+      sourceFileName: idWithoutQueryAndHash,
+      parserOpts: {
+        sourceType: 'module',
+        allowAwaitOutsideFunction: true,
+        plugins: parserPlugins,
+      },
+      generatorOpts: {
+        decoratorsBeforeExport: true,
+      },
+      sourceMaps: true,
+    });
+
+    return {
+      code: result?.code ?? code,
+      map: result?.map,
+    };
+  } catch (e) {
+    debug.error(`Failed to apply react annotate plugin`, e);
+  }
+
+  return { code };
 }
 
 export function getDebugIdSnippet(debugId: string): CodeInjection {
