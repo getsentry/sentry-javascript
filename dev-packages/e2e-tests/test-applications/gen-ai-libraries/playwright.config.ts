@@ -3,7 +3,7 @@ import { RUNTIME } from './tests/constants';
 
 // The same suite runs against both runtimes, selected by the `RUNTIME` env var (see the `sentryTest`
 // variants in package.json): the Node entry (runtime channel injection) or the Cloudflare entry (Vite
-// build + `@sentry/cloudflare/vite` plugin, served by `vite preview`).
+// build + `@sentry/cloudflare/vite` plugin at build time, the prebuilt bundle served by `wrangler dev`).
 const CF_PORT = 38787;
 const NODE_PORT = 3030;
 

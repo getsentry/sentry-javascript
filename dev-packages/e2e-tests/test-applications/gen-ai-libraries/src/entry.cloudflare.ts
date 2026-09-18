@@ -28,7 +28,8 @@ export default Sentry.withSentry(
       }
 
       try {
-        const result = await Sentry.startSpan({ name: 'ai-workflow', op: 'function' }, () => library[action](apiKey));
+        const spanName = action === 'tools' ? 'ai-tool-workflow' : 'ai-workflow';
+        const result = await Sentry.startSpan({ name: spanName, op: 'function' }, () => library[action](apiKey));
         return Response.json({ result });
       } catch (error) {
         return Response.json({ message: (error as Error).message }, { status: 500 });
