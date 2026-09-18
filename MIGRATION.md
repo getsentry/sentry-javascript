@@ -617,6 +617,14 @@ Sentry.init({
 });
 ```
 
+### Web vital spans no longer carry a report event
+
+Affected SDKs: All SDKs running in the browser.
+
+LCP and CLS spans no longer set `browser.web_vital.lcp.report_event` and `browser.web_vital.cls.report_event`. The attribute recorded whether the SDK finalized the page load's value on `pagehide` or at the first `navigation`. With per-navigation reporting (the default, see above) `web-vitals` decides when a value is final and the attribute was already never set, so it only remained for setups that turn per-navigation reporting off.
+
+When the values are finalized is unchanged. If you have searches or dashboards keyed on the attribute, remove the filter.
+
 ### `DOMException.code` is no longer set as a tag
 
 Affected SDKs: All SDKs running in the browser.
