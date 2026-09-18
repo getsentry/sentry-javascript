@@ -150,7 +150,7 @@ describe('withSentry', () => {
       return new Response('test');
     }).then(response => response.text());
     expect(waitUntil).toBeCalled();
-    await vi.advanceTimersToNextTimerAsync();
+    vi.advanceTimersToNextTimer().runAllTimers();
     await Promise.all(waits);
 
     const after = flushSpy.mock.calls.length;
@@ -1051,7 +1051,6 @@ describe('Durable Object (DO) context', () => {
 
     // Teardown is registered via waitUntil on error too
     expect(waitUntilSpy).toHaveBeenCalled();
-    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     // And flush runs as part of that teardown
     expect(flushSpy).toHaveBeenCalled();
 
@@ -1073,7 +1072,6 @@ describe('Durable Object (DO) context', () => {
     );
 
     expect(waitUntilSpy).toHaveBeenCalled();
-    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     expect(flushSpy).toHaveBeenCalled();
 
     flushSpy.mockRestore();
@@ -1094,7 +1092,6 @@ describe('Durable Object (DO) context', () => {
     );
 
     expect(waitUntilSpy).toHaveBeenCalled();
-    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     expect(flushSpy).toHaveBeenCalled();
 
     flushSpy.mockRestore();

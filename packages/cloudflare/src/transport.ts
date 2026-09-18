@@ -16,9 +16,6 @@ export interface CloudflareTransportOptions extends BaseTransportOptions {
  */
 const DEFAULT_TRANSPORT_BUFFER_SIZE = 256;
 
-type TaskProducer = () => PromiseLike<TransportMakeRequestResponse>;
-type RunTask = (taskProducer: TaskProducer, signal: AbortSignal) => PromiseLike<TransportMakeRequestResponse>;
-
 /**
  * This is a modified promise buffer that collects tasks until drain is called.
  * We need this in the edge runtime because edge function invocations may not share I/O objects, like fetch requests
@@ -32,23 +29,20 @@ export class IsolatedPromiseBuffer {
   // If we ever remove it from the interface we should also remove it here.
   public $: Array<PromiseLike<TransportMakeRequestResponse>>;
 
-  private _taskProducers: TaskProducer[];
+  private _taskProducers: (() => PromiseLike<TransportMakeRequestResponse>)[];
 
   private readonly _bufferSize: number;
 
-  private readonly _runTask: RunTask;
-
-  public constructor(_bufferSize = DEFAULT_TRANSPORT_BUFFER_SIZE, _runTask: RunTask = taskProducer => taskProducer()) {
+  public constructor(_bufferSize = DEFAULT_TRANSPORT_BUFFER_SIZE) {
     this.$ = [];
     this._taskProducers = [];
     this._bufferSize = _bufferSize;
-    this._runTask = _runTask;
   }
 
   /**
    * @inheritdoc
    */
-  public add(taskProducer: TaskProducer): PromiseLike<TransportMakeRequestResponse> {
+  public add(taskProducer: () => PromiseLike<TransportMakeRequestResponse>): PromiseLike<TransportMakeRequestResponse> {
     if (this._taskProducers.length >= this._bufferSize) {
       return Promise.reject(SENTRY_BUFFER_FULL_ERROR);
     }
@@ -63,13 +57,10 @@ export class IsolatedPromiseBuffer {
   public drain(timeout?: number): PromiseLike<boolean> {
     const oldTaskProducers = [...this._taskProducers];
     this._taskProducers = [];
-    const drainController = new AbortController();
-    const tasks = oldTaskProducers.map(taskProducer => this._runTask(taskProducer, drainController.signal));
 
     return new Promise(resolve => {
       const timer = setTimeout(() => {
         if (timeout && timeout > 0) {
-          drainController.abort();
           resolve(false);
         }
       }, timeout);
@@ -77,8 +68,8 @@ export class IsolatedPromiseBuffer {
       // This cannot reject
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       Promise.all(
-        tasks.map(task =>
-          task.then(null, () => {
+        oldTaskProducers.map(taskProducer =>
+          taskProducer().then(null, () => {
             // catch all failed requests
           }),
         ),
@@ -95,36 +86,15 @@ export class IsolatedPromiseBuffer {
  * Creates a Transport that uses the native fetch API to send events to Sentry.
  */
 export function makeCloudflareTransport(options: CloudflareTransportOptions): Transport {
-  let activeDrainSignal: AbortSignal | undefined;
-
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
-    const controller = new AbortController();
-    const callerSignal = options.fetchOptions?.signal;
-    const drainSignal = activeDrainSignal;
-    const abortFromCallerSignal = (): void => controller.abort();
-    const abortFromDrainSignal = (): void => controller.abort();
-
-    if (callerSignal?.aborted) {
-      controller.abort();
-    } else {
-      callerSignal?.addEventListener('abort', abortFromCallerSignal, { once: true });
-    }
-
-    if (drainSignal?.aborted) {
-      controller.abort();
-    } else {
-      drainSignal?.addEventListener('abort', abortFromDrainSignal, { once: true });
-    }
-
     const requestOptions: RequestInit = {
       body: request.body as BodyInit,
       method: 'POST',
       headers: options.headers,
       ...options.fetchOptions,
-      signal: controller.signal,
     };
 
-    const requestPromise = suppressTracing(() => {
+    return suppressTracing(() => {
       return (options.fetch ?? fetch)(options.url, requestOptions).then(async response => {
         // Consume the response body to satisfy Cloudflare Workers' fetch requirements.
         // The runtime requires all fetch response bodies to be read or explicitly canceled
@@ -146,24 +116,7 @@ export function makeCloudflareTransport(options: CloudflareTransportOptions): Tr
         };
       });
     });
-
-    return Promise.resolve(requestPromise).finally(() => {
-      callerSignal?.removeEventListener('abort', abortFromCallerSignal);
-      drainSignal?.removeEventListener('abort', abortFromDrainSignal);
-    });
   }
 
-  function runTaskWithinDrain(
-    taskProducer: TaskProducer,
-    signal: AbortSignal,
-  ): PromiseLike<TransportMakeRequestResponse> {
-    activeDrainSignal = signal;
-    try {
-      return taskProducer();
-    } finally {
-      activeDrainSignal = undefined;
-    }
-  }
-
-  return createTransport(options, makeRequest, new IsolatedPromiseBuffer(options.bufferSize, runTaskWithinDrain));
+  return createTransport(options, makeRequest, new IsolatedPromiseBuffer(options.bufferSize));
 }
