@@ -795,7 +795,7 @@ describe('stripSourceMappingURLComments', () => {
 
   it('strips sourceMappingURL comment from CSS files when it is on the same line', async () => {
     const filePath = path.join(tmpDir, 'chunks', 'same-line.css');
-    await fs.promises.writeFile(filePath, '.foo{color:red}/*# sourceMappingURL=same-line.css.map */');
+    await fs.promises.writeFile(filePath, '.foo{color:red}/*# sourceMappingURL=same-line.css.map */\n');
 
     await stripSourceMappingURLComments(tmpDir);
 
@@ -803,24 +803,25 @@ describe('stripSourceMappingURLComments', () => {
     expect(content).toBe('.foo{color:red}');
   });
 
-  it('strips an indented sourceMappingURL comment', async () => {
-    const filePath = path.join(tmpDir, 'chunks', 'indented.js');
-    await fs.promises.writeFile(filePath, 'var a = 1;\n  //# sourceMappingURL=indented.js.map');
+  it('does not strip past an earlier sourceMappingURL comment in minified CSS files', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'concat.css');
+    await fs.promises.writeFile(filePath, '.a{}/*# sourceMappingURL=a.css.map*/.b{}/*x*/');
 
     await stripSourceMappingURLComments(tmpDir);
 
     const content = await fs.promises.readFile(filePath, 'utf-8');
-    expect(content).toBe('var a = 1;');
+    expect(content).toBe('.a{}/*# sourceMappingURL=a.css.map*/.b{}/*x*/');
   });
 
-  it('strips only the last sourceMappingURL comment from CSS files with multiple comments on one line', async () => {
-    const filePath = path.join(tmpDir, 'chunks', 'concat.css');
-    await fs.promises.writeFile(filePath, '.a{}/*# sourceMappingURL=a.css.map */.b{}/*# sourceMappingURL=b.css.map */');
+  it('does not modify files ending with a block comment containing a sourceMappingURL marker', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'block-comment.js');
+    const originalContent = 'var a = 1;\n/*\n//# sourceMappingURL=block-comment.js.map*/';
+    await fs.promises.writeFile(filePath, originalContent);
 
     await stripSourceMappingURLComments(tmpDir);
 
     const content = await fs.promises.readFile(filePath, 'utf-8');
-    expect(content).toBe('.a{}/*# sourceMappingURL=a.css.map */.b{}');
+    expect(content).toBe(originalContent);
   });
 
   it('does not strip a sourceMappingURL comment that is not at the end of the file', async () => {
