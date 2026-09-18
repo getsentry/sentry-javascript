@@ -7,9 +7,9 @@ if (!testEnv) {
 }
 
 const config = getPlaywrightConfig(
-  // `dev` is vite's dev server; `preview` serves the built worker through wrangler. Both run under
-  // workerd, so both exercise the build-time registration this app exists to prove.
-  { startCommand: testEnv === 'development' ? 'pnpm dev' : 'pnpm preview', port: 4112 },
+  { startCommand: 'pnpm preview', port: 4112 },
+  // Each test drives a real OpenRouter turn and then waits for the spans to flush, which does not
+  // fit the default 30s timeout when the provider is slow.
   { timeout: 90_000 },
 );
 
