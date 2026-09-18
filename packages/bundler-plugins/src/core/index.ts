@@ -74,6 +74,7 @@ export function shouldSkipCodeInjection(code: string, facadeModuleId: string | n
 }
 
 export { globFiles } from './glob';
+export { getCodeInjectionPosition } from './get-code-injection-position';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createComponentNameAnnotateHooks(ignoredComponents: string[], injectIntoHtml: boolean) {

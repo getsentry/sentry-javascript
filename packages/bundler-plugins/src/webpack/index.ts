@@ -1,4 +1,4 @@
-import type { SentryWebpackPluginOptions } from './webpack4and5';
+import type { SentryWebpackPluginOptions, WebpackCompilationApi, WebpackSources } from './webpack4and5';
 import { sentryWebpackPluginFactory } from './webpack4and5';
 import { createRequire } from 'node:module';
 
@@ -6,8 +6,9 @@ import { createRequire } from 'node:module';
 type PluginClass = new (options: any) => unknown;
 
 type WebpackModule = {
-  BannerPlugin?: PluginClass;
   DefinePlugin?: PluginClass;
+  Compilation?: WebpackCompilationApi;
+  sources?: WebpackSources;
   default?: WebpackModule;
 };
 
@@ -25,13 +26,15 @@ function loadWebpack(): WebpackModule {
 }
 
 const webpack = loadWebpack();
-const BannerPlugin = webpack.BannerPlugin ?? webpack.default?.BannerPlugin;
 const DefinePlugin = webpack.DefinePlugin ?? webpack.default?.DefinePlugin;
+const Compilation = webpack.Compilation ?? webpack.default?.Compilation;
+const sources = webpack.sources ?? webpack.default?.sources;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const sentryWebpackPlugin: (options?: SentryWebpackPluginOptions) => any = sentryWebpackPluginFactory({
-  BannerPlugin,
   DefinePlugin,
+  Compilation,
+  sources,
 });
 
 export type { SentryWebpackPluginOptions };
