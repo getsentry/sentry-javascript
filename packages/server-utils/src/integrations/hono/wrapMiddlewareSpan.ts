@@ -1,0 +1,70 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { MIDDLEWARE } from '@sentry/conventions/op';
+import {
+  getActiveSpan,
+  getOriginalFunction,
+  getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  type WrappedFunction,
+} from '@sentry/core';
+import { type MiddlewareHandler } from './honoTypes';
+import { SENTRY_HONO_MIDDLEWARE } from './createHonoMiddleware';
+import { defaultShouldHandleError } from './defaultShouldHandleError';
+
+const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
+
+/**
+ * Wraps a Hono middleware handler so that its execution is traced as a Sentry span.
+ * Explicitly parents each span under the root (transaction) span so that all middleware
+ * spans are siblings — even when OTel instrumentation introduces nested active contexts
+ * (onion order: A → B → handler → B → A would otherwise nest B under A).
+ */
+export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHandler {
+  // Never turn Sentry's own request/response middleware into a middleware span — e.g. when an
+  // auto-instrumented sub-app carrying it is mounted into a parent and its handlers get wrapped.
+  if ((handler as unknown as Record<PropertyKey, unknown>)[SENTRY_HONO_MIDDLEWARE]) {
+    return handler;
+  }
+
+  if (getOriginalFunction(handler as unknown as WrappedFunction)) {
+    return handler;
+  }
+
+  return new Proxy(handler, {
+    async apply(_target, _thisArg, args: Parameters<MiddlewareHandler>) {
+      const [context, next] = args;
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+      const span = startInactiveSpan({
+        name: handler.name || '<anonymous>',
+        onlyIfParent: true,
+        parentSpan: rootSpan,
+        attributes: {
+          [SENTRY_OP]: MIDDLEWARE,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MIDDLEWARE_ORIGIN,
+        },
+      });
+
+      try {
+        return await handler(context, next);
+      } catch (error) {
+        // Error capture is handled by `responseHandler` via `context.error`, so this wrapper only sets
+        // span status (based on our default "error" conditions) and rethrows (no `captureException`).
+        if (defaultShouldHandleError(error)) {
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        }
+        throw error;
+      } finally {
+        span.end();
+      }
+    },
+    get(target, prop, receiver) {
+      if (prop === '__sentry_original__') {
+        return handler;
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+}

@@ -1,17 +1,10 @@
+// Import the Sentry init first so `honoIntegration` subscribes to the Hono constructor channel
+// before any `new Hono()` runs — including the sub-apps that route modules build at module scope.
+import './instrument.bun';
 import { Hono } from 'hono';
-import { sentry } from '@sentry/hono/bun';
 import { addRoutes } from './routes';
 
 const app = new Hono();
-
-app.use(
-  sentry(app, {
-    dsn: process.env.E2E_TEST_DSN,
-    environment: 'qa',
-    tracesSampleRate: 1.0,
-    tunnel: 'http://localhost:3031/',
-  }),
-);
 
 addRoutes(app);
 

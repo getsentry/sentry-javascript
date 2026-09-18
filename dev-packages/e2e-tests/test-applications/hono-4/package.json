@@ -4,30 +4,35 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev:cf": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
     "dev:node": "node --import tsx/esm --import ./src/instrument.node.ts src/entry.node.ts",
-    "dev:bun": "bun src/entry.bun.ts",
-    "dev:deno": "deno run --allow-net --allow-env --allow-read src/entry.deno.ts",
-    "build": "wrangler deploy --dry-run",
-    "test:build": "pnpm install && pnpm build",
-    "test:assert": "TEST_ENV=production playwright test"
+    "dev:bun": "bun run dist/entry.bun.js",
+    "dev:deno": "deno run --allow-net --allow-env --allow-read --preload=npm:@sentry/deno/import src/entry.deno.ts",
+    "dev:cloudflare": "wrangler dev --config ./dist/hono_4/wrangler.json --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "test:build": "pnpm install",
+    "test": "TEST_ENV=production playwright test",
+    "test:assert": "pnpm test:assert:node",
+    "test:assert:node": "RUNTIME=node pnpm test",
+    "test:assert:bun": "bun run build-bun.ts && RUNTIME=bun pnpm test",
+    "test:assert:deno": "RUNTIME=deno pnpm test",
+    "test:assert:cloudflare": "vite build && RUNTIME=cloudflare pnpm test"
   },
   "dependencies": {
     "@sentry/bun": "latest || *",
     "@sentry/cloudflare": "latest || *",
     "@sentry/deno": "latest || *",
-    "@sentry/hono": "latest || *",
     "@sentry/node": "latest || *",
     "@hono/node-server": "^2.0.5",
     "hono": "^4.13.1"
   },
   "devDependencies": {
     "@playwright/test": "~1.63.0",
+    "@cloudflare/vite-plugin": "^1.47.0",
     "@cloudflare/workers-types": "^4.20240725.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "tsx": "4.21.0",
     "typescript": "^5.5.2",
-    "wrangler": "^4.61.0"
+    "vite": "^8.1.5",
+    "wrangler": "^4.114.0"
   },
   "volta": {
     "node": "24.15.0",
@@ -36,16 +41,16 @@
   "sentryTest": {
     "variants": [
       {
-        "assert-command": "RUNTIME=node pnpm test:assert",
-        "label": "hono-4 (node)"
-      },
-      {
-        "assert-command": "RUNTIME=bun pnpm test:assert",
+        "assert-command": "pnpm test:assert:bun",
         "label": "hono-4 (bun)"
       },
       {
-        "assert-command": "RUNTIME=deno pnpm test:assert",
+        "assert-command": "pnpm test:assert:deno",
         "label": "hono-4 (deno)"
+      },
+      {
+        "assert-command": "pnpm test:assert:cloudflare",
+        "label": "hono-4 (cloudflare)"
       }
     ]
   }
