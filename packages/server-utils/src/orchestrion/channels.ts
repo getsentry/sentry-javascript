@@ -9,6 +9,7 @@ import { googleGenAiChannels } from './config/google-genai';
 import { graphqlChannels } from './config/graphql';
 import { groqChannels } from './config/groq';
 import { hapiChannels } from './config/hapi';
+import { honoChannels } from './config/hono';
 import { ioredisChannels } from './config/ioredis';
 import { kafkajsChannels } from './config/kafkajs';
 import { knexChannels } from './config/knex';
@@ -60,6 +61,7 @@ export const CHANNELS = {
   ...graphqlChannels,
   ...groqChannels,
   ...hapiChannels,
+  ...honoChannels,
   ...ioredisChannels,
   ...kafkajsChannels,
   ...knexChannels,
