@@ -1,5 +1,5 @@
 {
-  "name": "hono-4",
+  "name": "hono-4-legacy",
   "type": "module",
   "version": "0.0.0",
   "private": true,
@@ -37,15 +37,15 @@
     "variants": [
       {
         "assert-command": "RUNTIME=node pnpm test:assert",
-        "label": "hono-4 (node)"
+        "label": "hono-4-legacy (node)"
       },
       {
         "assert-command": "RUNTIME=bun pnpm test:assert",
-        "label": "hono-4 (bun)"
+        "label": "hono-4-legacy (bun)"
       },
       {
         "assert-command": "RUNTIME=deno pnpm test:assert",
-        "label": "hono-4 (deno)"
+        "label": "hono-4-legacy (deno)"
       }
     ]
   }

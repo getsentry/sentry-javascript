@@ -2,4 +2,4 @@ export type Runtime = 'cloudflare' | 'node' | 'bun' | 'deno';
 
 export const RUNTIME = (process.env.RUNTIME || 'node') as Runtime;
 
-export const APP_NAME = 'hono-4';
+export const APP_NAME = 'hono-4-legacy';
