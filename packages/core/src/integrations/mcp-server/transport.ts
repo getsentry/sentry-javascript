@@ -5,7 +5,7 @@
  * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
  */
 
-import { MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
+import { MCP_AUTH_CLIENT_NAME, MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import { getClient, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
@@ -35,12 +35,29 @@ function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions
   };
 }
 
+/** Resolves only the OAuth client name; optional telemetry must not interrupt MCP dispatch. */
+function resolveOAuthClientName(options: McpServerWrapperOptions, extra?: ExtraHandlerData): string | undefined {
+  if (!options.getOAuthClientName) {
+    return undefined;
+  }
+
+  try {
+    const authInfo = extra?.authInfo;
+    const name = options.getOAuthClientName(
+      authInfo ? { clientId: authInfo.clientId, extra: authInfo.extra } : undefined,
+    );
+    return typeof name === 'string' && name ? name : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Wraps transport.onmessage to create spans for incoming messages.
  * Stores client info and protocol version only for legacy initialize requests.
  * Modern request metadata is read directly when building each message's span.
  * @param transport - MCP transport instance to wrap
- * @param options - MCP capture overrides
+ * @param options - MCP instrumentation options
  */
 export function wrapTransportOnMessage(transport: MCPTransport, options: McpServerWrapperOptions): void {
   if (transport.onmessage) {
@@ -67,6 +84,10 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
 
           return withIsolationScope(isolationScope, () => {
             const spanConfig = buildMcpServerSpanConfig(request, transport, extra as ExtraHandlerData, resolvedOptions);
+            const oauthClientName = resolveOAuthClientName(options, extra as ExtraHandlerData);
+            if (oauthClientName) {
+              spanConfig.attributes[MCP_AUTH_CLIENT_NAME] = oauthClientName;
+            }
             const span = startInactiveSpan(spanConfig);
 
             if (request.method === 'initialize' && messageSessionData) {
