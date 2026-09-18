@@ -118,8 +118,17 @@ export class CloudflareClient extends ServerRuntimeClient {
     // Wait for user waitUntil-registered work to settle before draining, so events
     // captured in that work are still in the buffer. Without this the final flush
     // can drain (and the client be disposed) before background captures land.
+    //
+    // Only per-invocation clients (`cacheClient: false`) have a flush lock; remove this with them in v12.
+    // The wait is bounded by `timeout` because a user `waitUntil` task that outlives the invocation
+    // would otherwise keep the flush from draining until the runtime cancels it.
     if (this._flushLock) {
-      await this._flushLock.finalize();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([
+        this._flushLock.finalize(),
+        ...(timeout ? [new Promise<void>(resolve => (timer = setTimeout(resolve, timeout)))] : []),
+      ]);
+      clearTimeout(timer);
     }
 
     if (this._pendingSpans.size > 0 && this._spanCompletionPromise) {

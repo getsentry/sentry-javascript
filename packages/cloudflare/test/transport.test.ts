@@ -252,21 +252,53 @@ describe('IsolatedPromiseBuffer', () => {
     expect(customFetch).toHaveBeenCalledTimes(1);
   });
 
-  it('aborts fetch requests when their drain times out', async () => {
-    let signal: AbortSignal | undefined;
-    const customFetch = vi.fn(
-      (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
-        new Promise((_resolve, reject) => {
-          signal = init?.signal ?? undefined;
-          signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
-        }),
-    );
-    const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
+  it('aborts a request that is still pending when its drain times out', async () => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const customFetch = vi.fn(
+        (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+          new Promise((_resolve, reject) => {
+            signal = init?.signal ?? undefined;
+            signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+          }),
+      );
+      const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
 
-    await transport.send(ERROR_ENVELOPE);
-    await expect(transport.flush(1)).resolves.toBe(false);
+      await transport.send(ERROR_ENVELOPE);
+      const flush = transport.flush(1000);
 
-    expect(signal?.aborted).toBe(true);
+      await vi.advanceTimersByTimeAsync(999);
+      expect(signal?.aborted).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(flush).resolves.toBe(false);
+      expect(signal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not abort requests of a drain without a timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const customFetch = vi.fn(
+        (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+          new Promise(() => {
+            signal = init?.signal ?? undefined;
+          }),
+      );
+      const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
+
+      await transport.send(ERROR_ENVELOPE);
+      void transport.flush();
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(signal?.aborted).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('preserves a caller-provided abort signal', async () => {
@@ -294,32 +326,32 @@ describe('IsolatedPromiseBuffer', () => {
   });
 
   it('does not abort requests belonging to another drain', async () => {
-    const signals: AbortSignal[] = [];
-    const resolveRequests: ((response: Response) => void)[] = [];
-    const customFetch = vi.fn(
-      (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
-        new Promise((resolve, reject) => {
-          const signal = init?.signal as AbortSignal;
-          signals.push(signal);
-          resolveRequests.push(resolve);
-          signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
-        }),
-    );
-    const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
+    vi.useFakeTimers();
+    try {
+      const signals: AbortSignal[] = [];
+      const customFetch = vi.fn(
+        (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+          new Promise((_resolve, reject) => {
+            const signal = init?.signal as AbortSignal;
+            signals.push(signal);
+            signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+          }),
+      );
+      const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
 
-    await transport.send(ERROR_ENVELOPE);
-    const firstFlush = transport.flush(1000);
-    await transport.send(ERROR_ENVELOPE);
-    await expect(transport.flush(1)).resolves.toBe(false);
+      await transport.send(ERROR_ENVELOPE);
+      void transport.flush(2000);
+      await transport.send(ERROR_ENVELOPE);
+      void transport.flush(1000);
 
-    expect(signals[0]?.aborted).toBe(false);
-    expect(signals[1]?.aborted).toBe(true);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(signals[0]?.aborted).toBe(false);
+      expect(signals[1]?.aborted).toBe(true);
 
-    resolveRequests[0]?.({
-      headers: new Headers(),
-      status: 200,
-      text: () => Promise.resolve('OK'),
-    } as unknown as Response);
-    await expect(firstFlush).resolves.toBe(true);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(signals[0]?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
