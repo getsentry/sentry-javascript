@@ -14,6 +14,7 @@ import type { McpErrorType } from './types';
 /**
  * Classifies JSON-RPC errors using MCP server semantic conventions.
  * @param code - JSON-RPC error code
+ * @see https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/mcp.md#server
  */
 export function isJsonRpcServerError(code: number): boolean {
   return ![-32700, -32600, -32601, -32602, -32002].includes(code);
