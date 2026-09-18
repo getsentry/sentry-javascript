@@ -85,7 +85,10 @@ The contract that shapes the integration:
 
 - A record is **plain data**: ids, names, `outcome`, `at`, `durationMs`, counts. Anything live — the request, the
   response, the arguments, the result, the error as thrown — travels in a second `live` argument to the listener,
-  never on the record. That is why `captureException(live.error)` and why record attributes never carry values.
+  never on the record. Record attributes never carry values. The integration does not capture `live.error` either:
+  the same error object reaches an error hook (an `<Errored>` fallback, the server hook), and Sentry's once-per-object
+  guard means whichever ran first would win — the record beat the hook and misreported a handled boundary catch as
+  an unhandled crash before the e2e app caught it. Records set span status; hooks report errors.
 - Records arrive **settled**, with `at` on the `performance.now()` clock and durations from it, so spans are built
   after the fact with explicit `startTime`/`end`. `epochSeconds(at) = (performance.timeOrigin + at) / 1000`.
 - A `"call"` carries `origin`: the engine's interaction/navigation frame, read at dispatch. It is the **same object**
@@ -143,6 +146,11 @@ derives its parent from the latter; the provider is where Sentry's view wins.
   falls inside a settled interaction's handler window gets a span **link** to it rather than a guessed parent. Whether
   an interaction should instead parent under an active `pageload`/`navigation` idle span is an open product question
   (`forceTransaction` is deprecated; span streaming makes "root or child" the only distinction).
+- **Calls after the interaction settled.** `onClick={async () => set(await call())}` makes no synchronous write, so
+  the engine settles the interaction as `idle` at once and the call it dispatched lands afterwards — carrying the
+  interaction's frame. It becomes a child of the interaction's (already ended) span by that identity, marked
+  `solid.server_function.after_settle`, rather than a root: the causal tree is right, the timing tells the truth.
+  Whether the engine should keep an interaction open across the handler's returned promise is a Solid-side question.
 - **Mechanism types** follow the `auto.function.solid.*` family; `sentry.origin` is `auto.ui.solid.attribution`,
   `auto.http.solid.call`, `auto.ui.solid.frame`, `auto.function.solid.server`.
 - **Process-wide channels vs. per-client integrations.** Solid's channels are singletons; the integrations keep an
@@ -172,5 +180,17 @@ No `dataCollection` category fits UI text today; `targetText` is the integration
   through the real `BrowserClient`/`NodeClient` under span streaming.
 - The join-by-identity of a call to its interaction, the trace provider answering from a real span, a waiting
   `<Loading>` becoming a span with its component path, and the thrown-vs-met split are each pinned there.
-- Child spans parenting under OTel's `http.server` span and the browser `pageload` continuation are the e2e app's to
-  prove (they were proven manually in the Solid-side spike against a real Sentry project).
+- The e2e app (`dev-packages/e2e-tests/test-applications/solid-2`) runs a built `@solidjs/vite-plugin` start-mode
+  app — observe build, server SDK through `start.instrument`, a bare `node:http` host — through Playwright against the
+  packed tarballs and proves what the units cannot: boundary and invocation spans parenting under OTel's
+  `http.server` span, the browser `pageload` continuing the server trace with no middleware, a click's call becoming
+  its child through a real fetch, and both error hooks firing once with component paths.
+
+Two things to know when reading the e2e app's config: the client module imports `@sentry/solid-2/client` explicitly
+because the module is reachable from the server graph (behind an `isServer` guard), where the bare specifier resolves
+to the server half; and the app declares `@sentry/node` as a direct dependency. The plugin inlines this package into
+the server bundle (it consumes the Solid runtime; an externalized copy would load Solid's prod build through Node and
+see no `OBSERVE`), and under pnpm's isolated layout a transitive `@sentry/node` is not resolvable from the app root,
+so Vite bundles it too — where `import-in-the-middle` cannot find itself and logs a registration failure (core-module
+instrumentation still works; the `http.server` spans show it). Declared by the app, `@sentry/node` resolves, is
+externalized, and the warning is gone. Worth a line in the SDK's install docs.

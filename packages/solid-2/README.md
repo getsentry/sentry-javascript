@@ -15,7 +15,30 @@ What the runtime exposes and what this package relies on: [docs/solid-2-observe.
 
 One package, both halves: the browser SDK (`@sentry/browser`) for the client and the Node SDK (`@sentry/node`) for
 the server, resolved by the `browser`/`node` export conditions, or explicitly as `@sentry/solid-2/client` and
-`@sentry/solid-2/server`.
+`@sentry/solid-2/server`. Use the explicit entries in any module both graphs can reach — a client `Sentry.init` behind
+an `isServer` guard is still resolved by the server build, to the server half.
+
+## Setup with `@solidjs/vite-plugin`
+
+```js
+// vite.config.js
+solid({
+  ssr: true,
+  observe: true, // tracing reads the observe build; errors report in every tier
+  start: { instrument: './src/instrument.js' }, // awaited before the server graph loads
+});
+```
+
+```js
+// src/instrument.js — the server's Sentry.init(); nothing else
+import * as Sentry from '@sentry/solid-2/server';
+Sentry.init({ dsn: '__DSN__', tracesSampleRate: 1, integrations: [Sentry.solidServerTracingIntegration()] });
+```
+
+Add `@sentry/node` to the app's own dependencies. The plugin bundles this package into the server build (it consumes
+the Solid runtime, and must see the same copy the app does); with a package manager that isolates dependencies, a
+transitive `@sentry/node` is bundled along with it, where `import-in-the-middle` cannot find itself. Declared by the
+app, it stays external.
 
 ## Errors
 
