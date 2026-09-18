@@ -18,16 +18,15 @@ the server, resolved by the `browser`/`node` export conditions, or explicitly as
 `@sentry/solid-2/server`. Use the explicit entries in any module both graphs can reach — a client `Sentry.init` behind
 an `isServer` guard is still resolved by the server build, to the server half.
 
-## Setup with `@solidjs/vite-plugin`
+## Server setup
 
-```js
-// vite.config.js
-solid({
-  ssr: true,
-  observe: true, // tracing reads the observe build; errors report in every tier
-  start: { instrument: './src/instrument.js' }, // awaited before the server graph loads
-});
-```
+Nothing here depends on how the app is hosted: the integrations read `@solidjs/web` and `solid-js`, which every
+server that renders Solid — the `@solidjs/vite-plugin` handler, an Express or Hono server calling `renderToStream`, a
+worker — already loads. The one requirement is `@sentry/node`'s: `init()` must run before the app's server graph
+loads, so OpenTelemetry can patch `node:http` and friends. Put it in a module of its own and load that first the way
+your host does — `node --import ./instrument.mjs`, or for an app served by the plugin's handler, its
+`start.instrument` option, which awaits the module before anything else in the server graph (a plain `import` at the
+top of an ESM entry is hoisted below the entry's own dependencies and does not work):
 
 ```js
 // src/instrument.js — the server's Sentry.init(); nothing else
@@ -35,10 +34,23 @@ import * as Sentry from '@sentry/solid-2/server';
 Sentry.init({ dsn: '__DSN__', tracesSampleRate: 1, integrations: [Sentry.solidServerTracingIntegration()] });
 ```
 
-Add `@sentry/node` to the app's own dependencies. The plugin bundles this package into the server build (it consumes
-the Solid runtime, and must see the same copy the app does); with a package manager that isolates dependencies, a
-transitive `@sentry/node` is bundled along with it, where `import-in-the-middle` cannot find itself. Declared by the
-app, it stays external.
+```js
+// vite.config.js
+solid({
+  ssr: true,
+  observe: true, // tracing reads the observe build; errors report in every tier
+  start: { instrument: './src/instrument.js' },
+});
+```
+
+Tracing needs Solid's observe build: the `observe` export condition on every environment, plus the compiler's
+`componentNames` so component labels survive minification. `solid({ observe: true })` sets both; without the plugin,
+set `resolve.conditions` (or `node --conditions=observe` for an unbundled server) and the compiler option yourself.
+
+When the plugin bundles the server, add `@sentry/node` to the app's own dependencies. The plugin inlines this package
+(it consumes the Solid runtime and must see the same copy the app does); with a package manager that isolates
+dependencies, a transitive `@sentry/node` is bundled along with it, where `import-in-the-middle` cannot find itself.
+Declared by the app, it stays external.
 
 ## Errors
 
