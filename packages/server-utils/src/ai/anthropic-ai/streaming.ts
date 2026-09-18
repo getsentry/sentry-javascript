@@ -271,38 +271,25 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
   return stream;
 }
 
-/** Handle returned by {@link instrumentRawSseBody} for the `Stream`-iterator path to claim the span. */
-export interface RawSseBodyHandle {
-  /** Called when the SDK `Stream`'s async iterator takes over, so the body wrapper stays a pass-through. */
-  claim: () => void;
-}
-
 /**
  * Replace `response.body` with a pass-through that accumulates the SSE frames flowing through it and
- * ends `span` when the body is exhausted, cancelled or errors.
+ * ends `span` once the body is exhausted, cancelled or errors.
  *
  * Every way of draining an Anthropic stream bottoms out in `response.body`: the SDK `Stream`'s async
- * iterator, `tee()`, and a caller reading `.asResponse()`/`.withResponse()`'s raw `Response`. Only the
- * first of those is visible to {@link instrumentAsyncIterableStream}, so without this the other two end
- * no span at all. When the iterator path does run it claims the span and this wrapper goes quiet, so a
- * chunk is never accounted for twice.
+ * iterator, `tee()`, and a caller reading the raw `Response` from `.asResponse()`/`.withResponse()`.
+ * Instrumenting the body instead of the `Stream` covers all of them with one accumulator.
  *
- * Returns `undefined` — leaving the response untouched — for a body we can't wrap.
+ * Returns `false`, leaving the response untouched, for a body we can't wrap.
  */
-export function instrumentRawSseBody(
-  response: { body?: unknown },
-  span: Span,
-  recordOutputs: boolean,
-): RawSseBodyHandle | undefined {
+export function instrumentRawSseBody(response: { body?: unknown }, span: Span, recordOutputs: boolean): boolean {
   const body = response.body as ReadableStream<Uint8Array> | null | undefined;
   if (!body || typeof body.getReader !== 'function') {
-    return undefined;
+    return false;
   }
 
   const state = createStreamingState();
   const decoder = new TextDecoder();
   let buffered = '';
-  let claimed = false;
   let settled = false;
 
   // Never lets an accumulation failure reach the caller: their stream matters more than our attributes.
@@ -325,14 +312,13 @@ export function instrumentRawSseBody(
     }
   };
 
-  const settle = (error?: unknown): void => {
-    if (settled || claimed) {
+  // No error status on a torn-down body, matching `instrumentAsyncIterableStream`: the SDK surfaces the
+  // failure to the caller, and an `error` SSE frame already marks the span through `isErrorEvent`.
+  const settle = (): void => {
+    if (settled) {
       return;
     }
     settled = true;
-    if (error !== undefined) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-    }
     endStreamSpan(span, state, recordOutputs);
   };
 
@@ -351,12 +337,10 @@ export function instrumentRawSseBody(
             controller.close();
             return;
           }
-          if (!claimed) {
-            consume(value);
-          }
+          consume(value);
           controller.enqueue(value);
         } catch (error) {
-          settle(error);
+          settle();
           controller.error(error);
         }
       },
@@ -374,12 +358,8 @@ export function instrumentRawSseBody(
     // `body` is a prototype getter, so an own data property shadows it for every later read.
     Object.defineProperty(response, 'body', { value: instrumented, configurable: true });
   } catch {
-    return undefined;
+    return false;
   }
 
-  return {
-    claim: () => {
-      claimed = true;
-    },
-  };
+  return true;
 }

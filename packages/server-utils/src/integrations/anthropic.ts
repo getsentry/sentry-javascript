@@ -13,12 +13,7 @@ import {
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
-import type { RawSseBodyHandle } from '../ai/anthropic-ai/streaming';
-import {
-  instrumentAsyncIterableStream,
-  instrumentMessageStream,
-  instrumentRawSseBody,
-} from '../ai/anthropic-ai/streaming';
+import { instrumentMessageStream, instrumentRawSseBody } from '../ai/anthropic-ai/streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -48,13 +43,12 @@ interface AnthropicChannelContext {
   result?: unknown;
 }
 
-// Spans opened for `messages.create({ stream: true })`, i.e. the ones whose stream is drained through
-// the SDK's `Stream`. `messages.stream()` spans are excluded: `instrumentMessageStream` already owns
-// when those end, so the raw-body wrapper must keep its hands off them.
-const asyncIterableStreamSpans = new WeakSet<Span>();
+// Spans from `messages.create()`. `messages.stream()` spans are excluded because
+// `instrumentMessageStream` already owns when those end.
+const createSpans = new WeakSet<Span>();
 
-// The `Stream` a raw-body wrapper was installed for, so the iterator path can claim the span.
-const rawSseBodyHandles = new WeakMap<object, RawSseBodyHandle>();
+// Spans whose SSE response body we wrapped, so `wrapStreamResult` knows the wrapper will end them.
+const bodyOwnedSpans = new WeakSet<Span>();
 
 const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
   return {
@@ -99,15 +93,13 @@ function subscribeToSseStream(options: AnthropicAiOptions): void {
   diagnosticsChannel.tracingChannel<AnthropicChannelContext>(CHANNELS.ANTHROPIC_SSE_STREAM).end.subscribe(message => {
     const data = message as AnthropicChannelContext;
     const span = getActiveSpan();
-    const stream = data.result;
     const response = data.arguments?.[0];
-    if (!span || !asyncIterableStreamSpans.has(span) || !isObjectLike(stream) || !isObjectLike(response)) {
+    if (!span || !createSpans.has(span) || !isObjectLike(response)) {
       return;
     }
 
-    const handle = instrumentRawSseBody(response, span, recordOutputs);
-    if (handle) {
-      rawSseBodyHandles.set(stream, handle);
+    if (instrumentRawSseBody(response, span, recordOutputs)) {
+      bodyOwnedSpans.add(span);
     }
   });
 }
@@ -159,18 +151,13 @@ function createGenAiSpan(
   }
 
   if (stream === 'async-iterable') {
-    asyncIterableStreamSpans.add(span);
+    createSpans.add(span);
   }
 
   return span;
 }
 
-type AsyncIterableStream = { [Symbol.asyncIterator]: () => AsyncIterator<unknown> };
 type MessageStreamEmitter = { on: (...args: unknown[]) => void };
-
-function isAsyncIterable(value: unknown): value is AsyncIterableStream {
-  return !!value && typeof (value as AsyncIterableStream)[Symbol.asyncIterator] === 'function';
-}
 
 function isMessageStream(value: unknown): value is MessageStreamEmitter {
   return !!value && typeof (value as MessageStreamEmitter).on === 'function';
@@ -178,10 +165,10 @@ function isMessageStream(value: unknown): value is MessageStreamEmitter {
 
 /**
  * Hand span-ending ownership to a streamed result: returns `true` to skip the normal `beforeSpanEnd`,
- * `false` for non-streaming results (which end via `beforeSpanEnd`).
+ * `false` for results that end via `beforeSpanEnd`.
  *
- * - `async-iterable`: patch the `Stream`'s async iterator in place so `instrumentAsyncIterableStream` ends
- *   the span when iteration finishes.
+ * - `async-iterable`: the SSE body wrapper ends the span once the body is drained. A streaming call we
+ *   couldn't wrap ends here instead, carrying request attributes only.
  * - `message-stream`: `instrumentMessageStream` attaches `'message'`/`'error'` listeners that end the span.
  */
 function wrapStreamResult(
@@ -190,22 +177,12 @@ function wrapStreamResult(
   stream: StreamMode,
   options: AnthropicAiOptions,
 ): boolean {
-  const { recordOutputs } = resolveAIRecordingOptions(options);
-  const result = data.result;
-
-  if (stream === 'async-iterable' && isAsyncIterable(result)) {
-    const handle = rawSseBodyHandles.get(result);
-    const iterate = result[Symbol.asyncIterator].bind(result);
-    const instrumented = instrumentAsyncIterableStream({ [Symbol.asyncIterator]: iterate }, span, recordOutputs);
-    result[Symbol.asyncIterator] = () => {
-      handle?.claim();
-      return instrumented;
-    };
-    return true;
+  if (stream === 'async-iterable') {
+    return bodyOwnedSpans.has(span);
   }
 
-  if (stream === 'message-stream' && isMessageStream(result)) {
-    instrumentMessageStream(result, span, recordOutputs);
+  if (stream === 'message-stream' && isMessageStream(data.result)) {
+    instrumentMessageStream(data.result, span, resolveAIRecordingOptions(options).recordOutputs);
     return true;
   }
 
