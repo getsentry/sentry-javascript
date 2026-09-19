@@ -19,6 +19,14 @@ const MAX_TRACKED_NAVIGATIONS = 5;
 const INTERACTION_MATCH_TOLERANCE_MS = 5;
 
 /**
+ * How long after an interaction a navigation can still be attributed to it. Without this bound a
+ * navigation that no interaction drove, such as a programmatic `router.push`, could claim the last
+ * interaction on the page however long ago it happened. `browserTracingIntegration` uses the same
+ * 1.5s window to decide whether a navigation followed a click, see its `REDIRECT_THRESHOLD`.
+ */
+const MAX_INTERACTION_AGE_MS = 1500;
+
+/**
  * How many interactions whose Event Timing entry outran the navigation span we keep around. Only
  * the interaction a navigation happens during can match it, so a handful is plenty, and the cap
  * stops a page with many interactions and no navigations from growing the list.
@@ -128,7 +136,7 @@ export function startSoftNavigationCorrelation(client: Client): void {
     // nothing to wait for. Dropping the pending span here also keeps us from binding a stale one.
     _pendingNavigation = undefined;
     const interactionTimestamp = _lastInteractionTimestamp;
-    if (interactionTimestamp == null) {
+    if (interactionTimestamp == null || performance.now() - interactionTimestamp > MAX_INTERACTION_AGE_MS) {
       return;
     }
 
@@ -156,6 +164,14 @@ export function startSoftNavigationCorrelation(client: Client): void {
       if (pending && interactionMatches(entry.startTime, pending.interactionTimestamp)) {
         _interactionIdToNavigationSpan.set(entry.interactionId, pending.span);
         _pendingNavigation = undefined;
+        continue;
+      }
+
+      // Once a navigation span has claimed this interaction, only a span that is still waiting can
+      // rebind it, which the check above already allows. Holding the interaction's remaining
+      // entries would instead let an unrelated later navigation claim it through a stale
+      // `_lastInteractionTimestamp`.
+      if (_interactionIdToNavigationSpan.get(entry.interactionId)) {
         continue;
       }
 
