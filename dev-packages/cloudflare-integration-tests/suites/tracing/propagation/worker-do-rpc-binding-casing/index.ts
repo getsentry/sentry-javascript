@@ -25,7 +25,6 @@ class MyDurableObjectBase extends DurableObject<Env> {
 export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
   }),
   MyDurableObjectBase,
@@ -34,7 +33,6 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     // Both targets are written in a casing the bindings do not use, and the regex carries the `g`
     // flag, which makes `test()` stateful unless the SDK normalizes it away.
