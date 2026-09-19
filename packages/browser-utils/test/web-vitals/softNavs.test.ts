@@ -52,10 +52,13 @@ describe('soft navigation correlation', () => {
     windowListeners.clear();
     performanceHandlers.clear();
     vi.stubGlobal('PerformanceObserver', { supportedEntryTypes: ['event', 'soft-navigation'] });
+    // Pinned so the fixtures' interaction timestamps below stay inside `MAX_INTERACTION_AGE_MS`.
+    vi.spyOn(performance, 'now').mockReturnValue(1500);
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 
@@ -74,6 +77,116 @@ describe('soft navigation correlation', () => {
 
     expect(navigationSpan.setAttribute).toHaveBeenCalledWith(BROWSER_NAVIGATION_ID, 7);
     expect(getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7 })).toBe(navigationSpan);
+  });
+
+  it('correlates when the interaction entry is delivered before the navigation span starts', async () => {
+    const { getNavigationSpanForMetric, startSoftNavigationCorrelation } = await loadSoftNavs();
+    const { client, startSpan } = createMockClient();
+
+    startSoftNavigationCorrelation(client as never);
+
+    windowListeners.get('click')?.({ isTrusted: true, timeStamp: 1234 });
+    // The router code that starts the span has not run yet, so the entry gets here first.
+    performanceHandlers.get('event')?.({ entries: [{ duration: 8, startTime: 1234, interactionId: 42 }] });
+
+    const navigationSpan = createMockSpan('navigation');
+    startSpan(navigationSpan);
+
+    performanceHandlers.get('soft-navigation')?.({ entries: [{ navigationId: 7, interactionId: 42 }] });
+
+    expect(navigationSpan.setAttribute).toHaveBeenCalledWith(BROWSER_NAVIGATION_ID, 7);
+    expect(getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7 })).toBe(navigationSpan);
+  });
+
+  it('does not let a later navigation steal an interaction a navigation already claimed', async () => {
+    const { getNavigationSpanForMetric, startSoftNavigationCorrelation } = await loadSoftNavs();
+    const { client, startSpan } = createMockClient();
+
+    startSoftNavigationCorrelation(client as never);
+
+    windowListeners.get('click')?.({ isTrusted: true, timeStamp: 1000 });
+    const navigationSpan = createMockSpan('navigation');
+    startSpan(navigationSpan);
+
+    // One interaction produces several entries. The first binds; the rest are delivered after the
+    // span is no longer pending.
+    performanceHandlers.get('event')?.({
+      entries: [
+        { duration: 8, startTime: 1000, interactionId: 42 },
+        { duration: 8, startTime: 999, interactionId: 42 },
+      ],
+    });
+
+    // A programmatic navigation, with no interaction of its own, must not claim interaction 42.
+    startSpan(createMockSpan('navigation'));
+
+    expect(
+      getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7, navigationInteractionId: 42 }),
+    ).toBe(navigationSpan);
+  });
+
+  it('does not bind a navigation to an interaction that is too old to have driven it', async () => {
+    const { getNavigationSpanForMetric, startSoftNavigationCorrelation } = await loadSoftNavs();
+    const { client, startSpan } = createMockClient();
+
+    startSoftNavigationCorrelation(client as never);
+
+    // A click that drove no navigation, so its entries stay unbound.
+    windowListeners.get('click')?.({ isTrusted: true, timeStamp: 1000 });
+    performanceHandlers.get('event')?.({ entries: [{ duration: 8, startTime: 1000, interactionId: 42 }] });
+
+    // Well past `MAX_INTERACTION_AGE_MS`, a programmatic navigation starts.
+    vi.spyOn(performance, 'now').mockReturnValue(4000);
+    startSpan(createMockSpan('navigation'));
+
+    expect(
+      getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7, navigationInteractionId: 42 }),
+    ).toBeUndefined();
+  });
+
+  it('does not bind an early entry to a navigation from a different interaction', async () => {
+    const { getNavigationSpanForMetric, startSoftNavigationCorrelation } = await loadSoftNavs();
+    const { client, startSpan } = createMockClient();
+
+    startSoftNavigationCorrelation(client as never);
+
+    windowListeners.get('click')?.({ isTrusted: true, timeStamp: 500 });
+    performanceHandlers.get('event')?.({ entries: [{ duration: 8, startTime: 500, interactionId: 1 }] });
+
+    // A second click, whose own entry has not arrived, is what this navigation happened during.
+    windowListeners.get('click')?.({ isTrusted: true, timeStamp: 1234 });
+    const navigationSpan = createMockSpan('navigation');
+    startSpan(navigationSpan);
+
+    performanceHandlers.get('soft-navigation')?.({ entries: [{ navigationId: 7, interactionId: 1 }] });
+
+    expect(navigationSpan.setAttribute).not.toHaveBeenCalled();
+    expect(getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7 })).toBeUndefined();
+  });
+
+  it('caps how many unbound interaction entries it holds', async () => {
+    const { getNavigationSpanForMetric, startSoftNavigationCorrelation } = await loadSoftNavs();
+    const { client, startSpan } = createMockClient();
+
+    startSoftNavigationCorrelation(client as never);
+
+    windowListeners.get('click')?.({ isTrusted: true, timeStamp: 1 });
+    performanceHandlers.get('event')?.({ entries: [{ duration: 8, startTime: 1, interactionId: 1 }] });
+
+    // 20 later interactions push the first one out of the list.
+    for (let i = 0; i < 20; i++) {
+      const startTime = 100 + i * 100;
+      windowListeners.get('click')?.({ isTrusted: true, timeStamp: startTime });
+      performanceHandlers.get('event')?.({ entries: [{ duration: 8, startTime, interactionId: i + 2 }] });
+    }
+
+    // A navigation for the evicted interaction can no longer find it.
+    windowListeners.get('click')?.({ isTrusted: true, timeStamp: 1 });
+    startSpan(createMockSpan('navigation'));
+
+    expect(
+      getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7, navigationInteractionId: 1 }),
+    ).toBeUndefined();
   });
 
   it('falls back to the interaction id when the soft navigation entry has not been observed yet', async () => {

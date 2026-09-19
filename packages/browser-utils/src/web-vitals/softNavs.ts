@@ -18,6 +18,21 @@ const MAX_TRACKED_NAVIGATIONS = 5;
  */
 const INTERACTION_MATCH_TOLERANCE_MS = 5;
 
+/**
+ * How long after an interaction a navigation can still be attributed to it. Without this bound a
+ * navigation that no interaction drove, such as a programmatic `router.push`, could claim the last
+ * interaction on the page however long ago it happened. `browserTracingIntegration` uses the same
+ * 1.5s window to decide whether a navigation followed a click, see its `REDIRECT_THRESHOLD`.
+ */
+const MAX_INTERACTION_AGE_MS = 1500;
+
+/**
+ * How many interactions whose Event Timing entry outran the navigation span we keep around. Only
+ * the interaction a navigation happens during can match it, so a handful is plenty, and the cap
+ * stops a page with many interactions and no navigations from growing the list.
+ */
+const MAX_UNBOUND_INTERACTIONS = 20;
+
 interface SoftNavMetric {
   navigationType: string;
   navigationId: number;
@@ -29,8 +44,15 @@ interface PendingNavigation {
   interactionTimestamp: number;
 }
 
+interface UnboundInteraction {
+  interactionId: number;
+  startTime: number;
+}
+
 // The navigation span whose triggering interaction we haven't identified yet.
 let _pendingNavigation: PendingNavigation | undefined;
+// Interactions we have an Event Timing entry for but no navigation span yet, most recent last.
+const _unboundInteractions: UnboundInteraction[] = [];
 // The timestamp of the most recent trusted click/keydown, i.e. our best guess at the interaction
 // that a history change happening right now was driven by.
 let _lastInteractionTimestamp: number | undefined;
@@ -39,6 +61,14 @@ const _interactionIdToNavigationSpan = new LRUMap<number, Span>(MAX_TRACKED_NAVI
 const _navigationIdToNavigationSpan = new LRUMap<number, Span>(MAX_TRACKED_NAVIGATIONS);
 
 let _correlationStarted = false;
+
+/**
+ * Whether an Event Timing entry's `startTime` and a DOM event's `timeStamp` name the same
+ * interaction.
+ */
+function interactionMatches(entryStartTime: number, interactionTimestamp: number): boolean {
+  return Math.abs(entryStartTime - interactionTimestamp) <= INTERACTION_MATCH_TOLERANCE_MS;
+}
 
 /**
  * Whether the browser can report web vitals for soft navigations.
@@ -104,23 +134,53 @@ export function startSoftNavigationCorrelation(client: Client): void {
 
     // A navigation with no preceding interaction can't produce a soft navigation, so there is
     // nothing to wait for. Dropping the pending span here also keeps us from binding a stale one.
-    _pendingNavigation =
-      _lastInteractionTimestamp != null ? { span, interactionTimestamp: _lastInteractionTimestamp } : undefined;
+    _pendingNavigation = undefined;
+    const interactionTimestamp = _lastInteractionTimestamp;
+    if (interactionTimestamp == null || performance.now() - interactionTimestamp > MAX_INTERACTION_AGE_MS) {
+      return;
+    }
+
+    // The interaction's entry may already be here: the router code that starts this span races the
+    // paint that flushes the entry, so either one can win.
+    const unbound = _unboundInteractions.find(({ startTime }) => interactionMatches(startTime, interactionTimestamp));
+    if (!unbound) {
+      _pendingNavigation = { span, interactionTimestamp };
+      return;
+    }
+
+    _interactionIdToNavigationSpan.set(unbound.interactionId, span);
+    // Every remaining entry is from an interaction at or before this one, so none of them can match
+    // a later navigation.
+    _unboundInteractions.length = 0;
   });
 
   const bindInteractionToNavigationSpan = ({ entries }: { entries: PerformanceEntry[] }): void => {
     for (const entry of entries) {
+      if (!isPerformanceEventTiming(entry) || !entry.interactionId) {
+        continue;
+      }
+
       const pending = _pendingNavigation;
-      if (!pending || !isPerformanceEventTiming(entry) || !entry.interactionId) {
+      if (pending && interactionMatches(entry.startTime, pending.interactionTimestamp)) {
+        _interactionIdToNavigationSpan.set(entry.interactionId, pending.span);
+        _pendingNavigation = undefined;
         continue;
       }
 
-      if (Math.abs(entry.startTime - pending.interactionTimestamp) > INTERACTION_MATCH_TOLERANCE_MS) {
+      // Once a navigation span has claimed this interaction, only a span that is still waiting can
+      // rebind it, which the check above already allows. Holding the interaction's remaining
+      // entries would instead let an unrelated later navigation claim it through a stale
+      // `_lastInteractionTimestamp`.
+      if (_interactionIdToNavigationSpan.get(entry.interactionId)) {
         continue;
       }
 
-      _interactionIdToNavigationSpan.set(entry.interactionId, pending.span);
-      _pendingNavigation = undefined;
+      // The navigation span this interaction drove may still be on its way, so hold on to the entry
+      // instead of dropping it.
+      if (_unboundInteractions.length === MAX_UNBOUND_INTERACTIONS) {
+        _unboundInteractions.shift();
+      }
+      _unboundInteractions.push({ interactionId: entry.interactionId, startTime: entry.startTime });
     }
   };
 
