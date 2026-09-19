@@ -521,6 +521,85 @@ describe('Bun Serve Integration', () => {
   });
 
   describe('data collection', () => {
+    test('captures client address, port and protocol by default', async () => {
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`);
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
+      expect(attributes?.['client.address']).toMatch(/^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/);
+      expect(attributes?.['client.port']).toEqual(expect.any(Number));
+      expect(attributes?.['network.protocol.name']).toBe('http');
+    });
+
+    test('captures client address on route handlers', async () => {
+      const server = Bun.serve({
+        routes: {
+          '/users/:id': req => new Response(`User ${req.params.id}`),
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/users/123`);
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
+      expect(attributes?.['client.address']).toEqual(expect.any(String));
+      expect(attributes?.['client.port']).toEqual(expect.any(Number));
+    });
+
+    test('prefers the first x-forwarded-for address over the socket address', async () => {
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`, {
+        headers: { 'X-Forwarded-For': '203.0.113.7, 10.0.0.1' },
+      });
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
+      expect(attributes?.['client.address']).toBe('203.0.113.7');
+    });
+
+    test('does not capture client address when userInfo collection is disabled', async () => {
+      setupClient({ dataCollection: { userInfo: false } });
+
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`, {
+        headers: { 'X-Forwarded-For': '203.0.113.7' },
+      });
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
+      expect(attributes?.['client.address']).toBeUndefined();
+      expect(attributes?.['client.port']).toBeUndefined();
+      expect(attributes?.['network.protocol.name']).toBe('http');
+    });
+
     test('keeps PII request headers when dataCollection enables full header collection', async () => {
       setupClient({ dataCollection: { httpHeaders: { request: true, response: true } } });
 
