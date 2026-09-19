@@ -41,6 +41,12 @@ describe('init', () => {
     );
   });
 
+  it('sets SDK metadata on the options passed to initNode', () => {
+    init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
+
+    expect(mockApplySdkMetadata.mock.calls[0]?.[0]).toBe(mockInitNode.mock.calls[0]?.[0]);
+  });
+
   it('calls initNode with the options', () => {
     init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
 
