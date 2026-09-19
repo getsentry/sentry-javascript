@@ -19,7 +19,7 @@
     "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
-    "astro": "^7.2.4",
+    "astro": "^7.2.8",
     "ioredis": "5.10.1",
     "mysql": "^2.18.1"
   },
