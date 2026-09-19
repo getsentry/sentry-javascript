@@ -1,54 +1,37 @@
-import type { Envelope } from '@sentry/core';
+import type { Envelope, SerializedStreamedSpan } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
+import { getSpansFromEnvelope } from '../../spanUtils';
 
-function envelopeItemType(envelope: Envelope): string | undefined {
-  return envelope[1][0]?.[0]?.type as string | undefined;
-}
-
-function envelopeItem(envelope: Envelope): Record<string, unknown> {
-  return envelope[1][0]![1] as Record<string, unknown>;
-}
-
-function findD1Spans(envelope: Envelope): Array<Record<string, unknown>> {
-  if (envelopeItemType(envelope) !== 'transaction') return [];
-  const tx = envelopeItem(envelope);
-  const spans = (tx.spans as Array<Record<string, unknown>>) || [];
-  return spans.filter(s => (s.op as string) === 'db.query');
-}
+// `cloudflare.d1.duration` is only an integer when the query happens to take a whole number of
+// milliseconds, so the type can't be pinned down.
+const NUMBER_ATTRIBUTE = { type: expect.stringMatching(/^(?:integer|double)$/), value: expect.any(Number) };
 
 it('instruments D1 prepare().all() automatically via env', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
-      expect(envelopeItemType(envelope)).toBe('transaction');
-      const d1Spans = findD1Spans(envelope);
-      expect(d1Spans.length).toBeGreaterThanOrEqual(1);
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
 
-      const querySpan = d1Spans.find(s => s.description === 'SELECT * FROM users WHERE id = ?');
-      expect(querySpan).toBeDefined();
-      expect(querySpan).toEqual({
-        data: {
-          'db.system.name': 'cloudflare-d1',
-          'db.operation.name': 'all',
-          'db.query.text': 'SELECT * FROM users WHERE id = ?',
-          'db.query.summary': 'SELECT users',
-          'cloudflare.d1.duration': expect.any(Number),
-          'cloudflare.d1.rows_read': expect.any(Number),
-          'cloudflare.d1.rows_written': expect.any(Number),
-          'sentry.op': 'db.query',
-          'sentry.origin': 'auto.db.cloudflare.d1',
-        },
-        description: 'SELECT * FROM users WHERE id = ?',
-        op: 'db.query',
-        origin: 'auto.db.cloudflare.d1',
-        status: 'ok',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
-        start_timestamp: expect.any(Number),
-        timestamp: expect.any(Number),
-        trace_id: expect.any(String),
-      });
+      // The D1 span is named after its query summary rather than the full query text.
+      const querySpan = spans.find(span => span.attributes['db.operation.name']?.value === 'all');
+      expect(querySpan?.name).toBe('SELECT users');
+      expect(querySpan?.parent_span_id).toBe(segmentSpan?.span_id);
+      expect(querySpan?.status).toBe('ok');
+      expect(querySpan?.attributes).toEqual(
+        expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'db.query' },
+          'sentry.origin': { type: 'string', value: 'auto.db.cloudflare.d1' },
+          'db.system.name': { type: 'string', value: 'cloudflare-d1' },
+          'db.operation.name': { type: 'string', value: 'all' },
+          'db.query.text': { type: 'string', value: 'SELECT * FROM users WHERE id = ?' },
+          'db.query.summary': { type: 'string', value: 'SELECT users' },
+          'cloudflare.d1.duration': NUMBER_ATTRIBUTE,
+          'cloudflare.d1.rows_read': NUMBER_ATTRIBUTE,
+          'cloudflare.d1.rows_written': NUMBER_ATTRIBUTE,
+        }),
+      );
     })
     .start(signal);
 
@@ -58,10 +41,10 @@ it('instruments D1 prepare().all() automatically via env', async ({ signal }) =>
 
 it('captures error event when a D1 query references a non-existent table', async ({ signal }) => {
   const runner = createRunner(__dirname)
-    .ignore('transaction')
+    .ignore('span')
     .expect((envelope: Envelope) => {
-      expect(envelopeItemType(envelope)).toBe('event');
-      const event = envelopeItem(envelope);
+      expect(envelope[1][0]?.[0]?.type).toBe('event');
+      const event = envelope[1][0]![1] as Record<string, unknown>;
       expect(event.level).toBe('error');
 
       const values = (event.exception as { values: Array<Record<string, unknown>> })?.values;
@@ -102,32 +85,26 @@ it('instruments D1 exec() automatically via env', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
-      expect(envelopeItemType(envelope)).toBe('transaction');
-      const d1Spans = findD1Spans(envelope);
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
 
-      const execSpan = d1Spans.find(
-        s => s.description === 'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)',
+      const execSpan = spans.find(span => span.attributes['db.operation.name']?.value === 'exec');
+      expect(execSpan?.name).toBe('CREATE TABLE users');
+      expect(execSpan?.parent_span_id).toBe(segmentSpan?.span_id);
+      expect(execSpan?.status).toBe('ok');
+      expect(execSpan?.attributes).toEqual(
+        expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'db.query' },
+          'sentry.origin': { type: 'string', value: 'auto.db.cloudflare.d1' },
+          'db.system.name': { type: 'string', value: 'cloudflare-d1' },
+          'db.operation.name': { type: 'string', value: 'exec' },
+          'db.query.text': {
+            type: 'string',
+            value: 'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)',
+          },
+          'db.query.summary': { type: 'string', value: 'CREATE TABLE users' },
+        }),
       );
-      expect(execSpan).toBeDefined();
-      expect(execSpan).toEqual({
-        data: {
-          'db.system.name': 'cloudflare-d1',
-          'db.operation.name': 'exec',
-          'db.query.text': 'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)',
-          'db.query.summary': 'CREATE TABLE users',
-          'sentry.op': 'db.query',
-          'sentry.origin': 'auto.db.cloudflare.d1',
-        },
-        description: 'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)',
-        op: 'db.query',
-        origin: 'auto.db.cloudflare.d1',
-        status: 'ok',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
-        start_timestamp: expect.any(Number),
-        timestamp: expect.any(Number),
-        trace_id: expect.any(String),
-      });
     })
     .start(signal);
 
@@ -136,20 +113,30 @@ it('instruments D1 exec() automatically via env', async ({ signal }) => {
 });
 
 it('instruments D1 withSession().batch() identically to db.batch()', async ({ signal }) => {
-  let directBatchSpan: Record<string, unknown> | undefined;
-  let sessionBatchSpan: Record<string, unknown> | undefined;
+  let directBatchSpan: SerializedStreamedSpan | undefined;
+  let sessionBatchSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
-      expect(envelopeItem(envelope).transaction).toBe('GET /batch');
+      const spans = getSpansFromEnvelope(envelope);
+      // Both routes are raw URLs, so the streamed segment name keeps the method only and the
+      // request is identified through `url.path`.
+      expect(spans.find(span => span.is_segment)?.attributes['url.path']).toEqual({
+        type: 'string',
+        value: '/batch',
+      });
 
-      directBatchSpan = findD1Spans(envelope).find(s => s.description === 'D1 batch');
+      directBatchSpan = spans.find(span => span.name === 'D1 batch');
     })
     .expect((envelope: Envelope) => {
-      expect(envelopeItem(envelope).transaction).toBe('GET /with-session/batch');
+      const spans = getSpansFromEnvelope(envelope);
+      expect(spans.find(span => span.is_segment)?.attributes['url.path']).toEqual({
+        type: 'string',
+        value: '/with-session/batch',
+      });
 
-      sessionBatchSpan = findD1Spans(envelope).find(s => s.description === 'D1 batch');
+      sessionBatchSpan = spans.find(span => span.name === 'D1 batch');
     })
     .unordered()
     .start(signal);
@@ -161,16 +148,19 @@ it('instruments D1 withSession().batch() identically to db.batch()', async ({ si
   expect(directBatchSpan).toBeDefined();
   expect(sessionBatchSpan).toBeDefined();
 
-  const normalize = (span: Record<string, unknown>): Record<string, unknown> => {
+  // Ids and timestamps differ between the two requests, everything else must match.
+  const normalize = (span: SerializedStreamedSpan): Record<string, unknown> => {
     const {
       span_id: _spanId,
       parent_span_id: _parentSpanId,
       start_timestamp: _start,
-      timestamp: _end,
+      end_timestamp: _end,
       trace_id: _traceId,
+      attributes,
       ...rest
     } = span;
-    return rest;
+    const { 'sentry.segment.id': _segmentId, ...restAttributes } = attributes;
+    return { ...rest, attributes: restAttributes };
   };
 
   expect(normalize(sessionBatchSpan!)).toEqual(normalize(directBatchSpan!));
@@ -180,30 +170,25 @@ it('instruments D1 batch() automatically via env', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect((envelope: Envelope) => {
-      expect(envelopeItemType(envelope)).toBe('transaction');
-      const d1Spans = findD1Spans(envelope);
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
 
-      const batchSpan = d1Spans.find(s => s.description === 'D1 batch');
-      expect(batchSpan).toBeDefined();
-      expect(batchSpan).toEqual({
-        data: {
-          'db.system.name': 'cloudflare-d1',
-          'db.operation.name': 'batch',
-          'db.query.text': 'INSERT INTO users (name) VALUES (?)\nINSERT INTO users (name) VALUES (?)',
-          'db.operation.batch.size': 2,
-          'sentry.op': 'db.query',
-          'sentry.origin': 'auto.db.cloudflare.d1',
-        },
-        description: 'D1 batch',
-        op: 'db.query',
-        origin: 'auto.db.cloudflare.d1',
-        status: 'ok',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
-        start_timestamp: expect.any(Number),
-        timestamp: expect.any(Number),
-        trace_id: expect.any(String),
-      });
+      const batchSpan = spans.find(span => span.name === 'D1 batch');
+      expect(batchSpan?.parent_span_id).toBe(segmentSpan?.span_id);
+      expect(batchSpan?.status).toBe('ok');
+      expect(batchSpan?.attributes).toEqual(
+        expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'db.query' },
+          'sentry.origin': { type: 'string', value: 'auto.db.cloudflare.d1' },
+          'db.system.name': { type: 'string', value: 'cloudflare-d1' },
+          'db.operation.name': { type: 'string', value: 'batch' },
+          'db.query.text': {
+            type: 'string',
+            value: 'INSERT INTO users (name) VALUES (?)\nINSERT INTO users (name) VALUES (?)',
+          },
+          'db.operation.batch.size': { type: 'integer', value: 2 },
+        }),
+      );
     })
     .start(signal);
 

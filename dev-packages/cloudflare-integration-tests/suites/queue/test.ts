@@ -1,35 +1,14 @@
 import type { Envelope } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
-
-function envelopeItemType(envelope: Envelope): string | undefined {
-  return envelope[1][0]?.[0]?.type as string | undefined;
-}
-
-function envelopeItem(envelope: Envelope): Record<string, unknown> {
-  return envelope[1][0]![1] as Record<string, unknown>;
-}
-
-function findPublishSpan(envelope: Envelope): Record<string, unknown> | undefined {
-  if (envelopeItemType(envelope) !== 'transaction') return undefined;
-  const tx = envelopeItem(envelope);
-  const spans = (tx.spans as Array<Record<string, unknown>>) || [];
-  return spans.find(s => (s.op as string) === 'queue.publish');
-}
-
-function isConsumerTransaction(envelope: Envelope): boolean {
-  if (envelopeItemType(envelope) !== 'transaction') return false;
-  const tx = envelopeItem(envelope);
-  return tx.transaction === 'process test-queue';
-}
+import { getSpansFromEnvelope } from '../../spanUtils';
 
 it('captures errors thrown by the queue handler with the correct mechanism', async ({ signal }) => {
   const runner = createRunner(__dirname)
-    .ignore('transaction')
+    .ignore('span')
     .expect((envelope: Envelope) => {
-      expect(envelopeItemType(envelope)).toBe('event');
-      const event = envelopeItem(envelope);
-      expect(event).toMatchObject({
+      expect(envelope[1][0]?.[0]?.type).toBe('event');
+      expect(envelope[1][0]?.[1]).toMatchObject({
         level: 'error',
         exception: {
           values: [
@@ -48,43 +27,44 @@ it('captures errors thrown by the queue handler with the correct mechanism', asy
   await runner.completed();
 });
 
-it('emits a queue.publish span on env.MY_QUEUE.send and a queue.process transaction on the consumer', async ({
+it('emits a queue.publish span on env.MY_QUEUE.send and a queue.process segment span on the consumer', async ({
   signal,
 }) => {
   const runner = createRunner(__dirname)
     .unordered()
     .expect((envelope: Envelope) => {
-      // Producer transaction must contain a queue.publish child span
-      const publishSpan = findPublishSpan(envelope);
+      // The producer trace carries a `queue.publish` child span.
+      const publishSpan = getSpansFromEnvelope(envelope).find(span => span.name === 'send MY_QUEUE');
+
       expect(publishSpan).toBeDefined();
-      expect(publishSpan).toMatchObject({
-        op: 'queue.publish',
-        description: 'send MY_QUEUE',
-        data: expect.objectContaining({
-          'messaging.system': 'cloudflare',
-          'messaging.destination.name': 'MY_QUEUE',
-          'messaging.operation.type': 'send',
-          'messaging.operation.name': 'send',
-          'sentry.origin': 'auto.faas.cloudflare.queue',
+      expect(publishSpan?.attributes).toEqual(
+        expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'queue.publish' },
+          'sentry.origin': { type: 'string', value: 'auto.faas.cloudflare.queue' },
+          'messaging.system': { type: 'string', value: 'cloudflare' },
+          'messaging.destination.name': { type: 'string', value: 'MY_QUEUE' },
+          'messaging.operation.type': { type: 'string', value: 'send' },
+          'messaging.operation.name': { type: 'string', value: 'send' },
         }),
-      });
+      );
     })
     .expect((envelope: Envelope) => {
-      expect(isConsumerTransaction(envelope)).toBe(true);
-      const tx = envelopeItem(envelope);
-      const trace = (tx.contexts as Record<string, Record<string, unknown>>).trace as Record<string, unknown>;
-      expect(trace).toMatchObject({
-        op: 'queue.process',
-        origin: 'auto.faas.cloudflare.queue',
-        data: expect.objectContaining({
-          'messaging.system': 'cloudflare',
-          'messaging.destination.name': 'test-queue',
-          'messaging.operation.type': 'process',
-          'messaging.operation.name': 'process',
-          'messaging.batch.message_count': 1,
-          'faas.trigger': 'pubsub',
+      // The consumer runs in its own trace, so its segment span arrives in its own envelope.
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      expect(segmentSpan?.name).toBe('process test-queue');
+      expect(segmentSpan?.attributes).toEqual(
+        expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'queue.process' },
+          'sentry.origin': { type: 'string', value: 'auto.faas.cloudflare.queue' },
+          'messaging.system': { type: 'string', value: 'cloudflare' },
+          'messaging.destination.name': { type: 'string', value: 'test-queue' },
+          'messaging.operation.type': { type: 'string', value: 'process' },
+          'messaging.operation.name': { type: 'string', value: 'process' },
+          'messaging.batch.message_count': { type: 'integer', value: 1 },
+          'faas.trigger': { type: 'string', value: 'pubsub' },
         }),
-      });
+      );
     })
     .start(signal);
 
@@ -96,30 +76,26 @@ it('emits a queue.publish span with batch attributes on env.MY_QUEUE.sendBatch',
   const runner = createRunner(__dirname)
     .unordered()
     .expect((envelope: Envelope) => {
-      const publishSpan = findPublishSpan(envelope);
+      const publishSpan = getSpansFromEnvelope(envelope).find(span => span.name === 'send MY_QUEUE');
+
       expect(publishSpan).toBeDefined();
-      expect(publishSpan).toMatchObject({
-        op: 'queue.publish',
-        description: 'send MY_QUEUE',
-        data: expect.objectContaining({
-          'messaging.system': 'cloudflare',
-          'messaging.destination.name': 'MY_QUEUE',
-          'messaging.operation.type': 'send',
-          'messaging.operation.name': 'send',
-          'messaging.batch.message_count': 3,
-          'sentry.origin': 'auto.faas.cloudflare.queue',
+      expect(publishSpan?.attributes).toEqual(
+        expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'queue.publish' },
+          'sentry.origin': { type: 'string', value: 'auto.faas.cloudflare.queue' },
+          'messaging.system': { type: 'string', value: 'cloudflare' },
+          'messaging.destination.name': { type: 'string', value: 'MY_QUEUE' },
+          'messaging.operation.type': { type: 'string', value: 'send' },
+          'messaging.operation.name': { type: 'string', value: 'send' },
+          'messaging.batch.message_count': { type: 'integer', value: 3 },
         }),
-      });
+      );
     })
     .expect((envelope: Envelope) => {
-      expect(isConsumerTransaction(envelope)).toBe(true);
-      const tx = envelopeItem(envelope);
-      const trace = (tx.contexts as Record<string, Record<string, unknown>>).trace as Record<string, unknown>;
-      expect(trace).toMatchObject({
-        data: expect.objectContaining({
-          'messaging.batch.message_count': 3,
-        }),
-      });
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      expect(segmentSpan?.name).toBe('process test-queue');
+      expect(segmentSpan?.attributes['messaging.batch.message_count']).toEqual({ type: 'integer', value: 3 });
     })
     .start(signal);
 
