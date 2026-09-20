@@ -20,7 +20,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
         op: 'pageload',
         origin: 'auto.pageload.ember',
         data: {
-          'router.navigation.route.id': 'route:index',
+          'router.navigation.route.id': 'index',
         },
       },
     },
@@ -51,7 +51,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         op: 'navigation',
         origin: 'auto.navigation.ember',
         data: {
-          'router.navigation.route.id': 'route:tracing',
+          'router.navigation.route.id': 'tracing',
         },
       },
     },

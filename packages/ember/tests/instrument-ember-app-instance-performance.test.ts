@@ -85,13 +85,23 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         'sentry.origin': 'auto.pageload.ember',
-        'router.navigation.route.id': 'route:index',
+        'router.navigation.route.id': 'index',
         'url.path': '/',
         'url.full': 'https://ember.example.com/',
         'url.template': '/',
         toRoute: 'index',
       },
     });
+  });
+
+  it('omits the pageload route ID when the recognized name is empty', () => {
+    const fixture = createRouterFixture();
+    fixture.router.recognize.mockReturnValue({ name: '', params: {} });
+
+    fixture.instrument();
+
+    expect(fixture.startPageloadSpan).toHaveBeenCalledTimes(1);
+    expect(spanToJSON(fixture.pageloadSpan).attributes).not.toHaveProperty('router.navigation.route.id');
   });
 
   it.each([true, false])('updates the initial pageload when navigation instrumentation is %s', instrumentNavigation => {
@@ -106,7 +116,7 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
     expect(fixture.startPageloadSpan).toHaveBeenCalledTimes(1);
     expect(fixture.startNavigationSpan).not.toHaveBeenCalled();
     expect(spanToJSON(fixture.pageloadSpan).name).toBe('route:index');
-    expect(spanToJSON(fixture.pageloadSpan).attributes['router.navigation.route.id']).toBe('route:index');
+    expect(spanToJSON(fixture.pageloadSpan).attributes['router.navigation.route.id']).toBe('index');
     expect(spanToJSON(fixture.pageloadSpan).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('route');
   });
 
@@ -121,45 +131,44 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         'sentry.origin': 'auto.navigation.ember',
-        'router.navigation.route.id': 'route:tracing',
+        'router.navigation.route.id': 'tracing',
         fromRoute: 'index',
         toRoute: 'tracing',
       },
     });
   });
 
-  it.each([
-    ['tracing', 'route:tracing'],
-    ['', 'route:'],
-  ])('uses the current route fallback %j when the transition has no destination', (currentRouteName, expectedId) => {
+  it('uses the current route fallback when the transition has no destination', () => {
+    const fixture = createRouterFixture();
+    fixture.router.currentRouteName = 'tracing';
+    fixture.instrument();
+
+    fixture.routeWillChange({ from: { name: 'index' } });
+
+    expect(spanToJSON(fixture.navigationSpan).attributes['router.navigation.route.id']).toBe('tracing');
+  });
+
+  it.each([undefined, ''])('omits the navigation route ID when the available name is %j', currentRouteName => {
     const fixture = createRouterFixture();
     fixture.router.currentRouteName = currentRouteName;
     fixture.instrument();
 
     fixture.routeWillChange({ from: { name: 'index' } });
 
-    expect(spanToJSON(fixture.navigationSpan).attributes['router.navigation.route.id']).toBe(expectedId);
-  });
-
-  it('omits the navigation route ID when neither route name is available', () => {
-    const fixture = createRouterFixture();
-    fixture.instrument();
-
-    fixture.routeWillChange({ from: { name: 'index' } });
-
     expect(fixture.startNavigationSpan).toHaveBeenCalledExactlyOnceWith(fixture.client, {
-      name: 'route:undefined',
+      name: `route:${currentRouteName}`,
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         'sentry.origin': 'auto.navigation.ember',
         fromRoute: 'index',
-        toRoute: undefined,
+        toRoute: currentRouteName,
       },
     });
   });
 
-  it('preserves a caller route ID when the delayed pageload route is unknown', () => {
+  it.each([undefined, ''])('preserves a caller route ID when the delayed pageload name is %j', currentRouteName => {
     const fixture = createRouterFixture();
+    fixture.router.currentRouteName = currentRouteName;
     fixture.router.recognize.mockReturnValue(undefined);
     fixture.instrument();
     fixture.pageloadSpan.setAttribute('router.navigation.route.id', 'caller-route');
@@ -168,13 +177,13 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
 
     fixture.routeWillChange({});
 
-    expect(updateName).toHaveBeenCalledExactlyOnceWith('route:undefined');
+    expect(updateName).toHaveBeenCalledExactlyOnceWith(`route:${currentRouteName}`);
     expect(setAttributes).toHaveBeenCalledExactlyOnceWith({
       [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       'url.path': '/',
       'url.full': 'https://ember.example.com/',
       'url.template': '/',
-      toRoute: undefined,
+      toRoute: currentRouteName,
     });
     expect(spanToJSON(fixture.pageloadSpan).attributes['router.navigation.route.id']).toBe('caller-route');
   });

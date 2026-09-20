@@ -76,7 +76,7 @@ export function instrumentEmberAppInstanceForPerformance(
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: routeInfo ? 'route' : 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
-        ...(routeInfo ? { [ROUTER_NAVIGATION_ROUTE_ID]: `route:${routeInfo.name}` } : {}),
+        ...(routeInfo?.name && { [ROUTER_NAVIGATION_ROUTE_ID]: routeInfo.name }),
         ...(url ? _getRouteUrlAttributes(client, url, routeInfo?.params) : {}),
         toRoute: routeInfo?.name,
       },
@@ -119,7 +119,7 @@ export function instrumentEmberAppInstanceForPerformance(
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
-            ...(toRoute !== undefined ? { [ROUTER_NAVIGATION_ROUTE_ID]: `route:${toRoute}` } : {}),
+            ...(toRoute && { [ROUTER_NAVIGATION_ROUTE_ID]: toRoute }),
             ...urlAttributes,
             fromRoute,
             toRoute,
@@ -136,7 +136,7 @@ export function instrumentEmberAppInstanceForPerformance(
         activeRootSpan.updateName(`route:${toRoute}`);
         activeRootSpan.setAttributes({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-          ...(toRoute !== undefined ? { [ROUTER_NAVIGATION_ROUTE_ID]: `route:${toRoute}` } : {}),
+          ...(toRoute && { [ROUTER_NAVIGATION_ROUTE_ID]: toRoute }),
           ..._getRouteUrlAttributes(client, url, routeInfo?.params),
           toRoute: toRoute,
         });

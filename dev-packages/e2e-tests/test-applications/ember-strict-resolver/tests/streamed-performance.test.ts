@@ -4,7 +4,7 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 // Only the `ember-strict-resolver (streamed)` variant builds the app with `traceLifecycle: 'stream'`.
 test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE !== 'stream', 'requires the app built with span streaming');
 
-test('preserves the route name on a streamed pageload', async ({ page }) => {
+test('adds the route ID to a streamed pageload', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('ember-strict-resolver', span => {
     return (
       span.is_segment &&
@@ -17,11 +17,11 @@ test('preserves the route name on a streamed pageload', async ({ page }) => {
 
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(pageloadSpan.attributes['router.navigation.route.id']).toEqual({ type: 'string', value: 'route:index' });
+  expect(pageloadSpan.attributes['router.navigation.route.id']).toEqual({ type: 'string', value: 'index' });
   expect(pageloadSpan.name).toBe('route:index');
 });
 
-test('preserves the route name on a streamed navigation', async ({ page }) => {
+test('adds the route ID to a streamed navigation', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('ember-strict-resolver', span => {
     return (
       span.is_segment &&
@@ -46,7 +46,7 @@ test('preserves the route name on a streamed navigation', async ({ page }) => {
 
   const navigationSpan = await navigationSpanPromise;
 
-  expect(navigationSpan.attributes['router.navigation.route.id']).toEqual({ type: 'string', value: 'route:tracing' });
+  expect(navigationSpan.attributes['router.navigation.route.id']).toEqual({ type: 'string', value: 'tracing' });
   expect(navigationSpan.name).toBe('route:tracing');
 });
 
