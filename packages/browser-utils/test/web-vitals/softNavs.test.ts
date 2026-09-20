@@ -52,8 +52,6 @@ describe('soft navigation correlation', () => {
     windowListeners.clear();
     performanceHandlers.clear();
     vi.stubGlobal('PerformanceObserver', { supportedEntryTypes: ['event', 'soft-navigation'] });
-    // Pinned so the fixtures' interaction timestamps below stay inside `MAX_INTERACTION_AGE_MS`.
-    vi.spyOn(performance, 'now').mockReturnValue(1500);
   });
 
   afterEach(() => {
@@ -125,23 +123,24 @@ describe('soft navigation correlation', () => {
     ).toBe(navigationSpan);
   });
 
-  it('does not bind a navigation to an interaction that is too old to have driven it', async () => {
+  it('correlates when the interaction handler ran long before the navigation span started', async () => {
     const { getNavigationSpanForMetric, startSoftNavigationCorrelation } = await loadSoftNavs();
     const { client, startSpan } = createMockClient();
 
     startSoftNavigationCorrelation(client as never);
 
-    // A click that drove no navigation, so its entries stay unbound.
+    // A click whose handler blocks for seconds. These are the worst INP values on the page, so
+    // they're the ones that matter most, and the span still starts before the entry is delivered.
     windowListeners.get('click')?.({ isTrusted: true, timeStamp: 1000 });
-    performanceHandlers.get('event')?.({ entries: [{ duration: 8, startTime: 1000, interactionId: 42 }] });
+    vi.spyOn(performance, 'now').mockReturnValue(3500);
 
-    // Well past `MAX_INTERACTION_AGE_MS`, a programmatic navigation starts.
-    vi.spyOn(performance, 'now').mockReturnValue(4000);
-    startSpan(createMockSpan('navigation'));
+    const navigationSpan = createMockSpan('navigation');
+    startSpan(navigationSpan);
+    performanceHandlers.get('event')?.({ entries: [{ duration: 2500, startTime: 1000, interactionId: 42 }] });
 
     expect(
       getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7, navigationInteractionId: 42 }),
-    ).toBeUndefined();
+    ).toBe(navigationSpan);
   });
 
   it('does not bind an early entry to a navigation from a different interaction', async () => {
@@ -162,31 +161,6 @@ describe('soft navigation correlation', () => {
 
     expect(navigationSpan.setAttribute).not.toHaveBeenCalled();
     expect(getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7 })).toBeUndefined();
-  });
-
-  it('caps how many unbound interaction entries it holds', async () => {
-    const { getNavigationSpanForMetric, startSoftNavigationCorrelation } = await loadSoftNavs();
-    const { client, startSpan } = createMockClient();
-
-    startSoftNavigationCorrelation(client as never);
-
-    windowListeners.get('click')?.({ isTrusted: true, timeStamp: 1 });
-    performanceHandlers.get('event')?.({ entries: [{ duration: 8, startTime: 1, interactionId: 1 }] });
-
-    // 20 later interactions push the first one out of the list.
-    for (let i = 0; i < 20; i++) {
-      const startTime = 100 + i * 100;
-      windowListeners.get('click')?.({ isTrusted: true, timeStamp: startTime });
-      performanceHandlers.get('event')?.({ entries: [{ duration: 8, startTime, interactionId: i + 2 }] });
-    }
-
-    // A navigation for the evicted interaction can no longer find it.
-    windowListeners.get('click')?.({ isTrusted: true, timeStamp: 1 });
-    startSpan(createMockSpan('navigation'));
-
-    expect(
-      getNavigationSpanForMetric({ navigationType: 'soft-navigation', navigationId: 7, navigationInteractionId: 1 }),
-    ).toBeUndefined();
   });
 
   it('falls back to the interaction id when the soft navigation entry has not been observed yet', async () => {

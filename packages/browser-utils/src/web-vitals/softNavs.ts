@@ -18,21 +18,6 @@ const MAX_TRACKED_NAVIGATIONS = 5;
  */
 const INTERACTION_MATCH_TOLERANCE_MS = 5;
 
-/**
- * How long after an interaction a navigation can still be attributed to it. Without this bound a
- * navigation that no interaction drove, such as a programmatic `router.push`, could claim the last
- * interaction on the page however long ago it happened. `browserTracingIntegration` uses the same
- * 1.5s window to decide whether a navigation followed a click, see its `REDIRECT_THRESHOLD`.
- */
-const MAX_INTERACTION_AGE_MS = 1500;
-
-/**
- * How many interactions whose Event Timing entry outran the navigation span we keep around. Only
- * the interaction a navigation happens during can match it, so a handful is plenty, and the cap
- * stops a page with many interactions and no navigations from growing the list.
- */
-const MAX_UNBOUND_INTERACTIONS = 20;
-
 interface SoftNavMetric {
   navigationType: string;
   navigationId: number;
@@ -44,15 +29,15 @@ interface PendingNavigation {
   interactionTimestamp: number;
 }
 
-interface UnboundInteraction {
+interface PendingInteraction {
   interactionId: number;
-  startTime: number;
+  interactionTimestamp: number;
 }
 
 // The navigation span whose triggering interaction we haven't identified yet.
 let _pendingNavigation: PendingNavigation | undefined;
-// Interactions we have an Event Timing entry for but no navigation span yet, most recent last.
-const _unboundInteractions: UnboundInteraction[] = [];
+// The interaction whose Event Timing entry arrived before any navigation span claimed it.
+let _pendingInteraction: PendingInteraction | undefined;
 // The timestamp of the most recent trusted click/keydown, i.e. our best guess at the interaction
 // that a history change happening right now was driven by.
 let _lastInteractionTimestamp: number | undefined;
@@ -136,22 +121,19 @@ export function startSoftNavigationCorrelation(client: Client): void {
     // nothing to wait for. Dropping the pending span here also keeps us from binding a stale one.
     _pendingNavigation = undefined;
     const interactionTimestamp = _lastInteractionTimestamp;
-    if (interactionTimestamp == null || performance.now() - interactionTimestamp > MAX_INTERACTION_AGE_MS) {
+    if (interactionTimestamp == null) {
       return;
     }
 
     // The interaction's entry may already be here: the router code that starts this span races the
     // paint that flushes the entry, so either one can win.
-    const unbound = _unboundInteractions.find(({ startTime }) => interactionMatches(startTime, interactionTimestamp));
-    if (!unbound) {
-      _pendingNavigation = { span, interactionTimestamp };
+    if (_pendingInteraction?.interactionTimestamp === interactionTimestamp) {
+      _interactionIdToNavigationSpan.set(_pendingInteraction.interactionId, span);
+      _pendingInteraction = undefined;
       return;
     }
 
-    _interactionIdToNavigationSpan.set(unbound.interactionId, span);
-    // Every remaining entry is from an interaction at or before this one, so none of them can match
-    // a later navigation.
-    _unboundInteractions.length = 0;
+    _pendingNavigation = { span, interactionTimestamp };
   });
 
   const bindInteractionToNavigationSpan = ({ entries }: { entries: PerformanceEntry[] }): void => {
@@ -168,19 +150,19 @@ export function startSoftNavigationCorrelation(client: Client): void {
       }
 
       // Once a navigation span has claimed this interaction, only a span that is still waiting can
-      // rebind it, which the check above already allows. Holding the interaction's remaining
-      // entries would instead let an unrelated later navigation claim it through a stale
-      // `_lastInteractionTimestamp`.
+      // rebind it, which the check above already allows. Holding on to the interaction's remaining
+      // entries would instead let an unrelated later navigation claim it.
       if (_interactionIdToNavigationSpan.get(entry.interactionId)) {
         continue;
       }
 
-      // The navigation span this interaction drove may still be on its way, so hold on to the entry
-      // instead of dropping it.
-      if (_unboundInteractions.length === MAX_UNBOUND_INTERACTIONS) {
-        _unboundInteractions.shift();
+      // The navigation span this interaction drove may still be on its way, so hold on to the
+      // interaction instead of dropping it. Only the most recent one is worth keeping:
+      // `_lastInteractionTimestamp` is what `spanStart` matches against and it only moves forward,
+      // so an entry that doesn't match it now can never match it later.
+      if (_lastInteractionTimestamp != null && interactionMatches(entry.startTime, _lastInteractionTimestamp)) {
+        _pendingInteraction = { interactionId: entry.interactionId, interactionTimestamp: _lastInteractionTimestamp };
       }
-      _unboundInteractions.push({ interactionId: entry.interactionId, startTime: entry.startTime });
     }
   };
 
