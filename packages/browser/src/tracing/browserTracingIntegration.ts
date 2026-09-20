@@ -723,7 +723,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
                   [SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache',
                   // A bfcache restore is near-instant, so these spans would otherwise drag
                   // navigation duration percentiles down with no way to tell them apart.
-                  [BROWSER_NAVIGATION_TYPE]: 'bfcache',
+                  [BROWSER_NAVIGATION_TYPE]: 'back-forward-cache',
                 },
               },
               { url: WINDOW.location?.href },

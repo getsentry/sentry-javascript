@@ -112,7 +112,7 @@ describe('wrapMiddlewareWithSentry', () => {
     const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
 
     // Create a mock Request that matches the tunnel route
-    const mockRequest = new Request('https://example.com/monitoring/tunnel?o=123');
+    const mockRequest = new Request('https://example.com/monitoring/tunnel?o=123&p=456', { method: 'POST' });
 
     const result = await wrappedOriginal(mockRequest);
 
@@ -209,17 +209,37 @@ describe('wrapMiddlewareWithSentry', () => {
     expect(result).toBe(mockReturnValue);
   });
 
-  test('should skip processing for tunnel sub-paths under tunnelRoute', async () => {
-    (globalThis as any)._sentryRewritesTunnelPath = '/api/t';
+  test('should skip processing for the tunnel route with a trailing slash', async () => {
+    (globalThis as any)._sentryRewritesTunnelPath = '/monitoring';
 
     const origFunction: EdgeRouteHandler = vi.fn(async () => ({ status: 200 }));
     const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
 
-    const mockRequest = new Request('https://example.com/api/t/envelope?o=1');
+    await wrappedOriginal(new Request('https://example.com/monitoring/?o=123&p=456&r=us', { method: 'POST' }));
+
+    expect(origFunction).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['a sub-path of the tunnel route', 'https://example.com/monitoring/anything/at/all?o=123&p=456', 'POST'],
+    ['a tunnel request without query params', 'https://example.com/monitoring', 'POST'],
+    ['a tunnel request without project id', 'https://example.com/monitoring?o=123', 'POST'],
+    ['a tunnel request with non-numeric ids', 'https://example.com/monitoring?o=abc&p=456', 'POST'],
+    ['a tunnel request with a repeated non-numeric org id', 'https://example.com/monitoring?o=123&o=abc&p=456', 'POST'],
+    ['a tunnel request with a repeated empty project id', 'https://example.com/monitoring?o=123&p=456&p=', 'POST'],
+    ['a non-POST tunnel request', 'https://example.com/monitoring?o=123&p=456', 'GET'],
+  ])('should run the middleware for %s', async (_, url, method) => {
+    (globalThis as any)._sentryRewritesTunnelPath = '/monitoring';
+
+    const mockReturnValue = { status: 200 };
+    const origFunction: EdgeRouteHandler = vi.fn(async (..._args) => mockReturnValue);
+    const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
+
+    const mockRequest = new Request(url, { method });
 
     const result = await wrappedOriginal(mockRequest);
 
-    expect(origFunction).not.toHaveBeenCalled();
-    expect(result).toBeDefined();
+    expect(origFunction).toHaveBeenCalledWith(mockRequest);
+    expect(result).toBe(mockReturnValue);
   });
 });

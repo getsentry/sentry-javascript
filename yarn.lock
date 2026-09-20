@@ -14006,9 +14006,9 @@ deterministic-object-hash@^2.0.2:
     base-64 "^1.0.0"
 
 devalue@^5.1.1, devalue@^5.8.1, devalue@^5.9.0:
-  version "5.9.0"
-  resolved "https://registry.yarnpkg.com/devalue/-/devalue-5.9.0.tgz#5d30db41a0db9171cf4ee9dbf6617e0b77cd7c2a"
-  integrity sha512-RWrqdArjvPbsATEhOPUo6Wndc/iWnkWKlhIrdlF3zMMYo/c3CVtoaVAyLtWxz5h8nSlkHzxnzV2uLydPXmtF+A==
+  version "5.9.2"
+  resolved "https://registry.yarnpkg.com/devalue/-/devalue-5.9.2.tgz#2a3a8ad21904c6a630bf7bb160acb7ca2fa1e467"
+  integrity sha512-po4PAY5c53tw5XMocSnf8A/5OHhbbUftpr93aEN6BBoAdntUmK7vu7wOATqvt7cXO7m1Cl4gMVn6p7n6n4mj0w==
 
 devlop@^1.0.0, devlop@^1.1.0:
   version "1.1.0"
@@ -16844,6 +16844,11 @@ gray-matter@^4.0.3:
     kind-of "^6.0.2"
     section-matter "^1.0.0"
     strip-bom-string "^1.0.0"
+
+groq-sdk@1.6.0:
+  version "1.6.0"
+  resolved "https://sfw.security.sentry.io/npm/groq-sdk/-/groq-sdk-1.6.0.tgz#6938848229935425e29aa5a9b225b50f4fbc89a9"
+  integrity sha512-ggMgo6n84aZdNObgkSbSxWrdAq4wABsViIRb5e4N15bMUtDLZVhqlgZOI7X4TeqdBMdaVUOuUdZxAZIp06u0vw==
 
 gtoken@^5.0.4:
   version "5.2.1"
@@ -26404,6 +26409,11 @@ toad-cache@^3.7.0:
   version "3.7.1"
   resolved "https://registry.yarnpkg.com/toad-cache/-/toad-cache-3.7.1.tgz#33441aab508e15a35fb5292c61ee3322c0853822"
   integrity sha512-5DXWzE4Vz7xNHsv+xQ+MGfJYyC78Aok3tEr0MNwHoRf7vZnga1mQXZ4/Nsodld4VR6Wd+VhfmqnNrsRJyYPfrQ==
+
+together-ai@0.54.0:
+  version "0.54.0"
+  resolved "https://sfw.security.sentry.io/npm/together-ai/-/together-ai-0.54.0.tgz#dd1345de5662ef5c4778da9d9f8bc184db07c17a"
+  integrity sha512-SiAzvfHCQMaX/omwpCpbFJmUFP8vUQntT2wpAgfUknOc/UpdjF0mORg/IHIAXfa35FurNyCjfBPsexHaHbpy0w==
 
 toidentifier@1.0.1, toidentifier@~1.0.1:
   version "1.0.1"

@@ -11,6 +11,7 @@ import { firebaseConfig } from './firebase';
 import { genericPoolConfig } from './generic-pool';
 import { googleGenAiConfig } from './google-genai';
 import { graphqlConfig } from './graphql';
+import { groqConfig } from './groq';
 import { hapiConfig } from './hapi';
 import { ioredisConfig } from './ioredis';
 import { kafkajsConfig } from './kafkajs';
@@ -32,6 +33,7 @@ import { postgresJsConfig } from './postgres';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
 import { tediousConfig } from './tedious';
+import { togetherAiConfig } from './together-ai';
 import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
@@ -59,6 +61,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...genericPoolConfig,
   ...googleGenAiConfig,
   ...graphqlConfig,
+  ...groqConfig,
   ...hapiConfig,
   ...ioredisConfig,
   ...kafkajsConfig,
@@ -80,6 +83,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...redisConfig,
   ...remixConfig,
   ...tediousConfig,
+  ...togetherAiConfig,
   ...vercelAiConfig,
 ];
 

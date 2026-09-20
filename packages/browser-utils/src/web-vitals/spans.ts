@@ -73,12 +73,12 @@ function trackWebVitalPerNavigation<M extends WebVitalMetric>(
   let bfcacheNavigationSpan: Span | undefined;
   client.on('spanStart', span => {
     // The op has to be checked too: the web vital spans emitted for a restore carry the same
-    // `bfcache` navigation type, so matching on that alone lets the first of them replace the
+    // `back-forward-cache` navigation type, so matching on that alone lets the first of them replace the
     // navigation span, and every later vital then hangs off a sibling vital instead.
     const attributes = spanToJSON(span).attributes;
     if (
       attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === NAVIGATION &&
-      attributes[BROWSER_NAVIGATION_TYPE] === 'bfcache'
+      attributes[BROWSER_NAVIGATION_TYPE] === 'back-forward-cache'
     ) {
       bfcacheNavigationSpan = span;
     }
