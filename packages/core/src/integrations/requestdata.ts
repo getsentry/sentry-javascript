@@ -7,12 +7,12 @@ import type { Event } from '../types/event';
 import type { IntegrationFn } from '../types/integration';
 import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
-import { parseCookie } from '../utils/cookie';
+import { parseCookiePairs } from '../utils/cookie';
 import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
 import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
-import { httpHeadersToSpanAttributes } from '../utils/request';
+import { filterCookiePairs, httpHeadersToSpanAttributes } from '../utils/request';
 import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
@@ -186,11 +186,13 @@ function addNormalizedRequestDataToSpan(
   // Process cookies before headers so normalizedRequest.cookies takes precedence
   // over the raw cookie header (matching the processEvent path).
   if (requestData.cookies && Object.keys(requestData.cookies).length > 0) {
-    const cookieString = Object.entries(requestData.cookies)
-      .map(([name, value]) => `${name}=${value}`)
-      .join('; ');
-    const cookieAttributes = httpHeadersToSpanAttributes({ cookie: cookieString }, dataCollection, 'request');
-    safeSetSpanJSONAttributes(span, cookieAttributes);
+    const cookieAttributes = filterCookiePairs(
+      Object.entries(requestData.cookies).map(([name, value]) => [name, String(value)]),
+      dataCollection.cookies,
+    );
+    if (cookieAttributes.length) {
+      safeSetSpanJSONAttributes(span, { 'http.request.header.cookie': cookieAttributes });
+    }
   }
 
   if (requestData.headers) {
@@ -245,7 +247,7 @@ function extractNormalizedRequestData(
   }
 
   if (include.cookies) {
-    const cookies = normalizedRequest.cookies || (headers?.cookie ? parseCookie(headers.cookie) : undefined);
+    const cookies = normalizedRequest.cookies || (headers?.cookie ? parseCookieRecord(headers.cookie) : undefined);
     requestData.cookies = cookies || {};
   }
 
@@ -258,6 +260,19 @@ function extractNormalizedRequestData(
   }
 
   return requestData;
+}
+
+function parseCookieRecord(cookieString: string): Record<string, string> {
+  const parsed: Record<string, string> = {};
+
+  for (const [name, value] of parseCookiePairs(cookieString)) {
+    // only assign once
+    if (name !== '' && !(name in parsed)) {
+      parsed[name] = value;
+    }
+  }
+
+  return parsed;
 }
 
 function resolveFilteringBehavior(isIncluded: boolean, behavior: CollectBehavior): CollectBehavior {

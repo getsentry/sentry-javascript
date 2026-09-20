@@ -28,36 +28,51 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+// `Set-Cookie` attributes are metadata, not cookies. Response cookie strings handed to
+// the `Cookie`-mode parser may still carry them, so they are dropped by name.
+const SET_COOKIE_ATTRIBUTES = new Set([
+  'expires',
+  'max-age',
+  'domain',
+  'path',
+  'secure',
+  'httponly',
+  'samesite',
+  'partitioned',
+]);
+
 /**
- * Parses a cookie string
+ * Parses a `Cookie` or `Set-Cookie` header value into ordered `[name, value]` pairs.
+ *
+ * In `Set-Cookie` mode each header value carries a single cookie, so only the segment
+ * before the first `;` is parsed. Otherwise every `;`-separated segment is a pair, with
+ * known `Set-Cookie` attributes dropped by name.
+ *
+ * Segments without `=` (e.g. a bare token or a flag like `Secure`) are returned as
+ * `['', segment]`; values are unquoted and URL-decoded.
  */
-export function parseCookie(str: string): Record<string, string> {
-  const obj: Record<string, string> = {};
-  let index = 0;
+export function parseCookiePairs(value: string | string[], setCookie = false): [string, string][] {
+  const pairs: [string, string][] = [];
 
-  while (index < str.length) {
-    const eqIdx = str.indexOf('=', index);
-
-    // no more cookie pairs
-    if (eqIdx === -1) {
-      break;
-    }
-
-    let endIdx = str.indexOf(';', index);
-
-    if (endIdx === -1) {
-      endIdx = str.length;
-    } else if (endIdx < eqIdx) {
-      // backtrack on prior semicolon
-      index = str.lastIndexOf(';', eqIdx - 1) + 1;
+  for (const headerValue of Array.isArray(value) ? value : [value]) {
+    if (typeof headerValue !== 'string' || headerValue === '') {
       continue;
     }
 
-    const key = str.slice(index, eqIdx).trim();
+    // A `Set-Cookie` value carries one cookie, so only its first segment is a pair.
+    // `headerValue` is non-empty here, so the split always yields at least one segment.
+    const segments = setCookie ? headerValue.split(';', 1) : headerValue.split(';');
 
-    // only assign once
-    if (undefined === obj[key]) {
-      let val = str.slice(eqIdx + 1, endIdx).trim();
+    for (let segment of segments) {
+      segment = segment.trim();
+
+      if (segment === '') {
+        continue;
+      }
+
+      const eqIdx = segment.indexOf('=');
+      const name = (eqIdx === -1 ? '' : segment.slice(0, eqIdx)).trim();
+      let val = (eqIdx === -1 ? segment : segment.slice(eqIdx + 1)).trim();
 
       // quoted values
       if (val.charCodeAt(0) === 0x22) {
@@ -65,14 +80,18 @@ export function parseCookie(str: string): Record<string, string> {
       }
 
       try {
-        obj[key] = val.indexOf('%') !== -1 ? decodeURIComponent(val) : val;
+        val = val.indexOf('%') !== -1 ? decodeURIComponent(val) : val;
       } catch {
-        obj[key] = val;
+        // keep the raw value
       }
-    }
 
-    index = endIdx + 1;
+      if (!setCookie && SET_COOKIE_ATTRIBUTES.has(name.toLowerCase())) {
+        continue;
+      }
+
+      pairs.push([name, val]);
+    }
   }
 
-  return obj;
+  return pairs;
 }

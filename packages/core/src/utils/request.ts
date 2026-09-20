@@ -1,13 +1,14 @@
 /* eslint-disable max-lines-per-function */
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import type { ResolvedDataCollection } from '../types/datacollection';
+import type { CollectBehavior, ResolvedDataCollection } from '../types/datacollection';
 import type { PolymorphicRequest } from '../types/polymorphics';
 import type { RequestEventData } from '../types/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types/webfetchapi';
 import { debug } from './debug-logger';
 import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from './data-collection/filtering-snippets';
 import { shouldFilterDataKey } from './data-collection/filterKeyValueData';
+import { parseCookiePairs } from './cookie';
 import { safeUnref } from './timer';
 import { getUrlQuery } from './url';
 
@@ -303,14 +304,8 @@ export function httpHeadersToSpanAttributes(
           continue;
         }
 
-        const cookies = parseCookieHeader(value, lowerKey === 'set-cookie');
-        spanAttributes[`${prefix}${lowerKey}`] = cookies.length
-          ? cookies.map(([cookieKey, cookieValue]) =>
-              shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
-                ? `${cookieKey}=${FILTERED_VALUE}`
-                : `${cookieKey}=${cookieValue}`,
-            )
-          : [FILTERED_VALUE];
+        const cookies = parseCookiePairs(value, lowerKey === 'set-cookie');
+        spanAttributes[`${prefix}${lowerKey}`] = filterCookiePairs(cookies, cookieBehavior);
       } else {
         if (headerBehavior === false) {
           continue;
@@ -338,21 +333,30 @@ export function httpHeadersToSpanAttributes(
   return spanAttributes;
 }
 
-function parseCookieHeader(value: string | string[], isSetCookie: boolean): [string, string][] {
-  // Set-Cookie: one cookie per value, with attributes ("name=value; HttpOnly; Secure")
-  // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
-  const cookies = (Array.isArray(value) ? value : [value]).flatMap(headerValue => {
-    if (typeof headerValue !== 'string' || headerValue === '') {
-      return [];
-    }
-    return isSetCookie ? [headerValue.split(';')[0]!] : headerValue.split('; ');
-  });
+/**
+ * Filter already-parsed cookie pairs and serialize them back to `name=value` strings.
+ *
+ * Callers must pass pairs straight through rather than rejoining them into a header
+ * string first: a value containing `;`, `%`, or quotes survives a single parse, but a
+ * round trip through a string splits and double-decodes it.
+ */
+export function filterCookiePairs(pairs: [string, string][], cookieBehavior: CollectBehavior): string[] {
+  if (cookieBehavior === false) {
+    return [];
+  }
 
-  return cookies.map(cookie => {
-    const equalSignIndex = cookie.indexOf('=');
-    return equalSignIndex !== -1
-      ? [cookie.substring(0, equalSignIndex), cookie.substring(equalSignIndex + 1)]
-      : [cookie, ''];
+  if (!pairs.length) {
+    return [FILTERED_VALUE];
+  }
+
+  return pairs.map(([cookieKey, cookieValue]) => {
+    // A nameless segment's bare token is its value; no denylist could match it, so it is always filtered.
+    if (cookieKey === '') {
+      return FILTERED_VALUE;
+    }
+    return shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
+      ? `${cookieKey}=${FILTERED_VALUE}`
+      : `${cookieKey}=${cookieValue}`;
   });
 }
 

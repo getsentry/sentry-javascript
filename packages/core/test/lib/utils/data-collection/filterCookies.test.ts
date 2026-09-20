@@ -83,6 +83,22 @@ describe('filterCookies', () => {
     });
   });
 
+  describe('Set-Cookie attribute handling', () => {
+    it('does not report Set-Cookie attributes as cookie pairs', () => {
+      expect(filterCookies('sid=1; Max-Age=3600; Path=/', true)).toEqual({ sid: '[Filtered]' });
+    });
+
+    it('does not report Expires/Domain attributes as cookie pairs', () => {
+      expect(filterCookies('theme=dark; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Domain=example.com', true)).toEqual({
+        theme: 'dark',
+      });
+    });
+
+    it('drops nameless segments', () => {
+      expect(filterCookies('opaque-blob; theme=dark', true)).toEqual({ theme: 'dark' });
+    });
+  });
+
   describe('edge cases', () => {
     it('handles cookies with = in the value', () => {
       const result = filterCookies('data=base64==; theme=light', true);

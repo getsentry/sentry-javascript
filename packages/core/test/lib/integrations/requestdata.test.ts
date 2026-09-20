@@ -32,7 +32,7 @@ function baseEvent(overrides: Partial<Event> = {}): Event {
   };
 }
 
-/** Rich normalized request (Cookie header only — tests `parseCookie` path). */
+/** Rich normalized request (Cookie header only — tests `parseCookiePairs` path). */
 function richNormalizedRequest() {
   return {
     method: 'POST',
@@ -960,6 +960,21 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
     expect(span.attributes).toMatchObject({
       'http.request.header.cookie': ['theme=dark', 'locale=en'],
+    });
+  });
+
+  it('does not double-decode cookies already parsed from the request', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      cookies: { theme: '%20' },
+    });
+
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
+
+    expect(span.attributes).toMatchObject({
+      'http.request.header.cookie': ['theme=%20'],
     });
   });
 
