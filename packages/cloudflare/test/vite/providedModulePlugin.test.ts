@@ -22,8 +22,9 @@ function pluginContext(resolve: (source: string, importer?: string) => unknown):
   };
 }
 
-const found = pluginContext(() => ({ id: '/app/node_modules/@scope/pkg/dist/index.mjs' }));
-const missing = pluginContext(() => null);
+const found = (): ReturnType<typeof pluginContext> =>
+  pluginContext(() => ({ id: '/app/node_modules/@scope/pkg/dist/index.mjs' }));
+const missing = (): ReturnType<typeof pluginContext> => pluginContext(() => null);
 
 /** Run `configResolved` + `buildStart` the way Vite would, then hand the plugin back. */
 async function start(
@@ -96,7 +97,7 @@ describe('createProvidedModulePlugin', () => {
   });
 
   it('injects nothing when the package does not resolve', async () => {
-    const plugin = await start({}, missing);
+    const plugin = await start({}, missing());
 
     expect(plugin.transform('export const x = 1;', TARGET)).toBeUndefined();
   });
@@ -123,7 +124,7 @@ describe('createProvidedModulePlugin', () => {
   it('exposes the namespace through an enumerable getter, never an assignment', async () => {
     // Assignment reads the binding at injection time, so it stores `undefined` whenever the
     // bundler evaluates Sentry's module first.
-    const plugin = await start({}, found);
+    const plugin = await start({}, found());
 
     const code = plugin.transform('', TARGET)?.code;
 
@@ -133,13 +134,13 @@ describe('createProvidedModulePlugin', () => {
   });
 
   it('leaves every other module untouched', async () => {
-    const plugin = await start({}, found);
+    const plugin = await start({}, found());
 
     expect(plugin.transform('export const x = 1;', '/app/src/index.ts')).toBeUndefined();
   });
 
   it('injects once, so a second pass cannot emit a duplicate binding', async () => {
-    const plugin = await start({}, found);
+    const plugin = await start({}, found());
 
     const once = plugin.transform('export const x = 1;', TARGET)?.code ?? '';
 
