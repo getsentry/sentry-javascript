@@ -4,7 +4,8 @@
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["FlueHelloAgent"] }],
-  // `vite preview` takes no `--var` flag, so secrets are declared here and read from the process
-  // environment the Playwright web server inherits.
+  // `vite build` snapshots these from the build-time environment into `dist/.dev.vars`, and
+  // `vite preview` reads that file in preference to its own environment. So both have to be set
+  // for the build, which is why `test:build` maps `E2E_OPENROUTER_API_KEY` across.
   "secrets": { "required": ["E2E_TEST_DSN", "OPENROUTER_API_KEY"] },
 }
