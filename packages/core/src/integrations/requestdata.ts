@@ -2,12 +2,13 @@ import type { Client } from '../client';
 import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
-import type { ResolvedDataCollection } from '../types/datacollection';
+import type { CollectBehavior, ResolvedDataCollection } from '../types/datacollection';
 import type { Event } from '../types/event';
 import type { IntegrationFn } from '../types/integration';
 import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
 import { parseCookie } from '../utils/cookie';
+import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { httpHeadersToSpanAttributes } from '../utils/request';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
@@ -47,6 +48,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         dc.httpHeaders.request === false && {
           httpHeaders: { ...dc.httpHeaders, request: true as const },
         }),
+      ...(options.include?.query_string === true && dc.urlQueryParams === false && { urlQueryParams: true as const }),
     };
 
     return {
@@ -71,10 +73,10 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
 
-      const { include } = resolveIncludeAndDataCollection(client);
+      const { include, dataCollection } = resolveIncludeAndDataCollection(client);
 
       if (normalizedRequest) {
-        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include);
+        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include, dataCollection);
       }
 
       return event;
@@ -110,10 +112,16 @@ function addNormalizedRequestDataToEvent(
   // Data that should not go into `event.request` but is somehow related to requests
   additionalData: { ipAddress?: string },
   include: RequestDataIncludeOptions,
+  dataCollection: ResolvedDataCollection,
 ): void {
+  const requestData = extractNormalizedRequestData(req, include);
+  if (requestData.query_string) {
+    requestData.query_string = normalizeAndFilterQueryString(requestData.query_string, dataCollection.urlQueryParams);
+  }
+
   event.request = {
     ...event.request,
-    ...extractNormalizedRequestData(req, include),
+    ...requestData,
   };
 
   if (include.ip) {
@@ -146,7 +154,7 @@ function addNormalizedRequestDataToSpan(
   }
 
   if (requestData.query_string) {
-    attributes[URL_QUERY] = normalizeQueryString(requestData.query_string);
+    attributes[URL_QUERY] = normalizeAndFilterQueryString(requestData.query_string, dataCollection.urlQueryParams);
   }
 
   safeSetSpanJSONAttributes(span, attributes);
@@ -228,13 +236,17 @@ function extractNormalizedRequestData(
   return requestData;
 }
 
+function normalizeAndFilterQueryString(queryString: QueryParams, behavior: CollectBehavior): string | undefined {
+  const normalized = normalizeQueryString(queryString);
+  return normalized ? filterQueryParams(normalized, behavior) : undefined;
+}
+
 function normalizeQueryString(queryString: QueryParams): string | undefined {
   if (typeof queryString === 'string') {
     return queryString || undefined;
   }
 
   const pairs = Array.isArray(queryString) ? queryString : Object.entries(queryString);
-  const result = pairs.map(([key, value]) => `${key}=${value}`).join('&');
-
-  return result || undefined;
+  const normalized = new URLSearchParams(pairs).toString();
+  return normalized || undefined;
 }

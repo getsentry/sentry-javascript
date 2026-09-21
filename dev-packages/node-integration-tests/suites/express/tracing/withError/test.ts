@@ -26,5 +26,21 @@ describe('express tracing with error', () => {
       runner.makeRequest('get', '/test/123/abc?q=1');
       await runner.completed();
     });
+
+    test('preserves encoded query parameters while filtering sensitive values on events', async () => {
+      const runner = createRunner()
+        .ignore('transaction')
+        .expect({
+          event: {
+            request: {
+              query_string: 'q=hello%20world&token=[Filtered]',
+            },
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/test/123/abc?q=hello%20world&token=secret');
+      await runner.completed();
+    });
   });
 });
