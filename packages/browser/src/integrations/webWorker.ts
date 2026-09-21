@@ -28,6 +28,10 @@ interface WebWorkerMessage {
   _sentryModuleMetadata?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   _sentryWorkerError?: SerializedWorkerError;
   _sentryWasmImages?: Array<DebugImage>;
+  /** Sent with the announce by workers that forward uncaught errors and wait for the reply below. */
+  _sentryForwardsErrors?: boolean;
+  /** The page's reply: it captures and replays forwarded errors, so the worker may cancel them. */
+  _sentryHandlesForwardedErrors?: boolean;
 }
 
 type WorkerErrorKind = 'error' | 'unhandledrejection';
@@ -142,6 +146,14 @@ function listenForSentryMessages(worker: Worker): void {
   worker.addEventListener('message', event => {
     if (isSentryMessage(event.data)) {
       event.stopImmediatePropagation(); // other listeners should not receive this message
+
+      // A worker must not cancel its error events until it knows this page
+      // captures and replays them, or an unregistered worker and an older
+      // page bundle would lose them. Only workers that declared the
+      // capability get the reply, so older workers never see it.
+      if (event.data._sentryForwardsErrors) {
+        worker.postMessage({ _sentryMessage: true, _sentryHandlesForwardedErrors: true });
+      }
 
       // Handle debug IDs
       if (event.data._sentryDebugIds) {
@@ -287,6 +299,10 @@ interface RegisterWebWorkerOptions {
  * no `error` object, so globalHandlers can only build an event from the message string.
  * Forwarding them here preserves the real stack, which matters most for wasm frames.
  *
+ * Call this before the worker registers its own `message` handlers. The page replies
+ * with one message that this function consumes, so handlers registered earlier would
+ * receive it.
+ *
  * @example
  * ```ts filename={worker.js}
  * import * as Sentry from '@sentry/<your-sdk>';
@@ -305,12 +321,24 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
   // V8's default of 10 truncates stacks before this code forwards them.
   Error.stackTraceLimit = 50;
 
+  let pageHandlesForwardedErrors = false;
+
+  // Registered before the announce so the reply cannot arrive first.
+  self.addEventListener('message', (event: unknown) => {
+    const { data, stopImmediatePropagation } = event as { data?: unknown; stopImmediatePropagation?: () => void };
+    if (isPlainObject(data) && data._sentryMessage === true && data._sentryHandlesForwardedErrors === true) {
+      pageHandlesForwardedErrors = true;
+      stopImmediatePropagation?.call(event);
+    }
+  });
+
   // Send debug IDs and raw module metadata to parent thread
   // The metadata will be parsed lazily on the main thread when needed
   self.postMessage({
     _sentryMessage: true,
     _sentryDebugIds: self._sentryDebugIds ?? undefined,
     _sentryModuleMetadata: self._sentryModuleMetadata ?? undefined,
+    _sentryForwardsErrors: true,
   });
 
   const forward = (serializedError: Omit<SerializedWorkerError, 'filename' | 'name'>): boolean => {
@@ -339,7 +367,11 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
     const { error, message, filename, lineno, colno } = errorEvent;
     const reason = error ?? message;
 
-    if (!forward({ kind: 'error', reason, message, url: filename, lineno, colno })) {
+    const forwarded = forward({ kind: 'error', reason, message, url: filename, lineno, colno });
+
+    // Until the page confirmed it handles forwarded errors, the bubbled copy
+    // is the only report that is sure to reach it.
+    if (!forwarded || !pageHandlesForwardedErrors) {
       return;
     }
 
