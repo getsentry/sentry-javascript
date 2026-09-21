@@ -9,7 +9,7 @@ const mcpRouter = express.Router();
 // Intentionally NOT wrapped with `wrapMcpServerWithSentry`: the `mcpServer` integration
 // auto-instruments the `McpServer` constructor, so spans must be produced anyway.
 const server = new McpServer({
-  name: 'Echo-V1-Auto',
+  name: 'Echo-V1',
   version: '1.0.0',
 });
 

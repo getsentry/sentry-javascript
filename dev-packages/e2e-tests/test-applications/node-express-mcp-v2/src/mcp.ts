@@ -3,16 +3,15 @@ import express from 'express';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/server';
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { z } from 'zod';
-import { wrapMcpServerWithSentry } from '@sentry/node';
 
 const mcpRouter = express.Router();
 
-const server = wrapMcpServerWithSentry(
-  new McpServer({
-    name: 'Echo-V2',
-    version: '2.0.0',
-  }),
-);
+// Intentionally NOT wrapped with `wrapMcpServerWithSentry`: the `mcpServer` integration
+// auto-instruments the `McpServer` constructor, so spans must be produced anyway.
+const server = new McpServer({
+  name: 'Echo-V2',
+  version: '2.0.0',
+});
 
 server.registerResource(
   'echo',
