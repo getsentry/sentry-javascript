@@ -92,6 +92,18 @@ describe('Integration | feedback', () => {
     expect(feedbackEvent.contexts?.feedback?.replay_id).toBe(replayIdOnOpen);
   });
 
+  it('attaches the current replay ID when the widget was opened while replay was disabled', async () => {
+    replay.stop();
+    await openFeedbackWidget();
+    replay.start();
+    const feedbackEvent = createFeedbackEvent('widget');
+
+    getClient()!.emit('beforeSendFeedback', feedbackEvent, { includeReplay: true });
+
+    expect(replay.getSessionId()).toBeDefined();
+    expect(feedbackEvent.contexts?.feedback?.replay_id).toBe(replay.getSessionId());
+  });
+
   it('attaches the current replay ID when feedback is sent via the API after the widget was opened', async () => {
     await openFeedbackWidget();
     await expireSession();
