@@ -10,7 +10,6 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
-export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 export * from './tracing/spans/spanNames';
 export type { RawAttributes } from './attributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
