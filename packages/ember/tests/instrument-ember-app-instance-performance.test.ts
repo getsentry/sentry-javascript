@@ -5,7 +5,7 @@ import { getCurrentScope, SentrySpan, spanToJSON, type Client, type StartSpanOpt
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentEmberAppInstanceForPerformance } from '../src/utils/instrumentEmberAppInstanceForPerformance.ts';
 
-function createRouterFixture() {
+function createRouterFixture(traceLifecycle: 'stream' | 'static' = 'stream') {
   const handlers = new Map<string, (transition: Transition) => void>();
   const router = {
     recognize: vi.fn<() => { name: string; params: Record<string, string> } | undefined>().mockReturnValue({
@@ -25,7 +25,7 @@ function createRouterFixture() {
     lookup: (name: string) => (name === 'service:router' ? router : { location }),
   } as unknown as ApplicationInstance;
   const client = {
-    getOptions: () => ({ traceLifecycle: 'stream' }),
+    getOptions: () => ({ traceLifecycle }),
     getDataCollectionOptions: () => ({ urlQueryParams: true }),
   } as unknown as Client;
   const pageloadSpan = new SentrySpan({ name: 'Pageload' });
@@ -94,13 +94,14 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
     });
   });
 
-  it('omits the pageload route ID when the recognized name is empty', () => {
-    const fixture = createRouterFixture();
+  it.each(['stream', 'static'] as const)('falls back for an empty %s pageload name', traceLifecycle => {
+    const fixture = createRouterFixture(traceLifecycle);
     fixture.router.recognize.mockReturnValue({ name: '', params: {} });
 
     fixture.instrument();
 
     expect(fixture.startPageloadSpan).toHaveBeenCalledTimes(1);
+    expect(spanToJSON(fixture.pageloadSpan).name).toBe('route');
     expect(spanToJSON(fixture.pageloadSpan).attributes).not.toHaveProperty('router.navigation.route.id');
   });
 
@@ -116,6 +117,7 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
     expect(fixture.startPageloadSpan).toHaveBeenCalledTimes(1);
     expect(fixture.startNavigationSpan).not.toHaveBeenCalled();
     expect(spanToJSON(fixture.pageloadSpan).name).toBe('route:index');
+    expect(getCurrentScope().getScopeData().transactionName).toBe('route:index');
     expect(spanToJSON(fixture.pageloadSpan).attributes['router.navigation.route.id']).toBe('index');
     expect(spanToJSON(fixture.pageloadSpan).attributes[SENTRY_SEGMENT_NAME_SOURCE]).toBe('route');
   });
@@ -126,6 +128,7 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
 
     fixture.routeWillChange({ from: { name: 'index' }, to: { name: 'tracing' } });
 
+    expect(getCurrentScope().getScopeData().transactionName).toBe('route:tracing');
     expect(fixture.startNavigationSpan).toHaveBeenCalledExactlyOnceWith(fixture.client, {
       name: 'route:tracing',
       attributes: {
@@ -148,15 +151,20 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
     expect(spanToJSON(fixture.navigationSpan).attributes['router.navigation.route.id']).toBe('tracing');
   });
 
-  it.each([undefined, ''])('omits the navigation route ID when the available name is %j', currentRouteName => {
-    const fixture = createRouterFixture();
+  it.each([
+    ['stream', undefined],
+    ['stream', ''],
+    ['static', undefined],
+    ['static', ''],
+  ] as const)('uses a navigation fallback in %s mode when the route name is %j', (traceLifecycle, currentRouteName) => {
+    const fixture = createRouterFixture(traceLifecycle);
     fixture.router.currentRouteName = currentRouteName;
     fixture.instrument();
 
     fixture.routeWillChange({ from: { name: 'index' } });
 
     expect(fixture.startNavigationSpan).toHaveBeenCalledExactlyOnceWith(fixture.client, {
-      name: `route:${currentRouteName}`,
+      name: 'route',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         'sentry.origin': 'auto.navigation.ember',
@@ -164,10 +172,16 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
         toRoute: currentRouteName,
       },
     });
+    expect(getCurrentScope().getScopeData().transactionName).toBe('route');
   });
 
-  it.each([undefined, ''])('preserves a caller route ID when the delayed pageload name is %j', currentRouteName => {
-    const fixture = createRouterFixture();
+  it.each([
+    ['stream', undefined],
+    ['stream', ''],
+    ['static', undefined],
+    ['static', ''],
+  ] as const)('preserves caller route ID in %s mode for %j', (traceLifecycle, currentRouteName) => {
+    const fixture = createRouterFixture(traceLifecycle);
     fixture.router.currentRouteName = currentRouteName;
     fixture.router.recognize.mockReturnValue(undefined);
     fixture.instrument();
@@ -177,7 +191,9 @@ describe('instrumentEmberAppInstanceForPerformance', () => {
 
     fixture.routeWillChange({});
 
-    expect(updateName).toHaveBeenCalledExactlyOnceWith(`route:${currentRouteName}`);
+    expect(updateName).toHaveBeenCalledExactlyOnceWith('route');
+    expect(spanToJSON(fixture.pageloadSpan).name).toBe('route');
+    expect(getCurrentScope().getScopeData().transactionName).toBe('route');
     expect(setAttributes).toHaveBeenCalledExactlyOnceWith({
       [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       'url.path': '/',

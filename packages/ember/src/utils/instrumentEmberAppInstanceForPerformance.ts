@@ -69,7 +69,9 @@ export function instrumentEmberAppInstanceForPerformance(
     activeRootSpan = startBrowserTracingPageLoadSpan(client, {
       // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
       name: routeInfo
-        ? `route:${routeInfo.name}`
+        ? routeInfo.name
+          ? `route:${routeInfo.name}`
+          : 'route'
         : hasSpanStreamingEnabled(client)
           ? PAGELOAD_SPAN_NAME_FALLBACK
           : url || WINDOW.location.pathname,
@@ -93,9 +95,10 @@ export function instrumentEmberAppInstanceForPerformance(
 
   routerService.on('routeWillChange', (transition: Transition) => {
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
+    const transactionName = toRoute ? `route:${toRoute}` : 'route';
 
     // Store this here to be used, even if the active span has ended
-    getCurrentScope().setTransactionName(`route:${toRoute}`);
+    getCurrentScope().setTransactionName(transactionName);
 
     // We want to ignore loading && error routes
     if (transitionIsIntermediate(transition)) {
@@ -115,7 +118,7 @@ export function instrumentEmberAppInstanceForPerformance(
         const urlAttributes = targetUrl ? _getRouteUrlAttributes(client, targetUrl, transition.to?.params) : {};
 
         activeRootSpan = startBrowserTracingNavigationSpan(client, {
-          name: `route:${toRoute}`,
+          name: transactionName,
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
@@ -133,7 +136,7 @@ export function instrumentEmberAppInstanceForPerformance(
       const url = _getLocationURL(location);
       if (url) {
         const routeInfo = _recognizeURL(routerService, url);
-        activeRootSpan.updateName(`route:${toRoute}`);
+        activeRootSpan.updateName(transactionName);
         activeRootSpan.setAttributes({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           ...(toRoute && { [ROUTER_NAVIGATION_ROUTE_ID]: toRoute }),
