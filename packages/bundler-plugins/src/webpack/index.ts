@@ -250,9 +250,11 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
           stage: processAssetsStage,
         },
         assets => {
+          const injectedAssets = new Set<string>();
+
           for (const chunk of compilation.chunks) {
             for (const assetName of chunk.files) {
-              if (!WEBPACK_JAVASCRIPT_ASSET_REGEX.test(assetName)) {
+              if (injectedAssets.has(assetName) || !WEBPACK_JAVASCRIPT_ASSET_REGEX.test(assetName)) {
                 continue;
               }
 
@@ -260,6 +262,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
               if (!source) {
                 continue;
               }
+              injectedAssets.add(assetName);
 
               const sourceContents = source.source();
               const code = typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
