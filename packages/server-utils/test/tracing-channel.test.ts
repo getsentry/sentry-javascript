@@ -837,9 +837,6 @@ describe('bindTracingChannelToSpan', () => {
       expect(endSpy).toHaveBeenCalledTimes(1);
     });
 
-    // A deferred failure has to reach `beforeSpanEnd` as an error, not as the `result` the operation
-    // never produced. Enrichment handlers branch on this, and reading fields off an unsettled
-    // streaming result leaks unhandled rejections (#24532).
     it('`end(error)` marks the payload as failed for `beforeSpanEnd`', () => {
       installTestAsyncContextStrategy();
       initTestClient();

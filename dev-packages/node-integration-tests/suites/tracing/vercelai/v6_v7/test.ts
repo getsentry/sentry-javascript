@@ -961,20 +961,10 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     'scenario-aborted-stream-text.mjs',
     'instrument-abort.mjs',
     (createRunner, test) => {
-      // The instrumentation reads fields off the `StreamTextResult` to enrich the span. Each of
-      // those is a getter returning a *fresh* derived promise, so reading one without attaching a
-      // rejection handler leaks an unhandled rejection once the stream aborts. `AbortError` reasons
-      // are suppressed by name in `onUnhandledRejectionIntegration`, but an abort reason can be any
-      // value (`@hono/node-server` passes a string), so the leak has to be fixed at the source.
-      // `ensureNoErrorOutput` fails on any stderr, including the warn-mode rejection warning.
       test('aborting a stream with a non-AbortError reason leaves no unhandled rejection', async () => {
         await createRunner().ensureNoErrorOutput().start().completed();
       });
 
-      // Pins what the abort path reports. Both spans finish with an error status, but neither carries
-      // any attribute derived from the result — the operation produced none. `gen_ai.response.model`
-      // in particular used to be backfilled from the request's model id even though the model never
-      // responded; enrichment is skipped entirely now that the payload is marked as failed.
       test('an aborted stream finishes its spans with an error status and no result attributes', async () => {
         await createRunner()
           .expect({

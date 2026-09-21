@@ -158,10 +158,8 @@ export function bindTracingChannelToSpan<TData extends object>(
       ended = true;
       if (error !== undefined) {
         annotateSpanError(span, error);
-        // Mark the payload as failed so `beforeSpanEnd` sees the same shape the channel's own `error`
-        // verb produces. Otherwise a deferred failure still looks successful, and handlers enrich the
-        // span from a `result` the operation never produced — which on results whose fields are
-        // promise-valued getters (`ai`'s `StreamTextResult`) leaks one unhandled rejection per read.
+        // Without this the payload still looks successful, so `beforeSpanEnd` enriches the span from
+        // a `result` the operation never produced.
         (data as { error?: unknown }).error = error;
       }
 
