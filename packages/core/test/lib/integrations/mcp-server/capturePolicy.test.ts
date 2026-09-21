@@ -389,4 +389,31 @@ describe('MCP Server Capture Policy', () => {
     );
     expectToolResult(span);
   });
+
+  it('applies a later explicit override when the first wrap set no options (auto-instrumentation)', async () => {
+    // The `mcpServer` integration auto-wraps at construction with no options; a manual
+    // `wrapMcpServerWithSentry(server, { recordInputs: false, recordOutputs: false })` must still opt out,
+    // even against a client whose data-collection settings would otherwise capture both.
+    const server = createMockMcpServer();
+    wrapMcpServerWithSentry(server);
+    wrapMcpServerWithSentry(server, { recordInputs: false, recordOutputs: false });
+    const transport = await connectServer(server, 'capture-policy-auto-override');
+    const recordingScope = createClientScope(true, true);
+    const span = queueInactiveSpan();
+
+    receiveToolCall(transport, recordingScope, {
+      id: 'auto-override-request',
+      location: 'Riga, Latvia',
+    });
+    await sendToolResult(transport, recordingScope, {
+      id: 'auto-override-request',
+      text: 'Private forecast for Riga',
+    });
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      buildToolSpanConfig({ id: 'auto-override-request', sessionId: 'capture-policy-auto-override' }),
+    );
+    expectToolResult(span);
+  });
 });

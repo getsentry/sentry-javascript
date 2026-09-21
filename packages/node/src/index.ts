@@ -23,6 +23,7 @@ export {
   lruMemoizerIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  mcpServerIntegration,
   SentryMastraExporter,
   mongoIntegration,
   mongooseIntegration,
