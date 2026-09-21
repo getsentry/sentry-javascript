@@ -1,4 +1,4 @@
-import { earlyPatchHono } from '@sentry/server-utils';
+import { earlyPatchHono } from '@sentry/server-utils/no-diagnostic-channels';
 import { Hono } from 'hono';
 
 earlyPatchHono(Hono);

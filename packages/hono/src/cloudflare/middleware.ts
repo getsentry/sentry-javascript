@@ -1,7 +1,11 @@
 import { withSentry } from '@sentry/cloudflare';
 import { applySdkMetadata, type BaseTransportOptions, debug, type Options } from '@sentry/core';
 import { getConnInfo } from 'hono/cloudflare-workers';
-import { applyHonoPatches, createHonoRequestMiddleware, type SentryHonoMiddlewareOptions } from '@sentry/server-utils';
+import {
+  applyHonoPatches,
+  createHonoRequestMiddleware,
+  type SentryHonoMiddlewareOptions,
+} from '@sentry/server-utils/no-diagnostic-channels';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactionPatterns';
