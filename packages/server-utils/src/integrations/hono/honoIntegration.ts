@@ -131,13 +131,39 @@ function injectHonoInstrumentation(
   }
   _injectedHandlerLists.add(handlers);
 
-  // Wrap matched middleware handlers. `isMiddleware` also unwraps `onError`-composed sub-app handlers
-  // before checking, which a raw arity check would miss. `wrapMiddlewareWithSpan` is idempotent and
-  // skips Sentry's own middleware, so this is safe even if a handler is shared across routes.
-  for (const entry of handlers) {
+  // Wrap the matched middleware handlers for spans, leaving the route handler alone. Each entry
+  // carries its registration `routeMeta` (`entry[0][1]`: `{ method, path, … }`), so we use the same
+  // positional heuristic as `wrapSubAppMiddleware`: within a method+path group the LAST matched
+  // handler is the route handler and earlier ones are middleware (`app.get(path, mw, handler)`);
+  // `.use()` registers as method 'ALL' where the sole entry is genuinely middleware, so fall back to
+  // arity (via `isMiddleware`, which also unwraps `onError`-composed handlers) there. Position matters
+  // because arity alone would misclassify a route handler declared with an unused `next` param.
+  // `wrapMiddlewareWithSpan` is idempotent and skips Sentry's own middleware, so this is safe even
+  // when a handler is shared across routes.
+  const lastIndexByKey = new Map<string, number>();
+  for (const [i, entry] of handlers.entries()) {
+    const routeMeta = entry?.[0]?.[1] as { method?: string; path?: string } | undefined;
+    if (routeMeta?.method != null && routeMeta.path != null) {
+      // \0 is a collision-free delimiter: it cannot appear in a valid HTTP method or URL path.
+      lastIndexByKey.set(`${routeMeta.method}\0${routeMeta.path}`, i);
+    }
+  }
+
+  for (const [i, entry] of handlers.entries()) {
     const pair = entry?.[0];
     const handler = pair?.[0];
-    if (isMiddleware(handler)) {
+    if (typeof handler !== 'function') {
+      continue;
+    }
+
+    const routeMeta = pair?.[1] as { method?: string; path?: string } | undefined;
+    const isMW =
+      routeMeta?.method != null && routeMeta.path != null
+        ? lastIndexByKey.get(`${routeMeta.method}\0${routeMeta.path}`) !== i ||
+          (routeMeta.method === 'ALL' && isMiddleware(handler))
+        : isMiddleware(handler);
+
+    if (isMW) {
       pair[0] = wrapMiddlewareWithSpan(handler as MiddlewareHandler);
     }
   }

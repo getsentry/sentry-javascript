@@ -101,6 +101,26 @@ describe('hono auto-instrumentation', () => {
       await runner.completed();
     });
 
+    test('does not wrap a route handler declared with an unused next param as middleware', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const segment = container.items.find(item => item.is_segment && item.name === 'GET /arity-two-handler');
+            if (!segment) {
+              throw new Error('segment for `GET /arity-two-handler` not in this container');
+            }
+            // The arity-2 handler is the route handler (last in its method+path group), so it must not
+            // produce a middleware span.
+            const middlewareSpans = container.items.filter(item => op(item) === 'middleware');
+            expect(middlewareSpans).toHaveLength(0);
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/arity-two-handler');
+      await runner.completed();
+    });
+
     test('does not create a middleware span for the Sentry middleware in a mounted sub-app', async () => {
       const runner = createRunner()
         .unordered()
