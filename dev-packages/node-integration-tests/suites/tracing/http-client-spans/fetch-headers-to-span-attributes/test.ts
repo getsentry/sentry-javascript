@@ -29,7 +29,12 @@ describe('outgoing fetch spans - headers to span attributes', () => {
                 origin: 'auto.http.node_fetch',
                 data: expect.objectContaining({
                   'http.request.header.x-test-header': ['test-value'],
+                  // Listed in `headersToSpanAttributes`, but the built-in denylist still wins.
+                  'http.request.header.authorization': ['[Filtered]'],
+                  // Listed in `headersToSpanAttributes`, but denied via `dataCollection.httpHeaders`.
+                  'http.request.header.x-tenant-id': ['[Filtered]'],
                   'http.response.header.x-powered-by': ['Express'],
+                  'http.response.header.content-length': ['[Filtered]'],
                 }),
               }),
             ]),

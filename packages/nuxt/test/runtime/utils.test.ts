@@ -14,8 +14,8 @@ describe('extractErrorContext', () => {
   it('extracts properties from errorContext and drops them if missing', () => {
     const context = {
       event: {
-        _method: 'GET',
-        _path: '/test',
+        method: 'GET',
+        path: '/test',
       },
       tags: ['tag1', 'tag2'],
     };
@@ -29,12 +29,24 @@ describe('extractErrorContext', () => {
 
     const partialContext = {
       event: {
-        _path: '/test',
+        path: '/test',
       },
     };
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     expect(extractErrorContext(partialContext)).toEqual({ path: '/test' });
+  });
+
+  it('reads method and path from an h3 v2 (Nitro v3) event, which has no `method`/`path` getters', () => {
+    const context = {
+      event: {
+        req: new Request('http://localhost/test?query=1', { method: 'POST' }),
+        url: new URL('http://localhost/test?query=1'),
+      },
+    };
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    expect(extractErrorContext(context)).toEqual({ method: 'POST', path: '/test' });
   });
 
   it('handles errorContext.tags correctly, including when absent or of unexpected type', () => {

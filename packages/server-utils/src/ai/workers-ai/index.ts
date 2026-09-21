@@ -3,13 +3,12 @@ import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   getClient,
   hasSpanStreamingEnabled,
-  isObjectLike,
   SPAN_STATUS_ERROR,
   startSpan,
   startSpanManual,
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { resolveAIRecordingOptions } from '../core/utils';
+import { isReadableStream, resolveAIRecordingOptions } from '../core/utils';
 import { WORKERS_AI_INTEGRATION_NAME } from './constants';
 import { instrumentWorkersAiStream } from './streaming';
 import type { WorkersAiOptions } from './types';
@@ -20,17 +19,6 @@ import {
   getOperationName,
   WORKERS_AI_OPERATION_SPAN_OPS,
 } from './utils';
-
-// Adapted from /server-utils/src/vercel-ai/util.ts
-// TODO(v11): Reuse this function once this gets moved to @sentry/server-utils
-// Workers AI streaming responses are SSE byte streams, so we narrow to `Uint8Array`.
-function isReadableStream(value: unknown): value is ReadableStream<Uint8Array> {
-  return (
-    isObjectLike(value) &&
-    typeof (value as { pipeThrough?: unknown }).pipeThrough === 'function' &&
-    typeof (value as { getReader?: unknown }).getReader === 'function'
-  );
-}
 
 /**
  * Wrap the `run` method of the Workers AI binding with Sentry tracing.
@@ -96,7 +84,7 @@ function instrumentRun(
         }
 
         return originalResult.then(result => {
-          if (isReadableStream(result)) {
+          if (isReadableStream<Uint8Array>(result)) {
             return instrumentWorkersAiStream(result, span, options.recordOutputs);
           }
 

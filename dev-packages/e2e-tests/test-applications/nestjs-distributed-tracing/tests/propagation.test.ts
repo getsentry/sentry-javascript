@@ -62,13 +62,13 @@ function serverRequestAttributes(): Record<string, unknown> {
 function testRequestHeaderAttributes(): Record<string, unknown> {
   return {
     'user_agent.original': { type: 'string', value: expect.any(String) },
-    'http.request.header.accept': { type: 'string', value: '*/*' },
-    'http.request.header.accept-encoding': { type: 'string', value: 'gzip, deflate' },
-    'http.request.header.accept-language': { type: 'string', value: '*' },
-    'http.request.header.connection': { type: 'string', value: 'keep-alive' },
-    'http.request.header.host': { type: 'string', value: expect.any(String) },
-    'http.request.header.sec-fetch-mode': { type: 'string', value: 'cors' },
-    'http.request.header.user-agent': { type: 'string', value: 'node' },
+    'http.request.header.accept': { type: 'array', value: ['*/*'] },
+    'http.request.header.accept-encoding': { type: 'array', value: ['gzip, deflate'] },
+    'http.request.header.accept-language': { type: 'array', value: ['*'] },
+    'http.request.header.connection': { type: 'array', value: ['keep-alive'] },
+    'http.request.header.host': { type: 'array', value: [expect.any(String)] },
+    'http.request.header.sec-fetch-mode': { type: 'array', value: ['cors'] },
+    'http.request.header.user-agent': { type: 'array', value: ['node'] },
   };
 }
 
@@ -137,13 +137,13 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'http.route': { type: 'string', value: '/test-inbound-headers/:id' },
       'url.full': { type: 'string', value: `http://localhost:3030/test-inbound-headers/${id}` },
       'url.path': { type: 'string', value: `/test-inbound-headers/${id}` },
-      'http.request.header.connection': { type: 'string', value: 'keep-alive' },
-      'http.request.header.host': { type: 'string', value: expect.any(String) },
+      'http.request.header.connection': { type: 'array', value: ['keep-alive'] },
+      'http.request.header.host': { type: 'array', value: [expect.any(String)] },
       'http.request.header.sentry-trace': {
-        type: 'string',
-        value: expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
+        type: 'array',
+        value: [expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/)],
       },
-      'http.request.header.baggage': { type: 'string', value: expect.any(String) },
+      'http.request.header.baggage': { type: 'array', value: [expect.any(String)] },
     }),
   });
 });

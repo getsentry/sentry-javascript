@@ -4,8 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, and @hafzism. Thank you for your contributions!
+Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, @JosephDoUrden, @Tyagiquamar, @Andarist, @msnelling, and @oesnuj. Thank you for your contributions!
 
+- feat(browser)!: `browser.navigation.type` on web vital and bfcache navigation spans now carries the navigation type exactly as web-vitals reports it. `bfcache` is now `back-forward-cache`, and a back/forward navigation that missed the bfcache (`back-forward`) or a discarded-tab restore (`restore`) is no longer folded into `navigate`. Update any dashboards or alerts filtering on `bfcache`.
+- feat(core): Add `createFetchIntegration`, the shared implementation behind the global-`fetch` integrations in `@sentry/bun`, `@sentry/cloudflare`, `@sentry/deno` and `@sentry/vercel-edge`. Those four packages carried four copies of it; they now share one. Two changes come out of that:
+  - All four gain a `tracePropagation` option (default `true`). Turn it off to stop injecting `sentry-trace` and `baggage` without also turning off spans. To scope propagation to specific URLs, keep using `tracePropagationTargets` in the client options.
+  - Integration options now follow the client. Previously a second `Sentry.init()` in the same process silently reused the options of the first one.
+- fix(bun, cloudflare, deno, vercel-edge): Outgoing `fetch` breadcrumbs now route their URL through the data-collection filters, matching the `node:http` breadcrumb. `data.url` is sanitized (credentials stripped, query and fragment removed) and the query moves to `url.query`, where `dataCollection.urlQueryParams` applies to it. Previously the raw URL was recorded, so sensitive query values reached Sentry even with query collection turned off.
+- fix(vercel-edge): `winterCGFetchIntegration` now honors the client's `propagateTraceparent` option. It was the one copy of the fetch integration that never forwarded it, so the `traceparent` header was never sent.
+- feat(deno)!: Fetch breadcrumbs are now recorded by `fetchIntegration` rather than `breadcrumbsIntegration`, matching the other runtime SDKs. Disable them with `fetchIntegration({ breadcrumbs: false })`. `breadcrumbsIntegration({ fetch: false })` is deprecated, no longer has any effect, and will be removed in a future major version.
 - feat(core): Accept a `CollectBehavior` shorthand for `dataCollection.httpHeaders`. Passing `true`, `false`, `{ allow: [...] }` or `{ deny: [...] }` now applies to both request and response headers; `{ request, response }` still controls each direction independently.
 - feat(langchain)!: Emit `gen_ai.pipeline.name` instead of `langchain.chain.name` on LangChain chain spans. The attribute is omitted when the chain is unnamed.
 - feat(deno)!: Rename several default integrations to match the other SDKs ([#22404](https://github.com/getsentry/sentry-javascript/pull/22404)). The `deno*Integration` exports are kept as deprecated aliases. If you were relying on the names (for example, to disable them), then note that these have changed:
@@ -36,6 +43,12 @@ Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehap
 ## 10.67.0
 
 ### Important Changes
+
+- **feat(effect): Capture errors through the Effect v4 `ErrorReporter` API**
+
+  On Effect v4, `Sentry.effectLayer` now registers a Sentry `ErrorReporter`. Failures that pass through `Effect.withErrorReporting`, `ErrorReporter.report` or the built-in HTTP and RPC reporting boundaries are captured automatically, with `ErrorReporter.ignore`, `ErrorReporter.severity` and `ErrorReporter.attributes` annotations respected. Nothing changes on Effect v3.
+
+  The server SDK now enables the `contextLines` and `linkedErrors` integrations by default, so captured errors carry source context and their `cause` chain. No other Node default integration is enabled.
 
 - **feat(sveltekit): Add support for SvelteKit 3 ([#22264](https://github.com/getsentry/sentry-javascript/pull/22264))**
 

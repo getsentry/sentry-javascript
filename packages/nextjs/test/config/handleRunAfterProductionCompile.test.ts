@@ -740,4 +740,108 @@ describe('stripSourceMappingURLComments', () => {
       expect(content).not.toContain('sourceMappingURL');
     }
   });
+
+  it('does not modify minified files with a sourceMappingURL marker inside a string literal', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'minified.js');
+    const originalContent = `const worker = 'self.onmessage = () => {};\\n//# sourceMappingURL=worker.js.map\\n'; use(worker);`;
+    await fs.promises.writeFile(filePath, originalContent);
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe(originalContent);
+  });
+
+  it('does not modify files ending with a template literal containing a sourceMappingURL marker', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'template.js');
+    const originalContent = 'const s = `line1\n//# sourceMappingURL=worker.js.map`;';
+    await fs.promises.writeFile(filePath, originalContent);
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe(originalContent);
+  });
+
+  it('strips sourceMappingURL comment from files consisting only of the comment', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'comment-only.js');
+    await fs.promises.writeFile(filePath, '//# sourceMappingURL=comment-only.js.map');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('');
+  });
+
+  it('strips sourceMappingURL comment with a data: URI', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'inline.js');
+    await fs.promises.writeFile(filePath, 'var a = 1;\n//# sourceMappingURL=data:application/json;base64,eyJ2IjozfQ==');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('var a = 1;');
+  });
+
+  it('strips sourceMappingURL comment followed by trailing whitespace', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'trailing-whitespace.js');
+    await fs.promises.writeFile(filePath, 'var a = 1;\n//# sourceMappingURL=trailing-whitespace.js.map \r\n');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('var a = 1;');
+  });
+
+  it('strips sourceMappingURL comment from CSS files when it is on the same line', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'same-line.css');
+    await fs.promises.writeFile(filePath, '.foo{color:red}/*# sourceMappingURL=same-line.css.map */\n');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('.foo{color:red}');
+  });
+
+  it('does not strip past an earlier sourceMappingURL comment in minified CSS files', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'concat.css');
+    await fs.promises.writeFile(filePath, '.a{}/*# sourceMappingURL=a.css.map*/.b{}/*x*/');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('.a{}/*# sourceMappingURL=a.css.map*/.b{}/*x*/');
+  });
+
+  it('does not modify files ending with a block comment containing a sourceMappingURL marker', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'block-comment.js');
+    const originalContent = 'var a = 1;\n/*\n//# sourceMappingURL=block-comment.js.map*/';
+    await fs.promises.writeFile(filePath, originalContent);
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe(originalContent);
+  });
+
+  it('does not strip a sourceMappingURL comment that is not at the end of the file', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'not-at-eof.js');
+    const originalContent = '//# sourceMappingURL=not-at-eof.js.map\nvar a = 1;';
+    await fs.promises.writeFile(filePath, originalContent);
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe(originalContent);
+  });
+
+  it.fails('strips sourceMappingURL comment from JS files when it is on the same line', async () => {
+    const filePath = path.join(tmpDir, 'chunks', 'same-line.js');
+    await fs.promises.writeFile(filePath, 'var a=1;//# sourceMappingURL=same-line.js.map');
+
+    await stripSourceMappingURLComments(tmpDir);
+
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    expect(content).toBe('var a=1;');
+  });
 });

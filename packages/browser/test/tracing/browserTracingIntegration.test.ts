@@ -919,7 +919,7 @@ describe('browserTracingIntegration', () => {
         expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser.bfcache',
-          'browser.navigation.type': 'bfcache',
+          'browser.navigation.type': 'back-forward-cache',
         }),
       );
     });
