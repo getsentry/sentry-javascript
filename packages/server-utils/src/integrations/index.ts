@@ -16,6 +16,7 @@ import { lruMemoizerIntegration } from './lru-memoizer';
 import { langChainIntegration } from './langchain';
 import { langGraphIntegration } from './langgraph';
 import { mastraIntegration } from './mastra';
+import { mcpServerIntegration } from './mcp-server';
 import { vercelAIIntegration } from './vercel-ai';
 import { openAIIntegration } from './openai';
 import { anthropicAIIntegration } from './anthropic';
@@ -65,6 +66,7 @@ export function getTracingIntegrations(): Integration[] {
     togetherAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
+    mcpServerIntegration(),
   ];
 }
 
