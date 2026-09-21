@@ -8,10 +8,9 @@
     "preview": "vite preview --port 4112",
     "typecheck": "tsc --noEmit",
     "clean": "npx rimraf node_modules dist .wrangler pnpm-lock.yaml",
-    "test:build": "pnpm install && pnpm write-dev-vars && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod",
-    "test:prod": "TEST_ENV=production OPENROUTER_API_KEY=$E2E_OPENROUTER_API_KEY playwright test",
-    "write-dev-vars": "node write-dev-vars.mjs"
+    "test:prod": "TEST_ENV=production OPENROUTER_API_KEY=$E2E_OPENROUTER_API_KEY playwright test"
   },
   "dependencies": {
     "@flue/runtime": "2.0.5",
