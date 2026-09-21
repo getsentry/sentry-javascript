@@ -100,6 +100,7 @@ export {
   langGraphIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  mcpServerIntegration,
   SentryMastraExporter,
   parameterize,
   pinoIntegration,
