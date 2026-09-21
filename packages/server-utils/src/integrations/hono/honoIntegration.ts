@@ -12,6 +12,7 @@ import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentat
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
 import { applyPatches } from './applyPatches';
 import { createHonoRequestMiddleware } from './createHonoMiddleware';
+import { isMiddleware } from './isMiddleware';
 import { extractPathname, isInternalRequestSpanActive } from './patchAppRequest';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 import type { SentryHonoMiddlewareOptions } from './types';
@@ -130,12 +131,13 @@ function injectHonoInstrumentation(
   }
   _injectedHandlerLists.add(handlers);
 
-  // Wrap matched middleware handlers (arity ≥ 2). `wrapMiddlewareWithSpan` is idempotent and skips
-  // Sentry's own middleware, so this is safe even if a handler is shared across routes.
+  // Wrap matched middleware handlers. `isMiddleware` also unwraps `onError`-composed sub-app handlers
+  // before checking, which a raw arity check would miss. `wrapMiddlewareWithSpan` is idempotent and
+  // skips Sentry's own middleware, so this is safe even if a handler is shared across routes.
   for (const entry of handlers) {
     const pair = entry?.[0];
     const handler = pair?.[0];
-    if (typeof handler === 'function' && (handler as { length: number }).length >= 2) {
+    if (isMiddleware(handler)) {
       pair[0] = wrapMiddlewareWithSpan(handler as MiddlewareHandler);
     }
   }
