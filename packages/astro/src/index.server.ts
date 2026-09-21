@@ -119,7 +119,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SENTRY_SEGMENT_NAME_SOURCE,
   setContext,
   setConversationId,
   setCurrentClient,
@@ -190,6 +189,8 @@ export {
   withStreamedSpan,
   metrics,
   eveConversationHook,
+  eveInstrumentation,
+  eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/node';
 
