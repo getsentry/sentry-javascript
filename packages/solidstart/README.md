@@ -266,7 +266,7 @@ higher order component, which will enable Sentry to reach your router context.
 import { withSentryRouterRouting } from '@sentry/solidstart/solidrouter';
 import { Route, Router } from '@solidjs/router';
 
-const SentryRouter = Sentry.withSentryRouterRouting(Router);
+const SentryRouter = withSentryRouterRouting(Router);
 
 render(
   () => (
