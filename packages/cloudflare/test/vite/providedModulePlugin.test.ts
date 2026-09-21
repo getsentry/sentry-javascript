@@ -82,6 +82,15 @@ describe('createProvidedModulePlugin', () => {
     expect(result?.code).toContain('export const x = 1;');
   });
 
+  it('runs in server environments only', () => {
+    // `buildStart` runs per environment against one shared instance. A `client` build resolves
+    // under browser conditions, so letting it probe answers on the worker's behalf.
+    const plugin = createProvidedModulePlugin(OPTIONS);
+
+    expect(plugin.applyToEnvironment({ config: { consumer: 'server' } })).toBe(true);
+    expect(plugin.applyToEnvironment({ config: { consumer: 'client' } })).toBe(false);
+  });
+
   it('injects nothing when the package does not resolve', async () => {
     const plugin = await start({}, missing);
 

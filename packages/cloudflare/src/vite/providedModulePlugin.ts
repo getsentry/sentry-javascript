@@ -1,5 +1,4 @@
 import { resolve } from 'node:path';
-import { escapeStringForRegex } from '@sentry/core';
 import MagicString from 'magic-string';
 
 /**
@@ -17,6 +16,7 @@ interface ResolveContext {
 /** The plugin shape `sentryCloudflareVitePlugin` composes. */
 export interface ProvidedModulePlugin {
   name: string;
+  applyToEnvironment(environment: { config: { consumer: string } }): boolean;
   configResolved(config: { root: string }): void;
   buildStart(this: ResolveContext): Promise<void>;
   transform(code: string, id: string): { code: string; map: ReturnType<MagicString['generateMap']> } | undefined;
@@ -33,14 +33,22 @@ export interface ProvidedModulePluginOptions {
   integrationModule: string;
 }
 
-/** Build the matcher for one `@sentry/server-utils` integration module. */
+/**
+ * Build the matcher for one `@sentry/server-utils` integration module.
+ *
+ * Plain `endsWith`, not a `RegExp`: nothing here needs pattern matching, and building one from
+ * a caller-supplied string would need escaping, which is the only reason this file would have to
+ * import from `@sentry/core`. A build-time plugin should not drag the SDK into the build.
+ */
 export function createIntegrationModuleMatcher(integrationModule: string): (id: string) => boolean {
   // The ESM build only: a worker never loads the CJS one.
-  const pattern = new RegExp(
-    `@sentry/server-utils/build/esm/integrations/${escapeStringForRegex(integrationModule)}\\.js$`,
-  );
+  const suffix = `@sentry/server-utils/build/esm/integrations/${integrationModule}.js`;
 
-  return (id: string): boolean => pattern.test(id.replace(/\\/g, '/').replace(/[?#].*$/, ''));
+  return (id: string): boolean =>
+    id
+      .replace(/\\/g, '/')
+      .replace(/[?#].*$/, '')
+      .endsWith(suffix);
 }
 
 function buildProviderSnippet({ moduleName, identifier }: ProvidedModulePluginOptions): string {
@@ -77,13 +85,21 @@ export function createProvidedModulePlugin(options: ProvidedModulePluginOptions)
   return {
     name: options.name,
 
+    applyToEnvironment(environment: { config: { consumer: string } }): boolean {
+      // Server environments only. `buildStart` runs per environment against one shared plugin
+      // instance, so without this a `client` build resolves first, under browser conditions, and
+      // answers on the worker's behalf. That defeats the point of probing with `this.resolve`.
+      // Same gate the orchestrion plugin uses.
+      return environment.config.consumer === 'server';
+    },
+
     configResolved(config: { root: string }): void {
       root = config.root;
     },
 
     async buildStart(this: ResolveContext): Promise<void> {
-      // Already answered by an earlier environment. Resolution is per environment, and only the
-      // worker one ever reaches `transform`, so the first package found stands for the build.
+      // Already answered by an earlier server environment. A build with several worker
+      // environments shares the answer: they resolve under the same conditions.
       if (providerSnippet) return;
 
       try {
