@@ -18,7 +18,10 @@ export default defineCloudflareOptions((env: Env) => ({
   tracesSampleRate: env.TRACING === 'true' ? 1 : undefined,
   transportOptions: {
     fetch: (input, init) => {
-      init?.signal?.addEventListener('abort', () => (lastSend.aborted = true));
+      init?.signal?.addEventListener('abort', () => {
+        lastSend.aborted = true;
+        lastSend.onAbort?.();
+      });
       return fetch(input, init);
     },
   },

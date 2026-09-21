@@ -45,9 +45,9 @@ it.for([true, false])(
   },
 );
 
-// A cached client sends the step spans in eager drains the Workflow cannot wait for, so this runs with one
+// The local runtime does not settle a cached client's step drains while the run waits, so this runs with one
 // client per invocation. The transport abort itself is covered for both modes by the test above.
-it('cacheClient: false - the Workflow from #24482 aborts its pending send when the flush times out', async ({
+it('cacheClient: false - the Workflow from #24482 aborts the pending send of a step when its flush times out', async ({
   signal,
 }) => {
   const ingest = await startSilentIngest();
@@ -58,7 +58,7 @@ it('cacheClient: false - the Workflow from #24482 aborts its pending send when t
     .start(signal);
 
   await runner.makeRequest('get', '/workflow/trigger');
-  expect(await ingest.result).toEqual({ flushed: false, send: 'aborted' });
+  expect(await ingest.result).toEqual({ send: 'aborted' });
 });
 
 it('cacheClient: false - delivers events while a user waitUntil task is still running', async ({ signal }) => {

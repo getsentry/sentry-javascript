@@ -8,20 +8,18 @@ interface Env {
   ISSUE_WORKFLOW: Workflow;
 }
 
-// The Workflow from https://github.com/getsentry/sentry-javascript/issues/24482. After its steps it flushes
-// with the same timeout the SDK uses after each step and reports to SERVER_URL how the pending send ended.
+// The Workflow from https://github.com/getsentry/sentry-javascript/issues/24482. Each step flushes its span to an
+// ingest that never answers. The run reports to SERVER_URL once the SDK has aborted one of those pending sends.
 export class IssueWorkflow extends WorkflowEntrypoint<Env> {
   async run(_event: WorkflowEvent<unknown>, step: WorkflowStep): Promise<void> {
+    const stepSendAborted = new Promise<void>(resolve => (lastSend.onAbort = resolve));
+
     for (let index = 0; index < 100; index++) {
       await step.do(`step-${index}`, async () => index);
     }
 
-    // Locally the step spans are not sent before `run()` returns, so flush here with the timeout the SDK uses
-    // after each step, while the Workflow can still observe whether the pending send gets aborted.
-    lastSend.aborted = false;
-    const flushed = await Sentry.flush(2000);
-    const send = lastSend.aborted ? 'aborted' : 'not aborted';
-    await fetch(`${this.env.SERVER_URL}/result`, { method: 'POST', body: JSON.stringify({ flushed, send }) });
+    await stepSendAborted;
+    await fetch(`${this.env.SERVER_URL}/result`, { method: 'POST', body: JSON.stringify({ send: 'aborted' }) });
   }
 }
 
