@@ -60,7 +60,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
         // This should never reject
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         replay.flush();
-        event.contexts.feedback.replay_id = replay.getSessionId();
+        event.contexts.feedback.replay_id ??= replay.getSessionId();
         // Add a replay breadcrumb for this piece of feedback
         addFeedbackBreadcrumb(replay, event);
         return event;

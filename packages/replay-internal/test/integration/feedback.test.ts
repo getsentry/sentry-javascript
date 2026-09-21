@@ -3,8 +3,8 @@
  */
 
 import '../utils/mock-internal-setTimeout';
-import type { FeedbackEvent } from '@sentry/core';
-import { getClient } from '@sentry/core';
+import type { Event, FeedbackEvent } from '@sentry/core';
+import { captureFeedback, getClient } from '@sentry/core';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_EXPIRE_DURATION } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -67,6 +67,21 @@ describe('Integration | feedback', () => {
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
   }
 
+  async function sendFeedback(source: string): Promise<Event | undefined> {
+    let sentEvent: Event | undefined;
+    const unsubscribe = getClient()!.on('beforeSendEvent', event => {
+      if (event.type === 'feedback') {
+        sentEvent = event;
+      }
+    });
+
+    captureFeedback({ message: 'Something broke', source }, { includeReplay: true });
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    unsubscribe();
+
+    return sentEvent;
+  }
+
   async function expireSession() {
     await advanceTimers(SESSION_IDLE_EXPIRE_DURATION + 1_000);
     domHandler({ name: 'click', event: new Event('click') });
@@ -84,35 +99,31 @@ describe('Integration | feedback', () => {
     await openFeedbackWidget();
     const replayIdOnOpen = replay.getSessionId();
     await expireSession();
-    const feedbackEvent = createFeedbackEvent('widget');
 
-    getClient()!.emit('beforeSendFeedback', feedbackEvent, { includeReplay: true });
+    const sentEvent = await sendFeedback('widget');
 
     expect(replay.getSessionId()).not.toBe(replayIdOnOpen);
-    expect(feedbackEvent.contexts?.feedback?.replay_id).toBe(replayIdOnOpen);
+    expect(sentEvent?.contexts?.feedback?.replay_id).toBe(replayIdOnOpen);
   });
 
   it('attaches the current replay ID when the widget was opened while replay was disabled', async () => {
     replay.stop();
     await openFeedbackWidget();
     replay.start();
-    const feedbackEvent = createFeedbackEvent('widget');
 
-    getClient()!.emit('beforeSendFeedback', feedbackEvent, { includeReplay: true });
+    const sentEvent = await sendFeedback('widget');
 
     expect(replay.getSessionId()).toBeDefined();
-    expect(feedbackEvent.contexts?.feedback?.replay_id).toBe(replay.getSessionId());
+    expect(sentEvent?.contexts?.feedback?.replay_id).toBe(replay.getSessionId());
   });
 
   it('attaches the current replay ID when feedback is sent via the API after the widget was opened', async () => {
     await openFeedbackWidget();
     await expireSession();
-    const feedbackEvent = createFeedbackEvent('api');
 
-    getClient()!.emit('beforeSendFeedback', feedbackEvent, { includeReplay: true });
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    const sentEvent = await sendFeedback('api');
 
-    expect(feedbackEvent.contexts?.feedback?.replay_id).toBe(replay.getSessionId());
+    expect(sentEvent?.contexts?.feedback?.replay_id).toBe(replay.getSessionId());
   });
 
   it('does not attach a replay ID when includeReplay is not set', async () => {
