@@ -106,6 +106,36 @@ describe('Integration | feedback', () => {
     expect(sentEvent?.contexts?.feedback?.replay_id).toBe(replayIdOnOpen);
   });
 
+  it('does not flush the refreshed session when widget feedback is sent after a session refresh', async () => {
+    await openFeedbackWidget();
+    await expireSession();
+    const flushSpy = vi.spyOn(replay, 'flush');
+
+    await sendFeedback('widget');
+
+    expect(flushSpy).not.toHaveBeenCalled();
+  });
+
+  it('attaches the replay ID from when the widget was opened when replay is stopped before submission', async () => {
+    await openFeedbackWidget();
+    const replayIdOnOpen = replay.getSessionId();
+    replay.stop();
+
+    const sentEvent = await sendFeedback('widget');
+
+    expect(sentEvent?.contexts?.feedback?.replay_id).toBe(replayIdOnOpen);
+  });
+
+  it('attaches the current replay ID when widget feedback is sent again without reopening the widget', async () => {
+    await openFeedbackWidget();
+    await expireSession();
+    await sendFeedback('widget');
+
+    const sentEvent = await sendFeedback('widget');
+
+    expect(sentEvent?.contexts?.feedback?.replay_id).toBe(replay.getSessionId());
+  });
+
   it('attaches the current replay ID when the widget was opened while replay was disabled', async () => {
     replay.stop();
     await openFeedbackWidget();

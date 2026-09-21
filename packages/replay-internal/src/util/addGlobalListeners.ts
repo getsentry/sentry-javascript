@@ -67,6 +67,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
 
       if (feedbackContext.source === 'widget' && replayIdOnFeedbackOpen) {
         feedbackContext.replay_id = replayIdOnFeedbackOpen;
+        replayIdOnFeedbackOpen = undefined;
         return;
       }
 
