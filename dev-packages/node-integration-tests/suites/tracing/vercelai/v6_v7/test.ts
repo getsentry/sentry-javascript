@@ -970,6 +970,35 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
       test('aborting a stream with a non-AbortError reason leaves no unhandled rejection', async () => {
         await createRunner().ensureNoErrorOutput().start().completed();
       });
+
+      // Pins what the abort path reports. Both spans finish with an error status, but neither carries
+      // any attribute derived from the result — the operation produced none. `gen_ai.response.model`
+      // in particular used to be backfilled from the request's model id even though the model never
+      // responded; enrichment is skipped entirely now that the payload is marked as failed.
+      test('an aborted stream finishes its spans with an error status and no result attributes', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const invokeAgent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.status).toBe('error');
+              expect(invokeAgent.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
+              expect(invokeAgent.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+              expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+              expect(invokeAgent.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+
+              const generateContent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+              expect(generateContent.status).toBe('error');
+            },
+          })
+          .start()
+          .completed();
+      });
     },
     {
       additionalDependencies: {
