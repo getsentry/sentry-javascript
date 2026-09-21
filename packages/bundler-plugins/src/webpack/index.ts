@@ -1,3 +1,5 @@
+/* oxlint-disable max-lines */
+
 import type { Options } from '../core/index';
 import {
   createSentryBuildPluginManager,
