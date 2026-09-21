@@ -28,7 +28,7 @@ interface WebWorkerMessage {
   _sentryModuleMetadata?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   _sentryWorkerError?: SerializedWorkerError;
   _sentryWasmImages?: Array<DebugImage>;
-  /** Sent with the announce by workers that forward uncaught errors and wait for the reply below. */
+  /** Sent with every message by workers that forward uncaught errors and wait for the reply below. */
   _sentryForwardsErrors?: boolean;
   /** The page's reply: it captures and replays forwarded errors, so the worker may cancel them. */
   _sentryHandlesForwardedErrors?: boolean;
@@ -51,6 +51,8 @@ interface SerializedWorkerError {
   colno?: number;
   /** Set when `reason` is a plain `{ message, stack }` copy of an error that did not clone. */
   plainError?: boolean;
+  /** The worker stopped the native event from bubbling, so the page replays it. */
+  cancelled?: boolean;
 }
 
 interface WebWorkerIntegrationOptions {
@@ -143,6 +145,8 @@ export const webWorkerIntegration = defineIntegration(({ worker }: WebWorkerInte
 })) as IntegrationFn<WebWorkerIntegration>;
 
 function listenForSentryMessages(worker: Worker): void {
+  let acknowledged = false;
+
   worker.addEventListener('message', event => {
     if (isSentryMessage(event.data)) {
       event.stopImmediatePropagation(); // other listeners should not receive this message
@@ -150,8 +154,11 @@ function listenForSentryMessages(worker: Worker): void {
       // A worker must not cancel its error events until it knows this page
       // captures and replays them, or an unregistered worker and an older
       // page bundle would lose them. Only workers that declared the
-      // capability get the reply, so older workers never see it.
-      if (event.data._sentryForwardsErrors) {
+      // capability get the reply, so older workers never see it. Every
+      // worker message carries it, so a worker added after its announce is
+      // acknowledged on its first forwarded error.
+      if (event.data._sentryForwardsErrors && !acknowledged) {
+        acknowledged = true;
         worker.postMessage({ _sentryMessage: true, _sentryHandlesForwardedErrors: true });
       }
 
@@ -204,7 +211,7 @@ function listenForSentryMessages(worker: Worker): void {
 }
 
 function handleForwardedWorkerError(worker: Worker, workerError: SerializedWorkerError): void {
-  const { reason, kind, name, filename, url, lineno, colno, plainError, message } = workerError;
+  const { reason, kind, name, filename, url, lineno, colno, plainError, message, cancelled } = workerError;
   // Older workers only ever forwarded rejections and send no `kind`.
   const isUnhandledRejection = kind !== 'error';
 
@@ -214,11 +221,11 @@ function handleForwardedWorkerError(worker: Worker, workerError: SerializedWorke
     addNonEnumerableProperty(error, 'name', name);
   }
 
-  // The worker cancelled its native error event, which also silences
-  // `error` listeners on the worker object in the page. Replay it for them
-  // with the error object the native event never carries. A dispatched
-  // event has no default action, so it does not reach `window.onerror`.
-  if (!isUnhandledRejection && typeof ErrorEvent === 'function') {
+  // A cancelled native error event also silences `error` listeners on the
+  // worker object in the page. Replay it for them with the error object the
+  // native event never carries. A dispatched event has no default action,
+  // so it does not reach `window.onerror`.
+  if (cancelled && typeof ErrorEvent === 'function') {
     worker.dispatchEvent(new ErrorEvent('error', { message, filename: url || filename, lineno, colno, error }));
   }
 
@@ -367,11 +374,12 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
     const { error, message, filename, lineno, colno } = errorEvent;
     const reason = error ?? message;
 
-    const forwarded = forward({ kind: 'error', reason, message, url: filename, lineno, colno });
-
     // Until the page confirmed it handles forwarded errors, the bubbled copy
     // is the only report that is sure to reach it.
-    if (!forwarded || !pageHandlesForwardedErrors) {
+    const cancelled = pageHandlesForwardedErrors;
+    const forwarded = forward({ kind: 'error', reason, message, url: filename, lineno, colno, cancelled });
+
+    if (!forwarded || !cancelled) {
       return;
     }
 
@@ -406,6 +414,7 @@ function postSerializedWorkerError(
   try {
     self.postMessage({
       _sentryMessage: true,
+      _sentryForwardsErrors: true,
       _sentryWorkerError: serializedError,
     });
     return true;
@@ -420,6 +429,7 @@ function postSerializedWorkerError(
   try {
     self.postMessage({
       _sentryMessage: true,
+      _sentryForwardsErrors: true,
       _sentryWorkerError: { ...serializedError, reason: plainReason, plainError },
     });
     return true;

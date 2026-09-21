@@ -587,7 +587,8 @@ describe('registerWebWorker', () => {
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
-        _sentryWorkerError: expect.objectContaining({ reason: error, kind: 'error' }),
+        _sentryForwardsErrors: true,
+        _sentryWorkerError: expect.objectContaining({ reason: error, kind: 'error', cancelled: false }),
       });
       expect(event.preventDefault).not.toHaveBeenCalled();
       expect(consoleErrorSpy).not.toHaveBeenCalled();
@@ -617,6 +618,7 @@ describe('registerWebWorker', () => {
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
+        _sentryForwardsErrors: true,
         _sentryWorkerError: {
           reason: error,
           filename: 'http://localhost/worker.js',
@@ -626,6 +628,7 @@ describe('registerWebWorker', () => {
           url: 'http://localhost/chunk.js',
           lineno: 12,
           colno: 9,
+          cancelled: true,
         },
       });
       expect(event.preventDefault).toHaveBeenCalledOnce();
@@ -654,6 +657,7 @@ describe('registerWebWorker', () => {
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
+        _sentryForwardsErrors: true,
         _sentryWorkerError: expect.objectContaining({ reason: error, name: 'RuntimeError' }),
       });
     });
@@ -665,6 +669,7 @@ describe('registerWebWorker', () => {
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
+        _sentryForwardsErrors: true,
         _sentryWorkerError: expect.objectContaining({
           reason: 'Uncaught Error: boom',
           kind: 'error',
@@ -684,6 +689,7 @@ describe('registerWebWorker', () => {
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
+        _sentryForwardsErrors: true,
         _sentryWorkerError: {
           reason,
           filename: undefined,
@@ -710,6 +716,7 @@ describe('registerWebWorker', () => {
         expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(3);
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
+          _sentryForwardsErrors: true,
           _sentryWorkerError: expect.objectContaining({
             reason: { message: 'boom', stack: error.stack },
             plainError: true,
@@ -732,6 +739,7 @@ describe('registerWebWorker', () => {
 
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
+          _sentryForwardsErrors: true,
           _sentryWorkerError: expect.objectContaining({
             reason: { message: 'boom', stack: error.stack },
             plainError: true,
@@ -748,6 +756,7 @@ describe('registerWebWorker', () => {
 
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
+          _sentryForwardsErrors: true,
           _sentryWorkerError: expect.objectContaining({
             reason: { message: 'wasm exception', stack: exception.stack },
             plainError: true,
@@ -763,6 +772,7 @@ describe('registerWebWorker', () => {
 
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
+          _sentryForwardsErrors: true,
           _sentryWorkerError: expect.objectContaining({
             reason: { retry: '[Function: retry]' },
             plainError: false,
@@ -1043,8 +1053,18 @@ describe('forwarded worker errors', () => {
     });
   });
 
-  it('acknowledges a worker that declared it forwards errors', () => {
+  it('acknowledges a worker that declared it forwards errors, once', () => {
     receive({ _sentryDebugIds: undefined, _sentryForwardsErrors: true });
+    receive({ _sentryWorkerError: { reason: new Error('boom'), kind: 'error' }, _sentryForwardsErrors: true });
+
+    expect(mockWorker.postMessage).toHaveBeenCalledExactlyOnceWith({
+      _sentryMessage: true,
+      _sentryHandlesForwardedErrors: true,
+    });
+  });
+
+  it('acknowledges a worker added after its announce on its first forwarded error', () => {
+    receive({ _sentryWorkerError: { reason: new Error('boom'), kind: 'error' }, _sentryForwardsErrors: true });
 
     expect(mockWorker.postMessage).toHaveBeenCalledExactlyOnceWith({
       _sentryMessage: true,
@@ -1058,7 +1078,7 @@ describe('forwarded worker errors', () => {
     expect(mockWorker.postMessage).not.toHaveBeenCalled();
   });
 
-  it('replays a forwarded error on the worker object with the error object attached', () => {
+  it('replays a cancelled error on the worker object with the error object attached', () => {
     const error = new Error('boom');
 
     forward({
@@ -1069,6 +1089,7 @@ describe('forwarded worker errors', () => {
       url: 'http://localhost/chunk.js',
       lineno: 12,
       colno: 9,
+      cancelled: true,
     });
 
     expect(mockWorker.dispatchEvent).toHaveBeenCalledExactlyOnceWith(
@@ -1081,6 +1102,12 @@ describe('forwarded worker errors', () => {
         error,
       }),
     );
+  });
+
+  it('does not replay an error the worker let bubble, since the native event fires for it', () => {
+    forward({ reason: new Error('boom'), kind: 'error', message: 'Uncaught Error: boom', cancelled: false });
+
+    expect(mockWorker.dispatchEvent).not.toHaveBeenCalled();
   });
 
   it('does not replay a forwarded rejection, which never fires on the worker object', () => {
