@@ -149,7 +149,7 @@ test.describe('request data extraction', () => {
     const segment = await segmentPromise;
     expect(segment.attributes['http.request.method']?.value).toBe('POST');
     expect(segment.attributes['url.full']?.value).toContain(PREFIX);
-    expect(segment.attributes['http.request.header.x-custom-header']?.value).toBe('test-value');
+    expect(segment.attributes['http.request.header.x-custom-header']?.value).toEqual(['test-value']);
   });
 });
 

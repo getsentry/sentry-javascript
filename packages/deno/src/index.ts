@@ -74,6 +74,7 @@ export {
   functionToStringIntegration,
   requestDataIntegration,
   captureConsoleIntegration,
+  consoleIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
@@ -110,7 +111,7 @@ export { getDefaultIntegrations, init } from './sdk';
 export { denoServeIntegration } from './integrations/deno-serve';
 export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 export { fetchIntegration } from './integrations/fetch';
-export type { FetchOptions } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 
@@ -137,12 +138,16 @@ export {
   langGraphIntegration,
   mastraIntegration,
   SentryMastraExporter,
+  createFlueInstrumentation,
   lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,

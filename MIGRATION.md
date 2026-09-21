@@ -54,6 +54,7 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **Astro:** dropped Astro 3 (minimum is now 4).
 - **React Router (framework mode):** minimum is now 7.15.
 - **Fastify:** dropped Fastify 3.0 through 3.20 (minimum is now 3.21).
+- **webpack (bundler plugin):** dropped webpack 5.0.x (minimum is now 5.1).
 
 ### AWS Lambda Layer Changes
 
@@ -810,7 +811,11 @@ Legacy HTTP span attributes were replaced by their current semantic-convention e
 
 On server-side HTTP spans, the `content-length` header is now always reported as `http.request.body.size`/`http.response.body.size` instead of switching to `http.request_body_size_uncompressed` when the no encoding was present.
 
-The `http.request.header.<key>`/`http.response.header.<key>` attributes now write the header name lowercased as previously but no longer replaces dashes (`-`) with underscores (`_`). For example, the SDK now sets `http.request.header.user-agent` rather than `http.request.header.user_agent`. The same applies to the cookie names in `http.request.header.cookie.<name>` and `http.request.header.set-cookie.<name>`.
+The `http.request.header.<key>`/`http.response.header.<key>` attributes now write the header name lowercased as previously but no longer replaces dashes (`-`) with underscores (`_`). For example, the SDK now sets `http.request.header.user-agent` rather than `http.request.header.user_agent`.
+
+Furthermore, the values of `http.request.header.<key>`/`http.response.header.<key>` are now string arrays instead of single strings, as mandated by the semantic conventions. Headers that were sent multiple times previously had their values joined into one string with a semicolon (`;`); they now have one array entry per value. For example, the SDK now sets `http.request.header.accept-encoding` to `['gzip', 'deflate']` rather than `'gzip;deflate'`, and `http.request.header.user-agent` to `['Mozilla/5.0 ...']` rather than `'Mozilla/5.0 ...'`.
+
+Cookies are no longer split into one attribute per cookie name (`http.request.header.cookie.<name>`/`http.request.header.set-cookie.<name>`). The SDK now sets a single `http.request.header.cookie`/`http.request.header.set-cookie` attribute that holds one `<name>=<value>` entry per cookie, in the order the cookies were sent. Sensitive cookie values are still replaced with `[Filtered]`, and `Set-Cookie` attributes such as `HttpOnly` are still dropped. For example, the SDK now sets `http.request.header.cookie` to `['session=[Filtered]', 'theme=dark']` rather than setting `http.request.header.cookie.session` to `'[Filtered]'` and `http.request.header.cookie.theme` to `'dark'`.
 
 #### Network attributes
 
@@ -860,6 +865,8 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 - The Cloudflare-specific `sentry.cloudflare_tracer` span attribute is no longer set. `@sentry/cloudflare` now creates spans through the shared `SentryTracerProvider`, so spans emitted via `@opentelemetry/api` no longer carry a marker distinguishing them from other Sentry spans.
 - The `url.path.params.<key>` attribute was removed from the TanStack Router (library) integration. The replacement is `url.path.parameter.<key>` and holds the same values.
 - The `navigation.route.id` attribute set by the Vue Router instrumentation was renamed to `router.navigation.route.id`. It holds the same value (the matched route's name). The attribute moved to the `router.*` namespace to separate client-side router navigations from browser navigations.
+- The `faas.execution` and `faas.id` attributes on `function.aws` spans in `@sentry/aws-serverless` were renamed to `faas.invocation_id` and `cloud.resource_id`. They hold the same values (the Lambda request ID and the invoked function ARN). Lambda `Invoke` spans created by `awsIntegration` also report the response's request ID on `faas.invocation_id` instead of `faas.execution`.
+- The deprecated `koa.name` attribute is no longer set on Koa `router` and `middleware` spans. Router spans carry the route on `http.route` and middleware spans the handler name on `code.function.name`, both of which were already set alongside it.
 
 #### Attribute constants
 
@@ -895,13 +902,13 @@ These changes are not caught by TypeScript. If you filter, group, or alert on sp
 
 **Frontend & UI:**
 
-| Area                                     | Before                                                                                                                               | After                                                    |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
-| Frontend routing                         | `ui.angular.routing`, `ui.sveltekit.routing`, `ui.ember.transition`                                                                  | `router`                                                 |
-| React, Vue & Svelte component lifecycles | `ui.react.mount`/`render`/`update`, `ui.svelte.init`/`update`, Vue `render`/`update`/`mount`/`create`/`activate`/`unmount`/`destroy` | `ui.mount`, `ui.render`, `ui.update`, `ui.unmount`       |
-| Angular tracing decorators               | `ui.angular.init` (`TraceDirective`/`TraceClass`), `ui.angular.<method>` (`TraceMethod`)                                             | `ui.mount`, `function`                                   |
-| Ember route hooks, runloop & components  | `ui.ember.route.<hook>`, `ui.ember.runloop.<queue>`, `ui.ember.component.render`/`definition`/`init`                                 | `function`, `ui.task`, `ui.render`/`function`/`ui.mount` |
-| Browser paint entries                    | `paint`                                                                                                                              | `browser.paint`                                          |
+| Area                                     | Before                                                                                                                               | After                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| Frontend routing                         | `ui.angular.routing`, `ui.sveltekit.routing`, `ui.ember.transition`                                                                  | `router`                                                   |
+| React, Vue & Svelte component lifecycles | `ui.react.mount`/`render`/`update`, `ui.svelte.init`/`update`, Vue `render`/`update`/`mount`/`create`/`activate`/`unmount`/`destroy` | `ui.mount`, `ui.render`, `ui.update`, `ui.unmount`         |
+| Angular tracing decorators               | `ui.angular.init` (`TraceDirective`/`TraceClass`), `ui.angular.<method>` (`TraceMethod`)                                             | `ui.mount`, `function`                                     |
+| Ember route hooks, runloop & components  | `ui.ember.route.<hook>`, `ui.ember.runloop.<queue>`, `ui.ember.component.render`/`definition`/`init`                                 | `function`, `ui.task`, `ui.render`/`ui.resolve`/`ui.mount` |
+| Browser paint entries                    | `paint`                                                                                                                              | `browser.paint`                                            |
 
 **Databases, cache & messaging:**
 
@@ -1016,8 +1023,10 @@ The following span names were adjusted:
 | `http.client`, `http.client.stream`                                      | The request method and sanitized URL                                                                      | `GET https://api.example.com/users/123`                                        | The request method and the domain, or just the method if there is no domain                                                                                                         | `GET api.example.com`, `GET`                           |
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL                                                      | `/users/123`, `SvelteKit Route Change`                                         | The span's `http.route`, or `Router` if the SDK has none                                                                                                                            | `/users/:id`, `Router`                                 |
 | `handler`                                                                | Framework-specific, often carrying the request method                                                     | `GET /users/:id`, `route-handler`, `getUser`                                   | The span's `http.route`, or `Request handler` if the SDK has none                                                                                                                   | `/users/:id`, `Request handler`                        |
+| `function`                                                               | Integration-specific, sometimes the segment span's name                                                   | `serverAction/updateUser`, `LOADER routes/users.$id`                           | The span's `code.function.name`. The previous name is kept as the span description                                                                                                  | `updateUser`, `loader`                                 |
 | `function` (Angular `TraceMethod`)                                       | The decorator's `name` option in angle brackets                                                           | `<getUser>`, `<unnamed>`                                                       | The decorator's `name` option, or `Function execution` if it has none                                                                                                               | `Login.ngOnInit`, `getUsers`, `Function execution`     |
 | `function` (SvelteKit)                                                   | The route the wrapped function ran for, or the raw URL path if the SDK couldn't resolve one               | `/users/[id]`, `/users/123`, `GET /api/users/[id]`                             | The name of the wrapped function                                                                                                                                                    | `load`, `GET`                                          |
+| `function` (Ember route hooks)                                           | The full route name                                                                                       | `slow-loading-route.index`                                                     | The hook the span wraps, matching its `code.function.name`. The route moves to `sentry.description`                                                                                 | `beforeModel`, `model`, `setupController`              |
 | `function.gcp`                                                           | The request method and path for HTTP functions, otherwise the trigger's event or trigger type             | `POST /users`, `google.pubsub.topic.publish`, `firebase.function.http.request` | The function name, or `Serverless function execution` if the SDK cannot resolve one                                                                                                 | `myFunction`, `Serverless function execution`          |
 | `function.aws`                                                           | The Lambda function name                                                                                  | `my-function`                                                                  | Unchanged, except that the SDK now falls back to `Serverless function execution` if it cannot resolve the function name                                                             | `my-function`, `Serverless function execution`         |
 | `graphql`                                                                | The graphql phase and, for operations, the operation name                                                 | `query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`                | The operation type, or the processing type where there is none                                                                                                                      | `GraphQL query`, `GraphQL parse`, `GraphQL resolve`    |
@@ -1420,6 +1429,8 @@ Affected SDKs: `@sentry/remix`.
 
 The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
 
+It also injects debug IDs and uploads source maps once you pass `org`, `project` and `authToken` — opt out with `sentryRemixVitePlugin({ sourcemaps: { disable: true } })`.
+
 ### React: Simpler React Router setup via `@sentry/react/react-router`
 
 Affected SDKs: `@sentry/react`.
@@ -1528,6 +1539,7 @@ Sentry.init({
 
 ### `@sentry/browser`
 
+- The `console` option was removed from `breadcrumbsIntegration` in `@sentry/browser` and `@sentry/deno`. Console breadcrumbs now come from the default `consoleIntegration`: filter out the `Console` integration to disable them, or add `consoleIntegration()` if you set `defaultIntegrations: false`.
 - The experimental `_experiments.enableStandaloneClsSpans` and `_experiments.enableStandaloneLcpSpans` options were removed from both `browserTracingIntegration` and `webVitalsIntegration`. CLS and LCP are no longer configurable: they are recorded as measurements on the pageload span, unless span streaming is enabled (`traceLifecycle: 'stream'`), in which case they are sent as dedicated spans.
 - INP is now always sent as a web vital span (streamed when span streaming is enabled, standalone otherwise) that carries its value as a `browser.web_vital.inp.value` attribute. Previously, with span streaming disabled, INP was sent as a standalone span that carried its value as a span measurement.
 
@@ -1806,6 +1818,18 @@ The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin 
 ### Bundler plugins: Vercel deploys use the plain Vercel environment name
 
 Deploys that the bundler plugins create automatically on Vercel now use the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) as their environment instead of `vercel-production` / `vercel-preview`. This matches the new default runtime `environment` of `@sentry/nextjs`, and the `production` default of all other SDKs. If your events use a different environment, set `release.deploy.env` to the same value, or set `release.deploy` to `false` to opt out.
+
+### Bundler plugins: `@sentry/bundler-plugins/webpack5` was removed
+
+The `@sentry/bundler-plugins/webpack5` entry point was removed. It exported the same `sentryWebpackPlugin` as `@sentry/bundler-plugins/webpack`, minus a fallback that only mattered on webpack 4 and 5.0.x. The webpack plugin now requires webpack 5.1 or newer (the first version that exposes `compiler.webpack`), so there is nothing left to distinguish the two entry points.
+
+```js
+// before
+import { sentryWebpackPlugin } from '@sentry/bundler-plugins/webpack5';
+
+// after
+import { sentryWebpackPlugin } from '@sentry/bundler-plugins/webpack';
+```
 
 ### Removed `unstable_` bundler plugin options
 

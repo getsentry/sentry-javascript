@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gen-ai-libraries",
+  "main": "src/entry.cloudflare.ts",
+  "compatibility_date": "2026-04-20",
+  "compatibility_flags": ["nodejs_compat"],
+}

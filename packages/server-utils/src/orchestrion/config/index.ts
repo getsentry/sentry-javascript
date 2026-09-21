@@ -11,6 +11,7 @@ import { firebaseConfig } from './firebase';
 import { genericPoolConfig } from './generic-pool';
 import { googleGenAiConfig } from './google-genai';
 import { graphqlConfig } from './graphql';
+import { groqConfig } from './groq';
 import { hapiConfig } from './hapi';
 import { ioredisConfig } from './ioredis';
 import { kafkajsConfig } from './kafkajs';
@@ -19,7 +20,9 @@ import { koaConfig } from './koa';
 import { langchainConfig } from './langchain';
 import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
+import { flueConfig } from './flue';
 import { mastraConfig } from './mastra';
+import { mistralConfig } from './mistral';
 import { mongodbConfig } from './mongodb';
 import { mongooseConfig } from './mongoose';
 import { mysql2Config } from './mysql2';
@@ -31,6 +34,7 @@ import { postgresJsConfig } from './postgres';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
 import { tediousConfig } from './tedious';
+import { togetherAiConfig } from './together-ai';
 import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
@@ -58,6 +62,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...genericPoolConfig,
   ...googleGenAiConfig,
   ...graphqlConfig,
+  ...groqConfig,
   ...hapiConfig,
   ...ioredisConfig,
   ...kafkajsConfig,
@@ -66,7 +71,9 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...langchainConfig,
   ...langgraphConfig,
   ...lruMemoizerConfig,
+  ...flueConfig,
   ...mastraConfig,
+  ...mistralConfig,
   ...mongodbConfig,
   ...mongooseConfig,
   ...mysql2Config,
@@ -78,6 +85,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...redisConfig,
   ...remixConfig,
   ...tediousConfig,
+  ...togetherAiConfig,
   ...vercelAiConfig,
 ];
 

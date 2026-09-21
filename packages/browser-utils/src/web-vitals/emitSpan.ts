@@ -21,20 +21,6 @@ import { WINDOW } from '../types';
 import type { MetricNavigationType } from '../instrumentation/performanceObserver';
 import type { WebVitalReportEvent } from './reportEvents';
 
-// web-vitals reports a wider set of navigation types than the attribute defines. Only the states
-// Navigation Timing cannot express keep their own value; every ordinary document navigation folds
-// into `navigate`, including a back/forward that missed the bfcache and a discarded-tab restore.
-const BROWSER_NAVIGATION_TYPES: Partial<Record<MetricNavigationType, string>> = {
-  reload: 'reload',
-  prerender: 'prerender',
-  'back-forward-cache': 'bfcache',
-  'soft-navigation': 'soft-navigation',
-};
-
-function toBrowserNavigationType(navigationType: MetricNavigationType): string {
-  return BROWSER_NAVIGATION_TYPES[navigationType] ?? 'navigate';
-}
-
 // Locally-defined interfaces to avoid leaking bare global type references into the
 // generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
 // available during this package's compilation but are NOT carried to consumers.
@@ -134,7 +120,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   }
 
   if (navigationType) {
-    attributes[BROWSER_NAVIGATION_TYPE] = toBrowserNavigationType(navigationType);
+    attributes[BROWSER_NAVIGATION_TYPE] = navigationType;
   }
 
   // A standalone span is sent as a plain v2 span without running the `processSpan` hooks (see

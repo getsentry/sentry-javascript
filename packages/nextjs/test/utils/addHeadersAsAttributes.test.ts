@@ -31,8 +31,8 @@ describe('addHeadersAsAttributes', () => {
     });
 
     expect(result).toMatchObject({
-      'http.request.header.content-type': 'application/json',
-      'http.request.header.x-forwarded-for': '127.0.0.1',
+      'http.request.header.content-type': ['application/json'],
+      'http.request.header.x-forwarded-for': ['127.0.0.1'],
     });
   });
 
@@ -48,7 +48,7 @@ describe('addHeadersAsAttributes', () => {
       'x-forwarded-for': '127.0.0.1',
     });
 
-    expect(result['http.request.header.content-type']).toBe('application/json');
-    expect(result['http.request.header.x-forwarded-for']).toBe('[Filtered]');
+    expect(result['http.request.header.content-type']).toEqual(['application/json']);
+    expect(result['http.request.header.x-forwarded-for']).toEqual(['[Filtered]']);
   });
 });

@@ -4,6 +4,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -72,7 +73,14 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
             type: 'string',
           },
           // The create `history` stays off the span; only the message being sent is reported.
-          [GEN_AI_INPUT_MESSAGES]: { value: '[{"role":"user","content":"Tell me a joke"}]', type: 'string' },
+          [GEN_AI_INPUT_MESSAGES]: {
+            value: '[{"role":"user","parts":[{"type":"text","content":"Tell me a joke"}]}]',
+            type: 'string',
+          },
+          [GEN_AI_OUTPUT_MESSAGES]: {
+            value: '[{"role":"assistant","parts":[{"type":"text","content":"Hello from Google GenAI!"}]}]',
+            type: 'string',
+          },
           [GEN_AI_RESPONSE_TEXT]: { value: 'Hello from Google GenAI!', type: 'string' },
           [GEN_AI_USAGE_INPUT_TOKENS]: { value: 8, type: 'integer' },
           [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 12, type: 'integer' },
@@ -99,7 +107,11 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_REQUEST_TOP_P]: { value: 0.9, type: 'double' },
           [GEN_AI_REQUEST_MAX_TOKENS]: { value: 100, type: 'integer' },
           [GEN_AI_INPUT_MESSAGES]: {
-            value: '[{"role":"user","parts":[{"text":"What is the capital of France?"}]}]',
+            value: '[{"role":"user","parts":[{"type":"text","content":"What is the capital of France?"}]}]',
+            type: 'string',
+          },
+          [GEN_AI_OUTPUT_MESSAGES]: {
+            value: '[{"role":"assistant","parts":[{"type":"text","content":"Hello from Google GenAI!"}]}]',
             type: 'string',
           },
           [GEN_AI_USAGE_INPUT_TOKENS]: { value: 8, type: 'integer' },

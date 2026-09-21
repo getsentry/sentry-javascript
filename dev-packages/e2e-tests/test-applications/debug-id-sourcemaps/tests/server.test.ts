@@ -57,9 +57,10 @@ test(
         );
       }
 
-      // Only allow ok responses or 404
+      // A 404 means the event has not landed yet and a 429 is the shared test org being rate limited.
+      // Both clear up by polling again.
       if (!response.ok) {
-        expect(response.status).toBe(404);
+        expect([404, 429]).toContain(response.status);
         continue;
       }
 

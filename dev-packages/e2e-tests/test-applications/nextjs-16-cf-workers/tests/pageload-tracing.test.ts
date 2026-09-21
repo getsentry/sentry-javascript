@@ -22,10 +22,12 @@ test.skip('App router spans should be attached to the pageload request span', as
 // TODO: HTTP request headers are not extracted as span attributes on Cloudflare Workers
 test.skip('extracts HTTP request headers as span attributes', async ({ baseURL }) => {
   const serverSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
+    const requestId = span.attributes['http.request.header.x-request-id'];
     return (
       span.name === 'GET /pageload-tracing' &&
       span.is_segment &&
-      span.attributes['http.request.header.x-request-id']?.value === 'nextjs-789'
+      requestId?.type === 'array' &&
+      requestId.value[0] === 'nextjs-789'
     );
   });
 
@@ -43,11 +45,11 @@ test.skip('extracts HTTP request headers as span attributes', async ({ baseURL }
   const serverSpan = await serverSpanPromise;
 
   expect(serverSpan.attributes).toMatchObject({
-    'http.request.header.user-agent': { value: 'Custom-NextJS-Agent/15.0', type: 'string' },
-    'http.request.header.content-type': { value: 'text/html', type: 'string' },
-    'http.request.header.x-nextjs-test': { value: 'nextjs-header-value', type: 'string' },
-    'http.request.header.accept': { value: 'text/html, application/xhtml+xml', type: 'string' },
-    'http.request.header.x-framework': { value: 'Next.js', type: 'string' },
-    'http.request.header.x-request-id': { value: 'nextjs-789', type: 'string' },
+    'http.request.header.user-agent': { value: ['Custom-NextJS-Agent/15.0'], type: 'array' },
+    'http.request.header.content-type': { value: ['text/html'], type: 'array' },
+    'http.request.header.x-nextjs-test': { value: ['nextjs-header-value'], type: 'array' },
+    'http.request.header.accept': { value: ['text/html, application/xhtml+xml'], type: 'array' },
+    'http.request.header.x-framework': { value: ['Next.js'], type: 'array' },
+    'http.request.header.x-request-id': { value: ['nextjs-789'], type: 'array' },
   });
 });
