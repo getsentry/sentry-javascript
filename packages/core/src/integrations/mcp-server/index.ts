@@ -5,10 +5,31 @@ import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport } from '.
 import { validateMcpServerInstance } from './validation';
 
 /**
- * Tracks wrapped MCP server instances to prevent double-wrapping
+ * Maps each wrapped MCP server instance to the mutable capture options that the transport
+ * instrumentation reads (per message). Prevents double-wrapping while still letting a later
+ * `wrapMcpServerWithSentry` fill in options left unset by an earlier wrap — e.g. an auto-wrap at
+ * construction installs no explicit options, so a manual override still applies.
  * @internal
  */
-const wrappedMcpServerInstances = new WeakSet();
+const wrappedMcpServerOptions = new WeakMap<object, McpServerWrapperOptions>();
+
+/**
+ * Fill in capture options not explicitly set by an earlier wrap. Only unset fields are written, so
+ * the first explicit `recordInputs`/`recordOutputs` wins, but an auto-wrap that set neither still
+ * yields to a later manual override. Mutating the stored object updates the live transport
+ * instrumentation, which reads it per message.
+ */
+function applyMissingMcpOptions(target: McpServerWrapperOptions, source: McpServerWrapperOptions | undefined): void {
+  if (!source) {
+    return;
+  }
+  if (target.recordInputs === undefined && source.recordInputs !== undefined) {
+    target.recordInputs = source.recordInputs;
+  }
+  if (target.recordOutputs === undefined && source.recordOutputs !== undefined) {
+    target.recordOutputs = source.recordOutputs;
+  }
+}
 
 function instrumentTransport(transport: MCPTransport, options: McpServerWrapperOptions): void {
   wrapTransportOnMessage(transport, options);
@@ -95,10 +116,11 @@ function interceptTransportStart(transport: MCPTransport, beforeStart: () => voi
  * wraps any already-registered ones. Wrapping at construction time is recommended by
  * convention (consistent with other SDK integrations), but is not required.
  *
- * Idempotent: calling this more than once on the same instance is a no-op that returns the
- * instance untouched. This makes it safe to call manually even when the SDK already wrapped the
- * server automatically at construction (via the `mcpServer` integration) — the manual call
- * simply short-circuits.
+ * Calling this more than once on the same instance never patches it twice. Options behave like a
+ * snapshot from the first *explicit* wrap: the first `recordInputs`/`recordOutputs` value set for a
+ * field wins, but a field left unset can still be filled by a later call. So when the SDK auto-wraps
+ * the server at construction (via the `mcpServer` integration) with no explicit options, a later
+ * manual `wrapMcpServerWithSentry(server, { recordInputs, recordOutputs })` still applies.
  *
  * @example
  * ```typescript
@@ -128,7 +150,9 @@ function interceptTransportStart(transport: MCPTransport, beforeStart: () => voi
  * @returns Instrumented server instance (same reference)
  */
 export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, options?: McpServerWrapperOptions): S {
-  if (wrappedMcpServerInstances.has(mcpServerInstance)) {
+  const existingOptions = wrappedMcpServerOptions.get(mcpServerInstance);
+  if (existingOptions) {
+    applyMissingMcpOptions(existingOptions, options);
     return mcpServerInstance;
   }
 
@@ -138,6 +162,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
   const captureOptions: McpServerWrapperOptions = { ...options };
+  wrappedMcpServerOptions.set(mcpServerInstance, captureOptions);
 
   fill(serverInstance, 'connect', originalConnect => {
     return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
@@ -172,6 +197,5 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
 
   wrapExistingHandlers(serverInstance);
 
-  wrappedMcpServerInstances.add(mcpServerInstance);
   return mcpServerInstance;
 }
