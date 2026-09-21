@@ -12,7 +12,7 @@ describe('sentryFlueRuntimeProviderPlugin', () => {
     const plugin = sentryFlueRuntimeProviderPlugin();
     plugin.configResolved({ root: '/app' });
     const resolve = vi.fn(async () => ({ id: '/app/node_modules/@flue/runtime/dist/index.mjs' }));
-    await plugin.buildStart.call({ resolve });
+    await plugin.buildStart.call({ resolve, warn: vi.fn() });
 
     const code = plugin.transform('export const x = 1;', FLUE_INTEGRATION_MODULE)?.code;
 
@@ -24,7 +24,7 @@ describe('sentryFlueRuntimeProviderPlugin', () => {
   it('injects nothing when the app has no @flue/runtime', async () => {
     const plugin = sentryFlueRuntimeProviderPlugin();
     plugin.configResolved({ root: '/app' });
-    await plugin.buildStart.call({ resolve: vi.fn(async () => null) });
+    await plugin.buildStart.call({ resolve: vi.fn(async () => null), warn: vi.fn() });
 
     expect(plugin.transform('export const x = 1;', FLUE_INTEGRATION_MODULE)).toBeUndefined();
   });

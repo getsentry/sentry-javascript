@@ -11,6 +11,7 @@ interface ResolveContext {
     importer?: string,
     options?: { skipSelf?: boolean },
   ): Promise<{ id: string; external?: boolean | string } | null>;
+  warn(message: string): void;
 }
 
 /** The plugin shape `sentryCloudflareVitePlugin` composes. */
@@ -109,9 +110,15 @@ export function createProvidedModulePlugin(options: ProvidedModulePluginOptions)
         // own install.
         const resolved = await this.resolve(options.moduleName, resolve(root, 'noop.js'));
         if (!resolved) return;
-      } catch {
-        // Installed but unresolvable for some other reason. Inject anyway so the build reports it,
-        // rather than silently shipping a worker with no instrumentation.
+      } catch (error) {
+        // Present but unresolvable for some other reason. Inject anyway so the build fails loudly
+        // rather than silently shipping a worker with no instrumentation, and surface the original
+        // cause: the import error Vite raises next says nothing about why resolution broke.
+        this.warn(
+          `[Sentry] could not resolve ${options.moduleName} while probing for it; injecting the provider anyway. ${
+            (error as Error | undefined)?.message ?? error
+          }`,
+        );
       }
 
       providerSnippet = buildProviderSnippet(options);

@@ -11,7 +11,7 @@ describe('sentryMastraObservabilityProviderPlugin', () => {
     const plugin = sentryMastraObservabilityProviderPlugin();
     plugin.configResolved({ root: '/app' });
     const resolve = vi.fn(async () => ({ id: '/app/node_modules/@mastra/observability/dist/index.js' }));
-    await plugin.buildStart.call({ resolve });
+    await plugin.buildStart.call({ resolve, warn: vi.fn() });
 
     const code = plugin.transform('export const x = 1;', MASTRA_INTEGRATION_MODULE)?.code;
 
@@ -23,7 +23,7 @@ describe('sentryMastraObservabilityProviderPlugin', () => {
   it('injects nothing when the app has no @mastra/observability', async () => {
     const plugin = sentryMastraObservabilityProviderPlugin();
     plugin.configResolved({ root: '/app' });
-    await plugin.buildStart.call({ resolve: vi.fn(async () => null) });
+    await plugin.buildStart.call({ resolve: vi.fn(async () => null), warn: vi.fn() });
 
     expect(plugin.transform('export const x = 1;', MASTRA_INTEGRATION_MODULE)).toBeUndefined();
   });
@@ -35,6 +35,7 @@ describe('sentryMastraObservabilityProviderPlugin', () => {
     plugin.configResolved({ root: '/app' });
     await plugin.buildStart.call({
       resolve: vi.fn(async () => ({ id: '/app/node_modules/@mastra/observability/dist/index.js' })),
+      warn: vi.fn(),
     });
 
     expect(plugin.transform('', MASTRA_INTEGRATION_MODULE)).toBeDefined();

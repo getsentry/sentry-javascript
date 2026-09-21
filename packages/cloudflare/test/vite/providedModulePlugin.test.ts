@@ -14,8 +14,12 @@ const OPTIONS: ProvidedModulePluginOptions = {
 /** A Rollup plugin context whose `resolve` answers however the test wants. */
 function pluginContext(resolve: (source: string, importer?: string) => unknown): {
   resolve: ReturnType<typeof vi.fn>;
+  warn: ReturnType<typeof vi.fn>;
 } {
-  return { resolve: vi.fn(async (source: string, importer?: string) => resolve(source, importer)) };
+  return {
+    resolve: vi.fn(async (source: string, importer?: string) => resolve(source, importer)),
+    warn: vi.fn(),
+  };
 }
 
 const found = pluginContext(() => ({ id: '/app/node_modules/@scope/pkg/dist/index.mjs' }));
@@ -24,7 +28,7 @@ const missing = pluginContext(() => null);
 /** Run `configResolved` + `buildStart` the way Vite would, then hand the plugin back. */
 async function start(
   options: Partial<ProvidedModulePluginOptions>,
-  context: { resolve: ReturnType<typeof vi.fn> },
+  context: ReturnType<typeof pluginContext>,
   root = '/app',
 ): Promise<ReturnType<typeof createProvidedModulePlugin>> {
   const plugin = createProvidedModulePlugin({ ...OPTIONS, ...options });
@@ -97,16 +101,16 @@ describe('createProvidedModulePlugin', () => {
     expect(plugin.transform('export const x = 1;', TARGET)).toBeUndefined();
   });
 
-  it('still injects when resolution throws, so the build reports it', async () => {
+  it('still injects when resolution throws, and reports the cause', async () => {
     // Skipping on a resolver error is how an installed package silently loses instrumentation.
-    const plugin = await start(
-      {},
-      pluginContext(() => {
-        throw new Error('invalid package.json');
-      }),
-    );
+    // The import error Vite raises next says nothing about why resolution broke, so warn with it.
+    const context = pluginContext(() => {
+      throw new Error('invalid package.json');
+    });
+    const plugin = await start({}, context);
 
     expect(plugin.transform('', TARGET)).toBeDefined();
+    expect(context.warn).toHaveBeenCalledWith(expect.stringContaining('invalid package.json'));
   });
 
   it('probes the package from the app root', async () => {
