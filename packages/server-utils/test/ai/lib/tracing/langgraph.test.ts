@@ -61,106 +61,64 @@ describe('invoke_agent input/output recording', () => {
     return endedSpans;
   }
 
-  // Regression test for a graph built on a custom state annotation (no `messages` key). The
-  // instrumentation used to read `args[0].messages` only, so the whole state was dropped.
-  it('records the full state for a graph that does not use MessagesAnnotation', async () => {
+  async function getInvokeAttributes<T>(invoke: (input: T) => Promise<unknown>, input: T) {
     const endedSpans = setupClient();
-
-    const compiled = {
-      invoke: async (input: Record<string, unknown>) => ({ ...input, expanded: 'expanded idea', validated: true }),
-    };
-    const stateGraph = { compile: () => compiled };
+    const stateGraph = { compile: () => ({ invoke }) };
 
     instrumentStateGraph(stateGraph, { recordInputs: true, recordOutputs: true });
-    const graph = stateGraph.compile();
-    const result = await graph.invoke({ idea: 'test idea' });
+    await stateGraph.compile().invoke(input);
 
-    expect(result).toEqual({ idea: 'test idea', expanded: 'expanded idea', validated: true });
     expect(endedSpans).toHaveLength(1);
+    return spanToJSON(endedSpans[0]!).attributes;
+  }
 
-    const data = spanToJSON(endedSpans[0]!).attributes;
+  it('records the full state for a graph that does not use MessagesAnnotation', async () => {
+    const attributes = await getInvokeAttributes(
+      async (input: Record<string, unknown>) => ({ ...input, expanded: 'expanded idea', validated: true }),
+      { idea: 'test idea' },
+    );
 
-    const inputMessages = data[GEN_AI_INPUT_MESSAGES] as string | undefined;
-    expect(inputMessages).toBeDefined();
-    const parsedInput = JSON.parse(inputMessages!) as Array<{ role: string; content: string }>;
-    expect(parsedInput).toHaveLength(1);
-    expect(parsedInput[0]!.role).toBe('user');
-    expect(JSON.parse(parsedInput[0]!.content)).toEqual({ idea: 'test idea' });
-
-    const responseText = data[GEN_AI_RESPONSE_TEXT] as string | undefined;
-    expect(responseText).toBeDefined();
-    const parsedOutput = JSON.parse(responseText!) as Array<{ role: string; content: string }>;
-    expect(parsedOutput[0]!.role).toBe('assistant');
-    expect(JSON.parse(parsedOutput[0]!.content)).toEqual({
-      idea: 'test idea',
-      expanded: 'expanded idea',
-      validated: true,
-    });
+    expect(JSON.parse(attributes[GEN_AI_INPUT_MESSAGES] as string)).toEqual([
+      { role: 'user', content: JSON.stringify({ idea: 'test idea' }) },
+    ]);
+    expect(JSON.parse(attributes[GEN_AI_RESPONSE_TEXT] as string)).toEqual([
+      {
+        role: 'assistant',
+        content: JSON.stringify({ idea: 'test idea', expanded: 'expanded idea', validated: true }),
+      },
+    ]);
   });
 
   it('still records chat messages for a MessagesAnnotation graph', async () => {
-    const endedSpans = setupClient();
-
-    const compiled = {
-      invoke: async (input: { messages: Array<{ role: string; content: string }> }) => ({
+    const attributes = await getInvokeAttributes(
+      async (input: { messages: Array<{ role: string; content: string }> }) => ({
         messages: [...input.messages, { role: 'assistant', content: 'The weather is sunny' }],
       }),
-    };
-    const stateGraph = { compile: () => compiled };
+      { messages: [{ role: 'user', content: 'What is the weather today?' }] },
+    );
 
-    instrumentStateGraph(stateGraph, { recordInputs: true, recordOutputs: true });
-    const graph = stateGraph.compile();
-    await graph.invoke({ messages: [{ role: 'user', content: 'What is the weather today?' }] });
-
-    const data = spanToJSON(endedSpans[0]!).attributes;
-
-    const inputMessages = data[GEN_AI_INPUT_MESSAGES] as string | undefined;
-    expect(inputMessages).toBeDefined();
-    expect(JSON.parse(inputMessages!)).toEqual([{ role: 'user', content: 'What is the weather today?' }]);
-
-    const responseText = data[GEN_AI_RESPONSE_TEXT] as string | undefined;
-    expect(responseText).toBeDefined();
-    expect(responseText).toContain('The weather is sunny');
+    expect(JSON.parse(attributes[GEN_AI_INPUT_MESSAGES] as string)).toEqual([
+      { role: 'user', content: 'What is the weather today?' },
+    ]);
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toContain('The weather is sunny');
   });
 
-  it('records an empty messages array on the chat path rather than wrapping it as custom state', async () => {
-    const endedSpans = setupClient();
+  it('records an empty messages array as an empty chat array', async () => {
+    const attributes = await getInvokeAttributes(
+      async (_input: { messages: unknown[] }) => ({ messages: [{ role: 'assistant', content: 'Hello' }] }),
+      { messages: [] },
+    );
 
-    const compiled = {
-      invoke: async (_input: { messages: Array<{ role: string; content: string }> }) => ({
-        messages: [{ role: 'assistant', content: 'Hello' }],
-      }),
-    };
-    const stateGraph = { compile: () => compiled };
-
-    instrumentStateGraph(stateGraph, { recordInputs: true, recordOutputs: true });
-    const graph = stateGraph.compile();
-    await graph.invoke({ messages: [] });
-
-    const data = spanToJSON(endedSpans[0]!).attributes;
-
-    const inputMessages = data[GEN_AI_INPUT_MESSAGES] as string | undefined;
-    expect(inputMessages).toBeDefined();
-    expect(JSON.parse(inputMessages!)).toEqual([]);
-
-    const responseText = data[GEN_AI_RESPONSE_TEXT] as string | undefined;
-    expect(responseText).toBeDefined();
-    expect(responseText).toContain('Hello');
+    expect(attributes[GEN_AI_INPUT_MESSAGES]).toBe('[]');
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toContain('Hello');
   });
 
   it('does not record input messages when invoked with null input', async () => {
-    const endedSpans = setupClient();
+    const attributes = await getInvokeAttributes(
+      async (_input: null) => ({ messages: [{ role: 'assistant', content: 'resumed' }] }),
+      null,
+    );
 
-    const compiled = {
-      invoke: async (_input?: unknown) => ({ messages: [{ role: 'assistant', content: 'resumed' }] }),
-    };
-    const stateGraph = { compile: () => compiled };
-
-    instrumentStateGraph(stateGraph, { recordInputs: true, recordOutputs: true });
-    const graph = stateGraph.compile();
-    await expect(graph.invoke(null)).resolves.toBeDefined();
-
-    const data = spanToJSON(endedSpans[0]!).attributes;
-    expect(data[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+    expect(attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
   });
 });

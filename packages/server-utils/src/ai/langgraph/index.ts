@@ -154,13 +154,9 @@ export function instrumentCompiledGraphInvoke(
               span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
             }
 
-            // Parse input state. MessagesAnnotation graphs expose a `messages` array (possibly empty);
-            // a custom state annotation exposes arbitrary keys instead. Route on whether `messages` is
-            // an array, mirroring the output side in setResponseAttributes, so an empty chat history is
-            // recorded as an empty chat array rather than misread as custom state and wrapped.
-            const inputState = args.length > 0 ? args[0] : undefined;
-            const stateMessages = (inputState as { messages?: LangChainMessage[] } | null)?.messages;
-            const inputMessages = Array.isArray(stateMessages) ? stateMessages : null;
+            // Custom state annotations have no `messages` array, the whole state is recorded instead.
+            const inputState = args[0] as { messages?: LangChainMessage[] } | null | undefined;
+            const inputMessages = Array.isArray(inputState?.messages) ? inputState.messages : null;
 
             if (recordInputs) {
               if (inputMessages) {
@@ -175,9 +171,7 @@ export function instrumentCompiledGraphInvoke(
                   [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
                 });
               } else if (inputState && typeof inputState === 'object') {
-                span.setAttributes({
-                  [GEN_AI_INPUT_MESSAGES]: stringify([{ role: 'user', content: stringify(inputState) }]),
-                });
+                span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify([{ role: 'user', content: stringify(inputState) }]));
               }
             }
 
