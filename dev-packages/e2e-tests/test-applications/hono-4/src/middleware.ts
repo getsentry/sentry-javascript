@@ -24,3 +24,11 @@ export const failingMiddleware: MiddlewareHandler = async function (_c, _next) {
   // stable `Middleware error` prefix.
   throw new Error(`Middleware error #${(failingMiddlewareCount += 1)}`);
 };
+
+// Intentionally a NAMED function expression (unlike the anonymous ones above) so the named-function
+// path stays covered: the span name is taken from the function's own name. Under bundled Bun the inner
+// name collides with the `const` binding and is suffixed (→ `namedMiddleware2`), so the test matches on
+// the `namedMiddleware` prefix rather than an exact name.
+export const namedMiddleware: MiddlewareHandler = async function namedMiddleware(_c, next) {
+  await next();
+};

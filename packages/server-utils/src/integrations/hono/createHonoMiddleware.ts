@@ -1,6 +1,6 @@
 import { addNonEnumerableProperty, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
 import type { Context, GetConnInfo, MiddlewareHandler } from './honoTypes';
-import { requestHandler, responseHandler } from './middlewareHandlers';
+import { captureContextError, requestHandler, responseHandler } from './middlewareHandlers';
 import type { SentryHonoMiddlewareOptions } from './types';
 
 // Marks the Sentry request/response middleware so the span-wrapping patches never turn it into a
@@ -79,7 +79,15 @@ export function createHonoRequestMiddleware(options: CreateHonoRequestMiddleware
     }
 
     if (scope[HONO_REQUEST_HANDLED]) {
-      return next();
+      await next();
+      // A deduplicated middleware still reports errors from its own context — e.g. an inner
+      // `.request()` whose route threw but whose failed response the outer handler swallowed, so the
+      // outer context never sees the error. Route naming and request data stay owned by the request
+      // that ran first, so only the error is captured here.
+      const dedupShouldHandleError =
+        (scope[HONO_SHOULD_HANDLE_ERROR] as SentryHonoMiddlewareOptions['shouldHandleError']) ?? shouldHandleError;
+      captureContextError(context, dedupShouldHandleError);
+      return;
     }
     addNonEnumerableProperty(scope, HONO_REQUEST_HANDLED, true);
 
