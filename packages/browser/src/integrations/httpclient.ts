@@ -97,7 +97,7 @@ function _fetchResponseHandler(
       }
       const resCookieStr = response.headers.get('Set-Cookie') || undefined;
       if (resCookieStr) {
-        const filtered = _INTERNAL_filterCookies(resCookieStr, dc.cookies);
+        const filtered = _INTERNAL_filterCookies(resCookieStr, dc.cookies, 'set-cookie');
         responseCookies = typeof filtered === 'string' ? { 'set-cookie': filtered } : filtered;
       }
     }
@@ -141,7 +141,7 @@ function _xhrResponseHandler(
       try {
         const cookieString = xhr.getResponseHeader('Set-Cookie') || xhr.getResponseHeader('set-cookie') || undefined;
         if (cookieString) {
-          const filtered = _INTERNAL_filterCookies(cookieString, dc.cookies);
+          const filtered = _INTERNAL_filterCookies(cookieString, dc.cookies, 'set-cookie');
           responseCookies = typeof filtered === 'string' ? { 'set-cookie': filtered } : filtered;
         }
       } catch {

@@ -84,22 +84,41 @@ describe('filterCookies', () => {
     });
   });
 
-  // Intended behavior for the cookie parsing consolidation follow-up: `Set-Cookie` attributes are
-  // metadata, not cookies, so they must not show up as key-value pairs. Marked `fails` until the
-  // shared parser handles them.
-  describe('Set-Cookie attribute handling (known gaps)', () => {
-    it.fails('does not report Set-Cookie attributes as cookie pairs', () => {
-      expect(filterCookies('sid=1; Max-Age=3600; Path=/', true)).toEqual({ sid: '[Filtered]' });
+  describe('nameless cookies', () => {
+    it('drops a nameless segment next to named cookies', () => {
+      expect(filterCookies('y7Uu0Rk2QpLmXv3; theme=dark', true)).toEqual({ theme: 'dark' });
     });
 
-    it.fails('does not report Expires/Domain attributes as cookie pairs', () => {
-      expect(filterCookies('theme=dark; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Domain=example.com', true)).toEqual({
-        theme: 'dark',
-      });
+    it('does not report a "=token" segment under an empty cookie name', () => {
+      expect(filterCookies('=y7Uu0Rk2QpLmXv3; theme=dark', true)).toEqual({ theme: 'dark' });
+    });
+
+    it('filters the whole string when it holds only a "=token" segment', () => {
+      expect(filterCookies('=y7Uu0Rk2QpLmXv3', true)).toBe('[Filtered]');
+    });
+  });
+
+  describe('Set-Cookie header', () => {
+    it('does not report Set-Cookie attributes as cookie pairs', () => {
+      expect(filterCookies('sid=1; Max-Age=3600; Path=/', true, 'set-cookie')).toEqual({ sid: '[Filtered]' });
+    });
+
+    it('does not report Expires/Domain attributes as cookie pairs', () => {
+      expect(
+        filterCookies('theme=dark; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Domain=example.com', true, 'set-cookie'),
+      ).toEqual({ theme: 'dark' });
+    });
+
+    it('filters the whole string when the cookie is nameless', () => {
+      expect(filterCookies('y7Uu0Rk2QpLmXv3; HttpOnly; Secure', true, 'set-cookie')).toBe('[Filtered]');
     });
   });
 
   describe('edge cases', () => {
+    it('reads attribute-like names in a Cookie header as cookies', () => {
+      expect(filterCookies('theme=dark; Path=/checkout', true)).toEqual({ theme: 'dark', Path: '/checkout' });
+    });
+
     it('handles cookies with = in the value', () => {
       const result = filterCookies('data=base64==; theme=light', true);
 

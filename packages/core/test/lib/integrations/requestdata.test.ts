@@ -32,7 +32,7 @@ function baseEvent(overrides: Partial<Event> = {}): Event {
   };
 }
 
-/** Rich normalized request (Cookie header only — tests `parseCookie` path). */
+/** Rich normalized request (Cookie header only — tests the cookie header parsing path). */
 function richNormalizedRequest() {
   return {
     method: 'POST',

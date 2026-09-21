@@ -7,7 +7,7 @@ import type { Event } from '../types/event';
 import type { IntegrationFn } from '../types/integration';
 import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
-import { parseCookie } from '../utils/cookie';
+import { cookiePairsToRecord, parseCookieHeader } from '../utils/cookie';
 import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
 import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
@@ -245,7 +245,9 @@ function extractNormalizedRequestData(
   }
 
   if (include.cookies) {
-    const cookies = normalizedRequest.cookies || (headers?.cookie ? parseCookie(headers.cookie) : undefined);
+    const cookies =
+      normalizedRequest.cookies ||
+      (headers?.cookie ? cookiePairsToRecord(parseCookieHeader(headers.cookie, 'cookie')) : undefined);
     requestData.cookies = cookies || {};
   }
 
