@@ -7,6 +7,7 @@ import { sentryRemixVitePlugin } from '../../src/vite';
 const orchestrionConfig = vi.fn((_config: UserConfig, env: ConfigEnv) =>
   env.command === 'serve' ? null : { ssr: { noExternal: ['mysql'] } },
 );
+const orchestrionConfigEnvironment = vi.fn(() => ({ resolve: { noExternal: ['mysql'] } }));
 const orchestrionConfigResolved = vi.fn();
 const orchestrionTransform = vi.fn(() => ({ code: 'transformed' }));
 
@@ -17,6 +18,7 @@ const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean })
         name: 'code-transformer',
         enforce: 'pre',
         config: orchestrionConfig,
+        configEnvironment: orchestrionConfigEnvironment,
         configResolved: orchestrionConfigResolved,
         transform: orchestrionTransform,
       },
@@ -86,6 +88,9 @@ describe('sentryRemixVitePlugin', () => {
       const orchestrion = sentryRemixVitePlugin()[1]!;
 
       expect(callHook(orchestrion.config, NODE_CONFIG, BUILD_ENV)).toEqual({ ssr: { noExternal: ['mysql'] } });
+      expect(callHook(orchestrion.configEnvironment, 'ssr', {}, BUILD_ENV)).toEqual({
+        resolve: { noExternal: ['mysql'] },
+      });
 
       callHook(orchestrion.configResolved, NODE_CONFIG);
       expect(orchestrionConfigResolved).toHaveBeenCalledTimes(1);
@@ -98,6 +103,9 @@ describe('sentryRemixVitePlugin', () => {
 
       expect(callHook(orchestrion.config, config, BUILD_ENV)).toBeNull();
       expect(orchestrionConfig).not.toHaveBeenCalled();
+
+      expect(callHook(orchestrion.configEnvironment, 'ssr', {}, BUILD_ENV)).toBeNull();
+      expect(orchestrionConfigEnvironment).not.toHaveBeenCalled();
 
       callHook(orchestrion.configResolved, config);
       expect(orchestrionConfigResolved).not.toHaveBeenCalled();
