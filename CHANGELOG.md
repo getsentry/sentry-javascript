@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.75.1
+
+- fix(v10/cloudflare): Capture telemetry from untraced Durable Object RPC calls ([#24512](https://github.com/getsentry/sentry-javascript/pull/24512))
+- fix(v10/cloudflare): Instrument namespaces returned by jurisdiction() ([#24513](https://github.com/getsentry/sentry-javascript/pull/24513))
+- fix(v10/hono): Allow @cloudflare/workers-types v5 as peer dependency ([#24500](https://github.com/getsentry/sentry-javascript/pull/24500))
+- fix(v10/nextjs): Resolve Next.js version relative to the SDK when cwd differs ([#24475](https://github.com/getsentry/sentry-javascript/pull/24475))
+
 ## 10.75.0
 
 ### Important Changes
