@@ -1,4 +1,5 @@
-import { setConversationId } from '@sentry/core';
+import { defineIntegration, setConversationId } from '@sentry/core';
+import { markEveGenAiRecordingDefault } from './integrations/vercel-ai/gen-ai-recording-mode';
 
 /**
  * The subset of eve's hook context (`HookContext` from `eve/hooks`) this helper reads. Typed
@@ -60,3 +61,15 @@ export function eveConversationHook(options: EveConversationHookOptions = {}): {
     },
   };
 }
+
+/**
+ * Integration that handles tracing instrumentation of [eve](https://eve.dev) apps.
+ */
+export const eveIntegration = defineIntegration(() => {
+  return {
+    name: 'Eve',
+    setup(client) {
+      markEveGenAiRecordingDefault(client);
+    },
+  };
+});

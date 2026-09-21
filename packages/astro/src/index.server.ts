@@ -189,6 +189,7 @@ export {
   withStreamedSpan,
   metrics,
   eveConversationHook,
+  eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/node';
 

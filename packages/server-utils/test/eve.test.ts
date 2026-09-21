@@ -1,6 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { eveConversationHook } from '../src/eve';
+import { eveConversationHook, eveIntegration } from '../src/eve';
+import { isEveGenAiRecordingDefault } from '../src/integrations/vercel-ai/gen-ai-recording-mode';
 
 describe('eveConversationHook', () => {
   afterEach(() => {
@@ -51,5 +52,21 @@ describe('eveConversationHook', () => {
     });
 
     expect(setConversationId).toHaveBeenCalledWith(returnValue);
+  });
+});
+
+describe('eveIntegration', () => {
+  test('is named Eve', () => {
+    expect(eveIntegration().name).toBe('Eve');
+  });
+
+  test('marks the client so the Vercel AI subscriber records gen_ai content by default', () => {
+    const client = {} as SentryCore.Client;
+
+    expect(isEveGenAiRecordingDefault(client)).toBe(false);
+
+    eveIntegration().setup?.(client);
+
+    expect(isEveGenAiRecordingDefault(client)).toBe(true);
   });
 });
