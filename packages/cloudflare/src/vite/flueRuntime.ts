@@ -39,14 +39,16 @@ export function sentryFlueRuntimeProviderPlugin(): {
     name: 'sentry-cloudflare-flue-runtime-provider',
 
     configResolved(config: { root: string }): void {
-      // Build-time only; never ships to the worker. `@flue/runtime` is ESM-only, so an installed
-      // copy throws `ERR_PACKAGE_PATH_NOT_EXPORTED` and only a missing one throws `MODULE_NOT_FOUND`.
-      // Not `import.meta.resolve`: `parentURL` is ignored without a flag, and it is absent from the
+      // Build-time only; never ships to the worker. Probed with CJS resolution, which an ESM-only
+      // `@flue/runtime` fails with `ERR_PACKAGE_PATH_NOT_EXPORTED` — so only a module-not-found
+      // counts as absent, and any other failure still injects and lets Vite report it. Not
+      // `import.meta.resolve`: `parentURL` is ignored without a flag, and it is absent from the
       // CJS build.
       try {
         createRequire(resolve(config.root, 'noop.js')).resolve(FLUE_MODULE);
       } catch (error) {
-        if ((error as NodeJS.ErrnoException | undefined)?.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
+        const code = (error as NodeJS.ErrnoException | undefined)?.code;
+        if (code === 'MODULE_NOT_FOUND' || code === 'ERR_MODULE_NOT_FOUND') {
           return;
         }
       }
@@ -57,11 +59,13 @@ export function sentryFlueRuntimeProviderPlugin(): {
         '(globalThis.__SENTRY_ORCHESTRION__ = globalThis.__SENTRY_ORCHESTRION__ || {});\n' +
         '(globalThis.__SENTRY_ORCHESTRION__.providedModules = globalThis.__SENTRY_ORCHESTRION__.providedModules || {});\n' +
         `Object.defineProperty(globalThis.__SENTRY_ORCHESTRION__.providedModules, '${FLUE_MODULE}', ` +
-        `{ configurable: true, get() { return ${PROVIDER_IDENTIFIER}; } });\n`;
+        `{ configurable: true, enumerable: true, get() { return ${PROVIDER_IDENTIFIER}; } });\n`;
     },
 
     transform(code: string, id: string): { code: string; map: ReturnType<MagicString['generateMap']> } | undefined {
-      if (!providerSnippet || !isFlueIntegrationModuleId(id)) return undefined;
+      // `code.includes` keeps this idempotent: a second pass over already-injected output would
+      // otherwise emit a duplicate `import * as` binding, which is a syntax error.
+      if (!providerSnippet || !isFlueIntegrationModuleId(id) || code.includes(PROVIDER_IDENTIFIER)) return undefined;
 
       const ms = new MagicString(code);
       ms.prepend(providerSnippet);

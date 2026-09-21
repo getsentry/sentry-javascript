@@ -31,6 +31,15 @@ function createEmptyRoot(): string {
   return mkdtempSync(join(tmpdir(), 'sentry-flue-empty-'));
 }
 
+/** An app root holding an installed but unreadable `@flue/runtime`. */
+function createRootWithBrokenFlue(): string {
+  const root = mkdtempSync(join(tmpdir(), 'sentry-flue-broken-'));
+  const pkgDir = join(root, 'node_modules', '@flue', 'runtime');
+  mkdirSync(pkgDir, { recursive: true });
+  writeFileSync(join(pkgDir, 'package.json'), '{ not json');
+  return root;
+}
+
 describe('isFlueIntegrationModuleId', () => {
   it('matches the ESM Flue integration module', () => {
     expect(isFlueIntegrationModuleId(FLUE_INTEGRATION_MODULE)).toBe(true);
@@ -97,6 +106,26 @@ describe('sentryFlueRuntimeProviderPlugin', () => {
       plugin.configResolved({ root });
 
       expect(plugin.transform('export const x = 1;', '/app/src/index.ts')).toBeUndefined();
+    });
+
+    it('injects once, so a second pass cannot emit a duplicate binding', () => {
+      const plugin = sentryFlueRuntimeProviderPlugin();
+      plugin.configResolved({ root });
+
+      const once = plugin.transform('export const x = 1;', FLUE_INTEGRATION_MODULE)?.code ?? '';
+
+      expect(plugin.transform(once, FLUE_INTEGRATION_MODULE)).toBeUndefined();
+    });
+  });
+
+  describe('when @flue/runtime is installed but unresolvable', () => {
+    it('still injects, so the failure surfaces from Vite instead of silently disabling tracing', () => {
+      // Only a module-not-found means absent. Skipping on every other resolve failure is how an
+      // installed package silently loses instrumentation, which is the bug this plugin fixes.
+      const plugin = sentryFlueRuntimeProviderPlugin();
+      plugin.configResolved({ root: createRootWithBrokenFlue() });
+
+      expect(plugin.transform('', FLUE_INTEGRATION_MODULE)).toBeDefined();
     });
   });
 
