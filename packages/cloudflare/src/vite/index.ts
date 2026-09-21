@@ -98,3 +98,8 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
       : []),
   ];
 }
+
+/**
+ * Default export of `@sentry/cloudflare/vite`. It is the same function as {@link sentryCloudflareVitePlugin}.
+ */
+export default sentryCloudflareVitePlugin;

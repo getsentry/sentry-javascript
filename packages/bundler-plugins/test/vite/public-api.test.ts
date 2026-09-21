@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from '../../src/vite';
+import sentryVitePluginDefault, { sentryVitePlugin } from '../../src/vite';
 import { describe, it, expect, test, beforeEach, vi } from 'vitest';
 
 test('Vite plugin should exist', () => {
@@ -9,6 +9,10 @@ test('Vite plugin should exist', () => {
 describe('sentryVitePlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('is the default export of the vite entry point', () => {
+    expect(sentryVitePluginDefault).toBe(sentryVitePlugin);
   });
 
   it('returns an array of Vite plugins', () => {

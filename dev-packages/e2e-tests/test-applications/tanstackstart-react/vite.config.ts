@@ -3,7 +3,7 @@ import tsConfigPaths from 'vite-tsconfig-paths';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react-swc';
 import { nitro } from 'nitro/vite';
-import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite';
+import sentry from '@sentry/tanstackstart-react/vite';
 
 const tunnelRouteMode = process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off';
 const useManagedTunnelRoute = tunnelRouteMode !== 'off';
@@ -49,7 +49,7 @@ export default defineConfig({
     nitro(),
     // react's vite plugin must come after start's vite plugin
     viteReact(),
-    sentryTanstackStart({
+    sentry({
       org: process.env.E2E_TEST_SENTRY_ORG_SLUG,
       project: process.env.E2E_TEST_SENTRY_PROJECT,
       authToken: process.env.E2E_TEST_AUTH_TOKEN,

@@ -40,3 +40,8 @@ export function sentryVitePlugin(options?: SentryVitePluginOptions): VitePlugin[
   const bundlerPlugins = sentryViteBundlerPlugin(options);
   return [...bundlerPlugins, sentryOrchestrionPlugin(options)];
 }
+
+/**
+ * Default export of `@sentry/node/vite`. It is the same function as {@link sentryVitePlugin}.
+ */
+export default sentryVitePlugin;

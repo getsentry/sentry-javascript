@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryEsbuildPlugin } from '../../src/bundler-plugin/esbuild';
 import { sentryRollupPlugin } from '../../src/bundler-plugin/rollup';
-import { sentryVitePlugin } from '../../src/bundler-plugin/vite';
+import sentryVitePluginDefault, { sentryVitePlugin } from '../../src/bundler-plugin/vite';
 import { sentryWebpackPlugin } from '../../src/bundler-plugin/webpack';
 
 const orchestrionVite = vi.fn(() => ({ name: 'sentry-orchestrion-vite' }));
@@ -28,6 +28,10 @@ vi.mock('@sentry/server-utils/orchestrion/webpack', () => ({
 describe('@sentry/node bundler plugins', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('is the default export of the vite entry point', () => {
+    expect(sentryVitePluginDefault).toBe(sentryVitePlugin);
   });
 
   // The wrappers always wire in the orchestrion plugin. Opting out via

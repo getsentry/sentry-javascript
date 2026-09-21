@@ -3,6 +3,7 @@ import { makeConfigInjectorPlugin } from '../../src/vite/makeConfigInjectorPlugi
 import { makeCustomSentryVitePlugins } from '../../src/vite/makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from '../../src/vite/makeEnableSourceMapsPlugin';
 import { makeServerBuildCapturePlugin } from '../../src/vite/makeServerBuildCapturePlugin';
+import sentryReactRouterDefault from '../../src/vite';
 import { sentryReactRouter } from '../../src/vite/plugin';
 
 vi.spyOn(console, 'log').mockImplementation(() => {
@@ -43,6 +44,10 @@ describe('sentryReactRouter', () => {
 
   afterEach(() => {
     vi.resetModules();
+  });
+
+  it('is the default export of the vite entry point', () => {
+    expect(sentryReactRouterDefault).toBe(sentryReactRouter);
   });
 
   it('should return sentry config injector plugin in development mode', async () => {

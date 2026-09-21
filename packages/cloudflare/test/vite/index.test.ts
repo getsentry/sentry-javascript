@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sentryCloudflareVitePlugin } from '../../src/vite/index';
+import sentryCloudflareVitePluginDefault, { sentryCloudflareVitePlugin } from '../../src/vite/index';
 
 const AUTO_INSTRUMENT_PLUGIN = 'sentry-cloudflare-auto-instrument';
 
@@ -8,6 +8,10 @@ function pluginNames(options?: Parameters<typeof sentryCloudflareVitePlugin>[0])
 }
 
 describe('sentryCloudflareVitePlugin', () => {
+  it('is the default export of the vite entry point', () => {
+    expect(sentryCloudflareVitePluginDefault).toBe(sentryCloudflareVitePlugin);
+  });
+
   it('enables auto-instrumentation by default', () => {
     expect(pluginNames()).toContain(AUTO_INSTRUMENT_PLUGIN);
   });

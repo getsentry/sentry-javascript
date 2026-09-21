@@ -1,5 +1,5 @@
 import { cloudflare } from '@cloudflare/vite-plugin';
-import { sentryCloudflareVitePlugin } from '@sentry/cloudflare/vite';
+import sentry from '@sentry/cloudflare/vite';
 import agents from 'agents/vite';
 import { defineConfig } from 'vite';
 
@@ -7,5 +7,5 @@ import { defineConfig } from 'vite';
 // Auto-instrumentation is the plugin behavior under test: it rewrites
 // `src/index.ts` at build time so the entry itself contains no Sentry calls.
 export default defineConfig({
-  plugins: [agents(), cloudflare(), sentryCloudflareVitePlugin()],
+  plugins: [agents(), cloudflare(), sentry()],
 });

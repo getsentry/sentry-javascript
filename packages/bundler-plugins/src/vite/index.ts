@@ -31,3 +31,8 @@ export const sentryVitePlugin = (options?: SentryRollupPluginOptions): SentryVit
 };
 
 export type { Options as SentryVitePluginOptions } from '../core';
+
+/**
+ * Default export of `@sentry/bundler-plugins/vite`. It is the same function as {@link sentryVitePlugin}.
+ */
+export default sentryVitePlugin;

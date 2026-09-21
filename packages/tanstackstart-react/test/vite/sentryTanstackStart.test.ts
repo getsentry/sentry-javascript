@@ -1,4 +1,5 @@
 import type { Plugin } from 'vite';
+import sentryTanstackStartDefault from '../../src/vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
 import { sentryTanstackStart, type SentryTanstackStartOptions } from '../../src/vite/sentryTanstackStart';
@@ -77,6 +78,10 @@ describe('sentryTanstackStart()', () => {
 
   afterEach(() => {
     process.env.NODE_ENV = 'production';
+  });
+
+  it('is the default export of the vite entry point', () => {
+    expect(sentryTanstackStartDefault).toBe(sentryTanstackStart);
   });
 
   describe('source maps', () => {

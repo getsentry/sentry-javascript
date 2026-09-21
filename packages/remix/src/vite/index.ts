@@ -57,3 +57,8 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
 
   return plugins;
 }
+
+/**
+ * Default export of `@sentry/remix/vite`. It is the same function as {@link sentryRemixVitePlugin}.
+ */
+export default sentryRemixVitePlugin;

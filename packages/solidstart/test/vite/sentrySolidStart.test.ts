@@ -4,6 +4,7 @@
 import type { Plugin, UserConfig } from 'vite';
 import { mergeConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import sentrySolidStartDefault from '../../src/vite';
 import { sentrySolidStart } from '../../src/vite/sentrySolidStart';
 
 vi.spyOn(console, 'log').mockImplementation(() => {
@@ -45,6 +46,10 @@ afterEach(() => {
 });
 
 describe('sentrySolidStart()', () => {
+  it('is the default export of the vite entry point', () => {
+    expect(sentrySolidStartDefault).toBe(sentrySolidStart);
+  });
+
   it('returns the nitro, orchestrion and source maps plugins', () => {
     const names = sentrySolidStart({ org: 'org', project: 'project', authToken: 'token' }).map(plugin => plugin.name);
 

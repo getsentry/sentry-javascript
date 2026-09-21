@@ -10,6 +10,12 @@ export default [
         'src/server/index.ts',
         'src/vite/index.ts',
       ],
+      packageSpecificConfig: {
+        output: {
+          // make it so Rollup calms down about the fact that we're combining default and named exports
+          exports: 'named',
+        },
+      },
     }),
   ),
   ...makeOrchestrionLoader('./build'),
