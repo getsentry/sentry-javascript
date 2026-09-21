@@ -12,5 +12,5 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true
   },
-  "include": ["src/**/*", "tests/**/*", "*.ts"]
+  "include": ["src/**/*", "vite.config.ts"]
 }
