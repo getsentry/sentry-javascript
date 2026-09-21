@@ -4,11 +4,15 @@ import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import { sentryWebpackPlugin } from '../../src/webpack';
 
+interface TestChunk {
+  files: string[];
+  hash?: string;
+}
+
 function runWebpackSourceInjection(
   assetName: string,
   source: webpack.sources.Source,
-  chunkFiles: string[] = [assetName],
-  chunkHash?: string,
+  chunks: TestChunk[] = [{ files: [assetName] }],
 ): webpack.sources.Source {
   const webpackPlugin = sentryWebpackPlugin({
     release: { inject: false },
@@ -16,7 +20,7 @@ function runWebpackSourceInjection(
   });
   let compilationCallback!: (compilation: unknown) => void;
   let processAssets!: (assets: Record<string, webpack.sources.Source>) => void;
-  let output = source;
+  const assets = { [assetName]: source };
   const compiler = {
     options: { plugins: [] as unknown[] },
     webpack: {
@@ -34,7 +38,7 @@ function runWebpackSourceInjection(
     },
   };
   const compilation = {
-    chunks: [{ files: chunkFiles, hash: chunkHash }],
+    chunks,
     compiler: {},
     hooks: {
       processAssets: {
@@ -43,20 +47,20 @@ function runWebpackSourceInjection(
         },
       },
     },
-    updateAsset: (_name: string, source: webpack.sources.Source) => {
-      output = source;
+    updateAsset: (name: string, updatedSource: webpack.sources.Source) => {
+      assets[name] = updatedSource;
     },
   };
 
   webpackPlugin.apply(compiler as never);
   compilationCallback(compilation);
-  processAssets({ [assetName]: source });
+  processAssets(assets);
 
-  return output;
+  return assets[assetName];
 }
 
-function runWebpackInjection(assetName: string, code: string, chunkFiles: string[] = [assetName]): string {
-  return runWebpackSourceInjection(assetName, new webpack.sources.RawSource(code), chunkFiles).source().toString();
+function runWebpackInjection(assetName: string, code: string, chunks?: TestChunk[]): string {
+  return runWebpackSourceInjection(assetName, new webpack.sources.RawSource(code), chunks).source().toString();
 }
 
 describe('sentryWebpackPlugin', () => {
@@ -92,8 +96,7 @@ describe('sentryWebpackPlugin', () => {
     const output = runWebpackSourceInjection(
       'bundle.js',
       new webpack.sources.RawSource('globalThis.bundleLoaded = true;'),
-      ['bundle.js'],
-      'stable-webpack-chunk-hash',
+      [{ files: ['bundle.js'], hash: 'stable-webpack-chunk-hash' }],
     )
       .source()
       .toString();
@@ -133,5 +136,14 @@ describe('sentryWebpackPlugin', () => {
     const output = runWebpackInjection('copied.js', code, []);
 
     expect(output).toBe(code);
+  });
+
+  it('injects into an asset shared by multiple chunks once', () => {
+    const output = runWebpackInjection('shared.js', 'globalThis.bundleLoaded = true;', [
+      { files: ['shared.js'], hash: 'first-chunk-hash' },
+      { files: ['shared.js'], hash: 'second-chunk-hash' },
+    ]);
+
+    expect(output.match(/_sentryDebugIdIdentifier/g)).toHaveLength(1);
   });
 });
