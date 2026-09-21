@@ -46,15 +46,21 @@ export function parseCookieHeader(value: string | string[], headerName: 'cookie'
     return headerName === 'set-cookie' ? [headerValue.split(';')[0]!] : headerValue.split(';');
   });
 
-  return segments
-    .map(segment => segment.trim())
-    .filter(segment => segment !== '')
-    .map(segment => {
-      const equalSignIndex = segment.indexOf('=');
-      return equalSignIndex === -1
-        ? ['', segment]
-        : [segment.slice(0, equalSignIndex).trim(), segment.slice(equalSignIndex + 1).trim()];
-    });
+  return (
+    segments
+      .map(segment => segment.trim())
+      // ";;" and trailing ";" leave empty segments
+      .filter(segment => segment !== '')
+      .map(segment => {
+        // Only first "=" separates name from value: "jwt=eyJhbGc=" has value "eyJhbGc="
+        const equalSignIndex = segment.indexOf('=');
+        return equalSignIndex === -1
+          ? // No "=": nameless cookie, the whole segment is the value
+            ['', segment]
+          : // Trim both parts, so that "theme = dark" is named "theme", not "theme "
+            [segment.slice(0, equalSignIndex).trim(), segment.slice(equalSignIndex + 1).trim()];
+      })
+  );
 }
 
 /**
