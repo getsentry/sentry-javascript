@@ -59,3 +59,13 @@ export function applyPatches<E extends Env>(app: Hono<E>): void {
 
   pendingSubApps.clear();
 }
+
+/**
+ * Applies Sentry's Hono span patches to an app instance.
+ *
+ * Typed loosely (`object`) so the real `hono` `Hono<E, S, P>` type used by the `@sentry/hono` SDK is
+ * accepted without a cast; internally it is treated as the vendored {@link Hono} shape.
+ */
+export function applyHonoPatches(app: object): void {
+  applyPatches(app as Hono);
+}

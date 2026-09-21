@@ -1,7 +1,11 @@
 import { type BaseTransportOptions, debug, type Options } from '@sentry/core';
 import { init } from './sdk';
 import { getConnInfo } from 'hono/deno';
-import { applyHonoPatches, createHonoRequestMiddleware, type SentryHonoMiddlewareOptions } from '@sentry/server-utils';
+import {
+  applyHonoPatches,
+  createHonoRequestMiddleware,
+  type SentryHonoMiddlewareOptions,
+} from '@sentry/server-utils/no-diagnostic-channels';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 
 export interface HonoDenoOptions extends Options<BaseTransportOptions>, SentryHonoMiddlewareOptions {}
