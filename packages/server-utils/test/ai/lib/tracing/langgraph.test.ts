@@ -78,7 +78,7 @@ describe('invoke_agent input/output recording', () => {
     expect(result).toEqual({ idea: 'test idea', expanded: 'expanded idea', validated: true });
     expect(endedSpans).toHaveLength(1);
 
-    const data = spanToJSON(endedSpans[0]!).data;
+    const data = spanToJSON(endedSpans[0]!).attributes;
 
     const inputMessages = data[GEN_AI_INPUT_MESSAGES] as string | undefined;
     expect(inputMessages).toBeDefined();
@@ -112,7 +112,7 @@ describe('invoke_agent input/output recording', () => {
     const graph = stateGraph.compile();
     await graph.invoke({ messages: [{ role: 'user', content: 'What is the weather today?' }] });
 
-    const data = spanToJSON(endedSpans[0]!).data;
+    const data = spanToJSON(endedSpans[0]!).attributes;
 
     const inputMessages = data[GEN_AI_INPUT_MESSAGES] as string | undefined;
     expect(inputMessages).toBeDefined();
@@ -137,7 +137,7 @@ describe('invoke_agent input/output recording', () => {
     const graph = stateGraph.compile();
     await graph.invoke({ messages: [] });
 
-    const data = spanToJSON(endedSpans[0]!).data;
+    const data = spanToJSON(endedSpans[0]!).attributes;
 
     const inputMessages = data[GEN_AI_INPUT_MESSAGES] as string | undefined;
     expect(inputMessages).toBeDefined();
@@ -160,7 +160,7 @@ describe('invoke_agent input/output recording', () => {
     const graph = stateGraph.compile();
     await expect(graph.invoke(null)).resolves.toBeDefined();
 
-    const data = spanToJSON(endedSpans[0]!).data;
+    const data = spanToJSON(endedSpans[0]!).attributes;
     expect(data[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
   });
 });
