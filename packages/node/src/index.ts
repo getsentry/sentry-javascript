@@ -220,7 +220,8 @@ export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
-export { eveConversationHook, getInstrumentedModuleNames } from '@sentry/server-utils';
+export { eveConversationHook, eveIntegration, getInstrumentedModuleNames } from '@sentry/server-utils';
+export { eveInstrumentation } from './eve';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';

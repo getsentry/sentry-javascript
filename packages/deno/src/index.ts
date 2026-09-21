@@ -151,6 +151,7 @@ export {
   postgresJsIntegration,
   tediousIntegration,
   eveConversationHook,
+  eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
