@@ -76,8 +76,8 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   expect(manualSpan?.trace_id).toBe(executeTool?.trace_id);
   expect(manualSpan?.parent_span_id).toBe(executeTool?.span_id);
 
-  // `agent/hooks/sentry.ts` sets the eve session id as the conversation id via
-  // `Sentry.eveConversationHook()`, so every gen_ai span in the turn is tagged with it — that is
+  // `Sentry.eveInstrumentation()` (see `agent/instrumentation/sentry.ts`) sets the eve session id as
+  // the conversation id on each turn, so every gen_ai span in the turn is tagged with it — that is
   // what links a multi-turn session (each turn is its own trace) into one Sentry conversation.
   expect(sessionId).toBeTruthy();
   for (const span of [invokeAgent, generateContent, executeTool]) {

@@ -192,6 +192,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   eveConversationHook,
+  eveInstrumentation,
+  eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/node';
 
