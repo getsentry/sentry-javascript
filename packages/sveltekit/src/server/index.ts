@@ -70,7 +70,6 @@ export {
   mongooseIntegration,
   mysql2Integration,
   mysqlIntegration,
-  mistralAIIntegration,
   nativeNodeFetchIntegration,
   NodeClient,
   nodeContextIntegration,
