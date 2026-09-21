@@ -34,11 +34,24 @@ app.route('/sub', subApp);
 // re-name the internal-request span, overwrite the request data, or add a middleware span.
 const innerApp = new Hono();
 innerApp.get('/item/:itemId', c => c.json({ itemId: c.req.param('itemId') }));
+innerApp.get('/flaky/:itemId', () => {
+  throw new Error('inventory db is down');
+});
 
 app.get('/outer/:itemId', async c => {
   const res = await innerApp.request(`/item/${c.req.param('itemId')}`);
   const data = await res.json();
   return c.json({ outer: c.req.param('itemId'), inner: data });
+});
+
+// The inner route throws, but the outer handler catches the failed internal response and degrades to
+// a 200 instead of propagating. The inner route's error must still reach Sentry.
+app.get('/degraded/:itemId', async c => {
+  const res = await innerApp.request(`/flaky/${c.req.param('itemId')}`);
+  if (!res.ok) {
+    return c.json({ item: null, degraded: true }, 200);
+  }
+  return c.json({ item: await res.json() });
 });
 
 app.get('/outer-error/:itemId', async c => {

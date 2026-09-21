@@ -152,6 +152,22 @@ describe('hono auto-instrumentation', () => {
       await runner.completed();
     });
 
+    test('captures an error thrown inside an internal .request() even when the outer handler degrades to 200', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          event: event => {
+            expect(event.exception?.values?.[0]?.value).toBe('inventory db is down');
+            expect(event.exception?.values?.[0]?.mechanism).toEqual(
+              expect.objectContaining({ type: 'auto.http.hono.context_error', handled: false }),
+            );
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/degraded/self-watering-plant');
+      await runner.completed();
+    });
+
     test('captures an error thrown after an internal .request() with the outer request data', async () => {
       const runner = createRunner()
         .unordered()

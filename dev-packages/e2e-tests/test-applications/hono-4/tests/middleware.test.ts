@@ -78,6 +78,38 @@ for (const { name, prefix } of SCENARIOS) {
       expect(anonymousSpan?.status).not.toBe('error');
     });
 
+    test('creates a span for a named-function middleware (name from the function binding)', async ({ baseURL }) => {
+      const segmentPromise = collectStreamedSpansUntilSegment(
+        APP_NAME,
+        segment => getSpanOp(segment) === 'http.server' && !!segment.name?.includes(`${prefix}/declared`),
+      );
+
+      const response = await fetch(`${baseURL}${prefix}/declared`);
+      expect(response.status).toBe(200);
+
+      const segmentSpans = await segmentPromise;
+      const segment = segmentSpans.find(
+        segment =>
+          segment.is_segment && getSpanOp(segment) === 'http.server' && !!segment.name?.includes(`${prefix}/declared`),
+      )!;
+      expect(segment.name).toBe(`GET ${prefix}/declared`);
+
+      const spans = segmentSpans.filter(
+        span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id,
+      );
+
+      // Named function expression: the span name comes from the function's own name. A bundler (Bun)
+      // may append a numeric suffix when the inner name collides with the `const` binding, so match on
+      // the `namedMiddleware` prefix rather than an exact name.
+      const middlewareSpan = spans.find(
+        span => getSpanOp(span) === 'middleware' && !!span.name?.match(/^namedMiddleware\d*$/),
+      );
+
+      expect(middlewareSpan).toBeDefined();
+      expect(middlewareSpan?.attributes['sentry.origin']?.value).toBe('auto.middleware.hono');
+      expect(middlewareSpan?.status).not.toBe('error');
+    });
+
     test('multiple middleware are sibling spans under the same parent', async ({ baseURL }) => {
       const segmentPromise = collectStreamedSpansUntilSegment(
         APP_NAME,
