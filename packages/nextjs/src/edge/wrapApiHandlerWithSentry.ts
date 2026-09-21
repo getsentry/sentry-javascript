@@ -1,4 +1,5 @@
 import {
+  filterCollectedUrl,
   captureException,
   getActiveSpan,
   getCurrentScope,
@@ -55,7 +56,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
         const urlObject = req instanceof Request ? parseStringToURLObject(req.url) : undefined;
 
         const urlAttributes = {
-          [URL_FULL]: urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined,
+          [URL_FULL]: urlObject && !isURLObjectRelative(urlObject) ? filterCollectedUrl(urlObject.href) : undefined,
           [URL_PATH]: urlObject?.pathname,
         };
 

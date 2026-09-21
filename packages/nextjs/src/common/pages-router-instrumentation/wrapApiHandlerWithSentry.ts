@@ -1,4 +1,5 @@
 import {
+  filterCollectedUrl,
   captureException,
   continueTrace,
   debug,
@@ -92,7 +93,8 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
-                    [URL_FULL]: urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined,
+                    [URL_FULL]:
+                      urlObject && !isURLObjectRelative(urlObject) ? filterCollectedUrl(urlObject.href) : undefined,
                     [URL_PATH]: urlObject?.pathname,
                     [HTTP_ROUTE]: parameterizedRoute,
                   },

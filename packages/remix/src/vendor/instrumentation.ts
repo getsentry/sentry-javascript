@@ -28,7 +28,7 @@ import type * as remixRunServerRuntimeData from '@remix-run/server-runtime/dist/
 import type * as remixRunServerRuntimeRouteMatching from '@remix-run/server-runtime/dist/routeMatching';
 import type { RouteMatch } from '@remix-run/server-runtime/dist/routeMatching';
 import type { ServerRoute } from '@remix-run/server-runtime/dist/routes';
-import { SDK_VERSION } from '@sentry/core';
+import { filterCollectedUrl, SDK_VERSION } from '@sentry/core';
 
 const RemixSemanticAttributes = {
   MATCH_PARAMS: 'match.params',
@@ -334,7 +334,7 @@ export class RemixInstrumentation extends InstrumentationBase {
 const addRequestAttributesToSpan = (span: Span, request: Request): void => {
   span.setAttributes({
     [HTTP_METHOD]: request.method,
-    [HTTP_URL]: request.url,
+    [HTTP_URL]: filterCollectedUrl(request.url),
   });
 };
 
