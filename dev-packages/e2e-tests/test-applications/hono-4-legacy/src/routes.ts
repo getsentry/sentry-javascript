@@ -1,6 +1,6 @@
 import { type Hono as HonoType, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { failingMiddleware, middlewareA, middlewareB } from './middleware';
+import { failingMiddleware, middlewareA, middlewareB, namedMiddleware } from './middleware';
 import { errorRoutes } from './route-groups/test-errors';
 import { middlewareRoutes, subAppWithInlineMiddleware, subAppWithMiddleware } from './route-groups/test-middleware';
 import { multiFetchRoutes } from './route-groups/test-multi-fetch';
@@ -42,6 +42,7 @@ export function addRoutes(app: HonoType<{ Bindings?: { E2E_TEST_DSN: string } }>
   app.use('/test-middleware/multi/*', middlewareA, middlewareB);
   app.use('/test-middleware/error/*', failingMiddleware);
   app.use('/test-middleware/param/*', middlewareA);
+  app.use('/test-middleware/declared/*', namedMiddleware);
   app.route('/test-middleware', middlewareRoutes);
 
   // Sub-app middleware: registered on the sub-app, wrapped at mount time by route() patching
