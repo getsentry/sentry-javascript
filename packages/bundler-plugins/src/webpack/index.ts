@@ -260,8 +260,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
               }
 
               const sourceContents = source.source();
-              const code =
-                typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
+              const code = typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
               const codeToInject = staticInjectionCode.clone();
               if (sourcemapsEnabled) {
                 const hash = chunk.contentHash?.javascript ?? chunk.hash;
