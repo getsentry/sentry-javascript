@@ -56,20 +56,34 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       replay.lastActiveSpan = span;
     });
 
+    let replayIdOnFeedbackOpen: string | undefined;
+
     // We want to attach the replay id to the feedback event
     client.on('beforeSendFeedback', async (feedbackEvent, options) => {
+      const feedbackContext = feedbackEvent.contexts?.feedback;
+      if (!options?.includeReplay || !feedbackContext) {
+        return;
+      }
+
+      if (feedbackContext.source === 'widget' && replayIdOnFeedbackOpen) {
+        feedbackContext.replay_id = replayIdOnFeedbackOpen;
+        return;
+      }
+
       const replayId = replay.getSessionId();
-      if (options?.includeReplay && replay.isEnabled() && replayId && feedbackEvent.contexts?.feedback) {
+      if (replay.isEnabled() && replayId) {
         // In case the feedback is sent via API and not through our widget, we want to flush replay
-        if (feedbackEvent.contexts.feedback.source === 'api') {
+        if (feedbackContext.source === 'api') {
           await replay.sendBufferedReplayOrFlush();
         }
-        feedbackEvent.contexts.feedback.replay_id = replayId;
+        feedbackContext.replay_id = replayId;
       }
     });
 
     client.on('openFeedbackWidget', async () => {
+      replayIdOnFeedbackOpen = undefined;
       await replay.sendBufferedReplayOrFlush();
+      replayIdOnFeedbackOpen = replay.isEnabled() ? replay.getSessionId() : undefined;
     });
   }
 }
