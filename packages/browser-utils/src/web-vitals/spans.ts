@@ -13,7 +13,7 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import type { InteractionType } from './inp';
-import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
+import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION, UNKNOWN_ELEMENT_NAME } from './inp';
 import type { InstrumentationHandlerCallback, MetricNavigationType } from '../instrumentation/performanceObserver';
 import {
   addClsInstrumentationHandler,
@@ -381,7 +381,8 @@ export function _sendInpSpan(
   // `ui.interaction.*` family, because falling outside it would hide exactly the fast navigations
   // that web-vitals synthesizes these values for (GoogleChrome/web-vitals#724), reintroducing the
   // reporting bias they were added to remove.
-  const interactionType = (entry && INP_ENTRY_MAP[entry.name]) || 'click';
+  const entryInteractionType = entry && INP_ENTRY_MAP[entry.name];
+  const interactionType = entryInteractionType || 'click';
 
   const cachedContext = entry && getCachedInteractionContext(entry.interactionId);
   const activeSpan = getActiveSpan();
@@ -392,15 +393,24 @@ export function _sendInpSpan(
   const spanToUse = attributedSpan || cachedContext?.span || rootSpan;
   const name = cachedContext?.elementName || (entry ? htmlTreeAsString(entry.target) : 'Interaction to next paint');
 
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
+  };
+
+  // The span's name and op always have a value, even for an INP without an entry, so they can't
+  // say whether there was an interaction to describe. These attributes can: they are only set for
+  // what was actually observed.
+  // TODO: use the `@sentry/conventions` constants once getsentry/sentry-conventions#641 is released.
+  entry && name !== UNKNOWN_ELEMENT_NAME && (attributes['browser.web_vital.inp.target'] = name);
+  entryInteractionType && (attributes['browser.web_vital.inp.interaction_type'] = entryInteractionType);
+
   _emitWebVitalSpan({
     name,
     op: INTERACTION_TYPE_TO_SPAN_OP[interactionType],
     origin: 'auto.http.browser.inp',
     metricName: 'inp',
     value: inpValue,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
-    },
+    attributes,
     startTime,
     endTime: startTime + duration,
     navigationType: metric?.navigationType,
