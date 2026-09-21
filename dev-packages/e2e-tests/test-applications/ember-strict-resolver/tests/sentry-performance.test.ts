@@ -19,6 +19,9 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.ember',
+        data: {
+          'router.navigation.route.id': 'index',
+        },
       },
     },
     transaction: 'route:index',
@@ -47,6 +50,9 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.ember',
+        data: {
+          'router.navigation.route.id': 'tracing',
+        },
       },
     },
     transaction: 'route:tracing',
