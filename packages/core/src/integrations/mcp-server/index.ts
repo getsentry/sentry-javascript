@@ -95,6 +95,11 @@ function interceptTransportStart(transport: MCPTransport, beforeStart: () => voi
  * wraps any already-registered ones. Wrapping at construction time is recommended by
  * convention (consistent with other SDK integrations), but is not required.
  *
+ * Idempotent: calling this more than once on the same instance is a no-op that returns the
+ * instance untouched. This makes it safe to call manually even when the SDK already wrapped the
+ * server automatically at construction (via the `mcpServer` integration) — the manual call
+ * simply short-circuits.
+ *
  * @example
  * ```typescript
  * import * as Sentry from '@sentry/core';
