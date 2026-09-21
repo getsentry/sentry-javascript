@@ -28,6 +28,14 @@ inventoryApp.get('/item/:productId/stock', c => {
   return c.json({ productId, inStock: item.stock > 0, quantity: item.stock });
 });
 
+// Simulates an inner-route failure (a plain 5xx Error, not an HTTPException) reached only via an
+// internal .request() — used by the storefront's `/degraded` route below. Each throw gets a unique
+// suffix so the Dedupe integration doesn't collapse repeats across test retries.
+let dbErrorCount = 0;
+inventoryApp.get('/item/:productId/db-error', () => {
+  throw new Error(`inventory db is down #${(dbErrorCount += 1)}`);
+});
+
 // Storefront service — orchestrates internal .request() calls to inventoryApp.
 const storefrontApp = new Hono();
 
@@ -81,6 +89,17 @@ storefrontApp.get('/product/:productId/availability', async c => {
     available: stock.inStock,
     quantity: stock.quantity,
   });
+});
+
+// Degraded response: the inner route throws, but the outer handler swallows the failed internal
+// response and returns a 200 instead of propagating. The inner error should still reach Sentry (auto
+// instrumentation); the outer request stays healthy.
+storefrontApp.get('/product/:productId/degraded', async c => {
+  const res = await inventoryApp.request(`/item/${c.req.param('productId')}/db-error`);
+  if (!res.ok) {
+    return c.json({ product: null, degraded: true }, 200);
+  }
+  return c.json({ product: await res.json() });
 });
 
 // Error propagation: internal 404 causes the handler to throw a plain Error
