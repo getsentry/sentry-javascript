@@ -41,6 +41,31 @@ describe('flueIntegration', () => {
     expect(() => flueIntegration().setup?.({} as never)).not.toThrow();
   });
 
+  it('registers once per isolate, however often `init()` reruns', () => {
+    // Cloudflare calls `init()` per request; with `cacheClient: false` `setup()` runs every time.
+    // Under `vite dev` Flue answers a repeat by disposing our previous registration, which ends
+    // the turn and tool spans of every in-flight request.
+    const instrument = vi.fn();
+    setProvidedFlue(instrument);
+
+    flueIntegration().setup?.({} as never);
+    flueIntegration().setup?.({} as never);
+
+    expect(instrument).toHaveBeenCalledTimes(1);
+  });
+
+  it('registers again when a new Flue binding is provided', () => {
+    const first = vi.fn();
+    setProvidedFlue(first);
+    flueIntegration().setup?.({} as never);
+
+    const second = vi.fn();
+    setProvidedFlue(second);
+    flueIntegration().setup?.({} as never);
+
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
   it('swallows a duplicate registration from an app that also calls instrument()', () => {
     setProvidedFlue(
       vi.fn(() => {
@@ -49,6 +74,18 @@ describe('flueIntegration', () => {
     );
 
     expect(() => flueIntegration().setup?.({} as never)).not.toThrow();
+  });
+
+  it('stops rebuilding the instrumentation once the app owns the registration', () => {
+    const instrument = vi.fn(() => {
+      throw alreadyInstalledError();
+    });
+    setProvidedFlue(instrument);
+
+    flueIntegration().setup?.({} as never);
+    flueIntegration().setup?.({} as never);
+
+    expect(instrument).toHaveBeenCalledTimes(1);
   });
 
   it('warns but never throws when registration fails for any other reason', () => {
