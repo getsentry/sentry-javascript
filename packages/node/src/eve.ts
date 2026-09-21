@@ -34,7 +34,7 @@ interface EveInstrumentationProvider {
  * `agent/instrumentation/*.ts` provider file.
  *
  * @example
- * 
+ * ```ts
  * // agent/instrumentation/sentry.ts
  * import * as Sentry from '@sentry/node';
  * import { defineInstrumentation } from 'eve/instrumentation';
