@@ -67,6 +67,25 @@ app.get('/outer-error/:itemId', async c => {
   throw new Error('Test error from outer Hono app after internal request');
 });
 
+// Overlapping handlers: a parameterized handler and a catch-all handler both match `/overlap/:id`.
+// The parameterized handler is registered first and responds, so `routeIndex` lands on it and the
+// transaction must resolve to `/overlap/:id` — not the catch-all `/*`.
+app.get('/overlap/:id', c => c.json({ id: c.req.param('id') }));
+app.get('/overlap/*', c => c.text('catch-all handler'));
+
+// Middleware-only match: a scoped middleware short-circuits with its own response and no route
+// handler matches. The transaction name must fall back to the matched middleware path `/mw-only/*`.
+app.use('/mw-only/*', async (_c, _next) => new Response('handled by middleware'));
+
+// Middleware span status by thrown error (see `wrapMiddlewareWithSpan` + `defaultShouldHandleError`):
+// only 5xx and status-less errors set the middleware span to `error` — 3xx and 4xx do not, even
+// though they still fail the request.
+app.use('/mw-throw/:code', async function throwingMiddleware(c, _next) {
+  const status = Number(c.req.param('code'));
+  throw Object.assign(new Error(`middleware failed (${status})`), { status });
+});
+app.get('/mw-throw/:code', c => c.text('never reached'));
+
 serve({ fetch: app.fetch, port: 0 }, info => {
   sendPortToRunner(info.port);
 });

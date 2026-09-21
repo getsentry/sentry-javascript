@@ -203,5 +203,98 @@ describe('hono auto-instrumentation', () => {
       runner.makeRequest('get', '/outer-error/self-watering-plant', { expectError: true });
       await runner.completed();
     });
+
+    test('resolves overlapping handlers to the responding route, not the catch-all', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const segment = container.items.find(item => item.is_segment && item.name === 'GET /overlap/:id');
+            if (!segment) {
+              throw new Error('segment for `GET /overlap/:id` not in this container');
+            }
+            // The catch-all `GET /overlap/*` handler also matched, but the parameterized handler
+            // responded — the route name must not collapse to `/overlap/*`.
+            expect(attr(segment, 'sentry.segment.name.source')).toBe('route');
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/overlap/123');
+      await runner.completed();
+    });
+
+    test('falls back to the matched middleware path when only middleware matched', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const segment = container.items.find(item => item.is_segment && item.name === 'GET /mw-only/*');
+            if (!segment) {
+              throw new Error('segment for `GET /mw-only/*` not in this container');
+            }
+            expect(op(segment)).toBe('http.server');
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/mw-only/anything');
+      await runner.completed();
+    });
+
+    test('does not set the middleware span to error for a 3xx middleware error', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const middlewareSpan = container.items.find(
+              item => op(item) === 'middleware' && item.name === 'throwingMiddleware',
+            );
+            if (!middlewareSpan) {
+              throw new Error('middleware span `throwingMiddleware` not in this container');
+            }
+            expect(middlewareSpan.status).not.toBe('error');
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/mw-throw/301', { expectError: true });
+      await runner.completed();
+    });
+
+    test('does not set the middleware span to error for a 4xx middleware error', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const middlewareSpan = container.items.find(
+              item => op(item) === 'middleware' && item.name === 'throwingMiddleware',
+            );
+            if (!middlewareSpan) {
+              throw new Error('middleware span `throwingMiddleware` not in this container');
+            }
+            expect(middlewareSpan.status).not.toBe('error');
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/mw-throw/404', { expectError: true });
+      await runner.completed();
+    });
+
+    test('sets the middleware span to error for a 5xx middleware error', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const middlewareSpan = container.items.find(
+              item => op(item) === 'middleware' && item.name === 'throwingMiddleware',
+            );
+            if (!middlewareSpan) {
+              throw new Error('middleware span `throwingMiddleware` not in this container');
+            }
+            expect(middlewareSpan.status).toBe('error');
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/mw-throw/503', { expectError: true });
+      await runner.completed();
+    });
   });
 });
