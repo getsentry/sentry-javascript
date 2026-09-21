@@ -28,6 +28,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import { FILTERED_VALUE } from './data-collection/filtering-snippets';
+
 /** A cookie's name and raw value. A nameless cookie (RFC 6265bis) has the name `''`. */
 export type CookiePair = [name: string, value: string];
 
@@ -66,14 +68,15 @@ export function parseCookieHeader(value: string | string[], headerName: 'cookie'
 /**
  * Converts cookie pairs to a record with decoded values. The first cookie of a name wins.
  *
- * Nameless cookies are dropped: their token is the value, and a record key cannot mark it as filtered.
+ * A nameless cookie's token is its value, and no name-based denylist can match it. So it is stored
+ * under the name `''` and its value is always filtered.
  */
 export function cookiePairsToRecord(pairs: CookiePair[]): Record<string, string> {
   const record: Record<string, string> = {};
 
   for (const [name, value] of pairs) {
-    if (name !== '' && record[name] === undefined) {
-      record[name] = decodeCookieValue(value);
+    if (record[name] === undefined) {
+      record[name] = name === '' ? FILTERED_VALUE : decodeCookieValue(value);
     }
   }
 

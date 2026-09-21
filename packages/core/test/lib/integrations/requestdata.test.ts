@@ -313,6 +313,23 @@ describe('requestDataIntegration', () => {
       expect(event.request?.cookies).toEqual({ id: '42' });
     });
 
+    it('filters a nameless token in the cookie header', () => {
+      const integration = requestDataIntegration();
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: {
+            method: 'GET',
+            url: 'https://example.com/',
+            headers: { cookie: '=y7Uu0Rk2QpLmXv3; theme=dark' },
+          },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient({ cookies: true }));
+
+      expect(event.request?.cookies).toEqual({ '': '[Filtered]', theme: 'dark' });
+    });
+
     it('omits headers when include.headers is false and dataCollection enables headers', () => {
       const integration = requestDataIntegration({ include: { headers: false } });
       const event: Event = {

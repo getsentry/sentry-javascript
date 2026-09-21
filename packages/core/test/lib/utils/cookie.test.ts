@@ -159,13 +159,13 @@ describe('cookiePairsToRecord', () => {
     ).toEqual({ locale: '', theme: 'dark' });
   });
 
-  it('drops nameless cookies', () => {
+  it('filters the value of a nameless cookie', () => {
     expect(
       cookiePairsToRecord([
         ['', 'y7Uu0Rk2QpLmXv3'],
         ['theme', 'dark'],
       ]),
-    ).toEqual({ theme: 'dark' });
+    ).toEqual({ '': '[Filtered]', theme: 'dark' });
   });
 
   it('URL-decodes values', () => {

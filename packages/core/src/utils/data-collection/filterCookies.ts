@@ -6,10 +6,9 @@ import { filterKeyValueData } from './filterKeyValueData';
 /**
  * Filters a `Cookie` / `Set-Cookie` header string according to a `CollectBehavior`.
  *
- * Each named cookie is filtered independently. When the string holds no named cookie, the entire
- * string is replaced with `[Filtered]`.
- * A nameless segment inside an otherwise parseable string (`"opaque-blob; theme=dark"`) is
- * dropped, since a record key cannot carry a `[Filtered]` marker without leaking the token.
+ * Each named cookie is filtered independently. A nameless cookie (`"opaque-blob"`, `"=opaque-blob"`)
+ * is reported as `{ '': '[Filtered]' }`, since its token is the value. When the string holds no
+ * cookie at all, the entire string is replaced with `[Filtered]`.
  *
  * @param headerName - `'set-cookie'` keeps only the cookie pair and ignores the attributes (`Path`, `Max-Age`, ...)
  */
@@ -25,7 +24,7 @@ export function filterCookies(
   try {
     const cookies = cookiePairsToRecord(parseCookieHeader(cookieString, headerName));
 
-    // A non-empty string without a named cookie may still hold a session token, so it counts as sensitive.
+    // A non-empty string we cannot parse may still hold a session token, so it counts as sensitive.
     if (Object.keys(cookies).length === 0) {
       return cookieString ? FILTERED : {};
     }

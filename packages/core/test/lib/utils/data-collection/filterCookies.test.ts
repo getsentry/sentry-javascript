@@ -78,23 +78,28 @@ describe('filterCookies', () => {
       expect(filterCookies('', true)).toEqual({});
     });
 
-    it('filters the whole string when no key-value pairs can be extracted', () => {
+    it('filters the whole string when it holds no cookie', () => {
       expect(filterCookies(';;;', true)).toBe('[Filtered]');
-      expect(filterCookies('opaque-session-blob', true)).toBe('[Filtered]');
     });
   });
 
   describe('nameless cookies', () => {
-    it('drops a nameless segment next to named cookies', () => {
-      expect(filterCookies('y7Uu0Rk2QpLmXv3; theme=dark', true)).toEqual({ theme: 'dark' });
+    it.each(['y7Uu0Rk2QpLmXv3; theme=dark', '=y7Uu0Rk2QpLmXv3; theme=dark', 'theme=dark; y7Uu0Rk2QpLmXv3'])(
+      'filters the nameless token in %j and keeps the named cookie',
+      cookieString => {
+        expect(filterCookies(cookieString, true)).toEqual({ '': '[Filtered]', theme: 'dark' });
+      },
+    );
+
+    it.each(['y7Uu0Rk2QpLmXv3', '=y7Uu0Rk2QpLmXv3'])('filters %j when it is the only cookie', cookieString => {
+      expect(filterCookies(cookieString, true)).toEqual({ '': '[Filtered]' });
     });
 
-    it('does not report a "=token" segment under an empty cookie name', () => {
-      expect(filterCookies('=y7Uu0Rk2QpLmXv3; theme=dark', true)).toEqual({ theme: 'dark' });
-    });
-
-    it('filters the whole string when it holds only a "=token" segment', () => {
-      expect(filterCookies('=y7Uu0Rk2QpLmXv3', true)).toBe('[Filtered]');
+    it('filters the nameless token when an allowlist is configured', () => {
+      expect(filterCookies('y7Uu0Rk2QpLmXv3; theme=dark', { allow: ['theme'] })).toEqual({
+        '': '[Filtered]',
+        theme: 'dark',
+      });
     });
   });
 
@@ -109,8 +114,8 @@ describe('filterCookies', () => {
       ).toEqual({ theme: 'dark' });
     });
 
-    it('filters the whole string when the cookie is nameless', () => {
-      expect(filterCookies('y7Uu0Rk2QpLmXv3; HttpOnly; Secure', true, 'set-cookie')).toBe('[Filtered]');
+    it('filters the token of a nameless cookie', () => {
+      expect(filterCookies('y7Uu0Rk2QpLmXv3; HttpOnly; Secure', true, 'set-cookie')).toEqual({ '': '[Filtered]' });
     });
   });
 
