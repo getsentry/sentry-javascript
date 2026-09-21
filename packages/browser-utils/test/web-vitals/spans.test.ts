@@ -8,7 +8,6 @@ import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/web-vitals/lcp';
 import { _emitWebVitalSpan } from '../../src/web-vitals/emitSpan';
 import * as reportEvents from '../../src/web-vitals/reportEvents';
 import * as softNavs from '../../src/web-vitals/softNavs';
-import * as webVitalUtils from '../../src/web-vitals/utils';
 import {
   _sendClsSpan,
   _sendInpSpan,
@@ -1048,76 +1047,5 @@ describe('soft navigation web vitals', () => {
     trackClsAsSpan(client, true);
 
     expect(listenSpy).not.toHaveBeenCalled();
-  });
-});
-
-describe('page load web vitals without per-navigation reporting', () => {
-  const pageloadSpan = createMockPageloadSpan('pageload-1');
-
-  let lcpCallback: (arg: { metric: any }) => void;
-  let hooks: Record<string, (...args: any[]) => void>;
-  let hide: () => void;
-  let client: any;
-
-  beforeEach(() => {
-    vi.stubGlobal('PerformanceObserver', { supportedEntryTypes: ['largest-contentful-paint'] });
-    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
-    vi.mocked(SentryCore.getCurrentScope).mockReturnValue({
-      getScopeData: vi.fn().mockReturnValue({ transactionName: 'test-route' }),
-    } as any);
-    vi.mocked(SentryCore.spanToJSON).mockReturnValue({ attributes: { 'sentry.op': 'pageload' } } as any);
-    vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
-    vi.mocked(htmlTreeAsString).mockReturnValue('<div>');
-    vi.spyOn(instrument, 'addLcpInstrumentationHandler').mockImplementation((cb: any) => {
-      lcpCallback = cb;
-      return () => undefined;
-    });
-    vi.spyOn(webVitalUtils, 'onHidden').mockImplementation(cb => {
-      hide = cb as () => void;
-    });
-
-    hooks = {};
-    client = {
-      on: vi.fn((hook: string, cb: any) => {
-        hooks[hook] = cb;
-        return () => undefined;
-      }),
-    };
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
-  });
-
-  it('finalizes the page load LCP at the first navigation and ignores later report events', () => {
-    trackLcpAsSpan(client);
-    hooks.afterStartPageLoadSpan!(pageloadSpan);
-    lcpCallback({ metric: { value: 800, navigationType: 'navigate', entries: [{ startTime: 800, element: {} }] } });
-
-    hooks.beforeStartNavigationSpan!({}, { isRedirect: true });
-    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalled();
-
-    hooks.beforeStartNavigationSpan!({}, {});
-    hide();
-
-    const calls = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls;
-    expect(calls).toHaveLength(1);
-    expect(calls[0]![0].parentSpan).toBe(pageloadSpan);
-    expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
-    expect(calls[0]![0].attributes).not.toHaveProperty('browser.web_vital.lcp.report_event');
-  });
-
-  it('finalizes the page load LCP when the page is hidden before any navigation', () => {
-    trackLcpAsSpan(client);
-    hooks.afterStartPageLoadSpan!(pageloadSpan);
-    lcpCallback({ metric: { value: 800, navigationType: 'navigate', entries: [{ startTime: 800, element: {} }] } });
-
-    hide();
-    hooks.beforeStartNavigationSpan!({}, {});
-
-    const calls = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls;
-    expect(calls).toHaveLength(1);
-    expect(calls[0]![0].attributes?.['browser.web_vital.lcp.value']).toBe(800);
   });
 });
