@@ -955,4 +955,26 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
       },
     },
   );
+
+  createEsmTests(
+    __dirname,
+    'scenario-aborted-stream-text.mjs',
+    'instrument-abort.mjs',
+    (createRunner, test) => {
+      // The instrumentation reads fields off the `StreamTextResult` to enrich the span. Each of
+      // those is a getter returning a *fresh* derived promise, so reading one without attaching a
+      // rejection handler leaks an unhandled rejection once the stream aborts. `AbortError` reasons
+      // are suppressed by name in `onUnhandledRejectionIntegration`, but an abort reason can be any
+      // value (`@hono/node-server` passes a string), so the leak has to be fixed at the source.
+      // `ensureNoErrorOutput` fails on any stderr, including the warn-mode rejection warning.
+      test('aborting a stream with a non-AbortError reason leaves no unhandled rejection', async () => {
+        await createRunner().ensureNoErrorOutput().start().completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
 });

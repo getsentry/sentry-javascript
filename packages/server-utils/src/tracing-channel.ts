@@ -66,7 +66,7 @@ export interface TracingChannelLifeCycleOptions<TData extends object = object> {
   deferSpanEnd?: (args: {
     span: Span;
     data: TracingChannelPayloadWithSpan<TData>;
-    /** Ends the span: `end()` on success, `end(error)` on failure. Idempotent. */
+    /** Ends the span: `end()` on success, `end(error)` on failure (which marks `data` as errored). Idempotent. */
     end: (error?: unknown) => void;
   }) => boolean;
 
@@ -158,6 +158,11 @@ export function bindTracingChannelToSpan<TData extends object>(
       ended = true;
       if (error !== undefined) {
         annotateSpanError(span, error);
+        // Mark the payload as failed so `beforeSpanEnd` sees the same shape the channel's own `error`
+        // verb produces. Otherwise a deferred failure still looks successful, and handlers enrich the
+        // span from a `result` the operation never produced — which on results whose fields are
+        // promise-valued getters (`ai`'s `StreamTextResult`) leaks one unhandled rejection per read.
+        (data as { error?: unknown }).error = error;
       }
 
       endBoundSpan(data, beforeSpanEnd);
