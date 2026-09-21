@@ -28,12 +28,9 @@ import { bunHttpServerIntegration } from './integrations/bunHttpServer';
 import { getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 
 /**
- * The performance integrations for bun: the OTel auto-performance set, but with
- * the orchestrion diagnostics-channel subscribers swapped in for their OTel
- * equivalents *only* when the orchestrion channels were actually injected (i.e.
- * the app was built with `@sentry/bun/plugin`). Without that, the channels
- * never fire — and the OTel versions rely on a runtime require-hook bun doesn't
- * support — so leave the auto-performance set alone.
+ * The tracing integrations for bun, added whenever spans are enabled. Most of them listen on
+ * the orchestrion diagnostics channels, which only exist when the app is built with
+ * `@sentry/bun/plugin`. Without the plugin, those integrations stay installed but create no spans.
  */
 function getPerformanceIntegrations(options: Options): Integration[] {
   if (!hasSpansEnabled(options)) {
