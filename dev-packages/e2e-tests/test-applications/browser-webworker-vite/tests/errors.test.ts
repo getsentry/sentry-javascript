@@ -66,20 +66,15 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
 
 test('emits exactly one event for an uncaught worker error', async ({ page }) => {
   const mechanisms: Array<string | undefined> = [];
-  // Never resolves. It only records every error event that arrives, so
-  // the global handler's copy of a throw would show up here.
-  void waitForError('browser-webworker-vite', event => {
+  // Records on the same stream it resolves on, since events are not ordered across streams.
+  const secondErrorPromise = waitForError('browser-webworker-vite', event => {
     if (!event.type && event.exception?.values?.[0]) {
       mechanisms.push(event.exception.values[0].mechanism?.type);
     }
-    return false;
+    return event.exception?.values?.[0]?.value === 'Uncaught error in worker 2';
   });
-
   const firstErrorPromise = waitForError('browser-webworker-vite', event => {
     return event.exception?.values?.[0]?.value === 'Uncaught error in worker';
-  });
-  const secondErrorPromise = waitForError('browser-webworker-vite', event => {
-    return event.exception?.values?.[0]?.value === 'Uncaught error in worker 2';
   });
 
   await page.goto('/');
@@ -128,19 +123,16 @@ test('locates a thrown primitive by its ErrorEvent position', async ({ page }) =
 
 test('emits exactly one event for an error thrown during worker startup', async ({ page }) => {
   const values: Array<string | undefined> = [];
-  void waitForError('browser-webworker-vite', event => {
+  // Records on the same stream it resolves on, since events are not ordered across streams.
+  const laterErrorPromise = waitForError('browser-webworker-vite', event => {
     const value = event.exception?.values?.[0]?.value;
     if (value?.includes('Uncaught error during worker startup')) {
       values.push(value);
     }
-    return false;
+    return value === 'Uncaught error in worker';
   });
-
   const startupErrorPromise = waitForError('browser-webworker-vite', event => {
     return !!event.exception?.values?.[0]?.value?.includes('Uncaught error during worker startup');
-  });
-  const laterErrorPromise = waitForError('browser-webworker-vite', event => {
-    return event.exception?.values?.[0]?.value === 'Uncaught error in worker';
   });
 
   await page.goto('/');
