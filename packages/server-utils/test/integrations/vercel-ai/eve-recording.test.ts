@@ -17,12 +17,12 @@ describe('Vercel AI recording under eve', () => {
     getMainCarrier().__SENTRY__ = undefined;
   });
 
-  function setupClient(dataCollection?: { genAI?: { inputs?: boolean } }): void {
+  function setupClient(dataCollection: { genAI?: { inputs?: boolean } } = {}): void {
     const client = new TestClient(
       getDefaultTestClientOptions({
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
         tracesSampleRate: 1,
-        ...(dataCollection ? { dataCollection } : {}),
+        dataCollection,
       }),
     );
     setCurrentClient(client);

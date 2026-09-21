@@ -67,7 +67,7 @@ export function eveConversationHook(options: EveConversationHookOptions = {}): {
  */
 export const eveIntegration = defineIntegration(() => {
   return {
-    name: 'Eve',
+    name: 'Eve' as const,
     setup(client) {
       markEveGenAiRecordingDefault(client);
     },

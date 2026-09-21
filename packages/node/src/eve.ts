@@ -33,7 +33,8 @@ interface EveInstrumentationProvider {
  * All-in-one Sentry setup for an [eve](https://eve.dev) agent, wired into a single
  * `agent/instrumentation/*.ts` provider file.
  *
- * ```ts
+ * @example
+ * 
  * // agent/instrumentation/sentry.ts
  * import * as Sentry from '@sentry/node';
  * import { defineInstrumentation } from 'eve/instrumentation';
