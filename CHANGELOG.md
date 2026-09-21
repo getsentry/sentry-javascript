@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, @JosephDoUrden, @Tyagiquamar, @Andarist, @msnelling, @oesnuj, and @chiliec. Thank you for your contributions!
+Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, @JosephDoUrden, @Tyagiquamar, @Andarist, @msnelling, @oesnuj, @chiliec, and @ihsraham. Thank you for your contributions!
 
 - feat(browser)!: `browser.navigation.type` on web vital and bfcache navigation spans now carries the navigation type exactly as web-vitals reports it. `bfcache` is now `back-forward-cache`, and a back/forward navigation that missed the bfcache (`back-forward`) or a discarded-tab restore (`restore`) is no longer folded into `navigate`. Update any dashboards or alerts filtering on `bfcache`.
 - feat(browser): The pageload span now carries `browser.navigation.type`, the navigation type web-vitals reported TTFB and FCP for. Those vitals, and FP, are attributes of the pageload span rather than spans of their own, so until now there was no navigation type to read them against.
