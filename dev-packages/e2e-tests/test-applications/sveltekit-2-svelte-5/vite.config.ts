@@ -1,10 +1,10 @@
-import { sentrySvelteKit } from '@sentry/sveltekit/vite';
+import sentry from '@sentry/sveltekit/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [
-    sentrySvelteKit({
+    sentry({
       autoUploadSourceMaps: false,
     }),
     sveltekit(),

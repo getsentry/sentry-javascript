@@ -1,5 +1,6 @@
 import type { Plugin } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
+import sentrySvelteKitDefault from '../../src/vite';
 import * as autoInstrument from '../../src/vite/autoInstrument';
 import { generateVitePluginOptions, sentrySvelteKit } from '../../src/vite/sentryVitePlugins';
 import * as sourceMaps from '../../src/vite/sourceMaps';
@@ -40,6 +41,10 @@ function getSentrySvelteKitPlugins(options?: Parameters<typeof sentrySvelteKit>[
 }
 
 describe('sentrySvelteKit()', () => {
+  it('is the default export of the vite entry point', () => {
+    expect(sentrySvelteKitDefault).toBe(sentrySvelteKit);
+  });
+
   it('warns when the removed `unstable_sentryVitePluginOptions` is still set', async () => {
     consoleWarnSpy.mockClear();
 

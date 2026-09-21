@@ -1,6 +1,6 @@
 import type { ConfigEnv, UserConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { sentryRemixVitePlugin } from '../../src/vite';
+import sentryRemixVitePluginDefault, { sentryRemixVitePlugin } from '../../src/vite';
 
 // Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in),
 // mirroring the real plugin's two shapes.
@@ -67,6 +67,10 @@ function callHook(hook: unknown, ...args: unknown[]): unknown {
 }
 
 describe('sentryRemixVitePlugin', () => {
+  it('is the default export of the vite entry point', () => {
+    expect(sentryRemixVitePluginDefault).toBe(sentryRemixVitePlugin);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();

@@ -22,6 +22,8 @@ export default makeNPMConfigVariants(
       external: ['$app/state', '$app/stores', '@sentry/sveltekit/browser-tracing-variant', 'cloudflare:workers'],
       output: {
         dynamicImportInCjs: true,
+        // make it so Rollup calms down about the fact that we're combining default and named exports
+        exports: 'named',
       },
     },
   }),

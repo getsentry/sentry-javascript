@@ -12,7 +12,7 @@ import { builtinModules } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
-import { sentryVitePlugin } from '@sentry/node/vite';
+import sentry from '@sentry/node/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const nodeExternals = [...builtinModules, ...builtinModules.map(m => `node:${m}`)];
@@ -21,7 +21,7 @@ rmSync(join(__dirname, 'dist'), { recursive: true, force: true });
 
 // No auth/release/telemetry — we only care about the build-time transforms and defines.
 const makeSentryPlugin = () =>
-  sentryVitePlugin({
+  sentry({
     telemetry: false,
     sourcemaps: { disable: true },
     release: { create: false, finalize: false, inject: false },

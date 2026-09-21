@@ -20,6 +20,8 @@ export default makeNPMConfigVariants(
       external: ['solid-js/web', 'solid-js', '@sentry/solid', '@sentry/solid/solidrouter'],
       output: {
         dynamicImportInCjs: true,
+        // make it so Rollup calms down about the fact that we're combining default and named exports
+        exports: 'named',
       },
     },
   }),
