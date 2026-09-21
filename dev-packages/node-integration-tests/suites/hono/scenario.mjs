@@ -19,6 +19,11 @@ app.get('/error/:param', () => {
   throw new Error('Test error from Hono app');
 });
 
+// A route handler declared with an unused `next` param (arity 2). It is the last handler in its
+// method+path group, so it must be classified as the route handler — not wrapped as a middleware
+// span — even though arity alone would misclassify it.
+app.get('/arity-two-handler', (c, _next) => c.text('handler with two params'));
+
 // A sub-app with a named middleware, mounted via `app.route()`. The sub-app is also
 // auto-instrumented (every `new Hono()` is), so its own Sentry middleware must NOT show up as an
 // `<anonymous>` middleware span when it is copied into the parent at mount time.
