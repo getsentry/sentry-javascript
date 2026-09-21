@@ -96,8 +96,8 @@ export async function waitForWorker(url: string): Promise<void> {
  *
  * On the first deployment of a Worker name, Cloudflare has answered a request with a 500 while
  * Workers Logs had no invocation for it. `status` is the status the Worker answers with. A Worker
- * that threw answers with status 500 and the body `error code: 1101`, which sets it apart from a
- * 500 that did not come from the Worker.
+ * that threw answers with status 500 and Cloudflare error code 1101, which sets it apart from a 500
+ * that did not come from the Worker.
  */
 export async function fetchFromWorker(url: string, status: number, init?: RequestInit): Promise<string> {
   const deadline = Date.now() + 60_000;
@@ -107,12 +107,15 @@ export async function fetchFromWorker(url: string, status: number, init?: Reques
     try {
       const response = await fetch(url, init);
       const body = await response.text();
+      // Cloudflare sends its error page as HTML to some clients (Node's fetch among them) and as
+      // `error code: <code>` plain text to others, so the code is read from either format.
+      const errorCode = /cf-error-code">(\d+)<|^error code: (\d+)$/.exec(body)?.slice(1).find(Boolean);
 
-      if (response.status === status && (status !== 500 || body === 'error code: 1101')) {
+      if (response.status === status && (status !== 500 || errorCode === '1101')) {
         return body;
       }
 
-      lastAnswer = `${response.status}, cf-ray ${response.headers.get('cf-ray')}, body: ${body.slice(0, 200)}`;
+      lastAnswer = `${response.status}, cf-ray ${response.headers.get('cf-ray')}, error code ${errorCode ?? 'none'}, body: ${body.slice(0, 200)}`;
     } catch (error) {
       lastAnswer = String(error);
     }
