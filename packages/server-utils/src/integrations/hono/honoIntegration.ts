@@ -17,8 +17,8 @@ import { extractPathname, isInternalRequestSpanActive } from './patchAppRequest'
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 import type { SentryHonoMiddlewareOptions } from './types';
 
-// Same name as the Hono SDK's integration. When this default is enabled, the `@sentry/hono` SDK
-// filters the `'Hono'` integration out of the defaults it forwards, so the two never stack.
+// Matches the `@sentry/hono` SDK's integration name, so the SDK filters its own out of the
+// forwarded defaults and the two never stack.
 const INTEGRATION_NAME = 'Hono' as const;
 
 const INTERNAL_REQUEST_ORIGIN = 'auto.http.hono.internal_request';
@@ -34,13 +34,11 @@ let connInfoResolved = false;
 let cachedGetConnInfo: GetConnInfo | undefined;
 
 /**
- * Resolve the runtime-specific `getConnInfo` helper, once, best-effort.
+ * Resolves the runtime's `getConnInfo` helper once, best-effort.
  *
- * Each runtime ships it from a different subpackage. Cloudflare Workers cannot `require()` a module
- * out of a bundle at runtime, so there conn-info is left to the platform's `requestDataIntegration`;
- * `createRequire` covers the require-capable runtimes (Node/Bun/Deno) under both ESM and CJS. Any
- * failure (optional peer dependency not installed) degrades to `undefined`, which just skips the
- * connection-info attributes.
+ * Cloudflare Workers can't `require()` out of a bundle at runtime, so there conn-info is left to the
+ * platform's `requestDataIntegration`. On Node/Bun/Deno a missing optional peer dependency degrades
+ * to `undefined`, which just skips the connection-info attributes.
  */
 function resolveGetConnInfo(): GetConnInfo | undefined {
   if (connInfoResolved) {
@@ -55,8 +53,8 @@ function resolveGetConnInfo(): GetConnInfo | undefined {
   }
 
   try {
-    // `createRequire` treats its argument as a filename and resolves from its directory, so a dummy
-    // file (never loaded) roots resolution at the app directory — where the runtime helper lives.
+    // `createRequire` resolves relative to its argument's directory, so a never-loaded dummy path
+    // roots resolution at the app directory, where the runtime helper is installed.
     const appRequire = createRequire(`${process.cwd()}/noop.js`);
     cachedGetConnInfo = (appRequire(specifier) as { getConnInfo?: GetConnInfo }).getConnInfo;
   } catch {
@@ -68,18 +66,13 @@ function resolveGetConnInfo(): GetConnInfo | undefined {
 }
 
 /**
- * Manually instruments a Hono app for Sentry tracing and returns the Sentry request/response
- * middleware to register — `app.use(honoMiddleware(app))`, as the FIRST middleware.
+ * Manually instruments a Hono app and returns the Sentry request/response middleware to register
+ * first: `app.use(honoMiddleware(app))`.
  *
- * The {@link honoIntegration} default instruments Hono automatically (see below), so this is only
- * needed for setups where neither the Sentry runtime hook nor the bundler plugin is active. It is
- * config- and DSN-free: `Sentry.init(...)` must still be called separately.
- *
- * Safe to combine with the automatic instrumentation: the request handling is deduplicated per
- * request and `applyPatches` is idempotent per app.
- *
- * `getConnInfo` is resolved for the current runtime (Node/Bun/Deno); on Cloudflare it is left to the
- * platform's request-data handling.
+ * Only needed when neither the Sentry runtime hook nor the bundler plugin is active — otherwise
+ * {@link honoIntegration} does this automatically. Safe to combine with the automatic instrumentation
+ * (request handling is deduplicated per request, `applyPatches` is idempotent). `Sentry.init(...)`
+ * must still be called separately.
  */
 export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegrationOptions = {}): MiddlewareHandler {
   applyPatches(app);
@@ -90,34 +83,28 @@ export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegra
   });
 }
 
-// A Hono `matchResult[0]` entry: `[[handler, routeMeta], paramIndexMap]`. `compose` reads the handler
-// at `entry[0][0]`; the `matchedRoutes` getter reads `routeMeta` at `entry[0][1]`.
+// A Hono `matchResult[0]` entry: `[[handler, routeMeta], paramIndexMap]` — `compose` runs the
+// handler (`entry[0][0]`) and the `matchedRoutes` getter reads `routeMeta` (`entry[0][1]`).
 // oxlint-disable-next-line typescript/no-explicit-any
 type MatchedHandlerEntry = [[any, any], any];
 
-// Match-result handler lists we've already injected into. `router.match` may return a cached array
-// for a given route, so guard against prepending the Sentry middleware more than once.
+// `router.match` may hand back a cached handler array for a route, so track the lists we've already
+// prepended into and never inject the Sentry middleware twice.
 const _injectedHandlerLists = new WeakSet<object>();
 
-// The Sentry request/response middleware is stateless (all per-request state lives on the request
-// scope), so build it once and reuse it across every dispatched Context instead of recreating it on
-// each `new Context()`. `options` is fixed for the single channel subscription, so a single cached
-// instance is always correct.
+// The request/response middleware is stateless (per-request state lives on the request scope) and
+// `options` is fixed, so build it once and reuse it across every dispatched Context.
 let cachedRequestMiddleware: MiddlewareHandler | undefined;
 
 /**
- * Per-request Context hook: the heart of the automatic instrumentation.
+ * Per-request Context hook. `#dispatch` builds `new Context(req, { matchResult })` before its
+ * single-handler fast-path check, so from the live `matchResult` we:
+ *  1. wrap the matched middleware handlers for spans (route handlers are covered by the request span);
+ *  2. prepend the Sentry request/response middleware — it drives route naming, request data and error
+ *     capture from inside the chain, and forces the ≥2-handler `compose` path so the fast-path is
+ *     never taken.
  *
- * `#dispatch` builds `new Context(req, { matchResult })` before its single-handler fast-path check,
- * passing the live `matchResult` array. We:
- *  1. wrap the already-matched MIDDLEWARE handlers (arity ≥ 2) for spans — route handlers (arity < 2)
- *     are covered by the request span and left as-is;
- *  2. prepend the Sentry request/response middleware, so it runs first in the composed chain. That
- *     both drives route naming / request data / error capture (from inside the chain, with the
- *     Context) and forces the ≥2-handler `compose` path, so there is no fast-path gap.
- *
- * All of this runs per request, so it works on Cloudflare (no module-scope publish) and needs no
- * app-instance patching or app-construction hook.
+ * Running per request (no module-scope state) is what lets this work on Cloudflare.
  */
 function injectHonoInstrumentation(
   // oxlint-disable-next-line typescript/no-explicit-any
@@ -131,15 +118,10 @@ function injectHonoInstrumentation(
   }
   _injectedHandlerLists.add(handlers);
 
-  // Wrap the matched middleware handlers for spans, leaving the route handler alone. Each entry
-  // carries its registration `routeMeta` (`entry[0][1]`: `{ method, path, … }`), so we use the same
-  // positional heuristic as `wrapSubAppMiddleware`: within a method+path group the LAST matched
-  // handler is the route handler and earlier ones are middleware (`app.get(path, mw, handler)`);
-  // `.use()` registers as method 'ALL' where the sole entry is genuinely middleware, so fall back to
-  // arity (via `isMiddleware`, which also unwraps `onError`-composed handlers) there. Position matters
-  // because arity alone would misclassify a route handler declared with an unused `next` param.
-  // `wrapMiddlewareWithSpan` is idempotent and skips Sentry's own middleware, so this is safe even
-  // when a handler is shared across routes.
+  // Classify matched handlers with the same positional heuristic as `wrapSubAppMiddleware`: within a
+  // method+path group the last handler is the route handler and earlier ones are middleware; `.use()`
+  // registers as method 'ALL' with a lone genuine-middleware entry, so fall back to arity there.
+  // Position is needed because a route handler declared with an unused `next` param has middleware arity.
   const lastIndexByKey = new Map<string, number>();
   for (const [i, entry] of handlers.entries()) {
     const routeMeta = entry?.[0]?.[1] as { method?: string; path?: string } | undefined;
@@ -169,7 +151,7 @@ function injectHonoInstrumentation(
   }
 
   // Prepend the Sentry request/response middleware. `routeMeta` is what the `matchedRoutes` getter
-  // reads; a middleware-arity handler means route-name resolution skips it.
+  // exposes; its middleware arity keeps route-name resolution from picking it.
   const middleware = (cachedRequestMiddleware ??= createHonoRequestMiddleware({
     getConnInfo: resolveGetConnInfo(),
     shouldHandleError: options.shouldHandleError,
@@ -187,9 +169,8 @@ function instrumentInternalRequests(): void {
     // oxlint-disable-next-line typescript/no-explicit-any
     diagnosticsChannel.tracingChannel<{ arguments: any[] }>(CHANNELS.HONO_REQUEST),
     data => {
-      // When the manual middleware is used alongside this default integration, the instance
-      // `app.request` Proxy already opened this span and is calling through to us — don't nest a
-      // duplicate. `getSpan` returning `undefined` opts the payload out cleanly.
+      // Alongside the manual middleware, the instance `app.request` Proxy has already opened this
+      // span and is calling through — returning `undefined` (no span) avoids nesting a duplicate.
       if (isInternalRequestSpanActive()) {
         return undefined;
       }
@@ -211,9 +192,8 @@ function instrumentInternalRequests(): void {
 }
 
 function instrumentHono(options: HonoIntegrationOptions): void {
-  // Per-request Context hook — injects the Sentry middleware and wraps matched middleware handlers.
-  // The `end` of the Context constructor fires synchronously during `new Context()`, before
-  // `#dispatch` reads `matchResult[0].length`, so the prepend takes effect for the same request.
+  // The Context constructor's `end` fires synchronously inside `new Context()`, before `#dispatch`
+  // reads `matchResult[0].length`, so the injected middleware is in place for the same request.
   diagnosticsChannel
     // oxlint-disable-next-line typescript/no-explicit-any
     .tracingChannel<{ arguments: any[] }>(CHANNELS.HONO_CONTEXT)
@@ -235,19 +215,14 @@ const _honoIntegration = ((options: HonoIntegrationOptions = {}) => {
 }) satisfies IntegrationFn;
 
 /**
- * Automatically instruments Hono applications for Sentry.
+ * Automatically instruments Hono applications for Sentry tracing.
  *
- * Instruments Hono through its per-request internals (the `Context` constructor and `app.request`)
- * via the orchestrion diagnostics channel: on each request it injects the Sentry request/response
- * middleware into the matched handler chain, names the transaction from the matched route, records
- * request data, captures unhandled errors, and creates middleware and internal-request spans.
- * Enabled by default in the Node, Bun, Deno and Cloudflare SDKs. Requires the Sentry runtime hook or
- * bundler plugin.
+ * Hooks Hono's per-request internals (the `Context` constructor and `app.request`) via the
+ * orchestrion diagnostics channel — so instrumentation happens per request, never at module scope,
+ * which is what lets it work on Cloudflare Workers with no manual middleware. Enabled by default in
+ * the Node, Bun, Deno and Cloudflare SDKs; requires the Sentry runtime hook or bundler plugin.
  *
- * Because everything happens per request (never at module scope), it works on Cloudflare Workers
- * out of the box, with no manual middleware registration.
- *
- * Registering the `sentry()` middleware from `@sentry/hono` manually alongside this is safe — the
- * request handling is deduplicated per request, so it runs exactly once.
+ * Registering `@sentry/hono`'s `sentry()` middleware manually alongside it is safe — request handling
+ * is deduplicated per request.
  */
 export const honoIntegration = defineIntegration(_honoIntegration);
