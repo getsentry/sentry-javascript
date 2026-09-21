@@ -26,6 +26,9 @@ export type TracingChannelPayloadWithSpan<TData extends object> = TData & {
    * The context's active store value, used to restore the context for asyncStart continuations for callback-based tracing.
    */
   _sentryCallerStore?: unknown;
+
+  /** Set by Node's tracing channel when the traced operation failed. */
+  error?: unknown;
 };
 
 /*
@@ -160,7 +163,7 @@ export function bindTracingChannelToSpan<TData extends object>(
         annotateSpanError(span, error);
         // Without this the payload still looks successful, so `beforeSpanEnd` enriches the span from
         // a `result` the operation never produced.
-        (data as { error?: unknown }).error = error;
+        data.error = error;
       }
 
       endBoundSpan(data, beforeSpanEnd);
