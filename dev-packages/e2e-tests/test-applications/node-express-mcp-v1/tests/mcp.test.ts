@@ -9,12 +9,12 @@ test('auto-instruments a legacy MCP SDK v1 server (no manual wrap)', async ({ ba
   const transport = new StreamableHTTPClientTransport(new URL(`${baseURL}/mcp`));
 
   const client = new Client({
-    name: 'test-client-v1-auto',
+    name: 'test-client-v1',
     version: '1.0.0',
   });
 
   const initializeSegmentPromise = waitForStreamedSpan(
-    'node-express-mcp-v1-auto',
+    'node-express-mcp-v1',
     segment => segment.is_segment && segment.name === 'initialize',
   );
 
@@ -25,13 +25,13 @@ test('auto-instruments a legacy MCP SDK v1 server (no manual wrap)', async ({ ba
     expect(initializeSegment).toBeDefined();
     expect(getSpanOp(initializeSegment)).toEqual('mcp.server');
     expect(initializeSegment.attributes?.['mcp.method.name']?.value).toEqual('initialize');
-    expect(initializeSegment.attributes?.['mcp.client.name']?.value).toEqual('test-client-v1-auto');
-    expect(initializeSegment.attributes?.['mcp.server.name']?.value).toEqual('Echo-V1-Auto');
+    expect(initializeSegment.attributes?.['mcp.client.name']?.value).toEqual('test-client-v1');
+    expect(initializeSegment.attributes?.['mcp.server.name']?.value).toEqual('Echo-V1');
   });
 
   await test.step('tool call', async () => {
     const toolSegmentPromise = waitForStreamedSpan(
-      'node-express-mcp-v1-auto',
+      'node-express-mcp-v1',
       segment => segment.is_segment && segment.name === 'tools/call echo',
     );
 
@@ -60,7 +60,7 @@ test('auto-instruments a legacy MCP SDK v1 server (no manual wrap)', async ({ ba
 
   await test.step('resource read', async () => {
     const resourceSegmentPromise = waitForStreamedSpan(
-      'node-express-mcp-v1-auto',
+      'node-express-mcp-v1',
       segment => segment.is_segment && segment.name === 'resources/read',
     );
 
@@ -80,7 +80,7 @@ test('auto-instruments a legacy MCP SDK v1 server (no manual wrap)', async ({ ba
 
   await test.step('error tool sets span status to error', async () => {
     const toolSegmentPromise = waitForStreamedSpan(
-      'node-express-mcp-v1-auto',
+      'node-express-mcp-v1',
       segment => segment.is_segment && segment.name === 'tools/call always-error',
     );
 
