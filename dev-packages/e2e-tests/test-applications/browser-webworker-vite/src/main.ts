@@ -54,6 +54,11 @@ document.querySelector<HTMLButtonElement>('#trigger-error-2')!.addEventListener(
   });
 });
 
+document.querySelector<HTMLButtonElement>('#trigger-startup-error')!.addEventListener('click', async () => {
+  const Worker4 = await import('./worker4.ts?worker');
+  webWorkerIntegration.addWorker(new Worker4.default());
+});
+
 document.querySelector<HTMLButtonElement>('#trigger-error-3')!.addEventListener('click', async () => {
   const Worker3 = await import('./worker3.ts?worker');
   const worker3 = new Worker3.default();

@@ -32,6 +32,7 @@ vi.mock('../../src/helpers', () => ({
   WINDOW: {
     _sentryDebugIds: undefined,
   },
+  ignoreNextOnErrorMatching: vi.fn(),
 }));
 
 function getListener(addEventListener: ReturnType<typeof vi.fn>, type: string): (event: any) => void {
@@ -47,14 +48,12 @@ describe('webWorkerIntegration', () => {
 
   let mockWorker: {
     addEventListener: ReturnType<typeof vi.fn>;
-    dispatchEvent: ReturnType<typeof vi.fn>;
     postMessage: ReturnType<typeof vi.fn>;
     _sentryDebugIds?: Record<string, string>;
   };
 
   let mockWorker2: {
     addEventListener: ReturnType<typeof vi.fn>;
-    dispatchEvent: ReturnType<typeof vi.fn>;
     postMessage: ReturnType<typeof vi.fn>;
     _sentryDebugIds?: Record<string, string>;
   };
@@ -73,13 +72,11 @@ describe('webWorkerIntegration', () => {
     // Setup mock worker
     mockWorker = {
       addEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
       postMessage: vi.fn(),
     };
 
     mockWorker2 = {
       addEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
       postMessage: vi.fn(),
     };
 
@@ -420,7 +417,6 @@ describe('registerWebWorker', () => {
   let mockWorkerSelf: {
     postMessage: ReturnType<typeof vi.fn>;
     addEventListener: ReturnType<typeof vi.fn>;
-    dispatchEvent: ReturnType<typeof vi.fn>;
     _sentryDebugIds?: Record<string, string>;
     _sentryModuleMetadata?: Record<string, any>;
     location?: { href?: string };
@@ -435,7 +431,6 @@ describe('registerWebWorker', () => {
     mockWorkerSelf = {
       postMessage: vi.fn(),
       addEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
     };
   });
 
@@ -451,7 +446,6 @@ describe('registerWebWorker', () => {
       _sentryMessage: true,
       _sentryDebugIds: undefined,
       _sentryModuleMetadata: undefined,
-      _sentryForwardsErrors: true,
     });
   });
 
@@ -471,7 +465,6 @@ describe('registerWebWorker', () => {
         'worker-file2.js': 'debug-id-2',
       },
       _sentryModuleMetadata: undefined,
-      _sentryForwardsErrors: true,
     });
   });
 
@@ -485,7 +478,6 @@ describe('registerWebWorker', () => {
       _sentryMessage: true,
       _sentryDebugIds: undefined,
       _sentryModuleMetadata: undefined,
-      _sentryForwardsErrors: true,
     });
   });
 
@@ -503,7 +495,6 @@ describe('registerWebWorker', () => {
       _sentryMessage: true,
       _sentryDebugIds: undefined,
       _sentryModuleMetadata: rawMetadata,
-      _sentryForwardsErrors: true,
     });
   });
 
@@ -516,7 +507,6 @@ describe('registerWebWorker', () => {
       _sentryMessage: true,
       _sentryDebugIds: undefined,
       _sentryModuleMetadata: undefined,
-      _sentryForwardsErrors: true,
     });
   });
 
@@ -538,61 +528,13 @@ describe('registerWebWorker', () => {
         'worker-file.js': 'debug-id-1',
       },
       _sentryModuleMetadata: rawMetadata,
-      _sentryForwardsErrors: true,
     });
   });
 
   describe('error forwarding', () => {
-    let consoleErrorSpy: MockInstance<typeof console.error>;
-
-    beforeEach(() => {
-      consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-      consoleErrorSpy.mockRestore();
-    });
-
-    function trigger(type: string, event: Record<string, unknown>): { preventDefault: ReturnType<typeof vi.fn> } {
-      const fullEvent = { preventDefault: vi.fn(), ...event };
-      getListener(mockWorkerSelf.addEventListener, type)(fullEvent);
-      return fullEvent;
+    function trigger(type: string, event: unknown): void {
+      getListener(mockWorkerSelf.addEventListener, type)(event);
     }
-
-    function receiveFromPage(data: unknown): { stopImmediatePropagation: ReturnType<typeof vi.fn> } {
-      const messageEvent = { data, stopImmediatePropagation: vi.fn() };
-      getListener(mockWorkerSelf.addEventListener, 'message')(messageEvent);
-      return messageEvent;
-    }
-
-    function acknowledge(): void {
-      receiveFromPage({ _sentryMessage: true, _sentryHandlesForwardedErrors: true });
-    }
-
-    it('consumes the acknowledgement from the page and leaves other messages alone', () => {
-      registerWebWorker({ self: mockWorkerSelf as any });
-
-      const ack = receiveFromPage({ _sentryMessage: true, _sentryHandlesForwardedErrors: true });
-      const other = receiveFromPage({ msg: 'WORKER_READY' });
-
-      expect(ack.stopImmediatePropagation).toHaveBeenCalledOnce();
-      expect(other.stopImmediatePropagation).not.toHaveBeenCalled();
-    });
-
-    it('forwards an uncaught error but does not cancel it before the page acknowledged', () => {
-      registerWebWorker({ self: mockWorkerSelf as any });
-
-      const error = new Error('boom');
-      const event = trigger('error', { error });
-
-      expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
-        _sentryMessage: true,
-        _sentryForwardsErrors: true,
-        _sentryWorkerError: expect.objectContaining({ reason: error, kind: 'error', cancelled: false }),
-      });
-      expect(event.preventDefault).not.toHaveBeenCalled();
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
-    });
 
     it('raises the stack trace limit so forwarded stacks are not truncated', () => {
       Error.stackTraceLimit = 10;
@@ -604,11 +546,10 @@ describe('registerWebWorker', () => {
 
     it('forwards an uncaught error with its location, name and kind "error"', () => {
       registerWebWorker({ self: mockWorkerSelf as any });
-      acknowledge();
 
       mockWorkerSelf.location = { href: 'http://localhost/worker.js' };
       const error = new Error('boom');
-      const event = trigger('error', {
+      trigger('error', {
         error,
         message: 'Uncaught Error: boom',
         filename: 'http://localhost/chunk.js',
@@ -618,7 +559,6 @@ describe('registerWebWorker', () => {
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
-        _sentryForwardsErrors: true,
         _sentryWorkerError: {
           reason: error,
           filename: 'http://localhost/worker.js',
@@ -628,24 +568,8 @@ describe('registerWebWorker', () => {
           url: 'http://localhost/chunk.js',
           lineno: 12,
           colno: 9,
-          cancelled: true,
         },
       });
-      expect(event.preventDefault).toHaveBeenCalledOnce();
-      expect(consoleErrorSpy).toHaveBeenCalledExactlyOnceWith(error);
-    });
-
-    it('lets the error bubble when the forward failed, so the page still reports it', () => {
-      registerWebWorker({ self: mockWorkerSelf as any });
-      acknowledge();
-      mockWorkerSelf.postMessage.mockImplementation(() => {
-        throw new DOMException('could not be cloned', 'DataCloneError');
-      });
-
-      const event = trigger('error', { error: new Error('boom') });
-
-      expect(event.preventDefault).not.toHaveBeenCalled();
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
     it('sends the error name separately because structured clone resets it', () => {
@@ -657,7 +581,6 @@ describe('registerWebWorker', () => {
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
-        _sentryForwardsErrors: true,
         _sentryWorkerError: expect.objectContaining({ reason: error, name: 'RuntimeError' }),
       });
     });
@@ -669,7 +592,6 @@ describe('registerWebWorker', () => {
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
-        _sentryForwardsErrors: true,
         _sentryWorkerError: expect.objectContaining({
           reason: 'Uncaught Error: boom',
           kind: 'error',
@@ -684,12 +606,10 @@ describe('registerWebWorker', () => {
       registerWebWorker({ self: mockWorkerSelf as any });
 
       const reason = new Error('rejected');
-      const event = trigger('unhandledrejection', { reason });
-      expect(event.preventDefault).not.toHaveBeenCalled();
+      trigger('unhandledrejection', { reason });
 
       expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
         _sentryMessage: true,
-        _sentryForwardsErrors: true,
         _sentryWorkerError: {
           reason,
           filename: undefined,
@@ -716,7 +636,6 @@ describe('registerWebWorker', () => {
         expect(mockWorkerSelf.postMessage).toHaveBeenCalledTimes(3);
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
-          _sentryForwardsErrors: true,
           _sentryWorkerError: expect.objectContaining({
             reason: { message: 'boom', stack: error.stack },
             plainError: true,
@@ -739,7 +658,6 @@ describe('registerWebWorker', () => {
 
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
-          _sentryForwardsErrors: true,
           _sentryWorkerError: expect.objectContaining({
             reason: { message: 'boom', stack: error.stack },
             plainError: true,
@@ -756,7 +674,6 @@ describe('registerWebWorker', () => {
 
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
-          _sentryForwardsErrors: true,
           _sentryWorkerError: expect.objectContaining({
             reason: { message: 'wasm exception', stack: exception.stack },
             plainError: true,
@@ -772,7 +689,6 @@ describe('registerWebWorker', () => {
 
         expect(mockWorkerSelf.postMessage).toHaveBeenLastCalledWith({
           _sentryMessage: true,
-          _sentryForwardsErrors: true,
           _sentryWorkerError: expect.objectContaining({
             reason: { retry: '[Function: retry]' },
             plainError: false,
@@ -803,15 +719,9 @@ describe('registerWebWorker and webWorkerIntegration', () => {
       'Error at \n /shared-file.js': 'main-debug-id',
     };
 
-    // Each mock stands in for both the worker and its `self`, so messages
-    // posted either way reach every message listener registered on it.
-    type Listeners = Record<string, Array<(arg0: any) => any>>;
-    const listeners1: Listeners = {};
-    const listeners2: Listeners = {};
-    const listeners3: Listeners = {};
-    const deliver = (listeners: Listeners, message: unknown): void => {
-      (listeners.message ?? []).forEach(listener => listener({ data: message, stopImmediatePropagation: vi.fn() }));
-    };
+    let cb1: ((arg0: any) => any) | undefined = undefined;
+    let cb2: ((arg0: any) => any) | undefined = undefined;
+    let cb3: ((arg0: any) => any) | undefined = undefined;
 
     // Setup mock worker
     const mockWorker = {
@@ -820,10 +730,11 @@ describe('registerWebWorker and webWorkerIntegration', () => {
         'Error at \n /worker-file2.js': 'worker-debug-2',
         'Error at \n /shared-file.js': 'worker-debug-id',
       },
-      addEventListener: vi.fn(
-        (type: string, l: (arg0: any) => any) => (listeners1[type] = [...(listeners1[type] ?? []), l]),
-      ),
-      postMessage: vi.fn(message => deliver(listeners1, message)),
+      addEventListener: vi.fn((_, l) => (cb1 = l)),
+      postMessage: vi.fn(message => {
+        // @ts-expect-error - cb is defined
+        cb1({ data: message, stopImmediatePropagation: vi.fn() });
+      }),
     };
 
     const mockWorker2 = {
@@ -832,10 +743,11 @@ describe('registerWebWorker and webWorkerIntegration', () => {
         'Error at \n /worker-2-file2.js': 'worker-2-debug-2',
       },
 
-      addEventListener: vi.fn(
-        (type: string, l: (arg0: any) => any) => (listeners2[type] = [...(listeners2[type] ?? []), l]),
-      ),
-      postMessage: vi.fn(message => deliver(listeners2, message)),
+      addEventListener: vi.fn((_, l) => (cb2 = l)),
+      postMessage: vi.fn(message => {
+        // @ts-expect-error - cb is defined
+        cb2({ data: message, stopImmediatePropagation: vi.fn() });
+      }),
     };
 
     const mockWorker3 = {
@@ -843,10 +755,11 @@ describe('registerWebWorker and webWorkerIntegration', () => {
         'Error at \n /worker-3-file1.js': 'worker-3-debug-1',
         'Error at \n /worker-3-file2.js': 'worker-3-debug-2',
       },
-      addEventListener: vi.fn(
-        (type: string, l: (arg0: any) => any) => (listeners3[type] = [...(listeners3[type] ?? []), l]),
-      ),
-      postMessage: vi.fn(message => deliver(listeners3, message)),
+      addEventListener: vi.fn((_, l) => (cb3 = l)),
+      postMessage: vi.fn(message => {
+        // @ts-expect-error - cb is defined
+        cb3({ data: message, stopImmediatePropagation: vi.fn() });
+      }),
     };
 
     const integration = webWorkerIntegration({ worker: [mockWorker as any, mockWorker2 as any] });
@@ -862,7 +775,6 @@ describe('registerWebWorker and webWorkerIntegration', () => {
       _sentryMessage: true,
       _sentryDebugIds: mockWorker._sentryDebugIds,
       _sentryModuleMetadata: undefined,
-      _sentryForwardsErrors: true,
     });
 
     expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
@@ -884,7 +796,6 @@ describe('registerWebWorker and webWorkerIntegration', () => {
       _sentryMessage: true,
       _sentryDebugIds: mockWorker3._sentryDebugIds,
       _sentryModuleMetadata: undefined,
-      _sentryForwardsErrors: true,
     });
 
     expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
@@ -904,11 +815,7 @@ describe('registerWebWorker and webWorkerIntegration', () => {
 describe('forwarded worker errors', () => {
   let client: BrowserClient;
   let captureEventSpy: MockInstance<BrowserClient['captureEvent']>;
-  let mockWorker: {
-    addEventListener: ReturnType<typeof vi.fn>;
-    dispatchEvent: ReturnType<typeof vi.fn>;
-    postMessage: ReturnType<typeof vi.fn>;
-  };
+  let mockWorker: { addEventListener: ReturnType<typeof vi.fn>; postMessage: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -921,7 +828,7 @@ describe('forwarded worker errors', () => {
     client.init();
     captureEventSpy = vi.spyOn(client, 'captureEvent');
 
-    mockWorker = { addEventListener: vi.fn(), dispatchEvent: vi.fn(), postMessage: vi.fn() };
+    mockWorker = { addEventListener: vi.fn(), postMessage: vi.fn() };
     const integration = webWorkerIntegration({ worker: mockWorker as any });
     integration.setupOnce!();
   });
@@ -1053,66 +960,60 @@ describe('forwarded worker errors', () => {
     });
   });
 
-  it('acknowledges a worker that declared it forwards errors, once', () => {
-    receive({ _sentryDebugIds: undefined, _sentryForwardsErrors: true });
-    receive({ _sentryWorkerError: { reason: new Error('boom'), kind: 'error' }, _sentryForwardsErrors: true });
+  const bubbled = {
+    message: 'Uncaught Error: boom',
+    filename: 'http://localhost/worker.js',
+    lineno: 12,
+    colno: 9,
+  };
+  const forwardedError = {
+    reason: new Error('boom'),
+    kind: 'error',
+    message: bubbled.message,
+    url: bubbled.filename,
+    lineno: bubbled.lineno,
+    colno: bubbled.colno,
+  };
 
-    expect(mockWorker.postMessage).toHaveBeenCalledExactlyOnceWith({
-      _sentryMessage: true,
-      _sentryHandlesForwardedErrors: true,
+  it('skips the global onerror copy of an error that was forwarded', () => {
+    forward(forwardedError);
+    getListener(mockWorker.addEventListener, 'error')(bubbled);
+
+    expect(helpers.ignoreNextOnErrorMatching).toHaveBeenCalledExactlyOnceWith({
+      msg: 'Uncaught Error: boom',
+      url: 'http://localhost/worker.js',
+      line: 12,
+      column: 9,
     });
   });
 
-  it('acknowledges a worker added after its announce on its first forwarded error', () => {
-    receive({ _sentryWorkerError: { reason: new Error('boom'), kind: 'error' }, _sentryForwardsErrors: true });
+  it('keeps the global onerror copy of an error that was never forwarded', () => {
+    getListener(mockWorker.addEventListener, 'error')(bubbled);
 
-    expect(mockWorker.postMessage).toHaveBeenCalledExactlyOnceWith({
-      _sentryMessage: true,
-      _sentryHandlesForwardedErrors: true,
-    });
+    expect(helpers.ignoreNextOnErrorMatching).not.toHaveBeenCalled();
   });
 
-  it('does not message a worker registered by an older SDK, whose handlers would receive it', () => {
-    receive({ _sentryDebugIds: undefined });
+  it('keeps the global onerror copy when a different error was forwarded', () => {
+    forward({ ...forwardedError, lineno: 13 });
+    getListener(mockWorker.addEventListener, 'error')(bubbled);
 
-    expect(mockWorker.postMessage).not.toHaveBeenCalled();
+    expect(helpers.ignoreNextOnErrorMatching).not.toHaveBeenCalled();
   });
 
-  it('replays a cancelled error on the worker object with the error object attached', () => {
-    const error = new Error('boom');
+  it('skips each forwarded error once', () => {
+    const onWorkerError = getListener(mockWorker.addEventListener, 'error');
 
-    forward({
-      reason: error,
-      kind: 'error',
-      message: 'Uncaught Error: boom',
-      filename: 'http://localhost/worker.js',
-      url: 'http://localhost/chunk.js',
-      lineno: 12,
-      colno: 9,
-      cancelled: true,
-    });
+    forward(forwardedError);
+    onWorkerError(bubbled);
+    onWorkerError(bubbled);
 
-    expect(mockWorker.dispatchEvent).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({
-        type: 'error',
-        message: 'Uncaught Error: boom',
-        filename: 'http://localhost/chunk.js',
-        lineno: 12,
-        colno: 9,
-        error,
-      }),
-    );
+    expect(helpers.ignoreNextOnErrorMatching).toHaveBeenCalledOnce();
   });
 
-  it('does not replay an error the worker let bubble, since the native event fires for it', () => {
-    forward({ reason: new Error('boom'), kind: 'error', message: 'Uncaught Error: boom', cancelled: false });
+  it('does not expect a bubbled copy of a forwarded rejection', () => {
+    forward({ ...forwardedError, kind: 'unhandledrejection' });
+    getListener(mockWorker.addEventListener, 'error')(bubbled);
 
-    expect(mockWorker.dispatchEvent).not.toHaveBeenCalled();
-  });
-
-  it('does not replay a forwarded rejection, which never fires on the worker object', () => {
-    forward({ reason: new Error('rejected'), kind: 'unhandledrejection' });
-
-    expect(mockWorker.dispatchEvent).not.toHaveBeenCalled();
+    expect(helpers.ignoreNextOnErrorMatching).not.toHaveBeenCalled();
   });
 });

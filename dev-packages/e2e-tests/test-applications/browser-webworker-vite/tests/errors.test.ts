@@ -87,10 +87,9 @@ test('emits exactly one event for an uncaught worker error', async ({ page }) =>
   await page.locator('#trigger-error').click();
   await firstErrorPromise;
 
-  // The worker cancels the native error event, so page listeners on the
-  // worker object only see the replayed one, which carries the error object.
+  // Page listeners on the worker object still get the native event, once.
   expect(await page.evaluate(() => (window as any).workerErrorEvents)).toEqual([
-    { message: 'Uncaught Error: Uncaught error in worker', hasError: true },
+    { message: 'Uncaught Error: Uncaught error in worker', hasError: false },
   ]);
 
   // A bubbled copy of the first throw would have been reported before the
@@ -125,6 +124,35 @@ test('locates a thrown primitive by its ErrorEvent position', async ({ page }) =
   ]);
   expect(exception?.stacktrace?.frames?.[0]?.lineno).toBeGreaterThan(0);
   expect(exception?.stacktrace?.frames?.[0]?.colno).toBeGreaterThan(0);
+});
+
+test('emits exactly one event for an error thrown during worker startup', async ({ page }) => {
+  const values: Array<string | undefined> = [];
+  void waitForError('browser-webworker-vite', event => {
+    const value = event.exception?.values?.[0]?.value;
+    if (value?.includes('Uncaught error during worker startup')) {
+      values.push(value);
+    }
+    return false;
+  });
+
+  const startupErrorPromise = waitForError('browser-webworker-vite', event => {
+    return !!event.exception?.values?.[0]?.value?.includes('Uncaught error during worker startup');
+  });
+  const laterErrorPromise = waitForError('browser-webworker-vite', event => {
+    return event.exception?.values?.[0]?.value === 'Uncaught error in worker';
+  });
+
+  await page.goto('/');
+
+  await page.locator('#trigger-startup-error').click();
+  await startupErrorPromise;
+
+  // Any duplicate of the startup error is sent long before this later error.
+  await page.locator('#trigger-error').click();
+  await laterErrorPromise;
+
+  expect(values).toHaveLength(1);
 });
 
 test("user worker message handlers don't trigger for sentry messages", async ({ page }) => {

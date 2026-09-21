@@ -54,7 +54,7 @@ function _installGlobalOnErrorHandler(client: Client): void {
   addGlobalErrorInstrumentationHandler(data => {
     const { stackParser, attachStacktrace } = getOptions();
 
-    if (getClient() !== client || shouldIgnoreOnError()) {
+    if (getClient() !== client || shouldIgnoreOnError(data)) {
       return;
     }
 
