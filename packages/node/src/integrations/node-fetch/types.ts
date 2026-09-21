@@ -87,7 +87,16 @@ export interface UndiciInstrumentationConfig<RequestType = UndiciRequest, Respon
   requestHook?: RequestHookFunction<RequestType>;
   /** Function called once response headers have been received */
   responseHook?: ResponseHookFunction<RequestType, ResponseType>;
-  /** Map the following HTTP headers to span attributes. */
+  /**
+   * Capture the listed HTTP headers as span attributes
+   * (`http.request.header.<name>` / `http.response.header.<name>`).
+   *
+   * Privacy filtering still applies to every header listed here. A header keeps its value only if
+   * `dataCollection.httpHeaders` permits it:
+   * - Sensitive names (`authorization`, `cookie`, ...) always show up as `[Filtered]`.
+   * - Names on the `deny` list show up as `[Filtered]`.
+   * - If an `allow` list is configured, a header must appear there as well, or it shows up as `[Filtered]`.
+   */
   headersToSpanAttributes?: {
     requestHeaders?: string[];
     responseHeaders?: string[];

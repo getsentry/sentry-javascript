@@ -4,6 +4,70 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 11.0.0-rc.1
+
+### Important Changes
+
+- **feat(browser)!: Report `browser.navigation.type` exactly as web-vitals does ([#24479](https://github.com/getsentry/sentry-javascript/pull/24479))**
+
+The `browser.navigation.type` attribute now reports the same values as the `web-vitals` library.
+
+- **feat(core): consolidate fetch integrations ([#24346](https://github.com/getsentry/sentry-javascript/pull/24346))**
+
+The global-`fetch` integrations in `@sentry/bun`, `@sentry/cloudflare`, `@sentry/deno` and `@sentry/vercel-edge` now share one implementation. All four gain a `tracePropagation` option (default `true`) to stop injecting `sentry-trace` and `baggage` without also turning off spans. In `@sentry/deno`, fetch breadcrumbs are now recorded by `fetchIntegration` instead of `breadcrumbsIntegration`, matching the other runtime SDKs.
+
+- **feat(node): Add Groq and Together AI integrations ([#24454](https://github.com/getsentry/sentry-javascript/pull/24454))**
+
+Adds instrumentation for the Groq and Together AI SDKs, enabled by default.
+
+- **ref(bundler-plugins)!: Require webpack 5.1 and remove the `webpack5` entry point ([#24455](https://github.com/getsentry/sentry-javascript/pull/24455))**
+
+The Sentry webpack plugin now requires webpack `>=5.1` and is only exported from the package root.
+
+### Other Changes
+
+- feat(cloudflare): Auto-register Flue instrumentation in bundled workers ([#24476](https://github.com/getsentry/sentry-javascript/pull/24476))
+- feat(deps): bump devalue from 5.9.0 to 5.9.2 ([#24486](https://github.com/getsentry/sentry-javascript/pull/24486))
+- feat(node): Add eveInstrumentation and eveIntegration for eve apps ([#24539](https://github.com/getsentry/sentry-javascript/pull/24539))
+- feat(remix): Upload source maps from the Vite plugin ([#24463](https://github.com/getsentry/sentry-javascript/pull/24463))
+- fix: Remove by accident exported convention ([#24542](https://github.com/getsentry/sentry-javascript/pull/24542))
+- fix(bun): Respect caller-supplied `runtime` option ([#24487](https://github.com/getsentry/sentry-javascript/pull/24487))
+- fix(cloudflare): Capture telemetry from untraced Durable Object RPC calls ([#24447](https://github.com/getsentry/sentry-javascript/pull/24447))
+- fix(cloudflare): Instrument namespaces returned by jurisdiction() ([#24450](https://github.com/getsentry/sentry-javascript/pull/24450))
+- fix(core): Apply the sensitive denylist to cookie headers and configured fetch headers ([#24090](https://github.com/getsentry/sentry-javascript/pull/24090))
+- fix(core): correct MCP error and request attribution ([#24493](https://github.com/getsentry/sentry-javascript/pull/24493))
+- fix(core): instrument MCP transports before start ([#23978](https://github.com/getsentry/sentry-javascript/pull/23978))
+- fix(core): Stop sending client reports for breadcrumbs ([#24537](https://github.com/getsentry/sentry-javascript/pull/24537))
+- fix(ember): Add route IDs to pageload and navigation spans ([#24372](https://github.com/getsentry/sentry-javascript/pull/24372))
+- fix(hono): Allow @cloudflare/workers-types v5 as peer dependency ([#24494](https://github.com/getsentry/sentry-javascript/pull/24494))
+- fix(nextjs): Align tunnel request matching in middleware with tunnel rewrite ([#24499](https://github.com/getsentry/sentry-javascript/pull/24499))
+- fix(nextjs): Prevent sourceMappingURL stripping from truncating minified chunks ([#24022](https://github.com/getsentry/sentry-javascript/pull/24022))
+- fix(nextjs): Resolve Next.js version relative to the SDK when cwd differs ([#24462](https://github.com/getsentry/sentry-javascript/pull/24462))
+- fix(nuxt): Stop importing h3 in the Nitro error hook ([#24283](https://github.com/getsentry/sentry-javascript/pull/24283))
+- fix(server-runtime-injection): Keep `require()` of JSON working on Deno ([#24412](https://github.com/getsentry/sentry-javascript/pull/24412))
+- perf(bundler-plugins): Use fast component annotation for all Rollup and Vite versions ([#24437](https://github.com/getsentry/sentry-javascript/pull/24437))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(bun): Fix stale comment in `getPerformanceIntegrations` ([#24533](https://github.com/getsentry/sentry-javascript/pull/24533))
+- chore(bundler-plugins): move traces sample rate from 1.0 to 0.3 ([#24488](https://github.com/getsentry/sentry-javascript/pull/24488))
+- chore(test): De-flake slow and racy tests ([#24452](https://github.com/getsentry/sentry-javascript/pull/24452))
+- docs: Update MIGRATION.md ([#24550](https://github.com/getsentry/sentry-javascript/pull/24550))
+- test(cloudflare): Add E2E test that deploys a real Worker and sends to Sentry ([#24280](https://github.com/getsentry/sentry-javascript/pull/24280))
+- test(e2e): Add a node-flue end-to-end application ([#24377](https://github.com/getsentry/sentry-javascript/pull/24377))
+- test(e2e): Add gen-ai-libraries app covering AI libraries via OpenRouter ([#24456](https://github.com/getsentry/sentry-javascript/pull/24456))
+- test(e2e): Avoid SAM runtime port collisions in aws-serverless tests ([#24492](https://github.com/getsentry/sentry-javascript/pull/24492))
+- test(e2e): consolidate the deno e2e test applications ([#24414](https://github.com/getsentry/sentry-javascript/pull/24414))
+- test(node): Run koa integration tests against koa 3 ([#24457](https://github.com/getsentry/sentry-javascript/pull/24457))
+- test(remix): Add source map upload e2e test app ([#24464](https://github.com/getsentry/sentry-javascript/pull/24464))
+- test(server-utils): Cover the Flue instrumentation ([#24266](https://github.com/getsentry/sentry-javascript/pull/24266))
+- test(test-utils): Add Sentry CLI trace helpers as `test-utils/cli` ([#24279](https://github.com/getsentry/sentry-javascript/pull/24279))
+
+</details>
+
+Work in this release was contributed by @chiliec, @ihsraham, @msnelling, and @oesnuj. Thank you for your contributions!
+
 ## 11.0.0-rc.0
 
 This is the first release candidate of version 11 of the Sentry JavaScript SDKs.

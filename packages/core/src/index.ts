@@ -10,7 +10,6 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { IntegrationIndex } from './integration';
 export * from './tracing';
 export * from './semanticAttributes';
-export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 export * from './tracing/spans/spanNames';
 export type { RawAttributes } from './attributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
@@ -164,6 +163,8 @@ export { featureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
 export { conversationIdIntegration } from './integrations/conversationId';
 export { spanStreamingIntegration } from './integrations/spanStreaming';
+export { createFetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from './integrations/fetch';
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
 // Therefore:

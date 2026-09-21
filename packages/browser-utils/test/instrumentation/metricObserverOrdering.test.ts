@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+// Loaded for its side effect: `performanceObserver` reaches `@sentry/core`, and transforming that
+// graph is charged to whichever test imports it first, which timed out on slower CI runners.
+// Importing it here pays that once at collect time instead.
+import '@sentry/core';
 
 // The web vital observers are shared: whoever registers the first handler used to create them, which
 // froze web-vitals' options for every other consumer. Replay registers its handlers from its own

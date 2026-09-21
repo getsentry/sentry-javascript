@@ -49,7 +49,7 @@ export interface WebVitalsOptions {
    *
    * A restore is a new page view measured against a document that was never reloaded, so its vitals
    * are reported against the navigation span `browserTracingIntegration` starts for the restore,
-   * and tagged `browser.navigation.type: bfcache`. A restore is near-instant by construction, so
+   * and tagged `browser.navigation.type: back-forward-cache`. A restore is near-instant by construction, so
    * these are a distinct population from page load vitals and are meant to be read through that
    * attribute rather than pooled with them. Set this to `false` to leave restores unmeasured.
    *

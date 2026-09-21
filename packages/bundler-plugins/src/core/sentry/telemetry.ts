@@ -27,7 +27,7 @@ export function createSentryInstance(
 
     dsn: 'https://4c2bae7d9fbc413e8f7385f55c515d51@o1.ingest.sentry.io/6690737',
 
-    tracesSampleRate: 1,
+    tracesSampleRate: 0.3,
     traceLifecycle: 'static',
     sampleRate: 1,
 
@@ -63,6 +63,11 @@ export function createSentryInstance(
   const client = new ServerRuntimeClient(clientOptions);
   const scope = new Scope();
   scope.setClient(client);
+
+  // Integration tests snapshot the emitted transaction, so the sampling decision must not depend on chance.
+  if (process.env['SENTRY_TEST_OUT_DIR']) {
+    scope.setPropagationContext({ ...scope.getPropagationContext(), sampleRand: 0 });
+  }
 
   setTelemetryDataOnScope(options, scope, buildTool, buildToolMajorVersion);
 

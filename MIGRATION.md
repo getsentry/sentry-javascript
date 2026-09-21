@@ -54,6 +54,7 @@ We raised the minimum supported versions of several frameworks and libraries:
 - **Astro:** dropped Astro 3 (minimum is now 4).
 - **React Router (framework mode):** minimum is now 7.15.
 - **Fastify:** dropped Fastify 3.0 through 3.20 (minimum is now 3.21).
+- **webpack (bundler plugin):** dropped webpack 5.0.x (minimum is now 5.1).
 
 ### AWS Lambda Layer Changes
 
@@ -871,7 +872,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 
 Span attributes now use the shared `@sentry/conventions` package under the hood.
 The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
-`SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` (`sentry.source`) was removed. Use `SENTRY_SEGMENT_NAME_SOURCE` (`sentry.segment.name.source`) instead.
+`SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` (`sentry.source`) was removed. Use the `sentry.segment.name.source` attribute instead and make sure to only set it on segment/root spans.
 `sentry.segment.name.source` is only set on the root span. Setting it on a child span is a no-op: `setAttribute` ignores it, and a value passed in a child span's initial attributes is dropped when the span is linked to its parent.
 
 ### Span operation (`op`) changes
@@ -1428,6 +1429,8 @@ Affected SDKs: `@sentry/remix`.
 
 The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
 
+It also injects debug IDs and uploads source maps once you pass `org`, `project` and `authToken` — opt out with `sentryRemixVitePlugin({ sourcemaps: { disable: true } })`.
+
 ### React: Simpler React Router setup via `@sentry/react/react-router`
 
 Affected SDKs: `@sentry/react`.
@@ -1815,6 +1818,18 @@ The deprecated `sourceMapsUploadOptions` and other deprecated Vite/build plugin 
 ### Bundler plugins: Vercel deploys use the plain Vercel environment name
 
 Deploys that the bundler plugins create automatically on Vercel now use the value of `VERCEL_TARGET_ENV` (`production`, `preview`, or a custom environment name) as their environment instead of `vercel-production` / `vercel-preview`. This matches the new default runtime `environment` of `@sentry/nextjs`, and the `production` default of all other SDKs. If your events use a different environment, set `release.deploy.env` to the same value, or set `release.deploy` to `false` to opt out.
+
+### Bundler plugins: `@sentry/bundler-plugins/webpack5` was removed
+
+The `@sentry/bundler-plugins/webpack5` entry point was removed. It exported the same `sentryWebpackPlugin` as `@sentry/bundler-plugins/webpack`, minus a fallback that only mattered on webpack 4 and 5.0.x. The webpack plugin now requires webpack 5.1 or newer (the first version that exposes `compiler.webpack`), so there is nothing left to distinguish the two entry points.
+
+```js
+// before
+import { sentryWebpackPlugin } from '@sentry/bundler-plugins/webpack5';
+
+// after
+import { sentryWebpackPlugin } from '@sentry/bundler-plugins/webpack';
+```
 
 ### Removed `unstable_` bundler plugin options
 

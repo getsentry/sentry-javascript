@@ -18,7 +18,7 @@ import {
 import type {
   ComponentAnnotationTransformMeta,
   ComponentAnnotationTransformResult,
-} from '../core/component-annotation-vite';
+} from '../core/component-annotation-oxc';
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
@@ -41,7 +41,7 @@ type ViteModule = {
 };
 
 type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
-type ViteAnnotationHooks = {
+type FastAnnotationHooks = {
   transform(
     code: string,
     id: string,
@@ -168,27 +168,27 @@ export function _rollupPluginInternal(
         !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
       )
     : undefined;
-  const transformViteAnnotations =
-    options.reactComponentAnnotation?.enabled &&
-    buildTool === 'vite' &&
-    buildToolMajorVersion === '8' &&
-    !options.reactComponentAnnotation?._experimentalInjectIntoHtml
+  const transformFastAnnotations =
+    options.reactComponentAnnotation?.enabled && !options.reactComponentAnnotation?._experimentalInjectIntoHtml
       ? (() => {
-          let viteAnnotationHooksPromise: Promise<ViteAnnotationHooks> | undefined;
+          let fastAnnotationHooksPromise: Promise<FastAnnotationHooks> | undefined;
 
           return {
             transform(code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
-              if (!viteAnnotationHooksPromise) {
-                viteAnnotationHooksPromise = import('../core/component-annotation-vite').then(
-                  ({ createViteComponentNameAnnotateHooks }) =>
-                    createViteComponentNameAnnotateHooks(
+              if (!fastAnnotationHooksPromise) {
+                fastAnnotationHooksPromise = import('../core/component-annotation-oxc').then(
+                  ({ createOxcComponentNameAnnotateHooks, getOxcParseAstAsync }) =>
+                    createOxcComponentNameAnnotateHooks(
                       options.reactComponentAnnotation?.ignoredComponents || [],
-                      getViteParseAstAsync,
+                      // Vite 8 already loads an oxc-based parser, so reuse it.
+                      buildTool === 'vite' && buildToolMajorVersion === '8'
+                        ? getViteParseAstAsync
+                        : getOxcParseAstAsync,
                     ),
                 );
               }
 
-              return viteAnnotationHooksPromise.then(hooks => hooks.transform(code, id, meta));
+              return fastAnnotationHooksPromise.then(hooks => hooks.transform(code, id, meta));
             },
           };
         })()
@@ -212,8 +212,8 @@ export function _rollupPluginInternal(
     // only in Sentry code. If we successfully add annotations, we can return early.
     let shouldRunBabelAnnotations = true;
 
-    if (transformViteAnnotations?.transform) {
-      const result = await transformViteAnnotations.transform(code, id, meta);
+    if (transformFastAnnotations?.transform) {
+      const result = await transformFastAnnotations.transform(code, id, meta);
       if (result) {
         return result;
       }
