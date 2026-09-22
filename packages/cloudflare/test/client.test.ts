@@ -220,6 +220,33 @@ describe('CloudflareClient', () => {
     });
   });
 
+  describe('flush()', () => {
+    it('drains the transport when the flush lock does not settle within the timeout', async () => {
+      vi.useFakeTimers();
+      try {
+        const client = new CloudflareClient({
+          ...MOCK_CLIENT_OPTIONS,
+          flushLock: { ready: Promise.resolve(), finalize: () => new Promise<void>(() => undefined) },
+        });
+
+        const privateClient = client as unknown as {
+          _transport: { flush: ReturnType<typeof vi.fn> };
+        };
+
+        void client.flush(1000);
+
+        await vi.advanceTimersByTimeAsync(999);
+        expect(privateClient._transport.flush).not.toHaveBeenCalled();
+
+        // The lock wait ends at 1000 ms; the client processing check after it also runs on timers.
+        await vi.advanceTimersByTimeAsync(100);
+        expect(privateClient._transport.flush).toHaveBeenCalledWith(1000);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('span lifecycle tracking', () => {
     it('tracks pending spans when spanStart is emitted', () => {
       const client = new CloudflareClient(MOCK_CLIENT_OPTIONS);
