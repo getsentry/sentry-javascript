@@ -35,6 +35,13 @@ Deno.test('Deno.serve sets sentry.is_localhost on every streamed span of the req
     5_000,
     'http.server span',
   );
+  // The outgoing span is its own segment and ends after the server's, so it flushes separately:
+  // waiting for it explicitly avoids depending on it having arrived by the time the others do.
+  const clientPromise = withTimeout(
+    sink.waitFor(span => span.attributes['sentry.op']?.value === 'http.client'),
+    5_000,
+    'http.client span',
+  );
 
   const response = await fetch(`http://localhost:${server.addr.port}/test`);
   assertEquals(await response.text(), 'OK');
@@ -45,8 +52,7 @@ Deno.test('Deno.serve sets sentry.is_localhost on every streamed span of the req
 
   // The test's own outgoing `fetch` runs outside any request scope, so there is no request to
   // judge and it is correctly `false` — even though it happens to target localhost.
-  const clientSpan = sink.spans().find(span => span.attributes['sentry.op']?.value === 'http.client');
-  assertEquals(clientSpan?.attributes['sentry.is_localhost'], { value: false, type: 'boolean' });
+  assertEquals((await clientPromise).attributes['sentry.is_localhost'], { value: false, type: 'boolean' });
 
   abortController.abort();
   await server.finished;

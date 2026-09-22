@@ -99,21 +99,17 @@ export function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise
  */
 export function spanSink(): {
   waitFor: (predicate: (span: SerializedStreamedSpan) => boolean) => Promise<SerializedStreamedSpan>;
-  spans: () => SerializedStreamedSpan[];
   transport: () => Transport;
 } {
   const sink = eventSink<SerializedStreamedSpan>();
-  const seen: SerializedStreamedSpan[] = [];
 
   return {
     waitFor: sink.waitFor,
-    spans: () => seen,
     transport: () => ({
       send: (envelope: Envelope) => {
         for (const [header, payload] of envelope[1]) {
           if (header.type === 'span') {
             for (const span of (payload as SerializedStreamedSpanContainer).items) {
-              seen.push(span);
               sink.beforeSend(span);
             }
           }
