@@ -89,6 +89,13 @@ describe('parseCookieHeader', () => {
       expect(parseCookieHeader(header, 'cookie')).toEqual([]);
     });
 
+    it('does not split a value on ","', () => {
+      expect(parseCookieHeader('recent=shoes,socks; theme=dark', 'cookie')).toEqual([
+        ['recent', 'shoes,socks'],
+        ['theme', 'dark'],
+      ]);
+    });
+
     it('reads Set-Cookie attribute names as cookie names', () => {
       expect(parseCookieHeader('Path=/; Max-Age=3600', 'cookie')).toEqual([
         ['Path', '/'],
