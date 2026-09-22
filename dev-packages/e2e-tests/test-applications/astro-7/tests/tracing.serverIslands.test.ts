@@ -52,11 +52,11 @@ test.describe('tracing in static routes with server islands', () => {
       'sentry.op': { value: 'http.server', type: 'string' },
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
-      'http.request.header.accept': { value: expect.any(String), type: 'string' },
-      'http.request.header.accept-encoding': { value: 'gzip, deflate, br, zstd', type: 'string' },
-      'http.request.header.accept-language': { value: 'en-US', type: 'string' },
-      'http.request.header.sec-fetch-mode': { value: 'cors', type: 'string' },
-      'http.request.header.user-agent': { value: expect.any(String), type: 'string' },
+      'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
+      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
+      'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
+      'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
     });
 
     // unfortunately, the server island trace id is not the same as the client pageload trace id

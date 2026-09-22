@@ -79,7 +79,7 @@ describe('_emitWebVitalSpan', () => {
     vi.mocked(SentryCore.spanToJSON).mockImplementation(
       (span: any) =>
         (span === bfcacheNavigationSpan
-          ? { attributes: { 'sentry.op': 'navigation', 'browser.navigation.type': 'bfcache' } }
+          ? { attributes: { 'sentry.op': 'navigation', 'browser.navigation.type': 'back-forward-cache' } }
           : { attributes: {} }) as any,
     );
     // A root span is its own root, which is what the web vital spans are parented to.
@@ -282,26 +282,6 @@ describe('_emitWebVitalSpan', () => {
     );
   });
 
-  it('includes reportEvent when provided', () => {
-    _emitWebVitalSpan({
-      name: 'Test',
-      op: 'ui.webvital.cls',
-      origin: 'auto.http.browser.cls',
-      metricName: 'cls',
-      value: 0.1,
-      reportEvent: 'pagehide',
-      startTime: 1.0,
-    });
-
-    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
-          'browser.web_vital.cls.report_event': 'pagehide',
-        }),
-      }),
-    );
-  });
-
   it('merges additional attributes', () => {
     _emitWebVitalSpan({
       name: 'Test',
@@ -338,15 +318,14 @@ describe('_emitWebVitalSpan', () => {
   });
 
   it.each([
-    ['navigate', 'navigate'],
-    ['reload', 'reload'],
-    ['prerender', 'prerender'],
-    ['soft-navigation', 'soft-navigation'],
-    ['back-forward-cache', 'bfcache'],
-    // Ordinary document navigations the attribute has no separate value for.
-    ['back-forward', 'navigate'],
-    ['restore', 'navigate'],
-  ] as const)('reports navigationType %s as browser.navigation.type %s', (navigationType, expected) => {
+    'navigate',
+    'reload',
+    'prerender',
+    'soft-navigation',
+    'back-forward-cache',
+    'back-forward',
+    'restore',
+  ] as const)('reports navigationType %s as browser.navigation.type unchanged', navigationType => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.webvital.lcp',
@@ -359,7 +338,7 @@ describe('_emitWebVitalSpan', () => {
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        attributes: expect.objectContaining({ 'browser.navigation.type': expected }),
+        attributes: expect.objectContaining({ 'browser.navigation.type': navigationType }),
       }),
     );
   });
@@ -422,7 +401,7 @@ describe('_sendLcpSpan', () => {
 
     const mockPageloadSpan = createMockPageloadSpan('pageload-123');
 
-    _sendLcpSpan(250, mockEntry, mockPageloadSpan as any, 'pagehide');
+    _sendLcpSpan(250, mockEntry, mockPageloadSpan as any);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -438,7 +417,6 @@ describe('_sendLcpSpan', () => {
           'browser.web_vital.lcp.load_time': 100,
           'browser.web_vital.lcp.render_time': 150,
           'browser.web_vital.lcp.size': 50000,
-          'browser.web_vital.lcp.report_event': 'pagehide',
           'sentry.transaction': 'test-route',
           'sentry.segment.name': 'test-route',
         }),
@@ -465,7 +443,7 @@ describe('_sendLcpSpan', () => {
   it('lasts the reported value when there is no entry to end at', () => {
     // A soft navigation 2000ms into the page. Ending at the time origin would put the end before
     // the start.
-    _sendLcpSpan(250, undefined, undefined, undefined, 2, 'soft-navigation', 2000);
+    _sendLcpSpan(250, undefined, undefined, 2, 'soft-navigation', 2000);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ startTime: 3 }));
     expect(mockSpan.end).toHaveBeenCalledWith(3.25);
@@ -531,7 +509,7 @@ describe('_sendClsSpan', () => {
 
     const mockPageloadSpan = createMockPageloadSpan('pageload-789');
 
-    _sendClsSpan(0.1, mockEntry, mockPageloadSpan as any, 'navigation');
+    _sendClsSpan(0.1, mockEntry, mockPageloadSpan as any);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -542,7 +520,6 @@ describe('_sendClsSpan', () => {
           'sentry.pageload.span_id': 'pageload-789',
           'browser.web_vital.cls.source.1': '<div>',
           'browser.web_vital.cls.source.2': '<span>',
-          'browser.web_vital.cls.report_event': 'navigation',
           'sentry.transaction': 'test-route',
           'sentry.segment.name': 'test-route',
         }),
@@ -593,7 +570,7 @@ describe('_sendInpSpan', () => {
     vi.mocked(SentryCore.spanToJSON).mockImplementation(
       (span: any) =>
         (span === bfcacheNavigationSpan
-          ? { attributes: { 'sentry.op': 'navigation', 'browser.navigation.type': 'bfcache' } }
+          ? { attributes: { 'sentry.op': 'navigation', 'browser.navigation.type': 'back-forward-cache' } }
           : { attributes: {} }) as any,
     );
     // A root span is its own root, which is what the web vital spans are parented to.
@@ -717,7 +694,7 @@ describe('trackInpAsSpan', () => {
     vi.mocked(SentryCore.spanToJSON).mockImplementation(
       (span: any) =>
         (span === bfcacheNavigationSpan
-          ? { attributes: { 'sentry.op': 'navigation', 'browser.navigation.type': 'bfcache' } }
+          ? { attributes: { 'sentry.op': 'navigation', 'browser.navigation.type': 'back-forward-cache' } }
           : { attributes: {} }) as any,
     );
     // A root span is its own root, which is what the web vital spans are parented to.
@@ -810,9 +787,9 @@ describe('soft navigation web vitals', () => {
     vi.mocked(SentryCore.spanToJSON).mockImplementation(
       (span: any) =>
         (span === bfcacheNavigationSpan
-          ? { attributes: { 'sentry.op': 'navigation', 'browser.navigation.type': 'bfcache' } }
+          ? { attributes: { 'sentry.op': 'navigation', 'browser.navigation.type': 'back-forward-cache' } }
           : span === bfcacheVitalSpan
-            ? { attributes: { 'sentry.op': 'ui.webvital.lcp', 'browser.navigation.type': 'bfcache' } }
+            ? { attributes: { 'sentry.op': 'ui.webvital.lcp', 'browser.navigation.type': 'back-forward-cache' } }
             : { attributes: {} }) as any,
     );
     vi.mocked(htmlTreeAsString).mockReturnValue('<div>');
@@ -930,7 +907,7 @@ describe('soft navigation web vitals', () => {
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         parentSpan: bfcacheNavigationSpan,
-        attributes: expect.objectContaining({ 'browser.navigation.type': 'bfcache' }),
+        attributes: expect.objectContaining({ 'browser.navigation.type': 'back-forward-cache' }),
       }),
     );
     expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalledWith(
@@ -961,7 +938,7 @@ describe('soft navigation web vitals', () => {
   });
 
   it("does not let a restore's own vital span become the parent of the next one", () => {
-    // Web vital spans for a restore carry the same `bfcache` navigation type as the navigation span
+    // Web vital spans for a restore carry the same `back-forward-cache` navigation type as the navigation span
     // they hang off, so the second vital would otherwise be parented to the first.
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
 

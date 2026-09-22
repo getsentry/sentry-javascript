@@ -637,7 +637,7 @@ describe('withSentry', () => {
           'sentry.sample_rate': 1,
           'http.response.status_code': 200,
           'http.request.body.size': 10,
-          'http.request.header.content-length': '10',
+          'http.request.header.content-length': ['10'],
         },
         op: 'http.server',
         origin: 'auto.http.cloudflare',
@@ -1051,6 +1051,7 @@ describe('Durable Object (DO) context', () => {
 
     // Teardown is registered via waitUntil on error too
     expect(waitUntilSpy).toHaveBeenCalled();
+    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     // And flush runs as part of that teardown
     expect(flushSpy).toHaveBeenCalled();
 
@@ -1072,6 +1073,7 @@ describe('Durable Object (DO) context', () => {
     );
 
     expect(waitUntilSpy).toHaveBeenCalled();
+    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     expect(flushSpy).toHaveBeenCalled();
 
     flushSpy.mockRestore();
@@ -1092,6 +1094,7 @@ describe('Durable Object (DO) context', () => {
     );
 
     expect(waitUntilSpy).toHaveBeenCalled();
+    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     expect(flushSpy).toHaveBeenCalled();
 
     flushSpy.mockRestore();

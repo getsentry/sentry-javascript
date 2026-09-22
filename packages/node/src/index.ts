@@ -13,6 +13,7 @@ export {
   genericPoolIntegration,
   googleGenAIIntegration,
   graphqlIntegration,
+  groqIntegration,
   hapiIntegration,
   kafkaIntegration,
   knexIntegration,
@@ -20,13 +21,16 @@ export {
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
+  createFlueInstrumentation,
   mastraIntegration,
   SentryMastraExporter,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
+  mistralAIIntegration,
   mysql2Integration,
   openAIIntegration,
+  togetherAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
   redisIntegration,
@@ -40,6 +44,7 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
+  instrumentMistralAiClient,
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
@@ -215,7 +220,8 @@ export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
-export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+export { eveConversationHook, eveIntegration, getInstrumentedModuleNames } from '@sentry/server-utils';
+export { eveInstrumentation } from './eve';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';

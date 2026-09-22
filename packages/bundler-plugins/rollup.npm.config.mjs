@@ -8,7 +8,6 @@ export default makeNPMConfigVariants(
       'src/vite/index.ts',
       'src/esbuild/index.ts',
       'src/webpack/index.ts',
-      'src/webpack/webpack5.ts',
       'src/webpack/component-annotation-transform.ts',
       'src/babel-plugin/index.ts',
     ],

@@ -45,6 +45,7 @@ export declare function handleErrorWithSentry<T extends AnyErrorHandler>(handleE
 export declare function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T): T;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
+export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 export declare const startSpan: typeof clientSdk.startSpan;
 export declare const startSpanManual: typeof clientSdk.startSpanManual;

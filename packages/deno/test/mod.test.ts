@@ -112,6 +112,21 @@ Deno.test('captureMessage twice', async t => {
   await assertSnapshot(t, ev);
 });
 
+Deno.test('records console calls as breadcrumbs', async () => {
+  let ev: Event | undefined;
+  const client = getTestClient(event => {
+    ev = event;
+  });
+
+  // eslint-disable-next-line no-console
+  console.log('console breadcrumb');
+  client.captureMessage('Message with console breadcrumb');
+
+  await delay(200);
+  const consoleBreadcrumb = ev?.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'console');
+  assertEquals(consoleBreadcrumb?.message, 'console breadcrumb');
+});
+
 Deno.test('metrics.count captures a counter metric', async () => {
   const envelopes: Array<Envelope> = [];
   const client = new DenoClient({

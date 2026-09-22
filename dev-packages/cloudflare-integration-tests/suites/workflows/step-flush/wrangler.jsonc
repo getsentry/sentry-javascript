@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-workflow-step-flush",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workflows": [
+    {
+      "name": "sleep-workflow",
+      "binding": "SLEEP_WORKFLOW",
+      "class_name": "SleepWorkflow",
+    },
+  ],
+}

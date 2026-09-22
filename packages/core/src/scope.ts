@@ -574,7 +574,6 @@ export class Scope {
     this._breadcrumbs.push(mergedBreadcrumb);
     if (this._breadcrumbs.length > maxCrumbs) {
       this._breadcrumbs = this._breadcrumbs.slice(-maxCrumbs);
-      this._client?.recordDroppedEvent('buffer_overflow', 'log_item');
     }
 
     this._notifyScopeListeners();

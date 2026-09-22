@@ -23,6 +23,14 @@ const worker2 = new MyWorker2();
 const webWorkerIntegration = Sentry.webWorkerIntegration({ worker: [worker, worker2] });
 Sentry.addIntegration(webWorkerIntegration);
 
+worker.addEventListener('error', event => {
+  // this is part of the test, do not delete
+  (window as any).workerErrorEvents = [
+    ...((window as any).workerErrorEvents ?? []),
+    { message: event.message, hasError: !!event.error },
+  ];
+});
+
 worker.addEventListener('message', event => {
   // this is part of the test, do not delete
   console.log('received message from worker:', event.data.msg);
@@ -34,10 +42,21 @@ document.querySelector<HTMLButtonElement>('#trigger-error')!.addEventListener('c
   });
 });
 
+document.querySelector<HTMLButtonElement>('#trigger-primitive-error')!.addEventListener('click', () => {
+  worker.postMessage({
+    msg: 'TRIGGER_PRIMITIVE_ERROR',
+  });
+});
+
 document.querySelector<HTMLButtonElement>('#trigger-error-2')!.addEventListener('click', () => {
   worker2.postMessage({
     msg: 'TRIGGER_ERROR',
   });
+});
+
+document.querySelector<HTMLButtonElement>('#trigger-startup-error')!.addEventListener('click', async () => {
+  const Worker4 = await import('./worker4.ts?worker');
+  webWorkerIntegration.addWorker(new Worker4.default());
 });
 
 document.querySelector<HTMLButtonElement>('#trigger-error-3')!.addEventListener('click', async () => {

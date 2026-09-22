@@ -28,8 +28,10 @@ import {
   MASTRA_EXPORTER_BRAND,
   MASTRA_EXPORTER_NAME,
   MASTRA_ORIGIN,
+  MAX_TRACKED_MASTRA_SPANS,
   MODEL_SPAN_TYPES,
 } from './constants';
+import { registerMastraSpan, unregisterMastraSpan } from './span-registry';
 import type { MastraExportedSpan, MastraObservabilityExporter, MastraSpanType, MastraTracingEvent } from './types';
 
 export type MastraExporterOptions = GenAiOptions;
@@ -44,9 +46,6 @@ const FLUSH_TIMEOUT_MS = 2000;
 
 /** Bound on the skipped-span parent walk; a cyclic chain from Mastra would otherwise hang the process. */
 const MAX_PARENT_WALK_DEPTH = 100;
-
-/** Cap on tracked spans, matching `MAX_TRACKED_PRISMA_SPANS`. Spans that never end would otherwise leak. */
-const MAX_TRACKED_MASTRA_SPANS = 1000;
 
 /**
  * Mastra `ObservabilityExporter` that turns tracing events into Sentry spans.
@@ -92,6 +91,9 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
 
   /** End open spans, then flush. Does not close the Sentry client. */
   public async shutdown(): Promise<void> {
+    for (const id of this._spans.keys()) {
+      unregisterMastraSpan(id);
+    }
     for (const { span } of this._spans.values()) {
       span.end();
     }
@@ -153,17 +155,25 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
   /** Track a started span, ending any Sentry span that would otherwise be dropped without `end()`. */
   private _trackSpan(id: string, tracked: TrackedSpan): void {
     // A duplicate `span_started` would otherwise overwrite the entry and leak its Sentry span.
-    this._spans.remove(id)?.span.end();
+    this._removeTracked(id)?.span.end();
 
     // `LRUMap.set` evicts the oldest entry once the map is full, dropping that span without ending it.
     if (this._spans.size >= MAX_TRACKED_MASTRA_SPANS) {
       const oldestId = this._spans.keys()[0];
       if (oldestId !== undefined) {
-        this._spans.remove(oldestId)?.span.end();
+        this._removeTracked(oldestId)?.span.end();
       }
     }
 
     this._spans.set(id, tracked);
+    // Let the `executeWithContext` channel subscriber find this Sentry span by Mastra span id.
+    registerMastraSpan(id, tracked.span);
+  }
+
+  /** Remove a tracked span and keep the id→span registry in lockstep. */
+  private _removeTracked(id: string): TrackedSpan | undefined {
+    unregisterMastraSpan(id);
+    return this._spans.remove(id);
   }
 
   private _onSpanUpdated(span: MastraExportedSpan): void {
@@ -194,7 +204,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     }
 
     sentrySpan.end(span.endTime);
-    this._spans.remove(span.id);
+    this._removeTracked(span.id);
   }
 
   /** Copy model/usage onto the parent agent so the AI Agents view shows totals. */

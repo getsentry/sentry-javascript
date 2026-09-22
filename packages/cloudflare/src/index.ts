@@ -88,7 +88,6 @@ export {
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   spanToStaticSpanJSON,
   spanToJSON,
@@ -107,7 +106,8 @@ export {
   spanStreamingIntegration,
 } from '@sentry/core';
 export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
-export { instrumentPostgresJsSql } from '@sentry/server-utils';
+export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
+export type { FlueOptions } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
@@ -120,11 +120,13 @@ export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { spotlightIntegration } from './integrations/spotlight';
 export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -134,6 +136,9 @@ export {
   instrumentStateGraph,
   instrumentCreateReactAgent,
   vercelAIIntegration,
+  eveConversationHook,
+  eveIntegration,
+  getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

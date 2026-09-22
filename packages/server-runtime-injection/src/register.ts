@@ -29,6 +29,22 @@ function hasStableSyncModuleHooks(isDeno: boolean): boolean {
 }
 
 /**
+ * Deno's `nextLoad` reports no `format` for a `.json` file, where Node reports `'json'`. With any
+ * load hook installed, Deno's CJS loader then compiles the JSON as JavaScript and `require()` of it
+ * throws `SyntaxError: Unexpected token ':'`. Restoring the format is enough, and only Deno needs
+ * it: on Node the format is never missing.
+ */
+function withDenoJsonFormat(loadHook: Function): Function {
+  return (url: string, context: unknown, nextLoad: Function) => {
+    const result = loadHook(url, context, nextLoad) as { format?: string };
+    if (result?.format === undefined && url.endsWith('.json')) {
+      result.format = 'json';
+    }
+    return result;
+  };
+}
+
+/**
  * Emit an always-on warning. Unlike `debug.warn` (gated behind `debug: true`), this reaches every
  * user — otherwise a broken transform silently records no channel-based spans.
  */
@@ -165,7 +181,7 @@ export function registerDiagnosticsChannelInjection(): void {
   try {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
-      mod.registerHooks({ resolve, load });
+      mod.registerHooks({ resolve, load: globalAny.Deno ? withDenoJsonFormat(load) : load });
       debug.log('Registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0

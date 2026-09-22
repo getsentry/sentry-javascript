@@ -13,6 +13,8 @@ export type { InstrumentationConfig } from './orchestrion/apmTypes';
 // `orchestrion/bundler/moduleInjectedTransform.ts`); it is a plain runtime
 // helper with no orchestrion build-time dependency.
 export { orchestrionModuleInjected } from './utils/moduleInjected';
+export { eveConversationHook, eveIntegration } from './eve';
+export { getInstrumentedModuleNames } from './orchestrion/config';
 export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
@@ -40,11 +42,17 @@ export { kafkaIntegration } from './integrations/kafkajs';
 export { knexIntegration } from './integrations/knex';
 export { langChainIntegration } from './integrations/langchain';
 export { langGraphIntegration } from './integrations/langgraph';
+export { createFlueInstrumentation } from './ai/flue';
+export { flueIntegration } from './integrations/flue';
+export type { FlueOptions } from './ai/flue';
 export { mastraIntegration } from './integrations/mastra';
 export { SentryMastraExporter } from './ai/mastra';
 export { lruMemoizerIntegration } from './integrations/lru-memoizer';
 export { mongoIntegration } from './integrations/mongodb';
 export { mongooseIntegration } from './integrations/mongoose';
+export { mistralAIIntegration } from './integrations/mistral';
+export { groqIntegration } from './integrations/groq';
+export { togetherAIIntegration } from './integrations/together-ai';
 export { mysqlIntegration } from './integrations/mysql';
 export { mysql2Integration } from './integrations/mysql2';
 export { openAIIntegration } from './integrations/openai';

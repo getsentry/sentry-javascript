@@ -3,10 +3,6 @@ import * as path from 'path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-// This test takes some time because it connects the debugger etc.
-// So we increase the timeout here
-// vi.setTimeout(45_000);
-
 const EXPECTED_LOCAL_VARIABLES_EVENT = {
   exception: {
     values: [

@@ -57,11 +57,11 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
   const serverSpan = await serverSpanPromise;
 
   expect(serverSpan.attributes).toMatchObject({
-    'http.request.header.user-agent': { type: 'string', value: 'Custom-Nuxt-Agent/3.0' },
-    'http.request.header.content-type': { type: 'string', value: 'application/json' },
-    'http.request.header.x-nuxt-test': { type: 'string', value: 'nuxt-header-value' },
-    'http.request.header.accept': { type: 'string', value: 'application/json, text/html' },
-    'http.request.header.x-framework': { type: 'string', value: 'Nuxt' },
-    'http.request.header.x-request-id': { type: 'string', value: 'nuxt-456' },
+    'http.request.header.user-agent': { type: 'array', value: ['Custom-Nuxt-Agent/3.0'] },
+    'http.request.header.content-type': { type: 'array', value: ['application/json'] },
+    'http.request.header.x-nuxt-test': { type: 'array', value: ['nuxt-header-value'] },
+    'http.request.header.accept': { type: 'array', value: ['application/json, text/html'] },
+    'http.request.header.x-framework': { type: 'array', value: ['Nuxt'] },
+    'http.request.header.x-request-id': { type: 'array', value: ['nuxt-456'] },
   });
 });

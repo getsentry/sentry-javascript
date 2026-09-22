@@ -29,12 +29,12 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   const traceSpansPromise = collectStreamedSpans(
     APP,
     spansOfTrace =>
-      ['gen_ai.invoke_agent', 'gen_ai.generate_content', 'gen_ai.execute_tool'].every(op =>
+      ['gen_ai.invoke_agent', 'gen_ai.generate_content', 'gen_ai.execute_tool', 'gen_ai.tool.manual'].every(op =>
         spansOfTrace.some(span => getSpanOp(span) === op),
       ) && spansOfTrace.some(isAgentServerSpan),
   );
 
-  await runAgentTurn(baseURL!, 'What is the weather in Paris?');
+  const sessionId = await runAgentTurn(baseURL!, 'What is the weather in Paris?');
 
   const traceSpans = await traceSpansPromise;
 
@@ -65,6 +65,24 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   expect(executeTool?.attributes?.['gen_ai.tool.call.arguments']?.value).toContain('Paris');
   // The tool returns `{ city, condition: 'Sunny', temperatureC: 22 }`.
   expect(executeTool?.attributes?.['gen_ai.tool.call.result']?.value).toContain('Sunny');
+
+  // `get_weather` wraps its work in a manual `Sentry.startSpan`. Because eve runs
+  // the tool while the SDK's `execute_tool` span is active, that user span nests
+  // directly under it — this is the manual-instrumentation-inside-a-tool case.
+  const manualSpan = traceSpans.find(span => getSpanOp(span) === 'gen_ai.tool.manual');
+  expect(manualSpan?.name).toBe('resolve-weather');
+  expect(manualSpan?.attributes?.['weather.city']?.value).toBe('Paris');
+  expect(manualSpan?.is_segment).toBe(false);
+  expect(manualSpan?.trace_id).toBe(executeTool?.trace_id);
+  expect(manualSpan?.parent_span_id).toBe(executeTool?.span_id);
+
+  // `Sentry.eveInstrumentation()` (see `agent/instrumentation/sentry.ts`) sets the eve session id as
+  // the conversation id on each turn, so every gen_ai span in the turn is tagged with it — that is
+  // what links a multi-turn session (each turn is its own trace) into one Sentry conversation.
+  expect(sessionId).toBeTruthy();
+  for (const span of [invokeAgent, generateContent, executeTool]) {
+    expect(span?.attributes?.['gen_ai.conversation.id']?.value).toBe(sessionId);
+  }
 
   // The agent turn is captured as an http.server span on one of eve's two agent
   // request paths (the other http.server spans — health and the event stream —

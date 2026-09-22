@@ -24,7 +24,6 @@ import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
 import { BROWSER_NAVIGATION_TYPE } from '@sentry/conventions/attributes';
 import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
-import type { WebVitalReportEvent } from './reportEvents';
 import { listenForWebVitalReportEvents } from './reportEvents';
 import { getNavigationSpanForMetric } from './softNavs';
 import { getBrowserPerformanceAPI, msToSec, supportsWebVital } from '../performance/utils';
@@ -73,12 +72,12 @@ function trackWebVitalPerNavigation<M extends WebVitalMetric>(
   let bfcacheNavigationSpan: Span | undefined;
   client.on('spanStart', span => {
     // The op has to be checked too: the web vital spans emitted for a restore carry the same
-    // `bfcache` navigation type, so matching on that alone lets the first of them replace the
+    // `back-forward-cache` navigation type, so matching on that alone lets the first of them replace the
     // navigation span, and every later vital then hangs off a sibling vital instead.
     const attributes = spanToJSON(span).attributes;
     if (
       attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === NAVIGATION &&
-      attributes[BROWSER_NAVIGATION_TYPE] === 'bfcache'
+      attributes[BROWSER_NAVIGATION_TYPE] === 'back-forward-cache'
     ) {
       bfcacheNavigationSpan = span;
     }
@@ -125,7 +124,6 @@ export function trackLcpAsSpan(client: Client, perNavigation = false): void {
         metric.value,
         entry,
         parentSpan,
-        undefined,
         softNavigationId,
         metric.navigationType,
         metric.navigationStartTime,
@@ -151,8 +149,8 @@ export function trackLcpAsSpan(client: Client, perNavigation = false): void {
     lcpEntry = entry;
   }, true);
 
-  listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, reportEvent, undefined, lcpNavigationType);
+  listenForWebVitalReportEvents(client, pageloadSpan => {
+    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, undefined, lcpNavigationType);
     cleanupLcpHandler();
   });
 }
@@ -164,7 +162,6 @@ export function _sendLcpSpan(
   lcpValue: number,
   entry: LargestContentfulPaint | undefined,
   pageloadSpan?: Span,
-  reportEvent?: WebVitalReportEvent,
   softNavigationId?: number,
   navigationType?: MetricNavigationType,
   navigationStartTime?: number,
@@ -202,7 +199,6 @@ export function _sendLcpSpan(
     value: lcpValue,
     attributes,
     parentSpan: pageloadSpan,
-    reportEvent,
     startTime,
     endTime,
     softNavigationId,
@@ -225,7 +221,6 @@ export function trackClsAsSpan(client: Client, perNavigation = false): void {
         metric.value,
         entry,
         parentSpan,
-        undefined,
         softNavigationId,
         metric.navigationType,
         metric.navigationStartTime,
@@ -251,8 +246,8 @@ export function trackClsAsSpan(client: Client, perNavigation = false): void {
     clsEntry = entry;
   }, true);
 
-  listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    _sendClsSpan(clsValue, clsEntry, pageloadSpan, reportEvent, undefined, clsNavigationType);
+  listenForWebVitalReportEvents(client, pageloadSpan => {
+    _sendClsSpan(clsValue, clsEntry, pageloadSpan, undefined, clsNavigationType);
     cleanupClsHandler();
   });
 }
@@ -264,7 +259,6 @@ export function _sendClsSpan(
   clsValue: number,
   entry: LayoutShift | undefined,
   pageloadSpan?: Span,
-  reportEvent?: WebVitalReportEvent,
   softNavigationId?: number,
   navigationType?: MetricNavigationType,
   navigationStartTime?: number,
@@ -295,7 +289,6 @@ export function _sendClsSpan(
     value: clsValue,
     attributes,
     parentSpan: pageloadSpan,
-    reportEvent,
     startTime,
     softNavigationId,
     navigationType,

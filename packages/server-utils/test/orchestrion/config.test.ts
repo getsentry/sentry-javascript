@@ -1,6 +1,7 @@
 import type { InstrumentationConfig } from '@apm-js-collab/code-transformer-bundler-plugins/core';
 import { describe, expect, it } from 'vitest';
 import {
+  getInstrumentedModuleNames,
   INSTRUMENTED_MODULE_NAMES,
   instrumentedModuleNames,
   SENTRY_INSTRUMENTATIONS,
@@ -23,6 +24,32 @@ describe('orchestrion config — scoped @hapi/hapi module', () => {
   });
 });
 
+describe('getInstrumentedModuleNames', () => {
+  it('returns the instrumented package names', () => {
+    const names = getInstrumentedModuleNames();
+
+    for (const name of ['dataloader', 'ai', 'express', 'pg', 'redis']) {
+      expect(names).toContain(name);
+    }
+  });
+
+  it('has no duplicates', () => {
+    const names = getInstrumentedModuleNames();
+
+    expect(names.length).toBe(new Set(names).size);
+  });
+
+  it('is the plain instrumented set, without the bundler-only additions in INSTRUMENTED_MODULE_NAMES', () => {
+    // `INSTRUMENTED_MODULE_NAMES` adds packages that must be force-bundled (e.g. `@remix-run/node`),
+    // which is the opposite of what a "keep external" caller wants.
+    expect(getInstrumentedModuleNames()).not.toContain('@remix-run/node');
+    expect(INSTRUMENTED_MODULE_NAMES).toContain('@remix-run/node');
+    expect(new Set(getInstrumentedModuleNames())).toEqual(
+      new Set(SENTRY_INSTRUMENTATIONS.map(instrumentation => instrumentation.module.name)),
+    );
+  });
+});
+
 describe('orchestrion config — channel-subscriber coverage', () => {
   // The subscribe injection rides the real channel configs (the `tracingChannelImport`
   // override only runs on instrumented files), so a subscriber definition whose module is
@@ -34,6 +61,21 @@ describe('orchestrion config — channel-subscriber coverage', () => {
     );
 
     expect(missing).toEqual([]);
+  });
+});
+
+describe('orchestrion config — Flue', () => {
+  it('transforms @flue/runtime', () => {
+    expect(SENTRY_INSTRUMENTATIONS.map(i => i.module.name)).toContain('@flue/runtime');
+  });
+
+  it('is force-bundled as a side effect of being instrumented', () => {
+    expect(INSTRUMENTED_MODULE_NAMES).toContain('@flue/runtime');
+  });
+
+  // Registration-only configs carry a custom transform the runtime loader cannot apply.
+  it('excludes @flue/runtime from the runtime loader', () => {
+    expect(SENTRY_RUNTIME_INSTRUMENTATIONS.map(i => i.module.name)).not.toContain('@flue/runtime');
   });
 });
 

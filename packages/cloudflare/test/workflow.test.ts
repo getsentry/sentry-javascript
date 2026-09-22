@@ -458,9 +458,8 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('sometimes error step', expect.any(Function));
-    // One flush per attempt (failed and retried, past the span end) and one at end of
-    // run, plus one eager registration for the envelope of the error captured mid-run
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(4);
+    // One flush per attempt (failed and retried) and one at the end of the run
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(3);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     // No error event (not final attempt), only failed transaction + successful retry transaction
     expect(mockTransport.send).toHaveBeenCalledTimes(2);

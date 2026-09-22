@@ -1,11 +1,11 @@
 import { getTraceData } from '@sentry/core';
-import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
+import type { H3Event } from 'nitro/h3';
 
 /**
  * Sets Server-Timing response headers for trace propagation to the client.
  * The browser SDK reads these via the Performance API to connect pageload traces.
  */
-export function setServerTimingHeaders(event: H3TracingRequestEvent['event']): void {
+export function setServerTimingHeaders(event: H3Event): void {
   if (event.context._sentryServerTimingSet) {
     return;
   }

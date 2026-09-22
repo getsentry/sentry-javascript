@@ -78,6 +78,8 @@ describe('getSanitizedUrlString', () => {
     ['url with port 4433', 'http://172.31.12.144:4433/test', 'http://172.31.12.144:4433/test'],
     ['url with port 443', 'http://172.31.12.144:443/test', 'http://172.31.12.144/test'],
     ['url with IP and port 80', 'http://172.31.12.144:80/test', 'http://172.31.12.144/test'],
+    ['empty url', '', ''],
+    ['unparseable url', '???', ''],
   ])('returns a sanitized URL for a %s', (_, rawUrl: string, sanitizedURL: string) => {
     const urlObject = parseUrl(rawUrl);
     expect(getSanitizedUrlString(urlObject)).toEqual(sanitizedURL);

@@ -23,8 +23,8 @@ function assertLambdaTrace(spans: SerializedStreamedSpan[], functionName: string
     'cloud.platform': { value: 'aws_lambda', type: 'string' },
     'cloud.provider': { value: 'aws', type: 'string' },
     'faas.coldstart': { value: true, type: 'boolean' },
-    'faas.execution': { value: expect.any(String), type: 'string' },
-    'faas.id': { value: `arn:aws:lambda:us-east-1:012345678912:function:${functionName}`, type: 'string' },
+    'faas.invocation_id': { value: expect.any(String), type: 'string' },
+    'cloud.resource_id': { value: `arn:aws:lambda:us-east-1:012345678912:function:${functionName}`, type: 'string' },
     // The name the span is named after also stays on the span, so it survives a rename.
     'faas.name': { value: functionName, type: 'string' },
     // Streamed spans have no event contexts, so the `aws.lambda` context the transaction used to

@@ -1,4 +1,5 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { getInstrumentedModuleNames } from '@sentry/node';
 import { defineAgent } from 'eve';
 
 const apiKey = process.env.E2E_OPENROUTER_API_KEY;
@@ -24,17 +25,18 @@ export default defineAgent({
     // Only configure externals for orchestrion mode, to ensure everything else works without it
     ...(useOrchestrion
       ? {
-          // `dataloader` is instrumented by Sentry via orchestrion (a module
-          // transform). Keep it external so it stays a real module the transform can
-          // hook; if eve inlined it into the server bundle it could never be
-          // instrumented. (The Vercel AI SDK needs none of this — it uses a native
-          // diagnostics channel.)
+          // Keep every package Sentry instruments via orchestrion (a module transform) external, so
+          // it stays a real module the transform can hook rather than being inlined into eve's server
+          // bundle (an inlined module never reaches the transform's `onLoad`). Rather than hardcode
+          // the set, ask the SDK for it — this app exercises `dataloader`, and the rest are no-ops
+          // when the app doesn't use them. (The Vercel AI SDK needs none of this; it uses a native
+          // diagnostics channel and `ai` v7 is registration-only under the transform.)
           //
           // Do NOT add `@sentry/server-runtime-injection` here: the `--import`
           // loader instruments regardless (so the "bundled ... uninstrumented"
           // warning is a false positive), and externalizing it makes eve's dev
           // host fail to resolve its `/register` subpath (`eve dev` only).
-          externalDependencies: ['dataloader'],
+          externalDependencies: getInstrumentedModuleNames(),
         }
       : {}),
   },

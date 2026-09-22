@@ -15,6 +15,7 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -813,6 +814,43 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
 
   createEsmTests(
     __dirname,
+    'scenario-cache-tokens.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('reads cache token counts from the SDK usage object', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              const generateContent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+              expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(120);
+              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(80);
+              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]?.value).toBe(20);
+
+              const invokeAgent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(80);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]?.value).toBe(20);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
     'scenario-embeddings.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
@@ -905,6 +943,47 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               );
               expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
               expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-aborted-stream-text.mjs',
+    'instrument-abort.mjs',
+    (createRunner, test) => {
+      test('aborting a stream with a non-AbortError reason leaves no unhandled rejection', async () => {
+        await createRunner().ensureNoErrorOutput().start().completed();
+      });
+
+      test('an aborted stream finishes its spans with an error status and no result attributes', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const invokeAgent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.status).toBe('error');
+              expect(invokeAgent.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
+              expect(invokeAgent.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+              expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+              expect(invokeAgent.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+
+              const generateContent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+              expect(generateContent.status).toBe('error');
             },
           })
           .start()
