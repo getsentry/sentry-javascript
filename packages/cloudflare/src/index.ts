@@ -136,6 +136,8 @@ export {
   instrumentStateGraph,
   instrumentCreateReactAgent,
   vercelAIIntegration,
+  honoIntegration,
+  honoMiddleware,
   eveConversationHook,
   eveIntegration,
   getInstrumentedModuleNames,

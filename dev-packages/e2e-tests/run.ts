@@ -13,6 +13,7 @@ interface SentryTestVariant {
   'build-command': string;
   'assert-command'?: string;
   label?: string;
+  skip?: boolean;
 }
 
 interface PackageJson {
@@ -82,7 +83,13 @@ async function getVariantBuildCommand(
   packageJsonPath: string,
   variantLabel: string,
   testAppPath: string,
-): Promise<{ buildCommand: string; assertCommand: string; testLabel: string; matchedVariantLabel?: string }> {
+): Promise<{
+  buildCommand: string;
+  assertCommand: string;
+  testLabel: string;
+  matchedVariantLabel?: string;
+  skip?: boolean;
+}> {
   try {
     const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
     const packageJson: PackageJson = JSON.parse(packageJsonContent);
@@ -100,6 +107,7 @@ async function getVariantBuildCommand(
         assertCommand: matchingVariant['assert-command'] || 'pnpm test:assert',
         testLabel: matchingVariant.label || testAppPath,
         matchedVariantLabel: matchingVariant.label,
+        skip: matchingVariant.skip,
       };
     }
 

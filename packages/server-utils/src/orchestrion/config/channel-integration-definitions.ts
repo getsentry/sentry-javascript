@@ -50,6 +50,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'firebaseIntegration', modules: ['@firebase/firestore', 'firebase-functions'] },
   { exportName: 'amqplibIntegration', modules: ['amqplib'] },
   { exportName: 'hapiIntegration', modules: ['@hapi/hapi'] },
+  { exportName: 'honoIntegration', modules: ['hono'] },
   { exportName: 'koaIntegration', modules: ['koa'] },
   { exportName: 'expressIntegration', modules: ['express', 'router'] },
   { exportName: 'graphqlIntegration', modules: ['graphql'] },

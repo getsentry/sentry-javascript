@@ -103,6 +103,8 @@ export {
   expressErrorHandler,
   // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,

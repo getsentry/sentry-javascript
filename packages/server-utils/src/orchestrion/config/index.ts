@@ -13,6 +13,7 @@ import { googleGenAiConfig } from './google-genai';
 import { graphqlConfig } from './graphql';
 import { groqConfig } from './groq';
 import { hapiConfig } from './hapi';
+import { honoConfig } from './hono';
 import { ioredisConfig } from './ioredis';
 import { kafkajsConfig } from './kafkajs';
 import { knexConfig } from './knex';
@@ -64,6 +65,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...graphqlConfig,
   ...groqConfig,
   ...hapiConfig,
+  ...honoConfig,
   ...ioredisConfig,
   ...kafkajsConfig,
   ...knexConfig,

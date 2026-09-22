@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Spy on the request/response handlers so we can assert exactly how many times they run.
 const requestHandler = vi.fn();
 const responseHandler = vi.fn();
+const captureContextError = vi.fn();
 vi.mock('../../../src/integrations/hono/middlewareHandlers', () => ({
   requestHandler: (...args: unknown[]) => requestHandler(...args),
   responseHandler: (...args: unknown[]) => responseHandler(...args),
+  captureContextError: (...args: unknown[]) => captureContextError(...args),
 }));
 
 // eslint-disable-next-line import/first
@@ -19,6 +21,7 @@ describe('createHonoRequestMiddleware — duplicate registration handling', () =
   beforeEach(() => {
     requestHandler.mockClear();
     responseHandler.mockClear();
+    captureContextError.mockClear();
   });
 
   it('runs request/response handling exactly once when two Sentry middlewares wrap the same request', async () => {
