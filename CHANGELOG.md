@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, @JosephDoUrden, @Tyagiquamar, @Andarist, @msnelling, @oesnuj, @chiliec, and @ihsraham. Thank you for your contributions!
+Work in this release was contributed by @psh4607, @thijsw, @trinitiwowka, @nehaprasad-dev, @JealousGx, @Jxxunnn, @eddie333016, @davidmurdoch, @yashschandra, @atharv-sys32, @AG0708, @birkskyum, @mkly, @mcbbugu, @suhailopensource, @zkasuran, @mohd-akram, @RealBhupesh, @halillusion, @psang39, @hafzism, @JosephDoUrden, @Tyagiquamar, @Andarist, @msnelling, @oesnuj, @chiliec, @ihsraham, and @matthewbjones. Thank you for your contributions!
 
 - ref(browser)!: LCP and CLS spans no longer set `browser.web_vital.lcp.report_event` and `browser.web_vital.cls.report_event`. With per-navigation web vitals (the default) the attribute was already never set; it is now also gone when `softNavigations` and `bfcacheNavigations` are turned off. When the values are finalized is unchanged.
 - feat(browser)!: `browser.navigation.type` on web vital and bfcache navigation spans now carries the navigation type exactly as web-vitals reports it. `bfcache` is now `back-forward-cache`, and a back/forward navigation that missed the bfcache (`back-forward`) or a discarded-tab restore (`restore`) is no longer folded into `navigate`. Update any dashboards or alerts filtering on `bfcache`.
