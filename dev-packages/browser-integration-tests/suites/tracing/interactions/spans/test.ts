@@ -167,7 +167,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'production',
       },
-      'ui.element.target': {
+      'browser.web_vital.inp.target': {
         type: 'string',
         value: 'body > button.clicked',
       },

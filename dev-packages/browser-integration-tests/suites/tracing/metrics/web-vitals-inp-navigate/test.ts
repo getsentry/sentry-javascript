@@ -76,7 +76,7 @@ sentryTest(
         'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
         'sentry.op': { value: 'ui.interaction.click', type: 'string' },
         'ui.component_name': { value: 'NavigationLink', type: 'string' },
-        'ui.element.target': { value: 'body > nav#navigation > NavigationLink', type: 'string' },
+        'browser.web_vital.inp.target': { value: 'body > nav#navigation > NavigationLink', type: 'string' },
         'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.target': { value: 'body > nav#navigation > NavigationLink', type: 'string' },
@@ -165,7 +165,7 @@ sentryTest(
       attributes: {
         'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
         'sentry.op': { value: 'ui.interaction.click', type: 'string' },
-        'ui.element.target': { value: 'body > nav#navigation > NavigationLink', type: 'string' },
+        'browser.web_vital.inp.target': { value: 'body > nav#navigation > NavigationLink', type: 'string' },
         'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.target': { value: 'body > nav#navigation > NavigationLink', type: 'string' },

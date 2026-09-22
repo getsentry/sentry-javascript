@@ -36,7 +36,7 @@ describe('spotlightBrowserIntegration', () => {
       const ignoreSpans = setupIntegrationAndGetIgnoreSpans();
       expect(
         shouldIgnoreSpan(
-          { description: name, op: 'ui.interaction.click', attributes: { 'ui.element.target': name } },
+          { description: name, op: 'ui.interaction.click', attributes: { 'browser.web_vital.inp.target': name } },
           ignoreSpans,
         ),
       ).toBe(true);
@@ -50,9 +50,9 @@ describe('spotlightBrowserIntegration', () => {
       ['non-interaction span', 'GET /api/data', 'http.client'],
     ])('%s', (_label, name, op) => {
       const ignoreSpans = setupIntegrationAndGetIgnoreSpans();
-      expect(shouldIgnoreSpan({ description: name, op, attributes: { 'ui.element.target': name } }, ignoreSpans)).toBe(
-        false,
-      );
+      expect(
+        shouldIgnoreSpan({ description: name, op, attributes: { 'browser.web_vital.inp.target': name } }, ignoreSpans),
+      ).toBe(false);
     });
   });
 });

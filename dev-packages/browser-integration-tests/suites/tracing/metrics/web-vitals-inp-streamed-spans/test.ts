@@ -42,7 +42,7 @@ sentryTest('captures INP click as a streamed span', async ({ getLocalTestUrl, pa
 
   expect(inpSpan.name).toBe('NormalButton');
   expect(inpSpan.attributes['ui.component_name']).toEqual({ type: 'string', value: 'NormalButton' });
-  expect(inpSpan.attributes['ui.element.target']).toEqual({ type: 'string', value: 'body > NormalButton' });
+  expect(inpSpan.attributes['browser.web_vital.inp.target']).toEqual({ type: 'string', value: 'body > NormalButton' });
 
   expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);
 
@@ -79,7 +79,7 @@ sentryTest('captures the slowest interaction as streamed INP span', async ({ get
 
   expect(inpSpan.name).toBe('SlowButton');
   expect(inpSpan.attributes['ui.component_name']).toEqual({ type: 'string', value: 'SlowButton' });
-  expect(inpSpan.attributes['ui.element.target']).toEqual({ type: 'string', value: 'body > SlowButton' });
+  expect(inpSpan.attributes['browser.web_vital.inp.target']).toEqual({ type: 'string', value: 'body > SlowButton' });
   expect(inpSpan.attributes['sentry.exclusive_time']?.value).toBeGreaterThan(400);
 
   const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;

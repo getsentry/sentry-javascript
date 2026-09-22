@@ -63,7 +63,7 @@ test('sends an INP span', async ({ page }) => {
 
   // The element is not annotated with a component name, so the span takes the op's fallback name.
   expect(inpSpan.name).toBe('Click');
-  expect(inpSpan.attributes['ui.element.target']?.value).toBe(
+  expect(inpSpan.attributes['browser.web_vital.inp.target']?.value).toBe(
     'body > div#root > input#exception-button[type="button"]',
   );
   expect(inpSpan.trace_id).toMatch(/[a-f0-9]{32}/);

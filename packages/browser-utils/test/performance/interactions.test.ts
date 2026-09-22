@@ -111,6 +111,30 @@ describe('interactionsIntegration', () => {
     });
   });
 
+  it('prefers the route id over the parameterized route', () => {
+    interactionsIntegration().setup?.(client);
+    completeRouteSpan(
+      new SentrySpan({
+        op: 'pageload',
+        name: 'UserProfile',
+        sampled: true,
+        attributes: { 'router.navigation.route.id': 'UserProfile', 'url.template': '/users/:id' },
+      }),
+    );
+
+    click();
+    flushIdleSpan();
+
+    const spans = getInteractionSpans();
+    expect(spanToJSON(spans[0]!).name).toBe('UserProfile');
+    expect(spanToJSON(spans[0]!).attributes).toMatchObject({
+      'router.navigation.route.id': 'UserProfile',
+      'url.template': '/users/:id',
+      'sentry.segment.name': 'UserProfile',
+      'sentry.segment.name.source': 'custom',
+    });
+  });
+
   it('falls back to Click when the route span has no parameterized route', () => {
     interactionsIntegration().setup?.(client);
     completeRouteSpan(new SentrySpan({ op: 'pageload', name: 'Pageload', sampled: true }));
@@ -298,7 +322,7 @@ describe('interactionsIntegration', () => {
 
       expect(spanToJSON(spans[0]!).name).toBe('Click');
       expect(spanToJSON(spans[0]!).attributes).toMatchObject({
-        'ui.element.target': 'body > button.clicked',
+        'browser.web_vital.inp.target': 'body > button.clicked',
       });
       expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty('ui.component_name');
     });
@@ -311,7 +335,7 @@ describe('interactionsIntegration', () => {
       expect(spanToJSON(spans[0]!).name).toBe('AnnotatedButton');
       expect(spanToJSON(spans[0]!).attributes).toMatchObject({
         'ui.component_name': 'AnnotatedButton',
-        'ui.element.target': 'body > AnnotatedButton',
+        'browser.web_vital.inp.target': 'body > AnnotatedButton',
       });
     });
 
@@ -321,7 +345,7 @@ describe('interactionsIntegration', () => {
       expect(spanToJSON(spans[0]!).name).toBe('StyledButton');
       expect(spanToJSON(spans[0]!).attributes).toMatchObject({
         'ui.component_name': 'StyledButton',
-        'ui.element.target': 'body > StyledButton',
+        'browser.web_vital.inp.target': 'body > StyledButton',
       });
     });
 

@@ -76,7 +76,7 @@ sentryTest(
         'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
         'sentry.op': { value: 'ui.interaction.click', type: 'string' },
         'ui.component_name': { value: 'NormalButton', type: 'string' },
-        'ui.element.target': { value: 'body > NormalButton', type: 'string' },
+        'browser.web_vital.inp.target': { value: 'body > NormalButton', type: 'string' },
         'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.target': { value: 'body > NormalButton', type: 'string' },

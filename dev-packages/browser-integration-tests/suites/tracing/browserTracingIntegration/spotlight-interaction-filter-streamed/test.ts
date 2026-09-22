@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipCdnBundleTest, shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, observeStreamedSpan, waitForStreamedSpan, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
-// Interaction spans are named after the component, so the element is on `ui.element.target`.
+// Interaction spans are named after the component, so the element is on `browser.web_vital.inp.target`.
 // The click handler adds the `clicked` class before the event timing entry is recorded.
 const SPOTLIGHT_BUTTON = 'body > div#sentry-spotlight > button.clicked';
 const REGULAR_BUTTON = 'body > button.clicked';
@@ -23,7 +23,7 @@ sentryTest(
     await observeStreamedSpan(page, span => {
       if (
         getSpanOp(span) === 'ui.interaction.click' &&
-        span.attributes['ui.element.target']?.value === SPOTLIGHT_BUTTON
+        span.attributes['browser.web_vital.inp.target']?.value === SPOTLIGHT_BUTTON
       ) {
         sawSpotlightInteractionSpan = true;
         return true;
@@ -47,7 +47,7 @@ sentryTest(
 
     // Click on the regular button — its ui.interaction.click child should be kept
     const regularInteractionSpansPromise = waitForStreamedSpans(page, spans =>
-      spans.some(span => span.attributes['ui.element.target']?.value === REGULAR_BUTTON),
+      spans.some(span => span.attributes['browser.web_vital.inp.target']?.value === REGULAR_BUTTON),
     );
 
     await page.locator('[data-test-id=regular-button]').click();
@@ -55,7 +55,7 @@ sentryTest(
 
     const regularSpans = await regularInteractionSpansPromise;
     const regularInteractionSpan = regularSpans.find(
-      span => span.attributes['ui.element.target']?.value === REGULAR_BUTTON,
+      span => span.attributes['browser.web_vital.inp.target']?.value === REGULAR_BUTTON,
     );
     expect(getSpanOp(regularInteractionSpan!)).toBe('ui.interaction.click');
 

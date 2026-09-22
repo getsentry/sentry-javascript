@@ -17,7 +17,7 @@ export const INTEGRATION_NAME = 'SpotlightBrowser' as const;
 
 export const SPOTLIGHT_IGNORE_SPANS = [
   { op: UI_INTERACTION_CLICK, name: '#sentry-spotlight' },
-  { op: UI_INTERACTION_CLICK, attributes: { 'ui.element.target': '#sentry-spotlight' } },
+  { op: UI_INTERACTION_CLICK, attributes: { 'browser.web_vital.inp.target': '#sentry-spotlight' } },
 ];
 
 const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {

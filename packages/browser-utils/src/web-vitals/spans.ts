@@ -47,10 +47,6 @@ import {
   UI_WEBVITAL_LCP,
 } from '@sentry/conventions/op';
 
-// TODO: Import `UI_ELEMENT_TARGET` from `@sentry/conventions/attributes` once the attribute is released.
-// See https://github.com/getsentry/sentry-conventions/pull/643
-const UI_ELEMENT_TARGET = 'ui.element.target';
-
 const INTERACTION_TYPE_TO_SPAN_OP: Record<InteractionType, string> = {
   click: UI_INTERACTION_CLICK,
   hover: UI_INTERACTION_HOVER,
@@ -313,9 +309,6 @@ export function _sendClsSpan(
 
   const attributes: SpanAttributes = {};
 
-  if (selector) {
-    attributes[UI_ELEMENT_TARGET] = selector;
-  }
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;
   }
@@ -440,7 +433,7 @@ export function _sendInpSpan(
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
   };
   if (selector) {
-    attributes[UI_ELEMENT_TARGET] = selector;
+    attributes['browser.web_vital.inp.target'] = selector;
   }
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;

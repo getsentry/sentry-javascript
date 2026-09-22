@@ -1,5 +1,6 @@
 import {
   HTTP_ROUTE,
+  ROUTER_NAVIGATION_ROUTE_ID,
   SENTRY_IDLE_SPAN_FINISH_REASON,
   SENTRY_OP,
   SENTRY_ORIGIN,
@@ -65,15 +66,12 @@ interface InteractionsOptions {
 interface RouteInfo {
   name: string | undefined;
   source: TransactionSource | undefined;
+  routeId: string | undefined;
   urlTemplate: string | undefined;
   httpRoute: string | undefined;
   urlPath: string | undefined;
   urlFull: string | undefined;
 }
-
-// TODO: Import `UI_ELEMENT_TARGET` from `@sentry/conventions/attributes` once the attribute is released.
-// See https://github.com/getsentry/sentry-conventions/pull/643
-const UI_ELEMENT_TARGET = 'ui.element.target';
 
 const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
   return {
@@ -86,6 +84,7 @@ const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
       const latestRoute: RouteInfo = {
         name: undefined,
         source: undefined,
+        routeId: undefined,
         urlTemplate: undefined,
         httpRoute: undefined,
         urlPath: undefined,
@@ -102,6 +101,7 @@ const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
         latestRoute.source = (attributes[SENTRY_SOURCE] || attributes[SENTRY_SEGMENT_NAME_SOURCE]) as
           | TransactionSource
           | undefined;
+        latestRoute.routeId = attributes[ROUTER_NAVIGATION_ROUTE_ID] as string | undefined;
         latestRoute.urlTemplate = attributes[URL_TEMPLATE] as string | undefined;
         latestRoute.httpRoute = attributes[HTTP_ROUTE] as string | undefined;
         latestRoute.urlPath = attributes[URL_PATH] as string | undefined;
@@ -202,8 +202,10 @@ function registerInteractionListener(
       }
 
       const hasSpanStreaming = hasSpanStreamingEnabled(client);
-      const streamedName = latestRoute.urlTemplate || latestRoute.httpRoute || UI_ACTION_CLICK_SPAN_NAME_FALLBACK;
-      const streamedNameSource = latestRoute.urlTemplate || latestRoute.httpRoute ? 'route' : 'custom';
+      const routeName = latestRoute.routeId || latestRoute.urlTemplate || latestRoute.httpRoute;
+      const streamedName = routeName || UI_ACTION_CLICK_SPAN_NAME_FALLBACK;
+      // A route id is a name the app gave the route, so it is `custom` rather than a `route` pattern.
+      const streamedNameSource = !routeName || latestRoute.routeId ? 'custom' : 'route';
 
       inflightInteractionSpan = startIdleSpan(
         {
@@ -213,6 +215,7 @@ function registerInteractionListener(
             [SENTRY_SEGMENT_NAME_SOURCE]: hasSpanStreaming ? streamedNameSource : latestRoute.source || 'url',
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
             ...(hasSpanStreaming && { [SENTRY_SEGMENT_NAME]: streamedName }),
+            ...(latestRoute.routeId && { [ROUTER_NAVIGATION_ROUTE_ID]: latestRoute.routeId }),
             ...(latestRoute.urlTemplate && { [URL_TEMPLATE]: latestRoute.urlTemplate }),
             ...(latestRoute.httpRoute && { [HTTP_ROUTE]: latestRoute.httpRoute }),
             ...(latestRoute.urlPath && { [URL_PATH]: latestRoute.urlPath }),
@@ -250,7 +253,7 @@ function trackInteractionsAsSpans(client: Client): void {
           attributes: {
             [SENTRY_OP]: UI_INTERACTION_CLICK,
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
-            [UI_ELEMENT_TARGET]: selector,
+            'browser.web_vital.inp.target': selector,
           },
         };
 
