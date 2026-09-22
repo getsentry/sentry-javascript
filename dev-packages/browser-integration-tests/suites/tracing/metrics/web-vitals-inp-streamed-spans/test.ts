@@ -78,6 +78,7 @@ sentryTest('captures the slowest interaction as streamed INP span', async ({ get
   const inpSpan = await inpSpanPromise;
 
   expect(inpSpan.name).toBe('SlowButton');
+  expect(inpSpan.attributes['ui.component_name']).toEqual({ type: 'string', value: 'SlowButton' });
   expect(inpSpan.attributes['ui.element.target']).toEqual({ type: 'string', value: 'body > SlowButton' });
   expect(inpSpan.attributes['sentry.exclusive_time']?.value).toBeGreaterThan(400);
 

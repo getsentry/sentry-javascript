@@ -71,6 +71,8 @@ test('sends an application render span and a root component span on pageload', a
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.render' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'Root' },
+      'sentry.description': { type: 'string', value: 'Application Render' },
     }),
   });
 
@@ -89,6 +91,8 @@ test('sends an application render span and a root component span on pageload', a
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.mount' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'Root' },
+      'sentry.description': { type: 'string', value: 'Vue <Root>' },
     }),
   });
 });
@@ -115,6 +119,8 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.mount' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'ErrorButton' },
+      'sentry.description': { type: 'string', value: 'Vue <ErrorButton>' },
     }),
   });
 });

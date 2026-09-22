@@ -152,6 +152,7 @@ test('sends a pageload span with a route name as span name if available', async 
       attributes: expect.objectContaining({
         'sentry.op': { type: 'string', value: 'ui.render' },
         'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+        'ui.component_name': { type: 'string', value: 'Root' },
         'sentry.description': { type: 'string', value: 'Application Render' },
       }),
     });
@@ -164,6 +165,7 @@ test('sends a pageload span with a route name as span name if available', async 
       attributes: expect.objectContaining({
         'sentry.op': { type: 'string', value: 'ui.mount' },
         'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+        'ui.component_name': { type: 'string', value: 'Root' },
         'sentry.description': { type: 'string', value: 'Vue <Root>' },
       }),
     });
@@ -245,6 +247,7 @@ test('sends a lifecycle span for the root and for each tracked component only', 
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.render' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'Root' },
       'sentry.description': { type: 'string', value: 'Application Render' },
     }),
   });
@@ -256,6 +259,7 @@ test('sends a lifecycle span for the root and for each tracked component only', 
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.mount' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'Root' },
       'sentry.description': { type: 'string', value: 'Vue <Root>' },
     }),
   });
@@ -265,6 +269,7 @@ test('sends a lifecycle span for the root and for each tracked component only', 
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.mount' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'ComponentMainView' },
       'sentry.description': { type: 'string', value: 'Vue <ComponentMainView>' },
     }),
   });
@@ -274,6 +279,7 @@ test('sends a lifecycle span for the root and for each tracked component only', 
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.mount' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'ComponentOneView' },
       'sentry.description': { type: 'string', value: 'Vue <ComponentOneView>' },
     }),
   });
