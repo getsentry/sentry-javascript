@@ -24,6 +24,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   stripUrlQueryAndFragment,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
 import type { AbstractSpan } from '../types';
@@ -193,14 +195,15 @@ export function descriptionForHttpMethod(
   const data: Record<string, string> = {};
 
   if (url) {
-    data.url = url;
+    data.url = filterCollectedUrl(url);
   }
-  if (query) {
+  const filteredQuery = filterCollectedUrlQuery(query);
+  if (filteredQuery) {
     // Strip the leading `?`/`#` (the `URL.search`/`URL.hash` prefix) so the attribute matches the
     // canonical format the OTel SDK exporter emits (`getData` in `spanExporter.ts` slices these too).
     // TODO(v11): emit `url.query`/`url.fragment` (OTel-standard, no leading `?`/`#`) and drop
     // this stripping + `http.query`/`http.fragment`; `http.query` is specced to keep the leading `?`.
-    data['http.query'] = query.slice(1);
+    data['http.query'] = filteredQuery.slice(1);
   }
   if (fragment) {
     data['http.fragment'] = fragment.slice(1);

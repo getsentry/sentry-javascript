@@ -4,7 +4,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
+import type { Client } from '../client';
 import type { SpanAttributes } from '../types/span';
+import { filterCollectedUrl, filterCollectedUrlQuery } from './data-collection/filterCollectedUrl';
 
 type PartialURL = {
   host?: string;
@@ -149,6 +151,8 @@ function getHttpSpanNameFromUrlObject(
  * @param spanOrigin - The origin of the span
  * @param request - The request object, see {@link PartialRequest}
  * @param routeName - The name of the route, must be low cardinality
+ * @param client - The client the span belongs to, used to resolve `dataCollection.urlQueryParams`.
+ * Falls back to the current scope's client when omitted, which is the wrong one in a multi-client setup.
  * @returns The span name and attributes for the HTTP operation
  */
 export function getHttpSpanDetailsFromUrlObject(
@@ -157,6 +161,7 @@ export function getHttpSpanDetailsFromUrlObject(
   spanOrigin: string,
   request?: PartialRequest,
   routeName?: string,
+  client?: Client,
 ): [name: string, attributes: SpanAttributes] {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
@@ -175,7 +180,7 @@ export function getHttpSpanDetailsFromUrlObject(
 
   if (urlObject) {
     if (urlObject.search) {
-      attributes['url.query'] = urlObject.search;
+      attributes['url.query'] = filterCollectedUrlQuery(urlObject.search, client);
     }
     if (urlObject.hash) {
       attributes['url.fragment'] = urlObject.hash;
@@ -188,7 +193,7 @@ export function getHttpSpanDetailsFromUrlObject(
     }
 
     if (!isURLObjectRelative(urlObject)) {
-      attributes[URL_FULL] = urlObject.href;
+      attributes[URL_FULL] = filterCollectedUrl(urlObject.href, client);
       if (urlObject.port) {
         attributes['url.port'] = urlObject.port;
       }

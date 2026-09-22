@@ -49,6 +49,42 @@ function richNormalizedRequest() {
 }
 
 describe('requestDataIntegration', () => {
+  // `event.request.url` carries the same query string as `request.query_string`, so it has to respect
+  // `dataCollection.urlQueryParams` too.
+  describe('event.request.url query params', () => {
+    function processWith(urlQueryParams?: DataCollection['urlQueryParams']): Event {
+      const integration = requestDataIntegration();
+      const event = baseEvent({
+        sdkProcessingMetadata: {
+          normalizedRequest: {
+            method: 'GET',
+            url: 'https://example.com/reset?token=secret&id=1',
+            query_string: 'token=secret&id=1',
+          },
+        },
+      });
+
+      integration.processEvent?.(event, {}, mockClient(false, { userInfo: false, urlQueryParams }));
+
+      return event;
+    }
+
+    it('filters sensitive params by default', () => {
+      expect(processWith().request?.url).toBe('https://example.com/reset?token=[Filtered]&id=1');
+    });
+
+    it('strips the query entirely when collection is off', () => {
+      const event = processWith(false);
+
+      expect(event.request?.url).toBe('https://example.com/reset');
+      expect(event.request?.query_string).toBeUndefined();
+    });
+
+    it('honors allowList mode', () => {
+      expect(processWith({ allow: ['id'] }).request?.url).toBe('https://example.com/reset?token=[Filtered]&id=1');
+    });
+  });
+
   describe('IP-related headers on event.request', () => {
     it('removes known IP headers from event.request.headers when userInfo is false', () => {
       const integration = requestDataIntegration();
@@ -428,6 +464,58 @@ describe('requestDataIntegration', () => {
   });
 
   describe('include.query_string', () => {
+    it('omits query string when include.query_string is false and dataCollection enables query params', () => {
+      const integration = requestDataIntegration({ include: { query_string: false } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { query_string: 'page=1' },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { urlQueryParams: true }));
+
+      expect(event.request?.query_string).toBeUndefined();
+    });
+
+    it('applies the default denylist when include.query_string overrides dataCollection.urlQueryParams=false', () => {
+      const integration = requestDataIntegration({ include: { query_string: true } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { query_string: 'page=1&token=secret' },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { urlQueryParams: false }));
+
+      expect(event.request?.query_string).toBe('page=1&token=[Filtered]');
+    });
+
+    it('preserves encoded query parameter values while filtering sensitive parameters', () => {
+      const integration = requestDataIntegration();
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { query_string: 'q=hello%20world&token=secret' },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false));
+
+      expect(event.request?.query_string).toBe('q=hello%20world&token=[Filtered]');
+    });
+
+    it('preserves the configured query allowlist when include.query_string is true', () => {
+      const integration = requestDataIntegration({ include: { query_string: true } });
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: { query_string: 'page=1&sort=name&token=secret' },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient(false, { urlQueryParams: { allow: ['page'] } }));
+
+      expect(event.request?.query_string).toBe('page=1&sort=[Filtered]&token=[Filtered]');
+    });
+
     it('omits event.request.query_string when include.query_string is false', () => {
       const integration = requestDataIntegration({ include: { query_string: false } });
       const event: Event = {
@@ -776,6 +864,24 @@ describe('requestDataIntegration processSegmentSpan', () => {
     });
   });
 
+  it('filters sensitive query params in `url.full` on the segment span', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      url: 'https://example.com/api/users?token=secret&page=1',
+      method: 'GET',
+      query_string: 'token=secret&page=1',
+    });
+
+    integration.processSegmentSpan!(span, mockClient(false, { userInfo: false }));
+
+    expect(span.attributes).toMatchObject({
+      'url.full': 'https://example.com/api/users?token=[Filtered]&page=1',
+      'url.query': 'token=[Filtered]&page=1',
+    });
+  });
+
   it('handles query_string in object format', () => {
     const integration = requestDataIntegration();
     const span = makeSpan();
@@ -786,6 +892,38 @@ describe('requestDataIntegration processSegmentSpan', () => {
 
     expect(span.attributes).toMatchObject({
       'url.query': 'page=1&limit=10',
+    });
+  });
+
+  it('encodes query_string in object format before filtering', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({ query_string: { redirect: '/home?tab=one&sort=asc', token: 'secret' } });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'url.query': 'redirect=%2Fhome%3Ftab%3Done%26sort%3Dasc&token=[Filtered]',
+    });
+  });
+
+  it('encodes query_string in tuple format and preserves duplicate keys', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      query_string: [
+        ['page', 'hello world'],
+        ['page', 'second&value'],
+        ['token', 'secret'],
+      ],
+    });
+
+    integration.processSegmentSpan!(span, mockClient(false));
+
+    expect(span.attributes).toMatchObject({
+      'url.query': 'page=hello+world&page=second%26value&token=[Filtered]',
     });
   });
 
@@ -901,6 +1039,17 @@ describe('requestDataIntegration processSegmentSpan', () => {
         'http.request.header.cookie.theme': 'dark',
         'http.request.header.cookie.locale': 'en',
       });
+    });
+
+    it('filters query params when include.query_string overrides dataCollection.urlQueryParams=false on spans', () => {
+      const integration = requestDataIntegration({ include: { query_string: true } });
+      const span = makeSpan();
+
+      mockIsolationScope({ query_string: 'page=1&token=secret' });
+
+      integration.processSegmentSpan!(span, mockClient(false, { urlQueryParams: false }));
+
+      expect(span.attributes?.['url.query']).toBe('page=1&token=[Filtered]');
     });
   });
 });

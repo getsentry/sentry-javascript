@@ -1,6 +1,6 @@
 import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, filterCollectedUrl } from '@sentry/core';
 import type { AnyFn } from './helpers';
 import { copyReflectMetadata, httpOrigin, isWrapped, markWrapped } from './helpers';
 import { AttributeNames, NestType } from './vendored/enums';
@@ -96,7 +96,7 @@ export function wrapRequestContextHandler(
       [AttributeNames.VERSION]: moduleVersion || undefined,
       [HTTP_ROUTE]: httpRoute || undefined,
       ['http.method']: req.method || undefined,
-      ['http.url']: req.originalUrl || req.url || undefined,
+      ['http.url']: filterCollectedUrl(req.originalUrl || req.url || undefined),
     };
     return startSpan({ name: spanName, op: `${NestType.REQUEST_CONTEXT}.nestjs`, attributes }, () =>
       handler.apply(this, handlerArgs),

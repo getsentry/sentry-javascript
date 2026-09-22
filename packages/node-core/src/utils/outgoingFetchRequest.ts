@@ -1,5 +1,6 @@
 import type { LRUMap, SanitizedRequestData, Span } from '@sentry/core';
 import {
+  filterCollectedUrlQuery,
   addBreadcrumb,
   getActiveSpan,
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -258,7 +259,7 @@ function getBreadcrumbData(request: UndiciRequest): Partial<SanitizedRequestData
     };
 
     if (parsedUrl.search) {
-      data['http.query'] = parsedUrl.search;
+      data['http.query'] = filterCollectedUrlQuery(parsedUrl.search);
     }
     if (parsedUrl.hash) {
       data['http.fragment'] = parsedUrl.hash;

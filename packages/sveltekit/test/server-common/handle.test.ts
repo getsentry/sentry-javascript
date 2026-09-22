@@ -177,6 +177,25 @@ describe('sentryHandle', () => {
       kitRootSpan.end();
     });
 
+    it('filters sensitive query params in the URL taken over from the sveltekit root span', async () => {
+      const kitRootSpan = SentryCore.startInactiveSpan({
+        name: 'sveltekit.handle.root',
+        attributes: { 'url.full': 'https://example.com/reset?token=secret&page=1' },
+      });
+
+      try {
+        await sentryHandle()({
+          event: mockEvent({ tracing: { enabled: true, root: kitRootSpan } }),
+          resolve: resolve(type, isError),
+        });
+      } catch {
+        //
+      }
+
+      expect(spanToJSON(kitRootSpan).data?.['url.full']).toEqual('https://example.com/reset?token=[Filtered]&page=1');
+      kitRootSpan.end();
+    });
+
     it('starts a child span for nested server calls (i.e. if there is an active span)', async () => {
       let _span: Span | undefined = undefined;
       let txnCount = 0;

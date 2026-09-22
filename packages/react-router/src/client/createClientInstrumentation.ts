@@ -14,6 +14,7 @@ import {
   SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
+  filterCollectedUrl,
 } from '@sentry/core';
 import type { ClientInstrumentation } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -127,7 +128,7 @@ export function createSentryClientInstrumentation(
             const result = await callNavigate();
             if (result.status === 'error' && result.error instanceof Error) {
               captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-                'http.url': info.currentUrl,
+                'http.url': filterCollectedUrl(info.currentUrl),
               });
             }
             return;
@@ -174,7 +175,7 @@ export function createSentryClientInstrumentation(
                   navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 }
                 captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-                  'http.url': WINDOW.location?.pathname || info.currentUrl,
+                  'http.url': WINDOW.location?.pathname || filterCollectedUrl(info.currentUrl),
                 });
               }
             } finally {
@@ -210,7 +211,7 @@ export function createSentryClientInstrumentation(
               navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
             }
             captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-              'http.url': toPath,
+              'http.url': filterCollectedUrl(toPath),
             });
           }
           return;
@@ -230,7 +231,7 @@ export function createSentryClientInstrumentation(
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 captureInstrumentationError(result, captureErrors, 'react_router.fetcher', {
-                  'http.url': info.href,
+                  'http.url': filterCollectedUrl(info.href),
                 });
               }
             },

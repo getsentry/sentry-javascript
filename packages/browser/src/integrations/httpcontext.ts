@@ -1,4 +1,4 @@
-import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core/browser';
+import { defineIntegration, filterCollectedUrl, safeSetSpanJSONAttributes } from '@sentry/core/browser';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { HTTP_REQUEST_HEADER_KEY_BASE, SENTRY_OP, URL_FULL, USER_AGENT_ORIGINAL } from '@sentry/conventions/attributes';
 
@@ -45,7 +45,7 @@ export const httpContextIntegration = defineIntegration(() => {
         ...(span.is_segment && {
           // Coerce empty string to undefined so the helper's nullish check drops it,
           // rather than writing an empty `url.full` attribute onto the span.
-          [URL_FULL]: span.attributes?.[SENTRY_OP] !== 'http.client' ? reqData.url : undefined,
+          [URL_FULL]: span.attributes?.[SENTRY_OP] !== 'http.client' ? filterCollectedUrl(reqData.url) : undefined,
           [`${HTTP_REQUEST_HEADER_KEY_BASE}.referer`]: reqData.headers['Referer'],
         }),
       });

@@ -9,6 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   stripDataUrlContent,
+  filterCollectedUrl,
 } from '@sentry/core';
 
 const responseToStreamSpan = new WeakMap<object, Span>();
@@ -80,7 +81,7 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
             name: `${method} ${sanitizedUrl}`,
             startTime: handlerData.endTimestamp,
             attributes: {
-              url: stripDataUrlContent(url),
+              url: filterCollectedUrl(stripDataUrlContent(url)),
               'http.method': method,
               type: 'fetch',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client.stream',

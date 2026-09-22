@@ -10,6 +10,7 @@ import {
   SPAN_KIND,
   startInactiveSpan,
   waitForTracingChannelBinding,
+  filterCollectedUrl,
 } from '@sentry/core';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import {
@@ -73,9 +74,11 @@ function getRequestAttributes(request: unknown): SpanAttributes {
   }
   if (typeof url === 'string') {
     // oxlint-disable-next-line typescript/no-deprecated
-    attributes[HTTP_URL] = url;
+    attributes[HTTP_URL] = filterCollectedUrl(url);
     const urlObject = parseStringToURLObject(url);
-    attributes[URL_FULL] = urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined;
+    attributes[URL_FULL] = filterCollectedUrl(
+      urlObject && !isURLObjectRelative(urlObject) ? urlObject.href : undefined,
+    );
     attributes[URL_PATH] = urlObject?.pathname;
   }
   return attributes;

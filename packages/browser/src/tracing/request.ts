@@ -10,6 +10,8 @@ import type {
 } from '@sentry/core/browser';
 import {
   addFetchInstrumentationHandler,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
   getActiveSpan,
   getClient,
   getLocationHref,
@@ -174,10 +176,10 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         const sanitizedFullUrl = fullUrl ? stripDataUrlContent(fullUrl) : undefined;
         createdSpan.setAttributes({
           // oxlint-disable-next-line typescript/no-deprecated
-          [HTTP_URL]: sanitizedFullUrl,
+          [HTTP_URL]: filterCollectedUrl(sanitizedFullUrl),
           // `url.full` must match `http.url`. Setting it here ensures parentless `http.client`
           // segment spans don't get `url.full` backfilled with the host page URL (see httpContextIntegration).
-          [URL_FULL]: sanitizedFullUrl,
+          [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
           'server.address': host,
         });
 
@@ -389,17 +391,17 @@ function xhrCallback(
       ? startInactiveSpan({
           name: `${method} ${urlForSpanName}`,
           attributes: {
-            url: stripDataUrlContent(url),
+            url: filterCollectedUrl(stripDataUrlContent(url)),
             type: 'xhr',
             'http.method': method,
-            'http.url': sanitizedFullUrl,
+            'http.url': filterCollectedUrl(sanitizedFullUrl),
             // `url.full` must match `http.url`. Setting it here ensures parentless `http.client`
             // segment spans don't get `url.full` backfilled with the host page URL (see httpContextIntegration).
-            [URL_FULL]: sanitizedFullUrl,
+            [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
             'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-            ...(parsedUrl?.search && { 'http.query': parsedUrl?.search }),
+            ...(parsedUrl?.search && { 'http.query': filterCollectedUrlQuery(parsedUrl?.search) }),
             ...(parsedUrl?.hash && { 'http.fragment': parsedUrl?.hash }),
           },
         })

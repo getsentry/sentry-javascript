@@ -53,6 +53,7 @@ import {
   startInactiveSpan,
   withActiveSpan,
   SPAN_KIND,
+  filterCollectedUrl,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -175,13 +176,16 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
-              [URL_FULL]: urlObj && !isURLObjectRelative(urlObj) ? urlObj.href : undefined,
+              [URL_FULL]: urlObj && !isURLObjectRelative(urlObj) ? filterCollectedUrl(urlObj.href, client) : undefined,
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
               // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
               /* eslint-disable typescript/no-deprecated */
-              [HTTP_URL]: fullUrl,
+              [HTTP_URL]: filterCollectedUrl(fullUrl, client),
               [HTTP_METHOD]: normalizedRequest.method,
-              [HTTP_TARGET]: urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              [HTTP_TARGET]: filterCollectedUrl(
+                urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+                client,
+              ),
               [HTTP_HOST]: host,
               [NET_HOST_NAME]: hostname,
               [HTTP_CLIENT_IP]: typeof ips === 'string' ? ips.split(',')[0] : undefined,

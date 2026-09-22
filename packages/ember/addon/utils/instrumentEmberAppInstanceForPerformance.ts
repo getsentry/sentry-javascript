@@ -12,6 +12,7 @@ import {
   startInactiveSpan,
 } from '@sentry/browser';
 import type { Client, Span } from '@sentry/core';
+import { filterCollectedUrl } from '@sentry/core';
 import type { EmberRouterMain } from '../types';
 import { getBackburner } from './performance';
 import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
@@ -110,7 +111,7 @@ export function _getRouteUrlAttributes(
   // fragment (e.g. `https://host/#/tracing`), which would otherwise be lost by `getUrlPathFromEmberLocation`.
   return {
     [URL_PATH]: path,
-    [URL_FULL]: getAbsoluteUrl(fullUrl),
+    [URL_FULL]: filterCollectedUrl(getAbsoluteUrl(fullUrl)),
     [URL_TEMPLATE]: buildUrlTemplate(path, params),
   };
 }

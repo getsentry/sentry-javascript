@@ -2,7 +2,7 @@ import type { Span } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_URL, URL_FULL } from '@sentry/conventions/attributes';
 import type { SanitizedRequestData } from '@sentry/core';
-import { getSanitizedUrlString, parseUrl } from '@sentry/core';
+import { filterCollectedUrlQuery, getSanitizedUrlString, parseUrl } from '@sentry/core';
 import { spanHasAttributes } from './spanTypes';
 
 /**
@@ -34,8 +34,10 @@ export function getRequestSpanData(span: Span | ReadableSpan): Partial<Sanitized
 
       data.url = getSanitizedUrlString(url);
 
-      if (url.search) {
-        data['http.query'] = url.search;
+      // The URL may come from a third-party instrumentation that never ran it through the SDK's filtering.
+      const query = filterCollectedUrlQuery(url.search);
+      if (query) {
+        data['http.query'] = query;
       }
       if (url.hash) {
         data['http.fragment'] = url.hash;
