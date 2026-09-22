@@ -8,4 +8,8 @@
   "workers_dev": true,
   // Workers Logs keep the invocations of the last 7 days, so a failed CI run can still be inspected.
   "observability": { "enabled": true },
+  // Workflow names are unique per account, so deployWorker() renames it to the worker name.
+  "workflows": [
+    { "name": "cloudflare-workers-send-to-sentry", "binding": "SLEEP_WORKFLOW", "class_name": "SleepWorkflow" },
+  ],
 }
