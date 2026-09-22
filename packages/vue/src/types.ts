@@ -14,9 +14,9 @@ export interface Vue {
 export type ViewModel = {
   _isVue?: boolean;
   __isVue?: boolean;
-  $root: ViewModel;
-  $parent?: ViewModel;
-  $props: { [key: string]: any };
+  $root?: ViewModel | null;
+  $parent?: ViewModel | null;
+  $props?: { [key: string]: any };
   $options?: {
     name?: string;
     propsData?: { [key: string]: any };

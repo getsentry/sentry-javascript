@@ -243,21 +243,23 @@ describe('captureVueException', () => {
 
     captureVueException(error, vm, 'render');
 
-    expect(captureException).toHaveBeenCalledTimes(1);
-    expect(captureException.mock.calls[0][0]).toBe(error);
-    expect(captureException.mock.calls[0][1]).toMatchObject({
-      captureContext: {
-        contexts: {
-          vue: {
-            componentName: '<ErrorBoundary>',
-            lifecycleHook: 'render',
-            propsData: { source: 'checkout' },
-            trace: '\n\n(found in <ErrorBoundary>)',
+    expect(captureException).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({
+        captureContext: {
+          contexts: {
+            vue: {
+              componentName: '<ErrorBoundary>',
+              lifecycleHook: 'render',
+              propsData: { source: 'checkout' },
+              trace: '\n\n(found in <ErrorBoundary>)',
+            },
           },
         },
-      },
-      mechanism: { handled: false, type: 'auto.function.vue.error_handler' },
-    });
+        mechanism: { handled: false, type: 'auto.function.vue.error_handler' },
+      }),
+      expect.anything(),
+    );
   });
 });
 

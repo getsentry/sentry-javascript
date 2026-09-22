@@ -11,8 +11,8 @@ type UnknownFunc = (...args: unknown[]) => void;
  * boundary stops the error from propagating to the application-level handler.
  */
 export const captureVueException = (
-  error: Error,
-  vm: ViewModel,
+  error: unknown,
+  vm: ViewModel | null,
   lifecycleHook: string,
   options?: Partial<VueOptions>,
 ): void => {
@@ -22,7 +22,7 @@ export const captureVueException = (
 export const attachErrorHandler = (app: Vue, options?: Partial<VueOptions>): void => {
   const { errorHandler: originalErrorHandler } = app.config;
 
-  app.config.errorHandler = (error: Error, vm: ViewModel, lifecycleHook: string): void => {
+  app.config.errorHandler = (error: unknown, vm: ViewModel | null, lifecycleHook: string): void => {
     // Capture exception in the next event loop, to make sure that all breadcrumbs are recorded in time.
     setTimeout(() => {
       captureVueExceptionWithMechanism(error, vm, lifecycleHook, !!originalErrorHandler, options);
@@ -38,13 +38,13 @@ export const attachErrorHandler = (app: Vue, options?: Partial<VueOptions>): voi
 };
 
 function captureVueExceptionWithMechanism(
-  error: Error,
-  vm: ViewModel,
+  error: unknown,
+  vm: ViewModel | null,
   lifecycleHook: string,
   handled: boolean,
   options?: Partial<VueOptions>,
 ): void {
-  const componentName = formatComponentName(vm, false);
+  const componentName = formatComponentName(vm || undefined, false);
   const trace = vm ? generateComponentTrace(vm) : '';
   const metadata: Record<string, unknown> = {
     componentName,

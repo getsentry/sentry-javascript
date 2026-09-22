@@ -16,7 +16,7 @@ const repeat = (str: string, n: number): string => {
   return str.repeat(n);
 };
 
-export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): string => {
+export const formatComponentName = (vm?: ViewModel | null, includeFile?: boolean): string => {
   if (!vm) {
     return ANONYMOUS_COMPONENT_NAME;
   }
@@ -46,7 +46,7 @@ export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): stri
   );
 };
 
-export const generateComponentTrace = (vm?: ViewModel): string => {
+export const generateComponentTrace = (vm?: ViewModel | null): string => {
   if (vm && (vm._isVue || vm.__isVue) && vm.$parent) {
     const tree = [];
     let currentRecursiveSequence = 0;
