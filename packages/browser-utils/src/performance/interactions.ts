@@ -30,6 +30,7 @@ import { startIdleSpan } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
+import { UNKNOWN_ELEMENT_NAME } from '../web-vitals/inp';
 import { isBotUserAgent } from '../isBotUserAgent';
 import { WINDOW } from '../types';
 import { msToSec, startAndEndSpan } from './utils';
@@ -253,7 +254,7 @@ function trackInteractionsAsSpans(client: Client): void {
           attributes: {
             [SENTRY_OP]: UI_INTERACTION_CLICK,
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
-            'browser.web_vital.inp.target': selector,
+            ...(selector && selector !== UNKNOWN_ELEMENT_NAME && { 'browser.web_vital.inp.target': selector }),
           },
         };
 

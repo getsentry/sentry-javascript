@@ -268,7 +268,7 @@ describe('interactionsIntegration', () => {
 
   describe('browser event timing entries', () => {
     /** Clicks `target` and feeds the matching `event` timing entry through the observer handler. */
-    function clickAndReportEventTiming(target: Element): Span[] {
+    function clickAndReportEventTiming(target: Element | null): Span[] {
       let handler: ((data: { entries: PerformanceEntry[] }) => void) | undefined;
       vi.spyOn(performanceObserver, 'addPerformanceInstrumentationHandler').mockImplementation((type, callback) => {
         if (type === 'event') {
@@ -347,6 +347,13 @@ describe('interactionsIntegration', () => {
         'ui.component_name': 'StyledButton',
         'browser.web_vital.inp.target': 'body > StyledButton',
       });
+    });
+
+    it('omits the target attribute when the entry has no element to describe', () => {
+      const spans = clickAndReportEventTiming(null);
+
+      expect(spanToJSON(spans[0]!).name).toBe('Click');
+      expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty('browser.web_vital.inp.target');
     });
 
     it('keeps the selector name when span streaming is disabled', () => {
