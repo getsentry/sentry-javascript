@@ -995,6 +995,19 @@ describe('requestDataIntegration processSegmentSpan', () => {
     });
   });
 
+  it('does not split a cookie value that decodes to ";name=value" into a second cookie', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      headers: { cookie: 'session=%3Btheme%3Ds3cr3t' },
+    });
+
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
+
+    expect(span.attributes['http.request.header.cookie']).toEqual(['session=[Filtered]']);
+  });
+
   it('filters sensitive cookies', () => {
     const integration = requestDataIntegration();
     const span = makeSpan();

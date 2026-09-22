@@ -85,7 +85,7 @@ describe('parseCookieHeader', () => {
       ]);
     });
 
-    it.each(['', '   ', ';;;', ' ; ; '])('returns no pairs for %j', header => {
+    it.each(['', '   ', ';;;', ' ; ; ', '=', ' = ; ='])('returns no pairs for %j', header => {
       expect(parseCookieHeader(header, 'cookie')).toEqual([]);
     });
 
@@ -113,6 +113,33 @@ describe('parseCookieHeader', () => {
 
     it('returns no pairs when the cookie segment is empty', () => {
       expect(parseCookieHeader('; HttpOnly', 'set-cookie')).toEqual([]);
+    });
+
+    it.each([
+      [
+        'sid=s3cr3t; Path=/, theme=dark; Path=/',
+        [
+          ['sid', 's3cr3t'],
+          ['theme', 'dark'],
+        ],
+      ],
+      [
+        'sid=s3cr3t; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Path=/, theme=dark',
+        [
+          ['sid', 's3cr3t'],
+          ['theme', 'dark'],
+        ],
+      ],
+      ['sid=s3cr3t; Expires=Wed, 21 Oct 2026 07:28:00 GMT', [['sid', 's3cr3t']]],
+      [
+        'sid=s3cr3t,theme=dark',
+        [
+          ['sid', 's3cr3t'],
+          ['theme', 'dark'],
+        ],
+      ],
+    ])('splits headers joined with "," in %j', (header, expected) => {
+      expect(parseCookieHeader(header, 'set-cookie')).toEqual(expected);
     });
 
     it('returns one pair per header value', () => {
@@ -180,5 +207,9 @@ describe('cookiePairsToRecord', () => {
     expect(cookiePairsToRecord([['cart', '"sku=123456789&name=Magic+Mouse"']])).toEqual({
       cart: 'sku=123456789&name=Magic+Mouse',
     });
+  });
+
+  it.each(['"unterminated', 'unstarted"', '"'])('keeps %j, which is not a quoted value', value => {
+    expect(cookiePairsToRecord([['note', value]])).toEqual({ note: value });
   });
 });
