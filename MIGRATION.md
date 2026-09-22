@@ -1232,6 +1232,8 @@ Because the integration owns error capture, `setupFastifyErrorHandler` no longer
 
 **Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
 
+**`tunnelRoute` requests now run through your middleware:** Webpack builds no longer skip your middleware for tunnel route requests. If your middleware blocks unauthenticated requests globally, exclude the tunnel route in its `matcher`, which requires a fixed string `tunnelRoute` instead of `true`.
+
 **Unified `reactComponentAnnotation` option:** React component annotation is now configured through a single top-level `reactComponentAnnotation` option that applies to both webpack and Turbopack builds:
 
 ```js

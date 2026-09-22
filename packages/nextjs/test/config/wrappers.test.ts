@@ -104,23 +104,6 @@ describe('wrapMiddlewareWithSentry', () => {
     }
   });
 
-  test('should skip processing and return NextResponse.next() for tunnel route requests', async () => {
-    // Set up tunnel route in global
-    (globalThis as any)._sentryRewritesTunnelPath = '/monitoring/tunnel';
-
-    const origFunction: EdgeRouteHandler = vi.fn(async () => ({ status: 200 }));
-    const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
-
-    // Create a mock Request that matches the tunnel route
-    const mockRequest = new Request('https://example.com/monitoring/tunnel?o=123&p=456', { method: 'POST' });
-
-    const result = await wrappedOriginal(mockRequest);
-
-    // Should skip calling the original function
-    expect(origFunction).not.toHaveBeenCalled();
-    expect(result).toBeDefined();
-  });
-
   test('should process normal request and call original function', async () => {
     const mockReturnValue = { status: 200 };
     const origFunction: EdgeRouteHandler = vi.fn(async (..._args) => mockReturnValue);
@@ -160,82 +143,14 @@ describe('wrapMiddlewareWithSentry', () => {
     expect(origFunction).toHaveBeenCalledWith(mockRequest);
   });
 
-  test('should not process tunnel route when no tunnel path is set', async () => {
-    if ('_sentryRewritesTunnelPath' in globalThis) {
-      delete (globalThis as any)._sentryRewritesTunnelPath;
-    }
-
-    const mockReturnValue = { status: 200 };
-    const origFunction: EdgeRouteHandler = vi.fn(async (..._args) => mockReturnValue);
-    const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
-
-    const mockRequest = new Request('https://example.com/monitoring/tunnel/sentry?o=123');
-
-    const result = await wrappedOriginal(mockRequest);
-
-    // Should process normally since no tunnel path is configured
-    expect(origFunction).toHaveBeenCalledWith(mockRequest);
-    expect(result).toBe(mockReturnValue);
-  });
-
-  test('should process request when tunnel path is set but request does not match', async () => {
-    (globalThis as any)._sentryRewritesTunnelPath = '/monitoring/tunnel';
-
-    const mockReturnValue = { status: 200 };
-    const origFunction: EdgeRouteHandler = vi.fn(async (..._args) => mockReturnValue);
-    const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
-
-    const mockRequest = new Request('https://example.com/api/users', { method: 'GET' });
-
-    const result = await wrappedOriginal(mockRequest);
-
-    // Should process normally since request doesn't match tunnel path
-    expect(origFunction).toHaveBeenCalledWith(mockRequest);
-    expect(result).toBe(mockReturnValue);
-  });
-
-  test('should not treat paths as tunnel when they only share a prefix with tunnelRoute', async () => {
-    (globalThis as any)._sentryRewritesTunnelPath = '/api/t';
-
-    const mockReturnValue = { status: 200 };
-    const origFunction: EdgeRouteHandler = vi.fn(async (..._args) => mockReturnValue);
-    const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
-
-    const mockRequest = new Request('https://example.com/api/things', { method: 'GET' });
-
-    const result = await wrappedOriginal(mockRequest);
-
-    expect(origFunction).toHaveBeenCalledWith(mockRequest);
-    expect(result).toBe(mockReturnValue);
-  });
-
-  test('should skip processing for the tunnel route with a trailing slash', async () => {
-    (globalThis as any)._sentryRewritesTunnelPath = '/monitoring';
-
-    const origFunction: EdgeRouteHandler = vi.fn(async () => ({ status: 200 }));
-    const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
-
-    await wrappedOriginal(new Request('https://example.com/monitoring/?o=123&p=456&r=us', { method: 'POST' }));
-
-    expect(origFunction).not.toHaveBeenCalled();
-  });
-
-  test.each([
-    ['a sub-path of the tunnel route', 'https://example.com/monitoring/anything/at/all?o=123&p=456', 'POST'],
-    ['a tunnel request without query params', 'https://example.com/monitoring', 'POST'],
-    ['a tunnel request without project id', 'https://example.com/monitoring?o=123', 'POST'],
-    ['a tunnel request with non-numeric ids', 'https://example.com/monitoring?o=abc&p=456', 'POST'],
-    ['a tunnel request with a repeated non-numeric org id', 'https://example.com/monitoring?o=123&o=abc&p=456', 'POST'],
-    ['a tunnel request with a repeated empty project id', 'https://example.com/monitoring?o=123&p=456&p=', 'POST'],
-    ['a non-POST tunnel request', 'https://example.com/monitoring?o=123&p=456', 'GET'],
-  ])('should run the middleware for %s', async (_, url, method) => {
+  test('should run the middleware for requests to the tunnel route', async () => {
     (globalThis as any)._sentryRewritesTunnelPath = '/monitoring';
 
     const mockReturnValue = { status: 200 };
     const origFunction: EdgeRouteHandler = vi.fn(async (..._args) => mockReturnValue);
     const wrappedOriginal = wrapMiddlewareWithSentry(origFunction);
 
-    const mockRequest = new Request(url, { method });
+    const mockRequest = new Request('https://example.com/monitoring?o=123&p=456', { method: 'POST' });
 
     const result = await wrappedOriginal(mockRequest);
 
