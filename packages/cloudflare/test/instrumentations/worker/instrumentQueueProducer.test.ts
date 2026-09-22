@@ -1,4 +1,4 @@
-import type { Queue } from '@cloudflare/workers-types';
+import type { Queue, QueueMetrics } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentQueueProducer } from '../../../src/instrumentations/worker/instrumentQueueProducer';
@@ -8,6 +8,15 @@ function createMockQueue(): Queue {
     send: vi.fn().mockResolvedValue(undefined),
     sendBatch: vi.fn().mockResolvedValue(undefined),
   } as unknown as Queue;
+}
+
+// `metrics()` reads a private field, so it throws when `this` is the Proxy, as workerd's native methods do.
+class BrandCheckedQueue {
+  readonly #metrics: QueueMetrics = { backlogCount: 3, backlogBytes: 2048 };
+
+  public metrics(): Promise<QueueMetrics> {
+    return Promise.resolve(this.#metrics);
+  }
 }
 
 describe('instrumentQueueProducer', () => {
@@ -177,5 +186,14 @@ describe('instrumentQueueProducer', () => {
     };
     const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE') as Queue & { customMethod: () => string };
     expect(wrapped.customMethod()).toBe('hi');
+  });
+
+  test('calls non-instrumented methods on the underlying queue', async () => {
+    const queue = new BrandCheckedQueue() as unknown as Queue;
+    const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
+
+    const metrics = await wrapped.metrics();
+
+    expect(metrics).toEqual({ backlogCount: 3, backlogBytes: 2048 });
   });
 });
