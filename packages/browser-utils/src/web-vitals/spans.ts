@@ -432,23 +432,18 @@ export function _sendInpSpan(
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
   };
-  if (selector) {
-    attributes['browser.web_vital.inp.target'] = selector;
-  }
-  if (componentName) {
-    attributes[UI_COMPONENT_NAME] = componentName;
-  }
-
-  const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
-  };
 
   // The span's name and op always have a value, even for an INP without an entry, so they can't
   // say whether there was an interaction to describe. These attributes can: they are only set for
-  // what was actually observed.
+  // what was actually observed. The name no longer holds the selector either, now that it is the
+  // component name or the op's fallback under span streaming.
   // TODO: use the `@sentry/conventions` constants once getsentry/sentry-conventions#641 is released.
-  entry && name !== UNKNOWN_ELEMENT_NAME && (attributes['browser.web_vital.inp.target'] = name);
+  selector && selector !== UNKNOWN_ELEMENT_NAME && (attributes['browser.web_vital.inp.target'] = selector);
   entryInteractionType && (attributes['browser.web_vital.inp.interaction_type'] = entryInteractionType);
+
+  if (componentName) {
+    attributes[UI_COMPONENT_NAME] = componentName;
+  }
 
   _emitWebVitalSpan({
     name,

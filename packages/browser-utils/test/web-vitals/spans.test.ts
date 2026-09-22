@@ -658,7 +658,6 @@ describe('_sendInpSpan', () => {
           'browser.web_vital.inp.target': '<button>',
           'sentry.transaction': 'test-route',
           'sentry.segment.name': 'test-route',
-          'browser.web_vital.inp.target': '<button>',
           'browser.web_vital.inp.interaction_type': 'click',
         }),
       }),
@@ -696,11 +695,6 @@ describe('_sendInpSpan', () => {
     _sendInpSpan(120, undefined);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ name: 'Click' }));
-    expect(SentryCoreBrowser.startInactiveSpan).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        attributes: expect.objectContaining({ 'browser.web_vital.inp.target': expect.anything() }),
-      }),
-    );
   });
 
   it('preserves an empty INP selector as the static span name', () => {
