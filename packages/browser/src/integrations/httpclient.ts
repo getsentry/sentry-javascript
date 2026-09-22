@@ -92,13 +92,11 @@ function _fetchResponseHandler(
     if (dc.cookies !== false) {
       const reqCookieStr = request.headers.get('Cookie') || undefined;
       if (reqCookieStr) {
-        const filtered = _INTERNAL_filterCookies(reqCookieStr, dc.cookies);
-        requestCookies = typeof filtered === 'string' ? { cookie: filtered } : filtered;
+        requestCookies = _INTERNAL_filterCookies(reqCookieStr, dc.cookies, 'cookie');
       }
       const resCookieStr = response.headers.get('Set-Cookie') || undefined;
       if (resCookieStr) {
-        const filtered = _INTERNAL_filterCookies(resCookieStr, dc.cookies, 'set-cookie');
-        responseCookies = typeof filtered === 'string' ? { 'set-cookie': filtered } : filtered;
+        responseCookies = _INTERNAL_filterCookies(resCookieStr, dc.cookies, 'set-cookie');
       }
     }
 
@@ -141,8 +139,7 @@ function _xhrResponseHandler(
       try {
         const cookieString = xhr.getResponseHeader('Set-Cookie') || xhr.getResponseHeader('set-cookie') || undefined;
         if (cookieString) {
-          const filtered = _INTERNAL_filterCookies(cookieString, dc.cookies, 'set-cookie');
-          responseCookies = typeof filtered === 'string' ? { 'set-cookie': filtered } : filtered;
+          responseCookies = _INTERNAL_filterCookies(cookieString, dc.cookies, 'set-cookie');
         }
       } catch {
         // ignore it if parsing fails

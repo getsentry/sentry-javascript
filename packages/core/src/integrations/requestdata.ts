@@ -12,7 +12,7 @@ import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filteri
 import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
-import { httpHeadersToSpanAttributes } from '../utils/request';
+import { filterCookiePairs, httpHeadersToSpanAttributes } from '../utils/request';
 import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
@@ -185,12 +185,20 @@ function addNormalizedRequestDataToSpan(
 
   // Process cookies before headers so normalizedRequest.cookies takes precedence
   // over the raw cookie header (matching the processEvent path).
-  if (requestData.cookies && Object.keys(requestData.cookies).length > 0) {
-    const cookieString = Object.entries(requestData.cookies)
-      .map(([name, value]) => `${name}=${value}`)
-      .join('; ');
-    const cookieAttributes = httpHeadersToSpanAttributes({ cookie: cookieString }, dataCollection, 'request');
-    safeSetSpanJSONAttributes(span, cookieAttributes);
+  if (include.cookies) {
+    // Cookies are not serialized to a string and re-parsed: a decoded value could contain ";" and
+    // split into a second, differently named cookie that escapes the denylist.
+    const cookieHeader = normalizedRequest.headers?.cookie;
+    const cookiePairs = normalizedRequest.cookies
+      ? Object.entries(normalizedRequest.cookies)
+      : cookieHeader
+        ? parseCookieHeader(cookieHeader, 'cookie')
+        : [];
+    if (cookiePairs.length > 0) {
+      safeSetSpanJSONAttributes(span, {
+        'http.request.header.cookie': filterCookiePairs(cookiePairs, dataCollection.cookies),
+      });
+    }
   }
 
   if (requestData.headers) {

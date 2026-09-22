@@ -34,26 +34,29 @@ import { FILTERED_VALUE } from './data-collection/filtering-snippets';
 export type CookiePair = [name: string, value: string];
 
 /**
- * Splits a `Cookie` / `Set-Cookie` header into its ordered name-value pairs. Values stay as they are on the wire.
+ * Splits a `Cookie` / `Set-Cookie` header into its ordered name-value pairs. Values are trimmed, but not
+ * decoded or unquoted.
  *
  * A segment without an `=` is a nameless cookie, so the bare token is its value (RFC 6265bis).
  */
 export function parseCookieHeader(value: string | string[], headerName: 'cookie' | 'set-cookie'): CookiePair[] {
-  // Set-Cookie: one cookie per value, followed by attributes ("name=value; HttpOnly; Secure")
+  // Set-Cookie: one cookie per header, followed by attributes ("name=value; HttpOnly; Secure")
   // Cookie: multiple cookies separated by ";" (the space after ";" is not guaranteed on the wire)
   const segments = (Array.isArray(value) ? value : [value]).flatMap(headerValue => {
     if (typeof headerValue !== 'string') {
       return [];
     }
-    return headerName === 'set-cookie' ? [headerValue.split(';')[0]!] : headerValue.split(';');
+    return headerName === 'set-cookie'
+      ? splitJoinedSetCookieHeader(headerValue).map(cookie => cookie.split(';')[0]!)
+      : headerValue.split(';');
   });
 
   return (
     segments
       .map(segment => segment.trim())
-      // ";;" and trailing ";" leave empty segments
-      .filter(segment => segment !== '')
-      .map(segment => {
+      // ";;" and trailing ";" leave empty segments. "=" has neither name nor value, so RFC 6265bis ignores it.
+      .filter(segment => segment !== '' && segment !== '=')
+      .map((segment): CookiePair => {
         // Only first "=" separates name from value: "jwt=eyJhbGc=" has value "eyJhbGc="
         const equalSignIndex = segment.indexOf('=');
         return equalSignIndex === -1
@@ -63,6 +66,15 @@ export function parseCookieHeader(value: string | string[], headerName: 'cookie'
             [segment.slice(0, equalSignIndex).trim(), segment.slice(equalSignIndex + 1).trim()];
       })
   );
+}
+
+/**
+ * `Headers.get('set-cookie')` and `xhr.getResponseHeader()` join several `Set-Cookie` headers with ", ".
+ * A "," only starts a new cookie when a "name=" follows before the next ";", so the "," inside
+ * `Expires=Wed, 21 Oct 2026 07:28:00 GMT` does not split.
+ */
+function splitJoinedSetCookieHeader(headerValue: string): string[] {
+  return headerValue.split(/,(?=[^;=]*=)/);
 }
 
 /**
@@ -84,7 +96,7 @@ export function cookiePairsToRecord(pairs: CookiePair[]): Record<string, string>
 }
 
 function decodeCookieValue(value: string): string {
-  const unquoted = value.charCodeAt(0) === 0x22 ? value.slice(1, -1) : value;
+  const unquoted = value.length > 1 && value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
 
   try {
     return unquoted.indexOf('%') !== -1 ? decodeURIComponent(unquoted) : unquoted;
