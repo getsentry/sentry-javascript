@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bundler-plugins",
-  "version": "11.0.0-rc.0",
+  "version": "11.0.0-rc.1",
   "description": "Sentry Bundler Plugins",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/main/packages/bundler-plugins",
@@ -106,7 +106,7 @@
   },
   "dependencies": {
     "@babel/core": "^7.18.5",
-    "@sentry/core": "11.0.0-rc.0",
+    "@sentry/core": "11.0.0-rc.1",
     "dotenv": "^17.4.2",
     "glob": "^13.0.6",
     "magic-string": "~0.30.8",
