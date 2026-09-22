@@ -79,6 +79,8 @@ sentryTest(
       attributes: {
         'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
         'sentry.op': { value: 'ui.interaction.click', type: 'string' },
+        'ui.component_name': { value: 'NormalButton', type: 'string' },
+        'ui.element.target': { value: 'body > NormalButton', type: 'string' },
         'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.target': { value: 'body > NormalButton', type: 'string' },
@@ -148,6 +150,8 @@ sentryTest(
       attributes: {
         'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
         'sentry.op': { value: 'ui.interaction.click', type: 'string' },
+        'ui.component_name': { value: 'SlowButton', type: 'string' },
+        'ui.element.target': { value: 'body > SlowButton', type: 'string' },
         'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.target': { value: 'body > SlowButton', type: 'string' },

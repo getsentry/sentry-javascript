@@ -1,6 +1,5 @@
 import {
   HTTP_ROUTE,
-  SENTRY_DESCRIPTION,
   SENTRY_IDLE_SPAN_FINISH_REASON,
   SENTRY_OP,
   SENTRY_ORIGIN,
@@ -71,6 +70,10 @@ interface RouteInfo {
   urlPath: string | undefined;
   urlFull: string | undefined;
 }
+
+// TODO: Import `UI_ELEMENT_TARGET` from `@sentry/conventions/attributes` once the attribute is released.
+// See https://github.com/getsentry/sentry-conventions/pull/643
+const UI_ELEMENT_TARGET = 'ui.element.target';
 
 const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
   return {
@@ -199,13 +202,12 @@ function registerInteractionListener(
       }
 
       const hasSpanStreaming = hasSpanStreamingEnabled(client);
-      const description = latestRoute.name;
       const streamedName = latestRoute.urlTemplate || latestRoute.httpRoute || UI_ACTION_CLICK_SPAN_NAME_FALLBACK;
       const streamedNameSource = latestRoute.urlTemplate || latestRoute.httpRoute ? 'route' : 'custom';
 
       inflightInteractionSpan = startIdleSpan(
         {
-          name: hasSpanStreaming ? streamedName : description,
+          name: hasSpanStreaming ? streamedName : latestRoute.name,
           attributes: {
             [SENTRY_OP]: UI_ACTION_CLICK,
             [SENTRY_SEGMENT_NAME_SOURCE]: hasSpanStreaming ? streamedNameSource : latestRoute.source || 'url',
@@ -215,7 +217,6 @@ function registerInteractionListener(
             ...(latestRoute.httpRoute && { [HTTP_ROUTE]: latestRoute.httpRoute }),
             ...(latestRoute.urlPath && { [URL_PATH]: latestRoute.urlPath }),
             ...(latestRoute.urlFull && { [URL_FULL]: filterCollectedUrl(latestRoute.urlFull) }),
-            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         },
         idleSpanOptions,
@@ -249,7 +250,7 @@ function trackInteractionsAsSpans(client: Client): void {
           attributes: {
             [SENTRY_OP]: UI_INTERACTION_CLICK,
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
-            'ui.element.selector': selector,
+            [UI_ELEMENT_TARGET]: selector,
           },
         };
 

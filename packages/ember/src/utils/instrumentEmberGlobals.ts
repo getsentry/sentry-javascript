@@ -8,7 +8,7 @@ import {
   browserPerformanceTimeOrigin,
   hasSpanStreamingEnabled,
   timestampInSeconds,
-  UI_COMPONENT_SPAN_NAME_FALLBACK,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
   UI_TASK_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import { getBackburner } from './utils.ts';
@@ -252,7 +252,7 @@ function _instrumentInitialLoad(): void {
   const description = 'init';
 
   startInactiveSpan({
-    name: hasSpanStreaming ? UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+    name: hasSpanStreaming ? UI_MOUNT_SPAN_NAME_FALLBACK : description,
     attributes: {
       [SENTRY_OP]: UI_MOUNT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',

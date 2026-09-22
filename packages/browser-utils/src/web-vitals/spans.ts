@@ -30,7 +30,7 @@ import {
   addLcpInstrumentationHandler,
 } from '../instrumentation/performanceObserver';
 import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
-import { BROWSER_NAVIGATION_TYPE, SENTRY_DESCRIPTION, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { BROWSER_NAVIGATION_TYPE, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
 import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
 import { listenForWebVitalReportEvents } from './reportEvents';
@@ -46,6 +46,10 @@ import {
   UI_WEBVITAL_CLS,
   UI_WEBVITAL_LCP,
 } from '@sentry/conventions/op';
+
+// TODO: Import `UI_ELEMENT_TARGET` from `@sentry/conventions/attributes` once the attribute is released.
+// See https://github.com/getsentry/sentry-conventions/pull/643
+const UI_ELEMENT_TARGET = 'ui.element.target';
 
 const INTERACTION_TYPE_TO_SPAN_OP: Record<InteractionType, string> = {
   click: UI_INTERACTION_CLICK,
@@ -196,24 +200,21 @@ export function _sendLcpSpan(
   // Without an entry there is no render time to end at, so the span lasts the value it reports,
   // like an entry-less INP does. Ending at the time origin instead would invert the span.
   const endTime = entry ? msToSec(performanceTimeOrigin + entry.startTime) : startTime + msToSec(lcpValue);
-  const description = entry ? htmlTreeAsString(entry.element) : UI_WEBVITAL_LCP_SPAN_NAME_FALLBACK;
-  const selector = entry ? description : undefined;
+  const selector = entry ? htmlTreeAsString(entry.element) : undefined;
   const componentName = entry?.element ? getComponentName(entry.element) : null;
   const client = getClient();
   const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
-  const name = hasSpanStreaming ? componentName || UI_WEBVITAL_LCP_SPAN_NAME_FALLBACK : description;
+  const name = hasSpanStreaming
+    ? componentName || UI_WEBVITAL_LCP_SPAN_NAME_FALLBACK
+    : (selector ?? UI_WEBVITAL_LCP_SPAN_NAME_FALLBACK);
 
   const attributes: SpanAttributes = {};
 
   if (selector) {
-    attributes['ui.element.selector'] = selector;
     attributes['browser.web_vital.lcp.element'] = selector;
   }
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;
-  }
-  if (hasSpanStreaming && !selector) {
-    attributes[SENTRY_DESCRIPTION] = description;
   }
   entry?.id && (attributes['browser.web_vital.lcp.id'] = entry.id);
   entry?.url && (attributes['browser.web_vital.lcp.url'] = entry.url);
@@ -302,23 +303,21 @@ export function _sendClsSpan(
   const offset = entry?.startTime ?? navigationStartTime ?? 0;
   const startTime = performanceTimeOrigin ? msToSec(performanceTimeOrigin + offset) : timestampInSeconds();
   const firstSourceNode = entry?.sources[0]?.node;
-  const description = entry ? htmlTreeAsString(firstSourceNode) : UI_WEBVITAL_CLS_SPAN_NAME_FALLBACK;
-  const selector = entry ? description : undefined;
+  const selector = entry ? htmlTreeAsString(firstSourceNode) : undefined;
   const componentName = firstSourceNode ? getComponentName(firstSourceNode) : null;
   const client = getClient();
   const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
-  const name = hasSpanStreaming ? componentName || UI_WEBVITAL_CLS_SPAN_NAME_FALLBACK : description;
+  const name = hasSpanStreaming
+    ? componentName || UI_WEBVITAL_CLS_SPAN_NAME_FALLBACK
+    : (selector ?? UI_WEBVITAL_CLS_SPAN_NAME_FALLBACK);
 
   const attributes: SpanAttributes = {};
 
   if (selector) {
-    attributes['ui.element.selector'] = selector;
+    attributes[UI_ELEMENT_TARGET] = selector;
   }
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;
-  }
-  if (hasSpanStreaming && !selector) {
-    attributes[SENTRY_DESCRIPTION] = description;
   }
 
   if (entry?.sources) {
@@ -435,20 +434,16 @@ export function _sendInpSpan(
   const client = getClient();
   const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
   const fallbackName = INTERACTION_TYPE_TO_SPAN_NAME_FALLBACK[interactionType];
-  const description = selector !== undefined ? selector : 'Interaction to next paint';
-  const name = hasSpanStreaming ? componentName || fallbackName : description;
+  const name = hasSpanStreaming ? componentName || fallbackName : (selector ?? 'Interaction to next paint');
 
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
   };
   if (selector) {
-    attributes['ui.element.selector'] = selector;
+    attributes[UI_ELEMENT_TARGET] = selector;
   }
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;
-  }
-  if (hasSpanStreaming && !selector) {
-    attributes[SENTRY_DESCRIPTION] = description;
   }
 
   const attributes: SpanAttributes = {

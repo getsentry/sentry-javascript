@@ -6,7 +6,7 @@ import {
   SentrySpan,
   spanToJSON,
   startSpan,
-  UI_COMPONENT_SPAN_NAME_FALLBACK,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import { describe, it } from 'vitest';
 import { browserTracingIntegration, init, TraceClass, TraceDirective } from '../src/index';
@@ -128,7 +128,7 @@ describe('Angular Tracing', () => {
       expect(directive).toBeTruthy();
     });
 
-    it('uses the UI component fallback for a selector-derived name when span streaming is enabled', () => {
+    it('uses the component mount fallback for a selector-derived name when span streaming is enabled', () => {
       getMainCarrier().__SENTRY__ = undefined;
       const spans: SentrySpan[] = [];
       const client = init({ defaultIntegrations: false, tracesSampleRate: 1, traceLifecycle: 'stream' });
@@ -145,7 +145,7 @@ describe('Angular Tracing', () => {
       });
 
       expect(spans).toHaveLength(1);
-      expect(spanToJSON(spans[0]!).name).toBe(UI_COMPONENT_SPAN_NAME_FALLBACK);
+      expect(spanToJSON(spans[0]!).name).toBe(UI_MOUNT_SPAN_NAME_FALLBACK);
       expect(spanToJSON(spans[0]!).attributes['sentry.description']).toBe('<app-profile>');
       expect(spanToJSON(spans[0]!).attributes['ui.component_name']).toBeUndefined();
     });

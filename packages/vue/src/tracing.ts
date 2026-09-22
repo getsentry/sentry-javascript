@@ -4,7 +4,10 @@ import {
   debug,
   hasSpanStreamingEnabled,
   timestampInSeconds,
-  UI_COMPONENT_SPAN_NAME_FALLBACK,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
+  UI_RENDER_SPAN_NAME_FALLBACK,
+  UI_UNMOUNT_SPAN_NAME_FALLBACK,
+  UI_UPDATE_SPAN_NAME_FALLBACK,
   uniq,
 } from '@sentry/core';
 import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
@@ -22,6 +25,15 @@ const VUE_OPERATION_TO_SPAN_OP: Record<Operation, string> = {
   update: UI_UPDATE,
   unmount: UI_UNMOUNT,
   destroy: UI_UNMOUNT,
+};
+
+const VUE_OPERATION_TO_SPAN_NAME_FALLBACK: Record<Operation, string> = {
+  activate: UI_MOUNT_SPAN_NAME_FALLBACK,
+  create: UI_MOUNT_SPAN_NAME_FALLBACK,
+  mount: UI_MOUNT_SPAN_NAME_FALLBACK,
+  update: UI_UPDATE_SPAN_NAME_FALLBACK,
+  unmount: UI_UNMOUNT_SPAN_NAME_FALLBACK,
+  destroy: UI_UNMOUNT_SPAN_NAME_FALLBACK,
 };
 
 export type Mixins = Parameters<Vue['mixin']>[0];
@@ -106,11 +118,11 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
           this.$_sentryRootComponentSpan =
             this.$_sentryRootComponentSpan ||
             startInactiveSpan({
-              name: hasSpanStreaming ? conventionComponentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+              name: hasSpanStreaming ? conventionComponentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
               attributes: {
                 [SENTRY_OP]: UI_RENDER,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
-                ...(hasSpanStreaming && conventionComponentName && { [UI_COMPONENT_NAME]: conventionComponentName }),
+                ...(conventionComponentName && { [UI_COMPONENT_NAME]: conventionComponentName }),
                 ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },
               onlyIfParent: true,
@@ -155,7 +167,9 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
             const description = `Vue ${componentName}`;
 
             this.$_sentryComponentSpans[operation] = startInactiveSpan({
-              name: hasSpanStreaming ? conventionComponentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+              name: hasSpanStreaming
+                ? conventionComponentName || VUE_OPERATION_TO_SPAN_NAME_FALLBACK[operation]
+                : description,
               attributes: {
                 [SENTRY_OP]: VUE_OPERATION_TO_SPAN_OP[operation],
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',

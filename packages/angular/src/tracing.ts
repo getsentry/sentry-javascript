@@ -43,7 +43,7 @@ import {
   timestampInSeconds,
   filterCollectedUrl,
   FUNCTION_SPAN_NAME_FALLBACK,
-  UI_COMPONENT_SPAN_NAME_FALLBACK,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -322,7 +322,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
 
       this._tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
-          name: hasSpanStreaming ? explicitComponentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+          name: hasSpanStreaming ? explicitComponentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
           attributes: {
             [SENTRY_OP]: UI_MOUNT,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
@@ -380,7 +380,7 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
       const tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
           onlyIfParent: true,
-          name: hasSpanStreaming ? componentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+          name: hasSpanStreaming ? componentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
           attributes: {
             [SENTRY_OP]: UI_MOUNT,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',

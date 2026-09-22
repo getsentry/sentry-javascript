@@ -8,7 +8,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/core';
 import {
-  SENTRY_DESCRIPTION,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -112,10 +111,6 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'custom',
       },
-      [SENTRY_DESCRIPTION]: {
-        type: 'string',
-        value: 'Pageload',
-      },
       [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
         type: 'string',
         value: 'production',
@@ -172,7 +167,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'production',
       },
-      'ui.element.selector': {
+      'ui.element.target': {
         type: 'string',
         value: 'body > button.clicked',
       },

@@ -3,7 +3,7 @@
  */
 
 import type { TransactionEvent } from '@sentry/core';
-import { getMainCarrier, spanToJSON, UI_COMPONENT_SPAN_NAME_FALLBACK } from '@sentry/core';
+import { getMainCarrier, spanToJSON, UI_MOUNT_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClient, init, startSpan } from '../src';
@@ -293,7 +293,7 @@ describe('Sentry.trackComponent()', () => {
     expect(ended[0]!.attributes['ui.component_name']).toBe('CustomComponentName');
   });
 
-  it('uses the UI component fallback when no component name is available', async () => {
+  it('uses the component mount fallback when no component name is available', async () => {
     getMainCarrier().__SENTRY__ = undefined;
     const ended: Array<{ name: string; attributes: Record<string, unknown> }> = [];
 
@@ -315,7 +315,7 @@ describe('Sentry.trackComponent()', () => {
     await getClient()?.flush();
 
     expect(ended).toHaveLength(1);
-    expect(ended[0]!.name).toBe(UI_COMPONENT_SPAN_NAME_FALLBACK);
+    expect(ended[0]!.name).toBe(UI_MOUNT_SPAN_NAME_FALLBACK);
     expect(ended[0]!.attributes['sentry.description']).toBe('<Svelte Component>');
     expect(ended[0]!.attributes['ui.component_name']).toBeUndefined();
   });

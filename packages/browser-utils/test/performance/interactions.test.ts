@@ -107,7 +107,6 @@ describe('interactionsIntegration', () => {
     expect(spanToJSON(spans[0]!).name).toBe('/users/:id');
     expect(spanToJSON(spans[0]!).attributes).toMatchObject({
       'sentry.origin': 'auto.browser.interactions',
-      'sentry.description': '/users/:id',
       'url.template': '/users/:id',
     });
   });
@@ -121,7 +120,6 @@ describe('interactionsIntegration', () => {
 
     expect(spanToJSON(getInteractionSpans()[0]!).name).toBe('Click');
     expect(spanToJSON(getInteractionSpans()[0]!).attributes).toMatchObject({
-      'sentry.description': 'Pageload',
       'sentry.segment.name': 'Click',
       'sentry.segment.name.source': 'custom',
     });
@@ -300,7 +298,7 @@ describe('interactionsIntegration', () => {
 
       expect(spanToJSON(spans[0]!).name).toBe('Click');
       expect(spanToJSON(spans[0]!).attributes).toMatchObject({
-        'ui.element.selector': 'body > button.clicked',
+        'ui.element.target': 'body > button.clicked',
       });
       expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty('ui.component_name');
     });
@@ -313,7 +311,7 @@ describe('interactionsIntegration', () => {
       expect(spanToJSON(spans[0]!).name).toBe('AnnotatedButton');
       expect(spanToJSON(spans[0]!).attributes).toMatchObject({
         'ui.component_name': 'AnnotatedButton',
-        'ui.element.selector': 'body > AnnotatedButton',
+        'ui.element.target': 'body > AnnotatedButton',
       });
     });
 
@@ -323,7 +321,7 @@ describe('interactionsIntegration', () => {
       expect(spanToJSON(spans[0]!).name).toBe('StyledButton');
       expect(spanToJSON(spans[0]!).attributes).toMatchObject({
         'ui.component_name': 'StyledButton',
-        'ui.element.selector': 'body > StyledButton',
+        'ui.element.target': 'body > StyledButton',
       });
     });
 

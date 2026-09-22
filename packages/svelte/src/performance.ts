@@ -1,6 +1,12 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { debug, getClient, hasSpanStreamingEnabled, UI_COMPONENT_SPAN_NAME_FALLBACK } from '@sentry/core';
+import {
+  debug,
+  getClient,
+  hasSpanStreamingEnabled,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
+  UI_UPDATE_SPAN_NAME_FALLBACK,
+} from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core/browser';
 import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
 import { UI_MOUNT, UI_UPDATE } from '@sentry/conventions/op';
@@ -56,7 +62,7 @@ function recordInitSpan(componentName: string | undefined, description: string):
 
   const initSpan = startInactiveSpan({
     onlyIfParent: true,
-    name: hasSpanStreaming ? componentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+    name: hasSpanStreaming ? componentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
     attributes: {
       [SENTRY_OP]: UI_MOUNT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte',
@@ -78,7 +84,7 @@ function recordUpdateSpans(componentName: string | undefined, description: strin
 
     updateSpan = startInactiveSpan({
       onlyIfParent: true,
-      name: hasSpanStreaming ? componentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+      name: hasSpanStreaming ? componentName || UI_UPDATE_SPAN_NAME_FALLBACK : description,
       attributes: {
         [SENTRY_OP]: UI_UPDATE,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte',

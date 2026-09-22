@@ -447,18 +447,13 @@ describe('_sendLcpSpan', () => {
     );
   });
 
-  it('names the LCP span after the fallback and preserves the description when span streaming is enabled', () => {
+  it('names the LCP span after the fallback when span streaming is enabled', () => {
     vi.mocked(SentryCore.getClient).mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }) } as any);
 
     _sendLcpSpan(250, undefined);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Largest contentful paint',
-        attributes: expect.objectContaining({
-          'sentry.description': 'Largest contentful paint',
-        }),
-      }),
+      expect.objectContaining({ name: 'Largest contentful paint' }),
     );
   });
 
@@ -699,14 +694,7 @@ describe('_sendInpSpan', () => {
 
     _sendInpSpan(120, undefined);
 
-    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Click',
-        attributes: expect.objectContaining({
-          'sentry.description': 'Interaction to next paint',
-        }),
-      }),
-    );
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ name: 'Click' }));
   });
 
   it('preserves an empty INP selector as the static span name', () => {

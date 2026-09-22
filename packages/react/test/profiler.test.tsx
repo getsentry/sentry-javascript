@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import type { StartSpanOptions } from '@sentry/core';
-import { SentrySpan, UI_COMPONENT_SPAN_NAME_FALLBACK } from '@sentry/core';
+import { SentrySpan, UI_MOUNT_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 import * as React from 'react';
@@ -246,13 +246,13 @@ describe('span streaming', () => {
     });
   });
 
-  it('uses the UI component fallback when the component name is unknown', () => {
+  it('uses the component mount fallback when the component name is unknown', () => {
     const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>);
 
     render(<ProfiledComponent />);
 
     expect(mockStartInactiveSpan).toHaveBeenCalledWith({
-      name: UI_COMPONENT_SPAN_NAME_FALLBACK,
+      name: UI_MOUNT_SPAN_NAME_FALLBACK,
       onlyIfParent: true,
       attributes: {
         'sentry.op': 'ui.mount',

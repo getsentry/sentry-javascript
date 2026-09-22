@@ -290,7 +290,7 @@ describe('tracing mixin span creation', () => {
     ]);
   });
 
-  it('uses the UI component fallback for anonymous components when span streaming is enabled', ({
+  it('uses the component mount fallback for anonymous components when span streaming is enabled', ({
     uiSpans,
     initSentry,
   }) => {
@@ -304,7 +304,7 @@ describe('tracing mixin span creation', () => {
     mountUnderActiveSpan(app);
 
     expect(uiSpans).toEqual([
-      { name: 'UI component', op: UI_MOUNT_SPAN_OP },
+      { name: 'Component mount', op: UI_MOUNT_SPAN_OP },
       { name: 'Root', op: UI_MOUNT_SPAN_OP },
       { name: 'Root', op: UI_RENDER_SPAN_OP },
     ]);

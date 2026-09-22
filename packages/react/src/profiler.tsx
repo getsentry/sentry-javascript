@@ -5,7 +5,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   timestampInSeconds,
-  UI_COMPONENT_SPAN_NAME_FALLBACK,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
+  UI_RENDER_SPAN_NAME_FALLBACK,
+  UI_UPDATE_SPAN_NAME_FALLBACK,
   withActiveSpan,
 } from '@sentry/core';
 import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
@@ -60,7 +62,7 @@ class Profiler extends React.Component<ProfilerProps> {
     const componentName = name === UNKNOWN_COMPONENT ? undefined : name;
 
     this._mountSpan = startInactiveSpan({
-      name: hasSpanStreaming ? componentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+      name: hasSpanStreaming ? componentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
       onlyIfParent: true,
       attributes: {
         [SENTRY_OP]: UI_MOUNT,
@@ -95,7 +97,7 @@ class Profiler extends React.Component<ProfilerProps> {
           const componentName = this.props.name === UNKNOWN_COMPONENT ? undefined : this.props.name;
 
           return startInactiveSpan({
-            name: hasSpanStreaming ? componentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+            name: hasSpanStreaming ? componentName || UI_UPDATE_SPAN_NAME_FALLBACK : description,
             onlyIfParent: true,
             startTime: now,
             attributes: {
@@ -136,7 +138,7 @@ class Profiler extends React.Component<ProfilerProps> {
 
         const renderSpan = startInactiveSpan({
           onlyIfParent: true,
-          name: hasSpanStreaming ? componentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+          name: hasSpanStreaming ? componentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
           startTime,
           attributes: {
             [SENTRY_OP]: UI_RENDER,
@@ -223,7 +225,7 @@ function useProfiler(
     const componentName = name === UNKNOWN_COMPONENT ? undefined : name;
 
     return startInactiveSpan({
-      name: hasSpanStreaming ? componentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+      name: hasSpanStreaming ? componentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
       onlyIfParent: true,
       attributes: {
         [SENTRY_OP]: UI_MOUNT,
@@ -250,7 +252,7 @@ function useProfiler(
         const componentName = name === UNKNOWN_COMPONENT ? undefined : name;
 
         const renderSpan = startInactiveSpan({
-          name: hasSpanStreaming ? componentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
+          name: hasSpanStreaming ? componentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
           onlyIfParent: true,
           startTime,
           attributes: {
