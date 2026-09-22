@@ -2,13 +2,12 @@ import type { RequestEventData } from '../types/request';
 import { isURLObjectRelative, parseStringToURLObject } from './url';
 
 // These mirror Relay's inbound localhost filter (relay-filter/src/localhost.rs) exactly. Any
-// divergence would make the SDK and Relay classify the same traffic differently, so resist
-// "improving" this list (no 0.0.0.0, no .local/.test, no private LAN ranges, no 127.0.0.0/8).
+// divergence would make the SDK and Relay classify the same traffic differently, so do not blindly
+// "improve" this list (no 0.0.0.0, no .local/.test, no private LAN ranges, no 127.0.0.0/8).
+
 const LOCAL_IPS = ['127.0.0.1', '::1'];
 const LOCAL_DOMAINS = ['127.0.0.1', 'localhost'];
-// Node and the Fetch API both lower-case header names, but `normalizedRequest` can also be set by
-// hand, so the canonical casing is checked too. Cheaper than lower-casing every key per span.
-const HOST_HEADERS = ['host', 'x-forwarded-host', 'Host', 'X-Forwarded-Host'];
+const HOST_HEADERS = ['host', 'x-forwarded-host'];
 
 /**
  * Whether a request looks like it was served from the developer's own machine.
@@ -34,10 +33,16 @@ export function isLocalhostRequest(request: RequestEventData | undefined, ipAddr
 
   const headers = request?.headers;
   if (headers) {
-    for (const header of HOST_HEADERS) {
+    // HTTP header names are case-insensitive. Node and the Fetch API lower-case them, but
+    // `normalizedRequest` can also be built by hand, so the lookup does not rely on that.
+    for (const [name, value] of Object.entries(headers)) {
+      if (!HOST_HEADERS.includes(name.toLowerCase())) {
+        continue;
+      }
+
       // Host headers usually look like "localhost:3000", so drop the port. Relay compares the result
       // exactly rather than via `hostMatchesOrIsSubdomainOf`, so "foo.localhost" here does not match.
-      const host = headers[header]?.split(':')[0];
+      const host = value?.split(':')[0];
       if (host && LOCAL_DOMAINS.includes(host)) {
         return true;
       }

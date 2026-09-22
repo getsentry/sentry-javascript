@@ -75,8 +75,21 @@ describe('isLocalhostRequest', () => {
   });
 });
 
+// Header names are matched case-insensitively, which Relay gets for free from its header map.
 describe('isLocalhostRequest host header casing', () => {
-  it.each(['host', 'Host', 'x-forwarded-host', 'X-Forwarded-Host'])('matches the %s header', header => {
+  it.each(['host', 'Host', 'HOST', 'hOsT'])('matches the %s header', header => {
     expect(isLocalhostRequest({ headers: { [header]: 'localhost:3000' } })).toBe(true);
+  });
+
+  it.each(['x-forwarded-host', 'X-Forwarded-Host', 'X-FORWARDED-HOST', 'x-Forwarded-host'])(
+    'matches the %s header',
+    header => {
+      expect(isLocalhostRequest({ headers: { [header]: 'localhost:3000' } })).toBe(true);
+    },
+  );
+
+  it('still does not match unrelated headers whose name lower-cases differently', () => {
+    expect(isLocalhostRequest({ headers: { 'X-Original-Host': 'localhost:3000' } })).toBe(false);
+    expect(isLocalhostRequest({ headers: { Origin: 'localhost' } })).toBe(false);
   });
 });
