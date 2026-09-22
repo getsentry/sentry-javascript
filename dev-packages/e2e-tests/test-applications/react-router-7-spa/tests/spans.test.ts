@@ -70,7 +70,8 @@ test('sends an INP span', async ({ page }) => {
 
   expect(inpSpan).toEqual(
     expect.objectContaining({
-      name: 'body > div#root > input#exception-button[type="button"]',
+      // The element is not annotated with a component name, so the span takes the op's fallback name.
+      name: 'Click',
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -88,6 +89,10 @@ test('sends an INP span', async ({ page }) => {
     expect.objectContaining({
       'sentry.op': { value: 'ui.interaction.click', type: 'string' },
       'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
+      'ui.element.target': {
+        value: 'body > div#root > input#exception-button[type="button"]',
+        type: 'string',
+      },
       'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
       'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
       'sentry.transaction': { value: '/', type: 'string' },

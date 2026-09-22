@@ -267,6 +267,7 @@ test.describe('TraceDirective', () => {
           data: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+            'ui.component_name': 'sample-component',
           },
           description: '<sample-component>', // custom component name passed to trace directive
           op: 'ui.mount',
@@ -311,6 +312,7 @@ test.describe('TraceClass Decorator', () => {
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+          'ui.component_name': 'ComponentTrackingComponent',
         },
         description: '<ComponentTrackingComponent>',
         op: 'ui.mount',
