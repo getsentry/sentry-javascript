@@ -56,12 +56,10 @@ function createSentryFunctionMiddlewareHandler(mechanismType: string) {
 
         // With span streaming, a `function` span is named after the function it wraps.
         updateSpanName(activeSpan, hasSpanStreaming ? serverFnMeta.name : description);
+        activeSpan.setAttribute(CODE_FUNCTION_NAME, serverFnMeta.name);
         if (hasSpanStreaming) {
           // Relay infers a `function` span's description from `code.function.name` alone.
-          activeSpan.setAttributes({
-            [CODE_FUNCTION_NAME]: serverFnMeta.name,
-            [SENTRY_DESCRIPTION]: description,
-          });
+          activeSpan.setAttribute(SENTRY_DESCRIPTION, description);
         }
         activeSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
       }

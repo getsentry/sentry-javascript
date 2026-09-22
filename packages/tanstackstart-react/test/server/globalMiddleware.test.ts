@@ -79,8 +79,8 @@ describe('sentryGlobalFunctionMiddleware', () => {
   });
 
   describe('server function span naming', () => {
-    const setUpActiveSpan = (): { setAttribute: ReturnType<typeof vi.fn>; setAttributes: ReturnType<typeof vi.fn> } => {
-      const span = { setAttribute: vi.fn(), setAttributes: vi.fn() };
+    const setUpActiveSpan = (): { setAttribute: ReturnType<typeof vi.fn> } => {
+      const span = { setAttribute: vi.fn() };
       getActiveSpanSpy.mockReturnValue(span);
       spanToJSONSpy.mockReturnValue({
         name: 'GET /_serverFn/abc123',
@@ -102,10 +102,8 @@ describe('sentryGlobalFunctionMiddleware', () => {
       await serverFn({ next: vi.fn().mockResolvedValue('ok'), serverFnMeta: { name: 'testLog' } });
 
       expect(updateSpanNameSpy).toHaveBeenCalledWith(span, 'testLog');
-      expect(span.setAttributes).toHaveBeenCalledWith({
-        'code.function.name': 'testLog',
-        'sentry.description': 'GET /_serverFn/testLog',
-      });
+      expect(span.setAttribute).toHaveBeenCalledWith('code.function.name', 'testLog');
+      expect(span.setAttribute).toHaveBeenCalledWith('sentry.description', 'GET /_serverFn/testLog');
     });
 
     it('keeps the request path in the span name without span streaming', async () => {
@@ -116,7 +114,9 @@ describe('sentryGlobalFunctionMiddleware', () => {
       await serverFn({ next: vi.fn().mockResolvedValue('ok'), serverFnMeta: { name: 'testLog' } });
 
       expect(updateSpanNameSpy).toHaveBeenCalledWith(span, 'GET /_serverFn/testLog');
-      expect(span.setAttributes).not.toHaveBeenCalled();
+      // The resolved function name is useful in both lifecycles; only the description is a streaming workaround.
+      expect(span.setAttribute).toHaveBeenCalledWith('code.function.name', 'testLog');
+      expect(span.setAttribute).not.toHaveBeenCalledWith('sentry.description', expect.anything());
     });
   });
 });
