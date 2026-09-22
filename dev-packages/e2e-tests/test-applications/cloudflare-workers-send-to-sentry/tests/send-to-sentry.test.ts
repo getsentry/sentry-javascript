@@ -1,6 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { EVENT_POLLING_OPTIONS, findErrorInTrace, findSpanInTrace, traceTarget } from '@sentry-internal/test-utils/cli';
+import {
+  EVENT_POLLING_OPTIONS,
+  fetchSpanAttributes,
+  findErrorInTrace,
+  findSpanInTrace,
+  traceTarget,
+} from '@sentry-internal/test-utils/cli';
 
 // Set by global-setup.mjs once the worker for this run is deployed.
 const workerUrl = process.env.E2E_TEST_WORKER_URL;
@@ -42,4 +48,25 @@ test('Sends a request span to Sentry', async () => {
   await expect
     .poll(() => findSpanInTrace(traceId, 'http.server'), EVENT_POLLING_OPTIONS)
     .toMatchObject({ event_id: spanId });
+});
+
+test('Sends a Workers AI gen_ai span to Sentry', async () => {
+  const response = await fetch(`${workerUrl}/test-workers-ai`);
+  expect(response.status).toBe(200);
+  const { traceId } = await response.json();
+
+  console.log(`Polling for gen_ai.chat span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.chat')?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  // Sentry stores `gen_ai.response.text` as `gen_ai.output.messages`.
+  await expect
+    .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
+    .toMatchObject({
+      'gen_ai.input.messages': expect.stringContaining('Say hi'),
+      'gen_ai.output.messages': expect.stringContaining('"role":"assistant"'),
+    });
 });
