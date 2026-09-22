@@ -85,16 +85,25 @@ export class CloudflareClient extends ServerRuntimeClient {
 
   /**
    * Flushes pending operations and ensures all data is processed.
-   * If a timeout is provided, the operation will be completed within the specified time limit.
    *
-   * It will wait for all pending spans to complete before flushing.
+   * Each phase waits at most `timeout`: the flush lock of a per-invocation client, pending spans, event
+   * processing and the transport drain. So a flush can take a small multiple of `timeout`, which stays well
+   * below Cloudflare's 30 second `waitUntil` limit for the timeouts the SDK uses. Sends still pending when
+   * the drain times out are aborted.
    *
-   * @param {number} [timeout] - Optional timeout in milliseconds to force the completion of the flush operation.
+   * @param {number} [timeout] - Maximum time in milliseconds for each phase of the flush.
    * @return {Promise<boolean>} A promise that resolves to a boolean indicating whether the flush operation was successful.
    */
   public async flush(timeout?: number): Promise<boolean> {
+    // The wait is bounded by `timeout` because a user `waitUntil` task that outlives the invocation
+    // would otherwise keep the flush from draining until the runtime cancels it.
     if (this._flushLock) {
-      await this._flushLock.finalize();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([
+        this._flushLock.finalize(),
+        ...(timeout ? [new Promise<void>(resolve => (timer = setTimeout(resolve, timeout)))] : []),
+      ]);
+      clearTimeout(timer);
     }
 
     if (this._pendingSpans.size > 0 && this._spanCompletionPromise) {
