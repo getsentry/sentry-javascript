@@ -1,5 +1,5 @@
 /**
- * This code was originally copied from the 'cookie` module at v0.5.0 and was simplified for our use case.
+ * The value decoding in `cookiePairsToRecord` was originally copied from the 'cookie` module at v0.5.0.
  * https://github.com/jshttp/cookie/blob/a0c84147aab6266bdb3996cf4062e93907c0b0fc/index.js
  * It had the following license:
  *
@@ -28,51 +28,68 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import { FILTERED_VALUE } from './data-collection/filtering-snippets';
+
+/** A cookie's name and raw value. A nameless cookie (RFC 6265bis) has the name `''`. */
+export type CookiePair = [name: string, value: string];
+
 /**
- * Parses a cookie string
+ * Splits a `Cookie` / `Set-Cookie` header into its ordered name-value pairs. Values are trimmed, but not
+ * decoded or unquoted.
+ *
+ * A segment without an `=` is a nameless cookie, so the bare token is its value (RFC 6265bis).
  */
-export function parseCookie(str: string): Record<string, string> {
-  const obj: Record<string, string> = {};
-  let index = 0;
-
-  while (index < str.length) {
-    const eqIdx = str.indexOf('=', index);
-
-    // no more cookie pairs
-    if (eqIdx === -1) {
-      break;
+export function parseCookieHeader(value: string | string[], headerName: 'cookie' | 'set-cookie'): CookiePair[] {
+  // Set-Cookie: one cookie per header, followed by attributes ("name=value; HttpOnly; Secure")
+  // Cookie: multiple cookies separated by ";" (the space after ";" is not guaranteed on the wire)
+  const segments = (Array.isArray(value) ? value : [value]).flatMap(headerValue => {
+    if (typeof headerValue !== 'string') {
+      return [];
     }
+    return headerName === 'set-cookie' ? [headerValue.split(';')[0]!] : headerValue.split(';');
+  });
 
-    let endIdx = str.indexOf(';', index);
+  return (
+    segments
+      .map(segment => segment.trim())
+      // ";;" and trailing ";" leave empty segments. "=" has neither name nor value, so RFC 6265bis ignores it.
+      .filter(segment => segment !== '' && segment !== '=')
+      .map((segment): CookiePair => {
+        // Only first "=" separates name from value: "jwt=eyJhbGc=" has value "eyJhbGc="
+        const equalSignIndex = segment.indexOf('=');
+        return equalSignIndex === -1
+          ? // No "=": nameless cookie, the whole segment is the value
+            ['', segment]
+          : // Trim both parts, so that "theme = dark" is named "theme", not "theme "
+            [segment.slice(0, equalSignIndex).trim(), segment.slice(equalSignIndex + 1).trim()];
+      })
+  );
+}
 
-    if (endIdx === -1) {
-      endIdx = str.length;
-    } else if (endIdx < eqIdx) {
-      // backtrack on prior semicolon
-      index = str.lastIndexOf(';', eqIdx - 1) + 1;
-      continue;
+/**
+ * Converts cookie pairs to a record with decoded values. The first cookie of a name wins.
+ *
+ * A nameless cookie's token is its value, and no name-based denylist can match it. So it is stored
+ * under the name `''` and its value is always filtered.
+ */
+export function cookiePairsToRecord(pairs: CookiePair[]): Record<string, string> {
+  const record: Record<string, string> = {};
+
+  for (const [name, value] of pairs) {
+    if (record[name] === undefined) {
+      record[name] = name === '' ? FILTERED_VALUE : decodeCookieValue(value);
     }
-
-    const key = str.slice(index, eqIdx).trim();
-
-    // only assign once
-    if (undefined === obj[key]) {
-      let val = str.slice(eqIdx + 1, endIdx).trim();
-
-      // quoted values
-      if (val.charCodeAt(0) === 0x22) {
-        val = val.slice(1, -1);
-      }
-
-      try {
-        obj[key] = val.indexOf('%') !== -1 ? decodeURIComponent(val) : val;
-      } catch {
-        obj[key] = val;
-      }
-    }
-
-    index = endIdx + 1;
   }
 
-  return obj;
+  return record;
+}
+
+function decodeCookieValue(value: string): string {
+  const unquoted = value.length > 1 && value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
+
+  try {
+    return unquoted.indexOf('%') !== -1 ? decodeURIComponent(unquoted) : unquoted;
+  } catch {
+    return unquoted;
+  }
 }
