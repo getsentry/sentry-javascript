@@ -1341,9 +1341,13 @@ describe('requestDataIntegration processSpan', () => {
     };
   }
 
-  function mockIsolationScope(normalizedRequest?: Record<string, unknown>, user: Record<string, unknown> = {}): void {
+  function mockIsolationScope(
+    normalizedRequest?: Record<string, unknown>,
+    user: Record<string, unknown> = {},
+    ipAddress?: string,
+  ): void {
     vi.spyOn(currentScopes, 'getIsolationScope').mockReturnValue({
-      getScopeData: () => ({ user, sdkProcessingMetadata: { normalizedRequest } }),
+      getScopeData: () => ({ user, sdkProcessingMetadata: { normalizedRequest, ipAddress } }),
     } as ReturnType<typeof currentScopes.getIsolationScope>);
   }
 
@@ -1386,6 +1390,49 @@ describe('requestDataIntegration processSpan', () => {
     integration.processSpan!(span, mockClient());
 
     expect(span.attributes).toMatchObject({ 'sentry.is_localhost': true });
+  });
+
+  // `sdkProcessingMetadata.ipAddress` is the socket address the Node HTTP instrumentation records
+  // (`server-subscription.ts`); nothing sets `user.ip_address` on the scope for incoming requests.
+  it('uses the request ip address recorded by the http instrumentation', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({ url: 'http://dev.example/api' }, {}, '127.0.0.1');
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ 'sentry.is_localhost': true });
+  });
+
+  // A reverse proxy on the same host connects over loopback, so the socket address is local even
+  // though the real client is remote. Trusting it would mark production traffic as localhost.
+  it('prefers a forwarded client ip over the loopback socket address', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope(
+      { url: 'https://example.com/api', headers: { host: 'example.com', 'x-forwarded-for': '203.0.113.50' } },
+      {},
+      '127.0.0.1',
+    );
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ 'sentry.is_localhost': false });
+  });
+
+  it('reuses the verdict across every span of the same request', () => {
+    const integration = requestDataIntegration();
+    const normalizedRequest = { url: 'http://dev.example/api' };
+
+    mockIsolationScope(normalizedRequest, {}, '127.0.0.1');
+
+    const segment = makeSpan({ is_segment: true });
+    const child = makeSpan({ is_segment: false });
+    integration.processSpan!(segment, mockClient());
+    integration.processSpan!(child, mockClient());
+
+    expect(segment.attributes).toMatchObject({ 'sentry.is_localhost': true });
+    expect(child.attributes).toMatchObject({ 'sentry.is_localhost': true });
   });
 
   it('sets sentry.is_localhost to false when there is no request on the scope', () => {
