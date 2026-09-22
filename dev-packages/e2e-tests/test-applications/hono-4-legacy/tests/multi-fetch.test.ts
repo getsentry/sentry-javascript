@@ -183,6 +183,19 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
     });
   });
 
+  test.describe('error inside internal fetch (degraded response)', () => {
+    // The manual `sentry()` middleware only instruments the main app's request lifecycle. An error
+    // thrown solely inside an internal sub-app `.request()` — whose failed response the outer handler
+    // swallows — is therefore NOT captured here, unlike the orchestrion auto-instrumentation in the
+    // `hono-4` app, which instruments every dispatched context. We assert only that the outer request
+    // stays healthy.
+    test('degrades to a 200 when the inner route fails', async ({ baseURL }) => {
+      const response = await fetch(`${baseURL}${STOREFRONT}/product/self-watering-plant/degraded`);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ product: null, degraded: true });
+    });
+  });
+
   test.describe('inventory sub-app direct access', () => {
     test('creates its own span when accessed directly via HTTP', async ({ baseURL }) => {
       const segmentPromise = waitForStreamedSpan(

@@ -9,7 +9,8 @@ import {
   startInactiveSpan,
   type WrappedFunction,
 } from '@sentry/core';
-import { type MiddlewareHandler } from 'hono';
+import { type MiddlewareHandler } from './honoTypes';
+import { SENTRY_HONO_MIDDLEWARE } from './createHonoMiddleware';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
 
 const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
@@ -21,6 +22,12 @@ const MIDDLEWARE_ORIGIN = 'auto.middleware.hono';
  * (onion order: A → B → handler → B → A would otherwise nest B under A).
  */
 export function wrapMiddlewareWithSpan(handler: MiddlewareHandler): MiddlewareHandler {
+  // Never turn Sentry's own request/response middleware into a middleware span — e.g. when an
+  // auto-instrumented sub-app carrying it is mounted into a parent and its handlers get wrapped.
+  if ((handler as unknown as Record<PropertyKey, unknown>)[SENTRY_HONO_MIDDLEWARE]) {
+    return handler;
+  }
+
   if (getOriginalFunction(handler as unknown as WrappedFunction)) {
     return handler;
   }
