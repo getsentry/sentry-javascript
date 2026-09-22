@@ -49,6 +49,22 @@ describe('getRequestSpanData', () => {
     });
   });
 
+  it('filters sensitive query params according to dataCollection.urlQueryParams', () => {
+    const span = createSpan('test-span');
+    span.setAttributes({
+      [HTTP_URL]: 'http://example.com/reset?token=secret&page=1',
+      [HTTP_METHOD]: 'GET',
+    });
+
+    const data = getRequestSpanData(span);
+
+    expect(data).toEqual({
+      url: 'http://example.com/reset',
+      'http.method': 'GET',
+      'http.query': '?token=[Filtered]&page=1',
+    });
+  });
+
   it('works without method', () => {
     const span = createSpan('test-span');
     span.setAttributes({

@@ -181,9 +181,10 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
-          [URL_FULL]:
+          [URL_FULL]: filterCollectedUrl(
             // oxlint-disable-next-line typescript-eslint(no-deprecated)
-            kitRootSpanAttributes[URL_FULL] ?? kitRootSpanAttributes[HTTP_URL] ?? filterCollectedUrl(event.url.href),
+            (kitRootSpanAttributes[URL_FULL] ?? kitRootSpanAttributes[HTTP_URL] ?? event.url.href) as string,
+          ),
           [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
           ...(routeName && {
             [HTTP_ROUTE]: routeName,
