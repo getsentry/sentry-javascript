@@ -323,10 +323,30 @@ describe('instrumentDurableObjectNamespace', () => {
       const instrumented = instrumentDurableObjectNamespace(namespace, true);
 
       const stub = instrumented.get({ toString: () => 'id', equals: () => false } as any);
+      (stub as any).connect('127.0.0.1:9');
 
-      // connect and dup should be the original functions, not wrapped
-      expect((stub as any).connect).toBe(connectFn);
+      expect(connectFn).toHaveBeenCalledWith('127.0.0.1:9');
       expect((stub as any).dup).toBe(dupFn);
+    });
+
+    it('calls connect with the underlying stub as `this`', () => {
+      const { namespace: originalNamespace } = createMockNamespace();
+      const rawStub = {
+        id: { toString: () => 'mock-id', equals: () => false, name: 'test' },
+        fetch: vi.fn(),
+        connect(this: unknown) {
+          if (this !== rawStub) {
+            throw new TypeError('Illegal invocation: function called with incorrect `this` reference.');
+          }
+          return 'socket';
+        },
+      };
+      const namespace = { ...originalNamespace, get: vi.fn().mockReturnValue(rawStub) };
+      const instrumented = instrumentDurableObjectNamespace(namespace);
+
+      const stub = instrumented.get({ toString: () => 'id', equals: () => false } as any);
+
+      expect((stub as any).connect('127.0.0.1:9')).toBe('socket');
     });
   });
 
