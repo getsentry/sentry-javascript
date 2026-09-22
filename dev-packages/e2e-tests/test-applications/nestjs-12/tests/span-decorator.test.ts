@@ -19,6 +19,8 @@ function tracedSpan(segmentSpan: SerializedStreamedSpan, name: string, op: strin
     status: 'ok',
     attributes: {
       'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+      // The e2e app is served over localhost (`baseURL: http://localhost:<port>`).
+      'sentry.is_localhost': { type: 'boolean', value: true },
       'sentry.segment.name': { type: 'string', value: segmentSpan.name },
       'sentry.segment.id': { type: 'string', value: segmentSpan.span_id },
       'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
