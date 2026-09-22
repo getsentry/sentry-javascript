@@ -1,6 +1,6 @@
 import { setCurrentClient } from '@sentry/browser';
 import { afterEach, describe, expect, it, test, vi } from 'vitest';
-import { attachErrorHandler } from '../src/errorhandler';
+import { attachErrorHandler, captureVueException } from '../src/errorhandler';
 import type { Operation, Options, ViewModel, Vue } from '../src/types';
 
 describe('attachErrorHandler', () => {
@@ -227,6 +227,36 @@ describe('attachErrorHandler', () => {
 
         t.expect.errorHandlerSpy.toHaveBeenCalledWith(expect.any(Error), vm, 'stub-lifecycle-hook');
       });
+    });
+  });
+});
+
+describe('captureVueException', () => {
+  it('captures an exception synchronously with Vue metadata', () => {
+    const captureException = vi.fn();
+    setCurrentClient({ captureException } as any);
+    const error = new DummyError();
+    const vm = {
+      $options: { name: 'error-boundary' },
+      $props: { source: 'checkout' },
+    } as ViewModel;
+
+    captureVueException(error, vm, 'render');
+
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException.mock.calls[0][0]).toBe(error);
+    expect(captureException.mock.calls[0][1]).toMatchObject({
+      captureContext: {
+        contexts: {
+          vue: {
+            componentName: '<ErrorBoundary>',
+            lifecycleHook: 'render',
+            propsData: { source: 'checkout' },
+            trace: '\n\n(found in <ErrorBoundary>)',
+          },
+        },
+      },
+      mechanism: { handled: false, type: 'auto.function.vue.error_handler' },
     });
   });
 });
