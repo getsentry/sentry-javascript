@@ -305,7 +305,6 @@ export class TraceDirective implements OnInit, AfterViewInit {
    * @inheritdoc
    */
   public ngOnInit(): void {
-    const explicitComponentName = this.componentName;
     if (!this.componentName) {
       // Technically, the `trace` binding should always be provided.
       // However, if it is incorrectly declared on the element without a
@@ -317,16 +316,16 @@ export class TraceDirective implements OnInit, AfterViewInit {
     if (getActiveSpan()) {
       const client = getClient();
       const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
-      const innerName = this.componentName;
-      const description = `<${innerName}>`;
+      const componentName = this.componentName;
+      const description = `<${componentName}>`;
 
       this._tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
-          name: hasSpanStreaming ? explicitComponentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
+          name: hasSpanStreaming ? componentName : description,
           attributes: {
             [SENTRY_OP]: UI_MOUNT,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
-            ...(explicitComponentName && { [UI_COMPONENT_NAME]: explicitComponentName }),
+            [UI_COMPONENT_NAME]: componentName,
             ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         }),

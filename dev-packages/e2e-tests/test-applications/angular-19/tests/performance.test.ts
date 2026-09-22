@@ -279,6 +279,7 @@ test.describe('TraceDirective', () => {
           data: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+            'ui.component_name': 'app-sample-component',
           },
           description: '<app-sample-component>', // fallback selector name
           op: 'ui.mount',

@@ -1,13 +1,6 @@
 import { ElementRef } from '@angular/core';
 import type { ActivatedRouteSnapshot } from '@angular/router';
-import {
-  getMainCarrier,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SentrySpan,
-  spanToJSON,
-  startSpan,
-  UI_MOUNT_SPAN_NAME_FALLBACK,
-} from '@sentry/core';
+import { getMainCarrier, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SentrySpan, spanToJSON, startSpan } from '@sentry/core';
 import { describe, it } from 'vitest';
 import { browserTracingIntegration, init, TraceClass, TraceDirective } from '../src/index';
 import { _updateSpanAttributesForParametrizedUrl, getParameterizedRouteFromSnapshot } from '../src/tracing';
@@ -128,7 +121,7 @@ describe('Angular Tracing', () => {
       expect(directive).toBeTruthy();
     });
 
-    it('uses the component mount fallback for a selector-derived name when span streaming is enabled', () => {
+    it('names the span after the element tag when the directive has no name and span streaming is enabled', () => {
       getMainCarrier().__SENTRY__ = undefined;
       const spans: SentrySpan[] = [];
       const client = init({ defaultIntegrations: false, tracesSampleRate: 1, traceLifecycle: 'stream' });
@@ -145,9 +138,9 @@ describe('Angular Tracing', () => {
       });
 
       expect(spans).toHaveLength(1);
-      expect(spanToJSON(spans[0]!).name).toBe(UI_MOUNT_SPAN_NAME_FALLBACK);
+      expect(spanToJSON(spans[0]!).name).toBe('app-profile');
       expect(spanToJSON(spans[0]!).attributes['sentry.description']).toBe('<app-profile>');
-      expect(spanToJSON(spans[0]!).attributes['ui.component_name']).toBeUndefined();
+      expect(spanToJSON(spans[0]!).attributes['ui.component_name']).toBe('app-profile');
     });
   });
 

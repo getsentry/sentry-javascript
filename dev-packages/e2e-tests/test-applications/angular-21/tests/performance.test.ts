@@ -284,11 +284,11 @@ test.describe('TraceDirective', () => {
           }),
         }),
         expect.objectContaining({
-          // The directive has no component name to use, so the span takes the op's fallback name.
-          name: 'Component mount',
+          name: 'app-sample-component', // fallback element tag name
           attributes: expect.objectContaining({
             'sentry.op': { type: 'string', value: 'ui.mount' },
             'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_directive' },
+            'ui.component_name': { type: 'string', value: 'app-sample-component' },
             'sentry.description': { type: 'string', value: '<app-sample-component>' },
           }),
         }),
