@@ -30,12 +30,6 @@ function loadBabelAnnotationRuntime(): Promise<BabelAnnotationRuntime> {
   return babelAnnotationRuntimePromise;
 }
 
-// We need to be careful not to inject the snippet before any `"use strict";`s.
-// As an additional complication `"use strict";`s may come after any number of comments.
-export const COMMENT_USE_STRICT_REGEX =
-  // Note: CodeQL complains that this regex potentially has n^2 runtime. This likely won't affect realistic files.
-  /^(?:\s*|\/\*(?:.|\r|\n)*?\*\/|\/\/.*[\n\r])*(?:"[^"]*";|'[^']*';)?/;
-
 /**
  * Checks if a file is a JavaScript file based on its extension.
  * Handles query strings and hashes in the filename.
@@ -74,6 +68,7 @@ export function shouldSkipCodeInjection(code: string, facadeModuleId: string | n
 }
 
 export { globFiles } from './glob';
+export { getCodeInjectionPosition } from './get-code-injection-position';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createComponentNameAnnotateHooks(ignoredComponents: string[], injectIntoHtml: boolean) {

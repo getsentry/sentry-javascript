@@ -1,3 +1,5 @@
+/* oxlint-disable max-lines */
+
 import type { Options } from '../core/index';
 import {
   createSentryBuildPluginManager,
@@ -8,6 +10,7 @@ import {
   CodeInjection,
   getDebugIdSnippet,
   createDebugIdUploadFunction,
+  getCodeInjectionPosition,
   isJsFile,
   stampDebugId,
 } from '../core/index';
@@ -35,15 +38,6 @@ try {
   COMPONENT_ANNOTATION_LOADER = path.resolve(dirname, 'component-annotation-transform.js');
 }
 
-interface BannerPluginCallbackArg {
-  chunk?: {
-    hash?: string;
-    contentHash?: {
-      javascript?: string;
-    };
-  };
-}
-
 type PluginClass = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   new (options: any): unknown;
@@ -56,6 +50,12 @@ type WebpackSource = {
 type WebpackRawSource = {
   new (source: string): WebpackSource;
 };
+
+type WebpackReplaceSource = WebpackSource & {
+  insert: (position: number, value: string) => void;
+};
+
+const WEBPACK_JAVASCRIPT_ASSET_REGEX = /\.(?:js|ts|jsx|tsx|mjs|cjs|mts|cts)(?:\?[^?]*)?(?:#[^#]*)?$/;
 
 type WebpackAsset = {
   name: string;
@@ -76,6 +76,9 @@ type WebpackCompiler = {
     };
   };
   hooks: {
+    compilation: {
+      tap: (name: string, callback: (compilation: WebpackCompilation) => void) => void;
+    };
     thisCompilation: {
       tap: (name: string, callback: (compilation: WebpackCompilation) => void) => void;
     };
@@ -87,18 +90,24 @@ type WebpackCompiler = {
     };
   };
   webpack?: {
-    BannerPlugin?: PluginClass;
     DefinePlugin?: PluginClass;
     Compilation?: {
+      PROCESS_ASSETS_STAGE_ADDITIONS?: number;
       PROCESS_ASSETS_STAGE_DEV_TOOLING?: number;
     };
     sources?: {
       RawSource?: WebpackRawSource;
+      ReplaceSource?: new (source: WebpackSource) => WebpackReplaceSource;
     };
   };
 };
 
 type WebpackCompilation = {
+  chunks: Iterable<{
+    files: Iterable<string>;
+    hash?: string;
+    contentHash?: { javascript?: string };
+  }>;
   outputOptions: {
     path?: string;
   };
@@ -108,7 +117,10 @@ type WebpackCompilation = {
   updateAsset: (name: string, source: WebpackSource) => void;
   hooks: {
     processAssets: {
-      tap: (options: { name: string; stage: number }, callback: () => void) => void;
+      tap: (
+        options: { name: string; stage: number },
+        callback: (assets: Record<string, WebpackSource>) => void,
+      ) => void;
     };
   };
 };
@@ -216,39 +228,72 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
 
   const transformReplace = Object.keys(replacementValues).length > 0;
 
+  function addCodeInjection(compiler: WebpackCompiler): void {
+    if (staticInjectionCode.isEmpty() && !sourcemapsEnabled) {
+      return;
+    }
+
+    const ReplaceSource = compiler.webpack?.sources?.ReplaceSource;
+    const processAssetsStage = compiler.webpack?.Compilation?.PROCESS_ASSETS_STAGE_ADDITIONS;
+
+    if (!ReplaceSource || processAssetsStage === undefined) {
+      logger.warn(
+        'Webpack sources are not available. Skipping code injection. This usually means webpack is not properly configured.',
+      );
+      return;
+    }
+
+    compiler.hooks.compilation.tap('sentry-webpack-plugin-injection', compilation => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'sentry-webpack-plugin-injection',
+          stage: processAssetsStage,
+        },
+        assets => {
+          const injectedAssets = new Set<string>();
+
+          for (const chunk of compilation.chunks) {
+            for (const assetName of chunk.files) {
+              if (injectedAssets.has(assetName) || !WEBPACK_JAVASCRIPT_ASSET_REGEX.test(assetName)) {
+                continue;
+              }
+
+              const source = assets[assetName];
+              if (!source) {
+                continue;
+              }
+              injectedAssets.add(assetName);
+
+              const sourceContents = source.source();
+              const code = typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
+              const codeToInject = staticInjectionCode.clone();
+              if (sourcemapsEnabled) {
+                const hash = chunk.contentHash?.javascript ?? chunk.hash;
+                codeToInject.append(getDebugIdSnippet(hash ? stringToUUID(hash) : randomUUID()));
+              }
+
+              const injectionPosition = getCodeInjectionPosition(code);
+              const injection = injectionPosition === code.length ? `\n${codeToInject.code()}` : codeToInject.code();
+              const updatedSource = new ReplaceSource(source);
+              updatedSource.insert(injectionPosition, injection);
+              compilation.updateAsset(assetName, updatedSource);
+            }
+          }
+        },
+      );
+    });
+  }
+
   return {
     apply(compiler: WebpackCompiler) {
       void sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal().catch(() => {
         // Telemetry failures are acceptable
       });
 
-      const { BannerPlugin, DefinePlugin } = compiler.webpack ?? {};
+      const { DefinePlugin } = compiler.webpack ?? {};
 
-      // Add BannerPlugin for code injection (release, metadata, debug IDs)
-      if (!staticInjectionCode.isEmpty() || sourcemapsEnabled) {
-        if (!BannerPlugin) {
-          logger.warn(
-            'BannerPlugin is not available. Skipping code injection. This usually means webpack is not properly configured.',
-          );
-        } else {
-          compiler.options.plugins = compiler.options.plugins || [];
-          compiler.options.plugins.push(
-            new BannerPlugin({
-              raw: true,
-              include: /\.(js|ts|jsx|tsx|mjs|cjs)(\?[^?]*)?(#[^#]*)?$/,
-              banner: (arg?: BannerPluginCallbackArg) => {
-                const codeToInject = staticInjectionCode.clone();
-                if (sourcemapsEnabled) {
-                  const hash = arg?.chunk?.contentHash?.javascript ?? arg?.chunk?.hash;
-                  const debugId = hash ? stringToUUID(hash) : randomUUID();
-                  codeToInject.append(getDebugIdSnippet(debugId));
-                }
-                return codeToInject.code();
-              },
-            }),
-          );
-        }
-      }
+      // BannerPlugin prepends executable code before directive prologues.
+      addCodeInjection(compiler);
 
       // The upload routine (which stamps debug IDs into temp copies of the artifacts) is skipped
       // with `disable-upload`, so the emitted artifacts get stamped in the asset pipeline instead.
