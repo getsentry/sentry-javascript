@@ -65,6 +65,8 @@ export const httpContextIntegration = defineIntegration(() => {
           protocol === 'file:' ||
           hostname === 'localhost' ||
           hostname === '127.0.0.1' ||
+          // `location.hostname` keeps the brackets for IPv6 hosts, so this is `[::1]`, not `::1`.
+          hostname === '[::1]' ||
           !!hostname?.endsWith('.localhost'),
 
         // These attributes, we only need on the segment span (analogous to the `request` context for events)

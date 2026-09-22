@@ -217,6 +217,8 @@ describe('httpContextIntegration', () => {
       { protocol: 'http:', hostname: 'foo.localhost' },
       { protocol: 'http:', hostname: 'foo.bar.localhost' },
       { protocol: 'file:', hostname: '' },
+      // `location.hostname` keeps the brackets for IPv6 hosts.
+      { protocol: 'http:', hostname: '[::1]' },
     ])('is true for $protocol//$hostname', location => {
       expect(processSpanWithLocation(location)).toMatchObject({ 'sentry.is_localhost': true });
     });
@@ -226,6 +228,7 @@ describe('httpContextIntegration', () => {
       { protocol: 'https:', hostname: 'localhost.com' },
       { protocol: 'https:', hostname: 'foolocalhost' },
       { protocol: 'https:', hostname: '127.0.0.2' },
+      { protocol: 'http:', hostname: '[::2]' },
     ])('is false for $protocol//$hostname', location => {
       expect(processSpanWithLocation(location)).toMatchObject({ 'sentry.is_localhost': false });
     });
