@@ -35,6 +35,10 @@ export default Sentry.withSentry(
         return new Response('enqueued batch');
       }
 
+      if (url.pathname === '/metrics') {
+        return Response.json(await env.MY_QUEUE.metrics());
+      }
+
       return new Response('not found', { status: 404 });
     },
     async queue(batch: MessageBatch<{ trigger?: 'error'; payload?: string }>) {
