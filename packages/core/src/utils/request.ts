@@ -1,10 +1,12 @@
 /* eslint-disable max-lines-per-function */
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import type { ResolvedDataCollection } from '../types/datacollection';
+import type { CollectBehavior, ResolvedDataCollection } from '../types/datacollection';
 import type { PolymorphicRequest } from '../types/polymorphics';
 import type { RequestEventData } from '../types/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types/webfetchapi';
+import type { CookiePair } from './cookie';
+import { parseCookieHeader } from './cookie';
 import { debug } from './debug-logger';
 import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from './data-collection/filtering-snippets';
 import { shouldFilterDataKey } from './data-collection/filterKeyValueData';
@@ -303,18 +305,10 @@ export function httpHeadersToSpanAttributes(
           continue;
         }
 
-        const cookies = parseCookieHeader(value, lowerKey === 'set-cookie');
+        const cookies = parseCookieHeader(value, lowerKey);
+        // A cookie header without a single pair may still hold a token, so it counts as sensitive.
         spanAttributes[`${prefix}${lowerKey}`] = cookies.length
-          ? cookies.map(([cookieKey, cookieValue]) => {
-              // A nameless cookie's bare token is its value; no denylist could match it, so it is
-              // always filtered.
-              if (cookieKey === '') {
-                return FILTERED_VALUE;
-              }
-              return shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
-                ? `${cookieKey}=${FILTERED_VALUE}`
-                : `${cookieKey}=${cookieValue}`;
-            })
+          ? filterCookiePairs(cookies, cookieBehavior)
           : [FILTERED_VALUE];
       } else {
         if (headerBehavior === false) {
@@ -343,31 +337,17 @@ export function httpHeadersToSpanAttributes(
   return spanAttributes;
 }
 
-/**
- * Splits a `Cookie` / `Set-Cookie` header into its name-value pairs.
- *
- * A segment without an `=` is a nameless cookie, so the bare token is its value (RFC 6265bis):
- * it is returned as a pair with an empty name.
- */
-function parseCookieHeader(value: string | string[], isSetCookie: boolean): [string, string][] {
-  // Set-Cookie: one cookie per value, with attributes ("name=value; HttpOnly; Secure")
-  // Cookie: multiple cookies separated by ";" (the space after ";" is not guaranteed on the wire)
-  const cookies = (Array.isArray(value) ? value : [value]).flatMap(headerValue => {
-    if (typeof headerValue !== 'string' || headerValue === '') {
-      return [];
+/** Formats cookie pairs as `name=value` span attribute values, with sensitive values replaced. */
+export function filterCookiePairs(cookies: CookiePair[], cookieBehavior: CollectBehavior): string[] {
+  return cookies.map(([cookieKey, cookieValue]) => {
+    // A nameless cookie's bare token is its value; no denylist could match it, so it is always filtered.
+    if (cookieKey === '') {
+      return FILTERED_VALUE;
     }
-    return isSetCookie ? [headerValue.split(';')[0]!] : headerValue.split(';');
+    return shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
+      ? `${cookieKey}=${FILTERED_VALUE}`
+      : `${cookieKey}=${cookieValue}`;
   });
-
-  return cookies
-    .map(cookie => cookie.trim())
-    .filter(cookie => cookie !== '')
-    .map(cookie => {
-      const equalSignIndex = cookie.indexOf('=');
-      return equalSignIndex !== -1
-        ? [cookie.substring(0, equalSignIndex), cookie.substring(equalSignIndex + 1)]
-        : ['', cookie];
-    });
 }
 
 /** Extract the query params from an URL. */

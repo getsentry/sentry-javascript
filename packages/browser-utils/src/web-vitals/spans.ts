@@ -13,7 +13,7 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import type { InteractionType } from './inp';
-import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION } from './inp';
+import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION, UNKNOWN_ELEMENT_NAME } from './inp';
 import type { InstrumentationHandlerCallback, MetricNavigationType } from '../instrumentation/performanceObserver';
 import {
   addClsInstrumentationHandler,
@@ -24,7 +24,6 @@ import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
 import { BROWSER_NAVIGATION_TYPE } from '@sentry/conventions/attributes';
 import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
-import type { WebVitalReportEvent } from './reportEvents';
 import { listenForWebVitalReportEvents } from './reportEvents';
 import { getNavigationSpanForMetric } from './softNavs';
 import { getBrowserPerformanceAPI, msToSec, supportsWebVital } from '../performance/utils';
@@ -125,7 +124,6 @@ export function trackLcpAsSpan(client: Client, perNavigation = false): void {
         metric.value,
         entry,
         parentSpan,
-        undefined,
         softNavigationId,
         metric.navigationType,
         metric.navigationStartTime,
@@ -151,8 +149,8 @@ export function trackLcpAsSpan(client: Client, perNavigation = false): void {
     lcpEntry = entry;
   }, true);
 
-  listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, reportEvent, undefined, lcpNavigationType);
+  listenForWebVitalReportEvents(client, pageloadSpan => {
+    _sendLcpSpan(lcpValue, lcpEntry, pageloadSpan, undefined, lcpNavigationType);
     cleanupLcpHandler();
   });
 }
@@ -164,7 +162,6 @@ export function _sendLcpSpan(
   lcpValue: number,
   entry: LargestContentfulPaint | undefined,
   pageloadSpan?: Span,
-  reportEvent?: WebVitalReportEvent,
   softNavigationId?: number,
   navigationType?: MetricNavigationType,
   navigationStartTime?: number,
@@ -202,7 +199,6 @@ export function _sendLcpSpan(
     value: lcpValue,
     attributes,
     parentSpan: pageloadSpan,
-    reportEvent,
     startTime,
     endTime,
     softNavigationId,
@@ -225,7 +221,6 @@ export function trackClsAsSpan(client: Client, perNavigation = false): void {
         metric.value,
         entry,
         parentSpan,
-        undefined,
         softNavigationId,
         metric.navigationType,
         metric.navigationStartTime,
@@ -251,8 +246,8 @@ export function trackClsAsSpan(client: Client, perNavigation = false): void {
     clsEntry = entry;
   }, true);
 
-  listenForWebVitalReportEvents(client, (reportEvent, _, pageloadSpan) => {
-    _sendClsSpan(clsValue, clsEntry, pageloadSpan, reportEvent, undefined, clsNavigationType);
+  listenForWebVitalReportEvents(client, pageloadSpan => {
+    _sendClsSpan(clsValue, clsEntry, pageloadSpan, undefined, clsNavigationType);
     cleanupClsHandler();
   });
 }
@@ -264,7 +259,6 @@ export function _sendClsSpan(
   clsValue: number,
   entry: LayoutShift | undefined,
   pageloadSpan?: Span,
-  reportEvent?: WebVitalReportEvent,
   softNavigationId?: number,
   navigationType?: MetricNavigationType,
   navigationStartTime?: number,
@@ -295,7 +289,6 @@ export function _sendClsSpan(
     value: clsValue,
     attributes,
     parentSpan: pageloadSpan,
-    reportEvent,
     startTime,
     softNavigationId,
     navigationType,
@@ -381,7 +374,8 @@ export function _sendInpSpan(
   // `ui.interaction.*` family, because falling outside it would hide exactly the fast navigations
   // that web-vitals synthesizes these values for (GoogleChrome/web-vitals#724), reintroducing the
   // reporting bias they were added to remove.
-  const interactionType = (entry && INP_ENTRY_MAP[entry.name]) || 'click';
+  const entryInteractionType = entry && INP_ENTRY_MAP[entry.name];
+  const interactionType = entryInteractionType || 'click';
 
   const cachedContext = entry && getCachedInteractionContext(entry.interactionId);
   const activeSpan = getActiveSpan();
@@ -392,15 +386,24 @@ export function _sendInpSpan(
   const spanToUse = attributedSpan || cachedContext?.span || rootSpan;
   const name = cachedContext?.elementName || (entry ? htmlTreeAsString(entry.target) : 'Interaction to next paint');
 
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
+  };
+
+  // The span's name and op always have a value, even for an INP without an entry, so they can't
+  // say whether there was an interaction to describe. These attributes can: they are only set for
+  // what was actually observed.
+  // TODO: use the `@sentry/conventions` constants once getsentry/sentry-conventions#641 is released.
+  entry && name !== UNKNOWN_ELEMENT_NAME && (attributes['browser.web_vital.inp.target'] = name);
+  entryInteractionType && (attributes['browser.web_vital.inp.interaction_type'] = entryInteractionType);
+
   _emitWebVitalSpan({
     name,
     op: INTERACTION_TYPE_TO_SPAN_OP[interactionType],
     origin: 'auto.http.browser.inp',
     metricName: 'inp',
     value: inpValue,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
-    },
+    attributes,
     startTime,
     endTime: startTime + duration,
     navigationType: metric?.navigationType,

@@ -1,31 +1,25 @@
 import type { CollectBehavior } from '../../types/datacollection';
-import { parseCookie } from '../cookie';
-import { FILTERED_VALUE as FILTERED, SENSITIVE_COOKIE_NAME_SNIPPETS } from './filtering-snippets';
+import { cookiePairsToRecord, parseCookieHeader } from '../cookie';
+import { SENSITIVE_COOKIE_NAME_SNIPPETS } from './filtering-snippets';
 import { filterKeyValueData } from './filterKeyValueData';
 
 /**
- * Filters a cookie string according to a `CollectBehavior`.
+ * Filters a `Cookie` / `Set-Cookie` header string according to a `CollectBehavior`.
  *
- * When individual cookies can be parsed, each key-value pair is filtered
- * independently. When parsing fails, the entire string is replaced with `[Filtered]`.
- * A nameless segment inside an otherwise parseable string (`"opaque-blob; theme=dark"`) is
- * dropped, since a record key cannot carry a `[Filtered]` marker without leaking the token.
+ * Each named cookie is filtered independently. A nameless cookie (`"opaque-blob"`, `"=opaque-blob"`)
+ * is reported as `{ '': '[Filtered]' }`, since its token is the value.
+ *
+ * @param headerName - `'set-cookie'` keeps only the cookie pair and ignores the attributes (`Path`, `Max-Age`, ...)
  */
-export function filterCookies(cookieString: string, behavior: CollectBehavior): Record<string, string> | string {
+export function filterCookies(
+  cookieString: string,
+  behavior: CollectBehavior,
+  headerName: 'cookie' | 'set-cookie',
+): Record<string, string> {
   if (behavior === false) {
     return {};
   }
 
-  try {
-    const parsed = parseCookie(cookieString);
-
-    // A non-empty string we cannot parse may still hold a session token, so it counts as sensitive.
-    if (Object.keys(parsed).length === 0) {
-      return cookieString ? FILTERED : {};
-    }
-
-    return filterKeyValueData(parsed, behavior, SENSITIVE_COOKIE_NAME_SNIPPETS);
-  } catch {
-    return FILTERED;
-  }
+  const cookies = cookiePairsToRecord(parseCookieHeader(cookieString, headerName));
+  return filterKeyValueData(cookies, behavior, SENSITIVE_COOKIE_NAME_SNIPPETS);
 }

@@ -15,6 +15,8 @@ export interface TraceItem {
   event_id?: string;
   event_type?: 'span' | 'error' | 'occurrence' | 'uptime_check';
   op?: string | null;
+  /** On a span this is the span name. */
+  description?: string | null;
   children?: TraceItem[] | null;
   errors?: TraceItem[] | null;
   occurrences?: TraceItem[] | null;

@@ -618,6 +618,14 @@ Sentry.init({
 });
 ```
 
+### Web vital spans no longer carry a report event
+
+Affected SDKs: All SDKs running in the browser.
+
+LCP and CLS spans no longer set `browser.web_vital.lcp.report_event` and `browser.web_vital.cls.report_event`. The attribute recorded whether the SDK finalized the page load's value on `pagehide` or at the first `navigation`. With per-navigation reporting (the default, see above) `web-vitals` decides when a value is final and the attribute was already never set, so it only remained for setups that turn per-navigation reporting off.
+
+When the values are finalized is unchanged. If you have searches or dashboards keyed on the attribute, remove the filter.
+
 ### `DOMException.code` is no longer set as a tag
 
 Affected SDKs: All SDKs running in the browser.
@@ -1019,6 +1027,7 @@ The following span names were adjusted:
 | `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one                              | `/users/:id`, `/users/123`                                                     | The parameterized route, or `Pageload` if the SDK has none                                                                                                                          | `/users/:id`, `Pageload`                               |
 | `navigation`, `navigation.redirect`                                      | The parameterized route, or the raw URL path if the SDK couldn't resolve one                              | `/users/:id`, `/users/123`                                                     | The parameterized route, or `Navigation` if the SDK has none                                                                                                                        | `/users/:id`, `Navigation`                             |
 | `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources                                   | `/assets/app.js`                                                               | The resource domain, or `Resource` if the SDK has none                                                                                                                              | `cdn.example.com`, `Resource`                          |
+| `browser.*` (navigation timing)                                          | The document URL                                                                                          | `https://example.com/users/123?ref=x`                                          | A static name per timing phase. The URL stays on `url.full`                                                                                                                         | `DNS lookup`, `Request`, `Load event`                  |
 | `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one                         | `GET /users/:id`, `GET /users/123`                                             | The request method and route when one is known, otherwise just the method                                                                                                           | `GET /users/:id`, `GET`                                |
 | `http.client`, `http.client.stream`                                      | The request method and sanitized URL                                                                      | `GET https://api.example.com/users/123`                                        | The request method and the domain, or just the method if there is no domain                                                                                                         | `GET api.example.com`, `GET`                           |
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL                                                      | `/users/123`, `SvelteKit Route Change`                                         | The span's `http.route`, or `Router` if the SDK has none                                                                                                                            | `/users/:id`, `Router`                                 |
@@ -1027,6 +1036,7 @@ The following span names were adjusted:
 | `function` (Angular `TraceMethod`)                                       | The decorator's `name` option in angle brackets                                                           | `<getUser>`, `<unnamed>`                                                       | The decorator's `name` option, or `Function execution` if it has none                                                                                                               | `Login.ngOnInit`, `getUsers`, `Function execution`     |
 | `function` (SvelteKit)                                                   | The route the wrapped function ran for, or the raw URL path if the SDK couldn't resolve one               | `/users/[id]`, `/users/123`, `GET /api/users/[id]`                             | The name of the wrapped function                                                                                                                                                    | `load`, `GET`                                          |
 | `function` (Ember route hooks)                                           | The full route name                                                                                       | `slow-loading-route.index`                                                     | The hook the span wraps, matching its `code.function.name`. The route moves to `sentry.description`                                                                                 | `beforeModel`, `model`, `setupController`              |
+| `function` (React Router route hooks)                                    | The route the hook ran for, the raw URL path if React Router matched no pattern, or the fetcher key       | `/users/:id`, `/users/123`, `Fetcher fetcher-1`                                | The hook the span wraps, matching its `code.function.name`. The previous name moves to `sentry.description`                                                                         | `loader`, `action`, `clientLoader`, `fetcher`          |
 | `function.gcp`                                                           | The request method and path for HTTP functions, otherwise the trigger's event or trigger type             | `POST /users`, `google.pubsub.topic.publish`, `firebase.function.http.request` | The function name, or `Serverless function execution` if the SDK cannot resolve one                                                                                                 | `myFunction`, `Serverless function execution`          |
 | `function.aws`                                                           | The Lambda function name                                                                                  | `my-function`                                                                  | Unchanged, except that the SDK now falls back to `Serverless function execution` if it cannot resolve the function name                                                             | `my-function`, `Serverless function execution`         |
 | `graphql`                                                                | The graphql phase and, for operations, the operation name                                                 | `query GetUser`, `graphql.parse`, `graphql.resolve user.0.name`                | The operation type, or the processing type where there is none                                                                                                                      | `GraphQL query`, `GraphQL parse`, `GraphQL resolve`    |
@@ -1043,6 +1053,29 @@ The following span names were adjusted:
 | `db` (mongoose)                                                          | `mongoose.<Model>.<operation>`                                                                            | `mongoose.BlogPost.findOne`                                                    | The operation and the collection, the database namespace when there is no collection, or `mongodb` when the SDK has neither                                                         | `findOne blogposts`                                    |
 | `db` (supabase)                                                          | The query builder call and the table, or `auth <method>` for auth calls                                   | `select(...) from(users)`, `auth signInWithPassword`                           | The operation and the table, or the dotted auth method                                                                                                                              | `select users`, `auth.signInWithPassword`              |
 | `db.query` (redis, ioredis)                                              | The serialized command, with its arguments redacted, or `redis-<command>` on the diagnostics-channel path | `set test-key [1 other arguments]`, `redis-SET`                                | The operation and the connection, the operation and the redis function for `FCALL`/`FCALL_RO`, or `redis` when the SDK knows neither                                                | `SET localhost:6379`, `fcall my_func`, `redis`         |
+
+#### Browser navigation timing spans
+
+The spans for the phases of a document load were all named after the document URL, which put the raw
+URL on ten spans of every pageload. None of these ops has an attribute template in the conventions, so
+each phase now gets a static name:
+
+| Span op                            | Name                     |
+| ---------------------------------- | ------------------------ |
+| `browser.cache`                    | `Cache lookup`           |
+| `browser.dns`                      | `DNS lookup`             |
+| `browser.connect`                  | `Connect`                |
+| `browser.tls_ssl`                  | `TLS handshake`          |
+| `browser.redirect`                 | `Redirect`               |
+| `browser.request`                  | `Request`                |
+| `browser.response`                 | `Response`               |
+| `browser.unload_event`             | `Unload event`           |
+| `browser.dom_content_loaded_event` | `DOMContentLoaded event` |
+| `browser.load_event`               | `Load event`             |
+
+These spans now carry the document URL on `url.full` in both trace lifecycles, subject to the
+`dataCollection.urlQueryParams` option. Match on that attribute in `ignoreSpans` and `tracesSampler`
+rules that used to match these names.
 
 #### Serverless function spans
 
@@ -1223,6 +1256,8 @@ Because the integration owns error capture, `setupFastifyErrorHandler` no longer
 ### `@sentry/nextjs`
 
 **Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
+
+**`tunnelRoute` requests now run through your middleware:** Webpack builds no longer skip your middleware for tunnel route requests. If your middleware blocks unauthenticated requests globally, exclude the tunnel route in its `matcher`, which requires a fixed string `tunnelRoute` instead of `true`.
 
 **Unified `reactComponentAnnotation` option:** React component annotation is now configured through a single top-level `reactComponentAnnotation` option that applies to both webpack and Turbopack builds:
 

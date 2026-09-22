@@ -32,7 +32,7 @@ function baseEvent(overrides: Partial<Event> = {}): Event {
   };
 }
 
-/** Rich normalized request (Cookie header only — tests `parseCookie` path). */
+/** Rich normalized request (Cookie header only — tests the cookie header parsing path). */
 function richNormalizedRequest() {
   return {
     method: 'POST',
@@ -311,6 +311,23 @@ describe('requestDataIntegration', () => {
 
       expect(event.request?.headers).toBeUndefined();
       expect(event.request?.cookies).toEqual({ id: '42' });
+    });
+
+    it('filters a nameless token in the cookie header', () => {
+      const integration = requestDataIntegration();
+      const event: Event = {
+        sdkProcessingMetadata: {
+          normalizedRequest: {
+            method: 'GET',
+            url: 'https://example.com/',
+            headers: { cookie: '=y7Uu0Rk2QpLmXv3; theme=dark' },
+          },
+        },
+      };
+
+      integration.processEvent?.(event, {}, mockClient({ cookies: true }));
+
+      expect(event.request?.cookies).toEqual({ '': '[Filtered]', theme: 'dark' });
     });
 
     it('omits headers when include.headers is false and dataCollection enables headers', () => {
@@ -976,6 +993,19 @@ describe('requestDataIntegration processSegmentSpan', () => {
     expect(span.attributes).toMatchObject({
       'http.request.header.cookie': ['theme=dark', 'locale=en'],
     });
+  });
+
+  it('does not split a cookie value that decodes to ";name=value" into a second cookie', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({
+      headers: { cookie: 'session=%3Btheme%3Ds3cr3t' },
+    });
+
+    integration.processSegmentSpan!(span, mockClient({ userInfo: false }));
+
+    expect(span.attributes['http.request.header.cookie']).toEqual(['session=[Filtered]']);
   });
 
   it('filters sensitive cookies', () => {

@@ -6,11 +6,11 @@ import {
   waitForStreamedSpans,
 } from '@sentry-internal/test-utils';
 
-const BROWSER_TIMING_OPS = [
-  'browser.dom_content_loaded_event',
-  'browser.connect',
-  'browser.request',
-  'browser.response',
+const BROWSER_TIMING_SPANS: Array<[op: string, name: string]> = [
+  ['browser.dom_content_loaded_event', 'DOMContentLoaded event'],
+  ['browser.connect', 'Connect'],
+  ['browser.request', 'Request'],
+  ['browser.response', 'Response'],
 ];
 
 test('Captures a pageload span', async ({ page }) => {
@@ -49,10 +49,10 @@ test('Captures a pageload span', async ({ page }) => {
     'url.path': { value: '/', type: 'string' },
   });
 
-  for (const op of BROWSER_TIMING_OPS) {
+  for (const [op, name] of BROWSER_TIMING_SPANS) {
     expect(spans).toContainEqual(
       expect.objectContaining({
-        name: page.url(),
+        name,
         is_segment: false,
         status: 'ok',
         parent_span_id: pageloadSpan.span_id,
@@ -63,6 +63,7 @@ test('Captures a pageload span', async ({ page }) => {
         attributes: expect.objectContaining({
           'sentry.origin': { value: 'auto.ui.browser.metrics', type: 'string' },
           'sentry.op': { value: op, type: 'string' },
+          'url.full': { value: page.url(), type: 'string' },
         }),
       }),
     );

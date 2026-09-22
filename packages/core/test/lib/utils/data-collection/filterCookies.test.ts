@@ -4,13 +4,13 @@ import { filterCookies } from '../../../../src/utils/data-collection/filterCooki
 describe('filterCookies', () => {
   describe('off mode (false)', () => {
     it('returns empty record', () => {
-      expect(filterCookies('theme=dark; user_session=abc123', false)).toEqual({});
+      expect(filterCookies('theme=dark; user_session=abc123', false, 'cookie')).toEqual({});
     });
   });
 
   describe('denyList mode (true)', () => {
     it('filters sensitive cookie names and preserves safe ones', () => {
-      const result = filterCookies('theme=dark; user_session=abc123; locale=en', true);
+      const result = filterCookies('theme=dark; user_session=abc123; locale=en', true, 'cookie');
 
       expect(result).toEqual({
         theme: 'dark',
@@ -20,7 +20,7 @@ describe('filterCookies', () => {
     });
 
     it('filters auth-related cookies', () => {
-      const result = filterCookies('auth_token=xyz; color=blue', true);
+      const result = filterCookies('auth_token=xyz; color=blue', true, 'cookie');
 
       expect(result).toEqual({
         auth_token: '[Filtered]', // matches "auth" and "token"
@@ -29,7 +29,11 @@ describe('filterCookies', () => {
     });
 
     it('filters cookie-specific sensitive names', () => {
-      const result = filterCookies('theme=dark; connect.sid=abc; remember_me=xyz; __secure-token=secret', true);
+      const result = filterCookies(
+        'theme=dark; connect.sid=abc; remember_me=xyz; __secure-token=secret',
+        true,
+        'cookie',
+      );
 
       expect(result).toEqual({
         theme: 'dark',
@@ -42,7 +46,7 @@ describe('filterCookies', () => {
 
   describe('denyList mode ({ deny: [...] })', () => {
     it('applies extra deny terms on top of built-in denylist', () => {
-      const result = filterCookies('theme=dark; tracking_id=abc', { deny: ['tracking'] });
+      const result = filterCookies('theme=dark; tracking_id=abc', { deny: ['tracking'] }, 'cookie');
 
       expect(result).toEqual({
         theme: 'dark',
@@ -53,9 +57,13 @@ describe('filterCookies', () => {
 
   describe('allowList mode ({ allow: [...] })', () => {
     it('only allows specified cookie names to pass through', () => {
-      const result = filterCookies('theme=dark; user_session=abc; locale=en', {
-        allow: ['theme', 'locale'],
-      });
+      const result = filterCookies(
+        'theme=dark; user_session=abc; locale=en',
+        {
+          allow: ['theme', 'locale'],
+        },
+        'cookie',
+      );
 
       expect(result).toEqual({
         theme: 'dark',
@@ -65,7 +73,7 @@ describe('filterCookies', () => {
     });
 
     it('sensitive denylist overrides allowlist', () => {
-      const result = filterCookies('auth_token=secret', { allow: ['auth_token'] });
+      const result = filterCookies('auth_token=secret', { allow: ['auth_token'] }, 'cookie');
 
       expect(result).toEqual({
         auth_token: '[Filtered]', // "auth" and "token" match sensitive denylist
@@ -75,33 +83,57 @@ describe('filterCookies', () => {
 
   describe('empty and unparseable input', () => {
     it('returns empty record for empty string', () => {
-      expect(filterCookies('', true)).toEqual({});
+      expect(filterCookies('', true, 'cookie')).toEqual({});
     });
 
-    it('filters the whole string when no key-value pairs can be extracted', () => {
-      expect(filterCookies(';;;', true)).toBe('[Filtered]');
-      expect(filterCookies('opaque-session-blob', true)).toBe('[Filtered]');
+    it('returns an empty record when the string holds no cookie', () => {
+      expect(filterCookies(';;;', true, 'cookie')).toEqual({});
     });
   });
 
-  // Intended behavior for the cookie parsing consolidation follow-up: `Set-Cookie` attributes are
-  // metadata, not cookies, so they must not show up as key-value pairs. Marked `fails` until the
-  // shared parser handles them.
-  describe('Set-Cookie attribute handling (known gaps)', () => {
-    it.fails('does not report Set-Cookie attributes as cookie pairs', () => {
-      expect(filterCookies('sid=1; Max-Age=3600; Path=/', true)).toEqual({ sid: '[Filtered]' });
+  describe('nameless cookies', () => {
+    it.each(['y7Uu0Rk2QpLmXv3; theme=dark', '=y7Uu0Rk2QpLmXv3; theme=dark', 'theme=dark; y7Uu0Rk2QpLmXv3'])(
+      'filters the nameless token in %j and keeps the named cookie',
+      cookieString => {
+        expect(filterCookies(cookieString, true, 'cookie')).toEqual({ '': '[Filtered]', theme: 'dark' });
+      },
+    );
+
+    it.each(['y7Uu0Rk2QpLmXv3', '=y7Uu0Rk2QpLmXv3'])('filters %j when it is the only cookie', cookieString => {
+      expect(filterCookies(cookieString, true, 'cookie')).toEqual({ '': '[Filtered]' });
     });
 
-    it.fails('does not report Expires/Domain attributes as cookie pairs', () => {
-      expect(filterCookies('theme=dark; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Domain=example.com', true)).toEqual({
+    it('filters the nameless token when an allowlist is configured', () => {
+      expect(filterCookies('y7Uu0Rk2QpLmXv3; theme=dark', { allow: ['theme'] }, 'cookie')).toEqual({
+        '': '[Filtered]',
         theme: 'dark',
       });
     });
   });
 
+  describe('Set-Cookie header', () => {
+    it('does not report Set-Cookie attributes as cookie pairs', () => {
+      expect(filterCookies('sid=1; Max-Age=3600; Path=/', true, 'set-cookie')).toEqual({ sid: '[Filtered]' });
+    });
+
+    it('does not report Expires/Domain attributes as cookie pairs', () => {
+      expect(
+        filterCookies('theme=dark; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Domain=example.com', true, 'set-cookie'),
+      ).toEqual({ theme: 'dark' });
+    });
+
+    it('filters the token of a nameless cookie', () => {
+      expect(filterCookies('y7Uu0Rk2QpLmXv3; HttpOnly; Secure', true, 'set-cookie')).toEqual({ '': '[Filtered]' });
+    });
+  });
+
   describe('edge cases', () => {
+    it('reads attribute-like names in a Cookie header as cookies', () => {
+      expect(filterCookies('theme=dark; Path=/checkout', true, 'cookie')).toEqual({ theme: 'dark', Path: '/checkout' });
+    });
+
     it('handles cookies with = in the value', () => {
-      const result = filterCookies('data=base64==; theme=light', true);
+      const result = filterCookies('data=base64==; theme=light', true, 'cookie');
 
       expect(result).toEqual({
         data: 'base64==',
@@ -110,7 +142,7 @@ describe('filterCookies', () => {
     });
 
     it('handles quoted cookie values', () => {
-      const result = filterCookies('theme="dark mode"', true);
+      const result = filterCookies('theme="dark mode"', true, 'cookie');
 
       expect(result).toEqual({
         theme: 'dark mode',
