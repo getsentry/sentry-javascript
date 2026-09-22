@@ -32,8 +32,9 @@ export function filterCollectedUrl(url: string | undefined, client?: Client): st
  * See {@link filterCollectedUrl} for why this is a helper and why passing `client` is preferred.
  */
 export function filterCollectedUrlQuery(query: string | undefined, client?: Client): string | undefined {
+  // An empty query is passed through as-is so call sites keep emitting the same shape as before.
   if (!query) {
-    return undefined;
+    return query;
   }
 
   // v10 records `URL.search` verbatim, so the leading `?` has to survive filtering.

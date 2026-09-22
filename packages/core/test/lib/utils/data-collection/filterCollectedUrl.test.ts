@@ -98,8 +98,8 @@ describe('filterCollectedUrlQuery', () => {
     expect(withUrlQueryParams(false, () => filterCollectedUrlQuery('token=abc'))).toBeUndefined();
   });
 
-  it('returns undefined for an empty or missing query', () => {
-    expect(withUrlQueryParams(undefined, () => filterCollectedUrlQuery(''))).toBeUndefined();
+  it('passes an empty or missing query through unchanged', () => {
+    expect(withUrlQueryParams(undefined, () => filterCollectedUrlQuery(''))).toBe('');
     expect(withUrlQueryParams(undefined, () => filterCollectedUrlQuery(undefined))).toBeUndefined();
   });
 
