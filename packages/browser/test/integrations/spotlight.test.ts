@@ -34,7 +34,12 @@ describe('spotlightBrowserIntegration', () => {
       ['click on nested spotlight element', 'html > body > aside#sentry-spotlight'],
     ])('%s', (_label, name) => {
       const ignoreSpans = setupIntegrationAndGetIgnoreSpans();
-      expect(shouldIgnoreSpan({ description: name, op: 'ui.interaction.click' }, ignoreSpans)).toBe(true);
+      expect(
+        shouldIgnoreSpan(
+          { description: name, op: 'ui.interaction.click', attributes: { 'ui.element.selector': name } },
+          ignoreSpans,
+        ),
+      ).toBe(true);
     });
   });
 
@@ -45,7 +50,9 @@ describe('spotlightBrowserIntegration', () => {
       ['non-interaction span', 'GET /api/data', 'http.client'],
     ])('%s', (_label, name, op) => {
       const ignoreSpans = setupIntegrationAndGetIgnoreSpans();
-      expect(shouldIgnoreSpan({ description: name, op }, ignoreSpans)).toBe(false);
+      expect(
+        shouldIgnoreSpan({ description: name, op, attributes: { 'ui.element.selector': name } }, ignoreSpans),
+      ).toBe(false);
     });
   });
 });

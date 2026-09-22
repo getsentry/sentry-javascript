@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import type { StartSpanOptions } from '@sentry/core';
-import { SentrySpan } from '@sentry/core';
+import { SentrySpan, UI_COMPONENT_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 import * as React from 'react';
@@ -19,9 +19,11 @@ class MockSpan extends SentrySpan {
 }
 
 let activeSpan: Record<string, any>;
+let mockGetClient: () => { getOptions: () => { traceLifecycle: string } } | undefined = () => undefined;
 
 vi.mock('@sentry/browser', async requireActual => ({
   ...(await requireActual()),
+  getClient: () => mockGetClient(),
   getActiveSpan: () => activeSpan,
   startInactiveSpan: (ctx: StartSpanOptions) => {
     mockStartInactiveSpan(ctx);
@@ -32,6 +34,7 @@ vi.mock('@sentry/browser', async requireActual => ({
 beforeEach(() => {
   mockStartInactiveSpan.mockClear();
   mockFinish.mockClear();
+  mockGetClient = () => undefined;
   activeSpan = new MockSpan({ op: 'pageload' });
 });
 
@@ -77,7 +80,6 @@ describe('withProfiler', () => {
         attributes: {
           'sentry.op': 'ui.mount',
           'sentry.origin': 'auto.ui.react.profiler',
-          'ui.component_name': 'unknown',
         },
       });
     });
@@ -99,7 +101,6 @@ describe('withProfiler', () => {
         attributes: {
           'sentry.op': 'ui.render',
           'sentry.origin': 'auto.ui.react.profiler',
-          'ui.component_name': 'unknown',
         },
       });
       expect(mockFinish).toHaveBeenCalledTimes(2);
@@ -132,7 +133,6 @@ describe('withProfiler', () => {
           'sentry.op': 'ui.update',
           'sentry.origin': 'auto.ui.react.profiler',
           'ui.react.changed_props': ['num'],
-          'ui.component_name': 'unknown',
         },
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
@@ -147,7 +147,6 @@ describe('withProfiler', () => {
           'sentry.op': 'ui.update',
           'sentry.origin': 'auto.ui.react.profiler',
           'ui.react.changed_props': ['num'],
-          'ui.component_name': 'unknown',
         },
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
@@ -223,6 +222,43 @@ describe('useProfiler()', () => {
           },
         }),
       );
+    });
+  });
+});
+
+describe('span streaming', () => {
+  beforeEach(() => {
+    mockGetClient = () => ({ getOptions: () => ({ traceLifecycle: 'stream' }) });
+  });
+
+  it('names mount spans after the component and preserves the bracketed description', () => {
+    renderHook(() => useProfiler('Example'));
+
+    expect(mockStartInactiveSpan).toHaveBeenCalledWith({
+      name: 'Example',
+      onlyIfParent: true,
+      attributes: {
+        'sentry.op': 'ui.mount',
+        'ui.component_name': 'Example',
+        'sentry.origin': 'auto.ui.react.profiler',
+        'sentry.description': '<Example>',
+      },
+    });
+  });
+
+  it('uses the UI component fallback when the component name is unknown', () => {
+    const ProfiledComponent = withProfiler(() => <h1>Hello World</h1>);
+
+    render(<ProfiledComponent />);
+
+    expect(mockStartInactiveSpan).toHaveBeenCalledWith({
+      name: UI_COMPONENT_SPAN_NAME_FALLBACK,
+      onlyIfParent: true,
+      attributes: {
+        'sentry.op': 'ui.mount',
+        'sentry.origin': 'auto.ui.react.profiler',
+        'sentry.description': `<${UNKNOWN_COMPONENT}>`,
+      },
     });
   });
 });

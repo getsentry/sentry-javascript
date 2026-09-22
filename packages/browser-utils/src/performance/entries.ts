@@ -4,12 +4,15 @@ import {
   BROWSER_NAVIGATION_TIMING_SPAN_NAMES,
   browserPerformanceTimeOrigin,
   getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
   parseUrl,
   RESOURCE_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
   filterCollectedUrl,
+  UI_LONG_TASK_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import {
   BROWSER_PAINT_TYPE,
@@ -22,6 +25,7 @@ import {
   NETWORK_CONNECTION_EFFECTIVE_TYPE,
   NETWORK_CONNECTION_RTT,
   NETWORK_CONNECTION_TYPE,
+  SENTRY_DESCRIPTION,
   SENTRY_OP,
   SERVER_ADDRESS,
   URL_DOMAIN,
@@ -118,11 +122,15 @@ export function startTrackingLongTasks(): void {
         continue;
       }
 
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+
       startAndEndSpan(parent, startTime, startTime + duration, {
-        name: 'Main UI thread blocked',
+        name: UI_LONG_TASK_SPAN_NAME_FALLBACK,
         op: UI_LONG_TASK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+          ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: UI_LONG_TASK_SPAN_NAME_FALLBACK }),
         },
       });
     }
@@ -180,10 +188,16 @@ export function startTrackingLongAnimationFrames(): void {
         attributes['browser.script.source_char_position'] = sourceCharPosition;
       }
 
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+
       startAndEndSpan(parent, startTime, startTime + duration, {
-        name: 'Main UI thread blocked',
+        name: UI_LONG_TASK_SPAN_NAME_FALLBACK,
         op: UI_LONG_ANIMATION_FRAME,
-        attributes,
+        attributes: {
+          ...attributes,
+          ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: UI_LONG_TASK_SPAN_NAME_FALLBACK }),
+        },
       });
     }
   });

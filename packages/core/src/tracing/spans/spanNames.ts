@@ -109,6 +109,78 @@ export const SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK = 'Serverless function execu
 export const FUNCTION_SPAN_NAME_FALLBACK = 'Function execution';
 
 /**
+ * Fallback name for ui.mount, ui.render, ui.update, and ui.unmount spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-component
+ */
+export const UI_COMPONENT_SPAN_NAME_FALLBACK = 'UI component';
+
+/**
+ * Fallback name for ui.task spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-task
+ */
+export const UI_TASK_SPAN_NAME_FALLBACK = 'UI task';
+
+/**
+ * Fallback name for ui.long_task and ui.long_animation_frame spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-long-task
+ */
+export const UI_LONG_TASK_SPAN_NAME_FALLBACK = 'Main UI thread blocked';
+
+/**
+ * Fallback name for ui.action spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-action
+ */
+export const UI_ACTION_SPAN_NAME_FALLBACK = 'UI action';
+
+/**
+ * Fallback name for ui.action.click spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-action
+ */
+export const UI_ACTION_CLICK_SPAN_NAME_FALLBACK = 'Click';
+
+/**
+ * Fallback name for ui.interaction.click spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-interaction
+ */
+export const UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK = 'Click';
+
+/**
+ * Fallback name for ui.interaction.hover spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-interaction
+ */
+export const UI_INTERACTION_HOVER_SPAN_NAME_FALLBACK = 'Hover';
+
+/**
+ * Fallback name for ui.interaction.drag spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-interaction
+ */
+export const UI_INTERACTION_DRAG_SPAN_NAME_FALLBACK = 'Drag';
+
+/**
+ * Fallback name for ui.interaction.press spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-interaction
+ */
+export const UI_INTERACTION_PRESS_SPAN_NAME_FALLBACK = 'Press';
+
+/**
+ * Fallback name for ui.webvital.lcp spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-web-vitals
+ */
+export const UI_WEBVITAL_LCP_SPAN_NAME_FALLBACK = 'Largest contentful paint';
+
+/**
+ * Fallback name for ui.webvital.cls spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui-web-vitals
+ */
+export const UI_WEBVITAL_CLS_SPAN_NAME_FALLBACK = 'Layout shift';
+
+/**
+ * Fallback name for generic ui spans when no better-suited span name is available.
+ * @see https://getsentry.github.io/sentry-conventions/names/#ui
+ */
+export const UI_SPAN_NAME_FALLBACK = 'UI';
+
+/**
  * The `cache.operation` attribute value each cache op carries. Cache span names are
  * `cache.{{cache.operation}}`, so the op constant itself doubles as the low-cardinality span name.
  * @see https://getsentry.github.io/sentry-conventions/names/#cache

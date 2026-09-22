@@ -16,7 +16,10 @@ sentryTest(
     // Set up an observer that fails if a spotlight interaction span is ever sent
     let sawSpotlightInteractionSpan = false;
     await observeStreamedSpan(page, span => {
-      if (getSpanOp(span) === 'ui.interaction.click' && span.name?.includes('#sentry-spotlight')) {
+      if (
+        getSpanOp(span) === 'ui.interaction.click' &&
+        String(span.attributes?.['ui.element.selector']?.value ?? span.name).includes('#sentry-spotlight')
+      ) {
         sawSpotlightInteractionSpan = true;
         return true;
       }
@@ -39,7 +42,11 @@ sentryTest(
 
     // Click on the regular button — its ui.interaction.click child should be kept
     const regularInteractionSpansPromise = waitForStreamedSpans(page, spans =>
-      spans.some(span => getSpanOp(span) === 'ui.interaction.click' && !span.name?.includes('#sentry-spotlight')),
+      spans.some(
+        span =>
+          getSpanOp(span) === 'ui.interaction.click' &&
+          !String(span.attributes?.['ui.element.selector']?.value ?? span.name).includes('#sentry-spotlight'),
+      ),
     );
 
     await page.locator('[data-test-id=regular-button]').click();
@@ -47,10 +54,14 @@ sentryTest(
 
     const regularSpans = await regularInteractionSpansPromise;
     const regularInteractionSpan = regularSpans.find(
-      span => getSpanOp(span) === 'ui.interaction.click' && !span.name?.includes('#sentry-spotlight'),
+      span =>
+        getSpanOp(span) === 'ui.interaction.click' &&
+        !String(span.attributes?.['ui.element.selector']?.value ?? span.name).includes('#sentry-spotlight'),
     );
     expect(regularInteractionSpan).toBeDefined();
-    expect(regularInteractionSpan!.name).toContain('button');
+    expect(
+      String(regularInteractionSpan!.attributes?.['ui.element.selector']?.value ?? regularInteractionSpan!.name),
+    ).toContain('button');
 
     // Verify no spotlight interaction span was ever sent
     expect(sawSpotlightInteractionSpan).toBe(false);

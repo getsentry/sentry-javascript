@@ -15,7 +15,10 @@ export type SpotlightConnectionOptions = {
 
 export const INTEGRATION_NAME = 'SpotlightBrowser' as const;
 
-export const SPOTLIGHT_IGNORE_SPANS = [{ op: UI_INTERACTION_CLICK, name: '#sentry-spotlight' }];
+export const SPOTLIGHT_IGNORE_SPANS = [
+  { op: UI_INTERACTION_CLICK, name: '#sentry-spotlight' },
+  { op: UI_INTERACTION_CLICK, attributes: { 'ui.element.selector': '#sentry-spotlight' } },
+];
 
 const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
   const sidecarUrl = options.sidecarUrl || 'http://localhost:8969/stream';

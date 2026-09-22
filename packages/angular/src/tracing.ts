@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { ElementRef } from '@angular/core';
@@ -28,6 +29,7 @@ import {
   URL_PATH,
   URL_TEMPLATE,
   SENTRY_DESCRIPTION,
+  UI_COMPONENT_NAME,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, ROUTER } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
@@ -41,6 +43,7 @@ import {
   timestampInSeconds,
   filterCollectedUrl,
   FUNCTION_SPAN_NAME_FALLBACK,
+  UI_COMPONENT_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -302,6 +305,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
    * @inheritdoc
    */
   public ngOnInit(): void {
+    const explicitComponentName = this.componentName;
     if (!this.componentName) {
       // Technically, the `trace` binding should always be provided.
       // However, if it is incorrectly declared on the element without a
@@ -311,12 +315,19 @@ export class TraceDirective implements OnInit, AfterViewInit {
     }
 
     if (getActiveSpan()) {
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+      const innerName = this.componentName;
+      const description = `<${innerName}>`;
+
       this._tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
-          name: `<${this.componentName}>`,
+          name: hasSpanStreaming ? explicitComponentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
           attributes: {
             [SENTRY_OP]: UI_MOUNT,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+            ...(explicitComponentName && { [UI_COMPONENT_NAME]: explicitComponentName }),
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         }),
       );
@@ -355,22 +366,30 @@ interface TraceClassOptions {
  * Decorator function that can be used to capture initialization lifecycle of the whole component.
  */
 export function TraceClass(options?: TraceClassOptions): ClassDecorator {
-  let tracingSpan: Span;
+  const tracingSpans = new WeakMap<object, Span>();
 
   /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   return target => {
+    const componentName = options?.name || target.name;
     const originalOnInit = target.prototype.ngOnInit;
     target.prototype.ngOnInit = function (...args: unknown[]): ReturnType<typeof originalOnInit> {
-      tracingSpan = runOutsideAngular(() =>
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+      const description = `<${options?.name || 'unnamed'}>`;
+
+      const tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
           onlyIfParent: true,
-          name: `<${options?.name || 'unnamed'}>`,
+          name: hasSpanStreaming ? componentName || UI_COMPONENT_SPAN_NAME_FALLBACK : description,
           attributes: {
             [SENTRY_OP]: UI_MOUNT,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+            ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         }),
       );
+      tracingSpans.set(this, tracingSpan);
 
       if (originalOnInit) {
         return originalOnInit.apply(this, args);
@@ -379,8 +398,10 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
 
     const originalAfterViewInit = target.prototype.ngAfterViewInit;
     target.prototype.ngAfterViewInit = function (...args: unknown[]): ReturnType<typeof originalAfterViewInit> {
+      const tracingSpan = tracingSpans.get(this);
       if (tracingSpan) {
         runOutsideAngular(() => tracingSpan.end());
+        tracingSpans.delete(this);
       }
       if (originalAfterViewInit) {
         return originalAfterViewInit.apply(this, args);

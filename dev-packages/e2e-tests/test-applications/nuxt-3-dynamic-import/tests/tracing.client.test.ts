@@ -32,10 +32,10 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
   await page.goto(`/client-error`);
 
   const spans = await spansPromise;
-  const errorButtonSpan = spans.find(span => span.name === 'Vue <ErrorButton>');
+  const errorButtonSpan = spans.find(span => span.name === 'ErrorButton');
 
   expect(errorButtonSpan).toMatchObject({
-    name: 'Vue <ErrorButton>',
+    name: 'ErrorButton',
     is_segment: false,
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),

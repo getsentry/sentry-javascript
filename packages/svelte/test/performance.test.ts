@@ -3,7 +3,7 @@
  */
 
 import type { TransactionEvent } from '@sentry/core';
-import { getMainCarrier } from '@sentry/core';
+import { getMainCarrier, spanToJSON, UI_COMPONENT_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClient, init, startSpan } from '../src';
@@ -57,9 +57,13 @@ describe('Sentry.trackComponent()', () => {
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
+      exclusive_time: undefined,
+      links: undefined,
+      measurements: undefined,
       op: 'ui.mount',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
+      profile_id: undefined,
       span_id: initSpanId,
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
@@ -98,9 +102,13 @@ describe('Sentry.trackComponent()', () => {
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
+      exclusive_time: undefined,
+      links: undefined,
+      measurements: undefined,
       op: 'ui.mount',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
+      profile_id: undefined,
       span_id: initSpanId,
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
@@ -114,9 +122,13 @@ describe('Sentry.trackComponent()', () => {
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
+      exclusive_time: undefined,
+      links: undefined,
+      measurements: undefined,
       op: 'ui.update',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
+      profile_id: undefined,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
@@ -130,9 +142,13 @@ describe('Sentry.trackComponent()', () => {
         'sentry.origin': 'auto.ui.svelte',
       },
       description: '<Svelte Component>',
+      exclusive_time: undefined,
+      links: undefined,
+      measurements: undefined,
       op: 'ui.update',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
+      profile_id: undefined,
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
@@ -209,7 +225,9 @@ describe('Sentry.trackComponent()', () => {
     expect(transaction.spans).toHaveLength(2);
 
     expect(transaction.spans![0]?.description).toEqual('<CustomComponentName>');
+    expect(transaction.spans![0]?.data).toMatchObject({ 'ui.component_name': 'CustomComponentName' });
     expect(transaction.spans![1]?.description).toEqual('<CustomComponentName>');
+    expect(transaction.spans![1]?.data).toMatchObject({ 'ui.component_name': 'CustomComponentName' });
   });
 
   it("doesn't do anything, if there's no ongoing parent span", async () => {
@@ -243,5 +261,62 @@ describe('Sentry.trackComponent()', () => {
 
     expect(transaction.spans![0]?.op).toEqual('ui.mount');
     expect(transaction.spans![1]?.op).toEqual('ui.update');
+  });
+
+  it('names component spans after the component and preserves the bracketed description when span streaming is enabled', async () => {
+    getMainCarrier().__SENTRY__ = undefined;
+
+    const ended: Array<{ name: string; attributes: Record<string, unknown> }> = [];
+
+    init({
+      dsn: PUBLIC_DSN,
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+    });
+
+    getClient()?.on('spanEnd', span => {
+      const json = spanToJSON(span);
+      if (json.attributes?.['sentry.origin'] === 'auto.ui.svelte') {
+        ended.push({ name: json.name, attributes: json.attributes as Record<string, unknown> });
+      }
+    });
+
+    startSpan({ name: 'outer' }, () => {
+      render(DummyComponent, { props: { options: { componentName: 'CustomComponentName' } } });
+    });
+
+    await getClient()?.flush();
+
+    expect(ended).toHaveLength(1);
+    expect(ended[0]!.name).toBe('CustomComponentName');
+    expect(ended[0]!.attributes['sentry.description']).toBe('<CustomComponentName>');
+    expect(ended[0]!.attributes['ui.component_name']).toBe('CustomComponentName');
+  });
+
+  it('uses the UI component fallback when no component name is available', async () => {
+    getMainCarrier().__SENTRY__ = undefined;
+    const ended: Array<{ name: string; attributes: Record<string, unknown> }> = [];
+
+    init({
+      dsn: PUBLIC_DSN,
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+    });
+    getClient()?.on('spanEnd', span => {
+      const json = spanToJSON(span);
+      if (json.attributes?.['sentry.origin'] === 'auto.ui.svelte') {
+        ended.push({ name: json.name, attributes: json.attributes as Record<string, unknown> });
+      }
+    });
+
+    startSpan({ name: 'outer' }, () => {
+      render(DummyComponent, { props: { options: {} } });
+    });
+    await getClient()?.flush();
+
+    expect(ended).toHaveLength(1);
+    expect(ended[0]!.name).toBe(UI_COMPONENT_SPAN_NAME_FALLBACK);
+    expect(ended[0]!.attributes['sentry.description']).toBe('<Svelte Component>');
+    expect(ended[0]!.attributes['ui.component_name']).toBeUndefined();
   });
 });

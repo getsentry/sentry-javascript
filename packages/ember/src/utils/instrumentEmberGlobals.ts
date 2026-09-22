@@ -1,10 +1,16 @@
 import { subscribe } from '@ember/instrumentation';
 import { scheduleOnce } from '@ember/runloop';
-import { SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
 import { UI_MOUNT, UI_RENDER, UI_TASK } from '@sentry/conventions/op';
-import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
+import { getActiveSpan, getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
+import {
+  browserPerformanceTimeOrigin,
+  hasSpanStreamingEnabled,
+  timestampInSeconds,
+  UI_COMPONENT_SPAN_NAME_FALLBACK,
+  UI_TASK_SPAN_NAME_FALLBACK,
+} from '@sentry/core';
 import { getBackburner } from './utils.ts';
 
 // Ember runloop queue names
@@ -88,13 +94,18 @@ function _instrumentEmberRunloop(config: { minimumRunloopQueueDuration?: number 
         const minQueueDuration = minimumRunloopQueueDuration ?? 5;
 
         if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
+          const client = getClient();
+          const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+          const description = 'runloop';
+
           startInactiveSpan({
             attributes: {
               [SENTRY_OP]: UI_TASK,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
               'ember.runloop.queue': queue,
+              ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
             },
-            name: 'runloop',
+            name: hasSpanStreaming ? UI_TASK_SPAN_NAME_FALLBACK : description,
             startTime: currentQueueStart,
             onlyIfParent: true,
           })?.end(now);
@@ -236,11 +247,16 @@ function _instrumentInitialLoad(): void {
   const startTime = (measure.startTime + origin) / 1000;
   const endTime = startTime + measure.duration / 1000;
 
+  const client = getClient();
+  const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+  const description = 'init';
+
   startInactiveSpan({
-    name: 'init',
+    name: hasSpanStreaming ? UI_COMPONENT_SPAN_NAME_FALLBACK : description,
     attributes: {
       [SENTRY_OP]: UI_MOUNT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+      ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
     },
     startTime,
     onlyIfParent: true,
