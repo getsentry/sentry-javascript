@@ -1027,6 +1027,7 @@ The following span names were adjusted:
 | `pageload`                                                               | The parameterized route, or the raw URL path if the SDK couldn't resolve one                              | `/users/:id`, `/users/123`                                                     | The parameterized route, or `Pageload` if the SDK has none                                                                                                                          | `/users/:id`, `Pageload`                               |
 | `navigation`, `navigation.redirect`                                      | The parameterized route, or the raw URL path if the SDK couldn't resolve one                              | `/users/:id`, `/users/123`                                                     | The parameterized route, or `Navigation` if the SDK has none                                                                                                                        | `/users/:id`, `Navigation`                             |
 | `resource.*`                                                             | The resource URL, relative to the page origin for same-origin resources                                   | `/assets/app.js`                                                               | The resource domain, or `Resource` if the SDK has none                                                                                                                              | `cdn.example.com`, `Resource`                          |
+| `browser.*` (navigation timing)                                          | The document URL                                                                                          | `https://example.com/users/123?ref=x`                                          | A static name per timing phase. The URL stays on `url.full`                                                                                                                         | `DNS lookup`, `Request`, `Load event`                  |
 | `http.server`                                                            | The request method and route, or the raw URL path if the SDK couldn't resolve one                         | `GET /users/:id`, `GET /users/123`                                             | The request method and route when one is known, otherwise just the method                                                                                                           | `GET /users/:id`, `GET`                                |
 | `http.client`, `http.client.stream`                                      | The request method and sanitized URL                                                                      | `GET https://api.example.com/users/123`                                        | The request method and the domain, or just the method if there is no domain                                                                                                         | `GET api.example.com`, `GET`                           |
 | `router`                                                                 | Framework-specific, sometimes containing the raw URL                                                      | `/users/123`, `SvelteKit Route Change`                                         | The span's `http.route`, or `Router` if the SDK has none                                                                                                                            | `/users/:id`, `Router`                                 |
@@ -1052,6 +1053,29 @@ The following span names were adjusted:
 | `db` (mongoose)                                                          | `mongoose.<Model>.<operation>`                                                                            | `mongoose.BlogPost.findOne`                                                    | The operation and the collection, the database namespace when there is no collection, or `mongodb` when the SDK has neither                                                         | `findOne blogposts`                                    |
 | `db` (supabase)                                                          | The query builder call and the table, or `auth <method>` for auth calls                                   | `select(...) from(users)`, `auth signInWithPassword`                           | The operation and the table, or the dotted auth method                                                                                                                              | `select users`, `auth.signInWithPassword`              |
 | `db.query` (redis, ioredis)                                              | The serialized command, with its arguments redacted, or `redis-<command>` on the diagnostics-channel path | `set test-key [1 other arguments]`, `redis-SET`                                | The operation and the connection, the operation and the redis function for `FCALL`/`FCALL_RO`, or `redis` when the SDK knows neither                                                | `SET localhost:6379`, `fcall my_func`, `redis`         |
+
+#### Browser navigation timing spans
+
+The spans for the phases of a document load were all named after the document URL, which put the raw
+URL on ten spans of every pageload. None of these ops has an attribute template in the conventions, so
+each phase now gets a static name:
+
+| Span op                            | Name                     |
+| ---------------------------------- | ------------------------ |
+| `browser.cache`                    | `Cache lookup`           |
+| `browser.dns`                      | `DNS lookup`             |
+| `browser.connect`                  | `Connect`                |
+| `browser.tls_ssl`                  | `TLS handshake`          |
+| `browser.redirect`                 | `Redirect`               |
+| `browser.request`                  | `Request`                |
+| `browser.response`                 | `Response`               |
+| `browser.unload_event`             | `Unload event`           |
+| `browser.dom_content_loaded_event` | `DOMContentLoaded event` |
+| `browser.load_event`               | `Load event`             |
+
+These spans now carry the document URL on `url.full` in both trace lifecycles, subject to the
+`dataCollection.urlQueryParams` option. Match on that attribute in `ignoreSpans` and `tracesSampler`
+rules that used to match these names.
 
 #### Serverless function spans
 

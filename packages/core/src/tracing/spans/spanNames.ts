@@ -1,4 +1,18 @@
-import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
+import {
+  BROWSER_CACHE,
+  BROWSER_CONNECT,
+  BROWSER_DNS,
+  BROWSER_DOM_CONTENT_LOADED_EVENT,
+  BROWSER_LOAD_EVENT,
+  BROWSER_REDIRECT,
+  BROWSER_REQUEST,
+  BROWSER_RESPONSE,
+  BROWSER_TLS_SSL,
+  BROWSER_UNLOAD_EVENT,
+  CACHE_GET,
+  CACHE_PUT,
+  CACHE_REMOVE,
+} from '@sentry/conventions/op';
 
 // This file contains constants for low-cardinality span names: fallback names to be used when no
 // better-suited span name is available, as well as the building blocks for derived names.
@@ -103,4 +117,22 @@ export const CACHE_OPERATION_NAMES = {
   [CACHE_GET]: 'get',
   [CACHE_PUT]: 'put',
   [CACHE_REMOVE]: 'remove',
+} as const;
+
+/**
+ * Span names for the browser navigation timing ops, keyed by op. None of these ops has an attribute
+ * template, so the static name is the only name they can get.
+ * @see https://getsentry.github.io/sentry-conventions/names/#browser-navigation-timing
+ */
+export const BROWSER_NAVIGATION_TIMING_SPAN_NAMES = {
+  [BROWSER_CACHE]: 'Cache lookup',
+  [BROWSER_DNS]: 'DNS lookup',
+  [BROWSER_CONNECT]: 'Connect',
+  [BROWSER_TLS_SSL]: 'TLS handshake',
+  [BROWSER_REDIRECT]: 'Redirect',
+  [BROWSER_REQUEST]: 'Request',
+  [BROWSER_RESPONSE]: 'Response',
+  [BROWSER_UNLOAD_EVENT]: 'Unload event',
+  [BROWSER_DOM_CONTENT_LOADED_EVENT]: 'DOMContentLoaded event',
+  [BROWSER_LOAD_EVENT]: 'Load event',
 } as const;
