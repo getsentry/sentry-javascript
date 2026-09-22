@@ -43,14 +43,19 @@ export function shouldSkipCodeInjection(code: string, facadeModuleId: string | n
 export { globFiles } from './glob';
 export { getCodeInjectionPosition } from './get-code-injection-position';
 
+const PARSER_UNAVAILABLE_MESSAGE =
+  'Could not load `oxc-parser` for this platform. React components will not be annotated.';
+
+// Module level, because the Turbopack loader creates new hooks for
+// every file.
+let warnedParserUnavailable = false;
+
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createComponentNameAnnotateHooks(
   ignoredComponents: string[],
   injectIntoHtml: boolean,
   options: { getParseAstAsync?: () => Promise<ParseAstAsync | null>; logger?: Logger } = {},
 ) {
-  let warnedParserUnavailable = false;
-
   const hooks = createOxcComponentNameAnnotateHooks(
     ignoredComponents,
     async () => {
@@ -58,7 +63,12 @@ export function createComponentNameAnnotateHooks(
 
       if (!parseAstAsync && !warnedParserUnavailable) {
         warnedParserUnavailable = true;
-        options.logger?.warn('Could not load `oxc-parser` for this platform. React components will not be annotated.');
+        if (options.logger) {
+          options.logger.warn(PARSER_UNAVAILABLE_MESSAGE);
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn(`[@sentry/bundler-plugins] ${PARSER_UNAVAILABLE_MESSAGE}`);
+        }
       }
 
       return parseAstAsync;
