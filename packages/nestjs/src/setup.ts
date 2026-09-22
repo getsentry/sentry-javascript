@@ -179,14 +179,14 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       return;
     }
 
-    // Necord sets ExecutionContext type to 'necord' (see NecordContextCreator).
-    // BaseExceptionFilter expects an HTTP adapter and cannot reply to Discord interactions.
-    if (contextType === 'necord') {
+    // Custom context types (necord, ...) run through ExternalContextCreator and have no HTTP adapter.
+    // BaseExceptionFilter expects an HTTP adapter and cannot reply on those hosts.
+    if (contextType !== 'http') {
       if (!isExpectedError(exception)) {
         captureException(exception, {
           mechanism: {
             handled: false,
-            type: 'auto.necord.nestjs.global_filter',
+            type: `auto.${contextType}.nestjs.global_filter`,
           },
         });
       }

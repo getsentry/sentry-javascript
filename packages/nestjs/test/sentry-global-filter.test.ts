@@ -324,28 +324,29 @@ describe('SentryGlobalFilter', () => {
     });
   });
 
-  describe('Necord context', () => {
-    beforeEach(() => {
+  describe('non-HTTP custom context', () => {
+    it.each(['necord', 'custom'])(
+      'captures unexpected errors for context type %s without delegating to HTTP',
+      contextType => {
+        vi.mocked(mockArgumentsHost.getType).mockReturnValue(contextType);
+        const superCatchSpy = vi.spyOn(BaseExceptionFilter.prototype, 'catch').mockImplementation(() => undefined);
+        const error = new Error('Custom context failed');
+
+        filter.catch(error, mockArgumentsHost);
+
+        expect(mockCaptureException).toHaveBeenCalledWith(error, {
+          mechanism: {
+            handled: false,
+            type: `auto.${contextType}.nestjs.global_filter`,
+          },
+        });
+        expect(mockLoggerError).toHaveBeenCalledWith(error.message, error.stack);
+        expect(superCatchSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not capture expected exceptions for non-HTTP contexts', () => {
       vi.mocked(mockArgumentsHost.getType).mockReturnValue('necord');
-    });
-
-    it('captures unexpected errors without delegating to the HTTP exception filter', () => {
-      const superCatchSpy = vi.spyOn(BaseExceptionFilter.prototype, 'catch').mockImplementation(() => undefined);
-      const error = new Error('Slash command failed');
-
-      filter.catch(error, mockArgumentsHost);
-
-      expect(mockCaptureException).toHaveBeenCalledWith(error, {
-        mechanism: {
-          handled: false,
-          type: 'auto.necord.nestjs.global_filter',
-        },
-      });
-      expect(mockLoggerError).toHaveBeenCalledWith(error.message, error.stack);
-      expect(superCatchSpy).not.toHaveBeenCalled();
-    });
-
-    it('does not capture expected Necord exceptions', () => {
       isExpectedErrorMock.mockReturnValueOnce(true);
       const exception = new HttpException('Unknown interaction', HttpStatus.BAD_REQUEST);
 
@@ -355,7 +356,8 @@ describe('SentryGlobalFilter', () => {
       expect(mockLoggerError).toHaveBeenCalledWith(exception.message, exception.stack);
     });
 
-    it('captures unexpected non-Error values', () => {
+    it('captures unexpected non-Error values for non-HTTP contexts', () => {
+      vi.mocked(mockArgumentsHost.getType).mockReturnValue('custom');
       const nonErrorObject = { message: 'interaction failed' };
 
       filter.catch(nonErrorObject, mockArgumentsHost);
@@ -363,7 +365,7 @@ describe('SentryGlobalFilter', () => {
       expect(mockCaptureException).toHaveBeenCalledWith(nonErrorObject, {
         mechanism: {
           handled: false,
-          type: 'auto.necord.nestjs.global_filter',
+          type: 'auto.custom.nestjs.global_filter',
         },
       });
       expect(mockLoggerError).not.toHaveBeenCalled();
