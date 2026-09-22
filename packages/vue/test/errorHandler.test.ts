@@ -232,7 +232,7 @@ describe('attachErrorHandler', () => {
 });
 
 describe('captureVueException', () => {
-  it('captures an exception synchronously with Vue metadata', () => {
+  it.each([true, false])('captures an exception synchronously with handled=%s', handled => {
     const captureException = vi.fn();
     setCurrentClient({ captureException } as any);
     const error = new DummyError();
@@ -241,7 +241,7 @@ describe('captureVueException', () => {
       $props: { source: 'checkout' },
     } as ViewModel;
 
-    captureVueException(error, vm, 'render');
+    captureVueException(error, vm, 'render', handled);
 
     expect(captureException).toHaveBeenCalledWith(
       error,
@@ -256,7 +256,7 @@ describe('captureVueException', () => {
             },
           },
         },
-        mechanism: { handled: false, type: 'auto.function.vue.error_handler' },
+        mechanism: { handled, type: 'auto.function.vue.error_handler' },
       }),
       expect.anything(),
     );

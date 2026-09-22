@@ -9,14 +9,17 @@ type UnknownFunc = (...args: unknown[]) => void;
  *
  * This can be used from a Vue `onErrorCaptured` hook when the automatic error handler is disabled or when an error
  * boundary stops the error from propagating to the application-level handler.
+ *
+ * @param handled - Whether the boundary stops the error from propagating.
  */
 export const captureVueException = (
   error: unknown,
   vm: ViewModel | null,
   lifecycleHook: string,
+  handled: boolean,
   options?: Partial<VueOptions>,
 ): void => {
-  captureVueExceptionWithMechanism(error, vm, lifecycleHook, false, options);
+  captureVueExceptionWithMechanism(error, vm, lifecycleHook, handled, options);
 };
 
 export const attachErrorHandler = (app: Vue, options?: Partial<VueOptions>): void => {

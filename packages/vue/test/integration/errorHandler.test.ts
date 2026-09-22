@@ -33,7 +33,7 @@ describe('captureVueException', () => {
         onErrorCaptured((caughtError, instance, info) => {
           withScope(scope => {
             scope.setTag('boundary', 'checkout');
-            captureVueException(caughtError, instance, info);
+            captureVueException(caughtError, instance, info, true);
           });
 
           expect(captureException).toHaveBeenCalledTimes(1);
@@ -58,6 +58,7 @@ describe('captureVueException', () => {
             }),
           },
         },
+        mechanism: { handled: true, type: 'auto.function.vue.error_handler' },
       }),
       expect.anything(),
     );
