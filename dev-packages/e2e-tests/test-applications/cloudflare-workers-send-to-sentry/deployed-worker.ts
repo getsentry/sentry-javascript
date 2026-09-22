@@ -109,7 +109,7 @@ export async function fetchFromWorker(url: string, status: number, init?: Reques
       const body = await response.text();
       // Cloudflare sends its error page as HTML to some clients (Node's fetch among them) and as
       // `error code: <code>` plain text to others, so the code is read from either format.
-      const errorCode = /cf-error-code">(\d+)<|^error code: (\d+)$/.exec(body)?.slice(1).find(Boolean);
+      const errorCode = /cf-error-code">(\d+)<|^error code: (\d+)/.exec(body)?.slice(1).find(Boolean);
 
       if (response.status === status && (status !== 500 || errorCode === '1101')) {
         return body;
