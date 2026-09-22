@@ -18,8 +18,9 @@ function findSpan(spans: SerializedStreamedSpan[], name: string): SerializedStre
 function commonAttributes(segmentSpan: SerializedStreamedSpan): Record<string, unknown> {
   return {
     'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
-    // The e2e app is served over localhost (`baseURL: http://localhost:<port>`).
-    'sentry.is_localhost': { type: 'boolean', value: true },
+    // Every span of a trace shares its segment's verdict: `true` for requests (the app is served
+    // over localhost), `false` for spans with no request, like the startup app_creation span.
+    'sentry.is_localhost': segmentSpan.attributes['sentry.is_localhost'],
     'sentry.segment.name': { type: 'string', value: segmentSpan.name },
     'sentry.segment.id': { type: 'string', value: segmentSpan.span_id },
     'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
