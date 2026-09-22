@@ -618,6 +618,14 @@ Sentry.init({
 });
 ```
 
+### Web vital spans no longer carry a report event
+
+Affected SDKs: All SDKs running in the browser.
+
+LCP and CLS spans no longer set `browser.web_vital.lcp.report_event` and `browser.web_vital.cls.report_event`. The attribute recorded whether the SDK finalized the page load's value on `pagehide` or at the first `navigation`. With per-navigation reporting (the default, see above) `web-vitals` decides when a value is final and the attribute was already never set, so it only remained for setups that turn per-navigation reporting off.
+
+When the values are finalized is unchanged. If you have searches or dashboards keyed on the attribute, remove the filter.
+
 ### `DOMException.code` is no longer set as a tag
 
 Affected SDKs: All SDKs running in the browser.
@@ -872,7 +880,7 @@ Attribute availability remains runtime-dependent. For example, browser and Worke
 
 Span attributes now use the shared `@sentry/conventions` package under the hood.
 The deprecated `semanticAttributes` re-export was removed. Import span attribute constants from `@sentry/core` directly.
-`SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` (`sentry.source`) was removed. Use `SENTRY_SEGMENT_NAME_SOURCE` (`sentry.segment.name.source`) instead.
+`SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` (`sentry.source`) was removed. Use the `sentry.segment.name.source` attribute instead and make sure to only set it on segment/root spans.
 `sentry.segment.name.source` is only set on the root span. Setting it on a child span is a no-op: `setAttribute` ignores it, and a value passed in a child span's initial attributes is dropped when the span is linked to its parent.
 
 ### Span operation (`op`) changes

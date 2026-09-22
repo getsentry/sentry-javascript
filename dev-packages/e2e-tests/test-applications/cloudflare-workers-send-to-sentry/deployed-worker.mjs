@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,8 +14,24 @@ function wrangler(args, env = {}) {
   });
 }
 
+/**
+ * Workflow names are unique per Cloudflare account, so every worker gets its own. The Vite build writes the
+ * config wrangler deploys from, and `.wrangler/deploy/config.json` points to it.
+ */
+function nameWorkflowsAfterWorker(name) {
+  const redirect = JSON.parse(readFileSync(join(__dirname, '.wrangler/deploy/config.json'), 'utf8'));
+  const configPath = join(__dirname, '.wrangler/deploy', redirect.configPath);
+  const config = JSON.parse(readFileSync(configPath, 'utf8'));
+
+  for (const workflow of config.workflows ?? []) {
+    workflow.name = name;
+  }
+  writeFileSync(configPath, JSON.stringify(config, null, 2));
+}
+
 /** Deploys the worker under `name` and returns its workers.dev URL. */
 export function deployWorker(name, dsn) {
+  nameWorkflowsAfterWorker(name);
   const outputDir = mkdtempSync(join(tmpdir(), 'wrangler-output-'));
   const outputFile = join(outputDir, 'output.ndjson');
 

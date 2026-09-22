@@ -49,6 +49,7 @@ import {
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
+import { isEveGenAiRecordingDefault } from './gen-ai-recording-mode';
 import type { GenAiOptions } from '../../ai/core/utils';
 import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
@@ -750,11 +751,13 @@ function getRecordingOptions(
   recordInputs: boolean;
   recordOutputs: boolean;
 } {
-  const genAI = getClient()?.getDataCollectionOptions().genAI;
+  const client = getClient();
+  const genAI = client?.getDataCollectionOptions().genAI;
+  const eveMode = client ? isEveGenAiRecordingDefault(client) : false;
 
   return {
-    recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs),
-    recordOutputs: resolveRecording(channelOptions.recordOutputs, event.recordOutputs, genAI?.outputs),
+    recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs, eveMode),
+    recordOutputs: resolveRecording(channelOptions.recordOutputs, event.recordOutputs, genAI?.outputs, eveMode),
   };
 }
 
@@ -767,10 +770,22 @@ function getRecordingOptions(
  * `experimental_telemetry: { isEnabled: true }`. The `ai:telemetry` channel does not expose `isEnabled`
  * (nor a resolved recording flag), so that per-call default cannot be reproduced here — v7 users who
  * want inputs/outputs recorded must enable `dataCollection.genAI` or set `recordInputs`/`recordOutputs`.
+ *
+ * Under `eveMode` (set by `eveIntegration()`) the per-call flag is eve's blanket framework default
+ * rather than an end-user decision, so it is skipped: an explicit `dataCollection.genAI` still wins,
+ * otherwise recording defaults to `true`. An integration-level option outranks both regardless.
  */
-function resolveRecording(integrationOption: unknown, perCallOption: unknown, globalDefault: unknown): boolean {
+function resolveRecording(
+  integrationOption: unknown,
+  perCallOption: unknown,
+  globalDefault: unknown,
+  eveMode = false,
+): boolean {
   if (typeof integrationOption === 'boolean') {
     return integrationOption;
+  }
+  if (eveMode) {
+    return typeof globalDefault === 'boolean' ? globalDefault : true;
   }
   if (typeof perCallOption === 'boolean') {
     return perCallOption;
