@@ -51,7 +51,7 @@ Renaming a span therefore drops information unless you check what the op's descr
 2. **It rebuilds it from an attribute the site could legitimately set** — set that attribute. Only when the value genuinely describes the span, never to smuggle the old name into an attribute that means something else.
 3. **It cannot** — set `sentry.description` (`SENTRY_DESCRIPTION` from `@sentry/conventions/attributes`) to the name the span had before.
 
-Case 3 is the common one: the templates are generic, and most old names were framework-specific strings the conventions cannot express (`serverAction/updateUser`, `Scheduled Cron */5 * * * *`, `Fetcher fetcher-1`).
+Case 3 must only be applied if case 1 or 2 do not work for the span: the templates are generic, and most old names were framework-specific strings the conventions cannot express (`serverAction/updateUser`, `Scheduled Cron */5 * * * *`, `Fetcher fetcher-1`).
 
 ```ts
 // Relay infers a `function` span's description from `code.function.name` alone, which drops the route.
