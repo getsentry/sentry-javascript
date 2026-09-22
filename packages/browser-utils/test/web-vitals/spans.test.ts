@@ -605,6 +605,8 @@ describe('_sendInpSpan', () => {
           'sentry.exclusive_time': 120,
           'sentry.transaction': 'test-route',
           'sentry.segment.name': 'test-route',
+          'browser.web_vital.inp.target': '<button>',
+          'browser.web_vital.inp.interaction_type': 'click',
         }),
       }),
     );
@@ -668,6 +670,32 @@ describe('_sendInpSpan', () => {
         parentSpan: mockRootSpan,
       }),
     );
+  });
+
+  it('leaves out the target when the element could not be resolved', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+    vi.mocked(htmlTreeAsString).mockReturnValue('<unknown>');
+
+    _sendInpSpan(80, { name: 'keydown', startTime: 600, duration: 80, interactionId: 2, target: null } as any);
+
+    const attributes = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls[0]![0].attributes!;
+    expect(attributes).not.toHaveProperty('browser.web_vital.inp.target');
+    expect(attributes['browser.web_vital.inp.interaction_type']).toBe('press');
+  });
+
+  it('leaves out the target and interaction type for an INP without an entry', () => {
+    _sendInpSpan(40, undefined);
+
+    // The name and op still have a value, which is why they can't stand in for these attributes.
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Interaction to next paint',
+        attributes: expect.objectContaining({ 'sentry.op': 'ui.interaction.click' }),
+      }),
+    );
+    const attributes = vi.mocked(SentryCoreBrowser.startInactiveSpan).mock.calls[0]![0].attributes!;
+    expect(attributes).not.toHaveProperty('browser.web_vital.inp.target');
+    expect(attributes).not.toHaveProperty('browser.web_vital.inp.interaction_type');
   });
 });
 

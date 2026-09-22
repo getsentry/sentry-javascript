@@ -77,6 +77,8 @@ sentryTest(
         'sentry.op': { value: 'ui.interaction.click', type: 'string' },
         'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+        'browser.web_vital.inp.target': { value: 'body > NormalButton', type: 'string' },
+        'browser.web_vital.inp.interaction_type': { value: 'click', type: 'string' },
         'browser.navigation.type': { value: 'navigate', type: 'string' },
         'sentry.transaction': { value: 'test-url', type: 'string' },
         'sentry.segment.name': { value: 'test-url', type: 'string' },
