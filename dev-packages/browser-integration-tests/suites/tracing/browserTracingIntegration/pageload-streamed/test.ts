@@ -71,6 +71,7 @@ sentryTest(
 
     expect(pageloadSpan).toEqual({
       attributes: {
+        'sentry.is_localhost': { value: false, type: 'boolean' },
         'culture.calendar': {
           type: 'string',
           value: expect.any(String),

@@ -74,6 +74,7 @@ sentryTest(
       is_segment: false,
       status: 'ok',
       attributes: {
+        'sentry.is_localhost': { value: false, type: 'boolean' },
         'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
         'sentry.op': { value: 'ui.interaction.click', type: 'string' },
         'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },

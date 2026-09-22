@@ -46,6 +46,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
 
   expect(interactionSegmentSpan).toEqual({
     attributes: {
+      'sentry.is_localhost': { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
@@ -127,6 +128,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   const interactionSpan = interactionSpanTree.find(span => getSpanOp(span) === 'ui.interaction.click');
   expect(interactionSpan).toEqual({
     attributes: {
+      'sentry.is_localhost': { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
