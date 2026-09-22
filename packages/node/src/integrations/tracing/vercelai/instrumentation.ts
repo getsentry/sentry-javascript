@@ -80,6 +80,13 @@ export function processToolCallResults(result: unknown): void {
     return;
   }
 
+  // A streamed result derives `content` from a stream that hasn't settled, so reading it both
+  // starts draining the stream and hands back a promise we drop — which surfaces as an unhandled
+  // rejection once the stream fails. Streamed tool errors were never processed here anyway.
+  if (typeof (result as { consumeStream?: unknown }).consumeStream === 'function') {
+    return;
+  }
+
   const resultObj = result as { content: Array<object> };
   if (!Array.isArray(resultObj.content)) {
     return;

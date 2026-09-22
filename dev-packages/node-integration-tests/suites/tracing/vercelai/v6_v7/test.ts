@@ -935,4 +935,20 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
       },
     },
   );
+
+  createEsmTests(
+    __dirname,
+    'scenario-aborted-stream-text.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('aborting a stream with a non-AbortError reason leaves no unhandled rejection', async () => {
+        await createRunner().ensureNoErrorOutput().start().completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
 });

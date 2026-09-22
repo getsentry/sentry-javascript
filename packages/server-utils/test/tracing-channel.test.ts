@@ -838,6 +838,32 @@ describe('bindTracingChannelToSpan', () => {
       expect(endSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('`end(error)` marks the payload as failed for `beforeSpanEnd`', () => {
+      installTestAsyncContextStrategy();
+      initTestClient();
+      const span = startInactiveSpan({ name: 'channel-span' });
+      const beforeSpanEnd = vi.fn();
+      let captured: (error?: unknown) => void = () => undefined;
+      const { channel } = bindTracingChannelToSpan(
+        tracingChannel<{ operation: string }>('test:defer:payload-error'),
+        () => span,
+        {
+          beforeSpanEnd,
+          deferSpanEnd({ end }) {
+            captured = end;
+            return true;
+          },
+        },
+      );
+
+      channel.traceSync(() => 'stream', { operation: 'read' });
+      const error = new Error('stream aborted');
+      captured(error);
+
+      expect(beforeSpanEnd).toHaveBeenCalledTimes(1);
+      expect(beforeSpanEnd).toHaveBeenCalledWith(span, expect.objectContaining({ error }));
+    });
+
     it('captures the error via `end(error)` when `captureError` is set', () => {
       const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockReturnValue('event-id');
       const { end } = setupDeferred('test:defer:capture', { captureError: true });
