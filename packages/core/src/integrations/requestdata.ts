@@ -10,6 +10,7 @@ import type { StreamedSpanJSON } from '../types/span';
 import { cookiePairsToRecord, parseCookieHeader } from '../utils/cookie';
 import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
 import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
+import { isLocalhostRequest } from '../utils/localhost';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
 import { filterCookiePairs, httpHeadersToSpanAttributes } from '../utils/request';
@@ -91,6 +92,15 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress }, include, dataCollection);
 
       return event;
+    },
+    processSpan(span) {
+      const { user, sdkProcessingMetadata } = getIsolationScope().getScopeData();
+
+      // This attribute is used by the "Filter out localhost events" feature on the Sentry backend.
+      // Therefore, it's set on every span, not just the segment span.
+      safeSetSpanJSONAttributes(span, {
+        'sentry.is_localhost': isLocalhostRequest(sdkProcessingMetadata.normalizedRequest, user.ip_address),
+      });
     },
     processSegmentSpan(span, client) {
       const { sdkProcessingMetadata = {} } = getIsolationScope().getScopeData();

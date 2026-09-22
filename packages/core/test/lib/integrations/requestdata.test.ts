@@ -1321,3 +1321,90 @@ describe('requestDataIntegration userInfo collection', () => {
     });
   });
 });
+
+describe('requestDataIntegration processSpan', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function makeSpan(overrides: Partial<StreamedSpanJSON> = {}): StreamedSpanJSON {
+    return {
+      name: 'GET /test',
+      span_id: 'abc123',
+      trace_id: 'def456',
+      start_timestamp: 0,
+      end_timestamp: 1,
+      status: 'ok',
+      is_segment: false,
+      attributes: {},
+      ...overrides,
+    };
+  }
+
+  function mockIsolationScope(normalizedRequest?: Record<string, unknown>, user: Record<string, unknown> = {}): void {
+    vi.spyOn(currentScopes, 'getIsolationScope').mockReturnValue({
+      getScopeData: () => ({ user, sdkProcessingMetadata: { normalizedRequest } }),
+    } as ReturnType<typeof currentScopes.getIsolationScope>);
+  }
+
+  it.each([true, false])('sets sentry.is_localhost on spans with is_segment: %s', isSegment => {
+    const integration = requestDataIntegration();
+    const span = makeSpan({ is_segment: isSegment });
+
+    mockIsolationScope({ url: 'http://localhost:3000/api' });
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ 'sentry.is_localhost': true });
+  });
+
+  it('sets sentry.is_localhost to false for a remote host', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({ url: 'https://example.com/api', headers: { host: 'example.com' } });
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ 'sentry.is_localhost': false });
+  });
+
+  it('falls back to the host header when the request has no url', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    // Next.js server components set `normalizedRequest` to headers only, without a url.
+    mockIsolationScope({ headers: { host: 'localhost:3000' } });
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ 'sentry.is_localhost': true });
+  });
+
+  it('uses the scope user ip address', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope(undefined, { ip_address: '127.0.0.1' });
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ 'sentry.is_localhost': true });
+  });
+
+  it('sets sentry.is_localhost to false when there is no request on the scope', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope(undefined);
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ 'sentry.is_localhost': false });
+  });
+
+  it('does not overwrite an existing sentry.is_localhost attribute', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan({ attributes: { 'sentry.is_localhost': true } });
+
+    mockIsolationScope({ url: 'https://example.com/api' });
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ 'sentry.is_localhost': true });
+  });
+});

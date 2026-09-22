@@ -51,11 +51,21 @@ export const httpContextIntegration = defineIntegration(() => {
         client.getDataCollectionOptions().httpHeaders.request,
       );
       const referer = headers['Referer'];
+      const { hostname, protocol } = WINDOW.location || {};
 
       safeSetSpanJSONAttributes(span, {
         // This attribute is used by the "Filter out events from legacy browsers and crawlers" features on the Sentry backend.
         // Therefore, it's set on every span.
         [USER_AGENT_ORIGINAL]: headers['User-Agent'],
+
+        // Likewise for the "Filter out localhost events" feature. Deliberately inlined rather than
+        // sharing the server-side helper, which costs bundle size for request headers and IPs that
+        // don't exist here. Mirrors Relay's localhost filter (relay-filter/src/localhost.rs).
+        'sentry.is_localhost':
+          protocol === 'file:' ||
+          hostname === 'localhost' ||
+          hostname === '127.0.0.1' ||
+          !!hostname?.endsWith('.localhost'),
 
         // These attributes, we only need on the segment span (analogous to the `request` context for events)
         ...(span.is_segment && {

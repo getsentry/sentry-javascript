@@ -42,6 +42,7 @@ describe('httpContextIntegration', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       'http.request.header.referer': ['https://example.com'],
       'user_agent.original': USER_AGENT,
+      'sentry.is_localhost': false,
     });
   });
 
@@ -63,6 +64,7 @@ describe('httpContextIntegration', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       'http.request.header.referer': ['https://example.com'],
       'user_agent.original': USER_AGENT,
+      'sentry.is_localhost': false,
       'url.full': 'https://example.com',
     });
   });
@@ -81,6 +83,7 @@ describe('httpContextIntegration', () => {
     expect(span.attributes).toEqual({
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
       'user_agent.original': USER_AGENT,
+      'sentry.is_localhost': false,
     });
   });
 
@@ -165,6 +168,7 @@ describe('httpContextIntegration', () => {
 
       expect(span.attributes).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        'sentry.is_localhost': false,
         'url.full': 'https://example.com',
       });
     });
@@ -185,7 +189,45 @@ describe('httpContextIntegration', () => {
         'url.full': 'https://example.com',
         'http.request.header.referer': ['[Filtered]'],
         'user_agent.original': USER_AGENT,
+        'sentry.is_localhost': false,
       });
+    });
+  });
+
+  describe('sentry.is_localhost', () => {
+    function processSpanWithLocation(location: Partial<Location>): StreamedSpanJSON['attributes'] {
+      const original = globalThis.location;
+      globalThis.location = location as Location;
+
+      try {
+        const span: Partial<StreamedSpanJSON> = { attributes: {} };
+        httpContextIntegration().processSpan!(
+          span as StreamedSpanJSON,
+          new BrowserClient(getDefaultBrowserClientOptions()),
+        );
+        return span.attributes;
+      } finally {
+        globalThis.location = original;
+      }
+    }
+
+    it.each([
+      { protocol: 'http:', hostname: 'localhost' },
+      { protocol: 'http:', hostname: '127.0.0.1' },
+      { protocol: 'http:', hostname: 'foo.localhost' },
+      { protocol: 'http:', hostname: 'foo.bar.localhost' },
+      { protocol: 'file:', hostname: '' },
+    ])('is true for $protocol//$hostname', location => {
+      expect(processSpanWithLocation(location)).toMatchObject({ 'sentry.is_localhost': true });
+    });
+
+    it.each([
+      { protocol: 'https:', hostname: 'example.com' },
+      { protocol: 'https:', hostname: 'localhost.com' },
+      { protocol: 'https:', hostname: 'foolocalhost' },
+      { protocol: 'https:', hostname: '127.0.0.2' },
+    ])('is false for $protocol//$hostname', location => {
+      expect(processSpanWithLocation(location)).toMatchObject({ 'sentry.is_localhost': false });
     });
   });
 });
