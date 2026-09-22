@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.75.2
+
+- fix(v10/cloudflare): Enforce flush timeout across Workflow lifecycle ([#24582](https://github.com/getsentry/sentry-javascript/pull/24582))
+- fix(v10/core): Apply `dataCollection.urlQueryParams` to collected URLs and query strings ([#24572](https://github.com/getsentry/sentry-javascript/pull/24572))
+- fix(v10/nextjs): Align tunnel request matching in middleware with tunnel rewrite ([#24565](https://github.com/getsentry/sentry-javascript/pull/24565))
+- fix(v10/node): Stop leaking unhandled rejections on aborted Vercel AI streams ([#24563](https://github.com/getsentry/sentry-javascript/pull/24563))
+
 ## 10.75.1
 
 - fix(v10/cloudflare): Capture telemetry from untraced Durable Object RPC calls ([#24512](https://github.com/getsentry/sentry-javascript/pull/24512))
