@@ -49,6 +49,7 @@ export default defineConfig({
         test: {
           name: 'bun',
           include: ['./suites/**/test.ts'],
+          env: { RUNTIME: 'bun' },
           poolOptions: {
             threads: {
               singleThread: true,

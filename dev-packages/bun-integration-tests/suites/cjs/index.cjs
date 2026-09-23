@@ -1,4 +1,5 @@
 const Sentry = require('@sentry/bun');
+const { sendPortToRunner } = require('@sentry-internal/node-integration-tests');
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -15,4 +16,4 @@ const server = Bun.serve({
   },
 });
 
-process.send?.(JSON.stringify({ event: 'READY', port: server.port }));
+sendPortToRunner(server.port);

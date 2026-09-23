@@ -1,3 +1,4 @@
+import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/bun';
 
 Sentry.init({
@@ -14,11 +15,6 @@ const server = Bun.serve({
       throw new Error('This is a test error from the Bun integration tests');
     }
 
-    if (url.pathname === '/message') {
-      Sentry.captureMessage('Hello from Bun');
-      return new Response('OK');
-    }
-
     return new Response('Hello from Bun!');
   },
   error(_err) {
@@ -26,4 +22,4 @@ const server = Bun.serve({
   },
 });
 
-process.send?.(JSON.stringify({ event: 'READY', port: server.port }));
+sendPortToRunner(server.port!);
