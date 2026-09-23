@@ -111,8 +111,28 @@ const COMPILE_CACHE_ENV: Record<string, string> =
 /** Node flags that preload a module before the entry point. */
 const PRELOAD_FLAGS = ['--import', '--require', '-r'];
 
+/**
+ * How long a scenario may take to report its server port. Bun and Deno start the SDK more slowly
+ * than Node, and under load they passed 10 seconds, which failed tests that were only slow.
+ */
+const PORT_TIMEOUT = process.env.RUNTIME && process.env.RUNTIME !== 'node' ? 30_000 : 10_000;
+
 /** tsx's CommonJS require hook, preloaded for `.ts` scenarios. */
 const TS_LOADER = 'tsx/cjs';
+
+type Runtime = 'node' | 'bun' | 'deno';
+
+/**
+ * The runtime that runs the scenario child process, from the `RUNTIME` env var (`node` when unset).
+ * The Bun and Deno integration test packages set it to run selected Node suites on their runtime.
+ */
+function getRuntime(): Runtime {
+  const runtime = process.env.RUNTIME || 'node';
+  if (runtime !== 'node' && runtime !== 'bun' && runtime !== 'deno') {
+    throw new Error(`Unsupported RUNTIME: ${runtime}`);
+  }
+  return runtime;
+}
 
 export const CLEANUP_STEPS = new Set<VoidFunction>();
 
@@ -272,8 +292,26 @@ export function createRunner(...paths: string[]) {
 
         isComplete = true;
         completeError = error || undefined;
-        child?.kill();
+        stopChild();
         completedDeferred.resolve();
+      }
+
+      /**
+       * Sends `SIGTERM`, and `SIGKILL` if the child still runs 2 seconds later. A scenario (or the
+       * SDK, e.g. on Vercel) can listen for `SIGTERM`, and on Deno a signal listener keeps the
+       * process alive, so `SIGTERM` alone left such children running after the test run.
+       */
+      function stopChild(): void {
+        if (!child || hasExited) {
+          return;
+        }
+        child.kill();
+        const killTimer = setTimeout(() => {
+          if (!hasExited) {
+            child?.kill('SIGKILL');
+          }
+        }, 2_000);
+        killTimer.unref();
       }
 
       /**
@@ -433,9 +471,10 @@ export function createRunner(...paths: string[]) {
           // requests to the fake DSN.
           const wantsAutoFlush =
             !ensureNoErrorOutput && (expectedEnvelopes.length > 0 || (expectedEnvelopeHeaders?.length ?? 0) > 0);
-          const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath), ...flags] : flags;
+          const runtime = getRuntime();
+          const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath, runtime), ...flags] : flags;
 
-          child = spawn('node', [...childFlags, testPath], { env });
+          child = spawn(runtime, buildRuntimeArgs(runtime, childFlags, testPath), { env });
 
           child.on('error', e => {
             // eslint-disable-next-line no-console
@@ -443,8 +482,12 @@ export function createRunner(...paths: string[]) {
             complete(e);
           });
 
+          // Cleanup runs after the tests (and at process exit, where timers never fire), so there is no
+          // graceful stop to wait for.
           registerCleanupStep(() => {
-            child?.kill();
+            if (!hasExited) {
+              child?.kill('SIGKILL');
+            }
           });
 
           child.stderr?.on('data', (data: Buffer) => {
@@ -570,7 +613,7 @@ export function createRunner(...paths: string[]) {
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
           try {
-            await waitForEvent(portReady.promise, 10_000, 'Timed out waiting for server port');
+            await waitForEvent(portReady.promise, PORT_TIMEOUT, 'Timed out waiting for server port');
           } catch (e) {
             complete(e as Error);
             return;
@@ -697,15 +740,66 @@ function getPreloadPaths(flags: readonly string[]): string[] {
  * The CJS loader stays on `--require`: any `--import` makes Node resolve the entry point
  * through the ESM loader, which rejects the `.ts` scenarios that `tsx/cjs` handles. Unlike
  * an instrument file it never calls `Sentry.init()`, so the loader thread is not a concern.
+ *
+ * Bun and Deno run `.ts` files natively as ES modules, so their `import` of the SDK resolves
+ * to the ESM build.
  */
-function buildAutoFlushFlags(existingFlags: readonly string[], testPath: string): string[] {
+function buildAutoFlushFlags(existingFlags: readonly string[], testPath: string, runtime: Runtime): string[] {
   const initPath =
     getPreloadPaths(existingFlags)
       .filter(path => path !== TS_LOADER)
       .at(-1) ?? testPath;
-  const isEsm = initPath.endsWith('.mjs') || !/\.[cm]?[jt]s$/.test(initPath);
+  const isEsm =
+    initPath.endsWith('.mjs') || (runtime !== 'node' && initPath.endsWith('.ts')) || !/\.[cm]?[jt]s$/.test(initPath);
 
   return isEsm ? ['--import', join(__dirname, 'auto-flush.mjs')] : ['--require', join(__dirname, 'auto-flush.cjs')];
+}
+
+/**
+ * Returns the arguments for the runtime binary. Bun and Deno get Node's preload flags as
+ * `--preload`, and no tsx loader. `RUNTIME_PRELOAD` is a module path that Bun and Deno preload
+ * before all other modules. Deno also gets all permissions and the import map from
+ * `DENO_IMPORT_MAP`. Any other Node flag throws, so a suite that needs one fails with a clear
+ * message instead of running with different behavior.
+ */
+function buildRuntimeArgs(runtime: Runtime, flags: readonly string[], testPath: string): string[] {
+  if (runtime === 'node') {
+    return [...flags, testPath];
+  }
+
+  const args: string[] = process.env.RUNTIME_PRELOAD ? ['--preload', process.env.RUNTIME_PRELOAD] : [];
+  for (let i = 0; i < flags.length; i++) {
+    const flag = flags[i] as string;
+    const [name, ...rest] = flag.split('=');
+
+    if (!PRELOAD_FLAGS.includes(name as string)) {
+      throw new Error(`Node flag "${flag}" has no ${runtime} equivalent in the test runner (${testPath})`);
+    }
+
+    const path = rest.length ? rest.join('=') : (flags[++i] as string);
+    if (path !== TS_LOADER) {
+      args.push('--preload', path);
+    }
+  }
+
+  if (runtime === 'bun') {
+    return [...args, testPath];
+  }
+
+  const importMap = process.env.DENO_IMPORT_MAP ? ['--import-map', process.env.DENO_IMPORT_MAP] : [];
+  // Deno loads a `.js` file as ESM unless its package.json has `"type": "commonjs"`, and this
+  // package sets no `"type"`, so the CJS scenarios need CommonJS detection.
+  // The workspace symlinks resolve the SDK packages outside `node_modules`, where Deno 2.8.3
+  // (the CI version) rejects Node builtins without the `node:` prefix (e.g. `url` in `@sentry/node`).
+  return [
+    'run',
+    '--allow-all',
+    '--unstable-detect-cjs',
+    '--unstable-bare-node-builtins',
+    ...importMap,
+    ...args,
+    testPath,
+  ];
 }
 
 function expectErrorEvent(item: Event, expected: ExpectedEvent): void {

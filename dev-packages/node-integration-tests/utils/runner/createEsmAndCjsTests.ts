@@ -384,9 +384,13 @@ function wrapTestApi(
       return Reflect.apply(target, thisArg, args);
     },
 
-    get: (target, prop: 'only' | 'skip' | 'each' | 'for') => {
+    get: (target, prop: 'only' | 'skip' | 'each' | 'for' | 'runIf' | 'skipIf') => {
       if (prop === 'only' || prop === 'skip') {
         return wrapTestApi(target[prop], suffix);
+      }
+
+      if (prop === 'runIf' || prop === 'skipIf') {
+        return (condition: boolean) => wrapTestApi((target as TestAPI)[prop](condition), suffix);
       }
 
       if (prop === 'each' || prop === 'for') {

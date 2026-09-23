@@ -21,6 +21,7 @@
     "pg": "8.16.0"
   },
   "devDependencies": {
+    "@sentry-internal/node-integration-tests": "11.0.0",
     "@sentry-internal/test-utils": "11.0.0",
     "bun-types": "^1.2.9",
     "vitest": "^3.2.7"

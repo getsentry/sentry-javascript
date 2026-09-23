@@ -5,6 +5,18 @@ import { describe } from 'vitest';
 
 export const NODE_VERSION = parseSemver(process.versions.node).major || 0;
 
+/**
+ * The runtime that runs the scenarios (`node`, `bun` or `deno`), from the `RUNTIME` env var.
+ * Tests use it in `test.skipIf` for behavior that a runtime does not support.
+ */
+export const RUNTIME = process.env.RUNTIME || 'node';
+
+/**
+ * The `sdk.name` the scenarios send. It is `sentry.javascript.node`, unless a runtime package
+ * maps `@sentry/node` to its own SDK and sets the `EXPECTED_SDK_NAME` env var to that SDK's name.
+ */
+export const EXPECTED_SDK_NAME = process.env.EXPECTED_SDK_NAME || 'sentry.javascript.node';
+
 export type TestServerConfig = {
   url: string;
   server: http.Server;
