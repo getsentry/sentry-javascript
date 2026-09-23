@@ -16,7 +16,6 @@ The official Sentry SDK for monitoring SolidStart applications.
 
 - [Getting started](https://docs.sentry.io/platforms/javascript/guides/solidstart/)
 - [Configuration](https://docs.sentry.io/platforms/javascript/guides/solidstart/configuration/)
-- [Installation methods](https://docs.sentry.io/platforms/javascript/guides/solidstart/install/)
 
 ## Support
 
