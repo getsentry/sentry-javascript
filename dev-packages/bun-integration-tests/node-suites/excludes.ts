@@ -51,8 +51,8 @@ const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/requests/traceparent/test.ts',
 ];
 
-// JS-3507: Bun 1.3.14 (the CI version) does not instrument outgoing `node:http` requests. These
-// suites pass on Bun 1.4.2.
+// Bun 1.3.14 (the CI version) does not instrument outgoing `node:http` requests. These suites pass
+// on Bun 1.4.2. See https://github.com/getsentry/sentry-javascript/issues/23881
 const NO_OUTGOING_HTTP_INSTRUMENTATION = [
   'suites/tracing/dsc-txn-name-update/test.ts',
   'suites/tracing/http-client-spans/http-basic/test.ts',
@@ -68,8 +68,9 @@ const NO_OUTGOING_HTTP_INSTRUMENTATION = [
   'suites/tracing/tracePropagationTargets/**',
 ];
 
-// JS-3508: `bun run` cannot inject the diagnostics channels into libraries, so framework,
-// database and AI instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
+// `bun run` cannot inject the diagnostics channels into libraries, so framework, database and AI
+// instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
+// See https://github.com/getsentry/sentry-javascript/issues/23882
 const NO_AUTO_INSTRUMENTATION = [
   'suites/express/**',
   'suites/fs-instrumentation/test.ts',
