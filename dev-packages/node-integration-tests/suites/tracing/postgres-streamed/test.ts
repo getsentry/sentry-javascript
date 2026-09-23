@@ -2,7 +2,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { conditionalTest, RUNTIME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // Query-span origin depends on which instrumentation is active. Blocks driving the SDK's default
@@ -227,7 +227,8 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
     });
   });
 
-  conditionalTest({ max: 25 })('pg-native', () => {
+  // Deno: with a module load hook installed, Deno compiles a native addon (`libpq`) as JavaScript.
+  (RUNTIME === 'deno' ? describe.skip : conditionalTest({ max: 25 }))('pg-native', () => {
     createEsmAndCjsTests(
       __dirname,
       'scenario-native.mjs',
