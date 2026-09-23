@@ -122,6 +122,16 @@ describe('filterCookies', () => {
       ).toEqual({ theme: 'dark' });
     });
 
+    it('reads each cookie of several Set-Cookie headers joined with ","', () => {
+      expect(
+        filterCookies(
+          'sid=s3cr3t; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Path=/, theme=dark; Path=/',
+          true,
+          'set-cookie',
+        ),
+      ).toEqual({ sid: '[Filtered]', theme: 'dark' });
+    });
+
     it('filters the token of a nameless cookie', () => {
       expect(filterCookies('y7Uu0Rk2QpLmXv3; HttpOnly; Secure', true, 'set-cookie')).toEqual({ '': '[Filtered]' });
     });
