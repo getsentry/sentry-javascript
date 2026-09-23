@@ -1,6 +1,6 @@
 {
   "name": "@sentry/effect",
-  "version": "10.75.2",
+  "version": "10.75.3",
   "description": "Official Sentry SDK for Effect",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/effect",
@@ -58,9 +58,9 @@
     "tag": "v10"
   },
   "dependencies": {
-    "@sentry/browser": "10.75.2",
-    "@sentry/core": "10.75.2",
-    "@sentry/node-core": "10.75.2"
+    "@sentry/browser": "10.75.3",
+    "@sentry/core": "10.75.3",
+    "@sentry/node-core": "10.75.3"
   },
   "peerDependencies": {
     "effect": "^3.0.0 || ^4.0.0-beta.50"

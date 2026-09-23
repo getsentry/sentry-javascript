@@ -1,6 +1,6 @@
 {
   "name": "@sentry/hono",
-  "version": "10.75.2",
+  "version": "10.75.3",
   "description": "Official Sentry SDK for Hono (ALPHA)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/hono",
@@ -93,16 +93,16 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/core": "10.75.2",
+    "@sentry/core": "10.75.3",
     "@sentry/conventions": "^0.16.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x || ^5.x",
     "@hono/node-server": "^1.x || ^2.x",
-    "@sentry/bun": "10.75.2",
-    "@sentry/cloudflare": "10.75.2",
-    "@sentry/deno": "10.75.2",
-    "@sentry/node": "10.75.2",
+    "@sentry/bun": "10.75.3",
+    "@sentry/cloudflare": "10.75.3",
+    "@sentry/deno": "10.75.3",
+    "@sentry/node": "10.75.3",
     "hono": "^4.x"
   },
   "peerDependenciesMeta": {
