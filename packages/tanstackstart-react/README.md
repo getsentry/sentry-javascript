@@ -16,6 +16,7 @@ The official Sentry SDK for monitoring TanStack Start React applications.
 
 - [Getting started](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/)
 - [Configuration](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/)
+- [TanStack Start React-specific features](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/features/)
 
 ## Support
 

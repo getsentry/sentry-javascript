@@ -16,6 +16,7 @@ The official Sentry SDK for monitoring Nuxt applications.
 
 - [Getting started](https://docs.sentry.io/platforms/javascript/guides/nuxt/)
 - [Configuration](https://docs.sentry.io/platforms/javascript/guides/nuxt/configuration/)
+- [Nuxt-specific features](https://docs.sentry.io/platforms/javascript/guides/nuxt/features/)
 
 ## Support
 
