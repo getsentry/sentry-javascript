@@ -1,8 +1,7 @@
-import type { Envelope, SerializedStreamedSpanContainer } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../../spanUtils';
 
 it('preserves a positive sampling decision when the outgoing fetch span is ignored', async ({ signal }) => {
   let outgoingSentryTrace: string | string[] | undefined;
@@ -19,13 +18,13 @@ it('preserves a positive sampling decision when the outgoing fetch span is ignor
   const runner = createRunner(__dirname)
     .withServerUrl(serverUrl)
     .expect(envelope => {
-      const container = getSpanContainer(envelope);
-      const serverSpan = container.items.find(item => item.attributes[SENTRY_OP]?.value === 'http.server');
+      const spans = getSpansFromEnvelope(envelope);
+      const serverSpan = spans.find(span => getSpanOp(span) === 'http.server');
 
       expect(serverSpan?.is_segment).toBe(true);
       expect(serverSpan?.trace_id).toBe('12345678901234567890123456789012');
       expect(outgoingSentryTrace).toBe(`12345678901234567890123456789012-${serverSpan?.span_id}-1`);
-      expect(container.items.some(item => item.attributes[SENTRY_OP]?.value === 'http.client')).toBe(false);
+      expect(spans.some(span => getSpanOp(span) === 'http.client')).toBe(false);
     })
     .start(signal);
 
@@ -44,9 +43,3 @@ it('preserves a positive sampling decision when the outgoing fetch span is ignor
     closeTestServer();
   }
 });
-
-function getSpanContainer(envelope: Envelope): SerializedStreamedSpanContainer {
-  const spanItem = envelope[1].find(item => item[0].type === 'span');
-  expect(spanItem).toBeDefined();
-  return spanItem![1] as SerializedStreamedSpanContainer;
-}
