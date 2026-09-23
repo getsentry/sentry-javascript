@@ -1,8 +1,7 @@
 import { builtinModules } from 'node:module';
-import commonjs from '@rollup/plugin-commonjs';
 import license from 'rollup-plugin-license';
-import { defineConfig } from 'rollup';
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { defineConfig } from 'rolldown';
+import { makeBaseNPMConfig, makeNPMConfigVariants, plugins } from '@sentry-internal/rollup-utils';
 
 // The orchestrion runtime dependency chain (`@apm-js-collab/tracing-hooks` →
 // `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
@@ -24,36 +23,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 // `SENTRY_INSTRUMENTATIONS`) stay external — the base config keeps them out of the bundle, so they
 // resolve from `node_modules` at runtime.
 //
-// `requireReturnsDefault: 'auto'`: node-resolve prefers a dependency's ESM build even for CJS
-// `require()`s inside the vendored graph. Default-export-only ESM (e.g. esquery) must then resolve
-// to the default itself, not a `{ default }` namespace — CJS callers use it as
-// `require('esquery').parse(...)`.
-//
-// `strictRequires: false`: the default `'auto'` wraps conditionally-required modules (e.g.
-// `debug`'s browser/node split) in lazy initializers exported as `__require` — an export name that
-// downstream re-bundlers mishandle (Turbopack renames it, producing `.require is not a function`
-// crashes in Next.js on Cloudflare). Hoisting is safe here: the vendored graph is closed (nothing
-// optional/missing) and has no require cycles that depend on lazy evaluation.
-const commonJSOptions = { transformMixedEsModules: true, requireReturnsDefault: 'auto', strictRequires: false };
-const commonJSPlugin = commonjs(commonJSOptions);
-
-// Always vendor `debug`'s Node build. Its default entry picks browser vs node at require time,
-// which drags the browser build into this server-only bundle — and, hoisted by
-// `strictRequires: false`, the browser build's storage detection probes `localStorage` at import
-// time, which on Node >= 26 emits an ExperimentalWarning that pollutes stderr and console
-// breadcrumbs in every user app. `order: 'pre'` because the base config's node-resolve plugin
-// sorts ahead of package-specific plugins and would otherwise resolve `debug` first.
-const debugNodeAlias = {
-  name: 'debug-node-alias',
-  resolveId: {
-    order: 'pre',
-    handler(source, importer) {
-      return source === 'debug' ? this.resolve('debug/src/node.js', importer, { skipSelf: true }) : null;
-    },
-  },
-};
-
-// Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
+// Bundling files from the repo-root `node_modules` moves the common source ancestor up to the
 // repo root, so `preserveModules` names our own files `packages/server-runtime-injection/src/...` —
 // strip that prefix to keep the `build/cjs/register.js` layout the `exports` map points at. And npm
 // never packs `node_modules` directories, so the vendored dependencies must not be emitted under
@@ -63,7 +33,7 @@ const sanitizedFileNames = info =>
 
 // The vendored dependencies (see above) are third-party code redistributed inside this package's
 // published `build/`, so their licenses require us to carry each one's copyright/permission notice
-// (and, for Apache-2.0 deps like `@apm-js-collab/*`, the upstream NOTICE). Rollup strips per-file
+// (and, for Apache-2.0 deps like `@apm-js-collab/*`, the upstream NOTICE). Bundling strips per-file
 // banners, so instead we aggregate them into a single `build/THIRD-PARTY-LICENSES.txt`.
 const thirdPartyLicensePlugin = license({
   thirdParty: {
@@ -76,7 +46,7 @@ const thirdPartyLicensePlugin = license({
 
 const orchestrionRuntimeHooks = [
   // The side-effecting `--import` entry SDKs reference via a `--import` flag. We pass it through
-  // rollup only to copy it to `build/import-hook.mjs` at the path the package.json `exports` map
+  // rolldown only to copy it to `build/import-hook.mjs` at the path the package.json `exports` map
   // expects; `external: /.*/` keeps every import (`@sentry/server-runtime-injection/register`) a
   // runtime resolution against the installed package.
   defineConfig({
@@ -97,15 +67,16 @@ export default [
       // `import` condition, so the `build/cjs` copy is unused.
       entrypoints: ['src/register.ts', 'src/hook.mjs'],
       packageSpecificConfig: {
-        plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],
+        plugins: [
+          plugins.makeDebugNodeAliasPlugin(),
+          plugins.makeEsqueryCjsAliasPlugin(),
+          thirdPartyLicensePlugin,
+          plugins.makeBuiltinRequireShimPlugin(),
+        ],
         output: {
           exports: 'named',
           preserveModules: true,
           entryFileNames: sanitizedFileNames,
-          // The commonjs-converted vendored dependencies import Node builtins as default imports
-          // (`require('path')` → default import of `path`), and builtins have no `.default` in CJS —
-          // so builtins need `'default'` interop (the module itself is the default export).
-          interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
           // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which Deno
           // rejects and vite-node (Node 26) misresolves as a relative path. Emit them `node:`-prefixed.
           paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),

@@ -1,7 +1,7 @@
 import { builtinModules } from 'node:module';
 import * as nodePath from 'node:path';
 import license from 'rollup-plugin-license';
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants, plugins } from '@sentry-internal/rollup-utils';
 
 // The orchestrion build-time bundler-plugin chain (`@apm-js-collab/code-transformer-bundler-plugins`
 // → `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
@@ -19,99 +19,6 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 // build-time and runtime transforms always ship the same `code-transformer` version, and so this
 // package has no `@apm-js-collab/*` install footprint at all.
 //
-// Rolldown converts CommonJS natively, so the `@rollup/plugin-commonjs` instance this config used
-// to carry (and its `transformMixedEsModules` / `requireReturnsDefault` / `strictRequires` tuning)
-// is gone. What it does not do is convert the vendored graph's `require()` of node builtins: those
-// survive into the ESM build as rolldown's `__require` helper, which throws in every ESM runtime
-// (plain Node ESM included, since `require` is not defined there).
-//
-// Neither knob rolldown offers fixes it. `platform: 'node'` makes `__require` a real
-// `createRequire(import.meta.url)`, but that lands a static `node:module` import in the *shared*
-// runtime chunk, which every module here imports for `__toESM` - including the entry
-// `@sentry/vercel-edge` pulls in, so edge and browser bundlers then fail to resolve `node:`. And
-// evaluating `createRequire(import.meta.url)` at module scope crashes with ERR_INVALID_ARG_VALUE
-// once a downstream bundler re-bundles our ESM to CJS (see node-integration-tests' `esbuild` suite).
-//
-// So do what the commonjs plugin used to: turn each `require('<builtin>')` into a static import.
-// `preserveModules` gives every vendored file its own chunk, so the `node:` imports land only in
-// the Node-only chunks that actually need them and never in the shared runtime chunk.
-function makeBuiltinRequireShim() {
-  let replaced = false;
-
-  return {
-    name: 'builtin-require-shim',
-    renderChunk(code, _chunk, outputOptions) {
-      // The CJS variant has a real `require`; rolldown never emits the helper there.
-      if (outputOptions.format !== 'es' && outputOptions.format !== 'esm') return null;
-
-      const imports = new Map();
-      // Built per call: rolldown renders chunks concurrently, and a shared global regex would
-      // carry `lastIndex` across those calls and skip matches.
-      const rewritten = code.replace(/__require\("([^"]+)"\)/g, (_match, specifier) => {
-        const bare = specifier.replace(/^node:/, '');
-        if (!builtinModules.includes(bare)) {
-          throw new Error(
-            `The vendored graph \`require()\`s "${specifier}", which is not a node builtin. This shim only knows how to hoist builtins into static imports - handle that dependency explicitly instead.`,
-          );
-        }
-
-        const identifier = `__sentryRequire_${bare.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        imports.set(identifier, specifier);
-
-        return identifier;
-      });
-
-      if (!imports.size) return null;
-      replaced = true;
-
-      const preamble = [...imports].map(([identifier, specifier]) => `import ${identifier} from "${specifier}";`);
-
-      return { code: `${preamble.join('\n')}\n${rewritten}` };
-    },
-    generateBundle(outputOptions) {
-      if (outputOptions.format !== 'es' && outputOptions.format !== 'esm') return;
-
-      if (!replaced) {
-        throw new Error(
-          'Expected rolldown to emit `__require(...)` calls for the vendored graph so they could be hoisted into static imports, but no chunk contained one. Rolldown likely changed how it compiles `require()` of externals - re-check this shim against the emitted chunks.',
-        );
-      }
-      replaced = false;
-    },
-  };
-}
-
-// Always vendor `debug`'s Node build. Its default entry picks browser vs node at require time,
-// which drags the browser build into this server-only bundle, and the browser build's storage
-// detection probes `localStorage` at import time, which on Node >= 26 emits an ExperimentalWarning
-// that pollutes stderr and console breadcrumbs in every user app. `order: 'pre'` so this wins over
-// rolldown's own resolution.
-const debugNodeAlias = {
-  name: 'debug-node-alias',
-  resolveId: {
-    order: 'pre',
-    handler(source, importer) {
-      return source === 'debug' ? this.resolve('debug/src/node.js', importer, { skipSelf: true }) : null;
-    },
-  },
-};
-
-// `esquery` publishes a `module` field, so rolldown resolves the CJS `require('esquery')` inside the
-// vendored graph to its ESM build and then converts that namespace with `__toCommonJS`, handing the
-// caller `{ default: fn }` instead of the function itself - `esquery.parse` ends up undefined and
-// every orchestrion injection fails. `@rollup/plugin-commonjs` used to settle this with
-// `requireReturnsDefault: 'auto'`. Point the CJS caller at the CJS build instead, which needs no
-// interop guesswork at all.
-const esqueryCjsAlias = {
-  name: 'esquery-cjs-alias',
-  resolveId: {
-    order: 'pre',
-    handler(source, importer) {
-      return source === 'esquery' ? this.resolve('esquery/dist/esquery.min.js', importer, { skipSelf: true }) : null;
-    },
-  },
-};
-
 // Bundling files from the repo-root `node_modules` moves the common source ancestor up to the repo
 // root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
 // prefix to keep the `build/cjs/index.js` layout the `exports` map points at. And npm never packs
@@ -239,10 +146,10 @@ export default [
       ],
       packageSpecificConfig: {
         plugins: [
-          debugNodeAlias,
-          esqueryCjsAlias,
+          plugins.makeDebugNodeAliasPlugin(),
+          plugins.makeEsqueryCjsAliasPlugin(),
           thirdPartyLicensePlugin,
-          makeBuiltinRequireShim(),
+          plugins.makeBuiltinRequireShimPlugin(),
           makeCjsExportsSplitPlugin(),
         ],
         output: {
