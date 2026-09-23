@@ -15,7 +15,37 @@
 This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added
 functionality related to Remix.
 
-To use this SDK, initialize Sentry in your Remix entry points for both the client and server.
+The following setup is for Remix on Node.js. For Cloudflare, follow the
+[Remix configuration guide](https://docs.sentry.io/platforms/javascript/guides/remix/).
+
+## Vite Configuration
+
+Add `sentryRemixVitePlugin` after the Remix plugin. It provides the route manifest used to parameterize client-side
+transaction names, instruments supported server-side dependencies at build time, and uploads source maps.
+
+```ts
+// vite.config.ts
+import { vitePlugin as remix } from '@remix-run/dev';
+import { sentryRemixVitePlugin } from '@sentry/remix/vite';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  plugins: [
+    remix(),
+    sentryRemixVitePlugin({
+      org: 'your-org',
+      project: 'your-project',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
+  ],
+});
+```
+
+Set `SENTRY_AUTH_TOKEN` in your build environment for source-map uploads. Do not expose it in client-side code.
+
+## Client Initialization
+
+Initialize Sentry in your client entry point:
 
 ```ts
 // entry.client.tsx
@@ -38,23 +68,43 @@ Sentry.init({
 });
 ```
 
-```ts
-// entry.server.tsx
+## Server Initialization
 
-import { prisma } from '~/db.server';
+Initialize Sentry in a separate file and preload it before the server starts so instrumentation is registered before
+application dependencies load:
 
+```js
+// instrument.server.mjs
 import * as Sentry from '@sentry/remix';
 
 Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1,
-  integrations: [Sentry.prismaIntegration()],
   // ...
 });
 ```
 
-Also, wrap your Remix root with `withSentry` to catch React component errors and to get parameterized router
-transactions.
+For example, start a Vite-built app with:
+
+```bash
+NODE_OPTIONS="--import=./instrument.server.mjs" remix-serve ./build/server/index.js
+```
+
+In your server entry point, export Sentry's error handler alongside your existing request handler:
+
+```ts
+// entry.server.tsx
+import * as Sentry from '@sentry/remix';
+
+export const handleError = Sentry.sentryHandleError;
+```
+
+If you already have a custom `handleError`, wrap it with `Sentry.wrapHandleErrorWithSentry` instead.
+
+## React Error Capture
+
+Wrap your Remix root with `withSentry` to capture React component errors. Parameterized client-side transaction names
+also require the route manifest provided by the Vite plugin above.
 
 ```ts
 // root.tsx
@@ -119,8 +169,12 @@ Sentry.captureEvent({
 
 ## Sourcemaps and Releases
 
-The Remix SDK provides a script that automatically creates a release and uploads sourcemaps. To generate sourcemaps with
-Remix, you need to call `remix build` with the `--sourcemap` option.
+For Vite projects, use `sentryRemixVitePlugin` as shown above to generate and upload source maps during the build.
+
+### Classic Remix Compiler
+
+For projects using the classic Remix compiler, the SDK provides a script that automatically creates a release and
+uploads sourcemaps. Generate sourcemaps by calling `remix build` with the `--sourcemap` option.
 
 On release, call the upload sourcemaps command to upload source maps and create a release:
 
