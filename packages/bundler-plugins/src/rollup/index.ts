@@ -156,8 +156,11 @@ export function _rollupPluginInternal(
     ? createComponentNameAnnotateHooks(
         options.reactComponentAnnotation?.ignoredComponents || [],
         !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
-        // Vite 8 already loads an oxc-based parser, so reuse it.
-        buildTool === 'vite' && buildToolMajorVersion === '8' ? getViteParseAstAsync : undefined,
+        {
+          // Vite 8 already loads an oxc-based parser, so reuse it.
+          getParseAstAsync: buildTool === 'vite' && buildToolMajorVersion === '8' ? getViteParseAstAsync : undefined,
+          logger,
+        },
       )
     : undefined;
 
