@@ -6,15 +6,18 @@
 
 # Sentry Bundler Plugins
 
-Core package containing the bundler-agnostic functionality used by Sentry’s bundler plugins.
+Core package containing the bundler-agnostic functionality used by the [bundler plugins](https://github.com/getsentry/sentry-javascript-bundler-plugins).
+
+Check out the individual packages for more information and examples:
+
+- [Rollup](https://www.npmjs.com/package/@sentry/rollup-plugin)
+- [Vite](https://www.npmjs.com/package/@sentry/vite-plugin)
+- [esbuild](https://www.npmjs.com/package/@sentry/esbuild-plugin)
+- [Webpack](https://www.npmjs.com/package/@sentry/webpack-plugin)
 
 ## Documentation
 
 - [Uploading source maps](https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/)
-- [Rollup plugin](https://www.npmjs.com/package/@sentry/rollup-plugin)
-- [Vite plugin](https://www.npmjs.com/package/@sentry/vite-plugin)
-- [esbuild plugin](https://www.npmjs.com/package/@sentry/esbuild-plugin)
-- [Webpack plugin](https://www.npmjs.com/package/@sentry/webpack-plugin)
 
 ## Support
 

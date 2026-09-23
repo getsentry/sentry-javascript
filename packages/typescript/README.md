@@ -10,7 +10,7 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
 
-Shared TypeScript configuration used at Sentry.
+Shared typescript configuration used at Sentry.
 
 > [!NOTE]
 > This package is an internal library published for use by Sentry-owned JavaScript SDK packages and repositories. It is
@@ -20,12 +20,18 @@ Shared TypeScript configuration used at Sentry.
 ## Installation
 
 ```sh
+# With Yarn:
 yarn add --dev @sentry/typescript
+
+# With NPM:
+npm install --save-dev @sentry/typescript
 ```
 
 ## Usage
 
-Extend the shared configuration from your project's `tsconfig.json`, adjusting the paths for your project:
+Add the following config files to your project's root directory:
+
+**tsconfig.json**:
 
 ```json
 {
@@ -38,8 +44,8 @@ Extend the shared configuration from your project's `tsconfig.json`, adjusting t
 }
 ```
 
-See the [shared configuration](./tsconfig.json) for its compiler options. This package's
-[parent repository](https://github.com/getsentry/sentry-javascript) provides an example of using it in a monorepo.
+For an example of how to use this package in a monorepo, check out this package's own parent repo,
+https://github.com/getsentry/sentry-javascript.
 
 ## Support
 

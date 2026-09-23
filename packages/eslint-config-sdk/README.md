@@ -17,16 +17,10 @@ Shared ESLint configuration used at Sentry.
 > not part of the public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on
 > it directly.
 
-## Installation
-
-```sh
-yarn add --dev @sentry/eslint-config-sdk
-```
-
 ## Configuration
 
-The configuration's legacy `extends` name is `@sentry/sdk`. TypeScript consumers must set `parserOptions.project`
-to their TypeScript configuration so that rules requiring type information can run:
+Use `@sentry` for base rules. Make sure to specify your tsconfig under `parserOptions.project` so that you can
+correctly use the typescript rules. This configuration comes with
 
 ```json
 {
@@ -41,8 +35,6 @@ to their TypeScript configuration so that rules requiring type information can r
   ]
 }
 ```
-
-See the [configuration entry point](./src/index.js) for the shared rule sets.
 
 ## Support
 
