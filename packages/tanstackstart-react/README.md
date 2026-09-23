@@ -4,47 +4,20 @@
   </a>
 </p>
 
-# Official Sentry SDK for TanStack Start React (Beta)
+# Official Sentry SDK for TanStack Start React
 
 [![npm version](https://img.shields.io/npm/v/@sentry/tanstackstart-react.svg)](https://www.npmjs.com/package/@sentry/tanstackstart-react)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/tanstackstart-react.svg)](https://www.npmjs.com/package/@sentry/tanstackstart-react)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/tanstackstart-react.svg)](https://www.npmjs.com/package/@sentry/tanstackstart-react)
 
-> This SDK is currently in **BETA**. Beta features are still in progress and may have bugs. Please reach out on
-> [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
+The official Sentry SDK for monitoring TanStack Start React applications.
 
-> See the [Official Sentry TanStack Start SDK Docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/) to get started.
+## Documentation
 
-## Compatibility
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/)
 
-The minimum supported version of TanStack Start is `1.111.12`.
+## Support
 
-## Custom Usage
-
-To set context information or to send manual events, you can use `@sentry/tanstackstart-react` as follows:
-
-```ts
-import * as Sentry from '@sentry/tanstackstart-react';
-
-// Set user information, as well as tags and further extras
-Sentry.setTag('user_mode', 'admin');
-Sentry.setUser({ id: '4711' });
-Sentry.setContext('application_area', { location: 'checkout' });
-
-// Add a breadcrumb for future events
-Sentry.addBreadcrumb({
-  message: '"Add to cart" clicked',
-  // ...
-});
-
-// Capture exceptions or messages
-Sentry.captureException(new Error('Oh no.'));
-Sentry.captureMessage('Hello, world!');
-```
-
-## Links
-
-- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/)
-- [Sentry.io](https://sentry.io/?utm_source=github&utm_medium=npm_tanstackstartreact)
-- [Sentry Discord Server](https://discord.gg/Ww9hbqr)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/sentry)
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)
