@@ -274,6 +274,42 @@ describe('tracing mixin span creation', () => {
     ]);
   });
 
+  it('names UI spans after the component and preserves the original description when span streaming is enabled', ({
+    app,
+    uiSpans,
+    initSentry,
+  }) => {
+    initSentry({ tracing: { trackComponents: ['ChildComponent'] }, sdk: { traceLifecycle: 'stream' } });
+
+    mountUnderActiveSpan(app);
+
+    expect(uiSpans).toEqual([
+      { name: 'ChildComponent', op: UI_MOUNT_SPAN_OP },
+      { name: 'Root', op: UI_MOUNT_SPAN_OP },
+      { name: 'Root', op: UI_RENDER_SPAN_OP },
+    ]);
+  });
+
+  it('uses the component mount fallback for anonymous components when span streaming is enabled', ({
+    uiSpans,
+    initSentry,
+  }) => {
+    const anonymousChild = { render: () => h('p', 'child') };
+    const app = createApp({ render: () => h('div', [h(anonymousChild)]) });
+    initSentry({
+      tracing: { trackComponents: true },
+      sdk: { app, traceLifecycle: 'stream' },
+    });
+
+    mountUnderActiveSpan(app);
+
+    expect(uiSpans).toEqual([
+      { name: 'Component mount', op: UI_MOUNT_SPAN_OP },
+      { name: 'Root', op: UI_MOUNT_SPAN_OP },
+      { name: 'Root', op: UI_RENDER_SPAN_OP },
+    ]);
+  });
+
   // Vue 3 compiles `app.mixin()` down to a no-op returning the app when the `__VUE_OPTIONS_API__`
   // build flag is `false`. Nuxt 5 sets that flag by default (nuxt/nuxt#35791), so this stub matches
   // what those users run. The real build is covered by the `vue-3 (no Options API)` e2e variant.

@@ -1,17 +1,26 @@
+/* eslint-disable max-lines */
 import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
   getActiveSpan,
+  getClient,
   getRootSpan,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   timestampInSeconds,
+  UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK,
+  UI_INTERACTION_DRAG_SPAN_NAME_FALLBACK,
+  UI_INTERACTION_HOVER_SPAN_NAME_FALLBACK,
+  UI_INTERACTION_PRESS_SPAN_NAME_FALLBACK,
+  UI_WEBVITAL_CLS_SPAN_NAME_FALLBACK,
+  UI_WEBVITAL_LCP_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
+import { getComponentName } from '../component-name';
 import type { InteractionType } from './inp';
 import { getCachedInteractionContext, INP_ENTRY_MAP, MAX_PLAUSIBLE_INP_DURATION, UNKNOWN_ELEMENT_NAME } from './inp';
 import type { InstrumentationHandlerCallback, MetricNavigationType } from '../instrumentation/performanceObserver';
@@ -21,7 +30,7 @@ import {
   addLcpInstrumentationHandler,
 } from '../instrumentation/performanceObserver';
 import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
-import { BROWSER_NAVIGATION_TYPE } from '@sentry/conventions/attributes';
+import { BROWSER_NAVIGATION_TYPE, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
 import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
 import { listenForWebVitalReportEvents } from './reportEvents';
@@ -43,6 +52,13 @@ const INTERACTION_TYPE_TO_SPAN_OP: Record<InteractionType, string> = {
   hover: UI_INTERACTION_HOVER,
   drag: UI_INTERACTION_DRAG,
   press: UI_INTERACTION_PRESS,
+};
+
+const INTERACTION_TYPE_TO_SPAN_NAME_FALLBACK: Record<InteractionType, string> = {
+  click: UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK,
+  hover: UI_INTERACTION_HOVER_SPAN_NAME_FALLBACK,
+  drag: UI_INTERACTION_DRAG_SPAN_NAME_FALLBACK,
+  press: UI_INTERACTION_PRESS_SPAN_NAME_FALLBACK,
 };
 
 type WebVitalMetric = Parameters<Parameters<typeof addLcpInstrumentationHandler>[0]>[0]['metric'];
@@ -180,11 +196,22 @@ export function _sendLcpSpan(
   // Without an entry there is no render time to end at, so the span lasts the value it reports,
   // like an entry-less INP does. Ending at the time origin instead would invert the span.
   const endTime = entry ? msToSec(performanceTimeOrigin + entry.startTime) : startTime + msToSec(lcpValue);
-  const name = entry ? htmlTreeAsString(entry.element) : 'Largest contentful paint';
+  const selector = entry ? htmlTreeAsString(entry.element) : undefined;
+  const componentName = entry?.element ? getComponentName(entry.element) : null;
+  const client = getClient();
+  const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+  const name = hasSpanStreaming
+    ? componentName || UI_WEBVITAL_LCP_SPAN_NAME_FALLBACK
+    : (selector ?? UI_WEBVITAL_LCP_SPAN_NAME_FALLBACK);
 
   const attributes: SpanAttributes = {};
 
-  entry?.element && (attributes['browser.web_vital.lcp.element'] = htmlTreeAsString(entry.element));
+  if (selector) {
+    attributes['browser.web_vital.lcp.element'] = selector;
+  }
+  if (componentName) {
+    attributes[UI_COMPONENT_NAME] = componentName;
+  }
   entry?.id && (attributes['browser.web_vital.lcp.id'] = entry.id);
   entry?.url && (attributes['browser.web_vital.lcp.url'] = entry.url);
   entry?.loadTime != null && (attributes['browser.web_vital.lcp.load_time'] = entry.loadTime);
@@ -271,9 +298,20 @@ export function _sendClsSpan(
   // land it outside that navigation, on the route that follows it.
   const offset = entry?.startTime ?? navigationStartTime ?? 0;
   const startTime = performanceTimeOrigin ? msToSec(performanceTimeOrigin + offset) : timestampInSeconds();
-  const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';
+  const firstSourceNode = entry?.sources[0]?.node;
+  const selector = entry ? htmlTreeAsString(firstSourceNode) : undefined;
+  const componentName = firstSourceNode ? getComponentName(firstSourceNode) : null;
+  const client = getClient();
+  const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+  const name = hasSpanStreaming
+    ? componentName || UI_WEBVITAL_CLS_SPAN_NAME_FALLBACK
+    : (selector ?? UI_WEBVITAL_CLS_SPAN_NAME_FALLBACK);
 
   const attributes: SpanAttributes = {};
+
+  if (componentName) {
+    attributes[UI_COMPONENT_NAME] = componentName;
+  }
 
   if (entry?.sources) {
     entry.sources.forEach((source, index) => {
@@ -384,7 +422,12 @@ export function _sendInpSpan(
   // With soft navigations the caller knows exactly which navigation the metric belongs to. Without
   // them we fall back to the span that was active when the interaction was observed.
   const spanToUse = attributedSpan || cachedContext?.span || rootSpan;
-  const name = cachedContext?.elementName || (entry ? htmlTreeAsString(entry.target) : 'Interaction to next paint');
+  const selector = cachedContext?.elementName || (entry ? htmlTreeAsString(entry.target) : undefined);
+  const componentName = entry?.target ? getComponentName(entry.target) : null;
+  const client = getClient();
+  const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+  const fallbackName = INTERACTION_TYPE_TO_SPAN_NAME_FALLBACK[interactionType];
+  const name = hasSpanStreaming ? componentName || fallbackName : (selector ?? 'Interaction to next paint');
 
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
@@ -392,10 +435,15 @@ export function _sendInpSpan(
 
   // The span's name and op always have a value, even for an INP without an entry, so they can't
   // say whether there was an interaction to describe. These attributes can: they are only set for
-  // what was actually observed.
+  // what was actually observed. The name no longer holds the selector either, now that it is the
+  // component name or the op's fallback under span streaming.
   // TODO: use the `@sentry/conventions` constants once getsentry/sentry-conventions#641 is released.
-  entry && name !== UNKNOWN_ELEMENT_NAME && (attributes['browser.web_vital.inp.target'] = name);
+  selector && selector !== UNKNOWN_ELEMENT_NAME && (attributes['browser.web_vital.inp.target'] = selector);
   entryInteractionType && (attributes['browser.web_vital.inp.interaction_type'] = entryInteractionType);
+
+  if (componentName) {
+    attributes[UI_COMPONENT_NAME] = componentName;
+  }
 
   _emitWebVitalSpan({
     name,

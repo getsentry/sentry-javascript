@@ -15,6 +15,7 @@ import {
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
   USER_AGENT_ORIGINAL,
+  URL_PATH,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -71,6 +72,10 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: expect.any(String),
       },
+      [URL_PATH]: {
+        type: 'string',
+        value: '/index.html',
+      },
       [SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]: {
         type: 'string',
         value: 'idleTimeout',
@@ -101,11 +106,11 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       },
       [SENTRY_SEGMENT_NAME]: {
         type: 'string',
-        value: 'Pageload',
+        value: 'Click',
       },
       [SENTRY_SEGMENT_NAME_SOURCE]: {
         type: 'string',
-        value: 'url',
+        value: 'custom',
       },
       [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
         type: 'string',
@@ -114,8 +119,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
     },
     end_timestamp: expect.any(Number),
     is_segment: true,
-    // Interaction spans are named after the current route, which is the pageload span's name.
-    name: 'Pageload',
+    name: 'Click',
     span_id: interactionSegmentSpan!.span_id,
     start_timestamp: expect.any(Number),
     status: 'ok',
@@ -159,16 +163,20 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       },
       [SENTRY_SEGMENT_NAME]: {
         type: 'string',
-        value: 'Pageload',
+        value: 'Click',
       },
       [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
         type: 'string',
         value: 'production',
       },
+      'browser.web_vital.inp.target': {
+        type: 'string',
+        value: 'body > button.clicked',
+      },
     },
     end_timestamp: expect.any(Number),
     is_segment: false,
-    name: 'body > button.clicked',
+    name: 'Click',
     parent_span_id: interactionSegmentSpan!.span_id,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
     start_timestamp: expect.any(Number),

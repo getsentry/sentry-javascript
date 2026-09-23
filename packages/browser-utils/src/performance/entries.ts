@@ -10,6 +10,7 @@ import {
   setMeasurement,
   spanToJSON,
   filterCollectedUrl,
+  UI_LONG_TASK_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import {
   BROWSER_PAINT_TYPE,
@@ -119,7 +120,7 @@ export function startTrackingLongTasks(): void {
       }
 
       startAndEndSpan(parent, startTime, startTime + duration, {
-        name: 'Main UI thread blocked',
+        name: UI_LONG_TASK_SPAN_NAME_FALLBACK,
         op: UI_LONG_TASK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
@@ -181,7 +182,7 @@ export function startTrackingLongAnimationFrames(): void {
       }
 
       startAndEndSpan(parent, startTime, startTime + duration, {
-        name: 'Main UI thread blocked',
+        name: UI_LONG_TASK_SPAN_NAME_FALLBACK,
         op: UI_LONG_ANIMATION_FRAME,
         attributes,
       });
