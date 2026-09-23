@@ -18,6 +18,7 @@ import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 
 sentryTest(
@@ -75,6 +76,7 @@ sentryTest(
     expect(spans).toEqual([
       {
         attributes: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
             type: 'string',
             value: 'test-child',
@@ -107,6 +109,10 @@ sentryTest(
             type: 'string',
             value: 'stream',
           },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -119,6 +125,7 @@ sentryTest(
       },
       {
         attributes: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
@@ -147,6 +154,10 @@ sentryTest(
             type: 'string',
             value: 'stream',
           },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -159,6 +170,7 @@ sentryTest(
       },
       {
         attributes: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
@@ -191,6 +203,10 @@ sentryTest(
             type: 'string',
             value: 'stream',
           },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
+          },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,
@@ -203,6 +219,7 @@ sentryTest(
       },
       {
         attributes: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
           'culture.calendar': {
             type: 'string',
             value: expect.any(String),
@@ -215,7 +232,7 @@ sentryTest(
             type: 'string',
             value: expect.any(String),
           },
-          'http.request.header.user_agent': {
+          [USER_AGENT_ORIGINAL]: {
             type: 'string',
             value: expect.any(String),
           },

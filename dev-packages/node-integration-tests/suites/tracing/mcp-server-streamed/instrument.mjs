@@ -6,4 +6,14 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
+  enableOpenTelemetrySetup: process.env.ENABLE_OTEL === 'true',
+});
+
+let initializeSpansStarted = 0;
+Sentry.getClient()?.on('spanStart', span => {
+  const attributes = Sentry.spanToJSON(span).attributes;
+  if (attributes['sentry.op'] === 'mcp.server' && attributes['mcp.method.name'] === 'initialize') {
+    initializeSpansStarted += 1;
+    span.setAttribute('test.mcp.initialize_spans_started', initializeSpansStarted);
+  }
 });

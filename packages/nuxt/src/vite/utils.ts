@@ -20,17 +20,22 @@ export async function getNitroMajorVersion(rootDir: string): Promise<number> {
   try {
     const { getPackageInfo } = await import('local-pkg');
 
+    // `paths` entries must point at a file: for a bare directory, resolution starts at the
+    // directory's parent and skips the directory's own `node_modules`, so a hoisted copy higher
+    // up the tree (e.g. a monorepo root) wins over the app's actual dependency.
+    const fromPackage = (dir: string): { paths: string[] } => ({ paths: [path.join(dir, 'package.json')] });
+
     // The package that declares the Nitro dependency: `nuxt` itself, or `@nuxt/nitro-server` (Nuxt >= 3.21) when nuxt delegates to it
-    let provider = await getPackageInfo('nuxt', { paths: [rootDir] });
+    let provider = await getPackageInfo('nuxt', fromPackage(rootDir));
     if (provider?.packageJson.dependencies?.['@nuxt/nitro-server']) {
-      provider = (await getPackageInfo('@nuxt/nitro-server', { paths: [provider.rootPath] })) ?? provider;
+      provider = (await getPackageInfo('@nuxt/nitro-server', fromPackage(provider.rootPath))) ?? provider;
     }
 
     if (!provider?.packageJson.dependencies?.nitro) {
       return 2;
     }
 
-    const info = await getPackageInfo('nitro', { paths: [provider.rootPath] });
+    const info = await getPackageInfo('nitro', fromPackage(provider.rootPath));
     const major = parseInt(info?.version?.split('.')[0] ?? '', 10);
     // The provider imports `nitro` (not `nitropack`), so it is at least v3 even if the version is unreadable
     return isNaN(major) ? 3 : major;
@@ -76,6 +81,11 @@ export async function findDefaultSdkInitFile(
 }
 
 export const SERVER_CONFIG_FILENAME = 'sentry.server.config';
+
+/** Whether a resolved Nitro preset targets Cloudflare (workerd). Nitro normalizes preset names, so any `cloudflare*` spelling matches. */
+export function isCloudflarePreset(preset: string | undefined): boolean {
+  return !!preset?.replace(/-/g, '_').startsWith('cloudflare');
+}
 
 /** Builds the value for `node --import`. Node reads it as a URL, so it needs forward slashes on Windows too. */
 export function toImportSpecifier(fromDir: string, filePath: string): string {

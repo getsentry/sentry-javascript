@@ -1,14 +1,22 @@
 import type { DebugImage, StackFrame } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { patchFrames, registerWebWorkerWasm } from '../src/index';
+import { restoreWasmGlobals, saveWasmGlobals } from './wasmTestHelpers';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryWasmImages?: Array<DebugImage>;
 };
 
 describe('registerWebWorkerWasm()', () => {
+  let savedGlobals = saveWasmGlobals();
+
+  beforeEach(() => {
+    savedGlobals = saveWasmGlobals();
+  });
+
   afterEach(() => {
+    restoreWasmGlobals(savedGlobals);
     delete WINDOW._sentryWasmImages;
     vi.restoreAllMocks();
   });
@@ -18,12 +26,12 @@ describe('registerWebWorkerWasm()', () => {
     const mockSelf = { postMessage: mockPostMessage };
 
     const originalInstantiateStreaming = WebAssembly.instantiateStreaming;
+    const originalInstantiate = WebAssembly.instantiate;
 
     registerWebWorkerWasm({ self: mockSelf });
 
     expect(WebAssembly.instantiateStreaming).not.toBe(originalInstantiateStreaming);
-
-    WebAssembly.instantiateStreaming = originalInstantiateStreaming;
+    expect(WebAssembly.instantiate).not.toBe(originalInstantiate);
   });
 
   it('should patch WebAssembly.compileStreaming when available', () => {
@@ -35,8 +43,6 @@ describe('registerWebWorkerWasm()', () => {
     registerWebWorkerWasm({ self: mockSelf });
 
     expect(WebAssembly.compileStreaming).not.toBe(originalCompileStreaming);
-
-    WebAssembly.compileStreaming = originalCompileStreaming;
   });
 });
 

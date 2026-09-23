@@ -7,17 +7,15 @@ import {
   shouldSkipCodeInjection,
   getDebugIdSnippet,
   stringToUUID,
-  COMMENT_USE_STRICT_REGEX,
   createDebugIdUploadFunction,
   globFiles,
   createComponentNameAnnotateHooks,
   replaceBooleanFlagsInCode,
   CodeInjection,
+  stampDebugId,
+  getCodeInjectionPosition,
 } from '../core';
-import type {
-  ComponentAnnotationTransformMeta,
-  ComponentAnnotationTransformResult,
-} from '../core/component-annotation-vite';
+import type { ComponentAnnotationTransformMeta } from '../core/component-annotation-oxc';
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
@@ -28,18 +26,18 @@ import { createRequire } from 'node:module';
 // because `rollup` is an optional dependency.
 type TransformResult = { code: string; map?: SourceMap | string | { mappings: string } | null } | null | undefined;
 
+// The subset of Rollup's `OutputBundle` the stamping hook reads.
+type OutputBundle = Record<
+  string,
+  | { type: 'chunk'; fileName: string; code: string; sourcemapFileName?: string | null }
+  | { type: 'asset'; fileName: string; source: string | Uint8Array }
+>;
+
 type ViteModule = {
   parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;
 };
 
 type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
-type ViteAnnotationHooks = {
-  transform(
-    code: string,
-    id: string,
-    meta?: ComponentAnnotationTransformMeta,
-  ): Promise<ComponentAnnotationTransformResult>;
-};
 
 let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
 
@@ -158,33 +156,13 @@ export function _rollupPluginInternal(
     ? createComponentNameAnnotateHooks(
         options.reactComponentAnnotation?.ignoredComponents || [],
         !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
+        {
+          // Vite 8 already loads an oxc-based parser, so reuse it.
+          getParseAstAsync: buildTool === 'vite' && buildToolMajorVersion === '8' ? getViteParseAstAsync : undefined,
+          logger,
+        },
       )
     : undefined;
-  const transformViteAnnotations =
-    options.reactComponentAnnotation?.enabled &&
-    buildTool === 'vite' &&
-    buildToolMajorVersion === '8' &&
-    !options.reactComponentAnnotation?._experimentalInjectIntoHtml
-      ? (() => {
-          let viteAnnotationHooksPromise: Promise<ViteAnnotationHooks> | undefined;
-
-          return {
-            transform(code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
-              if (!viteAnnotationHooksPromise) {
-                viteAnnotationHooksPromise = import('../core/component-annotation-vite').then(
-                  ({ createViteComponentNameAnnotateHooks }) =>
-                    createViteComponentNameAnnotateHooks(
-                      options.reactComponentAnnotation?.ignoredComponents || [],
-                      getViteParseAstAsync,
-                    ),
-                );
-              }
-
-              return viteAnnotationHooksPromise.then(hooks => hooks.transform(code, id, meta));
-            },
-          };
-        })()
-      : undefined;
 
   const transformReplace = Object.keys(replacementValues).length > 0;
   const shouldTransform = transformAnnotations || transformReplace;
@@ -202,21 +180,8 @@ export function _rollupPluginInternal(
   ): Promise<TransformResult> {
     // Component annotations are only in user code and boolean flag replacements are
     // only in Sentry code. If we successfully add annotations, we can return early.
-    let shouldRunBabelAnnotations = true;
-
-    if (transformViteAnnotations?.transform) {
-      const result = await transformViteAnnotations.transform(code, id, meta);
-      if (result) {
-        return result;
-      }
-
-      if (result === null) {
-        shouldRunBabelAnnotations = false;
-      }
-    }
-
-    if (shouldRunBabelAnnotations && transformAnnotations?.transform) {
-      const result = await transformAnnotations.transform(code, id);
+    if (transformAnnotations) {
+      const result = await transformAnnotations.transform(code, id, meta);
       if (result) {
         return result;
       }
@@ -259,17 +224,9 @@ export function _rollupPluginInternal(
     }
 
     const ms = meta?.magicString || new MagicString(code, { filename: chunk.fileName });
-    const match = code.match(COMMENT_USE_STRICT_REGEX)?.[0];
-
-    if (match) {
-      // Add injected code after any comments or "use strict" at the beginning of the bundle.
-      ms.appendLeft(match.length, injectCode.code());
-    } else {
-      // ms.replace() doesn't work when there is an empty string match (which happens if
-      // there is neither, a comment, nor a "use strict" at the top of the chunk) so we
-      // need this special case here.
-      ms.prepend(injectCode.code());
-    }
+    const injectionPosition = getCodeInjectionPosition(code);
+    const codeToInject = injectionPosition === code.length ? `\n${injectCode.code()}` : injectCode.code();
+    ms.appendLeft(injectionPosition, codeToInject);
 
     // Rolldown can pass a native MagicString instance in meta.magicString
     // https://rolldown.rs/in-depth/native-magic-string#usage-examples
@@ -280,8 +237,40 @@ export function _rollupPluginInternal(
 
     return {
       code: ms.toString(),
-      map: ms.generateMap({ file: chunk.fileName, hires: 'boundary' as unknown as undefined }),
+      map: ms.generateMap({ file: chunk.fileName, hires: 'boundary' }),
     };
+  }
+
+  /**
+   * Stamps debug IDs into the emitted chunks and source maps.
+   *
+   * `disable-upload` skips the upload routine (which stamps debug IDs into temp copies), so the emitted
+   * artifacts get stamped here instead. Not in `renderChunk`: minifiers running after it would strip the
+   * comment. Rollup computes `[hash]` file names before this hook, so only plugins that hash the final
+   * assets afterwards (e.g. subresource integrity) see the stamped content.
+   */
+  function generateBundle(_outputOptions: unknown, bundle: OutputBundle): void {
+    for (const output of Object.values(bundle)) {
+      if (output.type !== 'chunk' || !isJsFile(output.fileName)) {
+        continue;
+      }
+
+      const sourceMapAsset = bundle[output.sourcemapFileName ?? `${output.fileName}.map`];
+      const sourceMapSource =
+        sourceMapAsset?.type === 'asset' && typeof sourceMapAsset.source === 'string'
+          ? sourceMapAsset.source
+          : undefined;
+
+      const stamped = stampDebugId(output.code, sourceMapSource);
+      if (!stamped) {
+        continue;
+      }
+
+      output.code = stamped.bundleSource;
+      if (stamped.sourceMapSource !== undefined && sourceMapAsset?.type === 'asset') {
+        sourceMapAsset.source = stamped.sourceMapSource;
+      }
+    }
   }
 
   async function writeBundle(
@@ -318,29 +307,22 @@ export function _rollupPluginInternal(
   }
 
   const name = `sentry-${buildTool}-plugin`;
-
-  if (shouldTransform) {
-    const transformHook =
-      buildTool === 'vite'
-        ? {
-            filter: { id: JS_MODULE_ID_FILTER },
-            handler: transform,
-          }
-        : transform;
-
-    return {
-      name,
-      buildStart,
-      transform: transformHook,
-      renderChunk,
-      writeBundle,
-    };
-  }
+  const transformHook =
+    buildTool === 'vite'
+      ? {
+          filter: { id: JS_MODULE_ID_FILTER },
+          handler: transform,
+        }
+      : transform;
 
   return {
     name,
     buildStart,
+    ...(shouldTransform ? { transform: transformHook } : {}),
     renderChunk,
+    ...(options.sourcemaps?.disable === 'disable-upload'
+      ? { generateBundle: { order: 'pre' as const, handler: generateBundle } }
+      : {}),
     writeBundle,
   };
 }

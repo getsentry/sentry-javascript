@@ -41,8 +41,10 @@ import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
 import {
-  SENTRY_SEGMENT_NAME_SOURCE,
   CODE_FUNCTION_NAME,
+  ROUTER_NAVIGATION_ROUTE_ID,
+  SENTRY_DESCRIPTION,
+  SENTRY_SEGMENT_NAME_SOURCE,
   HTTP_ROUTE,
   SENTRY_OP,
   URL_FULL,
@@ -131,19 +133,22 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
       if (instrumentTracing) {
         const activeSpan = getActiveSpan();
         const rootSpan = activeSpan && getRootSpan(activeSpan);
-        const name = rootSpan ? spanToJSON(rootSpan).name : undefined;
+        const client = getClient();
+
+        const description = (rootSpan ? spanToJSON(rootSpan).name : undefined) || '<unknown>';
+        const name = client && hasSpanStreamingEnabled(client) ? 'documentRequest' : description;
 
         response = await startSpan(
           {
-            // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
-            // So we don't need to care too much about the fallback name, it's just for typing purposes....
-            name: name || '<unknown>',
+            name,
             onlyIfParent: true,
             attributes: {
               method: request.method,
               [URL_FULL]: filterCollectedUrl(request.url),
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
               [SENTRY_OP]: FUNCTION,
+              [SENTRY_DESCRIPTION]: description,
+              [CODE_FUNCTION_NAME]: 'documentRequest',
             },
           },
           () => {
@@ -218,14 +223,19 @@ function makeWrappedDataFunction(
         updateSpanWithRoute(args, build);
       }
 
+      const client = getClient();
+
       res = await startSpan(
         {
-          name: id,
+          // With span streaming, a `function` span is named after the function it wraps. The route
+          // module id stays on `router.navigation.route.id`.
+          name: client && hasSpanStreamingEnabled(client) ? name : id,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
             [SENTRY_OP]: FUNCTION,
+            [SENTRY_DESCRIPTION]: id,
             [CODE_FUNCTION_NAME]: name,
-            name,
+            [ROUTER_NAVIGATION_ROUTE_ID]: id,
           },
         },
         (span: Span) => {

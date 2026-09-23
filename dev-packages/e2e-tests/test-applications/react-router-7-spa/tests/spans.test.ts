@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, hidePage, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends a pageload span with a parameterized URL', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('react-router-7-spa', span => {
@@ -58,13 +58,8 @@ test('sends an INP span', async ({ page }) => {
 
   await page.click('#exception-button');
 
-  await page.waitForTimeout(500);
-
   // Page hide to trigger INP
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
+  await hidePage(page);
 
   const inpSpan = await inpSpanPromise;
 
@@ -75,7 +70,8 @@ test('sends an INP span', async ({ page }) => {
 
   expect(inpSpan).toEqual(
     expect.objectContaining({
-      name: 'body > div#root > input#exception-button[type="button"]',
+      // The element is not annotated with a component name, so the span takes the op's fallback name.
+      name: 'Click',
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -93,6 +89,10 @@ test('sends an INP span', async ({ page }) => {
     expect.objectContaining({
       'sentry.op': { value: 'ui.interaction.click', type: 'string' },
       'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
+      'browser.web_vital.inp.target': {
+        value: 'body > div#root > input#exception-button[type="button"]',
+        type: 'string',
+      },
       'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
       'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
       'sentry.transaction': { value: '/', type: 'string' },

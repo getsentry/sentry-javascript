@@ -59,11 +59,15 @@ export {
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
   SentryMastraExporter,
+  createFlueInstrumentation,
   modulesIntegration,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,
@@ -92,7 +96,6 @@ export {
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
@@ -137,6 +140,7 @@ export {
   supabaseIntegration,
   systemErrorIntegration,
   instrumentSupabaseClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -170,6 +174,10 @@ export {
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
+  eveConversationHook,
+  eveInstrumentation,
+  eveIntegration,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export {

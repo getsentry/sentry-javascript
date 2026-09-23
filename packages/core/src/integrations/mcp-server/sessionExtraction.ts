@@ -267,19 +267,25 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
  * Build transport and network attributes
  * @param transport - MCP transport instance
  * @param extra - Optional extra handler data
+ * @param message - Current message carrying request-scoped protocol metadata
  * @returns Transport attributes for span instrumentation
  * @note sessionId may be undefined during initial setup - session should be established by client during initialize flow
  */
 export function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
+  message?: JsonRpcRequest | JsonRpcNotification,
 ): Record<string, string | number> {
-  const sessionId = transport && 'sessionId' in transport ? transport.sessionId : undefined;
+  const messageData = message && extractSessionDataFromMessage(message);
+  const hasRequestMetadata = messageData?.protocolVersion !== undefined || messageData?.clientInfo !== undefined;
+  const sessionId = !hasRequestMetadata && transport && 'sessionId' in transport ? transport.sessionId : undefined;
   const clientInfo = extra ? extractClientInfo(extra) : {};
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
-  const clientAttributes = getClientAttributes(transport);
-  const serverAttributes = getServerAttributes(transport);
-  const protocolVersion = getProtocolVersionForTransport(transport);
+  const clientAttributes = hasRequestMetadata
+    ? buildClientAttributesFromInfo(messageData?.clientInfo)
+    : getClientAttributes(transport);
+  const serverAttributes = hasRequestMetadata ? {} : getServerAttributes(transport);
+  const protocolVersion = hasRequestMetadata ? messageData?.protocolVersion : getProtocolVersionForTransport(transport);
 
   const attributes = {
     ...(sessionId && { [MCP_SESSION_ID_ATTRIBUTE]: sessionId }),

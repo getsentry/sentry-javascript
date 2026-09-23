@@ -70,11 +70,14 @@ test('Should set a "not_found" status on a server component span when notFound()
   // Page server component span should have the right name and attributes
   expect(spans).toContainEqual(
     expect.objectContaining({
-      name: 'resolve page server component "/server-component/not-found"',
+      name: 'Page',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'function', type: 'string' },
+        'sentry.description': { value: 'resolve page server component "/server-component/not-found"', type: 'string' },
+        'code.function.name': { value: 'Page', type: 'string' },
         'sentry.nextjs.ssr.function.type': { value: 'Page', type: 'string' },
         'sentry.nextjs.ssr.function.route': { value: '/server-component/not-found', type: 'string' },
+        'http.route': { value: '/server-component/not-found', type: 'string' },
       }),
     }),
   );
@@ -111,11 +114,14 @@ test('Should capture an error and spans for a app router page', async ({ page })
   // The page server component span should have the right name and attributes
   expect(spans).toContainEqual(
     expect.objectContaining({
-      name: 'resolve page server component "/server-component/faulty"',
+      name: 'Page',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'function', type: 'string' },
+        'sentry.description': { value: 'resolve page server component "/server-component/faulty"', type: 'string' },
+        'code.function.name': { value: 'Page', type: 'string' },
         'sentry.nextjs.ssr.function.type': { value: 'Page', type: 'string' },
         'sentry.nextjs.ssr.function.route': { value: '/server-component/faulty', type: 'string' },
+        'http.route': { value: '/server-component/faulty', type: 'string' },
       }),
     }),
   );

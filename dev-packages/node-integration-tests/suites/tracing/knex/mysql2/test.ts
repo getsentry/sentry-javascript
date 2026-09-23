@@ -25,7 +25,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
               }),
               status: 'ok',
               description:
-                'create table `User` (`id` int unsigned not null auto_increment primary key, `createdAt` timestamp(3) not null default CURRENT_TIMESTAMP(3), `email` text not null, `name` text not null)',
+                'create table `User` (`id` int unsigned not null auto_increment primary key, `createdAt` timestamp(?) not null default CURRENT_TIMESTAMP(?), `email` text not null, `name` text not null)',
               origin: ORIGIN,
             }),
             expect.objectContaining({
@@ -86,7 +86,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
                 {
                   name: 'create table `User`',
                   summary: 'create table `User`',
-                  text: 'create table `User` (`id` int unsigned not null auto_increment primary key, `createdAt` timestamp(3) not null default CURRENT_TIMESTAMP(3), `email` text not null, `name` text not null)',
+                  text: 'create table `User` (`id` int unsigned not null auto_increment primary key, `createdAt` timestamp(?) not null default CURRENT_TIMESTAMP(?), `email` text not null, `name` text not null)',
                 },
                 {
                   name: 'insert `User`',

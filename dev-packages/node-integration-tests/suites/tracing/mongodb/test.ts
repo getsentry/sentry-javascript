@@ -239,6 +239,7 @@ describe('MongoDB auto-instrumentation', () => {
             ...attributes,
           }),
           'server.port': { type: 'integer', value: expect.any(Number) },
+          'sentry.is_localhost': { type: 'boolean', value: false },
         },
         end_timestamp: expect.any(Number),
         is_segment: false,

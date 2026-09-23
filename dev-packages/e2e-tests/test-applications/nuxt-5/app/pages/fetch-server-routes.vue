@@ -2,6 +2,7 @@
   <div>
     <button @click="fetchError">Fetch Server API Error</button>
     <button @click="fetchNitroFetch">Fetch Nitro $fetch</button>
+    <button @click="fetchThirdPartyHttpError">Fetch Third-Party HTTPError</button>
   </div>
 </template>
 
@@ -14,5 +15,9 @@ const fetchError = async () => {
 
 const fetchNitroFetch = async () => {
   await useFetch('/api/nitro-fetch');
+};
+
+const fetchThirdPartyHttpError = async () => {
+  await useFetch('/api/third-party-http-error');
 };
 </script>

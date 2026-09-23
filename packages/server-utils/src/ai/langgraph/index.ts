@@ -37,12 +37,15 @@ const SENTRY_PATCHED = '__sentry_patched__';
  */
 export function instrumentStateGraphCompile(
   originalCompile: (...args: unknown[]) => CompiledGraph,
-  options: LangGraphOptions,
+  rawOptions: LangGraphOptions,
 ): (...args: unknown[]) => CompiledGraph {
   if (Object.prototype.hasOwnProperty.call(originalCompile, SENTRY_PATCHED)) {
     return originalCompile;
   }
 
+  // This is exported, so callers can hand us an options object with no recording flags set. Resolving
+  // here (rather than only in `instrumentStateGraph`) keeps that path on the `dataCollection` defaults.
+  const options = resolveAIRecordingOptions(rawOptions);
   const sentryHandler = createLangChainCallbackHandler(options);
 
   const wrapped = new Proxy(originalCompile, {
@@ -142,15 +145,16 @@ export function instrumentCompiledGraphInvoke(
               );
             }
 
+            const recordInputs = options.recordInputs;
+            const recordOutputs = options.recordOutputs;
+
             // Extract available tools from the graph instance
-            const tools = extractToolsFromCompiledGraph(graphInstance);
+            const tools = recordInputs ? extractToolsFromCompiledGraph(graphInstance) : null;
             if (tools) {
               span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
             }
 
             // Parse input messages
-            const recordInputs = options.recordInputs;
-            const recordOutputs = options.recordOutputs;
             const inputMessages =
               args.length > 0 ? ((args[0] as { messages?: LangChainMessage[] } | null)?.messages ?? []) : [];
 

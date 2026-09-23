@@ -18,6 +18,8 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
@@ -47,6 +49,7 @@ import {
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
+import { isEveGenAiRecordingDefault } from './gen-ai-recording-mode';
 import type { GenAiOptions } from '../../ai/core/utils';
 import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
@@ -356,6 +359,9 @@ function enrichInvokeAgentFromStream(
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
+    const { cacheRead, cacheWrite } = cacheTokens(usage);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
   }
 
   if (recordOutputs) {
@@ -567,6 +573,7 @@ export function enrichSpanOnEnd(
     if (totalTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
     }
+    setCacheTokens(span, usage);
   }
 
   // Match the OTel integration: finish reasons live on the model-call (`generate_content`) span, not
@@ -631,6 +638,32 @@ function getFinishReason(result: Record<string, unknown>): string | undefined {
 /** Reads a token count that may be a plain number or a `{ total }` object (model-call usage). */
 function tokenCount(value: unknown): number | undefined {
   return asNumber(value) ?? (isObjectLike(value) ? asNumber(value.total) : undefined);
+}
+
+/**
+ * Cache token counts as the AI SDK normalizes them: v5 `cachedInputTokens`, v6 `inputTokenDetails`,
+ * v7 `inputTokens.{cacheRead,cacheWrite}`.
+ */
+function setCacheTokens(span: Span, usage: Record<string, unknown>): void {
+  const { cacheRead, cacheWrite } = cacheTokens(usage);
+  if (cacheRead !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+  }
+  if (cacheWrite !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
+  }
+}
+
+function cacheTokens(usage: Record<string, unknown>): { cacheRead?: number; cacheWrite?: number } {
+  const inputTokens = isObjectLike(usage.inputTokens) ? usage.inputTokens : undefined;
+  const inputTokenDetails = isObjectLike(usage.inputTokenDetails) ? usage.inputTokenDetails : undefined;
+  return {
+    cacheRead:
+      asNumber(inputTokens?.cacheRead) ??
+      asNumber(inputTokenDetails?.cacheReadTokens) ??
+      asNumber(usage.cachedInputTokens),
+    cacheWrite: asNumber(inputTokens?.cacheWrite) ?? asNumber(inputTokenDetails?.cacheWriteTokens),
+  };
 }
 
 function buildOutputMessages(
@@ -718,11 +751,13 @@ function getRecordingOptions(
   recordInputs: boolean;
   recordOutputs: boolean;
 } {
-  const genAI = getClient()?.getDataCollectionOptions().genAI;
+  const client = getClient();
+  const genAI = client?.getDataCollectionOptions().genAI;
+  const eveMode = client ? isEveGenAiRecordingDefault(client) : false;
 
   return {
-    recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs),
-    recordOutputs: resolveRecording(channelOptions.recordOutputs, event.recordOutputs, genAI?.outputs),
+    recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs, eveMode),
+    recordOutputs: resolveRecording(channelOptions.recordOutputs, event.recordOutputs, genAI?.outputs, eveMode),
   };
 }
 
@@ -735,10 +770,22 @@ function getRecordingOptions(
  * `experimental_telemetry: { isEnabled: true }`. The `ai:telemetry` channel does not expose `isEnabled`
  * (nor a resolved recording flag), so that per-call default cannot be reproduced here — v7 users who
  * want inputs/outputs recorded must enable `dataCollection.genAI` or set `recordInputs`/`recordOutputs`.
+ *
+ * Under `eveMode` (set by `eveIntegration()`) the per-call flag is eve's blanket framework default
+ * rather than an end-user decision, so it is skipped: an explicit `dataCollection.genAI` still wins,
+ * otherwise recording defaults to `true`. An integration-level option outranks both regardless.
  */
-function resolveRecording(integrationOption: unknown, perCallOption: unknown, globalDefault: unknown): boolean {
+function resolveRecording(
+  integrationOption: unknown,
+  perCallOption: unknown,
+  globalDefault: unknown,
+  eveMode = false,
+): boolean {
   if (typeof integrationOption === 'boolean') {
     return integrationOption;
+  }
+  if (eveMode) {
+    return typeof globalDefault === 'boolean' ? globalDefault : true;
   }
   if (typeof perCallOption === 'boolean') {
     return perCallOption;

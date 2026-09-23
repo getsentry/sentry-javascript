@@ -12,6 +12,10 @@ import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose 
 const QUERY_ORIGIN = 'auto.db.postgres';
 
 const COMMON_DB_ATTRIBUTES = {
+  'sentry.is_localhost': {
+    type: 'boolean',
+    value: false,
+  },
   'db.connection_string': {
     type: 'string',
     value: expect.stringMatching(/^postgresql:\/\/localhost:\d+\/tests$/),
@@ -147,10 +151,10 @@ function expectedDbSpan({
 }
 
 const CREATE_USER_TABLE_STATEMENT =
-  'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));';
+  'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))';
 
 const CREATE_NATIVE_USER_TABLE_STATEMENT =
-  'CREATE TABLE "NativeUser" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));';
+  'CREATE TABLE "NativeUser" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))';
 
 function getDbSpans(container: SerializedStreamedSpanContainer): SerializedStreamedSpanContainer['items'] {
   return container.items.filter(item => item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db');

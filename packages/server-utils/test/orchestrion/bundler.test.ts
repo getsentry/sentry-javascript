@@ -68,6 +68,46 @@ describe('sentryOrchestrionPlugin (rollup)', () => {
     // skips the warning when external is not a normalized predicate
     expect(warn).not.toHaveBeenCalled();
   });
+
+  it('forwards the resolveId options to this.resolve and falls back to self-resolution', async () => {
+    const plugin = rollupPlugin();
+    const resolveId = plugin.resolveId as (
+      this: unknown,
+      source: string,
+      importer: string | undefined,
+      opts: unknown,
+    ) => Promise<unknown>;
+
+    const resolve = vi.fn().mockResolvedValue(null);
+    // `custom` is what `@rollup/plugin-commonjs` uses to recognise its own `require()` resolution;
+    // dropping it makes the plugin warn (THIS_RESOLVE_WITHOUT_OPTIONS) and abandon the resolution.
+    const options = { attributes: {}, custom: { 'node-resolve': { isRequire: true } }, isEntry: false };
+
+    resolve.mockResolvedValueOnce({ id: '/resolved.js' });
+    await expect(resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', options)).resolves.toEqual({
+      id: '/resolved.js',
+    });
+    expect(resolve).toHaveBeenCalledWith('@sentry/server-utils', '/x.js', { ...options, skipSelf: true });
+
+    // When it fails (pnpm isolation), fall back to this package's own resolution.
+    const fallback = await resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', options);
+    expect(typeof fallback).toBe('string');
+    expect(fallback).toContain('server-utils');
+  });
+
+  it('ignores specifiers other than the injected snippet import', async () => {
+    const plugin = rollupPlugin();
+    const resolveId = plugin.resolveId as (
+      this: unknown,
+      source: string,
+      importer: string | undefined,
+      opts: unknown,
+    ) => Promise<unknown>;
+
+    const resolve = vi.fn();
+    await expect(resolveId.call({ resolve }, 'mysql', '/x.js', { attributes: {}, isEntry: false })).resolves.toBeNull();
+    expect(resolve).not.toHaveBeenCalled();
+  });
 });
 
 describe('sentryOrchestrionPlugin (esbuild)', () => {
@@ -193,10 +233,29 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     return warn;
   }
 
-  function runConfig(command: 'build' | 'serve'): { ssr: { noExternal: string[] } } | null {
+  function runConfig(
+    command: 'build' | 'serve',
+    userConfig: Record<string, unknown> = { build: { ssr: true } },
+  ): { ssr: { noExternal: string[] } } | null {
     const plugin = vitePlugin();
-    const config = plugin.config as (config: unknown, env: unknown) => { ssr: { noExternal: string[] } } | null;
-    return config.call(plugin, {}, { command, mode: 'production' });
+    const config = plugin.config as {
+      handler: (config: unknown, env: unknown) => { ssr: { noExternal: string[] } } | null;
+    };
+    return config.handler.call(plugin, userConfig, { command, mode: 'production' });
+  }
+
+  function runConfigEnvironment(
+    name: string,
+    environmentConfig: Record<string, unknown>,
+    command: 'build' | 'serve' = 'build',
+  ): { resolve: { noExternal: string[] } } | null {
+    const plugin = vitePlugin();
+    const configEnvironment = plugin.configEnvironment as (
+      name: string,
+      config: unknown,
+      env: unknown,
+    ) => { resolve: { noExternal: string[] } } | null;
+    return configEnvironment.call(plugin, name, environmentConfig, { command, mode: 'production' });
   }
 
   it('warns when instrumented modules are listed in ssr.external', () => {
@@ -226,6 +285,22 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   it('does not force-bundle instrumented modules on the dev server', () => {
     // Inlined in dev, the CommonJS drivers throw `exports is not defined` on import.
     expect(runConfig('serve')).toBeNull();
+    expect(runConfigEnvironment('ssr', {}, 'serve')).toBeNull();
+  });
+
+  it('adds the top-level ssr option only when the config already has ssr or build.ssr', () => {
+    expect(runConfig('build', {})).toBeNull();
+    expect(runConfig('build', { ssr: { target: 'node' } })?.ssr.noExternal).toContain('mysql');
+    expect(runConfig('build', { build: { ssr: 'src/server.ts' } })?.ssr.noExternal).toContain('mysql');
+  });
+
+  it('force-bundles instrumented modules in server environments', () => {
+    expect(runConfigEnvironment('ssr', {})?.resolve.noExternal).toEqual(
+      expect.arrayContaining(['mysql', '@sentry/server-utils']),
+    );
+    expect(runConfigEnvironment('worker', { consumer: 'server' })?.resolve.noExternal).toContain('mysql');
+    expect(runConfigEnvironment('client', {})).toBeNull();
+    expect(runConfigEnvironment('browser', { consumer: 'client' })).toBeNull();
   });
 
   it('does not warn about externalized instrumented modules on the dev server', () => {

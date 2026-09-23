@@ -4,13 +4,11 @@ import express from 'express';
 
 const app = express();
 
-Sentry.setTag('global', 'tag');
+Sentry.setAttribute('global', 'attribute');
 
 app.get('/test/isolationScope', (_req, res) => {
-  // eslint-disable-next-line no-console
-  console.log('This is a test log.');
-  Sentry.addBreadcrumb({ message: 'manual breadcrumb' });
-  Sentry.setTag('isolation-scope', 'tag');
+  Sentry.setAttribute('isolation-scope', 'attribute');
+  Sentry.setUser({ id: 'user-1' });
 
   res.send({});
 });

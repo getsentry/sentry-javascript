@@ -1,7 +1,6 @@
 const Sentry = require('@sentry/node');
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
@@ -31,7 +30,7 @@ const init = async () => {
     method: 'GET',
     path: '/test-param/{param}',
     handler: function (request, h) {
-      Sentry.setTag(`param-${request.params.param}`, 'yes');
+      Sentry.setAttribute(`param-${request.params.param}`, 'yes');
 
       return { paramWas: request.params.param };
     },

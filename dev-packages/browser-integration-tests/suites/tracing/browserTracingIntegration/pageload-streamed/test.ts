@@ -8,6 +8,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/core';
 import {
+  BROWSER_NAVIGATION_TYPE,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
@@ -16,6 +17,7 @@ import {
   SENTRY_TRACE_LIFECYCLE,
   URL_FULL,
   URL_PATH,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -69,6 +71,7 @@ sentryTest(
 
     expect(pageloadSpan).toEqual({
       attributes: {
+        'sentry.is_localhost': { value: false, type: 'boolean' },
         'culture.calendar': {
           type: 'string',
           value: expect.any(String),
@@ -81,7 +84,7 @@ sentryTest(
           type: 'string',
           value: expect.any(String),
         },
-        'http.request.header.user_agent': {
+        [USER_AGENT_ORIGINAL]: {
           type: 'string',
           value: expect.any(String),
         },
@@ -123,6 +126,10 @@ sentryTest(
           'browser.web_vital.ttfb.value': {
             type: expect.stringMatching(/^(integer)|(double)$/),
             value: expect.any(Number),
+          },
+          [BROWSER_NAVIGATION_TYPE]: {
+            type: 'string',
+            value: 'navigate',
           },
         }),
         'sentry.idle_span_finish_reason': {

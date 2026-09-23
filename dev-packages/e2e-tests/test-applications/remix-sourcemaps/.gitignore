@@ -1,0 +1,6 @@
+/node_modules
+/build
+.tmp_mock_uploads.json
+.tmp_chunks
+.tmp_build_stdout
+.tmp_build_stderr

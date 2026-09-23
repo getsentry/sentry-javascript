@@ -1,0 +1,11 @@
+const Sentry = require('@sentry/node');
+
+// Unreachable rather than invalid, so `client.close()` is still pending while the
+// broken pipe keeps erroring.
+Sentry.init({
+  dsn: 'https://public@127.0.0.1:1/1337',
+});
+
+// The test runner closes both stdio streams, so this write raises EPIPE. Node ignores
+// SIGPIPE, so it arrives as an uncaught exception.
+setInterval(() => process.stdout.write('x'.repeat(4096)), 0);

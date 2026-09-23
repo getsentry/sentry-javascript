@@ -1,11 +1,38 @@
 import * as Sentry from '@sentry/browser';
 
+// Tracing is opt-in per test via `?tracing=1`. The metric tests were written against a client with no
+// pageload/navigation spans, and turning tracing on for all of them would put a pageload span's
+// transaction name on the scope, which is the value those tests assert the metric falls back to.
+const tracing = new URLSearchParams(window.location.search).get('tracing') === '1';
+
 Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
-  integrations: [Sentry.bfcacheMetricsIntegration()],
+  integrations: tracing
+    ? [Sentry.bfcacheMetricsIntegration(), Sentry.browserTracingIntegration()]
+    : [Sentry.bfcacheMetricsIntegration()],
+  ...(tracing && { tracesSampleRate: 1 }),
   release: 'e2e-test',
   environment: 'qa',
   tunnel: 'http://localhost:3031',
+});
+
+// INP only considers interactions whose duration clears the threshold `web-vitals` observes at
+// (40ms), and a synthetic click is far quicker than that, so block long enough to be measured.
+document.getElementById('slow-interaction')?.addEventListener('click', () => {
+  const start = performance.now();
+  while (performance.now() - start < 120) {
+    /* block the main thread */
+  }
+});
+
+// A same-document navigation driven by a click, which is what the browser's soft navigation
+// heuristic looks for: an interaction, a URL change, and a paint.
+document.getElementById('soft-nav')?.addEventListener('click', () => {
+  history.pushState({}, '', `/soft-${Date.now()}`);
+  const paragraph = document.createElement('p');
+  paragraph.textContent = `soft navigation ${Math.random()}`;
+  paragraph.style.height = '120px';
+  document.getElementById('soft-nav-content')?.appendChild(paragraph);
 });
 
 (window as unknown as { Sentry: typeof Sentry }).Sentry = Sentry;
@@ -27,7 +54,8 @@ window.addEventListener(
 const botch = new URLSearchParams(window.location.search).get('botch');
 
 if (botch === 'unload') {
-  // An `unload` listener is the canonical, version-stable bfcache blocker.
+  // An `unload` listener still makes the page ineligible, though the reason Chrome reports for it
+  // has changed across versions.
   window.addEventListener('unload', () => {});
 }
 
@@ -71,11 +99,11 @@ if (botch === 'indexeddb') {
   });
 }
 
-if (botch === 'iframe-clean' || botch === 'iframe-unload') {
-  // Embed a same-origin child frame. A clean child keeps the top page eligible (hit); a child with an
-  // unload listener makes the whole top page ineligible, and the reason comes from the child frame.
+if (botch === 'iframe-clean' || botch === 'iframe-blocked') {
+  // Embed a same-origin child frame. A clean child keeps the top page eligible (hit); a child that
+  // blocks makes the whole top page ineligible, and the reason comes from the child frame.
   const iframe = document.createElement('iframe');
-  iframe.src = botch === 'iframe-unload' ? '/iframe.html?blocker=unload' : '/iframe.html';
+  iframe.src = botch === 'iframe-blocked' ? '/iframe.html?blocker=indexeddb' : '/iframe.html';
   const w = window as unknown as { __iframeLoaded?: boolean };
   w.__iframeLoaded = false;
   iframe.addEventListener('load', () => {

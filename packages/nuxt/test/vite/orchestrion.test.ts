@@ -21,14 +21,18 @@ function createMockNuxt(options: { _prepare?: boolean; dev?: boolean } = {}) {
 }
 
 describe('setupOrchestrion', () => {
-  beforeAll(() => {
+  beforeAll(async () => {
     vi.doMock('@sentry/server-utils/orchestrion/config', () => ({
       INSTRUMENTED_MODULE_NAMES: ['mysql', 'ioredis'],
     }));
     vi.doMock('@sentry/server-utils/orchestrion/rollup', () => ({
       sentryOrchestrionPlugin: mockSentryOrchestrionPlugin,
     }));
-  });
+    // The module reaches `@sentry/core` and `@nuxt/kit` through `./utils`. Transforming those
+    // charged the first test, which timed out on slower CI runners. The tests never reset the
+    // module registry, so this one evaluation is the one they all reuse.
+    await import('../../src/vite/orchestrion');
+  }, 60_000);
 
   afterAll(() => {
     vi.doUnmock('@sentry/server-utils/orchestrion/config');

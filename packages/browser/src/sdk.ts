@@ -1,5 +1,6 @@
 import type { Client, Integration, Options } from '@sentry/core';
 import {
+  consoleIntegration,
   conversationIdIntegration,
   dedupeIntegration,
   eventFiltersIntegration,
@@ -36,6 +37,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     conversationIdIntegration(),
     browserApiErrorsIntegration(),
     breadcrumbsIntegration(),
+    consoleIntegration(),
     globalHandlersIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),

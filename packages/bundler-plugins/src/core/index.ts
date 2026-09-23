@@ -1,40 +1,7 @@
-import { debug } from '@sentry/core';
 import { CodeInjection, containsOnlyImports, stripQueryAndHashFromPath } from './utils';
-import type { transformAsync as babelTransformAsync } from '@babel/core';
-import type componentNameAnnotatePlugin from '../babel-plugin';
-import type { experimentalComponentNameAnnotatePlugin } from '../babel-plugin';
-
-type BabelTransformAsync = typeof babelTransformAsync;
-type BabelParserPlugins = NonNullable<NonNullable<Parameters<BabelTransformAsync>[1]>['parserOpts']>['plugins'];
-type BabelAnnotationRuntime = {
-  transformAsync: BabelTransformAsync;
-  componentNameAnnotatePlugin: typeof componentNameAnnotatePlugin;
-  experimentalComponentNameAnnotatePlugin: typeof experimentalComponentNameAnnotatePlugin;
-};
-
-let babelAnnotationRuntimePromise: Promise<BabelAnnotationRuntime> | undefined;
-
-function loadBabelAnnotationRuntime(): Promise<BabelAnnotationRuntime> {
-  if (!babelAnnotationRuntimePromise) {
-    babelAnnotationRuntimePromise = Promise.all([import('@babel/core'), import('../babel-plugin')]).then(
-      ([babel, babelPlugin]) => {
-        return {
-          transformAsync: babel.transformAsync,
-          componentNameAnnotatePlugin: babelPlugin.default,
-          experimentalComponentNameAnnotatePlugin: babelPlugin.experimentalComponentNameAnnotatePlugin,
-        };
-      },
-    );
-  }
-
-  return babelAnnotationRuntimePromise;
-}
-
-// We need to be careful not to inject the snippet before any `"use strict";`s.
-// As an additional complication `"use strict";`s may come after any number of comments.
-export const COMMENT_USE_STRICT_REGEX =
-  // Note: CodeQL complains that this regex potentially has n^2 runtime. This likely won't affect realistic files.
-  /^(?:\s*|\/\*(?:.|\r|\n)*?\*\/|\/\/.*[\n\r])*(?:"[^"]*";|'[^']*';)?/;
+import { createOxcComponentNameAnnotateHooks, getOxcParseAstAsync } from './component-annotation-oxc';
+import type { ComponentAnnotationTransformMeta, ParseAstAsync } from './component-annotation-oxc-ast';
+import type { Logger } from './logger';
 
 /**
  * Checks if a file is a JavaScript file based on its extension.
@@ -74,59 +41,44 @@ export function shouldSkipCodeInjection(code: string, facadeModuleId: string | n
 }
 
 export { globFiles } from './glob';
+export { getCodeInjectionPosition } from './get-code-injection-position';
+
+const PARSER_UNAVAILABLE_MESSAGE =
+  'Could not load `oxc-parser` for this platform. React components will not be annotated.';
+
+// Module level, because the Turbopack loader creates new hooks for
+// every file.
+let warnedParserUnavailable = false;
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createComponentNameAnnotateHooks(ignoredComponents: string[], injectIntoHtml: boolean) {
+export function createComponentNameAnnotateHooks(
+  ignoredComponents: string[],
+  injectIntoHtml: boolean,
+  options: { getParseAstAsync?: () => Promise<ParseAstAsync | null>; logger?: Logger } = {},
+) {
+  const hooks = createOxcComponentNameAnnotateHooks(
+    ignoredComponents,
+    async () => {
+      const parseAstAsync = (await options.getParseAstAsync?.()) ?? (await getOxcParseAstAsync());
+
+      if (!parseAstAsync && !warnedParserUnavailable) {
+        warnedParserUnavailable = true;
+        if (options.logger) {
+          options.logger.warn(PARSER_UNAVAILABLE_MESSAGE);
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn(`[@sentry/bundler-plugins] ${PARSER_UNAVAILABLE_MESSAGE}`);
+        }
+      }
+
+      return parseAstAsync;
+    },
+    injectIntoHtml,
+  );
+
   return {
-    async transform(this: void, code: string, id: string) {
-      // id may contain query and hash which will trip up our file extension logic below
-      const idWithoutQueryAndHash = stripQueryAndHashFromPath(id);
-
-      if (idWithoutQueryAndHash.match(/\\node_modules\\|\/node_modules\//)) {
-        return null;
-      }
-
-      // We will only apply this plugin on jsx and tsx files
-      if (!['.jsx', '.tsx'].some(ending => idWithoutQueryAndHash.endsWith(ending))) {
-        return null;
-      }
-
-      const parserPlugins: BabelParserPlugins = [];
-      if (idWithoutQueryAndHash.endsWith('.jsx')) {
-        parserPlugins.push('jsx');
-      } else if (idWithoutQueryAndHash.endsWith('.tsx')) {
-        parserPlugins.push('jsx', 'typescript');
-      }
-
-      const { transformAsync, componentNameAnnotatePlugin, experimentalComponentNameAnnotatePlugin } =
-        await loadBabelAnnotationRuntime();
-      const plugin = injectIntoHtml ? experimentalComponentNameAnnotatePlugin : componentNameAnnotatePlugin;
-
-      try {
-        const result = await transformAsync(code, {
-          plugins: [[plugin, { ignoredComponents }]],
-          filename: id,
-          sourceFileName: idWithoutQueryAndHash,
-          parserOpts: {
-            sourceType: 'module',
-            allowAwaitOutsideFunction: true,
-            plugins: parserPlugins,
-          },
-          generatorOpts: {
-            decoratorsBeforeExport: true,
-          },
-          sourceMaps: true,
-        });
-
-        return {
-          code: result?.code ?? code,
-          map: result?.map,
-        };
-      } catch (e) {
-        debug.error(`Failed to apply react annotate plugin`, e);
-      }
-
-      return { code };
+    transform(this: void, code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
+      return hooks.transform(code, id, meta);
     },
   };
 }
@@ -147,4 +99,4 @@ export {
   generateModuleMetadataInjectorCode,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
-export { createDebugIdUploadFunction } from './debug-id-upload';
+export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId } from './debug-id-upload';

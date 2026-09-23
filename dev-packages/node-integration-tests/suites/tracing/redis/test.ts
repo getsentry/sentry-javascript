@@ -76,6 +76,7 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
     // statement is reported through `db.query.text` alone and the name becomes
     // `{db.operation.name} {server.address}:{server.port}`.
     const COMMON_ATTRIBUTES = {
+      'sentry.is_localhost': { type: 'boolean', value: false },
       'db.system.name': { type: 'string', value: 'redis' },
       'server.address': { type: 'string', value: 'localhost' },
       'server.port': { type: 'integer', value: 6380 },

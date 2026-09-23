@@ -126,3 +126,19 @@ it('emits a queue.publish span with batch attributes on env.MY_QUEUE.sendBatch',
   await runner.makeRequest('post', '/enqueue/batch');
   await runner.completed();
 });
+
+it('calls non-instrumented Queue methods like metrics() on the underlying binding', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .expect((envelope: Envelope) => {
+      expect(envelopeItemType(envelope)).toBe('transaction');
+      expect(envelopeItem(envelope)).toMatchObject({
+        transaction: 'GET /metrics',
+        contexts: { trace: { status: 'ok' } },
+      });
+    })
+    .start(signal);
+
+  const metrics = await runner.makeRequest('get', '/metrics');
+  expect(metrics).toMatchObject({ backlogCount: expect.any(Number), backlogBytes: expect.any(Number) });
+  await runner.completed();
+});

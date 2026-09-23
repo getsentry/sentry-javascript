@@ -273,10 +273,12 @@ test.describe('TraceDirective', () => {
     expect(traceDirectiveSpan).toBeDefined();
     expect(traceDirectiveSpan).toEqual(
       expect.objectContaining({
-        name: '<sample-component>',
+        name: 'sample-component',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'ui.mount' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_directive' },
+          'ui.component_name': { type: 'string', value: 'sample-component' },
+          'sentry.description': { type: 'string', value: '<sample-component>' },
         }),
       }),
     );
@@ -308,10 +310,12 @@ test.describe('TraceClass Decorator', () => {
     expect(classDecoratorSpan).toBeDefined();
     expect(classDecoratorSpan).toEqual(
       expect.objectContaining({
-        name: '<ComponentTrackingComponent>',
+        name: 'ComponentTrackingComponent',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'ui.mount' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_class_decorator' },
+          'ui.component_name': { type: 'string', value: 'ComponentTrackingComponent' },
+          'sentry.description': { type: 'string', value: '<ComponentTrackingComponent>' },
         }),
       }),
     );
@@ -346,11 +350,12 @@ test.describe('TraceMethod Decorator', () => {
     expect(ngInitSpan).toBeDefined();
     expect(ngInitSpan).toEqual(
       expect.objectContaining({
-        name: '<ngOnInit>',
+        name: 'ngOnInit',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_method_decorator' },
           'code.function.name': { type: 'string', value: 'ngOnInit' },
+          'sentry.description': { type: 'string', value: '<ngOnInit>' },
         }),
       }),
     );
@@ -383,10 +388,11 @@ test.describe('TraceMethod Decorator', () => {
     expect(ngAfterViewInitSpan).toBeDefined();
     expect(ngAfterViewInitSpan).toEqual(
       expect.objectContaining({
-        name: '<unnamed>',
+        name: 'Function execution',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_method_decorator' },
+          'sentry.description': { type: 'string', value: '<unnamed>' },
           'code.function.name': { type: 'string', value: 'ngAfterViewInit' },
         }),
       }),

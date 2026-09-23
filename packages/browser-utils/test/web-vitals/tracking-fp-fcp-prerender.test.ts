@@ -124,5 +124,6 @@ describe('startTrackingWebVitals', () => {
 
     expect(spanToJSON(pageloadSpan).attributes['browser.web_vital.fp.value']).toBe(12);
     expect(spanToJSON(pageloadSpan).attributes['browser.web_vital.fcp.value']).toBe(18);
+    expect(spanToJSON(pageloadSpan).attributes['browser.navigation.type']).toBe('prerender');
   });
 });
