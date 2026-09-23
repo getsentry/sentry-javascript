@@ -17,33 +17,48 @@ Profiling for Node.js applications.
 - [Getting started](https://docs.sentry.io/platforms/javascript/guides/node/profiling/)
 - [Configuration](https://docs.sentry.io/platforms/javascript/guides/node/profiling/#enabling-profiling)
 
-## Building the package from source
+### Building the package from source
 
-Profiling uses native bindings to interact with V8. These are provided by `@sentry/node-cpu-profiler`, which attempts
-to build from source during installation if a compatible prebuilt binary cannot be loaded.
+Profiling uses native modules to interop with the v8 javascript engine which means that you may be required to build it
+from source. The libraries required to successfully build the package from source are often the same libraries that are
+already required to build any other package which uses native modules and if your codebase uses any of those modules,
+there is a fairly good chance this will work out of the box. The required packages are python, make and g++.
 
-Building requires Python and a C/C++ toolchain: `make` and a compiler on Linux, Xcode Command Line Tools on macOS,
-or Visual Studio's C++ build tools on Windows. See the [node-gyp prerequisites](https://github.com/nodejs/node-gyp#installation)
-for platform-specific requirements.
+**Windows:** If you are building on windows, you may need to install Visual Studio's C++ build tools.
 
-To build the native package yourself, clone the [Node CPU profiler repository](https://github.com/getsentry/sentry-javascript-profiling-node-binaries)
-and run the following commands from its root:
+**macOS:** Install Xcode Command Line Tools for the compiler and make.
 
-```sh
-yarn install --ignore-scripts
-yarn build:lib
+See the [node-gyp prerequisites](https://github.com/nodejs/node-gyp#installation) for supported Python versions and
+platform-specific requirements.
+
+After you have installed the toolchain, you should be able to build the binaries from source.
+The native bindings are maintained in the [Node CPU profiler repository](https://github.com/getsentry/sentry-javascript-profiling-node-binaries).
+Clone that repository, install its dependencies with `yarn install --ignore-scripts`, and run the following from its root:
+
+```bash
+# configure node-gyp using yarn
 yarn build:bindings:configure
+# or using npm
+npm run build:bindings:configure
+
+# compile the binaries using yarn
 yarn build:bindings
+# or using npm
+npm run build:bindings
 ```
 
-The compiled native binary and JavaScript files are placed in that repository's `lib/` directory.
-The native build scripts live in that repository, not in `packages/profiling-node`.
+After the binaries are built, you should see them inside that repository's lib folder.
 
-## Prebuilt binaries
+### Prebuilt binaries
 
-Prebuilt binaries are distributed with `@sentry/node-cpu-profiler`. The
-[native build workflow](https://github.com/getsentry/sentry-javascript-profiling-node-binaries/blob/main/.github/workflows/build.yml)
-lists the platforms, architectures, and Node.js versions built by its CI.
+We currently ship prebuilt binaries for a few of the most common platforms and node versions.
+
+- macOS x64
+- Linux ARM64 (musl)
+- Linux x64 (glibc)
+- Windows x64
+
+For a more detailed list, see the `job_compile` job in the [native build workflow](https://github.com/getsentry/sentry-javascript-profiling-node-binaries/blob/main/.github/workflows/build.yml).
 
 ## Support
 
