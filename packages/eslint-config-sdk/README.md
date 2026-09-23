@@ -17,9 +17,32 @@ Shared ESLint configuration used at Sentry.
 > not part of the public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on
 > it directly.
 
-## Documentation
+## Installation
 
-- [Usage and configuration](../../docs/sdk-tooling.md#eslint-configuration)
+```sh
+yarn add --dev @sentry/eslint-config-sdk
+```
+
+## Configuration
+
+The configuration's legacy `extends` name is `@sentry/sdk`. TypeScript consumers must set `parserOptions.project`
+to their TypeScript configuration so that rules requiring type information can run:
+
+```json
+{
+  "extends": ["@sentry/sdk"],
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx", "*.d.ts"],
+      "parserOptions": {
+        "project": "./tsconfig.json"
+      }
+    }
+  ]
+}
+```
+
+See the [configuration entry point](./src/index.js) for the shared rule sets.
 
 ## Support
 

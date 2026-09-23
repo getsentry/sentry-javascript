@@ -17,9 +17,29 @@ Shared TypeScript configuration used at Sentry.
 > not part of the public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on
 > it directly.
 
-## Documentation
+## Installation
 
-- [Usage and configuration](../../docs/sdk-tooling.md#typescript-configuration)
+```sh
+yarn add --dev @sentry/typescript
+```
+
+## Usage
+
+Extend the shared configuration from your project's `tsconfig.json`, adjusting the paths for your project:
+
+```json
+{
+  "extends": "./node_modules/@sentry/typescript/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "src",
+    "outDir": "dist"
+  }
+}
+```
+
+See the [shared configuration](./tsconfig.json) for its compiler options. This package's
+[parent repository](https://github.com/getsentry/sentry-javascript) provides an example of using it in a monorepo.
 
 ## Support
 
