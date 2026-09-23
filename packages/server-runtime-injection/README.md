@@ -8,15 +8,23 @@
 
 [![npm version](https://img.shields.io/npm/v/@sentry/server-runtime-injection.svg)](https://www.npmjs.com/package/@sentry/server-runtime-injection)
 
-This is an internal package for the Sentry JavaScript SDKs. It is not part of the public API contract
-and may change at any time.
+Runtime instrumentation for Sentry’s JavaScript server SDKs.
 
-It contains the **runtime** diagnostics-channel injection used by the server SDKs — the module hooks
-that transform instrumented dependencies as they load at runtime (`register`, `hook`, `import-hook`),
-together with the vendored code transformer they rely on.
+> [!NOTE]
+> This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
+> public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
 
 > **Important:** this package must be kept **external** (not bundled) when bundling a server. Its
 > runtime hook loads a transformer that self-references its own on-disk `node_modules` location;
 > bundling it strips the transformer and breaks that self-reference. When you bundle your server,
 > either keep `@sentry/server-runtime-injection` external, or rely on the build-time instrumentation
 > from the Sentry bundler plugins instead.
+
+## Documentation
+
+- [JavaScript SDK documentation](https://docs.sentry.io/platforms/javascript/)
+
+## Support
+
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)
