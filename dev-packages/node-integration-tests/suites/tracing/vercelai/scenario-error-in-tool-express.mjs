@@ -45,6 +45,5 @@ app.get('/test/error-in-tool', async (_req, res, next) => {
 
   res.send({ message: 'OK' });
 });
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

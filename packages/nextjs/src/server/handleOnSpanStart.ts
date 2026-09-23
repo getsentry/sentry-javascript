@@ -1,19 +1,23 @@
-import { context } from '@opentelemetry/api';
-import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import type { Span } from '@sentry/core';
 import {
-  getCapturedScopesOnSpan,
-  getCurrentScope,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+} from '@sentry/conventions/attributes';
+import type { Client, Span } from '@sentry/core';
+import {
   getIsolationScope,
   getRootSpan,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCapturedScopesOnSpan,
   spanToJSON,
 } from '@sentry/core';
-import { getScopesFromContext } from '@sentry/opentelemetry';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
+import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
+import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
 import { maybeEnhanceServerComponentSpanName } from '../common/utils/tracingUtils';
 import { maybeStartCronCheckIn } from './vercelCronsMonitoring';
 import { maybeEnrichQueueConsumerSpan, maybeEnrichQueueProducerSpan } from './vercelQueuesMonitoring';
@@ -23,14 +27,30 @@ import { maybeEnrichQueueConsumerSpan, maybeEnrichQueueProducerSpan } from './ve
  * This function is used to enhance the span with additional information such as the route, the method, the headers, etc.
  * It is called for every span that is started by Next.js.
  * @param span The span that is starting.
+ * @param client The client the hook is registered on.
  */
-export function handleOnSpanStart(span: Span): void {
-  const spanAttributes = spanToJSON(span).data;
+export function handleOnSpanStart(span: Span, client: Client): void {
+  const spanAttributes = spanToJSON(span).attributes;
   const rootSpan = getRootSpan(span);
-  const rootSpanAttributes = spanToJSON(rootSpan).data;
+  const rootSpanAttributes = spanToJSON(rootSpan).attributes;
   const isRootSpan = span === rootSpan;
 
   dropMiddlewareTunnelRequests(span, spanAttributes);
+
+  // Next.js names the incoming-request span after the raw URL. With span streaming, span names have to
+  // be low cardinality, so we replace it here at span start; the `next.route` hoisting below renames it
+  // to `${method} ${route}` once Next.js reports a route.
+  if (
+    isRootSpan &&
+    spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' &&
+    hasSpanStreamingEnabled(client)
+  ) {
+    // eslint-disable-next-line typescript/no-deprecated
+    const method = spanAttributes[HTTP_REQUEST_METHOD] ?? spanAttributes[HTTP_METHOD];
+    createLiveRootSpanAdapter(span).setName(
+      (typeof method === 'string' ? method.toUpperCase() : '') || HTTP_SPAN_NAME_FALLBACK,
+    );
+  }
 
   // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
   // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
@@ -42,18 +62,21 @@ export function handleOnSpanStart(span: Span): void {
       !rootSpanAttributes?.[HTTP_ROUTE]
     ) {
       const route = spanAttributes[ATTR_NEXT_ROUTE].replace(/\/route$/, '');
-      rootSpan.updateName(route);
-      rootSpan.setAttribute(HTTP_ROUTE, route);
-      // Preserving the original attribute despite internally not depending on it
-      rootSpan.setAttribute(ATTR_NEXT_ROUTE, route);
+      // eslint-disable-next-line typescript/no-deprecated
+      const method = rootSpanAttributes?.[HTTP_REQUEST_METHOD] || rootSpanAttributes?.[HTTP_METHOD];
+
+      const name = typeof method === 'string' ? `${method} ${route}` : route;
+      rootSpan.updateName(name);
+      rootSpan.setAttributes({
+        [HTTP_ROUTE]: route,
+        // Preserving the original attribute despite internally not depending on it
+        [ATTR_NEXT_ROUTE]: route,
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+      });
 
       // Update the isolation scope's transaction name so that non-transaction events
       // (e.g. captureMessage, captureException) also get the parameterized route.
-      // eslint-disable-next-line typescript/no-deprecated
-      const method = rootSpanAttributes?.[HTTP_REQUEST_METHOD] || rootSpanAttributes?.[HTTP_METHOD];
-      if (typeof method === 'string') {
-        getIsolationScope().setTransactionName(`${method} ${route}`);
-      }
+      getIsolationScope().setTransactionName(name);
 
       // Check if this is a Vercel cron request and start a check-in
       maybeStartCronCheckIn(rootSpan, route);
@@ -67,8 +90,11 @@ export function handleOnSpanStart(span: Span): void {
     const middlewareName = spanAttributes[ATTR_NEXT_SPAN_NAME];
     if (typeof middlewareName === 'string') {
       rootSpan.updateName(middlewareName);
-      rootSpan.setAttribute(HTTP_ROUTE, middlewareName);
-      rootSpan.setAttribute(ATTR_NEXT_SPAN_NAME, middlewareName);
+      rootSpan.setAttributes({
+        [HTTP_ROUTE]: middlewareName,
+        [ATTR_NEXT_SPAN_NAME]: middlewareName,
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+      });
     }
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');
   }
@@ -84,27 +110,9 @@ export function handleOnSpanStart(span: Span): void {
     addHeadersAsAttributes(headers, rootSpan);
   }
 
-  // We want to fork the isolation scope for incoming requests. Root `Middleware.execute` spans need the same
-  // treatment since Next.js 16.3.0-canary.79
-  if (
-    (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' ||
-      spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute') &&
-    isRootSpan
-  ) {
-    const scopes = getCapturedScopesOnSpan(span);
+  maybeForkIsolationScopeForRootSpan(span, spanAttributes);
 
-    const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-    const scope = scopes.scope || getCurrentScope();
-
-    const currentScopesPointer = getScopesFromContext(context.active());
-    if (currentScopesPointer) {
-      currentScopesPointer.isolationScope = isolationScope;
-    }
-
-    setCapturedScopesOnSpan(span, scope, isolationScope);
-  }
-
-  maybeEnhanceServerComponentSpanName(span, spanAttributes, rootSpanAttributes);
+  maybeEnhanceServerComponentSpanName(span, spanAttributes, rootSpanAttributes, client);
 
   // Enrich outgoing http.client spans targeting the Vercel Queues API (producer)
   maybeEnrichQueueProducerSpan(span);

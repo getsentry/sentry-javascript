@@ -5,6 +5,7 @@ export function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> 
   return {
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     integrations: [],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     stackParser: () => [],

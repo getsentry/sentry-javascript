@@ -1,7 +1,9 @@
 import type { Event, EventProcessor } from '@sentry/core';
+import { originalConsoleMethods } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { NUXT_DEV_MODE_FLAG, NUXT_PRERENDER_FLAG, NUXT_SERVER_INITIALIZED_FLAG } from '../../src/common/devMode';
 import { init } from '../../src/server';
 import { clientSourceMapErrorFilter, lowQualityTransactionsFilter } from '../../src/server/sdk';
 
@@ -11,6 +13,9 @@ describe('Nuxt Server SDK', () => {
   describe('init', () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      // Each test needs a fresh init; the double-init guard would otherwise skip every later call.
+      delete (globalThis as { __SENTRY_NUXT_SERVER_INITIALIZED__?: boolean }).__SENTRY_NUXT_SERVER_INITIALIZED__;
+      delete (globalThis as { __SENTRY_NUXT_PRERENDER__?: boolean }).__SENTRY_NUXT_PRERENDER__;
     });
 
     it('Adds Nuxt metadata to the SDK options', () => {
@@ -41,14 +46,59 @@ describe('Nuxt Server SDK', () => {
       expect(init({})).not.toBeUndefined();
     });
 
-    it('uses default integrations when not provided in options', () => {
+    describe('initialization guards', () => {
+      it('skips initialization during a prerender build', () => {
+        const globalWithFlag = globalThis as { __SENTRY_NUXT_PRERENDER__?: boolean };
+
+        // The generated runtime-flags module sets this by name, so a rename must break the test rather than the runtime.
+        expect(NUXT_PRERENDER_FLAG).toBe('__SENTRY_NUXT_PRERENDER__');
+
+        globalWithFlag.__SENTRY_NUXT_PRERENDER__ = true;
+
+        const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        expect(client).toBeUndefined();
+        expect(nodeInit).not.toHaveBeenCalled();
+      });
+
+      it('skips a second initialization and notifies that the `--import` preload is removable', () => {
+        // A `node --import` preload of the config file initializes once before the bundled config does.
+        expect(NUXT_SERVER_INITIALIZED_FLAG).toBe('__SENTRY_NUXT_SERVER_INITIALIZED__');
+        // `consoleSandbox` swaps in the method recorded in `originalConsoleMethods`, so a spy on
+        // `console.log` never sees the notice — intercept the sandboxed method instead.
+        const logMock = vi.fn();
+        const originalLog = originalConsoleMethods.log;
+        originalConsoleMethods.log = logMock;
+
+        try {
+          const firstClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+          const secondClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+          expect(nodeInit).toHaveBeenCalledTimes(1);
+          expect(secondClient).toBe(firstClient);
+          expect(logMock).toHaveBeenCalledWith(expect.stringContaining('already initialized'));
+        } finally {
+          originalConsoleMethods.log = originalLog;
+        }
+      });
+
+      it('marks a successful initialization for the double-init guard', () => {
+        init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        expect(
+          (globalThis as { __SENTRY_NUXT_SERVER_INITIALIZED__?: boolean }).__SENTRY_NUXT_SERVER_INITIALIZED__,
+        ).toBe(true);
+      });
+    });
+
+    it('delegates default integrations to initNode when not provided in options', () => {
+      // Resolving them here would pin the selection to the raw options, before `initNode`
+      // resolves `SENTRY_TRACES_SAMPLE_RATE`, and would drop the performance integrations
+      // for anyone enabling tracing purely through the environment.
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
       expect(nodeInit).toHaveBeenCalledTimes(1);
-      const callArgs = nodeInit.mock.calls[0]?.[0];
-      expect(callArgs).toBeDefined();
-      expect(callArgs?.defaultIntegrations).toBeDefined();
-      expect(Array.isArray(callArgs?.defaultIntegrations)).toBe(true);
+      expect(nodeInit).toHaveBeenCalledWith(expect.not.objectContaining({ defaultIntegrations: expect.anything() }));
     });
 
     it('allows options.defaultIntegrations to override default integrations', () => {
@@ -124,6 +174,33 @@ describe('Nuxt Server SDK', () => {
         const callArgs = nodeInit.mock.calls[0]?.[0];
         // Should fallback to either 'development' or 'production' depending on the environment
         expect(callArgs?.environment).toBeDefined();
+      });
+
+      it('falls back to the dev environment when preloaded by the generated dev config file', () => {
+        const globalWithFlag = globalThis as { __SENTRY_NUXT_DEV_MODE__?: boolean };
+
+        // The generated file sets this by name, so a rename must break the test rather than the runtime.
+        expect(NUXT_DEV_MODE_FLAG).toBe('__SENTRY_NUXT_DEV_MODE__');
+
+        globalWithFlag.__SENTRY_NUXT_DEV_MODE__ = true;
+
+        try {
+          init({
+            dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          });
+
+          expect(nodeInit).toHaveBeenCalledWith(expect.objectContaining({ environment: 'development' }));
+        } finally {
+          globalWithFlag.__SENTRY_NUXT_DEV_MODE__ = undefined;
+        }
+      });
+
+      it('falls back to the production environment without the dev flag', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        });
+
+        expect(nodeInit).toHaveBeenCalledWith(expect.objectContaining({ environment: 'production' }));
       });
 
       it('prioritizes options.environment over SENTRY_ENVIRONMENT env var', () => {

@@ -1,16 +1,18 @@
-import { GEN_AI_PROVIDER_NAME } from '@sentry/conventions/attributes';
-import { expect, it } from 'vitest';
 import {
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
+import { expect, it } from 'vitest';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // These tests are not exhaustive because the instrumentation is
@@ -22,40 +24,38 @@ it('traces a basic Workers AI text generation request', async ({ signal }) => {
     .ignore('event')
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as any;
+      expect(transactionEvent.transaction).toBe('GET /');
 
-      // The transaction event is framework-generated and carries non-deterministic fields
-      // (random ports, ids, timestamps, sdk version), so we assert the stable subset.
-      expect(transactionEvent).toEqual(
+      const container = envelope[1]?.[1]?.[1] as any;
+      expect(container).toBeDefined();
+      expect(container.items).toHaveLength(1);
+
+      expect(container.items[0]).toEqual(
         expect.objectContaining({
-          type: 'transaction',
-          transaction: 'GET /',
-          transaction_info: { source: 'route' },
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              origin: 'auto.http.cloudflare',
-              status: 'ok',
-            }),
-          }),
-          spans: [
-            expect.objectContaining({
-              description: 'chat @cf/meta/llama-3.1-8b-instruct',
-              op: 'gen_ai.chat',
-              origin: 'auto.ai.cloudflare.workers_ai',
-              data: {
-                'sentry.origin': 'auto.ai.cloudflare.workers_ai',
-                'sentry.op': 'gen_ai.chat',
-                [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
-                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-                [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: '@cf/meta/llama-3.1-8b-instruct',
-                [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-                [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
-                [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 12,
-                [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 7,
-                [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 19,
-              },
-            }),
-          ],
+          name: 'chat @cf/meta/llama-3.1-8b-instruct',
+          status: 'ok',
+          is_segment: false,
+          attributes: {
+            'sentry.origin': { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
+            'sentry.op': { value: 'gen_ai.chat', type: 'string' },
+            [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
+            [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
+            [GEN_AI_REQUEST_MODEL]: { value: '@cf/meta/llama-3.1-8b-instruct', type: 'string' },
+            [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },
+            [GEN_AI_REQUEST_MAX_TOKENS]: { value: 100, type: 'integer' },
+            [GEN_AI_USAGE_INPUT_TOKENS]: { value: 12, type: 'integer' },
+            [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 7, type: 'integer' },
+            [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 19, type: 'integer' },
+            // collect only output messages
+            [GEN_AI_OUTPUT_MESSAGES]: {
+              type: 'string',
+              value: '[{"role":"assistant","parts":[{"type":"text","content":"The capital of France is Paris."}]}]',
+            },
+            [GEN_AI_RESPONSE_TEXT]: {
+              type: 'string',
+              value: 'The capital of France is Paris.',
+            },
+          },
         }),
       );
     })
@@ -69,38 +69,38 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
     .ignore('event')
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as any;
+      expect(transactionEvent.transaction).toBe('GET /stream');
 
-      expect(transactionEvent).toEqual(
+      const container = envelope[1]?.[1]?.[1] as any;
+      expect(container).toBeDefined();
+      expect(container.items).toHaveLength(1);
+
+      expect(container.items[0]).toEqual(
         expect.objectContaining({
-          type: 'transaction',
-          transaction: 'GET /stream',
-          transaction_info: { source: 'url' },
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              origin: 'auto.http.cloudflare',
-              status: 'ok',
-            }),
-          }),
-          spans: [
-            expect.objectContaining({
-              description: 'chat @cf/meta/llama-3.1-8b-instruct',
-              op: 'gen_ai.chat',
-              origin: 'auto.ai.cloudflare.workers_ai',
-              data: {
-                'sentry.origin': 'auto.ai.cloudflare.workers_ai',
-                'sentry.op': 'gen_ai.chat',
-                [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
-                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-                [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: '@cf/meta/llama-3.1-8b-instruct',
-                [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
-                [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
-                [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 12,
-                [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 7,
-                [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 19,
-              },
-            }),
-          ],
+          name: 'chat @cf/meta/llama-3.1-8b-instruct',
+          status: 'ok',
+          is_segment: false,
+          attributes: {
+            'sentry.origin': { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
+            'sentry.op': { value: 'gen_ai.chat', type: 'string' },
+            [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
+            [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
+            [GEN_AI_REQUEST_MODEL]: { value: '@cf/meta/llama-3.1-8b-instruct', type: 'string' },
+            [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: { value: true, type: 'boolean' },
+            [GEN_AI_RESPONSE_STREAMING]: { value: true, type: 'boolean' },
+            [GEN_AI_USAGE_INPUT_TOKENS]: { value: 12, type: 'integer' },
+            [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 7, type: 'integer' },
+            [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 19, type: 'integer' },
+            // collect only output
+            [GEN_AI_OUTPUT_MESSAGES]: {
+              type: 'string',
+              value: '[{"role":"assistant","parts":[{"type":"text","content":"The capital of France is Paris."}]}]',
+            },
+            [GEN_AI_RESPONSE_TEXT]: {
+              type: 'string',
+              value: 'The capital of France is Paris.',
+            },
+          },
         }),
       );
     })

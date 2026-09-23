@@ -13,4 +13,16 @@ const aggregateError = new CustomAggregateError(
   },
 );
 
-Sentry.captureException(aggregateError);
+const shouldUseCustomMechanism = window.location.hash === '#custom-mechanism';
+
+if (shouldUseCustomMechanism) {
+  const cause = new Error('Failure 1');
+  const errorCause = new Error('Failure 2', { cause });
+  const error = new Error('Failure 3', { cause: errorCause });
+
+  Sentry.captureException(error, {
+    mechanism: { handled: false, type: 'auto.http.example' },
+  });
+} else {
+  Sentry.captureException(aggregateError);
+}

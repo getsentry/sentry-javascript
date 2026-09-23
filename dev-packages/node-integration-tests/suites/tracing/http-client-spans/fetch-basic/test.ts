@@ -35,13 +35,13 @@ describe('outgoing fetch spans', () => {
               expect.objectContaining({
                 description: expect.stringMatching(/GET .*\/api\/v0/),
                 op: 'http.client',
-                origin: 'auto.http.otel.node_fetch',
+                origin: 'auto.http.node_fetch',
                 status: 'ok',
               }),
               expect.objectContaining({
                 description: expect.stringMatching(/GET .*\/api\/v1/),
                 op: 'http.client',
-                origin: 'auto.http.otel.node_fetch',
+                origin: 'auto.http.node_fetch',
                 status: 'not_found',
                 data: expect.objectContaining({
                   'http.response.status_code': 404,

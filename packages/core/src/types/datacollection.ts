@@ -11,6 +11,14 @@ export type CollectBehavior = boolean | { allow: string[] } | { deny: string[] }
 export type HttpBodyCollectionTarget = 'incomingRequest' | 'outgoingRequest' | 'incomingResponse' | 'outgoingResponse';
 
 /**
+ * Controls HTTP header collection per direction.
+ */
+export interface HttpHeadersCollection {
+  request?: CollectBehavior;
+  response?: CollectBehavior;
+}
+
+/**
  * Controls what data the SDK collects and sends to Sentry.
  *
  * All fields are optional. Omitted fields use the documented defaults.
@@ -18,7 +26,7 @@ export type HttpBodyCollectionTarget = 'incomingRequest' | 'outgoingRequest' | '
 export interface DataCollection {
   /**
    * Automatically populate `user.*` fields from instrumentation sources.
-   * @default false
+   * @default true
    */
   userInfo?: boolean;
 
@@ -30,12 +38,11 @@ export interface DataCollection {
 
   /**
    * Controls HTTP header collection for requests and responses.
+   *
+   * Accepts a `CollectBehavior` applied to both directions, or `{ request, response }` to control each independently.
    * @default { request: true, response: true }
    */
-  httpHeaders?: {
-    request?: CollectBehavior;
-    response?: CollectBehavior;
-  };
+  httpHeaders?: CollectBehavior | HttpHeadersCollection;
 
   /**
    * Which HTTP body types to collect. An omitted value collects all body types valid for the
@@ -43,9 +50,6 @@ export interface DataCollection {
    * @default ['incomingRequest', 'outgoingRequest', 'incomingResponse', 'outgoingResponse']
    */
   httpBodies?: HttpBodyCollectionTarget[];
-
-  /** @deprecated Use `urlQueryParams` instead. */
-  queryParams?: CollectBehavior;
 
   /**
    * Controls URL query parameter collection and sensitive value filtering.
@@ -82,7 +86,7 @@ export interface DataCollection {
   };
 
   /**
-   * Include data associated with database queries. This controls collection of query parameters, inline literal values within query text, mutation/request bodies, and returned result data.
+   * Include data associated with database queries. This controls collection of bound query parameters, data payloads for write operations, and returned result data.
    *
    * Sanitized or parameterized DB statements (`db.query.text`) are **not** controlled by this property. Structural metadata such as the database system, query summary, operation name, or the table being acted upon is also **always** collected.
    * @default true
@@ -90,10 +94,26 @@ export interface DataCollection {
   databaseQueryData?: boolean;
 
   /**
-   * Capture local variable values in stack frames.
+   * Include arguments passed to tasks within queues.
+   *
+   * Structural metadata such as the messaging system, destination name, or operation is always
+   * collected.
    * @default true
    */
-  stackFrameVariables?: boolean;
+  queues?: boolean;
+
+  /**
+   * Capture local variable values in stack frames.
+   *
+   * Accepts a Boolean (`true` collects all variables, `false` collects none) or a `CollectBehavior` to filter which
+   * variables are sent by name (`{ allow: [...] }` / `{ deny: [...] }`), matching against variable names.
+   *
+   * Note: filtering by name requires knowing the variable names **as they appear after bundling**. Minifiers and other
+   * build-time transforms frequently rename local variables (e.g. `password` becomes `a`), so allow/deny terms
+   * configured against source names may not match the names captured at runtime.
+   * @default true
+   */
+  stackFrameVariables?: boolean | CollectBehavior;
 
   /**
    * Number of source code context lines to capture around stack frames.
@@ -105,9 +125,8 @@ export interface DataCollection {
 /**
  * Fully resolved `DataCollection` with all defaults applied.
  */
-// todo(v11): change `Omit<DataCollection, 'queryParams'>` to just `DataCollection`
-export type ResolvedDataCollection = Required<Omit<DataCollection, 'queryParams'>> & {
-  httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
+export type ResolvedDataCollection = Required<Omit<DataCollection, 'httpHeaders'>> & {
+  httpHeaders: Required<HttpHeadersCollection>;
   graphQL: Required<NonNullable<DataCollection['graphQL']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;
 };

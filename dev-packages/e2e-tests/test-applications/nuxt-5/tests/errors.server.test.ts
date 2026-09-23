@@ -20,8 +20,8 @@ test.describe('server-side errors', async () => {
     expect(exception0.type).toEqual('Error');
     expect(exception0.value).toEqual('Nuxt 4 Server error');
     expect(exception0.mechanism).toEqual({
-      handled: false,
-      type: 'auto.function.nuxt.nitro',
+      handled: true,
+      type: 'chained',
       exception_id: 1,
       parent_id: 0,
       source: 'cause',
@@ -29,8 +29,11 @@ test.describe('server-side errors', async () => {
 
     expect(exception1.type).toEqual('HTTPError');
     expect(exception1.value).toEqual('Nuxt 4 Server error');
-    // TODO: This isn't correct but requires adjustment in the core SDK
-    expect(exception1.mechanism).toEqual({ handled: true, type: 'generic', exception_id: 0 });
+    expect(exception1.mechanism).toEqual({
+      handled: false,
+      type: 'auto.function.nuxt.nitro',
+      exception_id: 0,
+    });
   });
 
   test('captures api fetch error (fetched on click) with parametrized route', async ({ page }) => {
@@ -51,8 +54,8 @@ test.describe('server-side errors', async () => {
     expect(exception0.type).toEqual('Error');
     expect(exception0.value).toEqual('Nuxt 4 Param Server error');
     expect(exception0.mechanism).toEqual({
-      handled: false,
-      type: 'auto.function.nuxt.nitro',
+      handled: true,
+      type: 'chained',
       exception_id: 1,
       parent_id: 0,
       source: 'cause',
@@ -60,7 +63,33 @@ test.describe('server-side errors', async () => {
 
     expect(exception1.type).toEqual('HTTPError');
     expect(exception1.value).toEqual('Nuxt 4 Param Server error');
-    // TODO: This isn't correct but requires adjustment in the core SDK
-    expect(exception1.mechanism).toEqual({ handled: true, type: 'generic', exception_id: 0 });
+    expect(exception1.mechanism).toEqual({
+      handled: false,
+      type: 'auto.function.nuxt.nitro',
+      exception_id: 0,
+    });
+  });
+
+  // ky and got name their errors `HTTPError` too. h3 wraps a thrown one in its own error before the
+  // hook sees it, so this checks it still gets reported. The hook's handling of an unwrapped lookalike
+  // is covered by the unit tests.
+  test('captures a thrown third-party `HTTPError`', async ({ page }) => {
+    const errorPromise = waitForError('nuxt-5', async errorEvent => {
+      return !!errorEvent?.exception?.values?.some(value => value.value === 'Nuxt 5 third-party HTTPError');
+    });
+
+    await page.goto(`/fetch-server-routes`);
+    await page.getByText('Fetch Third-Party HTTPError', { exact: true }).click();
+
+    const error = await errorPromise;
+
+    expect(error.transaction).toEqual('GET /api/third-party-http-error');
+    expect(error.exception.values).toContainEqual(
+      expect.objectContaining({
+        type: 'HTTPError',
+        value: 'Nuxt 5 third-party HTTPError',
+        mechanism: expect.objectContaining({ handled: false, type: 'auto.function.nuxt.nitro' }),
+      }),
+    );
   });
 });

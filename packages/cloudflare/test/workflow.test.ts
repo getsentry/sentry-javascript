@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { startSpan } from '@sentry/core';
+import { getDefaultIsolationScope, getIsolationScope, startSpan, withIsolationScope } from '@sentry/core';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig } from 'cloudflare:workers';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { getInvocationState } from '../src/utils/invocationContext';
 import { deterministicTraceIdFromInstanceId, instrumentWorkflowWithSentry } from '../src/workflows';
+import { resetSdk } from './testUtils';
 
 vi.mock('../src/instrumentations/worker/instrumentEnv', () => ({
   instrumentEnv: vi.fn((env: unknown) => env),
@@ -64,6 +66,7 @@ function getSentryOptions() {
     dsn: 'https://8@ingest.sentry.io/4',
     release: '1.0.0',
     tracesSampleRate: 1.0,
+    traceLifecycle: 'static' as const,
     transport: () => mockTransport,
   };
 }
@@ -103,6 +106,7 @@ async function drainWaitUntilLikeCloudflareVitestPool(
 
 describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
   beforeEach(() => {
+    resetSdk();
     vi.clearAllMocks();
   });
 
@@ -132,7 +136,8 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('first step', expect.any(Function));
-    // We flush after the step.do and at the end of the run
+    // One flush after the step.do (past its span end, so the span rides it, no eager
+    // registration) and one at the end of the run
     expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
@@ -158,11 +163,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
-                  'sentry.source': 'task',
+                  'sentry.op': 'function',
+                  'sentry.segment.name.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -208,6 +213,135 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     await expect(drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises)).resolves.toBeUndefined();
   });
 
+  test('teardown does not deadlock when a workflow instance is reused across runs', async () => {
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const context: ExecutionContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waitUntilPromises.push(promise);
+      }),
+      passThroughOnException: vi.fn(),
+      props: {},
+    };
+
+    let runCount = 0;
+    let releaseAppWork: () => void = () => undefined;
+
+    class ReusedWorkflow {
+      public constructor(private _ctx: ExecutionContext) {}
+
+      public async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        runCount += 1;
+        await step.do('reused step', async () => {
+          if (runCount === 2) {
+            this._ctx.waitUntil(
+              new Promise<void>(resolve => {
+                releaseAppWork = resolve;
+              }),
+            );
+          }
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, ReusedWorkflow as any);
+    // Cloudflare reuses a Workflow instance across runs, so the context
+    // captured at construction is instrumented by the first run's init()
+    const workflow = new TestWorkflowInstrumented(context, {}) as ReusedWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+
+    await workflow.run(event, mockStep);
+    await drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises);
+
+    await workflow.run(event, mockStep);
+
+    releaseAppWork();
+
+    // Both the application work and the teardown promise must settle
+    await expect(drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises)).resolves.toBeUndefined();
+  });
+
+  test('step errors are still captured when a workflow instance is reused across runs', async () => {
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const context: ExecutionContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waitUntilPromises.push(promise);
+      }),
+      passThroughOnException: vi.fn(),
+      props: {},
+    };
+
+    let runCount = 0;
+
+    class ReusedErrorWorkflow {
+      public constructor(private _ctx: ExecutionContext) {}
+
+      public async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        runCount += 1;
+        await step.do('flaky step', async () => {
+          if (runCount === 2) {
+            throw new Error('second run error');
+          }
+        });
+      }
+    }
+
+    // Fails the step through every retry without backoff, so the error is
+    // captured on the final attempt and surfaces from run()
+    const alwaysFailStep: WorkflowStep = {
+      do: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _name: string,
+            configOrCallback: WorkflowStepConfig | ((...args: unknown[]) => Promise<any>),
+            maybeCallback?: (...args: unknown[]) => Promise<any>,
+          ) => {
+            const retryLimit = 2;
+            const callback = (typeof configOrCallback === 'function' ? configOrCallback : maybeCallback)!;
+            let lastError: unknown;
+            for (let attempt = 1; attempt <= retryLimit + 1; attempt++) {
+              try {
+                return await callback({ attempt, config: { retries: { limit: retryLimit }, timeout: 60000 } });
+              } catch (err) {
+                lastError = err;
+              }
+            }
+            throw lastError;
+          },
+        ),
+      sleep: vi.fn(),
+      sleepUntil: vi.fn(),
+      waitForEvent: vi.fn(),
+    };
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, ReusedErrorWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(context, {}) as ReusedErrorWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+
+    await workflow.run(event, mockStep);
+    await drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises);
+
+    await expect(workflow.run(event, alwaysFailStep)).rejects.toThrow('second run error');
+    await expect(drainWaitUntilLikeCloudflareVitestPool(waitUntilPromises)).resolves.toBeUndefined();
+
+    const errorEnvelopes = mockTransport.send.mock.calls.filter(call => {
+      const items = (call[0] as any)[1] as any[];
+      return items.some(i => i[0].type === 'event');
+    });
+    expect(errorEnvelopes).toHaveLength(1);
+    expect(errorEnvelopes[0]![0][1][0][1]).toMatchObject({
+      exception: {
+        values: [
+          expect.objectContaining({
+            type: 'Error',
+            value: 'second run error',
+            mechanism: { type: 'auto.faas.cloudflare.workflow', handled: true },
+          }),
+        ],
+      },
+    });
+  });
+
   test('Wraps env with instrumentEnv', async () => {
     class EnvTestWorkflow {
       constructor(_ctx: ExecutionContext, _env: unknown) {}
@@ -249,7 +383,8 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('first step', expect.any(Function));
-    // We flush after the step.do and at the end of the run
+    // One flush after the step.do (past its span end, so the span rides it, no eager
+    // registration) and one at the end of the run
     expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
@@ -275,11 +410,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: '0d2b6d1743ce6d53af4f5ee416ad5d1b',
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
-                  'sentry.source': 'task',
+                  'sentry.op': 'function',
+                  'sentry.segment.name.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -323,7 +458,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('sometimes error step', expect.any(Function));
-    // One flush for the failed attempt, one for the retry success, one at end of run
+    // One flush per attempt (failed and retried) and one at the end of the run
     expect(mockContext.waitUntil).toHaveBeenCalledTimes(3);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     // No error event (not final attempt), only failed transaction + successful retry transaction
@@ -352,11 +487,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
-                  'sentry.source': 'task',
+                  'sentry.op': 'function',
+                  'sentry.segment.name.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'internal_error',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -395,11 +530,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 trace_id: TRACE_ID,
                 data: expect.objectContaining({
                   'sentry.origin': 'auto.faas.cloudflare.workflow',
-                  'sentry.op': 'function.step.do',
-                  'sentry.source': 'task',
+                  'sentry.op': 'function',
+                  'sentry.segment.name.source': 'task',
                   'sentry.sample_rate': 1,
                 }),
-                op: 'function.step.do',
+                op: 'function',
                 status: 'ok',
                 origin: 'auto.faas.cloudflare.workflow',
               }),
@@ -594,7 +729,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
     await workflow.run(event, mockStep);
 
-    // Flush after step.do and at end of run
+    // One flush after step.do (past its span end) and one at end of run
     expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
 
@@ -608,8 +743,44 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     const rootSpanId = rootSpan.contexts.trace.span_id;
 
     // Child span for the step.do with the custom span as parent
-    const stepSpan = rootSpan.spans.find((s: any) => s.description === 'first step' && s.op === 'function.step.do');
+    const stepSpan = rootSpan.spans.find((s: any) => s.description === 'first step' && s.op === 'function');
     expect(stepSpan).toBeDefined();
     expect(stepSpan.parent_span_id).toBe(rootSpanId);
+  });
+
+  test('step callbacks run on the run isolation scope even when the engine invokes them outside it', async () => {
+    // The Workflows engine calls step callbacks from its own async context, not from the one
+    // `run` is executing in. Emulate that by invoking the callback under the default isolation
+    // scope: without the restore, the step would see neither the run's scope data nor its
+    // invocation state (and eager sends would have no `waitUntil` to attach to).
+    const foreignStep: WorkflowStep = {
+      ...mockStep,
+      do: vi
+        .fn()
+        .mockImplementation(async (_name: string, callback: (...args: unknown[]) => Promise<unknown>) =>
+          withIsolationScope(getDefaultIsolationScope(), () => callback(MOCK_STEP_CTX)),
+        ),
+    };
+    let tagInsideStep: unknown;
+    let hasInvocationStateInsideStep = false;
+
+    class ScopeWorkflow {
+      constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+      async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        getIsolationScope().setTag('wf.run', 'marker');
+        await step.do('scoped step', async () => {
+          tagInsideStep = getIsolationScope().getScopeData().tags['wf.run'];
+          hasInvocationStateInsideStep = getInvocationState() !== undefined;
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, ScopeWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(mockContext, {}) as ScopeWorkflow;
+    await workflow.run({ payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID }, foreignStep);
+
+    expect(tagInsideStep).toBe('marker');
+    expect(hasInvocationStateInsideStep).toBe(true);
   });
 });

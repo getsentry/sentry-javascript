@@ -35,11 +35,11 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
@@ -78,9 +78,6 @@ jobs:
           - test-application: 'nextjs-app-dir'
             build-command: 'test:build-15'
             label: 'nextjs-app-dir (next@15)'
-          - test-application: 'nextjs-13'
-            build-command: 'test:build-latest'
-            label: 'nextjs-13 (latest)'
           - test-application: 'nextjs-14'
             build-command: 'test:build-canary'
             label: 'nextjs-14 (canary)'
@@ -111,31 +108,25 @@ jobs:
           - test-application: 'tanstackstart-react'
             build-command: 'test:build-latest'
             label: 'tanstackstart-react (latest)'
-          - test-application: 'nestjs-11'
+          - test-application: 'nestjs-12'
             build-command: 'test:build-latest'
-            label: 'nestjs-11 (latest)'
-          - test-application: 'nestjs-websockets'
-            build-command: 'test:build-latest'
-            label: 'nestjs-websockets (latest)'
-          - test-application: 'nestjs-microservices'
-            build-command: 'test:build-latest'
-            label: 'nestjs-microservices (latest)'
+            label: 'nestjs-12 (latest)'
 
     steps:
       - name: Check out current commit
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 9.15.9
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
 
       - name: Restore canary cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}

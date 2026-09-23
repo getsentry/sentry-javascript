@@ -1,10 +1,11 @@
-import type { PropagationContext } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
+import type { PropagationContext, Scope } from '@sentry/core';
 import {
   captureException,
   flush,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
   withIsolationScope,
   withScope,
@@ -21,13 +22,17 @@ import type {
   WorkflowStepRollbackOptions,
   WorkflowTimeoutDuration,
 } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from './async';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from './client';
-import { flushAndDispose } from './flush';
+import { flushAndDispose, getOriginalWaitUntil } from './flush';
+import { markAsInstrumented } from './instrument';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
+import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
+import { getInvocationState } from './utils/invocationContext';
+import { withInvocationIsolationScope } from './utils/invocationScope';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
@@ -69,6 +74,7 @@ class WrappedWorkflowStep implements WorkflowStep {
     private _options: CloudflareOptions,
     private _step: WorkflowStep,
     private _waitUntil: ExecutionContext['waitUntil'],
+    private _isolationScope: Scope,
   ) {}
 
   public async do<T extends Rpc.Serializable<T>>(
@@ -115,38 +121,63 @@ class WrappedWorkflowStep implements WorkflowStep {
       // or when step context is unavailable (legacy behavior - capture all errors)
       const isFinalAttempt = !hasStepContext || attempt > retryLimit;
 
-      return startSpan(
-        {
-          op: 'function.step.do',
-          name,
-          scope: scopeForStep,
-          attributes: {
-            'cloudflare.workflow.timeout': config?.timeout,
-            'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
-            // In workers-types v5, `delay` may be a `WorkflowDelayFunction`, which isn't a valid span attribute value.
-            'cloudflare.workflow.retries.delay':
-              typeof config?.retries?.delay === 'function' ? undefined : config?.retries?.delay,
-            'cloudflare.workflow.retries.limit': config?.retries?.limit,
-            'cloudflare.workflow.attempt': attempt,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+      // The engine invokes step callbacks outside the async context of `run`, so the
+      // run's isolation scope (and with it the invocation state that ties eager sends
+      // to this invocation's `waitUntil`) has to be restored explicitly.
+      return withIsolationScope(this._isolationScope, () => {
+        const invocationState = getInvocationState();
+
+        if (invocationState) {
+          invocationState.flushPointReached = false;
+        }
+
+        const stepResult = startSpan(
+          {
+            name,
+            scope: scopeForStep,
+            attributes: {
+              [SENTRY_OP]: FUNCTION,
+              [CODE_FUNCTION_NAME]: name,
+              'workflow.step.name': name,
+              'cloudflare.workflow.timeout': config?.timeout,
+              'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
+              // In workers-types v5, `delay` may be a `WorkflowDelayFunction`, which isn't a valid span attribute value.
+              'cloudflare.workflow.retries.delay':
+                typeof config?.retries?.delay === 'function' ? undefined : config?.retries?.delay,
+              'cloudflare.workflow.retries.limit': config?.retries?.limit,
+              'cloudflare.workflow.attempt': attempt,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
+            },
           },
-        },
-        async span => {
-          try {
-            const result = await (userCallback as (...args: unknown[]) => Promise<T>)(...args);
-            span.setStatus({ code: 1 });
-            return result;
-          } catch (error) {
-            if (isFinalAttempt) {
-              captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
+          async span => {
+            try {
+              const result = await (userCallback as (...args: unknown[]) => Promise<T>)(...args);
+              span.setStatus({ code: 1 });
+              return result;
+            } catch (error) {
+              if (isFinalAttempt) {
+                captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
+              }
+              throw error;
             }
+          },
+        );
+        // Deliver after the step span has ended, so the span rides this flush instead of
+        // starting an eager drain (same ordering as `wrapMethodWithSentry`'s teardown). The flush runs on the
+        // step's scope: the engine calls the step callback outside of `run()`, so the current scope here has
+        // neither the client nor the run's trace, and envelopes without a DSC are dropped by Relay.
+        return stepResult.then(
+          result => {
+            this._waitUntil(withScope(scopeForStep, () => flush(2000)));
+            return result;
+          },
+          error => {
+            this._waitUntil(withScope(scopeForStep, () => flush(2000)));
             throw error;
-          } finally {
-            this._waitUntil(flush(2000));
-          }
-        },
-      );
+          },
+        );
+      });
     };
 
     if (config) {
@@ -194,13 +225,25 @@ class WrappedWorkflowStep implements WorkflowStep {
  * @returns Instrumented workflow class with the same interface
  */
 export function instrumentWorkflowWithSentry<
-  E, // Environment type
-  P, // Payload type
-  T extends WorkflowEntrypoint<E, P>, // WorkflowEntrypoint type
-  C extends new (ctx: ExecutionContext, env: E) => T, // Constructor type of the WorkflowEntrypoint class
->(optionsCallback: (env: E) => CloudflareOptions, WorkFlowClass: C): C {
-  return new Proxy(WorkFlowClass, {
-    construct(target: C, args: [ctx: ExecutionContext, env: E], newTarget) {
+  E = DefaultEnv, // Environment type
+  P = unknown, // Payload type
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends WorkflowEntrypoint<any, any> = WorkflowEntrypoint<E, P>, // WorkflowEntrypoint type
+  // The constraint must not route through `T`: workers-types defaults `WorkflowEntrypoint`'s
+  // `Env` to `unknown` (unlike `WorkerEntrypoint`/`DurableObject`, which default to
+  // `Cloudflare.Env`), so a bare subclass would be rejected in a `wrangler types` project.
+  // The callback env is resolved from the inferred constructor via `ResolveEnv` instead.
+  // oxlint-disable-next-line typescript/no-explicit-any
+  C extends new (ctx: ExecutionContext, env: any) => WorkflowEntrypoint<any, any> = new (
+    ctx: ExecutionContext,
+    // oxlint-disable-next-line typescript/no-explicit-any
+    env: any,
+  ) => T, // Constructor type of the WorkflowEntrypoint class
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, E>) => StrictCloudflareOptions<O>, WorkFlowClass: C): C {
+  const InstrumentedClass = new Proxy(WorkFlowClass, {
+    // oxlint-disable-next-line typescript/no-explicit-any
+    construct(target: C, args: [ctx: ExecutionContext, env: any], newTarget) {
       const [ctx, env] = args;
       const context = instrumentContext(ctx);
       const options = optionsCallback(env);
@@ -213,8 +256,8 @@ export function instrumentWorkflowWithSentry<
             return async function (event: WorkflowEvent<P>, step: WorkflowStep): Promise<unknown> {
               setAsyncLocalStorageAsyncContextStrategy();
 
-              return withIsolationScope(async isolationScope => {
-                const waitUntil = context.waitUntil.bind(context);
+              return withInvocationIsolationScope(async isolationScope => {
+                const waitUntil = getOriginalWaitUntil(context).bind(context);
                 const client = init({ ...options, ctx: context, enableDedupe: false });
                 isolationScope.setClient(client);
 
@@ -228,13 +271,13 @@ export function instrumentWorkflowWithSentry<
                     return await obj.run.call(
                       obj,
                       event,
-                      new WrappedWorkflowStep(event.instanceId, options, step, waitUntil),
+                      new WrappedWorkflowStep(event.instanceId, options, step, waitUntil, isolationScope),
                     );
                   } finally {
                     waitUntil(flushAndDispose(client));
                   }
                 });
-              });
+              }, context);
             };
           }
           return Reflect.get(obj, prop, receiver);
@@ -242,4 +285,7 @@ export function instrumentWorkflowWithSentry<
       });
     },
   });
+  // Recognizable for `_INTERNAL_wrapUnlessInstrumented`, so auto-instrumentation never nests wrappers.
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }

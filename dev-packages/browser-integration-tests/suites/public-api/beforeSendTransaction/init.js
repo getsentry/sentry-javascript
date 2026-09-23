@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/browser';
 window.Sentry = Sentry;
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [Sentry.browserTracingIntegration()],
   beforeSendTransaction: transactionEvent => {
@@ -14,7 +15,7 @@ Sentry.init({
       transactionEvent.transaction_info.source = 'route';
       transactionEvent.contexts.trace.data = {
         ...transactionEvent.contexts.trace.data,
-        [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        ['sentry.segment.name.source']: 'route',
       };
     }
     return transactionEvent;

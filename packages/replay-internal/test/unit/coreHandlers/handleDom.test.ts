@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import type { HandlerDataDom } from '@sentry/core';
+import type { HandlerDataDom } from '@sentry/browser-utils';
 import { describe, expect, test } from 'vitest';
 import { handleDom } from '../../../src/coreHandlers/handleDom';
 

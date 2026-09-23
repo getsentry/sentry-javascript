@@ -1,5 +1,5 @@
+import { getCodeInjectionPosition } from '@sentry/bundler-plugins/core';
 import type { LoaderThis } from './types';
-import { findInjectionIndexAfterDirectives } from './valueInjectionLoader';
 
 export type ModuleMetadataInjectionLoaderOptions = {
   applicationKey: string;
@@ -10,7 +10,7 @@ export type ModuleMetadataInjectionLoaderOptions = {
  * `thirdPartyErrorFilterIntegration` can tell first-party code from
  * third-party code.
  *
- * This is the Turbopack equivalent of what `@sentry/webpack-plugin` does
+ * This is the Turbopack equivalent of what `@sentry/bundler-plugins/webpack` does
  * via its `moduleMetadata` option.
  *
  * Options:
@@ -25,7 +25,7 @@ export default function moduleMetadataInjectionLoader(
   // We do not want to cache injected values across builds
   this.cacheable(false);
 
-  // The snippet mirrors what @sentry/webpack-plugin injects for moduleMetadata.
+  // The snippet mirrors what @sentry/bundler-plugins/webpack injects for moduleMetadata.
   // It is wrapped in a try-catch IIFE (matching the webpack plugin's CodeInjection pattern)
   // so that injection failures in node_modules or unusual environments never break the module.
   // The IIFE resolves the global object and stores metadata keyed by (new Error).stack
@@ -39,6 +39,7 @@ export default function moduleMetadataInjectionLoader(
     `e._sentryModuleMetadata[(new e.Error).stack]=Object.assign({},e._sentryModuleMetadata[(new e.Error).stack],${metadata});` +
     '}catch(e){}}();';
 
-  const injectionIndex = findInjectionIndexAfterDirectives(userCode);
-  return `${userCode.slice(0, injectionIndex)}${injectedCode}${userCode.slice(injectionIndex)}`;
+  const injectionIndex = getCodeInjectionPosition(userCode);
+  const codeToInject = injectionIndex === userCode.length ? `\n${injectedCode}` : injectedCode;
+  return `${userCode.slice(0, injectionIndex)}${codeToInject}${userCode.slice(injectionIndex)}`;
 }

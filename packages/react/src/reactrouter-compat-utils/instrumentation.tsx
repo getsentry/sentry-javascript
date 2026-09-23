@@ -12,11 +12,13 @@ import type { Client, Integration, Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   debug,
+  extendIntegration,
   getClient,
   getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
 } from '@sentry/core';
 import * as React from 'react';
@@ -29,6 +31,7 @@ import type {
   CreateRoutesFromChildren,
   Location,
   MatchRoutes,
+  ReactRouterConfig,
   RouteMatch,
   RouteObject,
   Router,
@@ -42,25 +45,18 @@ import { checkRouteForAsyncHandler } from './lazy-routes';
 import {
   clearNavigationContext,
   getActiveRootSpan,
-  initializeRouterUtils,
   resolveRouteNameAndSource,
   setNavigationContext,
   transactionNameHasWildcard,
 } from './utils';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
-let _useEffect: UseEffect;
-let _useLocation: UseLocation;
-let _useNavigationType: UseNavigationType;
-let _createRoutesFromChildren: CreateRoutesFromChildren;
-let _matchRoutes: MatchRoutes;
+const reactRouterConfigByClient = new WeakMap<Client, ReactRouterConfig>();
 
-let _enableAsyncRouteHandlers: boolean = false;
-let _lazyRouteTimeout = 3000;
-let _lazyRouteManifest: string[] | undefined;
-let _basename: string = '';
-
-const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
+function getRouterConfig(client: Client | undefined): ReactRouterConfig | undefined {
+  return client ? reactRouterConfigByClient.get(client) : undefined;
+}
 
 // Detect navigations in a layout effect so the navigation trace is set up before child route components'
 // passive mount effects fire requests (else they propagate the stale pageload trace).
@@ -173,7 +169,11 @@ export function shouldSkipNavigation(
 }
 
 export interface ReactRouterOptions {
-  useEffect: UseEffect;
+  /**
+   * @deprecated This is no longer used - the instrumentation relies on React's own effect hook. It is kept
+   * as an optional field for backwards compatibility and can safely be omitted.
+   */
+  useEffect?: UseEffect;
   useLocation: UseLocation;
   useNavigationType: UseNavigationType;
   createRoutesFromChildren: CreateRoutesFromChildren;
@@ -300,6 +300,7 @@ function resolveDeferredLazyRoutePromise(span: Span): void {
  */
 export function processResolvedRoutes(
   resolvedRoutes: RouteObject[],
+  config: ReactRouterConfig,
   parentRoute?: RouteObject,
   currentLocation: Location | null = null,
   capturedSpan?: Span,
@@ -307,8 +308,8 @@ export function processResolvedRoutes(
   resolvedRoutes.forEach(child => {
     allRoutes.add(child);
     // Only check for async handlers if the feature is enabled
-    if (_enableAsyncRouteHandlers) {
-      checkRouteForAsyncHandler(child, processResolvedRoutes);
+    if (config.enableAsyncRouteHandlers) {
+      checkRouteForAsyncHandler(child, (r, p, l, s) => processResolvedRoutes(r, config, p, l, s));
     }
   });
 
@@ -320,15 +321,15 @@ export function processResolvedRoutes(
   // Use captured span if provided, otherwise fall back to current active span
   const targetSpan = capturedSpan ?? getActiveRootSpan();
   if (targetSpan) {
-    const spanJson = spanToJSON(targetSpan);
+    const { end_timestamp, attributes } = spanToJSON(targetSpan);
 
-    // Skip update if span has already ended (timestamp is set when span.end() is called)
-    if (spanJson.timestamp) {
+    // Skip update if span has already ended (end_timestamp is set when span.end() is called)
+    if (end_timestamp) {
       DEBUG_BUILD && debug.warn('[React Router] Lazy handler resolved after span ended - skipping update');
       return;
     }
 
-    const spanOp = spanJson.op;
+    const spanOp = attributes[SENTRY_OP];
 
     // Use captured location for route matching (ensures we match against the correct route)
     // Fall back to window.location only if no captured location and no captured span
@@ -351,10 +352,11 @@ export function processResolvedRoutes(
           location: { pathname: location.pathname },
           routes: Array.from(allRoutes),
           allRoutes: Array.from(allRoutes),
+          config,
         });
       } else if (spanOp === 'navigation') {
         // For navigation spans, update the name with the newly loaded routes
-        updateNavigationSpan(targetSpan, location, Array.from(allRoutes), false, _matchRoutes);
+        updateNavigationSpan(targetSpan, location, Array.from(allRoutes), false, config);
       }
     }
   }
@@ -368,28 +370,36 @@ export function updateNavigationSpan(
   location: Location,
   allRoutes: RouteObject[],
   forceUpdate = false,
-  matchRoutes: MatchRoutes,
+  config: ReactRouterConfig,
 ): void {
-  const spanJson = spanToJSON(activeRootSpan);
-  const currentName = spanJson.description;
+  const { name: currentName, end_timestamp, attributes } = spanToJSON(activeRootSpan);
+
+  // React Router resolves a location's routes either side of the SDK starting that navigation's
+  // span, so a resolution can arrive holding the previous navigation's span.
+  const spanPathname = (activeRootSpan as { __sentry_navigation_pathname__?: string })?.__sentry_navigation_pathname__;
+  if (spanPathname !== undefined && spanPathname !== location.pathname) {
+    DEBUG_BUILD &&
+      debug.log(
+        `[React Router] Not renaming the navigation span for "${spanPathname}" with the route of "${location.pathname}"`,
+      );
+    return;
+  }
 
   const hasBeenNamed = (activeRootSpan as { __sentry_navigation_name_set__?: boolean })?.__sentry_navigation_name_set__;
   const currentNameHasWildcard = currentName && transactionNameHasWildcard(currentName);
   const shouldUpdate = !hasBeenNamed || forceUpdate || currentNameHasWildcard;
 
-  if (shouldUpdate && !spanJson.timestamp) {
-    const currentBranches = matchRoutes(allRoutes, location);
+  if (shouldUpdate && !end_timestamp) {
+    const currentBranches = config.matchRoutes(allRoutes, location);
     const [name, source] = resolveRouteNameAndSource(
       location,
       allRoutes,
       allRoutes,
       (currentBranches as RouteMatch[]) || [],
-      _basename,
-      _lazyRouteManifest,
-      _enableAsyncRouteHandlers,
+      config,
     );
 
-    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const currentSource = attributes[SENTRY_SEGMENT_NAME_SOURCE];
     const isImprovement =
       name &&
       (!currentName || // No current name - always set
@@ -397,19 +407,18 @@ export function updateNavigationSpan(
         (currentSource !== 'route' && source === 'route') || // URL → route upgrade
         (currentSource === 'route' && source === 'route' && currentNameHasWildcard)); // Route → better route (only if current has wildcard)
     if (isImprovement) {
-      activeRootSpan.updateName(name);
-      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      const client = getClient();
+      const isUnparameterizedStreamedNavigation = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+      activeRootSpan.updateName(isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : name);
+      activeRootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
       if (source === 'route') {
         activeRootSpan.setAttribute(URL_TEMPLATE, name);
       }
 
       // Only mark as finalized for non-wildcard route names (allows URL→route upgrades).
       if (!transactionNameHasWildcard(name) && source === 'route') {
-        addNonEnumerableProperty(
-          activeRootSpan as { __sentry_navigation_name_set__?: boolean },
-          '__sentry_navigation_name_set__',
-          true,
-        );
+        addNonEnumerableProperty(activeRootSpan, '__sentry_navigation_name_set__', true);
       }
     }
   }
@@ -419,11 +428,11 @@ function setupRouterSubscription(
   router: Router,
   routes: RouteObject[],
   version: V6CompatibleVersion,
-  basename: string | undefined,
   activeRootSpan: Span | undefined,
+  config: ReactRouterConfig,
 ): void {
   let isInitialPageloadComplete = false;
-  let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload';
+  let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload';
   let hasSeenPopAfterPageload = false;
   let scheduledNavigationHandler: number | null = null;
   let lastHandledPathname: string | null = null;
@@ -431,7 +440,7 @@ function setupRouterSubscription(
   router.subscribe((state: RouterState) => {
     if (!isInitialPageloadComplete) {
       const currentRootSpan = getActiveRootSpan();
-      const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+      const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).attributes[SENTRY_OP] === 'pageload';
 
       if (isCurrentlyInPageload) {
         hasSeenPageloadSpan = true;
@@ -463,8 +472,8 @@ function setupRouterSubscription(
           routes,
           navigationType: state.historyAction,
           version,
-          basename,
           allRoutes: Array.from(allRoutes),
+          config,
         });
       };
 
@@ -501,21 +510,25 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   createRouterFunction: CreateRouterFunction<TState, TRouter>,
   version: V6CompatibleVersion,
 ): CreateRouterFunction<TState, TRouter> {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
-    DEBUG_BUILD &&
-      debug.warn(
-        `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createRouter\` function because of one or more missing parameters.`,
-      );
-
-    return createRouterFunction;
-  }
-
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
+    const base = getRouterConfig(getClient());
+    if (!base) {
+      DEBUG_BUILD &&
+        debug.warn(
+          `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createRouter\` function because the React Router browser tracing integration was not set up. Make sure \`Sentry.init()\` runs before the router is created.`,
+        );
+
+      return createRouterFunction(routes, opts);
+    }
+
+    // Copy per-router so the router's basename doesn't leak into other routers sharing the client config.
+    const config: ReactRouterConfig = { ...base, basename: opts?.basename || '' };
+
     addRoutesToAllRoutes(routes);
 
-    if (_enableAsyncRouteHandlers) {
+    if (config.enableAsyncRouteHandlers) {
       for (const route of routes) {
-        checkRouteForAsyncHandler(route, processResolvedRoutes);
+        checkRouteForAsyncHandler(route, (r, p, l, s) => processResolvedRoutes(r, config, p, l, s));
       }
     }
 
@@ -530,34 +543,26 @@ export function createV6CompatibleWrapCreateBrowserRouter<
       opts && 'patchRoutesOnNavigation' in opts && typeof opts.patchRoutesOnNavigation === 'function';
     if (hasPatchRoutesOnNavigation && activeRootSpan) {
       // Mark the span as potentially having lazy routes
-      addNonEnumerableProperty(
-        activeRootSpan as unknown as Record<string, boolean>,
-        '__sentry_may_have_lazy_routes__',
-        true,
-      );
+      addNonEnumerableProperty(activeRootSpan, '__sentry_may_have_lazy_routes__', true);
       createDeferredLazyRoutePromise(activeRootSpan);
     }
 
     // Pass the captured span to wrapPatchRoutesOnNavigation so it uses the same span
     // even if the span has ended by the time patchRoutesOnNavigation is called.
-    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, false, activeRootSpan);
+    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, false, activeRootSpan, config);
     const router = createRouterFunction(routes, wrappedOpts);
-    const basename = opts?.basename;
 
     if (router.state.historyAction === 'POP' && activeRootSpan) {
       updatePageloadTransaction({
         activeRootSpan,
         location: router.state.location,
         routes,
-        basename,
         allRoutes: Array.from(allRoutes),
+        config,
       });
     }
 
-    // Store basename for use in updateNavigationSpan
-    _basename = basename || '';
-
-    setupRouterSubscription(router, routes, version, basename, activeRootSpan);
+    setupRouterSubscription(router, routes, version, activeRootSpan, config);
 
     return router;
   };
@@ -573,15 +578,6 @@ export function createV6CompatibleWrapCreateMemoryRouter<
   createRouterFunction: CreateRouterFunction<TState, TRouter>,
   version: V6CompatibleVersion,
 ): CreateRouterFunction<TState, TRouter> {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
-    DEBUG_BUILD &&
-      debug.warn(
-        `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createMemoryRouter\` function because of one or more missing parameters.`,
-      );
-
-    return createRouterFunction;
-  }
-
   return function (
     routes: RouteObject[],
     opts?: Record<string, unknown> & {
@@ -590,11 +586,24 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       initialIndex?: number;
     },
   ): TRouter {
+    const base = getRouterConfig(getClient());
+    if (!base) {
+      DEBUG_BUILD &&
+        debug.warn(
+          `reactRouter${version ? `V${version}` : ''}Instrumentation was unable to wrap the \`createMemoryRouter\` function because the React Router browser tracing integration was not set up. Make sure \`Sentry.init()\` runs before the router is created.`,
+        );
+
+      return createRouterFunction(routes, opts);
+    }
+
+    // Copy per-router so the router's basename doesn't leak into other routers sharing the client config.
+    const config: ReactRouterConfig = { ...base, basename: opts?.basename || '' };
+
     addRoutesToAllRoutes(routes);
 
-    if (_enableAsyncRouteHandlers) {
+    if (config.enableAsyncRouteHandlers) {
       for (const route of routes) {
-        checkRouteForAsyncHandler(route, processResolvedRoutes);
+        checkRouteForAsyncHandler(route, (r, p, l, s) => processResolvedRoutes(r, config, p, l, s));
       }
     }
 
@@ -606,18 +615,13 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     const hasPatchRoutesOnNavigation =
       opts && 'patchRoutesOnNavigation' in opts && typeof opts.patchRoutesOnNavigation === 'function';
     if (hasPatchRoutesOnNavigation && memoryActiveRootSpanEarly) {
-      addNonEnumerableProperty(
-        memoryActiveRootSpanEarly as unknown as Record<string, boolean>,
-        '__sentry_may_have_lazy_routes__',
-        true,
-      );
+      addNonEnumerableProperty(memoryActiveRootSpanEarly, '__sentry_may_have_lazy_routes__', true);
       createDeferredLazyRoutePromise(memoryActiveRootSpanEarly);
     }
 
-    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, true, memoryActiveRootSpanEarly);
+    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, true, memoryActiveRootSpanEarly, config);
 
     const router = createRouterFunction(routes, wrappedOpts);
-    const basename = opts?.basename;
 
     let initialEntry = undefined;
 
@@ -646,15 +650,12 @@ export function createV6CompatibleWrapCreateMemoryRouter<
         activeRootSpan: memoryActiveRootSpan,
         location,
         routes,
-        basename,
         allRoutes: Array.from(allRoutes),
+        config,
       });
     }
 
-    // Store basename for use in updateNavigationSpan
-    _basename = basename || '';
-
-    setupRouterSubscription(router, routes, version, basename, memoryActiveRootSpan);
+    setupRouterSubscription(router, routes, version, memoryActiveRootSpan, config);
 
     return router;
   };
@@ -670,7 +671,6 @@ export function createReactRouterV6CompatibleTracingIntegration(
   const integration = browserTracingIntegration({ ...options, instrumentPageLoad: false, instrumentNavigation: false });
 
   const {
-    useEffect,
     useLocation,
     useNavigationType,
     createRoutesFromChildren,
@@ -683,18 +683,16 @@ export function createReactRouterV6CompatibleTracingIntegration(
     lazyRouteManifest,
   } = options;
 
-  return {
-    ...integration,
+  return extendIntegration(integration, {
     setup(client) {
-      integration.setup(client);
-
       const finalTimeout = options.finalTimeout ?? 30000;
       const defaultMaxWait = (options.idleTimeout ?? 1000) * 3;
       const configuredMaxWait = lazyRouteTimeout ?? defaultMaxWait;
 
+      let resolvedLazyRouteTimeout: number;
       // Cap Infinity at finalTimeout to prevent indefinite hangs
       if (configuredMaxWait === Infinity) {
-        _lazyRouteTimeout = finalTimeout;
+        resolvedLazyRouteTimeout = finalTimeout;
         DEBUG_BUILD &&
           debug.log(
             '[React Router] lazyRouteTimeout set to Infinity, capping at finalTimeout:',
@@ -704,7 +702,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
       } else if (Number.isNaN(configuredMaxWait)) {
         DEBUG_BUILD &&
           debug.warn('[React Router] lazyRouteTimeout must be a number, falling back to default:', defaultMaxWait);
-        _lazyRouteTimeout = defaultMaxWait;
+        resolvedLazyRouteTimeout = defaultMaxWait;
       } else if (configuredMaxWait < 0) {
         DEBUG_BUILD &&
           debug.warn(
@@ -713,83 +711,99 @@ export function createReactRouterV6CompatibleTracingIntegration(
             'falling back to:',
             defaultMaxWait,
           );
-        _lazyRouteTimeout = defaultMaxWait;
+        resolvedLazyRouteTimeout = defaultMaxWait;
       } else {
-        _lazyRouteTimeout = configuredMaxWait;
+        resolvedLazyRouteTimeout = configuredMaxWait;
       }
 
-      _useEffect = useEffect;
-      _useLocation = useLocation;
-      _useNavigationType = useNavigationType;
-      _matchRoutes = matchRoutes;
-      _createRoutesFromChildren = createRoutesFromChildren;
-      _enableAsyncRouteHandlers = enableAsyncRouteHandlers;
-      _lazyRouteManifest = lazyRouteManifest;
-
-      // Initialize the router utils with the required dependencies
-      initializeRouterUtils(matchRoutes, stripBasename || false);
+      // Only store a config when every hook the wrappers call is present. Storing a partial config would
+      // make the wrappers take the instrumented branch and invoke a missing hook (e.g. `config.useLocation`)
+      // at render time, crashing the host app. Without a config the wrappers fall back to uninstrumented
+      // routes instead. The `@sentry/react/react-router` entry supplies these automatically.
+      if (
+        typeof useLocation === 'function' &&
+        typeof useNavigationType === 'function' &&
+        typeof createRoutesFromChildren === 'function' &&
+        typeof matchRoutes === 'function'
+      ) {
+        reactRouterConfigByClient.set(client, {
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+          stripBasename: stripBasename || false,
+          enableAsyncRouteHandlers,
+          instrumentNavigation,
+          lazyRouteTimeout: resolvedLazyRouteTimeout,
+          lazyRouteManifest,
+          basename: '',
+        });
+      } else {
+        DEBUG_BUILD &&
+          debug.warn(
+            '[React Router] Skipping route instrumentation because `useLocation`, `useNavigationType`, `createRoutesFromChildren` or `matchRoutes` was not provided. ' +
+              'Pass them to `reactRouterBrowserTracingIntegration`, or import it from `@sentry/react/react-router` to have them supplied automatically.',
+          );
+      }
     },
     afterAllSetup(client) {
-      integration.afterAllSetup(client);
-
       const initPathName = WINDOW.location?.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
-          name: initPathName,
+          // With span streaming, span names have to be low cardinality. The route is only resolved
+          // once the router renders, which updates the span name then.
+          name: hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : initPathName,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+            [SENTRY_OP]: PAGELOAD,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
           },
         });
       }
-
-      if (instrumentNavigation) {
-        CLIENTS_WITH_INSTRUMENT_NAVIGATION.add(client);
-      }
     },
-  };
+  });
 }
 
 export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, version: V6CompatibleVersion): UseRoutes {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
-    DEBUG_BUILD &&
-      debug.warn(
-        'reactRouterV6Instrumentation was unable to wrap `useRoutes` because of one or more missing parameters.',
-      );
-
-    return origUseRoutes;
-  }
-
-  const SentryRoutes: React.FC<{
-    children?: React.ReactNode;
+  // Null-rendering reporter that owns every config-dependent hook. It is mounted as a *sibling* of the
+  // routes element (never wrapping it) and only once a client config exists, so the routes element always
+  // keeps its position across the `Sentry.init()` transition and is never remounted - remounting would wipe
+  // form state and in-flight work in the host app. As a freshly mounted component, its own hook sequence
+  // stays self-consistent for its whole lifetime, so this is Rules-of-Hooks safe.
+  const RouteReporter: React.FC<{
+    config: ReactRouterConfig;
     routes: RouteObject[];
     locationArg?: Partial<Location> | string;
-  }> = (props: { children?: React.ReactNode; routes: RouteObject[]; locationArg?: Partial<Location> | string }) => {
+  }> = ({ config, routes, locationArg }) => {
     const isMountRenderPass = React.useRef(true);
-    const { routes, locationArg } = props;
 
-    const Routes = origUseRoutes(routes, locationArg);
-
-    const location = _useLocation();
-    const navigationType = _useNavigationType();
+    const location = config.useLocation();
+    const navigationType = config.useNavigationType();
 
     // A value with stable identity to either pick `locationArg` if available or `location` if not
     const stableLocationParam =
       typeof locationArg === 'string' || locationArg?.pathname ? (locationArg as { pathname: string }) : location;
+
+    // Register this `<Routes>`'s routes in the shared set for as long as it is mounted, removing them on
+    // unmount so they don't leak into later unrelated navigations (#22782). Tying add and remove to the
+    // same effect lifecycle keeps it correct under StrictMode's mount/unmount/remount.
+    useIsomorphicLayoutEffect(() => {
+      const added = addRoutesToAllRoutes(routes);
+
+      return () => removeRoutesFromAllRoutes(added);
+    });
 
     useIsomorphicLayoutEffect(() => {
       const normalizedLocation =
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
       if (isMountRenderPass.current) {
-        addRoutesToAllRoutes(routes);
-
         updatePageloadTransaction({
           activeRootSpan: getActiveRootSpan(),
           location: normalizedLocation,
           routes,
           allRoutes: Array.from(allRoutes),
+          config,
         });
         isMountRenderPass.current = false;
       } else {
@@ -802,22 +816,45 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
           navigationType,
           version,
           allRoutes: Array.from(allRoutes),
+          config,
         });
       }
     }, [navigationType, stableLocationParam]);
 
-    return Routes;
+    return null;
+  };
+
+  // Reads the client config at *render* time (so wrapping before `Sentry.init()` still instruments once the
+  // app renders). `origUseRoutes` is called unconditionally (a stable hook) and its element is always
+  // rendered; instrumentation lives in the sibling `RouteReporter`, which mounts only when config exists -
+  // so config appearing after the first paint toggles a null-rendering sibling instead of swapping the
+  // wrapper's type and remounting the routes.
+  const SentryRoutesWrapper: React.FC<{ routes: RouteObject[]; locationArg?: Partial<Location> | string }> = ({
+    routes,
+    locationArg,
+  }) => {
+    const config = getRouterConfig(getClient());
+    const routesElement = origUseRoutes(routes, locationArg);
+    return (
+      <>
+        {routesElement}
+        {/* Rendered after the routes so the reporter's layout effects run *after* the (descendant) route
+            subtree has registered into `allRoutes`, matching the pre-refactor parent-after-child order. */}
+        {config ? <RouteReporter config={config} routes={routes} locationArg={locationArg} /> : null}
+      </>
+    );
   };
 
   // eslint-disable-next-line react/display-name
   return (routes: RouteObject[], locationArg?: Partial<Location> | string): React.ReactElement | null => {
-    return <SentryRoutes routes={routes} locationArg={locationArg} />;
+    return <SentryRoutesWrapper routes={routes} locationArg={locationArg} />;
   };
 }
 function wrapPatchRoutesOnNavigation(
   opts: Record<string, unknown> | undefined,
-  isMemoryRouter = false,
-  capturedSpan?: Span,
+  isMemoryRouter: boolean,
+  capturedSpan: Span | undefined,
+  config: ReactRouterConfig,
 ): Record<string, unknown> {
   if (!opts || !('patchRoutesOnNavigation' in opts) || typeof opts.patchRoutesOnNavigation !== 'function') {
     return opts || {};
@@ -877,15 +914,15 @@ function wrapPatchRoutesOnNavigation(
               targetPath &&
               activeRootSpan &&
               spanJson &&
-              !spanJson.timestamp && // Span hasn't ended yet
-              spanJson.op === 'navigation'
+              !spanJson.end_timestamp && // Span hasn't ended yet
+              spanJson.attributes[SENTRY_OP] === 'navigation'
             ) {
               updateNavigationSpan(
                 activeRootSpan,
                 { pathname: targetPath, search: '', hash: '', state: null, key: 'default' },
                 Array.from(allRoutes),
                 true,
-                _matchRoutes,
+                config,
               );
             }
             return originalPatch(routeId, children);
@@ -914,8 +951,8 @@ function wrapPatchRoutesOnNavigation(
         if (
           activeRootSpan &&
           spanJson &&
-          !spanJson.timestamp && // Span hasn't ended yet
-          spanJson.op === 'navigation'
+          !spanJson.end_timestamp && // Span hasn't ended yet
+          spanJson.attributes[SENTRY_OP] === 'navigation'
         ) {
           // Use targetPath consistently - don't fall back to WINDOW.location which may have changed
           // if the user navigated away during async loading
@@ -927,7 +964,7 @@ function wrapPatchRoutesOnNavigation(
               { pathname, search: '', hash: '', state: null, key: 'default' },
               Array.from(allRoutes),
               false,
-              _matchRoutes,
+              config,
             );
           }
         }
@@ -950,20 +987,22 @@ export function handleNavigation(opts: {
   routes: RouteObject[];
   navigationType: Action;
   version: V6CompatibleVersion;
+  config: ReactRouterConfig;
   matches?: AgnosticDataRouteMatch;
-  basename?: string;
   allRoutes?: RouteObject[];
 }): void {
-  const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-  const branches = Array.isArray(matches) ? matches : _matchRoutes(allRoutes || routes, location, basename);
+  const { location, routes, navigationType, version, config, matches, allRoutes } = opts;
+  const branches = Array.isArray(matches)
+    ? matches
+    : config.matchRoutes(allRoutes || routes, location, config.basename);
 
   const client = getClient();
-  if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
+  if (!client || !config.instrumentNavigation) {
     return;
   }
 
   const activeRootSpan = getActiveRootSpan();
-  if (activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload' && navigationType === 'POP') {
+  if (activeRootSpan && spanToJSON(activeRootSpan).attributes[SENTRY_OP] === 'pageload' && navigationType === 'POP') {
     return;
   }
 
@@ -973,9 +1012,7 @@ export function handleNavigation(opts: {
       allRoutes || routes,
       allRoutes || routes,
       branches as RouteMatch[],
-      basename,
-      _lazyRouteManifest,
-      _enableAsyncRouteHandlers,
+      config,
     );
 
     const locationKey = computeLocationKey(location);
@@ -983,7 +1020,7 @@ export function handleNavigation(opts: {
 
     // Determine if this navigation should be skipped as a duplicate
     const trackedSpanHasEnded =
-      trackedNav && !trackedNav.isPlaceholder ? !!spanToJSON(trackedNav.span).timestamp : false;
+      trackedNav && !trackedNav.isPlaceholder ? !!spanToJSON(trackedNav.span).end_timestamp : false;
     const { skip, shouldUpdate } = shouldSkipNavigation(trackedNav, locationKey, name, trackedSpanHasEnded);
 
     if (skip) {
@@ -998,17 +1035,15 @@ export function handleNavigation(opts: {
               `[Tracing] Updated placeholder navigation name from "${oldName}" to "${name}" (will apply to real span)`,
             );
         } else {
-          // Update existing real span from wildcard to parameterized route name
-          trackedNav.span.updateName(name);
-          trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
+          // Update existing real span from wildcard to parameterized route name.
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+          const isUnparameterizedStreamedNavigation = source !== 'route' && hasSpanStreamingEnabled(client);
+          trackedNav.span.updateName(isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : name);
+          trackedNav.span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
           if (source === 'route') {
             trackedNav.span.setAttribute(URL_TEMPLATE, name);
           }
-          addNonEnumerableProperty(
-            trackedNav.span as { __sentry_navigation_name_set__?: boolean },
-            '__sentry_navigation_name_set__',
-            true,
-          );
+          addNonEnumerableProperty(trackedNav.span, '__sentry_navigation_name_set__', true);
           trackedNav.routeName = name;
           DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${oldName}" to "${name}"`);
         }
@@ -1034,10 +1069,15 @@ export function handleNavigation(opts: {
     let navigationSpan: Span | undefined;
     try {
       navigationSpan = startBrowserTracingNavigationSpan(client, {
-        name: placeholderEntry.routeName, // Use placeholder's routeName in case it was updated
+        // Use placeholder's routeName in case it was updated. With span streaming, span names have to
+        // be low cardinality, so we can't fall back to the URL.
+        name:
+          source === 'route' || !hasSpanStreamingEnabled(client)
+            ? placeholderEntry.routeName
+            : NAVIGATION_SPAN_NAME_FALLBACK,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SENTRY_SEGMENT_NAME_SOURCE]: source,
+          [SENTRY_OP]: NAVIGATION,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
           ...(source === 'route' && { [URL_TEMPLATE]: placeholderEntry.routeName }),
         },
@@ -1049,6 +1089,9 @@ export function handleNavigation(opts: {
     }
 
     if (navigationSpan) {
+      // On the span rather than only in the tracked entry, which a late resolution finds already
+      // moved on to the next navigation.
+      addNonEnumerableProperty(navigationSpan, '__sentry_navigation_pathname__', location.pathname);
       // Update the map with the real span (isPlaceholder omitted, defaults to false)
       activeNavigationSpans.set(client, {
         span: navigationSpan,
@@ -1056,7 +1099,7 @@ export function handleNavigation(opts: {
         pathname: location.pathname,
         locationKey,
       });
-      patchSpanEnd(navigationSpan, location, routes, basename, 'navigation');
+      patchSpanEnd(navigationSpan, location, routes, 'navigation', config);
     } else {
       // If no span was created, remove the placeholder
       activeNavigationSpans.delete(client);
@@ -1065,13 +1108,28 @@ export function handleNavigation(opts: {
 }
 
 /* Only exported for testing purposes */
-export function addRoutesToAllRoutes(routes: RouteObject[]): void {
+export function addRoutesToAllRoutes(routes: RouteObject[]): RouteObject[] {
+  const added: RouteObject[] = [];
   routes.forEach(route => {
     const extractedChildRoutes = getChildRoutesRecursively(route);
 
     extractedChildRoutes.forEach(r => {
       allRoutes.add(r);
+      added.push(r);
     });
+  });
+
+  return added;
+}
+
+/**
+ * Removes routes previously added via `addRoutesToAllRoutes` from the shared set. Called when a
+ * `<Routes>` unmounts so its routes don't linger and get matched against later, unrelated navigations
+ * (which produced hybrid names like `/bar/:fooId` across independent routers - see #22782).
+ */
+function removeRoutesFromAllRoutes(routes: RouteObject[]): void {
+  routes.forEach(route => {
+    allRoutes.delete(route);
   });
 }
 
@@ -1097,20 +1155,20 @@ function updatePageloadTransaction({
   activeRootSpan,
   location,
   routes,
+  config,
   matches,
-  basename,
   allRoutes,
 }: {
   activeRootSpan: Span | undefined;
   location: Location;
   routes: RouteObject[];
+  config: ReactRouterConfig;
   matches?: AgnosticDataRouteMatch;
-  basename?: string;
   allRoutes?: RouteObject[];
 }): void {
   const branches = Array.isArray(matches)
     ? matches
-    : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
+    : (config.matchRoutes(allRoutes || routes, location, config.basename) as unknown as RouteMatch[]);
 
   if (branches) {
     const [name, source] = resolveRouteNameAndSource(
@@ -1118,28 +1176,29 @@ function updatePageloadTransaction({
       allRoutes || routes,
       allRoutes || routes,
       branches,
-      basename,
-      _lazyRouteManifest,
-      _enableAsyncRouteHandlers,
+      config,
     );
 
     getCurrentScope().setTransactionName(name || '/');
 
     if (activeRootSpan) {
-      activeRootSpan.updateName(name);
-      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      const client = getClient();
+      const isUnparameterizedStreamedPageload = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+      activeRootSpan.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : name);
+      activeRootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
       if (source === 'route') {
         activeRootSpan.setAttribute(URL_TEMPLATE, name);
       }
 
       // Patch span.end() to ensure we update the name one last time before the span is sent
-      patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload');
+      patchSpanEnd(activeRootSpan, location, routes, 'pageload', config);
     }
   } else if (activeRootSpan) {
     // Even if branches is null (can happen when lazy routes haven't loaded yet),
     // we still need to patch span.end() so that when lazy routes load and the span ends,
     // we can update the transaction name correctly.
-    patchSpanEnd(activeRootSpan, location, routes, basename, 'pageload');
+    patchSpanEnd(activeRootSpan, location, routes, 'pageload', config);
   }
 }
 
@@ -1192,12 +1251,12 @@ function tryUpdateSpanNameBeforeEnd(
   currentName: string | undefined,
   location: Location,
   routes: RouteObject[],
-  basename: string | undefined,
   spanType: 'pageload' | 'navigation',
   allRoutes: Set<RouteObject>,
+  config: ReactRouterConfig,
 ): void {
   try {
-    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const currentSource = spanJson.attributes[SENTRY_SEGMENT_NAME_SOURCE] as string | undefined;
 
     if (currentSource === 'route' && currentName && !transactionNameHasWildcard(currentName)) {
       return;
@@ -1205,28 +1264,24 @@ function tryUpdateSpanNameBeforeEnd(
 
     const currentAllRoutes = Array.from(allRoutes);
     const routesToUse = currentAllRoutes.length > 0 ? currentAllRoutes : routes;
-    const branches = _matchRoutes(routesToUse, location, basename) as unknown as RouteMatch[];
+    const branches = config.matchRoutes(routesToUse, location, config.basename) as unknown as RouteMatch[];
 
     if (!branches) {
       return;
     }
 
-    const [name, source] = resolveRouteNameAndSource(
-      location,
-      routesToUse,
-      routesToUse,
-      branches,
-      basename,
-      _lazyRouteManifest,
-      _enableAsyncRouteHandlers,
-    );
+    const [name, source] = resolveRouteNameAndSource(location, routesToUse, routesToUse, branches, config);
 
     const isImprovement = shouldUpdateWildcardSpanName(currentName, currentSource, name, source, true);
-    const spanNotEnded = spanType === 'pageload' || !spanJson.timestamp;
+    const spanNotEnded = spanType === 'pageload' || !spanJson.end_timestamp;
 
     if (isImprovement && spanNotEnded) {
-      span.updateName(name);
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      const client = getClient();
+      const isUnparameterizedStreamedSpan = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+      const fallbackName = spanType === 'pageload' ? PAGELOAD_SPAN_NAME_FALLBACK : NAVIGATION_SPAN_NAME_FALLBACK;
+      span.updateName(isUnparameterizedStreamedSpan ? fallbackName : name);
+      span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
       if (source === 'route') {
         span.setAttribute(URL_TEMPLATE, name);
       }
@@ -1244,8 +1299,8 @@ function patchSpanEnd(
   span: Span,
   location: Location,
   routes: RouteObject[],
-  basename: string | undefined,
   spanType: 'pageload' | 'navigation',
+  config: ReactRouterConfig,
 ): void {
   const patchedPropertyName = `__sentry_${spanType}_end_patched__` as const;
   const hasEndBeenPatched = (span as unknown as Record<string, boolean | undefined>)?.[patchedPropertyName];
@@ -1270,15 +1325,15 @@ function patchSpanEnd(
     const endTimestamp = args.length > 0 ? args[0] : Date.now() / 1000;
 
     const spanJson = spanToJSON(span);
-    const currentName = spanJson.description;
-    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const currentName = spanJson.name;
+    const currentSource = spanJson.attributes[SENTRY_SEGMENT_NAME_SOURCE];
 
     // Helper to clean up activeNavigationSpans after span ends
     const cleanupNavigationSpan = (): void => {
       const client = getClient();
       if (client && spanType === 'navigation') {
         const trackedNav = activeNavigationSpans.get(client);
-        if (trackedNav && trackedNav.span === span) {
+        if (trackedNav?.span === span) {
           activeNavigationSpans.delete(client);
         }
       }
@@ -1298,8 +1353,8 @@ function patchSpanEnd(
       (transactionNameHasWildcard(currentName) || currentSource !== 'route');
 
     if (shouldWaitForLazyRoutes) {
-      if (_lazyRouteTimeout === 0) {
-        tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutes);
+      if (config.lazyRouteTimeout === 0) {
+        tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, spanType, allRoutes, config);
         cleanupNavigationSpan();
         originalEnd(endTimestamp);
         return;
@@ -1308,12 +1363,12 @@ function patchSpanEnd(
       // If we have pending promises, wait for them. Otherwise, just wait for the timeout.
       // This handles the case where we know lazy routes might load but patchRoutesOnNavigation
       // hasn't been called yet.
-      const timeoutPromise = new Promise<void>(r => setTimeout(r, _lazyRouteTimeout));
+      const timeoutPromise = new Promise<void>(r => setTimeout(r, config.lazyRouteTimeout));
       let waitPromise: Promise<void>;
 
       if (pendingPromises && pendingPromises.size > 0) {
         const allSettled = Promise.allSettled(pendingPromises).then(() => {});
-        waitPromise = _lazyRouteTimeout === Infinity ? allSettled : Promise.race([allSettled, timeoutPromise]);
+        waitPromise = config.lazyRouteTimeout === Infinity ? allSettled : Promise.race([allSettled, timeoutPromise]);
       } else {
         // No pending promises yet, but we know lazy routes might load
         // Wait for the timeout to give React Router time to call patchRoutesOnNavigation
@@ -1326,12 +1381,12 @@ function patchSpanEnd(
           tryUpdateSpanNameBeforeEnd(
             span,
             updatedSpanJson,
-            updatedSpanJson.description,
+            updatedSpanJson.name,
             location,
             routes,
-            basename,
             spanType,
             allRoutes,
+            config,
           );
           cleanupNavigationSpan();
           originalEnd(endTimestamp);
@@ -1343,12 +1398,12 @@ function patchSpanEnd(
       return;
     }
 
-    tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutes);
+    tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, spanType, allRoutes, config);
     cleanupNavigationSpan();
     originalEnd(endTimestamp);
   };
 
-  addNonEnumerableProperty(span as unknown as Record<string, boolean>, patchedPropertyName, true);
+  addNonEnumerableProperty(span, patchedPropertyName, true);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1356,49 +1411,83 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
   Routes: R,
   version: V6CompatibleVersion,
 ): R {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_createRoutesFromChildren || !_matchRoutes) {
-    DEBUG_BUILD &&
-      debug.warn(`reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.
-      useEffect: ${_useEffect}. useLocation: ${_useLocation}. useNavigationType: ${_useNavigationType}.
-      createRoutesFromChildren: ${_createRoutesFromChildren}. matchRoutes: ${_matchRoutes}.`);
-
-    return Routes;
-  }
-
-  const SentryRoutes: React.FC<P> = (props: P) => {
+  // Null-rendering reporter that owns every config-dependent hook. It is mounted as a *sibling* of the
+  // routes (never wrapping them) and only once a client config exists, so the route subtree always keeps
+  // the same component type across the `Sentry.init()` transition and is never remounted - remounting
+  // would wipe form state and in-flight work in the host app. As a freshly mounted component, its own hook
+  // sequence stays self-consistent for its whole lifetime, so this is Rules-of-Hooks safe.
+  const RouteReporter: React.FC<{ config: ReactRouterConfig; routeChildren: React.ReactNode }> = ({
+    config,
+    routeChildren,
+  }) => {
     const isMountRenderPass = React.useRef(true);
 
-    const location = _useLocation();
-    const navigationType = _useNavigationType();
+    const location = config.useLocation();
+    const navigationType = config.useNavigationType();
+
+    const routes = config.createRoutesFromChildren(
+      routeChildren as Parameters<typeof config.createRoutesFromChildren>[0],
+    ) as RouteObject[];
+
+    // Register this `<Routes>`'s routes in the shared set for as long as it is mounted, removing them on
+    // unmount so they don't leak into later unrelated navigations (#22782). Tying add and remove to the
+    // same effect lifecycle keeps it correct under StrictMode's mount/unmount/remount.
+    useIsomorphicLayoutEffect(() => {
+      const added = addRoutesToAllRoutes(routes);
+
+      return () => removeRoutesFromAllRoutes(added);
+    });
 
     useIsomorphicLayoutEffect(
       () => {
-        const routes = _createRoutesFromChildren(props.children) as RouteObject[];
-
         if (isMountRenderPass.current) {
-          addRoutesToAllRoutes(routes);
-
           updatePageloadTransaction({
             activeRootSpan: getActiveRootSpan(),
             location,
             routes,
             allRoutes: Array.from(allRoutes),
+            config,
           });
           isMountRenderPass.current = false;
         } else {
           // Note: Component-based routes don't support lazy route tracking via lazyRouteTimeout
           // because React.lazy() loads happen at the component level, not the router level.
           // Use createBrowserRouter with patchRoutesOnNavigation for lazy route tracking.
-          handleNavigation({ location, routes, navigationType, version, allRoutes: Array.from(allRoutes) });
+          handleNavigation({
+            location,
+            routes,
+            navigationType,
+            version,
+            allRoutes: Array.from(allRoutes),
+            config,
+          });
         }
       },
       // Re-run only on location/navigation changes, not children changes
       [location, navigationType],
     );
 
-    // @ts-expect-error Setting more specific React Component typing for `R` generic above
-    // will break advanced type inference done by react router params
-    return <Routes {...props} />;
+    return null;
+  };
+
+  // Reads the client config at *render* time (so wrapping before `Sentry.init()` still instruments once
+  // the app renders). The routes are always rendered with the same component type; instrumentation lives in
+  // the sibling `RouteReporter`, which mounts only when config exists - so config appearing after the first
+  // paint toggles a null-rendering sibling instead of swapping the routes' type and remounting them.
+  const SentryRoutes: React.FC<P> = (props: P) => {
+    const config = getRouterConfig(getClient());
+    return (
+      <>
+        {
+          // @ts-expect-error Setting more specific React Component typing for `R` generic above
+          // will break advanced type inference done by react router params
+          <Routes {...props} />
+        }
+        {/* Rendered after the routes so the reporter's layout effects run *after* the (descendant) route
+            subtree has registered into `allRoutes`, matching the pre-refactor parent-after-child order. */}
+        {config ? <RouteReporter config={config} routeChildren={props.children} /> : null}
+      </>
+    );
   };
 
   hoistNonReactStatics(SentryRoutes, Routes);

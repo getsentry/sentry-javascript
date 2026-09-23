@@ -2,7 +2,7 @@
   "name": "workflow-step-context-test",
   "compatibility_date": "2026-05-01",
   "main": "index.ts",
-  "compatibility_flags": ["nodejs_als"],
+  "compatibility_flags": ["nodejs_compat"],
   "workflows": [
     {
       "name": "step-context-test-workflow",

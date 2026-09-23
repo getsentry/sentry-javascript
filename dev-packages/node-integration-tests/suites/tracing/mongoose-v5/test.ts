@@ -1,13 +1,13 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins mongoose 5.9.7
 // the bottom of the IITM patcher's `>=5.9.7 <9.7.0` range, so the oldest
 // supported major is exercised against a real mongoose.
 describe('Mongoose v5 Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.orchestrion.mongoose' : 'auto.db.otel.mongoose';
+  const origin = 'auto.db.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -25,9 +25,9 @@ describe('Mongoose v5 Test', () => {
   const expectedSpan = (operation: string) =>
     expect.objectContaining({
       data: expect.objectContaining({
-        'db.mongodb.collection': 'blogposts',
-        'db.operation': operation,
-        'db.system': 'mongoose',
+        'db.collection.name': 'blogposts',
+        'db.operation.name': operation,
+        'db.system.name': 'mongodb',
       }),
       description: `mongoose.BlogPost.${operation}`,
       op: 'db',
@@ -45,6 +45,23 @@ describe('Mongoose v5 Test', () => {
     ]),
   };
 
+  const expectedStreamedSpan = (operation: string) =>
+    expect.objectContaining({
+      name: `${operation} blogposts`,
+      is_segment: false,
+      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      attributes: expect.objectContaining({
+        'db.collection.name': { type: 'string', value: 'blogposts' },
+        'db.operation.name': { type: 'string', value: operation },
+        'db.system.name': { type: 'string', value: 'mongodb' },
+        'sentry.op': { type: 'string', value: 'db' },
+        'sentry.origin': { type: 'string', value: origin },
+        'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+      }),
+    });
+
+  const STREAMED_OPERATIONS = ['save', 'findOne', 'aggregate', 'insertMany', 'bulkWrite'];
+
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
@@ -52,6 +69,22 @@ describe('Mongoose v5 Test', () => {
     (createTestRunner, test) => {
       test('auto-instruments `mongoose` v5.', async () => {
         await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+      });
+
+      test('auto-instruments `mongoose` v5 with span streaming enabled.', async () => {
+        await createTestRunner()
+          .withEnv({ STREAMED: 'true' })
+          .expect({
+            span: (container: SerializedStreamedSpanContainer) => {
+              expect(container.items.find(item => item.is_segment)?.name).toBe('Test Transaction');
+
+              for (const operation of STREAMED_OPERATIONS) {
+                expect(container.items).toContainEqual(expectedStreamedSpan(operation));
+              }
+            },
+          })
+          .start()
+          .completed();
       });
     },
     { additionalDependencies: { mongoose: '^5.9.7' } },

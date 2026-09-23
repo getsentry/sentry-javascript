@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import * as Sentry from '@sentry/nestjs';
+import { reportIsolationScopeOnSpan } from '../utils';
 
 @Injectable()
 export class TestEventListener {
@@ -27,6 +28,7 @@ export class TestEventListener {
   @OnEvent('multiple.second')
   async handleMultipleEvents(payload: any): Promise<void> {
     Sentry.setTag(payload.data, true);
+    reportIsolationScopeOnSpan();
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 }

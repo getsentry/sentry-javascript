@@ -1,11 +1,9 @@
-import { withSentryConfig } from '@sentry/nextjs';
+import { withSentryConfig } from '@sentry/nextjs/config';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {};
 
 export default withSentryConfig(nextConfig, {
   silent: true,
-  _experimental: {
-    turbopackApplicationKey: 'nextjs-16-bun-e2e',
-  },
+  applicationKey: 'nextjs-16-bun-e2e',
 });

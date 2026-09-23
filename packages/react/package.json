@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build"
@@ -30,12 +30,26 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./react-router": {
+      "react-native": {
+        "types": "./build/types/react-router.d.ts",
+        "default": "./build/esm/react-router.js"
+      },
+      "import": {
+        "types": "./build/types/react-router.d.ts",
+        "default": "./build/esm/react-router.js"
+      },
+      "require": {
+        "types": "./build/types/react-router.d.ts",
+        "default": "./build/cjs/react-router.js"
+      }
     }
   },
   "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
+    "*": {
+      "react-router": [
+        "build/types/react-router.d.ts"
       ]
     }
   },
@@ -45,10 +59,16 @@
   "dependencies": {
     "@sentry/browser": "10.67.0",
     "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.16.0"
+    "@sentry/conventions": "^0.23.0"
   },
   "peerDependencies": {
-    "react": "^16.14.0 || 17.x || 18.x || 19.x"
+    "react": "17.x || 18.x || 19.x",
+    "react-router": "6.x || 7.x || 8.x"
+  },
+  "peerDependenciesMeta": {
+    "react-router": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@testing-library/react": "^15.0.5",
@@ -59,12 +79,11 @@
     "@types/react": "17.0.3",
     "@types/react-router-4": "npm:@types/react-router@4.0.25",
     "@types/react-router-5": "npm:@types/react-router@5.1.20",
-    "eslint-plugin-react": "^7.20.5",
-    "eslint-plugin-react-hooks": "^4.6.0",
     "history-4": "npm:history@4.6.0",
     "history-5": "npm:history@4.9.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router": "^7.18.3",
     "react-router-3": "npm:react-router@3.2.0",
     "react-router-4": "npm:react-router@4.1.0",
     "react-router-5": "npm:react-router@5.3.4",
@@ -75,17 +94,16 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
+    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/react-router.ts",
     "clean": "rimraf build coverage sentry-react-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch",

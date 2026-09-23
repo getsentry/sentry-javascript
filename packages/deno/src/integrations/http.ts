@@ -1,22 +1,18 @@
 import { subscribe } from 'node:diagnostics_channel';
 import { errorMonitor } from 'node:events';
-import type { ClientRequest, RequestOptions } from 'node:http';
-import type { HttpIncomingMessage, Integration, IntegrationFn, Span } from '@sentry/core';
+import type { RequestOptions } from 'node:http';
+import type { Event, Integration, IntegrationFn, Span } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
 import {
-  debug,
-  defineIntegration,
+  DEFAULT_IGNORE_STATUS_CODES,
   getHttpClientSubscriptions,
   getHttpServerSubscriptions,
   getRequestOptions,
   HTTP_ON_CLIENT_REQUEST,
   HTTP_ON_SERVER_REQUEST,
-} from '@sentry/core';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
-import {
-  DENO_VERSION,
-  HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
-  HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED,
-} from '../denoVersion';
+  processHttpServerTransactionEvent,
+} from '@sentry/core/server';
 
 const INTEGRATION_NAME = 'DenoHttp' as const;
 
@@ -35,10 +31,28 @@ export interface DenoHttpIntegrationOptions {
   spans?: boolean;
 
   /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for
+   * incoming requests to track the health and crash-free rate of your releases in Sentry.
+   *
+   * @default `true`
+   */
+  sessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions are flushed as a session aggregate.
+   *
+   * @default `60000` (60s)
+   */
+  sessionFlushingDelayMS?: number;
+
+  /**
    * Whether to inject trace propagation headers (sentry-trace, baggage) into outgoing HTTP requests.
    *
    * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
    * (if `breadcrumbs` is enabled).
+   *
+   * Covers `node:http` requests only. Outgoing `fetch` has its own switch,
+   * `fetchIntegration({ tracePropagation: false })`.
    *
    * @default `true`
    */
@@ -84,73 +98,93 @@ export interface DenoHttpIntegrationOptions {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
-   * Hook invoked after the server span is created but before the request is handled.
+   * Do not send transaction events for incoming HTTP requests with the given status codes.
+   * By default, some 3xx and 4xx status codes are dropped (see @default).
+   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
+   *
+   * Applies only to spans this integration creates (`node:http`). `Deno.serve` requests are
+   * covered by `denoServeIntegration`'s own option of the same name. Pass `[]` to keep everything.
+   *
+   * Only takes effect with `traceLifecycle: 'static'`. The default `'stream'` lifecycle does not
+   * produce transaction events, so the filter does not run. Node's `httpIntegration` has the same
+   * limitation.
+   *
+   * @default `[[401, 404], [301, 303], [305, 399]]`
+   *
+   * @deprecated This option only has an effect if `traceLifecycle` is set to `'static'`. With span streaming
+   * (`traceLifecycle: 'stream'`, the default), the SDK ignores it: child spans are sent as they end, before the
+   * response status code is known, so a request's spans cannot be dropped retroactively. `ignoreStatusCodes` will be
+   * removed in v12 of the SDK.
    */
-  onIncomingSpanCreated?: (span: Span, request: unknown, response: unknown) => void;
+  ignoreStatusCodes?: (number | [number, number])[];
 
   /**
-   * Hook invoked when the server span ends, before it is recorded.
+   * Called after the span for an outgoing request is created.
+   * Use this to add custom attributes to the span.
    */
-  onIncomingSpanEnd?: (span: Span, request: unknown, response: unknown) => void;
+  outgoingRequestHook?: (span: Span, request: HttpClientRequest) => void;
+
+  /**
+   * Called when the response to an outgoing request is received.
+   */
+  outgoingResponseHook?: (span: Span, response: HttpIncomingMessage) => void;
+
+  /**
+   * Called once both the outgoing request and its response are available (after the response
+   * ends). Useful for adding attributes based on both objects.
+   */
+  outgoingRequestApplyCustomAttributes?: (
+    span: Span,
+    request: HttpClientRequest,
+    response: HttpIncomingMessage,
+  ) => void;
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
+   */
+  onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
+
+  /**
+   * A hook that can be used to mutate the span one last time when the response is finished.
+   */
+  onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
 
 const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
   const breadcrumbs = options.breadcrumbs ?? true;
   const tracePropagation = options.tracePropagation ?? true;
+  // oxlint-disable-next-line typescript/no-deprecated
+  const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
   return {
     name: INTEGRATION_NAME,
+    processEvent(event: Event): Event | null {
+      // Gated on this integration's own span origin so it does not filter `Deno.serve`
+      // transactions, which `denoServeIntegration` owns via its own `ignoreStatusCodes`.
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes, 'auto.http.server');
+    },
     setupOnce() {
-      const denoVersion = DENO_VERSION.major !== undefined ? `${Deno.version.deno}` : 'unknown';
+      const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
+        ...options,
+        errorMonitor,
+      });
+      subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
 
-      // Below 2.7.13 neither channel fires. Warn and bail without touching the ACS.
-      if (!HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED && !HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED) {
-        debug.warn(
-          `denoHttpIntegration requires Deno 2.7.13+ (client) or 2.8.0+ (server) for node:http diagnostics channels; running on Deno ${denoVersion}. The integration is a no-op on this version.`,
-        );
-        return;
-      }
-
-      // Wire up Deno's AsyncLocalStorage-backed ACS so the server subscription's
-      // `withIsolationScope(clone, ...)` actually activates the cloned scope.
-      // Without this, request isolation and span creation degrade silently.
-      setAsyncLocalStorageAsyncContextStrategy();
-
-      if (HTTP_SERVER_DIAGNOSTICS_CHANNEL_SUPPORTED) {
-        const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
-          // `spans` falls through to the client's tracing config when unset.
-          spans: options.spans,
-          ignoreStaticAssets: options.ignoreStaticAssets,
-          ignoreIncomingRequests: options.ignoreIncomingRequests,
-          maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
-          ignoreRequestBody: options.ignoreRequestBody,
-          onSpanCreated: options.onIncomingSpanCreated,
-          onSpanEnd: options.onIncomingSpanEnd,
-          errorMonitor,
-          sessions: false,
-        });
-        subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
-      } else {
-        debug.log(
-          `denoHttpIntegration: server-side instrumentation requires Deno 2.8.0+; running on Deno ${denoVersion}. Client-side instrumentation is still active.`,
-        );
-      }
-
-      if (HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED) {
-        const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
-          spans: options.spans,
-          breadcrumbs,
-          propagateTrace: tracePropagation,
-          ignoreOutgoingRequests: options.ignoreOutgoingRequests
-            ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request as ClientRequest))
-            : undefined,
-          // Deno doesn't run OTel's http instrumentation, so there's no
-          // double-wrap to detect; skip the warning to avoid loading the module.
-          suppressOtelWarning: true,
-          errorMonitor,
-        });
-        subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequest);
-      }
+      const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
+        ...options,
+        breadcrumbs,
+        tracePropagation,
+        applyCustomAttributesOnSpan: options.outgoingRequestApplyCustomAttributes,
+        ignoreOutgoingRequests: options.ignoreOutgoingRequests
+          ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
+          : undefined,
+        // Deno doesn't run OTel's http instrumentation, so there's no
+        // double-wrap to detect; skip the warning to avoid loading the module.
+        suppressOtelWarning: true,
+        errorMonitor,
+      });
+      subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequest);
     },
   };
 }) satisfies IntegrationFn;
@@ -167,4 +201,8 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
  */
 export const denoHttpIntegration = defineIntegration(_denoHttpIntegration) as (
   options?: DenoHttpIntegrationOptions,
-) => Integration & { name: 'DenoHttp'; setupOnce: () => void };
+) => Integration & {
+  name: 'DenoHttp';
+  setupOnce: () => void;
+  processEvent: (event: Event) => Event | null;
+};

@@ -1,5 +1,4 @@
 /* oxlint-disable max-lines */
-import findUp from 'find-up';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -138,18 +137,32 @@ export function getDependencies(packageJson: PackageJson): {
   return { deps, depsVersions };
 }
 
-function lookupPackageJson(cwd: string, stopAt: string): PackageJson | undefined {
-  const jsonPath = findUp.sync(
-    dirName => {
-      // Stop if we reach this dir
-      if (path.normalize(dirName) === stopAt) {
-        return findUp.stop;
-      }
+function findPackageJson(cwd: string, stopAt: string): string | undefined {
+  let dirName = path.resolve(cwd);
 
-      return findUp.sync.exists(`${dirName}/package.json`) ? 'package.json' : undefined;
-    },
-    { cwd },
-  );
+  for (;;) {
+    // Stop if we reach this dir
+    if (path.normalize(dirName) === stopAt) {
+      return undefined;
+    }
+
+    const jsonPath = path.join(dirName, 'package.json');
+    if (fs.existsSync(jsonPath)) {
+      return jsonPath;
+    }
+
+    const parentDirName = path.dirname(dirName);
+    // We reached the file system root
+    if (parentDirName === dirName) {
+      return undefined;
+    }
+
+    dirName = parentDirName;
+  }
+}
+
+function lookupPackageJson(cwd: string, stopAt: string): PackageJson | undefined {
+  const jsonPath = findPackageJson(cwd, stopAt);
 
   if (!jsonPath) {
     return undefined;
@@ -393,23 +406,6 @@ export function getProjects(project: string | string[] | undefined): string[] | 
   }
 
   return undefined;
-}
-
-/**
- * Inlined functionality from @sentry/cli helper code to add `--ignore` options.
- *
- * Temporary workaround until we expose a function for injecting debug IDs. Currently, we directly call `execute` with CLI args to inject them.
- */
-export function serializeIgnoreOptions(ignoreValue: string | string[] | undefined): string[] {
-  const DEFAULT_IGNORE = ['node_modules'];
-
-  const ignoreOptions: string[] = Array.isArray(ignoreValue)
-    ? ignoreValue
-    : typeof ignoreValue === 'string'
-      ? [ignoreValue]
-      : DEFAULT_IGNORE;
-
-  return ignoreOptions.reduce((acc, value) => acc.concat(['--ignore', String(value)]), [] as string[]);
 }
 
 /**

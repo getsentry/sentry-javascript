@@ -3,7 +3,7 @@ import { hydrogen } from '@shopify/hydrogen/vite';
 import { oxygen } from '@shopify/mini-oxygen/vite';
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
-import { sentryReactRouter, type SentryReactRouterBuildOptions } from '@sentry/react-router';
+import { sentryReactRouter, type SentryReactRouterBuildOptions } from '@sentry/react-router/vite';
 
 const sentryConfig: SentryReactRouterBuildOptions = {
   org: 'example-org',

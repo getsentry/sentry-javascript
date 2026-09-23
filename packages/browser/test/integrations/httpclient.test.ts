@@ -4,8 +4,8 @@
 
 import * as BrowserUtils from '@sentry/browser-utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
-import type { Event } from '@sentry/core/browser';
-import * as SentryCore from '@sentry/core/browser';
+import type { Event } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src';
@@ -26,7 +26,6 @@ describe('httpClientIntegration', () => {
     const client = new BrowserClient(getDefaultBrowserClientOptions(options));
 
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(client);
-    vi.spyOn(SentryCore, 'supportsNativeFetch').mockReturnValue(true);
     const addFetchSpy = vi
       .spyOn(SentryCore, 'addFetchInstrumentationHandler')
       .mockImplementation(() => () => undefined);
@@ -90,8 +89,8 @@ describe('httpClientIntegration', () => {
   }
 
   describe('fetch', () => {
-    it('filters sensitive request and response headers while keeping safe ones with sendDefaultPii', () => {
-      const { fetchHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+    it('filters sensitive request and response headers while keeping safe ones with data collection enabled', () => {
+      const { fetchHandler, captureEventSpy } = setup();
 
       triggerFetch(fetchHandler, {
         requestHeaders: {
@@ -123,7 +122,7 @@ describe('httpClientIntegration', () => {
     });
 
     it('keeps PII headers like x-forwarded-for when collection is enabled', () => {
-      const { fetchHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+      const { fetchHandler, captureEventSpy } = setup();
 
       triggerFetch(fetchHandler, {
         requestHeaders: {
@@ -142,21 +141,24 @@ describe('httpClientIntegration', () => {
       });
     });
 
-    // TODO(v11): also collect safe headers by default (but no PII headers) to align with server behavior
-    it('does not collect headers or cookies without sendDefaultPii or dataCollection', () => {
+    it('collects safe headers and filters sensitive headers by default', () => {
       const { fetchHandler, captureEventSpy } = setup();
 
       triggerFetch(fetchHandler, {
-        requestHeaders: { Authorization: 'Bearer x', Accept: 'application/json' },
-        responseHeaders: { 'Content-Type': 'text/html' },
+        requestHeaders: { Authorization: 'Bearer x', Accept: 'application/json', Cookie: 'theme=dark; session=secret' },
+        responseHeaders: { 'Content-Type': 'text/html', 'Set-Cookie': 'session=secret; Path=/; HttpOnly' },
       });
 
       expect(captureEventSpy).toHaveBeenCalledTimes(1);
       const event = getEvent(captureEventSpy);
-      expect(event.request?.headers).toBeUndefined();
-      expect(event.request?.cookies).toBeUndefined();
-      expect(event.contexts?.response?.headers).toBeUndefined();
-      expect(event.contexts?.response?.cookies).toBeUndefined();
+      expect(event.request?.headers).toEqual({
+        accept: 'application/json',
+        authorization: '[Filtered]',
+        cookie: '[Filtered]',
+      });
+      expect(event.request?.cookies).toEqual({ theme: 'dark', session: '[Filtered]' });
+      expect(event.contexts?.response?.headers).toEqual({ 'content-type': 'text/html', 'set-cookie': '[Filtered]' });
+      expect(event.contexts?.response?.cookies).toEqual({ session: '[Filtered]' });
     });
 
     it('filters PII headers when an explicit deny list is configured', () => {
@@ -216,8 +218,8 @@ describe('httpClientIntegration', () => {
   });
 
   describe('xhr', () => {
-    it('filters sensitive request and response headers with sendDefaultPii', () => {
-      const { xhrHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+    it('filters sensitive request and response headers with data collection enabled', () => {
+      const { xhrHandler, captureEventSpy } = setup();
 
       triggerXhr(xhrHandler, {
         requestHeaders: { Authorization: 'Bearer super-secret-token', 'X-Custom': 'safe-value' },
@@ -239,33 +241,39 @@ describe('httpClientIntegration', () => {
     });
 
     it('parses and filters sensitive cookies from the Set-Cookie response header', () => {
-      const { xhrHandler, captureEventSpy } = setup({ sendDefaultPii: true });
+      const { xhrHandler, captureEventSpy } = setup();
 
       triggerXhr(xhrHandler, {
-        setCookie: 'session=abc123; theme=dark; connect.sid=secret',
+        setCookie: 'connect.sid=s3cr3t; Path=/; HttpOnly',
       });
 
-      expect(getEvent(captureEventSpy).contexts?.response?.cookies).toEqual({
-        session: '[Filtered]',
-        theme: 'dark',
-        'connect.sid': '[Filtered]',
-      });
+      expect(getEvent(captureEventSpy).contexts?.response?.cookies).toEqual({ 'connect.sid': '[Filtered]' });
     });
 
-    it('does not collect response headers or cookies without sendDefaultPii or dataCollection', () => {
+    it('does not report Set-Cookie attributes as response cookies', () => {
+      const { xhrHandler, captureEventSpy } = setup();
+
+      triggerXhr(xhrHandler, {
+        setCookie: 'theme=dark; Max-Age=3600; Path=/; Domain=example.com',
+      });
+
+      expect(getEvent(captureEventSpy).contexts?.response?.cookies).toEqual({ theme: 'dark' });
+    });
+
+    it('collects response headers and filters response cookies by default', () => {
       const { xhrHandler, captureEventSpy } = setup();
 
       triggerXhr(xhrHandler, {
         requestHeaders: { Authorization: 'Bearer x' },
-        setCookie: 'session=abc123; theme=dark',
+        setCookie: 'session=abc123; Path=/',
         allResponseHeaders: 'content-type: text/html',
       });
 
       expect(captureEventSpy).toHaveBeenCalledTimes(1);
       const event = getEvent(captureEventSpy);
-      expect(event.request?.headers).toBeUndefined();
-      expect(event.contexts?.response?.headers).toBeUndefined();
-      expect(event.contexts?.response?.cookies).toBeUndefined();
+      expect(event.request?.headers).toEqual({ Authorization: '[Filtered]' });
+      expect(event.contexts?.response?.headers).toEqual({ 'content-type': 'text/html' });
+      expect(event.contexts?.response?.cookies).toEqual({ session: '[Filtered]' });
     });
   });
 });

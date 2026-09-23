@@ -1,14 +1,6 @@
-import {
-  captureException,
-  flushIfServerless,
-  getActiveSpan,
-  getClient,
-  getCurrentScope,
-  getRootSpan,
-  parseUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
-import { HTTPError } from 'h3';
+import { captureException, getClient, parseUrl } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
+import { HTTPError } from 'nitro/h3';
 import type { CapturedErrorContext } from 'nitro/types';
 
 /**
@@ -52,17 +44,6 @@ export async function captureErrorHook(error: Error, errorContext: CapturedError
   // Do not report HTTPErrors with 3xx or 4xx status codes
   if (HTTPError.isError(error) && error.status >= 300 && error.status < 500) {
     return;
-  }
-
-  const method = errorContext.event?.req.method ?? '';
-  const path = errorContext.event?.req.url ? parseUrl(errorContext.event.req.url).path : null;
-
-  if (path) {
-    getCurrentScope().setTransactionName(`${method} ${path}`);
-    const activeSpan = getActiveSpan();
-    const activeRootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-    activeRootSpan?.updateName(`${method} ${path}`);
-    activeRootSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }
 
   const structuredContext = extractErrorContext(errorContext);

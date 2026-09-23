@@ -28,8 +28,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_get',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'get',
@@ -49,8 +49,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_get',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'get',
@@ -72,8 +72,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_put',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'put',
@@ -93,8 +93,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_put',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'put',
@@ -116,8 +116,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_delete',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'delete',
@@ -137,8 +137,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_delete',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'delete',
@@ -160,8 +160,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_list',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'list',
@@ -183,8 +183,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_setAlarm',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'setAlarm',
@@ -267,8 +267,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_getAlarm',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'getAlarm',
@@ -288,8 +288,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_deleteAlarm',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'deleteAlarm',
@@ -310,8 +310,8 @@ describe('instrumentDurableObjectStorage', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         name: 'SELECT',
-        op: 'db.query',
         attributes: {
+          'sentry.op': 'db.query',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
@@ -322,6 +322,91 @@ describe('instrumentDurableObjectStorage', () => {
       },
       expect.any(Function),
     );
+  });
+
+  describe('framework-internal KV keys', () => {
+    it('does not create a span for a cf_-prefixed get', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.get('cf_agents_state');
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for a __ps_-prefixed get', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.get('__ps_name');
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for cf:-prefixed chat-recovery keys', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.put('cf:chat-recovery:progress', 1);
+      await instrumented.get('cf:chat-recovery:incident:abc');
+      await instrumented.list({ prefix: 'cf:chat-recovery:incident:' });
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for a cf_-prefixed put with object entries', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.put({ cf_agents_a: 1, cf_agents_b: 2 });
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for a cf_-prefixed delete with an array of keys', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.delete(['cf_agents_a', 'cf_agents_b']);
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('does not create a span for a list with a cf_ prefix', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.list({ prefix: 'cf_agents_' });
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+    });
+
+    it('still creates a span when a batch mixes framework and user keys', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.get(['cf_agents_state', 'myKey']);
+
+      expect(startSpanSpy).toHaveBeenCalled();
+    });
+
+    it('still creates a span for a list without a prefix', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.list();
+
+      expect(startSpanSpy).toHaveBeenCalled();
+    });
+
+    it('still creates a span for a user key', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+      await instrumented.get('myKey');
+
+      expect(startSpanSpy).toHaveBeenCalled();
+    });
   });
 
   describe('non-instrumented methods', () => {
@@ -349,8 +434,8 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_get',
-          op: 'db',
           attributes: {
+            'sentry.op': 'db',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'get',

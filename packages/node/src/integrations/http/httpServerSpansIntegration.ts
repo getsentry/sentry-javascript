@@ -1,0 +1,364 @@
+/* eslint-disable max-lines */
+import { errorMonitor } from 'node:events';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SENTRY_HTTP_PREFETCH,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_QUERY,
+  URL_SCHEME,
+  USER_AGENT_ORIGINAL,
+} from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
+import type { Event, Integration, IntegrationFn, Span, SpanAttributes, SpanStatus } from '@sentry/core';
+import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
+import { DEFAULT_IGNORE_STATUS_CODES, processHttpServerTransactionEvent } from '@sentry/core/server';
+import {
+  debug,
+  getSpanStatusFromHttpCode,
+  httpHeadersToSpanAttributes,
+  getContentLengthFromHeaders,
+  parseStringToURLObject,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+  stripUrlQueryAndFragment,
+  isTracingSuppressed,
+  bindScopeToEmitter,
+  startInactiveSpan,
+  withActiveSpan,
+  getUrlFragment,
+  getUrlQuery,
+  filterCollectedUrl,
+  filterCollectedUrlQuery,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../../debug-build';
+import type { NodeClient } from '../../sdk/client';
+import { addStartSpanCallback } from './httpServerIntegration';
+
+const INTEGRATION_NAME = 'Http.ServerSpans' as const;
+
+// Tree-shakable guard to remove all code related to tracing
+declare const __SENTRY_TRACING__: boolean;
+
+export interface HttpServerSpansIntegrationOptions {
+  /**
+   * Do not capture spans for incoming HTTP requests to URLs where the given callback returns `true`.
+   * Spans will be non recording if tracing is disabled.
+   *
+   * The `urlPath` param consists of the URL path and query string (if any) of the incoming request.
+   * For example: `'/users/details?id=123'`
+   *
+   * The `request` param contains the original {@type IncomingMessage} object of the incoming request.
+   * You can use it to filter on additional properties like method, headers, etc.
+   */
+  ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
+
+  /**
+   * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
+   * This helps reduce noise in your transactions.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
+   * Do not capture spans for incoming HTTP requests with the given status codes.
+   * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
+   * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
+   *
+   * Important: This option is ignored by default! It only has an effect if `traceLifecycle` is set to `'static'`.
+   *
+   * @default `[[401, 404], [301, 303], [305, 399]]`
+   *
+   * @deprecated This option only has an effect if `traceLifecycle` is set to `'static'`. With span streaming
+   * (`traceLifecycle: 'stream'`, the default), the SDK ignores it: child spans are sent as they end, before the
+   * response status code is known, so a request's spans cannot be dropped retroactively. `ignoreStatusCodes` will be
+   * removed in v12 of the SDK, without replacement.
+   */
+  ignoreStatusCodes?: (number | [number, number])[];
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
+   */
+  onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
+}
+
+const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
+  const ignoreStaticAssets = options.ignoreStaticAssets ?? true;
+  const ignoreIncomingRequests = options.ignoreIncomingRequests;
+  // oxlint-disable-next-line typescript/no-deprecated
+  const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
+
+  const { onSpanCreated } = options;
+
+  return {
+    name: INTEGRATION_NAME,
+    setup(client: NodeClient) {
+      // If no tracing, we can just skip everything here
+      if (typeof __SENTRY_TRACING__ !== 'undefined' && !__SENTRY_TRACING__) {
+        return;
+      }
+
+      client.on('httpServerRequest', (_request, _response, normalizedRequest) => {
+        // Type-casting this here because we do not want to put the node types into core
+        const request = _request as HttpIncomingMessage;
+        const response = _response as HttpServerResponse;
+
+        const startSpan = (next: () => boolean): boolean => {
+          if (
+            shouldIgnoreSpansForIncomingRequest(request, {
+              ignoreStaticAssets,
+              ignoreIncomingRequests,
+            })
+          ) {
+            DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Skipping span creation for incoming request', request.url);
+            return next();
+          }
+
+          const fullUrl = normalizedRequest.url || request.url || '/';
+          const urlObj = parseStringToURLObject(fullUrl);
+
+          const headers = request.headers;
+          const userAgent = headers['user-agent'];
+          const httpVersion = request.httpVersion;
+          const host = headers.host as string | undefined;
+          const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
+
+          const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
+
+          const requestMethod = normalizedRequest.method || request.method?.toUpperCase();
+          const method = requestMethod || 'GET';
+          const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
+          const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
+
+          const query = getUrlQuery(urlObj?.search);
+          const fragment = getUrlFragment(urlObj?.hash);
+
+          const span = startInactiveSpan({
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+            // Route instrumentations rename the span to `${method} ${route}` once a route is known.
+            name: hasSpanStreamingEnabled(client)
+              ? requestMethod || HTTP_SPAN_NAME_FALLBACK
+              : bestEffortTransactionName,
+            attributes: {
+              // Sentry specific attributes
+              [SENTRY_KIND]: 'server',
+              [SENTRY_OP]: HTTP_SERVER,
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
+              [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
+              [URL_FULL]: filterCollectedUrl(fullUrl, client),
+              [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
+              [URL_QUERY]: filterCollectedUrlQuery(query, client),
+              [URL_FRAGMENT]: fragment,
+              [HTTP_REQUEST_METHOD]: normalizedRequest.method,
+              [USER_AGENT_ORIGINAL]: userAgent,
+              [URL_SCHEME]: scheme,
+              [SERVER_ADDRESS]: hostname,
+              [NETWORK_PROTOCOL_NAME]: 'http',
+              [NETWORK_PROTOCOL_VERSION]: httpVersion,
+              [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
+              'http.request.body.size': getContentLengthFromHeaders(request.headers),
+              ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
+            },
+          });
+
+          onSpanCreated?.(span, request, response);
+
+          return withActiveSpan(span, () => {
+            bindScopeToEmitter(request);
+            bindScopeToEmitter(response);
+
+            // Ensure we only end the span once
+            // E.g. error can be emitted before close is emitted
+            let isEnded = false;
+            function endSpan(status: SpanStatus): void {
+              if (isEnded) {
+                return;
+              }
+
+              isEnded = true;
+
+              const newAttributes = getIncomingRequestAttributesOnResponse(
+                request,
+                response,
+                client.getDataCollectionOptions().userInfo,
+              );
+              span.setAttributes(newAttributes);
+              span.setStatus(status);
+              span.end();
+            }
+
+            response.on('close', () => {
+              endSpan(getSpanStatusFromHttpCode(response.statusCode));
+            });
+            response.on(errorMonitor, () => {
+              const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
+              // Ensure we def. have an error status here
+              endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
+            });
+
+            return next();
+          });
+        };
+
+        addStartSpanCallback(request, startSpan);
+      });
+    },
+    processEvent(event) {
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes);
+    },
+    afterAllSetup(client) {
+      if (!DEBUG_BUILD) {
+        return;
+      }
+
+      if (client.getIntegrationByName('Http')) {
+        debug.warn(
+          'It seems that you have manually added `httpServerSpansIntegration` while `httpIntegration` is also present. Make sure to remove `httpIntegration` when adding `httpServerSpansIntegration`.',
+        );
+      }
+
+      if (!client.getIntegrationByName('Http.Server')) {
+        debug.error(
+          'It seems that you have manually added `httpServerSpansIntegration` without adding `httpServerIntegration`. This is a requiement for spans to be created - please add the `httpServerIntegration` integration.',
+        );
+      }
+    },
+  };
+}) satisfies IntegrationFn;
+
+/**
+ * This integration emits spans for incoming requests handled via the node `http` module.
+ * It requires the `httpServerIntegration` to be present.
+ */
+export const httpServerSpansIntegration = _httpServerSpansIntegration as (
+  options?: HttpServerSpansIntegrationOptions,
+) => Integration & {
+  name: 'Http.ServerSpans';
+  setup: (client: NodeClient) => void;
+  processEvent: (event: Event) => Event | null;
+};
+
+function isKnownPrefetchRequest(req: HttpIncomingMessage): boolean {
+  // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
+  return req.headers['next-router-prefetch'] === '1';
+}
+
+/**
+ * Check if a request is for a common static asset that should be ignored by default.
+ *
+ * Only exported for tests.
+ */
+export function isStaticAssetRequest(urlPath: string): boolean {
+  const path = stripUrlQueryAndFragment(urlPath);
+  // Common static file extensions
+  if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)$/)) {
+    return true;
+  }
+
+  // Common metadata files
+  if (path.match(/^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml)$/)) {
+    return true;
+  }
+
+  return false;
+}
+
+function shouldIgnoreSpansForIncomingRequest(
+  request: HttpIncomingMessage,
+  {
+    ignoreStaticAssets,
+    ignoreIncomingRequests,
+  }: {
+    ignoreStaticAssets?: boolean;
+    ignoreIncomingRequests?: (urlPath: string, request: HttpIncomingMessage) => boolean;
+  },
+): boolean {
+  if (isTracingSuppressed()) {
+    return true;
+  }
+
+  // request.url is the only property that holds any information about the url
+  // it only consists of the URL path and query string (if any)
+  const urlPath = request.url;
+
+  const method = request.method?.toUpperCase();
+  // We do not capture OPTIONS/HEAD requests as spans
+  if (method === 'OPTIONS' || method === 'HEAD' || !urlPath) {
+    return true;
+  }
+
+  // Default static asset filtering
+  if (ignoreStaticAssets && method === 'GET' && isStaticAssetRequest(urlPath)) {
+    return true;
+  }
+
+  if (ignoreIncomingRequests?.(urlPath, request)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
+ * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
+ */
+function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
+  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
+}
+
+function getIncomingRequestAttributesOnResponse(
+  request: HttpIncomingMessage,
+  response: HttpServerResponse,
+  collectClientAddress: boolean,
+): SpanAttributes {
+  // take socket from the request,
+  // since it may be detached from the response object in keep-alive mode
+  const { socket } = request;
+  const { statusCode, statusMessage } = response;
+
+  const newAttributes: SpanAttributes = {
+    [HTTP_RESPONSE_STATUS_CODE]: statusCode,
+    'http.response.status_text': statusMessage?.toUpperCase(),
+  };
+
+  if (collectClientAddress) {
+    // `client.address` is the originating client, so a forwarding header wins over the socket, which
+    // behind a proxy holds the proxy's address. `network.peer.address` below keeps the socket value.
+    newAttributes[CLIENT_ADDRESS] =
+      getForwardedClientAddress(request.headers['x-forwarded-for']) ?? socket?.remoteAddress;
+  }
+
+  if (socket) {
+    const { localAddress, localPort, remoteAddress, remotePort } = socket;
+    newAttributes[SERVER_PORT] = localPort;
+    newAttributes[NETWORK_LOCAL_ADDRESS] = localAddress;
+    newAttributes[NETWORK_LOCAL_PORT] = localPort;
+    newAttributes[CLIENT_PORT] = remotePort;
+    newAttributes[NETWORK_PEER_ADDRESS] = collectClientAddress ? remoteAddress : undefined;
+    newAttributes[NETWORK_PEER_PORT] = remotePort;
+  }
+
+  return newAttributes;
+}

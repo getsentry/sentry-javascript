@@ -1,3 +1,5 @@
+import { basename } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { consoleSandbox } from '@sentry/core';
 import type { InputPluginOption } from 'rollup';
 
@@ -8,12 +10,46 @@ export const SENTRY_WRAPPED_FUNCTIONS = '?sentry-query-wrapped-functions=';
 export const SENTRY_REEXPORTED_FUNCTIONS = '?sentry-query-reexported-functions=';
 export const QUERY_END_INDICATOR = 'SENTRY-QUERY-END';
 
+/**
+ * `load()` emits `file://` specifiers because Node's ESM loader rejects bare Windows
+ * paths (`ERR_UNSUPPORTED_ESM_URL_SCHEME`), but Rollup's resolver only understands
+ * filesystem paths. Returns `undefined` for a malformed `file://` URL.
+ *
+ * **Only exported for testing**
+ */
+export function toResolvablePath(source: string): { path: string; wasFileUrl: boolean } | undefined {
+  if (!source.startsWith('file://')) {
+    return { path: source, wasFileUrl: false };
+  }
+  if (source === 'file://' || source === 'file:///') {
+    return undefined;
+  }
+  try {
+    const filePath = fileURLToPath(source);
+    if (!filePath || filePath === '/' || filePath === '\\') {
+      return undefined;
+    }
+    return { path: filePath, wasFileUrl: true };
+  } catch {
+    return undefined;
+  }
+}
+
+const CONFIG_EXTENSIONS = ['.ts', '.js', '.mjs', '.cjs', '.mts', '.cts'];
+
+function isServerConfigFile(sourcePath: string, resolvedPath: string, configFileName: string): boolean {
+  if (sourcePath === resolvedPath) {
+    return true;
+  }
+  const name = basename(sourcePath);
+  return name === configFileName || CONFIG_EXTENSIONS.some(ext => name === `${configFileName}${ext}`);
+}
+
 export type WrapServerEntryPluginOptions = {
   serverEntrypointFileName: string;
   serverConfigFileName: string;
   resolvedServerConfigPath: string;
   entrypointWrappedFunctions: string[];
-  additionalImports?: string[];
   debug?: boolean;
 };
 
@@ -27,7 +63,6 @@ export type WrapServerEntryPluginOptions = {
  * @param config.serverEntrypointFileName The server entrypoint (with file extension). Usually, this is defined by the Nitro preset and is something like 'node-server.mjs'
  * @param config.resolvedServerConfigPath Resolved path of the Sentry server config (based on `src` directory)
  * @param config.entryPointWrappedFunctions Exported bindings of the server entry file, which are wrapped as async function. E.g. ['default', 'handler', 'server']
- * @param config.additionalImports Adds additional imports to the entry file. Can be e.g. 'import-in-the-middle/hook.mjs'
  * @param config.debug Whether debug logs are enabled in the build time environment
  */
 export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOptions): InputPluginOption {
@@ -36,7 +71,6 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
     serverEntrypointFileName,
     resolvedServerConfigPath,
     entrypointWrappedFunctions,
-    additionalImports,
     debug,
   } = config;
 
@@ -49,25 +83,25 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
   return {
     name: 'sentry-wrap-server-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
-      if (source.includes(`/${serverConfigFileName}`)) {
-        return { id: source, moduleSideEffects: true };
+      // `load()` emits `file://` specifiers because Node's ESM loader rejects bare Windows paths,
+      // but Rollup's resolver only understands filesystem paths.
+      const resolvable = toResolvablePath(source);
+      if (!resolvable) {
+        return null;
       }
+      const { path: normalizedSource, wasFileUrl } = resolvable;
 
-      if (additionalImports?.includes(source)) {
-        // When importing additional imports like "import-in-the-middle/hook.mjs" in the returned code of the `load()` function below:
-        // By setting `moduleSideEffects` to `true`, the import is added to the bundle, although nothing is imported from it
-        // By importing "import-in-the-middle/hook.mjs", we can make sure this file is included, as not all node builders are including files imported with `module.register()`.
-        // Prevents the error "Failed to register ESM hook Error: Cannot find module 'import-in-the-middle/hook.mjs'"
-        return { id: source, moduleSideEffects: true, external: true };
+      if (isServerConfigFile(normalizedSource, resolvedServerConfigPath, serverConfigFileName)) {
+        return { id: normalizedSource, moduleSideEffects: true };
       }
 
       if (
         options.isEntry &&
-        source.includes(serverEntrypointFileName) &&
-        source.includes('.mjs') &&
-        !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
+        normalizedSource.includes(serverEntrypointFileName) &&
+        normalizedSource.includes('.mjs') &&
+        !normalizedSource.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
       ) {
-        const resolution = await this.resolve(source, importer, options);
+        const resolution = await this.resolve(normalizedSource, importer, options);
 
         // If it cannot be resolved or is external, just return it so that Rollup can display an error
         if (!resolution || resolution?.external) return resolution;
@@ -87,26 +121,35 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
               )
               .concat(QUERY_END_INDICATOR)}`;
       }
+
+      // Pass isEntry:false to avoid double-wrapping (normalizedSource lacks query suffix).
+      if (wasFileUrl) {
+        const resolved = await this.resolve(normalizedSource, importer, { ...options, isEntry: false });
+        if (resolved) return resolved;
+        return { id: normalizedSource };
+      }
+
       return null;
     },
     load(id: string) {
       if (id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
         const entryId = removeSentryQueryFromPath(id).slice(resolutionIdPrefix.length);
+        const entryIdUrl = pathToFileURL(entryId).href;
+        const configUrl = pathToFileURL(resolvedServerConfigPath).href;
 
+        // Use entryIdUrl so Node's runtime ESM loader receives file:// on Windows; Rollup normalizes it in resolveId.
         // Mostly useful for serverless `handler` functions
         const reExportedFunctions =
           id.includes(SENTRY_WRAPPED_FUNCTIONS) || id.includes(SENTRY_REEXPORTED_FUNCTIONS)
-            ? constructFunctionReExport(id, entryId)
+            ? constructFunctionReExport(id, entryIdUrl)
             : '';
 
         return (
           // Regular `import` of the Sentry config
-          `import ${JSON.stringify(resolvedServerConfigPath)};\n` +
+          `import ${JSON.stringify(configUrl)};\n` +
           // Dynamic `import()` for the previous, actual entry point.
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
-          `import(${JSON.stringify(entryId)});\n` +
-          // By importing additional imports like "import-in-the-middle/hook.mjs", we can make sure this file wil be included, as not all node builders are including files imported with `module.register()`.
-          `${additionalImports ? additionalImports.map(importPath => `import "${importPath}";\n`) : ''}` +
+          `import(${JSON.stringify(entryIdUrl)});\n` +
           `${reExportedFunctions}\n`
         );
       }

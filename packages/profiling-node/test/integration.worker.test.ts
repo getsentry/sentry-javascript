@@ -43,7 +43,7 @@ describe('worker threads', () => {
   it('does not start continuous profiling in worker threads', () => {
     const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
 
-    const [client] = makeClient();
+    const [client] = makeClient({ profileSessionSampleRate: 1 });
     Sentry.setCurrentClient(client);
     client.init();
 
@@ -62,20 +62,6 @@ describe('worker threads', () => {
     expect(startProfilingSpy).not.toHaveBeenCalled();
 
     integration._profiler.stop();
-  });
-
-  it('does not start span profiling in worker threads', () => {
-    const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
-
-    const [client] = makeClient({ profilesSampleRate: 1 });
-    Sentry.setCurrentClient(client);
-    client.init();
-
-    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
-    transaction.end();
-
-    // The native profiler should never have been called even with profilesSampleRate set
-    expect(startProfilingSpy).not.toHaveBeenCalled();
   });
 
   it('does not start trace lifecycle profiling in worker threads', () => {

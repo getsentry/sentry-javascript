@@ -36,7 +36,6 @@ describe('instrumentQueueProducer', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const [spanCtx] = startSpanSpy.mock.calls[0]!;
       expect(spanCtx).toMatchObject({
-        op: 'queue.publish',
         name: 'send MY_QUEUE',
         attributes: {
           'messaging.system': 'cloudflare',
@@ -108,7 +107,6 @@ describe('instrumentQueueProducer', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const [spanCtx] = startSpanSpy.mock.calls[0]!;
       expect(spanCtx).toMatchObject({
-        op: 'queue.publish',
         name: 'send MY_QUEUE',
         attributes: {
           'messaging.system': 'cloudflare',
@@ -179,5 +177,20 @@ describe('instrumentQueueProducer', () => {
     };
     const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE') as Queue & { customMethod: () => string };
     expect(wrapped.customMethod()).toBe('hi');
+  });
+
+  test('calls pass-through methods with the underlying queue as `this`', async () => {
+    const metrics = { backlogCount: 3, backlogBytes: 42 };
+    const queue = Object.assign(createMockQueue(), {
+      metrics(this: unknown) {
+        if (this !== queue) {
+          throw new TypeError('Illegal invocation: function called with incorrect `this` reference.');
+        }
+        return Promise.resolve(metrics);
+      },
+    }) as unknown as Queue & { metrics: () => Promise<typeof metrics> };
+    const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE') as typeof queue;
+
+    await expect(wrapped.metrics()).resolves.toEqual(metrics);
   });
 });

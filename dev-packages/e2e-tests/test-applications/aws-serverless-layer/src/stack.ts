@@ -10,7 +10,8 @@ import { globSync } from 'glob';
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-layer';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
 const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
-export const SAM_PORT = Number(process.env.SAM_PORT) || 7120;
+// SAM allocates runtime container ports in [5000, 9000) before binding its own endpoint.
+export const SAM_PORT = Number(process.env.SAM_PORT) || 17120;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
 function samLambdaArchitecture(): 'arm64' | 'x86_64' {
@@ -39,7 +40,7 @@ export class LocalLambdaStack extends Stack {
       type: 'AWS::Serverless::LayerVersion',
       properties: {
         ContentUri: path.join(LAYER_DIR, layerZipFile),
-        CompatibleRuntimes: ['nodejs18.x', 'nodejs20.x', 'nodejs22.x'],
+        CompatibleRuntimes: ['nodejs20.x', 'nodejs22.x', 'nodejs24.x'],
         CompatibleArchitectures: [samLambdaArchitecture()],
       },
     });
@@ -77,6 +78,7 @@ export class LocalLambdaStack extends Stack {
             Variables: {
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
+              SENTRY_TRACE_LIFECYCLE: 'static',
               NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
               // We only set SENTRY_DSN if not running TunnelNoDsn, because there
               // we want to test that the extension tunnel forwards requests when SENTRY_DSN is missing.
@@ -101,13 +103,13 @@ export class LocalLambdaStack extends Stack {
       try {
         const response = await fetch(`http://127.0.0.1:${port}/`);
 
-        if (response.ok || response.status === 404) {
+        if (response.status === 404 && response.headers.get('x-amzn-errortype') === 'PathNotFoundLocally') {
           console.log(`[LocalLambdaStack] SAM stack is ready`);
           return;
         }
-      } catch {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      } catch {}
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     throw new Error(`[LocalLambdaStack] Failed to start SAM stack after ${timeout}ms`);

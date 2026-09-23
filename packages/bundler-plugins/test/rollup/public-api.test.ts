@@ -1,17 +1,28 @@
 import { _rollupPluginInternal, sentryRollupPlugin } from '../../src/rollup';
 import { createComponentNameAnnotateHooks } from '../../src/core';
 import type { Plugin, SourceMap } from 'rollup';
+import { runInNewContext } from 'node:vm';
 import { describe, it, expect, test, beforeEach, vi } from 'vitest';
 
-const { babelCoreImportMock, transformAsyncMock, viteAnnotationModuleImportMock, viteAnnotationTransformMock } =
-  vi.hoisted(() => {
-    return {
-      babelCoreImportMock: vi.fn(),
-      transformAsyncMock: vi.fn(async (code: string) => ({ code, map: null })),
-      viteAnnotationModuleImportMock: vi.fn(),
-      viteAnnotationTransformMock: vi.fn(async () => ({ code: 'fast-path', map: null })),
-    };
-  });
+const {
+  babelCoreImportMock,
+  transformAsyncMock,
+  annotationTransformMock,
+  createOxcComponentNameAnnotateHooksMock,
+  getOxcParseAstAsyncMock,
+} = vi.hoisted(() => {
+  const annotationTransformMock = vi.fn(async () => ({ code: 'fast-path', map: null }));
+
+  return {
+    babelCoreImportMock: vi.fn(),
+    transformAsyncMock: vi.fn(async (code: string) => ({ code, map: null })),
+    annotationTransformMock,
+    createOxcComponentNameAnnotateHooksMock: vi.fn(() => ({
+      transform: annotationTransformMock,
+    })),
+    getOxcParseAstAsyncMock: vi.fn(),
+  };
+});
 
 vi.mock('@babel/core', () => {
   babelCoreImportMock();
@@ -20,12 +31,10 @@ vi.mock('@babel/core', () => {
   };
 });
 
-vi.mock('../../src/core/component-annotation-vite', () => {
-  viteAnnotationModuleImportMock();
+vi.mock('../../src/core/component-annotation-oxc', () => {
   return {
-    createViteComponentNameAnnotateHooks: vi.fn(() => ({
-      transform: viteAnnotationTransformMock,
-    })),
+    createOxcComponentNameAnnotateHooks: createOxcComponentNameAnnotateHooksMock,
+    getOxcParseAstAsync: getOxcParseAstAsyncMock,
   };
 });
 
@@ -59,29 +68,57 @@ test('component annotations only load Babel when the Babel transform runs', asyn
   expect(transformAsyncMock).toHaveBeenCalledTimes(1);
 });
 
-test('Vite annotation fast path only loads for Vite 8 annotation transforms', async () => {
-  expect(viteAnnotationModuleImportMock).not.toHaveBeenCalled();
+describe('annotation fast path', () => {
+  const code = 'export function App() { return <div />; }';
 
-  const vite7Plugin = _rollupPluginInternal(
-    { release: { inject: false }, reactComponentAnnotation: { enabled: true } },
-    'vite',
-    '7',
-  ) as Plugin;
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-  await runTransform(vite7Plugin, 'export function App() { return <div />; }', '/src/app.jsx');
+  it.each<[string, 'rollup' | 'vite', string | undefined]>([
+    ['Rollup', 'rollup', undefined],
+    ['Vite 7', 'vite', '7'],
+  ])('uses the fast path with oxc-parser for %s', async (_name, buildTool, majorVersion) => {
+    const plugin = _rollupPluginInternal(
+      { release: { inject: false }, reactComponentAnnotation: { enabled: true } },
+      buildTool,
+      majorVersion,
+    ) as Plugin;
 
-  expect(viteAnnotationModuleImportMock).not.toHaveBeenCalled();
+    await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
 
-  const vite8Plugin = _rollupPluginInternal(
-    { release: { inject: false }, reactComponentAnnotation: { enabled: true } },
-    'vite',
-    '8',
-  ) as Plugin;
+    expect(createOxcComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], getOxcParseAstAsyncMock);
+    expect(annotationTransformMock).toHaveBeenCalledTimes(1);
+    expect(transformAsyncMock).not.toHaveBeenCalled();
+  });
 
-  await runTransform(vite8Plugin, 'export function App() { return <div />; }', '/src/app.jsx');
+  it("uses the fast path with Vite's parser for Vite 8", async () => {
+    const plugin = _rollupPluginInternal(
+      { release: { inject: false }, reactComponentAnnotation: { enabled: true } },
+      'vite',
+      '8',
+    ) as Plugin;
 
-  expect(viteAnnotationModuleImportMock).toHaveBeenCalledTimes(1);
-  expect(viteAnnotationTransformMock).toHaveBeenCalledTimes(1);
+    await expect(runTransform(plugin, code, '/src/app.jsx')).resolves.toEqual({ code: 'fast-path', map: null });
+
+    expect(createOxcComponentNameAnnotateHooksMock).toHaveBeenCalledWith([], expect.any(Function));
+    expect(createOxcComponentNameAnnotateHooksMock).not.toHaveBeenCalledWith([], getOxcParseAstAsyncMock);
+    expect(annotationTransformMock).toHaveBeenCalledTimes(1);
+    expect(transformAsyncMock).not.toHaveBeenCalled();
+  });
+
+  it('does not use the fast path when injecting into HTML', async () => {
+    const plugin = _rollupPluginInternal(
+      { release: { inject: false }, reactComponentAnnotation: { enabled: true, _experimentalInjectIntoHtml: true } },
+      'vite',
+      '8',
+    ) as Plugin;
+
+    await runTransform(plugin, code, '/src/app.jsx');
+
+    expect(annotationTransformMock).not.toHaveBeenCalled();
+    expect(transformAsyncMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 test('uses a Rollup 3-compatible function transform hook for Rollup builds', () => {
@@ -148,9 +185,59 @@ describe('Hooks', () => {
 
       expect(result).not.toBeNull();
       expect(result?.code).toMatchInlineSnapshot(`
-        ""use strict";!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79a86c07-8ecc-4367-82b0-88cf822f2d41",e._sentryDebugIdIdentifier="sentry-dbid-79a86c07-8ecc-4367-82b0-88cf822f2d41");}catch(e){}}();
-        console.log("Hello world");"
+        ""use strict";
+        !function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="79a86c07-8ecc-4367-82b0-88cf822f2d41",e._sentryDebugIdIdentifier="sentry-dbid-79a86c07-8ecc-4367-82b0-88cf822f2d41");}catch(e){}}();console.log("Hello world");"
       `);
+    });
+
+    it('preserves source mappings when injecting after a directive prologue', () => {
+      const code = '"use strict";\nglobalThis.applicationStarted = true;';
+      const result = renderChunk(code, { fileName: 'bundle.js' });
+
+      expect(result).not.toBeNull();
+      expect(JSON.parse(result?.map.toString() ?? '')).toEqual({
+        version: 3,
+        file: 'bundle.js',
+        sources: ['bundle.js'],
+        names: [],
+        mappings: 'AAAA,CAAC,GAAG,CAAC,MAAM,CAAC;qYACZ,UAAU,CAAC,kBAAkB,CAAC,CAAC,CAAC,IAAI',
+      });
+    });
+
+    it.each([
+      ['when the directive has no semicolon', '"use strict"\n'],
+      ['when another directive precedes it', '"use client";\n"use strict";\n'],
+      ['after an escaped CRLF in an earlier directive', '"not strict\\\r\n";\n"use strict";\n'],
+      ['before an identifier prefixed with an operator keyword', '"use strict"\nin$foo: ;\n'],
+    ])('preserves strict mode %s', (_description, codePrefix) => {
+      const code = `${codePrefix}globalThis.strictModePreserved = (function () { return this; })() === undefined;`;
+      const result = renderChunk(code, { fileName: 'bundle.js' });
+      const context: { strictModePreserved?: boolean; _sentryDebugIds?: Record<string, string> } = {};
+
+      expect(result).not.toBeNull();
+      runInNewContext(result?.code ?? '', context);
+
+      expect(context.strictModePreserved).toBe(true);
+      expect(Object.keys(context._sentryDebugIds ?? {})).toHaveLength(1);
+    });
+
+    it.each([
+      ['a semicolonless directive', '"use strict"'],
+      ['trailing whitespace', '"use strict"   '],
+      ['a trailing block comment', '"use strict"/* trailing */'],
+      ['a trailing line comment', '"use strict" // trailing'],
+    ])('preserves a directive at EOF with %s', (_description, code) => {
+      const result = renderChunk(code, { fileName: 'bundle.js' });
+      const context: { strictModePreserved?: boolean; _sentryDebugIds?: Record<string, string> } = {};
+
+      expect(result).not.toBeNull();
+      runInNewContext(
+        `${result?.code ?? ''}\nglobalThis.strictModePreserved = (function () { return this; })() === undefined;`,
+        context,
+      );
+
+      expect(context.strictModePreserved).toBe(true);
+      expect(Object.keys(context._sentryDebugIds ?? {})).toHaveLength(1);
     });
 
     it.each([['bundle.js'], ['bundle.mjs'], ['bundle.cjs'], ['bundle.js?foo=bar'], ['bundle.js#hash']])(

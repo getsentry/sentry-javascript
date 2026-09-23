@@ -219,7 +219,7 @@ import { AppModule } from './app/app.module';
 startSpan(
   {
     name: 'platform-browser-dynamic',
-    op: 'ui.angular.bootstrap',
+    op: 'ui.mount',
   },
   async () => {
     await platformBrowserDynamic().bootstrapModule(AppModule);

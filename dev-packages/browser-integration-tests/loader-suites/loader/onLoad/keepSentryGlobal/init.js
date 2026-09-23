@@ -1,5 +1,5 @@
 window.sentryOnLoad = function () {
-  Sentry.init({});
+  Sentry.init({ traceLifecycle: 'static' });
 
   window.__sentryLoaded = true;
 };

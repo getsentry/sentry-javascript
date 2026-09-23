@@ -1,36 +1,34 @@
-import { registerSpanErrorInstrumentation } from '@sentry/core/browser';
+import { registerSpanErrorInstrumentation } from '@sentry/core';
 import { feedbackAsyncIntegration } from './feedbackAsync';
 
 registerSpanErrorInstrumentation();
 
 export * from './index.bundle.base';
 
-// TODO(v11): Export metrics here once we remove it from the base bundle.
 export {
   getActiveSpan,
   getRootSpan,
   getSpanDescendants,
   setMeasurement,
-  startInactiveSpan,
   startNewTrace,
-  startSpan,
-  startSpanManual,
   withActiveSpan,
   logger,
   consoleLoggingIntegration,
-} from '@sentry/core/browser';
+  metrics,
+  spanStreamingIntegration,
+} from '@sentry/core';
+export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/core/browser';
 
 export {
   browserTracingIntegration,
-  isBotUserAgent,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { isBotUserAgent } from '@sentry/browser-utils';
 export { elementTimingIntegration } from '@sentry/browser-utils';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
-export { spanStreamingIntegration } from './integrations/spanstreaming';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
 

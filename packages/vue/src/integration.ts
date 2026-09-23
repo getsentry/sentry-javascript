@@ -1,9 +1,10 @@
 import { consoleSandbox, defineIntegration, GLOBAL_OBJ, hasSpansEnabled } from '@sentry/core';
-import { DEFAULT_HOOKS } from './constants';
+import { DEFAULT_HOOKS, DEFAULT_ROOT_SPAN_TIMEOUT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { attachErrorHandler } from './errorhandler';
+import { instrumentAppMountWithoutMixin } from './rootInstrumentation';
 import { createTracingMixins } from './tracing';
-import type { Options, Vue, VueOptions } from './types';
+import type { Options, TracingOptions, Vue, VueOptions } from './types';
 
 const globalWithVue = GLOBAL_OBJ as typeof GLOBAL_OBJ & { Vue: Vue };
 
@@ -13,7 +14,7 @@ const DEFAULT_CONFIG: VueOptions = {
   attachErrorHandler: true,
   tracingOptions: {
     hooks: DEFAULT_HOOKS,
-    timeout: 2000,
+    timeout: DEFAULT_ROOT_SPAN_TIMEOUT,
     trackComponents: false,
   },
 };
@@ -74,6 +75,50 @@ const vueInit = (app: Vue, options: Options): void => {
   }
 
   if (hasSpansEnabled(options)) {
-    app.mixin(createTracingMixins(options.tracingOptions));
+    const mixins = createTracingMixins(options.tracingOptions);
+    app.mixin(mixins);
+    if (!mixinWasApplied(app, mixins)) {
+      instrumentAppMountWithoutMixin(app, mixins);
+      warnAboutLostComponentTracking(app, options.tracingOptions);
+    }
   }
 };
+
+/**
+ * Reads back whether Vue accepted the mixin, because `app.mixin()` fails silently when the Options
+ * API is disabled (the Nuxt 5 default). A Vue 2 constructor has no `_context` and no Options API
+ * flag, so the mixin always applies there.
+ *
+ * See: https://github.com/vuejs/core/blob/v3.5.41/packages/runtime-core/src/apiCreateApp.ts
+ */
+function mixinWasApplied(app: Vue, mixin: unknown): boolean {
+  const mixins = (app as Vue & { _context?: { mixins?: unknown[] } })._context?.mixins;
+  return !mixins || mixins.includes(mixin);
+}
+
+/**
+ * Warns only when the dropped mixin loses component tracking the user opted into. The default
+ * spans still work through the `app.mount()` wrap, so a default config stays silent.
+ */
+function warnAboutLostComponentTracking(app: Vue, tracingOptions: Partial<TracingOptions> | undefined): void {
+  const trackComponents = tracingOptions?.trackComponents;
+  const losesComponentSpans =
+    trackComponents === true || (Array.isArray(trackComponents) && trackComponents.length > 0);
+
+  if (!losesComponentSpans) {
+    return;
+  }
+
+  // `createNuxtApp()` sets `$nuxt` on the Vue app before it calls the `app:created` hook (where Nuxt SDK adds this integration).
+  const fix =
+    '$nuxt' in app
+      ? 'Set `vue: { optionsApi: true }` in your `nuxt.config.ts`.'
+      : 'Set `__VUE_OPTIONS_API__` to `true` in the `define` config of your bundler.';
+
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[@sentry/vue]: The Vue Options API is disabled (\`__VUE_OPTIONS_API__: false\`). Sentry still records the \`Application Render\` and root component mount spans, but component tracking (\`trackComponents\`) needs the Options API. ${fix}`,
+    );
+  });
+}

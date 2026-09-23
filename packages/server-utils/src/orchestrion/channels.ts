@@ -7,6 +7,7 @@ import { firebaseChannels } from './config/firebase';
 import { genericPoolChannels } from './config/generic-pool';
 import { googleGenAiChannels } from './config/google-genai';
 import { graphqlChannels } from './config/graphql';
+import { groqChannels } from './config/groq';
 import { hapiChannels } from './config/hapi';
 import { ioredisChannels } from './config/ioredis';
 import { kafkajsChannels } from './config/kafkajs';
@@ -15,6 +16,8 @@ import { koaChannels } from './config/koa';
 import { langchainChannels } from './config/langchain';
 import { langgraphChannels } from './config/langgraph';
 import { lruMemoizerChannels } from './config/lru-memoizer';
+import { mastraChannels } from './config/mastra';
+import { mistralChannels } from './config/mistral';
 import { mongodbChannels } from './config/mongodb';
 import { mongooseChannels } from './config/mongoose';
 import { mysql2Channels } from './config/mysql2';
@@ -23,11 +26,10 @@ import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
 import { postgresJsChannels } from './config/postgres';
-import { prismaChannels } from './config/prisma';
-import { reactRouterChannels } from './config/react-router';
 import { redisChannels } from './config/redis';
 import { remixChannels } from './config/remix';
 import { tediousChannels } from './config/tedious';
+import { togetherAiChannels } from './config/together-ai';
 import { vercelAiChannels } from './config/vercel-ai';
 
 /**
@@ -56,6 +58,7 @@ export const CHANNELS = {
   ...genericPoolChannels,
   ...googleGenAiChannels,
   ...graphqlChannels,
+  ...groqChannels,
   ...hapiChannels,
   ...ioredisChannels,
   ...kafkajsChannels,
@@ -64,6 +67,8 @@ export const CHANNELS = {
   ...langchainChannels,
   ...langgraphChannels,
   ...lruMemoizerChannels,
+  ...mastraChannels,
+  ...mistralChannels,
   ...mongodbChannels,
   ...mongooseChannels,
   ...mysql2Channels,
@@ -72,11 +77,10 @@ export const CHANNELS = {
   ...openaiChannels,
   ...pgChannels,
   ...postgresJsChannels,
-  ...prismaChannels,
-  ...reactRouterChannels,
   ...redisChannels,
   ...remixChannels,
   ...tediousChannels,
+  ...togetherAiChannels,
   ...vercelAiChannels,
 } as const;
 

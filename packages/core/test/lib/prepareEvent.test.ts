@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client, ScopeContext } from '../../src';
-import { createStackParser, getGlobalScope, getIsolationScope, GLOBAL_OBJ } from '../../src';
+import { createStackParser, getGlobalScope, getIsolationScope, GLOBAL_OBJ, SentrySpan } from '../../src';
 import { Scope } from '../../src/scope';
 import type { Attachment } from '../../src/types/attachment';
 import type { Breadcrumb } from '../../src/types/breadcrumb';
@@ -14,7 +14,8 @@ import {
   parseEventHintOrCaptureContext,
   prepareEvent,
 } from '../../src/utils/prepareEvent';
-import { clearGlobalScope } from '../testutils';
+import { _setSpanForScope } from '../../src/utils/spanOnScope';
+import { resetGlobals } from '../testutils';
 
 describe('applyDebugIds', () => {
   afterEach(() => {
@@ -403,8 +404,7 @@ describe('parseEventHintOrCaptureContext', () => {
 
 describe('prepareEvent', () => {
   beforeEach(() => {
-    clearGlobalScope();
-    getIsolationScope().clear();
+    resetGlobals();
   });
 
   it('works without any scope data', async () => {
@@ -444,6 +444,88 @@ describe('prepareEvent', () => {
       environment: 'production',
       message: 'foo',
       sdkProcessingMetadata: {},
+    });
+  });
+
+  describe('dropped events', () => {
+    function createClient(eventProcessor: EventProcessor): Client {
+      return {
+        emit() {
+          // noop
+        },
+        getEventProcessors() {
+          return [eventProcessor];
+        },
+        recordDroppedEvent: vi.fn(),
+      } as unknown as Client;
+    }
+
+    it('records an `event_processor` drop and resolves `null` when a processor returns `null`', async () => {
+      const client = createClient(() => null);
+
+      await expect(
+        prepareEvent({} as ClientOptions, { message: 'foo' }, { integrations: [] }, new Scope(), client),
+      ).resolves.toBeNull();
+
+      expect(client.recordDroppedEvent).toHaveBeenCalledWith('event_processor', 'error');
+    });
+
+    it('records `callback_error` transaction and span drops when a processor throws', async () => {
+      const client = createClient(() => {
+        throw new Error('sorry');
+      });
+
+      await expect(
+        prepareEvent(
+          {} as ClientOptions,
+          {
+            type: 'transaction',
+            transaction: '/checkout',
+            spans: [
+              {
+                description: 'load cart',
+                span_id: '9e15bf99fbe4bc80',
+                start_timestamp: 1591603196.637835,
+                trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+              },
+              {
+                description: 'reserve inventory',
+                span_id: 'aa554c1f506b0783',
+                start_timestamp: 1591603196.637835,
+                trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+              },
+            ],
+          },
+          { integrations: [] },
+          new Scope(),
+          client,
+        ),
+      ).resolves.toBeNull();
+
+      expect(client.recordDroppedEvent).toHaveBeenCalledTimes(2);
+      expect(client.recordDroppedEvent).toHaveBeenCalledWith('callback_error', 'transaction');
+      expect(client.recordDroppedEvent).toHaveBeenCalledWith('callback_error', 'span', 3);
+    });
+
+    it('records a `callback_error` drop and resolves `null` when a processor rejects', async () => {
+      const client = createClient(() => Promise.reject(new Error('sorry')));
+
+      await expect(
+        prepareEvent({} as ClientOptions, { type: 'replay_event' }, { integrations: [] }, new Scope(), client),
+      ).resolves.toBeNull();
+
+      expect(client.recordDroppedEvent).toHaveBeenCalledWith('callback_error', 'replay');
+    });
+
+    it('resolves `null` without a client when a processor throws', async () => {
+      const scope = new Scope();
+      scope.addEventProcessor(() => {
+        throw new Error('sorry');
+      });
+
+      await expect(
+        prepareEvent({} as ClientOptions, { message: 'foo' }, { integrations: [] }, scope),
+      ).resolves.toBeNull();
     });
   });
 
@@ -727,6 +809,33 @@ describe('prepareEvent', () => {
         sdkProcessingMetadata: {},
         tags: { initial: 'aa', foo: 'bar' },
       });
+    });
+  });
+
+  describe('active span', () => {
+    it('applies the root span name to transaction events', async () => {
+      const scope = new Scope();
+      _setSpanForScope(scope, new SentrySpan({ name: 'bar' }));
+
+      const event: Event = { type: 'transaction' };
+
+      const options = {} as ClientOptions;
+      const processedEvent = await prepareEvent(options, event, { integrations: [] }, scope);
+
+      expect(processedEvent?.transaction).toBe('bar');
+    });
+
+    it("doesn't apply the root span name to non-transaction events", async () => {
+      const scope = new Scope();
+      scope.setTransactionName('/users/:id');
+      _setSpanForScope(scope, new SentrySpan({ name: 'foo' }));
+
+      const event: Event = { type: undefined };
+
+      const options = {} as ClientOptions;
+      const processedEvent = await prepareEvent(options, event, { integrations: [] }, scope);
+
+      expect(processedEvent?.transaction).toBe('/users/:id');
     });
   });
 });

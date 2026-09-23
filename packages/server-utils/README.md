@@ -20,5 +20,5 @@
 
 ## General
 
-Common server-only utilities used by the Sentry JavaScript server SDKs (node, node-core, bun, deno, cloudflare,
+Common server-only utilities used by the Sentry JavaScript server SDKs (node, bun, deno, cloudflare,
 aws-serverless, google-cloud-serverless, vercel-edge).

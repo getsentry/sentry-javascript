@@ -1,5 +1,5 @@
 import { vitePlugin as remix } from '@remix-run/dev';
-import { sentryRemixVitePlugin } from '@sentry/remix';
+import { sentryRemixVitePlugin } from '@sentry/remix/vite';
 import { hydrogen } from '@shopify/hydrogen/vite';
 import { oxygen } from '@shopify/mini-oxygen/vite';
 import { defineConfig } from 'vite';

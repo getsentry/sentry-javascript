@@ -1,5 +1,6 @@
 const Sentry = require('@sentry/node');
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
+const { waitForLocalVariables } = require('./wait-for-local-variables');
 
 const externalFunctionFile = require.resolve('./node_modules/out-of-app-function.js');
 
@@ -11,16 +12,19 @@ function in_app_function() {
 }
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
   includeLocalVariables: true,
 });
 
-setTimeout(async () => {
+void (async () => {
+  await waitForLocalVariables();
+
   try {
     in_app_function();
   } catch (e) {
     Sentry.captureException(e);
     await Sentry.flush();
   }
-}, 500);
+})();

@@ -1,11 +1,20 @@
+import {
+  CODE_FUNCTION_NAME,
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_OPERATION_TYPE,
+  MESSAGING_SYSTEM,
+  SENTRY_DESCRIPTION,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
+import { FUNCTION, MIDDLEWARE, QUEUE_PROCESS } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   withActiveSpan,
 } from '@sentry/core';
-import { isOrchestrionInjected } from '@sentry/server-utils/orchestrion';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
 /** A function of unknown signature, matching the methods/handlers we wrap. */
@@ -69,27 +78,13 @@ export function isTargetPatched(target: object, flag: 'sentryPatchedInjectable' 
   return false;
 }
 
+/** Origin for the app-creation / request-context / request-handler HTTP spans. */
+export const HTTP_ORIGIN = 'auto.http.nestjs';
+
 /** Origin for middleware/guard/pipe/interceptor/exception_filter spans. */
 function middlewareOrigin(componentType?: string): string {
-  const base = isOrchestrionInjected() ? 'auto.middleware.orchestrion.nestjs' : 'auto.middleware.nestjs';
+  const base = 'auto.middleware.nestjs';
   return componentType ? `${base}.${componentType}` : base;
-}
-
-/**
- * Origin for the app-creation / request-context / request-handler HTTP spans.
- */
-export function httpOrigin(): string {
-  return isOrchestrionInjected() ? 'auto.http.orchestrion.nestjs' : 'auto.http.otel.nestjs';
-}
-
-/** Origin for `@OnEvent` spans. */
-function eventOrigin(): string {
-  return isOrchestrionInjected() ? 'auto.event.orchestrion.nestjs' : 'auto.event.nestjs';
-}
-
-/** Origin for BullMQ `@Processor` `process` spans. */
-function bullmqOrigin(): string {
-  return isOrchestrionInjected() ? 'auto.queue.orchestrion.nestjs.bullmq' : 'auto.queue.nestjs.bullmq';
 }
 
 /**
@@ -104,7 +99,7 @@ export function getMiddlewareSpanOptions(
   return {
     name: name ?? target.name ?? 'unknown',
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
+      [SENTRY_OP]: MIDDLEWARE,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: middlewareOrigin(componentType),
     },
   };
@@ -118,33 +113,55 @@ export function getEventSpanOptions(event: string): {
   attributes: Record<string, string>;
   forceTransaction: boolean;
 } {
+  const client = getClient();
+  const isStreamed = !!client && hasSpanStreamingEnabled(client);
+  const description = `event ${event}`;
+
   return {
-    name: `event ${event}`,
+    // With span streaming, a `function` span is named after what it wraps. An `@OnEvent` handler is
+    // identified by the event it listens to, so that doubles as its `code.function.name`.
+    name: isStreamed ? event : description,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'event.nestjs',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: eventOrigin(),
+      [SENTRY_OP]: FUNCTION,
+      [CODE_FUNCTION_NAME]: event,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
+      // Relay infers a `function` span's description from `code.function.name` alone, which drops the prefix.
+      ...(isStreamed && { [SENTRY_DESCRIPTION]: description }),
     },
+    // oxlint-disable-next-line typescript/no-deprecated
     forceTransaction: true,
   };
 }
 
+const PROCESS_OPERATION = 'process';
+
 /**
- * Returns span options for nest bullmq process spans.
+ * Returns span options for nest bullmq process spans. `queueName` is undefined when the `@Processor`
+ * decorator has no queue name.
  */
-export function getBullMQProcessSpanOptions(queueName: string): {
+export function getBullMQProcessSpanOptions(queueName: string | undefined): {
   name: string;
-  attributes: Record<string, string>;
-  forceTransaction: boolean;
+  attributes: Record<string, string | undefined>;
 } {
+  const client = getClient();
+  const isStreamed = !!client && hasSpanStreamingEnabled(client);
+
+  // Only the word order differs between lifecycles (to keep the old naming pattern).
+  const name = queueName
+    ? isStreamed
+      ? `${PROCESS_OPERATION} ${queueName}`
+      : `${queueName} ${PROCESS_OPERATION}`
+    : PROCESS_OPERATION;
+
   return {
-    name: `${queueName} process`,
+    name,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: bullmqOrigin(),
-      'messaging.system': 'bullmq',
-      'messaging.destination.name': queueName,
+      [SENTRY_OP]: QUEUE_PROCESS,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.nestjs.bullmq',
+      [MESSAGING_SYSTEM]: 'bullmq',
+      [MESSAGING_OPERATION_TYPE]: PROCESS_OPERATION,
+      [MESSAGING_DESTINATION_NAME]: queueName,
     },
-    forceTransaction: true,
   };
 }
 

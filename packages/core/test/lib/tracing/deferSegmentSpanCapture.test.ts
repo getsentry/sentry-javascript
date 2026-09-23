@@ -1,13 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  setCurrentClient,
-  startInactiveSpan,
-  withActiveSpan,
-  withScope,
-} from '../../../src';
+import { getCurrentScope, setCurrentClient, startInactiveSpan, withActiveSpan, withScope } from '../../../src';
 import { _INTERNAL_setDeferSegmentSpanCapture } from '../../../src/tracing/deferSegmentSpanCapture';
 import {
   getSegmentSpanCaptureStrategy,
@@ -15,6 +7,7 @@ import {
 } from '../../../src/tracing/segmentSpanCaptureStrategy';
 import type { Event } from '../../../src/types/event';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { resetGlobals } from '../../testutils';
 
 const dsn = 'https://123@sentry.io/42';
 
@@ -49,9 +42,7 @@ describe('deferred segment-span capture', () => {
   beforeEach(() => {
     vi.useFakeTimers();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     transactions = [];
     const options = getDefaultTestClientOptions({

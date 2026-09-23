@@ -1,0 +1,169 @@
+/* eslint-disable typescript-eslint/no-deprecated */
+import {
+  GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_FREQUENCY_PENALTY,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_PRESENCE_PENALTY,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_REQUEST_TOP_K,
+  GEN_AI_REQUEST_TOP_P,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
+import type { Span, SpanAttributeValue } from '@sentry/core';
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { extractSystemInstructions, setOutputMessagesAttribute, setTokenUsageAttributes } from '../core/utils';
+// Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
+export { setOutputMessagesAttribute };
+import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
+import type { WorkersAiInput, WorkersAiOutput } from './types';
+
+/**
+ * Determine the gen_ai operation name from the inputs passed to `AI.run`.
+ * Workers AI exposes a single `run` method, so we infer the operation from the input shape.
+ */
+export type WorkersAiOperationName = 'chat' | 'embeddings';
+
+export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, string> = {
+  chat: GEN_AI_CHAT,
+  embeddings: GEN_AI_EMBEDDINGS,
+};
+
+export function getOperationName(inputs: unknown): WorkersAiOperationName {
+  if (inputs && typeof inputs === 'object') {
+    if ('messages' in inputs || 'prompt' in inputs) {
+      return 'chat';
+    }
+    if ('text' in inputs) {
+      return 'embeddings';
+    }
+  }
+  return 'chat';
+}
+
+/**
+ * Extract the request attributes (model, request parameters, system, origin) from a `run` call.
+ */
+export function extractRequestAttributes(
+  model: unknown,
+  inputs: unknown,
+  operationName: string,
+): Record<string, SpanAttributeValue> {
+  const attributes: Record<string, SpanAttributeValue> = {
+    [GEN_AI_PROVIDER_NAME]: WORKERS_AI_PROVIDER_NAME,
+    [GEN_AI_OPERATION_NAME]: operationName,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
+    [GEN_AI_REQUEST_MODEL]: typeof model === 'string' ? model : 'unknown',
+  };
+
+  if (inputs && typeof inputs === 'object') {
+    const params = inputs as WorkersAiInput;
+
+    if (typeof params.temperature === 'number') {
+      attributes[GEN_AI_REQUEST_TEMPERATURE] = params.temperature;
+    }
+    if (typeof params.max_tokens === 'number') {
+      attributes[GEN_AI_REQUEST_MAX_TOKENS] = params.max_tokens;
+    }
+    if (typeof params.top_p === 'number') {
+      attributes[GEN_AI_REQUEST_TOP_P] = params.top_p;
+    }
+    if (typeof params.top_k === 'number') {
+      attributes[GEN_AI_REQUEST_TOP_K] = params.top_k;
+    }
+    if (typeof params.frequency_penalty === 'number') {
+      attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = params.frequency_penalty;
+    }
+    if (typeof params.presence_penalty === 'number') {
+      attributes[GEN_AI_REQUEST_PRESENCE_PENALTY] = params.presence_penalty;
+    }
+    if (params.stream === true) {
+      attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = true;
+    }
+  }
+
+  return attributes;
+}
+
+/**
+ * Record the request inputs (messages/prompt/embeddings input) on the span.
+ * Only called when `recordInputs` is enabled.
+ */
+export function addRequestAttributes(span: Span, inputs: unknown, operationName: string): void {
+  if (!inputs || typeof inputs !== 'object') {
+    return;
+  }
+  const params = inputs as WorkersAiInput;
+
+  // Store embeddings input on a separate attribute
+  if (operationName === 'embeddings') {
+    const text = params.text;
+
+    if (text == null || (typeof text === 'string' && text.length === 0) || (Array.isArray(text) && text.length === 0)) {
+      return;
+    }
+
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT, stringify(text, String));
+    return;
+  }
+
+  const src = params.messages ?? params.prompt;
+
+  if (src == null || (Array.isArray(src) && src.length === 0)) {
+    return;
+  }
+
+  const { systemInstructions, filteredMessages } = extractSystemInstructions(src);
+
+  if (systemInstructions) {
+    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
+  }
+
+  span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(filteredMessages));
+}
+
+/**
+ * Record the response attributes (token usage, response text, tool calls) on the span.
+ */
+export function addResponseAttributes(span: Span, result: unknown, recordOutputs: boolean): void {
+  if (
+    !result ||
+    typeof result !== 'object' ||
+    // Raw `Response` objects (from `returnRawResponse`/`websocket`) cannot be introspected without consuming them.
+    (typeof Response !== 'undefined' && result instanceof Response)
+  ) {
+    return;
+  }
+
+  const response = result as WorkersAiOutput;
+
+  if (response.usage) {
+    setTokenUsageAttributes(span, response.usage.prompt_tokens, response.usage.completion_tokens);
+  }
+
+  if (recordOutputs) {
+    let responseText: string | undefined;
+    if (typeof response.response === 'string') {
+      responseText = response.response;
+      span.setAttribute(GEN_AI_RESPONSE_TEXT, response.response);
+    } else if (response.response != null) {
+      responseText = JSON.stringify(response.response);
+      span.setAttribute(GEN_AI_RESPONSE_TEXT, responseText);
+    }
+
+    const toolCalls =
+      Array.isArray(response.tool_calls) && response.tool_calls.length > 0 ? response.tool_calls : undefined;
+    if (toolCalls) {
+      span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS, JSON.stringify(toolCalls));
+    }
+
+    setOutputMessagesAttribute(span, { responseText, toolCalls });
+  }
+}

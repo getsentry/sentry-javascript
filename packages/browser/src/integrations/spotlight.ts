@@ -1,6 +1,7 @@
-import type { Client, Envelope, IntegrationFn } from '@sentry/core/browser';
-import { debug, defineIntegration, serializeEnvelope } from '@sentry/core/browser';
+import type { Client, Envelope, IntegrationFn } from '@sentry/core';
+import { debug, defineIntegration, serializeEnvelope } from '@sentry/core';
 import { getNativeImplementation } from '@sentry/browser-utils';
+import { UI_INTERACTION_CLICK } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';
 import type { WINDOW } from '../helpers';
 
@@ -14,7 +15,10 @@ export type SpotlightConnectionOptions = {
 
 export const INTEGRATION_NAME = 'SpotlightBrowser' as const;
 
-export const SPOTLIGHT_IGNORE_SPANS = [{ op: 'ui.interaction.click', name: '#sentry-spotlight' }];
+export const SPOTLIGHT_IGNORE_SPANS = [
+  { op: UI_INTERACTION_CLICK, name: '#sentry-spotlight' },
+  { op: UI_INTERACTION_CLICK, attributes: { 'browser.web_vital.inp.target': '#sentry-spotlight' } },
+];
 
 const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
   const sidecarUrl = options.sidecarUrl || 'http://localhost:8969/stream';
@@ -46,7 +50,7 @@ function setupSidecarForwarding(client: Client, sidecarUrl: string): void {
 
     makeFetch(sidecarUrl, {
       method: 'POST',
-      body: serializeEnvelope(envelope),
+      body: serializeEnvelope(envelope) as BodyInit,
       headers: {
         'Content-Type': 'application/x-sentry-envelope',
       },

@@ -1,4 +1,4 @@
-import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core/browser';
+import type { Client, Event as SentryEvent, IntegrationFn } from '@sentry/core';
 import {
   _INTERNAL_filterCookies,
   _INTERNAL_filterKeyValueData,
@@ -10,8 +10,8 @@ import {
   getClient,
   GLOBAL_OBJ,
   isSentryRequestUrl,
-  supportsNativeFetch,
-} from '@sentry/core/browser';
+} from '@sentry/core';
+import type { SentryWrappedXMLHttpRequest } from '@sentry/browser-utils';
 import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -92,17 +92,11 @@ function _fetchResponseHandler(
     if (dc.cookies !== false) {
       const reqCookieStr = request.headers.get('Cookie') || undefined;
       if (reqCookieStr) {
-        const filtered = _INTERNAL_filterCookies(reqCookieStr, dc.cookies);
-        if (typeof filtered === 'object') {
-          requestCookies = filtered;
-        }
+        requestCookies = _INTERNAL_filterCookies(reqCookieStr, dc.cookies, 'cookie');
       }
       const resCookieStr = response.headers.get('Set-Cookie') || undefined;
       if (resCookieStr) {
-        const filtered = _INTERNAL_filterCookies(resCookieStr, dc.cookies);
-        if (typeof filtered === 'object') {
-          responseCookies = filtered;
-        }
+        responseCookies = _INTERNAL_filterCookies(resCookieStr, dc.cookies, 'set-cookie');
       }
     }
 
@@ -145,10 +139,7 @@ function _xhrResponseHandler(
       try {
         const cookieString = xhr.getResponseHeader('Set-Cookie') || xhr.getResponseHeader('set-cookie') || undefined;
         if (cookieString) {
-          const filtered = _INTERNAL_filterCookies(cookieString, dc.cookies);
-          if (typeof filtered === 'object') {
-            responseCookies = filtered;
-          }
+          responseCookies = _INTERNAL_filterCookies(cookieString, dc.cookies, 'set-cookie');
         }
       } catch {
         // ignore it if parsing fails
@@ -281,10 +272,6 @@ function _isInGivenStatusRanges(
  * Wraps `fetch` function to capture request and response data
  */
 function _wrapFetch(client: Client, options: HttpClientOptions): void {
-  if (!supportsNativeFetch()) {
-    return;
-  }
-
   addFetchInstrumentationHandler(handlerData => {
     if (getClient() !== client) {
       return;
@@ -298,7 +285,7 @@ function _wrapFetch(client: Client, options: HttpClientOptions): void {
     }
 
     _fetchResponseHandler(options, requestInfo, response as Response, requestInit, error || virtualError);
-  }, false);
+  });
 }
 
 /**
@@ -425,17 +412,6 @@ function _getDataCollectionSettings() {
   const client = getClient();
   if (!client) {
     return { cookies: false, requestHeaders: false, responseHeaders: false };
-  }
-
-  // todo(v11): Always use granular dataCollection settings and remove this legacy guard.
-  // Currently, when dataCollection is not explicitly set, we gate all collection on
-  // sendDefaultPii to avoid sending more data than before (the spec defaults would
-  // collect headers/cookies with deny-list filtering even without sendDefaultPii).
-  const options = client.getOptions();
-  if (options.dataCollection == null) {
-    // eslint-disable-next-line typescript/no-deprecated
-    const enabled = Boolean(options.sendDefaultPii);
-    return { cookies: enabled, requestHeaders: enabled, responseHeaders: enabled };
   }
 
   const { cookies, httpHeaders } = client.getDataCollectionOptions();

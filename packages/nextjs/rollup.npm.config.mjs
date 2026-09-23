@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants, makeOrchestrionLoader } from '@sentry-internal/rollup-utils';
 
 export default [
   ...makeNPMConfigVariants(
@@ -17,7 +17,7 @@ export default [
       // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatically because
       // the name doesn't match an SDK dependency)
       packageSpecificConfig: {
-        external: ['next/router', 'next/constants', 'next/headers', 'stacktrace-parser'],
+        external: ['next/router', 'next/constants.js', 'next/headers', 'stacktrace-parser'],
 
         // Next.js and our users are more happy when our client code has the "use client" directive
         plugins: [
@@ -88,20 +88,5 @@ export default [
       },
     }),
   ),
-  ...makeNPMConfigVariants(
-    makeBaseNPMConfig({
-      entrypoints: ['src/config/polyfills/perf_hooks.js'],
-
-      packageSpecificConfig: {
-        output: {
-          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/polyfills/[name].js',
-
-          // make it so Rollup calms down about the fact that we're combining default and named exports
-          exports: 'named',
-        },
-      },
-    }),
-  ),
-  ...makeOtelLoaders('./build', 'sentry-node'),
+  ...makeOrchestrionLoader('./build'),
 ];

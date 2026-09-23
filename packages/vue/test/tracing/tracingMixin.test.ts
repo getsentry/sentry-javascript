@@ -7,6 +7,7 @@ import { createTracingMixins } from '../../src/tracing';
 vi.mock('@sentry/browser', () => {
   return {
     getActiveSpan: vi.fn(),
+    getClient: vi.fn(),
     startInactiveSpan: vi.fn().mockImplementation(({ name, op }) => {
       return {
         end: vi.fn(),
@@ -121,7 +122,7 @@ describe('Vue Tracing Mixins', () => {
       expect(startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Application Render',
-          op: 'ui.vue.render',
+          attributes: expect.objectContaining({ 'sentry.op': 'ui.render' }),
         }),
       );
     });
@@ -158,7 +159,7 @@ describe('Vue Tracing Mixins', () => {
       expect(startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Vue TestComponent',
-          op: 'ui.vue.mount',
+          attributes: expect.objectContaining({ 'sentry.op': 'ui.mount' }),
         }),
       );
       expect(mockVueInstance.$_sentryComponentSpans.mount).toBeDefined();
@@ -227,7 +228,7 @@ describe('Vue Tracing Mixins', () => {
       expect(startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Vue TestComponent',
-          op: 'ui.vue.mount',
+          attributes: expect.objectContaining({ 'sentry.op': 'ui.mount' }),
         }),
       );
     });

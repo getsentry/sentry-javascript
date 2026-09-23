@@ -18,12 +18,12 @@ import { addOutgoingRequestBreadcrumb } from './add-outgoing-request-breadcrumb'
 import {
   bindScopeToEmitter,
   getSpanStatusFromHttpCode,
+  isTracingSuppressed,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_UNSET,
-  startInactiveSpan,
-  SUPPRESS_TRACING_KEY,
   withActiveSpan,
 } from '../../tracing';
+import { startInactiveSpan } from '../../tracing/trace';
 import { debug } from '../../utils/debug-logger';
 import { LRUMap } from '../../utils/lru';
 import { getOutgoingRequestSpanData, setIncomingResponseSpanData } from './get-outgoing-span-data';
@@ -33,7 +33,7 @@ import type { HttpInstrumentationOptions, HttpClientRequest, HttpIncomingMessage
 import { DEBUG_BUILD } from '../../debug-build';
 import { LOG_PREFIX, HTTP_ON_CLIENT_REQUEST } from './constants';
 import type { ClientSubscriptionName } from './constants';
-import { getClient, getCurrentScope } from '../../currentScopes';
+import { getClient } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import { doubleWrapWarning } from './double-wrap-warning';
 
@@ -48,7 +48,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
   const onHttpClientRequestCreated: ChannelListener = (data: unknown): void => {
     // Skip all instrumentation if tracing is suppressed
     // (e.g., Sentry's own transport uses this to avoid self-instrumentation)
-    if (getCurrentScope().getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY] === true) {
+    if (isTracingSuppressed()) {
       return;
     }
 
@@ -56,7 +56,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
     const {
       errorMonitor = 'error',
       spans: createSpans = clientOptions ? hasSpansEnabled(clientOptions) : true,
-      propagateTrace = false,
+      tracePropagation = false,
       breadcrumbs = true,
       http,
       https,
@@ -96,7 +96,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
       if (breadcrumbs) {
         breadcrumbsOnly(request);
       }
-      if (propagateTrace) {
+      if (tracePropagation) {
         injectTracePropagationHeaders(request, propagationDecisionMap);
       }
       return;
@@ -116,7 +116,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
     // Inject trace headers after span creation so sentry-trace contains the
     // outgoing span's ID (not the parent's), enabling downstream services to
     // link to this span.
-    if (propagateTrace) {
+    if (tracePropagation) {
       if (span.isRecording()) {
         withActiveSpan(span, () => {
           injectTracePropagationHeaders(request, propagationDecisionMap);

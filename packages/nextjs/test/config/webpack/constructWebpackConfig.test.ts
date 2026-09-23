@@ -1,9 +1,8 @@
 // mock helper functions not tested directly in this file
 import '../mocks';
-import * as core from '@sentry/core';
+import * as coreServer from '@sentry/core/server';
 import { describe, expect, it, vi } from 'vitest';
 import * as getBuildPluginOptionsModule from '../../../src/config/getBuildPluginOptions';
-import * as util from '../../../src/config/util';
 import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
@@ -16,13 +15,16 @@ import {
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
 
-vi.mock('@sentry/server-utils/orchestrion/webpack', () => ({
+// Only the plugin factory is stubbed — `resolveOrchestrionRuntimeRequest` must stay real because
+// the externals handler under test uses it.
+vi.mock('@sentry/server-utils/orchestrion/webpack', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   sentryOrchestrionWebpackPlugin: () => ({ _name: 'sentry-orchestrion-webpack-plugin' }),
 }));
 
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -60,7 +62,7 @@ describe('constructWebpackConfigFunction()', () => {
 
   it('automatically enables deleteSourcemapsAfterUpload for client builds when not explicitly set', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -91,9 +93,30 @@ describe('constructWebpackConfigFunction()', () => {
     getBuildPluginOptionsSpy.mockRestore();
   });
 
+  it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
+    const finalNextConfig = materializeFinalNextConfig(
+      {
+        ...exportedNextConfig,
+        webpack: () => ({ ...clientWebpackConfig }) as any,
+      },
+      undefined,
+      {
+        sourcemaps: {
+          disable: 'disable-upload',
+        },
+      },
+    );
+
+    const finalWebpackConfig = finalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+    // The SDK must not generate source maps it will neither upload nor delete - they would be served
+    // publicly from `.next/static`. Generating them is the user's call via `devtool`.
+    expect(finalWebpackConfig?.devtool).toBeUndefined();
+  });
+
   it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when enabled', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -119,7 +142,7 @@ describe('constructWebpackConfigFunction()', () => {
 
   it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when disabled', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -145,7 +168,7 @@ describe('constructWebpackConfigFunction()', () => {
 
   it('passes useRunAfterProductionCompileHook as undefined when not specified', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -207,7 +230,7 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   it('uses `hidden-source-map` as `devtool` value for client-side builds', async () => {
-    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+    vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
@@ -269,128 +292,9 @@ describe('constructWebpackConfigFunction()', () => {
     });
   });
 
-  describe('edge runtime polyfills', () => {
-    it('adds polyfills only for edge runtime in dev mode on Next.js 13', async () => {
-      // Mock Next.js version 13 - polyfills should be added
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('13.0.0');
-
-      // Test edge runtime in dev mode with Next.js 13 - should add polyfills
-      const edgeDevBuildContext = { ...edgeBuildContext, dev: true };
-      const edgeDevConfig = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: edgeDevBuildContext,
-      });
-
-      const edgeProvidePlugin = edgeDevConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
-      expect(edgeProvidePlugin).toBeDefined();
-      expect(edgeDevConfig.resolve?.alias?.perf_hooks).toMatch(/perf_hooks\.js$/);
-
-      vi.restoreAllMocks();
-    });
-
-    it('does NOT add polyfills for edge runtime in prod mode even on Next.js 13', async () => {
-      // Mock Next.js version 13 - but prod mode should still not add polyfills
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('13.0.0');
-
-      // Test edge runtime in prod mode - should NOT add polyfills
-      const edgeProdBuildContext = { ...edgeBuildContext, dev: false };
-      const edgeProdConfig = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: edgeProdBuildContext,
-      });
-
-      const edgeProdProvidePlugin = edgeProdConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
-      expect(edgeProdProvidePlugin).toBeUndefined();
-
-      vi.restoreAllMocks();
-    });
-
-    it('does NOT add polyfills for server runtime even on Next.js 13', async () => {
-      // Mock Next.js version 13
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('13.0.0');
-
-      // Test server runtime in dev mode - should NOT add polyfills
-      const serverDevBuildContext = { ...serverBuildContext, dev: true };
-      const serverDevConfig = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: serverDevBuildContext,
-      });
-
-      const serverProvidePlugin = serverDevConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
-      expect(serverProvidePlugin).toBeUndefined();
-
-      vi.restoreAllMocks();
-    });
-
-    it('does NOT add polyfills for client runtime even on Next.js 13', async () => {
-      // Mock Next.js version 13
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('13.0.0');
-
-      // Test client runtime in dev mode - should NOT add polyfills
-      const clientDevBuildContext = { ...clientBuildContext, dev: true };
-      const clientDevConfig = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: clientDevBuildContext,
-      });
-
-      const clientProvidePlugin = clientDevConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
-      expect(clientProvidePlugin).toBeUndefined();
-
-      vi.restoreAllMocks();
-    });
-
-    it('does NOT add polyfills for edge runtime in dev mode on Next.js versions other than 13', async () => {
-      const edgeDevBuildContext = { ...edgeBuildContext, dev: true };
-
-      // Test with Next.js 12 - should NOT add polyfills
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('12.3.0');
-      const edgeConfigV12 = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: edgeDevBuildContext,
-      });
-      expect(edgeConfigV12.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin')).toBeUndefined();
-      vi.restoreAllMocks();
-
-      // Test with Next.js 14 - should NOT add polyfills
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('14.0.0');
-      const edgeConfigV14 = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: edgeDevBuildContext,
-      });
-      expect(edgeConfigV14.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin')).toBeUndefined();
-      vi.restoreAllMocks();
-
-      // Test with Next.js 15 - should NOT add polyfills
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.0.0');
-      const edgeConfigV15 = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: edgeDevBuildContext,
-      });
-      expect(edgeConfigV15.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin')).toBeUndefined();
-      vi.restoreAllMocks();
-
-      // Test with undefined Next.js version - should NOT add polyfills
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
-      const edgeConfigUndefined = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: edgeDevBuildContext,
-      });
-      expect(edgeConfigUndefined.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin')).toBeUndefined();
-      vi.restoreAllMocks();
-    });
-  });
-
   describe('treeshaking flags', () => {
     it('does not add DefinePlugin when treeshake option is not set', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -418,7 +322,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('does not add DefinePlugin when treeshake option is empty object', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -450,7 +354,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __SENTRY_DEBUG__ flag when debugLogging is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -478,7 +382,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __SENTRY_TRACING__ flag when tracing is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -506,7 +410,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __RRWEB_EXCLUDE_IFRAME__ flag when excludeReplayIframe is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -535,7 +439,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __RRWEB_EXCLUDE_SHADOW_DOM__ flag when excludeReplayShadowDOM is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -564,7 +468,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds __SENTRY_EXCLUDE_REPLAY_WORKER__ flag when excludeReplayCompressionWorker is true', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -594,7 +498,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('adds all flags when all treeshake options are enabled', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -640,7 +544,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('does not add flags when treeshake options are false', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -678,7 +582,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('works for client builds', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -713,7 +617,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('works for edge builds', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -749,7 +653,7 @@ describe('constructWebpackConfigFunction()', () => {
     });
 
     it('only adds flags for enabled options', async () => {
-      vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({
           _name: 'sentry-webpack-plugin',
         }),
@@ -798,12 +702,12 @@ describe('constructWebpackConfigFunction()', () => {
     const findOrchestrionPlugin = (config: { plugins?: unknown[] }): unknown =>
       config.plugins?.find(plugin => (plugin as { _name?: string })._name === 'sentry-orchestrion-webpack-plugin');
 
-    it('adds the plugin to the node server build when diagnostics-channel injection is enabled', async () => {
+    it('adds the plugin to the node server build by default', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
-        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        sentryBuildTimeOptions: {},
       });
 
       expect(findOrchestrionPlugin(finalWebpackConfig)).toBeDefined();
@@ -814,7 +718,7 @@ describe('constructWebpackConfigFunction()', () => {
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: edgeBuildContext,
-        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        sentryBuildTimeOptions: {},
       });
 
       expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
@@ -825,13 +729,26 @@ describe('constructWebpackConfigFunction()', () => {
         exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
-        sentryBuildTimeOptions: { _experimental: { useDiagnosticsChannelInjection: true } },
+        sentryBuildTimeOptions: {},
       });
 
       expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
     });
 
-    it('does not add the plugin when diagnostics-channel injection is not enabled', async () => {
+    it('does not add the plugin when build-time instrumentation is turned off', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: { buildTimeInstrumentation: false },
+      });
+
+      expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
+    });
+  });
+
+  describe('orchestrion runtime externals', () => {
+    it('prepends an externals handler that forwards runtime packages through @sentry/nextjs', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -839,7 +756,35 @@ describe('constructWebpackConfigFunction()', () => {
         sentryBuildTimeOptions: {},
       });
 
-      expect(findOrchestrionPlugin(finalWebpackConfig)).toBeUndefined();
+      const externals = finalWebpackConfig.externals as ((data: { request?: string }) => Promise<string | undefined>)[];
+
+      expect(Array.isArray(externals)).toBe(true);
+      await expect(externals[0]({ request: '@sentry/server-runtime-injection/register' })).resolves.toBe(
+        'commonjs @sentry/nextjs/orchestrion-runtime/register',
+      );
+      await expect(externals[0]({ request: 'some-other-package' })).resolves.toBeUndefined();
+    });
+
+    it('does not touch `externals` when build-time instrumentation is turned off', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: { buildTimeInstrumentation: false },
+      });
+
+      expect(finalWebpackConfig.externals).toBeUndefined();
+    });
+
+    it('does not touch `externals` on the edge build', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeBuildContext,
+        sentryBuildTimeOptions: {},
+      });
+
+      expect(finalWebpackConfig.externals).toBeUndefined();
     });
   });
 });

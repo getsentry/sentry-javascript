@@ -13,6 +13,17 @@ vi.mock('../../src/config/addInstrumentation', () => ({
   addSentryTopImport: (...args: unknown[]) => addSentryTopImportMock(...args),
 }));
 
+// Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
+const orchestrionRollupMock = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
+  name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-plugin',
+}));
+vi.mock('@sentry/server-utils/orchestrion/rollup', () => ({
+  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionRollupMock(options),
+}));
+vi.mock('@sentry/server-utils/orchestrion/config', () => ({
+  INSTRUMENTED_MODULE_NAMES: ['mysql', 'ioredis'],
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -172,5 +183,48 @@ describe('withSentry()', () => {
     expect(modules).toHaveLength(2);
     expect(modules[0]).toBe(existingModule);
     expect(typeof modules[1]).toBe('function');
+  });
+
+  describe('orchestrion build-time instrumentation', () => {
+    it('pushes the orchestrion plugin into the rollup config by default', async () => {
+      const config = withSentry(solidStartConfig, {});
+      const { hookFn } = callSentryNitroModule(config);
+      const plugins: Array<{ name: string }> = [];
+      await hookFn(nitroOptions, { plugins });
+      expect(orchestrionRollupMock).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+      expect(plugins.map(plugin => plugin.name)).toContain('sentry-orchestrion-plugin');
+    });
+
+    it('force-inlines the instrumented modules into server.externals by default', () => {
+      const config = withSentry(solidStartConfig, {});
+      const externals = (config?.server as { externals?: { inline?: string[] } })?.externals;
+      expect(externals?.inline).toEqual(['mysql', 'ioredis', 'standard-as-callback']);
+    });
+
+    it('preserves and dedupes existing inline externals', () => {
+      const config = withSentry(
+        {
+          ...solidStartConfig,
+          server: {
+            ...solidStartConfig.server,
+            externals: { inline: ['ioredis', 'custom-dependency'] },
+          },
+        } as Parameters<typeof withSentry>[0],
+        {},
+      );
+      const externals = (config?.server as { externals?: { inline?: string[] } })?.externals;
+      expect(externals?.inline).toEqual(['ioredis', 'custom-dependency', 'mysql', 'standard-as-callback']);
+    });
+
+    it('adds an inert orchestrion plugin and skips externals when buildTimeInstrumentation is false', async () => {
+      const config = withSentry(solidStartConfig, { buildTimeInstrumentation: false });
+      const { hookFn } = callSentryNitroModule(config);
+      const plugins: Array<{ name: string }> = [];
+      await hookFn(nitroOptions, { plugins });
+      expect(orchestrionRollupMock).not.toHaveBeenCalled();
+      expect(plugins).toHaveLength(0);
+      const externals = (config?.server as { externals?: { inline?: string[] } })?.externals;
+      expect(externals).toBeUndefined();
+    });
   });
 });

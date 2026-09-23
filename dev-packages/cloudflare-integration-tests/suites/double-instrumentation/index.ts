@@ -17,5 +17,5 @@ const handler = {
 // This simulates scenarios where the module is re-evaluated or the handler
 // is wrapped multiple times. The SDK should handle this gracefully
 // without double-wrapping (which would cause duplicate error reports).
-const once = Sentry.withSentry((env: Env) => ({ dsn: env.SENTRY_DSN }), handler);
-export default Sentry.withSentry((env: Env) => ({ dsn: env.SENTRY_DSN }), once);
+const once = Sentry.withSentry((env: Env) => ({ dsn: env.SENTRY_DSN, traceLifecycle: 'static' }), handler);
+export default Sentry.withSentry((env: Env) => ({ dsn: env.SENTRY_DSN, traceLifecycle: 'static' }), once);

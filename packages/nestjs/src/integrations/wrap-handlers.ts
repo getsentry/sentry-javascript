@@ -116,7 +116,7 @@ export function wrapEventHandler(handler: AnyFn, fallbackEvent: unknown): AnyFn 
  * Wrap a BullMQ `process` method: fork the isolation scope, open a
  * `queue.process` transaction, and capture errors.
  */
-export function wrapBullMQProcess(process: AnyFn, queueName: string): AnyFn {
+export function wrapBullMQProcess(process: AnyFn, queueName: string | undefined): AnyFn {
   return function (this: unknown, ...args: unknown[]): unknown {
     return withIsolationScope(() =>
       startSpan(getBullMQProcessSpanOptions(queueName), async () => {
@@ -133,9 +133,8 @@ export function wrapBullMQProcess(process: AnyFn, queueName: string): AnyFn {
 
 /**
  * Replace a method decorator's `descriptor.value` with a wrapped handler (via
- * `wrapHandler`), preserving the handler name and marking it wrapped. Shared
- * by the OTel schedule/event decorator wraps and the orchestrion factory
- * subscriber.
+ * `wrapHandler`), preserving the handler name and marking it wrapped. Used by
+ * the orchestrion factory subscriber.
  */
 export function patchMethodDescriptor(
   target: { __SENTRY_INTERNAL__?: boolean } | undefined,
@@ -158,21 +157,21 @@ export function patchMethodDescriptor(
 /**
  * Extract the queue name from `@Processor('name')` or `@Processor({ name })`.
  */
-export function extractQueueName(arg: unknown): string {
+export function extractQueueName(arg: unknown): string | undefined {
   if (typeof arg === 'string') {
     return arg;
   }
   if (arg && typeof arg === 'object' && 'name' in arg && typeof (arg as { name?: unknown }).name === 'string') {
     return (arg as { name: string }).name;
   }
-  return 'unknown';
+  return undefined;
 }
 
 /**
  * Patch a `@Processor`-decorated class's `prototype.process` with a wrapped
  * version.
  */
-export function patchProcessorTarget(target: ProcessorTarget | undefined, queueName: string): void {
+export function patchProcessorTarget(target: ProcessorTarget | undefined, queueName: string | undefined): void {
   const prototype = target?.prototype;
   const process = prototype?.process;
   if (prototype && process && typeof process === 'function' && !target?.__SENTRY_INTERNAL__ && !isWrapped(process)) {

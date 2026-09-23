@@ -11,7 +11,7 @@ import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
-import { isStreamedBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
+import { isStaticBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 import { extractGenAiSpansFromEvent } from './tracing/spans/extractGenAiSpans';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types/breadcrumb';
@@ -20,7 +20,7 @@ import type { EventDropReason, Outcome } from './types/clientreport';
 import type { DataCategory } from './types/datacategory';
 import type { DsnComponents } from './types/dsn';
 import type { DynamicSamplingContext, Envelope } from './types/envelope';
-import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types/event';
+import type { ErrorEvent, Event, EventHint, TransactionEvent } from './types/event';
 import type { EventProcessor } from './types/eventprocessor';
 import type { FeedbackEvent } from './types/feedback';
 import type { Integration } from './types/integration';
@@ -32,16 +32,16 @@ import type { ParameterizedString } from './types/parameterize';
 import type { ReplayEndEvent, ReplayStartEvent } from './types/replay';
 import type { RequestEventData } from './types/request';
 import type { SdkMetadata } from './types/sdkmetadata';
-import type { Session, SessionAggregates } from './types/session';
+import type { Session, SessionAggregates, SessionStatus } from './types/session';
 import type { SeverityLevel } from './types/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON, StreamedSpanJSON } from './types/span';
 import type { StartSpanOptions } from './types/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types/transport';
 import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
-import { debug } from './utils/debug-logger';
+import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
-import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
+import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
@@ -50,12 +50,13 @@ import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
+import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
-import { showSpanDropWarning } from './utils/spanUtils';
-import { rejectedSyncPromise } from './utils/syncpromise';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
+import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
+import { applyBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -221,12 +222,26 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected readonly _dataCollection: ResolvedDataCollection;
 
   /**
+   * The session status to set when an unhandled error terminates a session.
+   *
+   * Defaults to `'crashed'`. Browser SDKs override this to `'unhandled'` because unhandled errors
+   * don't actually crash the browser.
+   */
+  protected _unhandledSessionStatus: SessionStatus;
+
+  /**
    * Initializes this client instance.
    *
    * @param options Options for the client.
    */
   protected constructor(options: O) {
-    this._options = options;
+    // Any value other than `'static'` normalizes to the `'stream'` default, so that `traceLifecycle`
+    // is always one of the two known values for the rest of the SDK.
+    this._options = {
+      attachStacktrace: true,
+      ...options,
+      traceLifecycle: options.traceLifecycle === 'static' ? 'static' : 'stream',
+    };
     this._integrations = {};
     this._numProcessing = 0;
     this._outcomes = {};
@@ -234,11 +249,30 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._eventProcessors = [];
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
     this._dataCollection = resolveDataCollectionOptions(options);
+    this._unhandledSessionStatus = 'crashed';
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
     } else {
       DEBUG_BUILD && debug.warn('No DSN provided, client will not send events.');
+    }
+
+    const { beforeSendSpan, traceLifecycle } = this._options;
+    // A `beforeSendSpan` callback is only invoked for the span format matching the trace lifecycle,
+    // so a mismatch means it is silently never called.
+    if (
+      DEBUG_BUILD &&
+      beforeSendSpan &&
+      isStaticBeforeSendSpanCallback(beforeSendSpan) !== (traceLifecycle === 'static')
+    ) {
+      consoleSandbox(() => {
+        // oxlint-disable-next-line no-console
+        console.warn(
+          `Ignoring \`beforeSendSpan\`: ${
+            traceLifecycle === 'static' ? 'wrap it with' : 'remove'
+          } \`Sentry.withStaticSpan\` to use it with \`traceLifecycle: "${traceLifecycle}"\`.`,
+        );
+      });
     }
 
     if (this._dsn) {
@@ -255,30 +289,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       });
     }
 
-    // Backfill enableLogs option from _experiments.enableLogs
-    // TODO(v11): Remove or change default value
-    // eslint-disable-next-line typescript/no-deprecated
-    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
-
     // Setup log flushing with weight and timeout tracking
-    if (this._options.enableLogs) {
-      setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
-    }
-
-    // todo(v11): Remove the experimental flag
-    // eslint-disable-next-line typescript/no-deprecated
-    const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
+    setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
 
     // Setup metric flushing with weight and timeout tracking
-    if (enableMetrics) {
-      setupWeightBasedFlushing(
-        this,
-        'afterCaptureMetric',
-        'flushMetrics',
-        estimateMetricSizeInBytes,
-        _INTERNAL_flushMetricsBuffer,
-      );
-    }
+    setupWeightBasedFlushing(
+      this,
+      'afterCaptureMetric',
+      'flushMetrics',
+      estimateMetricSizeInBytes,
+      _INTERNAL_flushMetricsBuffer,
+    );
   }
 
   /**
@@ -502,6 +523,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._options.integrations.some(({ name }) => name.startsWith('Spotlight'))
     ) {
       this._setupIntegrations();
+
+      maybeWarnAboutIgnoredTransactionOptions(this._options);
     }
   }
 
@@ -627,6 +650,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'spanStart', callback: (span: Span) => void): () => void;
 
   /**
+   * Register a callback that can adjust the scope and the parent span right before a span is
+   * created. Listeners mutate the passed `spanScope` object. The Node SDK uses this to continue
+   * the trace of a remote (incoming) parent through the propagation context of a forked scope.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'prepareSpanScope',
+    callback: (spanScope: { scope: Scope; parentSpan: Span | undefined }) => void,
+  ): () => void;
+
+  /**
    * Register a callback before span sampling runs. Receives a `samplingDecision` object argument with a `decision`
    * property that can be used to make a sampling decision that will be enforced, before any span sampling runs.
    * @returns {() => void} A function that, when executed, removes the registered callback.
@@ -653,6 +687,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
+  /** Register a callback before an idle span ends and its end timestamp is finalized. */
+  public on(hook: 'beforeIdleSpanEnd', callback: (idleSpan: Span) => void): () => void;
+
   /**
    * Register a callback for after a span is ended and the `spanEnd` hook has run.
    * NOTE: The span cannot be mutated anymore in this callback.
@@ -668,12 +705,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback to preprocess a span JSON _before_ it is passed to the `processSpan` and
    * `processSegmentSpan` hooks. Use this to backfill data that subsequent hooks rely on.
-   * The optional `hint` exposes additional context about the originating span (e.g. the OTel `spanKind`).
    */
-  public on(
-    hook: 'preprocessSpan',
-    callback: (streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }) => void,
-  ): () => void;
+  public on(hook: 'preprocessSpan', callback: (streamedSpanJSON: StreamedSpanJSON) => void): () => void;
 
   /**
    * Register a callback for when a span JSON is processed, to add some data to the span JSON.
@@ -696,6 +729,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
+
+  /**
+   * Register a callback for after an envelope has been accepted by the transport.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterEnvelope', callback: (envelope: Envelope) => void): () => void;
 
   /**
    * Register a callback that runs when stack frame metadata should be applied to an event.
@@ -851,6 +890,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flush', callback: () => void): () => void;
 
   /**
+   * A hook that is called when spans of a single trace should be flushed eagerly,
+   * ahead of the trace's regular flush point. Only runtimes with a span streaming
+   * buffer (e.g. the Cloudflare SDK) listen to this hook.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'flushTraceSpans', callback: (traceId: string) => void): () => void;
+
+  /**
    * A hook that is called when the client is closing
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -928,6 +975,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'stopUIProfiler', callback: () => void): () => void;
 
   /**
+   * A hook that is called when an instrumented module is injected —
+   * at runtime by the module hook, or at load of a bundler-transformed module.
+   * Channel-based integrations use it to subscribe their diagnostics-channel
+   * listeners lazily, only once the module they instrument is actually loaded.
+   * Receives the injected module name.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'orchestrion.module-injected', callback: (moduleName: string) => void): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -954,6 +1012,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Fire a hook whenever a span starts. */
   public emit(hook: 'spanStart', span: Span): void;
 
+  /** A hook that is called right before a span is created; listeners mutate the passed object. */
+  public emit(hook: 'prepareSpanScope', spanScope: { scope: Scope; parentSpan: Span | undefined }): void;
+
   /** A hook that is called every time before a span is sampled. */
   public emit(
     hook: 'beforeSampling',
@@ -970,6 +1031,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Fire a hook whenever a span ends. */
   public emit(hook: 'spanEnd', span: Span): void;
 
+  /** Fire a hook before an idle span ends and its end timestamp is finalized. */
+  public emit(hook: 'beforeIdleSpanEnd', idleSpan: Span): void;
+
   /**
    * Fire a hook event after a span ends and the `spanEnd` hook has run.
    */
@@ -983,7 +1047,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Fire a hook event to preprocess a span JSON before the `processSpan` and `processSegmentSpan` hooks run.
    */
-  public emit(hook: 'preprocessSpan', streamedSpanJSON: StreamedSpanJSON, hint?: { spanKind?: number }): void;
+  public emit(hook: 'preprocessSpan', streamedSpanJSON: StreamedSpanJSON): void;
 
   /**
    * Fire a hook event when a span JSON is processed, to add some data to the span JSON.
@@ -1005,6 +1069,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * second argument.
    */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /**
+   * Fire a hook event after an envelope has been accepted by the transport.
+   */
+  public emit(hook: 'afterEnvelope', envelope: Envelope): void;
 
   /**
    * Fire a hook indicating that stack frame metadata should be applied to the event passed to the hook.
@@ -1131,6 +1200,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'flush'): void;
 
   /**
+   * Fire a hook event indicating that spans of a single trace should be flushed eagerly.
+   */
+  public emit(hook: 'flushTraceSpans', traceId: string): void;
+
+  /**
    * Emit a hook event for client close
    */
   public emit(hook: 'close'): void;
@@ -1189,6 +1263,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'stopUIProfiler'): void;
 
   /**
+   * Emit a hook when an instrumented module is injected (runtime
+   * module hook or bundler-transformed module load).
+   */
+  public emit(hook: 'orchestrion.module-injected', moduleName: string): void;
+
+  /**
    * Emit a hook that was previously registered via `on()`.
    */
   public emit(hook: string, ...rest: unknown[]): void {
@@ -1207,7 +1287,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     if (this._isEnabled() && this._transport) {
       try {
-        return await this._transport.send(envelope);
+        const result = await this._transport.send(envelope);
+        this.emit('afterEnvelope', envelope);
+        return result;
       } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
         return {};
@@ -1254,19 +1336,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
-    // initially, set `crashed` based on the event level and update from exceptions if there are any later on
-    let crashed = event.level === 'fatal';
+    // initially, set `unhandled` based on the event level and update from exceptions if there are any later on
+    let unhandled = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
-      // reset crashed to false if there are exceptions, to ensure `mechanism.handled` is respected.
-      crashed = false;
+      // reset `unhandled` to false if there are exceptions, to ensure `mechanism.handled` is respected.
+      unhandled = false;
 
       for (const ex of exceptions) {
         if (ex.mechanism?.handled === false) {
-          crashed = true;
+          unhandled = true;
           break;
         }
       }
@@ -1274,14 +1356,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // A session is updated and that session update is sent in only one of the two following scenarios:
     // 1. Session with non terminal status and 0 errors + an error occurred -> Will set error count to 1 and send update
-    // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status crashed and send update
+    // 2. Session with non terminal status and 1 error + a crash occurred -> Will set status unhandled and send update
     const sessionNonTerminal = session.status === 'ok';
-    const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && crashed);
+    const shouldUpdateAndSend = (sessionNonTerminal && session.errors === 0) || (sessionNonTerminal && unhandled);
 
     if (shouldUpdateAndSend) {
       updateSession(session, {
-        ...(crashed && { status: 'crashed' }),
-        errors: session.errors || Number(errored || crashed),
+        ...(unhandled && { status: this._unhandledSessionStatus }),
+        errors: session.errors || Number(errored || unhandled),
       });
       this.captureSession(session);
     }
@@ -1433,26 +1515,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
     const beforeSendLabel = `before send for type \`${eventType}\``;
+    let beforeSendDropReason: 'before_send' | 'callback_error' = 'before_send';
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
-    if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
-      this.recordDroppedEvent('sample_rate', 'error');
-      return rejectedSyncPromise(
-        _makeDoNotSendEventError(
-          `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
-        ),
-      );
-    }
-
     const dataCategory = getDataCategoryByType(event.type);
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
         if (prepared === null) {
-          this.recordDroppedEvent('event_processor', dataCategory);
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
@@ -1461,24 +1534,33 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           return prepared;
         }
 
-        const result = processBeforeSend(this, options, prepared, hint);
+        const result = processBeforeSend(this, options, prepared, hint, () => {
+          beforeSendDropReason = 'callback_error';
+        });
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          this.recordDroppedEvent('before_send', dataCategory);
+          this.recordDroppedEvent(beforeSendDropReason, dataCategory);
           if (isTransaction) {
             const spans = event.spans || [];
             // the transaction itself counts as one span, plus all the child spans that are added
-            const spanCount = 1 + spans.length;
-            this.recordDroppedEvent('before_send', 'span', spanCount);
+            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + spans.length);
           }
-          throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
+          const dropMessage = beforeSendDropReason === 'callback_error' ? 'threw an error' : 'returned `null`';
+          throw _makeDoNotSendEventError(`${beforeSendLabel} ${dropMessage}, will not send event.`);
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
         if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
+        }
+
+        if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
+          this.recordDroppedEvent('sample_rate', 'error');
+          throw _makeDoNotSendEventError(
+            `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+          );
         }
 
         if (isTransaction) {
@@ -1609,10 +1691,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): PromiseLike<Event>;
 }
 
-function getDataCategoryByType(type: EventType | 'replay_event' | undefined): DataCategory {
-  return type === 'replay_event' ? 'replay' : type || 'error';
-}
-
 /**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
  */
@@ -1647,14 +1725,28 @@ function processBeforeSend(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
+  onCallbackError: () => void,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction, ignoreSpans } = options;
-  const beforeSendSpan = !isStreamedBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+  const {
+    beforeSend,
+    ignoreSpans,
+    // oxlint-disable-next-line typescript/no-deprecated
+    beforeSendTransaction,
+  } = options;
+  const beforeSendSpan = isStaticBeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
 
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
-    return beforeSend(processedEvent, hint);
+    const errorEvent = processedEvent;
+    return safeCallback(
+      DEBUG_BUILD ? 'The `beforeSend` callback threw an error, dropping the event:' : '',
+      () => beforeSend(errorEvent, hint),
+      () => {
+        onCallbackError();
+        return null;
+      },
+    );
   }
 
   if (isTransactionEvent(processedEvent)) {
@@ -1677,13 +1769,9 @@ function processBeforeSend(
 
       // 1.2 If a `beforeSendSpan` callback is defined, process the root span
       if (beforeSendSpan) {
-        const processedRootSpanJson = beforeSendSpan(rootSpanJson);
-        if (!processedRootSpanJson) {
-          showSpanDropWarning();
-        } else {
-          // update event with processed root span values
-          processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
-        }
+        const processedRootSpanJson = applyBeforeSendSpanCallback(rootSpanJson, beforeSendSpan);
+        // update event with processed root span values
+        processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
       }
 
       // 2. Process child spans
@@ -1704,13 +1792,7 @@ function processBeforeSend(
 
           // 2.b If a `beforeSendSpan` callback is defined, process the child span
           if (beforeSendSpan) {
-            const processedSpan = beforeSendSpan(span);
-            if (!processedSpan) {
-              showSpanDropWarning();
-              processedSpans.push(span);
-            } else {
-              processedSpans.push(processedSpan);
-            }
+            processedSpans.push(applyBeforeSendSpanCallback(span, beforeSendSpan));
           } else {
             processedSpans.push(span);
           }
@@ -1735,7 +1817,14 @@ function processBeforeSend(
           spanCountBeforeProcessing: spanCountBefore,
         };
       }
-      return beforeSendTransaction(processedEvent as TransactionEvent, hint);
+      return safeCallback(
+        DEBUG_BUILD ? 'The `beforeSendTransaction` callback threw an error, dropping the event:' : '',
+        () => beforeSendTransaction(processedEvent as TransactionEvent, hint),
+        () => {
+          onCallbackError();
+          return null;
+        },
+      );
     }
   }
 

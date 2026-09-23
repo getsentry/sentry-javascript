@@ -2,8 +2,16 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends an error event to Sentry', async ({ request }) => {
+  // The thrown error is reported twice: once via the h3 tracing channel and once via Nitro's `error`
+  // hook (which sees it wrapped in an `HTTPError`). Match on the mechanism so we deterministically
+  // await the event under test instead of whichever arrives first.
   const errorEventPromise = waitForError('nitro-3', event => {
-    return !event.type && !!event.exception?.values?.some(v => v.value === 'This is a test error');
+    return (
+      !event.type &&
+      !!event.exception?.values?.some(
+        v => v.value === 'This is a test error' && v.mechanism?.type === 'auto.http.nitro.onTraceError',
+      )
+    );
   });
 
   await request.get('/api/test-error').catch(() => {

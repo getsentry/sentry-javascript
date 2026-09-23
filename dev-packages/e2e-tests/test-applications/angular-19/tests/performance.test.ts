@@ -3,6 +3,10 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 // Cannot use @sentry/angular here due to build stuff
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
+// The `angular-19 (streamed)` variant builds the app with `traceLifecycle: 'stream'`, which emits
+// spans instead of transactions. See `streamed-performance.test.ts` for that variant.
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'stream', 'transactions are not emitted with span streaming');
+
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('angular-19', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
@@ -19,7 +23,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
         origin: 'auto.pageload.angular',
         data: {
           'sentry.origin': 'auto.pageload.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/home/',
           'url.path': '/home',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/home$/),
@@ -56,7 +60,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         origin: 'auto.navigation.angular',
         data: {
           'sentry.origin': 'auto.navigation.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id/',
           'url.path': '/users/123',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123$/),
@@ -95,7 +99,7 @@ test('sends a navigation transaction even if the pageload span is still active',
         origin: 'auto.pageload.angular',
         data: {
           'sentry.origin': 'auto.pageload.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/home/',
           'url.path': '/home',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/home$/),
@@ -115,7 +119,7 @@ test('sends a navigation transaction even if the pageload span is still active',
         origin: 'auto.navigation.angular',
         data: {
           'sentry.origin': 'auto.navigation.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id/',
           'url.path': '/users/123',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/123$/),
@@ -146,7 +150,7 @@ test('groups redirects within one navigation root span', async ({ page }) => {
         origin: 'auto.navigation.angular',
         data: {
           'sentry.origin': 'auto.navigation.angular',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
           'url.template': '/users/:id/',
           'url.path': '/users/456',
           'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/456$/),
@@ -159,7 +163,7 @@ test('groups redirects within one navigation root span', async ({ page }) => {
     },
   });
 
-  const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
+  const routingSpan = navigationTxn.spans?.find(span => span.op === 'router');
 
   expect(routingSpan).toBeDefined();
   expect(routingSpan?.description).toBe('/redirect1');
@@ -183,7 +187,7 @@ test.describe('finish routing span', () => {
           origin: 'auto.navigation.angular',
           data: {
             'sentry.origin': 'auto.navigation.angular',
-            'sentry.source': 'url',
+            'sentry.segment.name.source': 'url',
             'url.path': '/cancel',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/cancel$/),
             // url.template is not set because the navigation was cancelled before Angular fully resolved the route
@@ -196,7 +200,7 @@ test.describe('finish routing span', () => {
       },
     });
 
-    const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
+    const routingSpan = navigationTxn.spans?.find(span => span.op === 'router');
 
     expect(routingSpan).toBeDefined();
     expect(routingSpan?.description).toBe('/cancel');
@@ -221,7 +225,7 @@ test.describe('finish routing span', () => {
           origin: 'auto.navigation.angular',
           data: {
             'sentry.origin': 'auto.navigation.angular',
-            'sentry.source': 'url',
+            'sentry.segment.name.source': 'url',
             'url.path': '/non-existent',
             'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/non-existent$/),
             // url.template is not set because the navigation failed before Angular fully resolved the route
@@ -234,7 +238,7 @@ test.describe('finish routing span', () => {
       },
     });
 
-    const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
+    const routingSpan = navigationTxn.spans?.find(span => span.op === 'router');
 
     expect(routingSpan).toBeDefined();
     expect(routingSpan?.description).toBe(nonExistentRoute);
@@ -261,22 +265,24 @@ test.describe('TraceDirective', () => {
       expect.arrayContaining([
         expect.objectContaining({
           data: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+            'ui.component_name': 'sample-component',
           },
           description: '<sample-component>', // custom component name passed to trace directive
-          op: 'ui.angular.init',
+          op: 'ui.mount',
           origin: 'auto.ui.angular.trace_directive',
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
         }),
         expect.objectContaining({
           data: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+            'ui.component_name': 'app-sample-component',
           },
           description: '<app-sample-component>', // fallback selector name
-          op: 'ui.angular.init',
+          op: 'ui.mount',
           origin: 'auto.ui.angular.trace_directive',
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
@@ -305,11 +311,12 @@ test.describe('TraceClass Decorator', () => {
     expect(classDecoratorSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+          'ui.component_name': 'ComponentTrackingComponent',
         },
         description: '<ComponentTrackingComponent>',
-        op: 'ui.angular.init',
+        op: 'ui.mount',
         origin: 'auto.ui.angular.trace_class_decorator',
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
@@ -329,17 +336,20 @@ test.describe('TraceMethod Decorator', () => {
     // immediately navigate to a different route
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
-    const ngInitSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.ngOnInit');
+    const ngInitSpan = navigationTxn.spans?.find(
+      span => span.op === 'function' && span.data?.['code.function.name'] === 'ngOnInit',
+    );
 
     expect(ngInitSpan).toBeDefined();
     expect(ngInitSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngOnInit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+          'code.function.name': 'ngOnInit',
         },
         description: '<ngOnInit>',
-        op: 'ui.angular.ngOnInit',
+        op: 'function',
         origin: 'auto.ui.angular.trace_method_decorator',
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
@@ -357,17 +367,20 @@ test.describe('TraceMethod Decorator', () => {
     // immediately navigate to a different route
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
-    const ngAfterViewInitSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.ngAfterViewInit');
+    const ngAfterViewInitSpan = navigationTxn.spans?.find(
+      span => span.op === 'function' && span.data?.['code.function.name'] === 'ngAfterViewInit',
+    );
 
     expect(ngAfterViewInitSpan).toBeDefined();
     expect(ngAfterViewInitSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngAfterViewInit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+          'code.function.name': 'ngAfterViewInit',
         },
         description: '<unnamed>',
-        op: 'ui.angular.ngAfterViewInit',
+        op: 'function',
         origin: 'auto.ui.angular.trace_method_decorator',
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),

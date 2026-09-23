@@ -86,7 +86,7 @@ export function maybeStartCronCheckIn(span: Span, route: string | undefined): vo
  * Should be called from the spanEnd event handler.
  */
 export function maybeCompleteCronCheckIn(span: Span): void {
-  const spanData = spanToJSON(span).data;
+  const spanData = spanToJSON(span).attributes;
   const checkInId = spanData?.[ATTR_SENTRY_CRON_CHECK_IN_ID];
   const monitorSlug = spanData?.[ATTR_SENTRY_CRON_MONITOR_SLUG];
   const startTime = spanData?.[ATTR_SENTRY_CRON_START_TIME];

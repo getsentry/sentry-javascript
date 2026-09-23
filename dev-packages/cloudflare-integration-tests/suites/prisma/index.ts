@@ -1,6 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import { PrismaD1 } from '@prisma/adapter-d1';
-import * as Sentry from '@sentry/cloudflare/nodejs_compat';
+import * as Sentry from '@sentry/cloudflare';
 import { PrismaClient } from './generated';
 
 interface Env {
@@ -11,6 +11,7 @@ interface Env {
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1,
     integrations: [Sentry.prismaIntegration()],
   }),

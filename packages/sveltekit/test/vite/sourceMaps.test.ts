@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import type { Plugin } from 'vite';
 import * as vite from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,8 +10,8 @@ const mockedMainPlugin = {
   writeBundle: vi.fn(),
 };
 
-vi.mock('@sentry/vite-plugin', async () => {
-  const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+vi.mock('@sentry/bundler-plugins/vite', async () => {
+  const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
 
   return {
     ...original,
@@ -47,9 +47,8 @@ async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined>
       authToken: 'token',
       org: 'org',
       project: 'project',
-      adapter: 'other',
     },
-    { kit: {} },
+    { getAdapterOutputDir: async () => '.svelte-kit/output' },
   );
 
   return plugins.find(plugin => plugin.name === name);
@@ -299,8 +298,8 @@ describe('deleteFilesAfterUpload', () => {
   it('works with defauts', async () => {
     const viteConfig: ViteUserConfig = {};
 
-    vi.mock('@sentry/vite-plugin', async () => {
-      const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+    vi.mock('@sentry/bundler-plugins/vite', async () => {
+      const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
 
       return {
         ...original,
@@ -313,9 +312,8 @@ describe('deleteFilesAfterUpload', () => {
         authToken: 'token',
         org: 'org',
         project: 'project',
-        adapter: 'other',
       },
-      { kit: {} },
+      { getAdapterOutputDir: async () => '.svelte-kit/output' },
     );
 
     // @ts-expect-error this function exists!
@@ -330,7 +328,6 @@ describe('deleteFilesAfterUpload', () => {
       authToken: 'token',
       org: 'org',
       project: 'project',
-      adapter: 'other',
       release: {
         name: expect.any(String),
       },
@@ -351,9 +348,12 @@ describe('deleteFilesAfterUpload', () => {
       plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     )!;
 
-    // call this to ensure the filesToDeleteAfterUpload setting is resolved
-    // @ts-expect-error this function exists!
-    await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+    // `config` records whether the user set `build.sourcemap`; `configResolved` resolves the
+    // setting (it can't be awaited from `config` - see the note in `kitConfig.ts`)
+    // @ts-expect-error these functions exist!
+    filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+    // @ts-expect-error these functions exist!
+    await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
     await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual([
       './.*/**/*.map',
@@ -377,8 +377,8 @@ describe('deleteFilesAfterUpload', () => {
         },
       };
 
-      vi.mock('@sentry/vite-plugin', async () => {
-        const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+      vi.mock('@sentry/bundler-plugins/vite', async () => {
+        const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
 
         return {
           ...original,
@@ -391,12 +391,11 @@ describe('deleteFilesAfterUpload', () => {
           authToken: 'token',
           org: 'org',
           project: 'project',
-          adapter: 'other',
           sourcemaps: {
             filesToDeleteAfterUpload,
           },
         },
-        { kit: {} },
+        { getAdapterOutputDir: async () => '.svelte-kit/output' },
       );
 
       // @ts-expect-error this function exists!
@@ -411,7 +410,6 @@ describe('deleteFilesAfterUpload', () => {
         authToken: 'token',
         org: 'org',
         project: 'project',
-        adapter: 'other',
         release: {
           name: expect.any(String),
         },
@@ -432,9 +430,12 @@ describe('deleteFilesAfterUpload', () => {
         plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       )!;
 
-      // call this to ensure the filesToDeleteAfterUpload setting is resolved
-      // @ts-expect-error this function exists!
-      await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+      // `config` records whether the user set `build.sourcemap`; `configResolved` resolves the
+      // setting (it can't be awaited from `config` - see the note in `kitConfig.ts`)
+      // @ts-expect-error these functions exist!
+      filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+      // @ts-expect-error these functions exist!
+      await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
       await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual(
         filesToDeleteAfterUploadExpected,

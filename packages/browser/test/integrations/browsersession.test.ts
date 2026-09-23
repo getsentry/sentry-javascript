@@ -3,8 +3,8 @@
  */
 
 import type * as BrowserUtils from '@sentry/browser-utils';
-import type { Scope, User } from '@sentry/core/browser';
-import * as SentryCore from '@sentry/core/browser';
+import type { Scope, User } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { browserSessionIntegration } from '../../src/integrations/browsersession';
 
@@ -12,7 +12,7 @@ const scopeHolder = vi.hoisted(() => ({ current: undefined as unknown as FakeIso
 
 const historyHandlers = vi.hoisted(() => ({ current: [] as Array<(data: { from?: string; to?: string }) => void> }));
 
-vi.mock('@sentry/core/browser', async importActual => {
+vi.mock('@sentry/core', async importActual => {
   const actual = (await importActual()) as typeof SentryCore;
   return {
     ...actual,
@@ -114,7 +114,8 @@ describe('browserSessionIntegration', () => {
     setupBrowserSession({ lifecycle: 'page' });
     expect(SentryCore.captureSession).not.toHaveBeenCalled();
 
-    window.dispatchEvent(new Event('pagehide'));
+    setVisibilityState('hidden');
+    window.dispatchEvent(new Event('visibilitychange'));
     expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);
 
     // The idle fallback must not send the session a second time.
@@ -147,8 +148,7 @@ describe('browserSessionIntegration', () => {
   });
 
   it('does not re-send the navigation session when navigation happens before the deferred initial capture', () => {
-    // Default lifecycle is 'route', which also registers the navigation handler.
-    setupBrowserSession();
+    setupBrowserSession({ lifecycle: 'route' });
 
     // The initial capture is deferred, so nothing is sent synchronously.
     expect(SentryCore.captureSession).not.toHaveBeenCalled();
@@ -165,7 +165,7 @@ describe('browserSessionIntegration', () => {
   });
 
   it('still captures a session on navigation that happens after the initial capture', () => {
-    setupBrowserSession();
+    setupBrowserSession({ lifecycle: 'route' });
 
     vi.runAllTimers();
     expect(SentryCore.captureSession).toHaveBeenCalledTimes(1);

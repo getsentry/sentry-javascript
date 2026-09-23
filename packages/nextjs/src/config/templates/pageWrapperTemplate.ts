@@ -52,7 +52,7 @@ export const getServerSideProps =
     ? Sentry.wrapGetServerSidePropsWithSentry(origGetServerSideProps, '__ROUTE__')
     : undefined;
 
-export default pageComponent ? Sentry.wrapPageComponentWithSentry(pageComponent as unknown) : pageComponent;
+export default pageComponent ? Sentry.wrapPageComponentWithSentry(pageComponent) : pageComponent;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matches something we've explicitly exported above.

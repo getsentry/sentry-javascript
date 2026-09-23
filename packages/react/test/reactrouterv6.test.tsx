@@ -6,10 +6,9 @@ import {
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
 import type { RouteObject } from 'react-router-6';
@@ -45,6 +44,9 @@ const mockRootSpan = {
   updateName: vi.fn(),
   setAttribute: vi.fn(),
   getSpanJSON() {
+    return { attributes: { 'sentry.op': 'pageload' } };
+  },
+  getStaticSpanJSON() {
     return { op: 'pageload' };
   },
 };
@@ -92,6 +94,88 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
     allRoutes.clear();
   });
 
+  it('falls back to uninstrumented routes when the required hooks are omitted (does not crash the app)', () => {
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    // A plain-JS consumer that skips the required hooks. TypeScript declares them as required, but nothing
+    // enforces that at runtime - so the wrappers must fall back to rendering the original routes rather than
+    // storing a partial config and later invoking an undefined hook, which would crash the host app.
+    client.addIntegration(
+      reactRouterV6BrowserTracingIntegration({} as Parameters<typeof reactRouterV6BrowserTracingIntegration>[0]),
+    );
+
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+    const { getByText } = render(
+      <MemoryRouter initialEntries={['/about']}>
+        <SentryRoutes>
+          <Route path="/about" element={<div>About Page</div>} />
+        </SentryRoutes>
+      </MemoryRouter>,
+    );
+
+    expect(getByText('About Page')).toBeDefined();
+    // Uninstrumented: no route-based span name update or navigation instrumentation ran.
+    expect(mockRootSpan.updateName).not.toHaveBeenCalled();
+    expect(mockStartBrowserTracingNavigationSpan).not.toHaveBeenCalled();
+  });
+
+  it('does not remount the route tree when config appears after the first render (preserves child state)', () => {
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    let mountCount = 0;
+    function StatefulChild(): React.ReactElement {
+      React.useEffect(() => {
+        mountCount += 1;
+      }, []);
+      const [value, setValue] = React.useState('');
+      return <input aria-label="field" value={value} onChange={e => setValue(e.target.value)} />;
+    }
+
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+    function App(): React.ReactElement {
+      const [, forceRender] = React.useReducer((x: number) => x + 1, 0);
+      return (
+        <MemoryRouter initialEntries={['/']}>
+          <button onClick={() => forceRender()}>rerender</button>
+          <SentryRoutes>
+            <Route path="/" element={<StatefulChild />} />
+          </SentryRoutes>
+        </MemoryRouter>
+      );
+    }
+
+    const { getByLabelText, getByText } = render(<App />);
+
+    // No integration yet: config is absent and the routes render uninstrumented.
+    expect(mountCount).toBe(1);
+
+    // The user interacts with the form before Sentry is initialized.
+    fireEvent.change(getByLabelText('field'), { target: { value: 'hello' } });
+    expect((getByLabelText('field') as HTMLInputElement).value).toBe('hello');
+
+    // Sentry initializes after the first paint - config now exists.
+    client.addIntegration(
+      reactRouterV6BrowserTracingIntegration({
+        useEffect: React.useEffect,
+        useLocation,
+        useNavigationType,
+        createRoutesFromChildren,
+        matchRoutes,
+      }),
+    );
+
+    // A re-render happens, as it would post-init. The route subtree must NOT remount: swapping the
+    // route component's type (the pre-refactor behavior) would wipe the child's state.
+    fireEvent.click(getByText('rerender'));
+
+    expect(mountCount).toBe(1);
+    expect((getByLabelText('field') as HTMLInputElement).value).toBe('hello');
+  });
+
   it('wrapCreateMemoryRouterV6 starts and updates a pageload transaction - single initialEntry', () => {
     const client = createMockBrowserClient();
     setCurrentClient(client);
@@ -127,9 +211,9 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/',
+      name: 'Pageload',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
       },
@@ -174,9 +258,9 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/',
+      name: 'Pageload',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
       },
@@ -211,9 +295,9 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/',
+        name: 'Pageload',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
         },
@@ -330,7 +414,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -417,7 +501,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about/us',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about/us',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -455,7 +539,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about/:page',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about/:page',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -495,7 +579,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/stores/:storeId/products/:productId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/stores/:storeId/products/:productId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -543,7 +627,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/projects/:projectId/views/:viewId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -593,7 +677,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/projects/:projectId/views/:viewId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -645,7 +729,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/projects/:projectId/views/:viewId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -685,7 +769,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/issues/:groupId/',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/issues/:groupId/',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -725,7 +809,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/issues/:groupId/',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/issues/:groupId/',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -796,9 +880,9 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/',
+        name: 'Pageload',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
         },
@@ -949,7 +1033,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -1001,7 +1085,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about/us',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about/us',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -1053,7 +1137,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about/:page',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about/:page',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -1111,7 +1195,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/stores/:storeId/products/:productId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/stores/:storeId/products/:productId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -1193,7 +1277,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/projects/:projectId/views/:viewId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -1273,7 +1357,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/param-page/:id/details/:superId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/param-page/:id/details/:superId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -1337,7 +1421,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       // should be /tests not //tests
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/tests');
-      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
     });
 
     it('handles wildcard routes properly', () => {
@@ -1395,7 +1479,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/tests/:testId/*');
-      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
     });
 
     it('works under a slash route with a trailing slash', () => {
@@ -1430,7 +1514,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/issues/:groupId/',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/issues/:groupId/',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -1470,7 +1554,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/issues/:groupId/',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/issues/:groupId/',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',

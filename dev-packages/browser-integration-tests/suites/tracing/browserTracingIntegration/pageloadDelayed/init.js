@@ -6,6 +6,7 @@ window._testBaseTimestamp = performance.timeOrigin / 1000;
 setTimeout(() => {
   window._testTimeoutTimestamp = (performance.timeOrigin + performance.now()) / 1000;
   Sentry.init({
+    traceLifecycle: 'static',
     dsn: 'https://public@dsn.ingest.sentry.io/1337',
     integrations: [Sentry.browserTracingIntegration()],
     tracesSampleRate: 1,

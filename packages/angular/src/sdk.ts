@@ -13,11 +13,12 @@ import {
 import type { Client, Integration } from '@sentry/core';
 import {
   applySdkMetadata,
+  consoleIntegration,
   conversationIdIntegration,
   debug,
   dedupeIntegration,
+  eventFiltersIntegration,
   functionToStringIntegration,
-  inboundFiltersIntegration,
 } from '@sentry/core';
 import { IS_DEBUG_BUILD } from './flags';
 
@@ -34,12 +35,11 @@ export function getDefaultIntegrations(_options: BrowserOptions = {}): Integrati
   //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
   //  - https://github.com/getsentry/sentry-javascript/issues/2744
   return [
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
+    eventFiltersIntegration(),
     functionToStringIntegration(),
     conversationIdIntegration(),
     breadcrumbsIntegration(),
+    consoleIntegration(),
     globalHandlersIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),

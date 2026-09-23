@@ -1,4 +1,6 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
+import { getModuleNames } from './module-names';
 
 export const pgConfig = [
   // `pg` (node-postgres).
@@ -40,6 +42,8 @@ export const pgConfig = [
     functionQuery: { className: 'Pool', methodName: 'connect', kind: 'Auto' },
   },
 ] satisfies InstrumentationConfig[];
+
+export const pgModuleNames = getModuleNames(pgConfig);
 
 export const pgChannels = {
   PG_QUERY: 'orchestrion:pg:query',

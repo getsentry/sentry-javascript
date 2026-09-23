@@ -1,3 +1,3 @@
 Sentry.onLoad(function () {
-  Sentry.init({});
+  Sentry.init({ traceLifecycle: 'static' });
 });

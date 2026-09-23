@@ -1,81 +1,49 @@
 import type { Integration } from '@sentry/core';
-import {
-  consoleIntegration,
-  conversationIdIntegration,
-  dedupeIntegration,
-  functionToStringIntegration,
-  getIntegrationsToSetup,
-  inboundFiltersIntegration,
-  initAndBind,
-  linkedErrorsIntegration,
-  requestDataIntegration,
-  stackParserFromStackParserOptions,
-} from '@sentry/core';
-import type { CloudflareClientOptions, CloudflareOptions } from './client';
-import { CloudflareClient } from './client';
-import { makeFlushLock } from './flush';
-import { httpServerIntegration } from './integrations/httpServer';
-import { fetchIntegration } from './integrations/fetch';
-import { honoIntegration } from './integrations/hono';
+import { getBaseDefaultIntegrations, initWithDefaultIntegrations } from './baseSdk';
+import type { CloudflareClient, CloudflareOptions } from './client';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
-import { makeCloudflareTransport } from './transport';
-import { defaultStackParser } from './vendor/stacktrace';
+import { type RequestHandlerWrapperOptions, wrapRequestHandlerWithInit } from './wrapRequestHandlerWithInit';
 
-/** Get the default integrations for the Cloudflare SDK. */
+// Test-only helper, re-exported here so tests can reset the global client cache.
+export { _clearGlobalClientCache } from './clientCache';
+
+/**
+ * Get the default integrations for the Cloudflare SDK.
+ */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
-  // TODO(v11): Drop this transitional gating and let `requestDataIntegration` rely on the resolved
-  // `dataCollection` defaults directly. Until then, preserve the historical Cloudflare behavior of not
-  // attaching cookies unless the user explicitly opts in via `sendDefaultPii` or `dataCollection.cookies`.
-  // eslint-disable-next-line typescript/no-deprecated
-  const cookiesEnabled = options.sendDefaultPii || options.dataCollection?.cookies != null;
-  return [
-    // The Dedupe integration should not be used in workflows because we want to
-    // capture all step failures, even if they are the same error.
-    ...(options.enableDedupe === false ? [] : [dedupeIntegration()]),
-    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
-    // eslint-disable-next-line typescript/no-deprecated
-    inboundFiltersIntegration(),
-    functionToStringIntegration(),
-    conversationIdIntegration(),
-    linkedErrorsIntegration(),
-    fetchIntegration(),
-    // eslint-disable-next-line typescript/no-deprecated
-    honoIntegration(),
-    httpServerIntegration(),
-    requestDataIntegration(cookiesEnabled ? undefined : { include: { cookies: false } }),
-    consoleIntegration(),
-  ];
+  return getBaseDefaultIntegrations(options);
 }
 
 /**
  * Initializes the cloudflare SDK.
  */
 export function init(options: CloudflareOptions): CloudflareClient | undefined {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
+  // Like most Node-based SDKs, Cloudflare defaults to running without a Sentry OpenTelemetry tracer
+  // provider. Scope isolation is handled by the entrypoint wrappers' AsyncLocalStorage strategy.
+  options.enableOpenTelemetrySetup ??= false;
 
-  const flushLock = options.ctx ? makeFlushLock(options.ctx) : undefined;
-  delete options.ctx;
-
-  const clientOptions: CloudflareClientOptions = {
-    ...options,
-    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(options),
-    transport: options.transport || makeCloudflareTransport,
-    flushLock,
-  };
-
-  /**
-   * The Cloudflare SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
-   * via a custom trace provider.
-   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
-   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
-   * This should be good enough for many, but not all integrations.
-   */
-  if (!options.skipOpenTelemetrySetup) {
+  // Opt-in only: when `enableOpenTelemetrySetup` is `true`, set up a custom trace provider so spans
+  // emitted via `@opentelemetry/api` are captured by Sentry. See the option's docs for the caveats.
+  if (options.enableOpenTelemetrySetup) {
     setupOpenTelemetryTracer();
   }
 
-  return initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
+  return initWithDefaultIntegrations(options, getDefaultIntegrations);
+}
+
+/**
+ * `wrapRequestHandler` backed by `init`, so the request gets the full default integrations and
+ * honors `enableOpenTelemetrySetup`. The `@sentry/cloudflare/request` variant deliberately skips
+ * both to stay usable without `nodejs_compat`.
+ *
+ * For framework SDKs building on the main entry point, e.g. SvelteKit, whose OpenTelemetry spans
+ * need the tracer provider.
+ *
+ * @internal
+ */
+export function _INTERNAL_wrapRequestHandler(
+  wrapperOptions: RequestHandlerWrapperOptions,
+  handler: (...args: unknown[]) => Response | Promise<Response>,
+): Promise<Response> {
+  return wrapRequestHandlerWithInit(wrapperOptions, handler, init);
 }

@@ -1,8 +1,7 @@
-import { getClient } from '../../currentScopes';
 import { fill } from '../../utils/object';
 import { wrapAllMCPHandlers, wrapExistingHandlers } from './handlers';
 import { wrapTransportError, wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
-import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions } from './types';
+import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport } from './types';
 import { validateMcpServerInstance } from './validation';
 
 /**
@@ -11,11 +10,84 @@ import { validateMcpServerInstance } from './validation';
  */
 const wrappedMcpServerInstances = new WeakSet();
 
+function instrumentTransport(transport: MCPTransport, options: McpServerWrapperOptions): void {
+  wrapTransportOnMessage(transport, options);
+  wrapTransportSend(transport, options);
+  wrapTransportOnClose(transport);
+  wrapTransportError(transport);
+}
+
+function interceptTransportStart(transport: MCPTransport, beforeStart: () => void): () => void {
+  let transportStart: MCPTransport['start'];
+  let originalDescriptor: PropertyDescriptor | undefined;
+
+  try {
+    transportStart = transport.start;
+    originalDescriptor = Object.getOwnPropertyDescriptor(transport, 'start');
+  } catch {
+    return () => undefined;
+  }
+
+  if (typeof transportStart !== 'function') {
+    return () => undefined;
+  }
+
+  const originalStart = transportStart;
+  let isInstalled = false;
+
+  const restoreStart = (): void => {
+    if (!isInstalled) {
+      return;
+    }
+
+    try {
+      const currentDescriptor = Object.getOwnPropertyDescriptor(transport, 'start');
+      if (currentDescriptor?.value !== interceptedStart) {
+        isInstalled = false;
+        return;
+      }
+
+      if (originalDescriptor) {
+        Object.defineProperty(transport, 'start', originalDescriptor);
+        isInstalled = false;
+      } else if (Reflect.deleteProperty(transport, 'start')) {
+        isInstalled = false;
+      }
+    } catch {}
+  };
+
+  function interceptedStart(this: MCPTransport): Promise<void> {
+    // Restoring first keeps recursive calls and user-observed method identity identical to the original transport.
+    restoreStart();
+    beforeStart();
+    return originalStart.call(this);
+  }
+
+  const replacementDescriptor: PropertyDescriptor =
+    originalDescriptor && 'value' in originalDescriptor
+      ? { ...originalDescriptor, value: interceptedStart }
+      : {
+          configurable: originalDescriptor?.configurable ?? true,
+          enumerable: originalDescriptor?.enumerable ?? false,
+          writable: true,
+          value: interceptedStart,
+        };
+
+  try {
+    Object.defineProperty(transport, 'start', replacementDescriptor);
+    isInstalled = true;
+  } catch {
+    // The post-connect fallback preserves the previous behavior for transports which cannot be patched.
+  }
+
+  return restoreStart;
+}
+
 /**
- * Wraps a MCP Server instance from the `@modelcontextprotocol/sdk` package with Sentry instrumentation.
+ * Wraps an MCP Server instance with Sentry instrumentation.
  *
  * Compatible with versions `^1.9.0` of the `@modelcontextprotocol/sdk` package (legacy `tool`/`resource`/`prompt` API)
- * and versions that expose the newer `registerTool`/`registerResource`/`registerPrompt` API (introduced in 1.x, sole API in 2.x).
+ * and `@modelcontextprotocol/server` version 2.x (`registerTool`/`registerResource`/`registerPrompt` API).
  * Automatically instruments transport methods and handler functions for comprehensive monitoring.
  *
  * Both call orderings are supported: wrapping before or after registering tools, resources,
@@ -26,8 +98,8 @@ const wrappedMcpServerInstances = new WeakSet();
  * @example
  * ```typescript
  * import * as Sentry from '@sentry/core';
- * import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
- * import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+ * import { McpServer } from '@modelcontextprotocol/server';
+ * import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
  *
  * // Wrap first, then register tools — this is the correct order
  * const server = Sentry.wrapMcpServerWithSentry(
@@ -42,7 +114,7 @@ const wrappedMcpServerInstances = new WeakSet();
  *   { recordInputs: true, recordOutputs: false }
  * );
  *
- * const transport = new StreamableHTTPServerTransport();
+ * const transport = new NodeStreamableHTTPServerTransport();
  * await server.connect(transport);
  * ```
  *
@@ -60,28 +132,34 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
   }
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
-  const client = getClient();
-  const genAI = client?.getDataCollectionOptions().genAI;
-
-  const resolvedOptions: ResolvedMcpOptions = {
-    recordInputs: options?.recordInputs ?? genAI?.inputs ?? false,
-    recordOutputs: options?.recordOutputs ?? genAI?.outputs ?? false,
-  };
+  const captureOptions: McpServerWrapperOptions = { ...options };
 
   fill(serverInstance, 'connect', originalConnect => {
     return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
-      const result = await (originalConnect as (...args: unknown[]) => Promise<unknown>).call(
-        this,
-        transport,
-        ...restArgs,
-      );
+      let isTransportInstrumented = false;
+      const instrumentTransportOnce = (): void => {
+        if (isTransportInstrumented) {
+          return;
+        }
 
-      wrapTransportOnMessage(transport, resolvedOptions);
-      wrapTransportSend(transport, resolvedOptions);
-      wrapTransportOnClose(transport);
-      wrapTransportError(transport);
+        isTransportInstrumented = true;
+        instrumentTransport(transport, captureOptions);
+      };
+      const restoreStart = interceptTransportStart(transport, instrumentTransportOnce);
 
-      return result;
+      try {
+        const result = await (originalConnect as (...args: unknown[]) => Promise<unknown>).call(
+          this,
+          transport,
+          ...restArgs,
+        );
+
+        instrumentTransportOnce();
+
+        return result;
+      } finally {
+        restoreStart();
+      }
     };
   });
 

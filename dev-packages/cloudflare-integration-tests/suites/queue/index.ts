@@ -9,6 +9,7 @@ interface Env {
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1,
   }),
   {
@@ -32,6 +33,10 @@ export default Sentry.withSentry(
           { body: { payload: 'three' } },
         ]);
         return new Response('enqueued batch');
+      }
+
+      if (url.pathname === '/metrics') {
+        return Response.json(await env.MY_QUEUE.metrics());
       }
 
       return new Response('not found', { status: 404 });

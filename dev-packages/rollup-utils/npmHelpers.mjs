@@ -29,6 +29,38 @@ const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), '.
 
 const ignoreSideEffects = /[\\/]debug-build\.ts$/;
 
+const repoRoot = path.resolve(__dirname, '../..');
+const sideEffectsCache = new Map();
+
+/**
+ * Whether an external package declares `"sideEffects": false` in its `package.json`.
+ * Unknown packages are treated as having side effects.
+ */
+function isSideEffectFreePackage(packageName) {
+  const cached = sideEffectsCache.get(packageName);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let sideEffectFree = false;
+  try {
+    const json = JSON.parse(
+      fs.readFileSync(path.resolve(repoRoot, 'node_modules', packageName, 'package.json'), { encoding: 'utf8' }),
+    );
+    sideEffectFree = json.sideEffects === false;
+  } catch {
+    // Not resolvable from the repo root - assume side effects.
+  }
+
+  sideEffectsCache.set(packageName, sideEffectFree);
+  return sideEffectFree;
+}
+
+function getPackageName(id) {
+  const segments = id.split('/');
+  return id.startsWith('@') ? segments.slice(0, 2).join('/') : segments[0];
+}
+
 export function makeBaseNPMConfig(options = {}) {
   const {
     entrypoints = ['src/index.ts'],
@@ -81,9 +113,9 @@ export function makeBaseNPMConfig(options = {}) {
       // don't add `"use strict"` to the top of cjs files
       strict: false,
 
-      // do TS-3.8-style exports
+      // Use simple exports format:
       //     exports.dogs = are.great
-      // rather than TS-3.9-style exports
+      // rather than Object.defineProperty style exports:
       //     Object.defineProperty(exports, 'dogs', {
       //       enumerable: true,
       //       get: () => are.great,
@@ -109,9 +141,11 @@ export function makeBaseNPMConfig(options = {}) {
           return false;
         }
 
-        // @sentry/conventions only exports constants (sideEffects: false),
-        // so Rollup shouldn't emit bare side-effect imports for it.
-        if (external && id.startsWith('@sentry/conventions')) {
+        // Rollup keeps a bare `import '<pkg>'` alive whenever it tree-shakes away every
+        // binding of an external it believes has side effects. For a package that declares
+        // `"sideEffects": false` that import contradicts its own manifest, and bundlers such
+        // as esbuild warn about it (`ignored-bare-import`).
+        if (external && isSideEffectFreePackage(getPackageName(id))) {
           return false;
         }
 
@@ -190,49 +224,27 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 }
 
 /**
- * This creates a loader file at the target location as part of the rollup build.
- * This loader script can then be used in combination with various Node.js flags (like --import=...) to monkeypatch 3rd party modules.
+ * Emits the `@sentry/<framework>/import` entry (`build/import-hook.mjs`) as part of the rollup build,
+ * used as `node --import @sentry/<framework>/import app.js`. The generated hook imports
+ * `@sentry/server-runtime-injection/import-hook`, which registers the orchestrion
+ * diagnostics-channel injection, so the consuming package must declare
+ * `@sentry/server-runtime-injection` as a dependency.
  *
  * @param {string} outputFolder Build output folder.
- * @param {'otel' | 'sentry-node'} hookVariant Which hook template to use.
- * @param {{ injectDiagnosticsChannel?: boolean }} [options] When `injectDiagnosticsChannel`
- *   is set (only valid for the `'otel'` variant), the generated `import-hook.mjs`
- *   additionally imports `@sentry/server-utils/orchestrion/import-hook`, which
- *   registers the diagnostics-channel injection. Used by `@sentry/node` so that
- *   `node --import @sentry/node/import` injects the channels unconditionally.
  */
-export function makeOtelLoaders(outputFolder, hookVariant, options = {}) {
-  if (hookVariant !== 'otel' && hookVariant !== 'sentry-node') {
-    throw new Error('hookVariant is neither "otel" nor "sentry-node". Pick one.');
-  }
-
-  const { injectDiagnosticsChannel = false } = options;
-  if (injectDiagnosticsChannel && hookVariant !== 'otel') {
-    throw new Error('injectDiagnosticsChannel is only supported with the "otel" hookVariant.');
-  }
-
-  const expectedRegisterLoaderLocation = `${outputFolder}/import-hook.mjs`;
-  const foundRegisterLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
-    return packageDotJSON?.exports?.[key]?.import?.default === expectedRegisterLoaderLocation;
+export function makeOrchestrionLoader(outputFolder) {
+  const expectedImportHookLocation = `${outputFolder}/import-hook.mjs`;
+  const foundImportHookExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
+    return packageDotJSON?.exports?.[key]?.import?.default === expectedImportHookLocation;
   });
-  if (!foundRegisterLoaderExport) {
+  if (!foundImportHookExport) {
     throw new Error(
-      `You used the makeOtelLoaders() rollup utility without specifying the import hook inside \`exports[something].import.default\`. Please add "${expectedRegisterLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedRegisterLoaderLocation}" exactly).`,
+      `You used the makeOrchestrionLoader() rollup utility without specifying the import hook inside \`exports[something].import.default\`. Please add "${expectedImportHookLocation}" as a value there (maybe check for typos - it needs to be "${expectedImportHookLocation}" exactly).`,
     );
   }
 
-  const expectedHooksLoaderLocation = `${outputFolder}/loader-hook.mjs`;
-  const foundHookLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
-    return packageDotJSON?.exports?.[key]?.import?.default === expectedHooksLoaderLocation;
-  });
-  if (!foundHookLoaderExport) {
-    throw new Error(
-      `You used the makeOtelLoaders() rollup utility without specifying the loader hook inside \`exports[something].import.default\`. Please add "${expectedHooksLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedHooksLoaderLocation}" exactly).`,
-    );
-  }
-
-  const requiredDep = hookVariant === 'otel' ? '@opentelemetry/instrumentation' : '@sentry/node';
-  const foundImportInTheMiddleDep =
+  const requiredDep = '@sentry/server-runtime-injection';
+  const foundRequiredDep =
     Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
       return key === requiredDep;
     }) ||
@@ -240,9 +252,9 @@ export function makeOtelLoaders(outputFolder, hookVariant, options = {}) {
       return key === requiredDep;
     });
 
-  if (!foundImportInTheMiddleDep) {
+  if (!foundRequiredDep) {
     throw new Error(
-      `You used the makeOtelLoaders() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(
+      `You used the makeOrchestrionLoader() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(
         process.cwd(),
         'package.json',
       )}. Please add it to the dependencies.`,
@@ -250,34 +262,12 @@ export function makeOtelLoaders(outputFolder, hookVariant, options = {}) {
   }
 
   return defineConfig([
-    // register() hook
     {
-      input: path.join(
-        __dirname,
-        'code',
-        hookVariant === 'otel'
-          ? injectDiagnosticsChannel
-            ? 'otelEsmImportHookWithDiagnosticsChannelTemplate.js'
-            : 'otelEsmImportHookTemplate.js'
-          : 'sentryNodeEsmImportHookTemplate.js',
-      ),
+      input: path.join(__dirname, 'code', 'importHookTemplate.js'),
       external: /.*/,
       output: {
         format: 'esm',
         file: path.join(outputFolder, 'import-hook.mjs'),
-      },
-    },
-    // --loader hook
-    {
-      input: path.join(
-        __dirname,
-        'code',
-        hookVariant === 'otel' ? 'otelEsmLoaderHookTemplate.js' : 'sentryNodeEsmLoaderHookTemplate.js',
-      ),
-      external: /.*/,
-      output: {
-        format: 'esm',
-        file: path.join(outputFolder, 'loader-hook.mjs'),
       },
     },
   ]);

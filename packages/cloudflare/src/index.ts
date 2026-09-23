@@ -74,11 +74,6 @@ export {
   getSpanDescendants,
   continueTrace,
   functionToStringIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
-  instrumentOpenAiClient,
-  instrumentGoogleGenAIClient,
-  instrumentAnthropicAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -89,51 +84,63 @@ export {
   moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentPostgresJsSql,
   zodErrorsIntegration,
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  trpcMiddleware,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
-  wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
-  createLangChainCallbackHandler,
-  instrumentLangChainEmbeddings,
   featureFlagsIntegration,
   growthbookIntegration,
   logger,
   metrics,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   spanStreamingIntegration,
-  instrumentLangGraph,
-  instrumentCreateReactAgent,
 } from '@sentry/core';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
+export type { FlueOptions } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
-export { instrumentDurableObjectWithSentry } from './durableobject';
+export { defineCloudflareOptions } from './defineCloudflareOptions';
+export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './durableobject';
+export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
-export { wrapRequestHandler } from './request';
-
 export { CloudflareClient } from './client';
-export { getDefaultIntegrations } from './sdk';
+export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
-// eslint-disable-next-line typescript/no-deprecated
-export { honoIntegration } from './integrations/hono';
-
-// eslint-disable-next-line typescript/no-deprecated
-export { instrumentD1WithSentry } from './instrumentations/worker/instrumentD1';
+export type { FetchIntegrationOptions } from '@sentry/core';
+export { spotlightIntegration } from './integrations/spotlight';
+export {
+  openTelemetryIntegration,
+  getOtlpTracesEndpoint,
+  prismaIntegration,
+  instrumentMistralAiClient,
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentWorkersAiClient,
+  createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+  instrumentCreateReactAgent,
+  vercelAIIntegration,
+  eveConversationHook,
+  eveIntegration,
+  getInstrumentedModuleNames,
+} from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';
 
-export { setAsyncLocalStorageAsyncContextStrategy } from './async';
+export { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';

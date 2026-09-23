@@ -1,16 +1,44 @@
-import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
+import { getActiveSpan, getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { debug, timestampInSeconds, uniq } from '@sentry/core';
-import { DEFAULT_HOOKS } from './constants';
+import {
+  debug,
+  hasSpanStreamingEnabled,
+  timestampInSeconds,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
+  UI_RENDER_SPAN_NAME_FALLBACK,
+  UI_UNMOUNT_SPAN_NAME_FALLBACK,
+  UI_UPDATE_SPAN_NAME_FALLBACK,
+  uniq,
+} from '@sentry/core';
+import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { UI_MOUNT, UI_RENDER, UI_UNMOUNT, UI_UPDATE } from '@sentry/conventions/op';
+import { DEFAULT_HOOKS, DEFAULT_ROOT_SPAN_TIMEOUT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 import { formatComponentName } from './vendor/components';
 
-const VUE_OP = 'ui.vue';
+// Maps each Vue lifecycle operation to a cross-framework span op.
+const VUE_OPERATION_TO_SPAN_OP: Record<Operation, string> = {
+  activate: UI_MOUNT,
+  create: UI_MOUNT,
+  mount: UI_MOUNT,
+  update: UI_UPDATE,
+  unmount: UI_UNMOUNT,
+  destroy: UI_UNMOUNT,
+};
 
-type Mixins = Parameters<Vue['mixin']>[0];
+const VUE_OPERATION_TO_SPAN_NAME_FALLBACK: Record<Operation, string> = {
+  activate: UI_MOUNT_SPAN_NAME_FALLBACK,
+  create: UI_MOUNT_SPAN_NAME_FALLBACK,
+  mount: UI_MOUNT_SPAN_NAME_FALLBACK,
+  update: UI_UPDATE_SPAN_NAME_FALLBACK,
+  unmount: UI_UNMOUNT_SPAN_NAME_FALLBACK,
+  destroy: UI_UNMOUNT_SPAN_NAME_FALLBACK,
+};
 
-interface VueSentry extends ViewModel {
+export type Mixins = Parameters<Vue['mixin']>[0];
+
+export interface VueSentry extends ViewModel {
   readonly $root: VueSentry;
   $_sentryComponentSpans?: {
     [key: string]: Span | undefined;
@@ -63,7 +91,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
 
   const mixins: Mixins = {};
 
-  const rootComponentSpanFinalTimeout = options.timeout || 2000;
+  const rootComponentSpanFinalTimeout = options.timeout || DEFAULT_ROOT_SPAN_TIMEOUT;
 
   for (const operation of hooks) {
     // Retrieve corresponding hooks from Vue lifecycle.
@@ -77,16 +105,25 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
     for (const internalHook of internalHooks) {
       mixins[internalHook] = function (this: VueSentry) {
         const isRootComponent = this.$root === this;
+        const client = getClient();
+        const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+        const componentName = formatComponentName(this, false);
+        const match = componentName.match(/^<([^\s]*)>(?: at [^\s]*)?$/);
+        const innerName = match?.[1] ?? componentName;
+        const conventionComponentName = innerName === 'Anonymous' ? undefined : innerName;
 
         // 1. Root Component span creation
         if (isRootComponent) {
+          const description = 'Application Render';
           this.$_sentryRootComponentSpan =
             this.$_sentryRootComponentSpan ||
             startInactiveSpan({
-              name: 'Application Render',
-              op: `${VUE_OP}.render`,
+              name: hasSpanStreaming ? conventionComponentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
               attributes: {
+                [SENTRY_OP]: UI_RENDER,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+                ...(conventionComponentName && { [UI_COMPONENT_NAME]: conventionComponentName }),
+                ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },
               onlyIfParent: true,
             });
@@ -96,8 +133,6 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
         }
 
         // 2. Component tracking filter
-        const componentName = formatComponentName(this, false);
-
         const shouldTrack =
           isRootComponent || // We always want to track the root component
           (Array.isArray(options.trackComponents)
@@ -129,11 +164,17 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
               oldSpan.end();
             }
 
+            const description = `Vue ${componentName}`;
+
             this.$_sentryComponentSpans[operation] = startInactiveSpan({
-              name: `Vue ${componentName}`,
-              op: `${VUE_OP}.${operation}`,
+              name: hasSpanStreaming
+                ? conventionComponentName || VUE_OPERATION_TO_SPAN_NAME_FALLBACK[operation]
+                : description,
               attributes: {
+                [SENTRY_OP]: VUE_OPERATION_TO_SPAN_OP[operation],
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+                ...(conventionComponentName && { [UI_COMPONENT_NAME]: conventionComponentName }),
+                ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },
               // UI spans should only be created if there is an active root span (transaction)
               onlyIfParent: true,

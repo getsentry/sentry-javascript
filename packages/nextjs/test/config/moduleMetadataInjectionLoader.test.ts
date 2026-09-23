@@ -157,4 +157,13 @@ describe('moduleMetadataInjectionLoader', () => {
 
     expect(metadataIndex).toBeGreaterThan(clientDirectiveIndex);
   });
+
+  it('separates an EOF injection from a trailing line comment', () => {
+    const loaderThis = createLoaderThis('my-app');
+    const userCode = '"use client" // trailing';
+
+    const result = moduleMetadataInjectionLoader.call(loaderThis, userCode);
+
+    expect(result).toContain('// trailing\n;!function(){try{');
+  });
 });

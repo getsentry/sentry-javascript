@@ -2,7 +2,7 @@ import type { Envelope, EnvelopeItemType } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
 import { spawn } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, statSync } from 'fs';
 import { join } from 'path';
 import { inspect } from 'util';
 import { expect } from 'vitest';
@@ -62,6 +62,8 @@ export function createRunner(...paths: string[]) {
   if (!existsSync(testPath)) {
     throw new Error(`Test scenario not found: ${testPath}`);
   }
+
+  const entryFile = statSync(testPath).isDirectory() ? join(testPath, 'index.ts') : testPath;
 
   const expectedEnvelopes: Expected[] = [];
   const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions', 'client_report']);
@@ -170,7 +172,6 @@ export function createRunner(...paths: string[]) {
 
           if (process.env.DEBUG) log('Starting scenario', testPath);
 
-          const entryFile = join(testPath, 'index.ts');
           if (!existsSync(entryFile)) {
             reject(new Error(`Entry file not found: ${entryFile}`));
             return;
@@ -240,7 +241,8 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res = await fetch(url, { headers, method, body });
+            const init: RequestInit = { headers, method, body };
+            const res = await fetch(url, init);
 
             if (!res.ok) {
               if (!expectError) {

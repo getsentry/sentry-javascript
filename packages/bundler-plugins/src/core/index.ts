@@ -1,6 +1,4 @@
-import SentryCli from '@sentry/cli';
 import { debug } from '@sentry/core';
-import * as fs from 'fs';
 import { CodeInjection, containsOnlyImports, stripQueryAndHashFromPath } from './utils';
 import type { transformAsync as babelTransformAsync } from '@babel/core';
 import type componentNameAnnotatePlugin from '../babel-plugin';
@@ -31,21 +29,6 @@ function loadBabelAnnotationRuntime(): Promise<BabelAnnotationRuntime> {
 
   return babelAnnotationRuntimePromise;
 }
-
-/**
- * Determines whether the Sentry CLI binary is in its expected location.
- * This function is useful since `@sentry/cli` installs the binary via a post-install
- * script and post-install scripts may not always run. E.g. with `npm i --ignore-scripts`.
- */
-export function sentryCliBinaryExists(): boolean {
-  return fs.existsSync(SentryCli.getPath());
-}
-
-// We need to be careful not to inject the snippet before any `"use strict";`s.
-// As an additional complication `"use strict";`s may come after any number of comments.
-export const COMMENT_USE_STRICT_REGEX =
-  // Note: CodeQL complains that this regex potentially has n^2 runtime. This likely won't affect realistic files.
-  /^(?:\s*|\/\*(?:.|\r|\n)*?\*\/|\/\/.*[\n\r])*(?:"[^"]*";|'[^']*';)?/;
 
 /**
  * Checks if a file is a JavaScript file based on its extension.
@@ -85,6 +68,7 @@ export function shouldSkipCodeInjection(code: string, facadeModuleId: string | n
 }
 
 export { globFiles } from './glob';
+export { getCodeInjectionPosition } from './get-code-injection-position';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createComponentNameAnnotateHooks(ignoredComponents: string[], injectIntoHtml: boolean) {
@@ -117,6 +101,7 @@ export function createComponentNameAnnotateHooks(ignoredComponents: string[], in
         const result = await transformAsync(code, {
           plugins: [[plugin, { ignoredComponents }]],
           filename: id,
+          sourceFileName: idWithoutQueryAndHash,
           parserOpts: {
             sourceType: 'module',
             allowAwaitOutsideFunction: true,
@@ -157,4 +142,4 @@ export {
   generateModuleMetadataInjectorCode,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
-export { createDebugIdUploadFunction } from './debug-id-upload';
+export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId } from './debug-id-upload';

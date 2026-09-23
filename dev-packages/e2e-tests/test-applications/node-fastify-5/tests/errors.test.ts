@@ -1,14 +1,20 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForStreamedSpan, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-fastify-5', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
+  const segmentEventPromise = collectStreamedSpansUntilSegment('node-fastify-5', 'GET /test-exception/:id');
+
   await fetch(`${baseURL}/test-exception/123`);
 
   const errorEvent = await errorEventPromise;
+  const segmentEventSpans = await segmentEventPromise;
+  const segmentEvent = segmentEventSpans.find(
+    segment => segment.is_segment && segment.name === 'GET /test-exception/:id',
+  )!;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   const exception = errorEvent.exception?.values?.[0];
@@ -32,6 +38,19 @@ test('Sends correct error event', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
+
+  // The error is attached to the same trace as the request segment, and to a
+  // span in that segment.
+  const segmentTrace = segmentEvent;
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentTrace?.trace_id);
+
+  const segmentSpanIds = [
+    segmentTrace?.span_id,
+    ...segmentEventSpans
+      .filter(span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segmentEvent.span_id)
+      .map(span => span.span_id),
+  ];
+  expect(segmentSpanIds).toContain(errorEvent.contexts?.trace?.span_id);
 });
 
 test('Does not send error when shouldHandleError returns false', async ({ baseURL }) => {
@@ -44,13 +63,14 @@ test('Does not send error when shouldHandleError returns false', async ({ baseUR
     return event?.transaction === 'GET /test-error-not-captured';
   });
 
-  const transactionEventPromise = waitForTransaction('node-fastify-5', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-error-not-captured';
-  });
+  const segmentEventPromise = waitForStreamedSpan(
+    'node-fastify-5',
+    segment => segment.is_segment && segment.name === 'GET /test-error-not-captured',
+  );
 
   const response = await fetch(`${baseURL}/test-error-not-captured`);
 
-  await transactionEventPromise;
+  await segmentEventPromise;
 
   const flushResponse = await fetch(`${baseURL}/flush`);
 
@@ -72,13 +92,14 @@ test('Error in child plugin with rethrown error handler reports correct 500 stat
     return event?.transaction === 'GET /test-error-ignored';
   });
 
-  const transactionEventPromise = waitForTransaction('node-fastify-5', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-error-ignored';
-  });
+  const segmentEventPromise = waitForStreamedSpan(
+    'node-fastify-5',
+    segment => segment.is_segment && segment.name === 'GET /test-error-ignored',
+  );
 
   const response = await fetch(`${baseURL}/test-error-ignored`);
 
-  await transactionEventPromise;
+  await segmentEventPromise;
 
   const flushResponse = await fetch(`${baseURL}/flush`);
 

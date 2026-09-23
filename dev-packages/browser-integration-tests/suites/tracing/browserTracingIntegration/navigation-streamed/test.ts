@@ -6,9 +6,14 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import { SENTRY_TRACE_LIFECYCLE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_TRACE_LIFECYCLE,
+  URL_FULL,
+  URL_PATH,
+  USER_AGENT_ORIGINAL,
+} from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import {
@@ -68,10 +73,11 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
   expect(navigationTraceId).toBeDefined();
   expect(pageloadTraceId).not.toEqual(navigationTraceId);
 
-  expect(pageloadSpan.name).toEqual('/index.html');
+  expect(pageloadSpan.name).toEqual('Pageload');
 
   expect(navigationSpan).toEqual({
     attributes: {
+      'sentry.is_localhost': { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
@@ -88,7 +94,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: expect.any(String),
       },
-      'http.request.header.user_agent': {
+      [USER_AGENT_ORIGINAL]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -152,11 +158,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
       },
       'sentry.segment.name': {
         type: 'string',
-        value: '/index.html',
-      },
-      'sentry.source': {
-        type: 'string',
-        value: 'url',
+        value: 'Navigation',
       },
       'sentry.segment.name.source': {
         type: 'string',
@@ -182,7 +184,9 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         trace_id: pageloadTraceId,
       },
     ],
-    name: '/index.html',
+    // The raw URL stays in `url.path`/`url.full`: with span streaming, a navigation span name is
+    // low cardinality and falls back to 'Navigation' when there is no parameterized route.
+    name: 'Navigation',
     span_id: navigationSpan.span_id,
     start_timestamp: expect.any(Number),
     status: 'ok',
@@ -198,11 +202,12 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
   const navigationSpan1Promise = waitForStreamedSpan(
     page,
-    span => getSpanOp(span) === 'navigation' && span.name === '/sub-page',
+    // Matched on `url.path` rather than the span name, which is low cardinality.
+    span => getSpanOp(span) === 'navigation' && span.attributes?.[URL_PATH]?.value === '/sub-page',
   );
   const navigationSpan2Promise = waitForStreamedSpan(
     page,
-    span => getSpanOp(span) === 'navigation' && span.name === '/sub-page-2',
+    span => getSpanOp(span) === 'navigation' && span.attributes?.[URL_PATH]?.value === '/sub-page-2',
   );
 
   await page.goto(url);
@@ -212,9 +217,13 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
 
   const navigationSpan1 = await navigationSpan1Promise;
 
-  expect(navigationSpan1.name).toEqual('/sub-page');
+  expect(navigationSpan1.name).toEqual('Navigation');
 
   expect(navigationSpan1.attributes).toMatchObject({
+    [URL_PATH]: {
+      type: 'string',
+      value: '/sub-page',
+    },
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
       type: 'string',
       value: 'auto.navigation.browser',
@@ -223,7 +232,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'integer',
       value: 1,
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+    [SENTRY_SEGMENT_NAME_SOURCE]: {
       type: 'string',
       value: 'url',
     },
@@ -237,9 +246,13 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
 
   const navigationSpan2 = await navigationSpan2Promise;
 
-  expect(navigationSpan2.name).toEqual('/sub-page-2');
+  expect(navigationSpan2.name).toEqual('Navigation');
 
   expect(navigationSpan2.attributes).toMatchObject({
+    [URL_PATH]: {
+      type: 'string',
+      value: '/sub-page-2',
+    },
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
       type: 'string',
       value: 'auto.navigation.browser',
@@ -248,7 +261,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'integer',
       value: 1,
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
+    [SENTRY_SEGMENT_NAME_SOURCE]: {
       type: 'string',
       value: 'url',
     },

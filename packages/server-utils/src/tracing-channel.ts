@@ -9,6 +9,9 @@ import {
   getAsyncContextStrategy,
   getMainCarrier,
   getActiveSpan,
+  spanIsIgnored,
+  getRootSpan,
+  withActiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { ERROR_TYPE } from '@sentry/conventions/attributes';
@@ -23,6 +26,9 @@ export type TracingChannelPayloadWithSpan<TData extends object> = TData & {
    * The context's active store value, used to restore the context for asyncStart continuations for callback-based tracing.
    */
   _sentryCallerStore?: unknown;
+
+  /** Set by Node's tracing channel when the traced operation failed. */
+  error?: unknown;
 };
 
 /*
@@ -63,7 +69,7 @@ export interface TracingChannelLifeCycleOptions<TData extends object = object> {
   deferSpanEnd?: (args: {
     span: Span;
     data: TracingChannelPayloadWithSpan<TData>;
-    /** Ends the span: `end()` on success, `end(error)` on failure. Idempotent. */
+    /** Ends the span: `end()` on success, `end(error)` on failure (which marks `data` as errored). Idempotent. */
     end: (error?: unknown) => void;
   }) => boolean;
 
@@ -89,6 +95,16 @@ export interface TracingChannelBindingHandle<TData extends object = object> {
 }
 
 const NOOP = (): void => {};
+
+/** Runs a span-building callback so a throw inside it can never break the user's traced call. */
+export function safeChannelCallback<T>(fn: () => T): T | undefined {
+  try {
+    return fn();
+  } catch (error) {
+    DEBUG_BUILD && debug.warn('[instrumentation] error handling channel event', error);
+    return undefined;
+  }
+}
 
 /**
  * Bind a span and its lifecycle to a tracing channel so the span becomes the active async context
@@ -145,6 +161,9 @@ export function bindTracingChannelToSpan<TData extends object>(
       ended = true;
       if (error !== undefined) {
         annotateSpanError(span, error);
+        // Without this the payload still looks successful, so `beforeSpanEnd` enriches the span from
+        // a `result` the operation never produced.
+        data.error = error;
       }
 
       endBoundSpan(data, beforeSpanEnd);
@@ -202,7 +221,7 @@ export function bindTracingChannelToSpan<TData extends object>(
  *
  * `getSpan` may return `undefined` to leave the active context untouched for that payload.
  */
-function bindSpanToChannelStore<TData extends object>(
+export function bindSpanToChannelStore<TData extends object>(
   channel: TracingChannel<TData, TData>,
   getSpan: (data: TracingChannelPayloadWithSpan<TData>) => Span | undefined,
   opts?: Pick<TracingChannelLifeCycleOptions, 'requiresParentSpan'>,
@@ -225,7 +244,7 @@ function bindSpanToChannelStore<TData extends object>(
   const asyncLocalStorage = binding.asyncLocalStorage as AsyncLocalStorage<TData>;
 
   // bindStore activates the ALS for the traced call; any getStore() inside it returns the value bound for that context.
-  // 1. Produce: getStoreWithActiveSpan(span) clones the current scope, plants the span via _INTERNAL_setSpanForScope, and returns { scope, isolationScope }, the active context carrying our span.
+  // 1. Produce: Binds the span to the active context via withActiveSpan(span), and returns the store for the active context.
   // 2. Bind: the courier hands that opaque value to channel.start.bindStore(asyncLocalStorage, producer), which runs the traced op inside asyncLocalStorage.run(value, …); it never inspects the value.
   // 3. Read: inside the op, Sentry's scope machinery calls getScopes() → asyncStorage.getStore() on that same ALS, so getCurrentScope/getIsolationScope/getActiveSpan resolve to the scope carrying our span.
   // 4. Nest: any child span started in the traced op parents to that active span.
@@ -242,7 +261,7 @@ function bindSpanToChannelStore<TData extends object>(
     }
     data._sentrySpan = span;
 
-    return binding.getStoreWithActiveSpan(span) as TData;
+    return getStoreWithActiveSpan(asyncLocalStorage, span) as TData;
   });
 
   // Restore the caller's context for the async continuation. Only callback-style channels `runStores`
@@ -297,4 +316,18 @@ function getErrorInfo(error: unknown): ErrorInfo {
       [ERROR_TYPE]: type,
     },
   };
+}
+
+function getStoreWithActiveSpan(asyncLocalStorage: AsyncLocalStorage<unknown>, span: Span): unknown {
+  // Do not make an ignored *child* the active span: no span is emitted for it, so its children and
+  // outgoing requests must propagate from the nearest emitted parent instead. An ignored *root* is
+  // still activated so its whole subtree is dropped with it. Mirrors core `startSpan` and the OTel
+  // context manager (`spanIsIgnored(span) && getRootSpan(span) !== span`).
+  if (spanIsIgnored(span) && getRootSpan(span) !== span) {
+    return asyncLocalStorage.getStore();
+  }
+
+  return withActiveSpan(span, () => {
+    return asyncLocalStorage.getStore();
+  });
 }

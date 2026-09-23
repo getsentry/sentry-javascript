@@ -20,7 +20,10 @@ describe('Sentry Nuxt build-time options type', () => {
         assets: ['./dist/**/*'],
         ignore: ['./dist/*.map'],
         filesToDeleteAfterUpload: ['./dist/*.map'],
+        rewriteSources: (source: string) => source,
+        resolveSourceMap: (artifactPath: string) => `${artifactPath}.map`,
       },
+      moduleMetadata: { team: 'sdk' },
       release: {
         name: 'test-release-1.0.0',
         create: true,
@@ -51,71 +54,27 @@ describe('Sentry Nuxt build-time options type', () => {
         excludeReplayIframe: true,
         excludeReplayWorker: true,
       },
+      buildTimeInstrumentation: false,
 
       // --- SentryNuxtModuleOptions specific options ---
       enabled: true,
-      _experimental: {
-        useDiagnosticsChannelInjection: true,
-      },
       autoInjectServerSentry: 'experimental_dynamic-import',
       configDir: '~/custom-config',
       experimental_entrypointWrappedFunctions: ['default', 'handler', 'server', 'customExport'],
-      unstable_sentryBundlerPluginOptions: {
-        // Rollup plugin options
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-        // Vite plugin options
-        sourcemaps: {
-          assets: './dist/**/*',
-        },
-      },
     };
 
     expectTypeOf(completeOptions).toEqualTypeOf<SentryNuxtModuleOptions>();
   });
 
-  it('includes all deprecated options', () => {
-    const completeOptions: SentryNuxtModuleOptions = {
-      // SentryNuxtModuleOptions specific options
-      enabled: true,
-      debug: true,
-      autoInjectServerSentry: 'experimental_dynamic-import', // No need for 'as const' with type assertion
-      experimental_entrypointWrappedFunctions: ['default', 'handler', 'server', 'customExport'],
+  it('rejects the removed `unstable_sentryBundlerPluginOptions`', () => {
+    const options: SentryNuxtModuleOptions = {
+      // @ts-expect-error - removed in v11, use the top-level build options instead
       unstable_sentryBundlerPluginOptions: {
-        // Rollup plugin options
-        bundleSizeOptimizations: {
-          excludeDebugStatements: true,
-        },
-        // Vite plugin options
-        sourcemaps: {
-          assets: './dist/**/*',
-        },
-      },
-
-      // Deprecated sourceMapsUploadOptions
-      sourceMapsUploadOptions: {
-        silent: false,
-        // eslint-disable-next-line no-console
-        errorHandler: (err: Error) => console.warn(err),
-        release: {
-          name: 'deprecated-release',
-        },
-        enabled: true,
-        authToken: 'deprecated-token',
-        org: 'deprecated-org',
-        url: 'https://deprecated.sentry.io',
-        project: 'deprecated-project',
-        telemetry: false,
-        sourcemaps: {
-          assets: './build/**/*',
-          ignore: ['./build/*.spec.js'],
-          filesToDeleteAfterUpload: ['./build/*.map'],
-        },
+        sourcemaps: { assets: './dist/**/*' },
       },
     };
 
-    expectTypeOf(completeOptions).toEqualTypeOf<SentryNuxtModuleOptions>();
+    expectTypeOf(options).toEqualTypeOf<SentryNuxtModuleOptions>();
   });
 
   it('allows partial configuration', () => {

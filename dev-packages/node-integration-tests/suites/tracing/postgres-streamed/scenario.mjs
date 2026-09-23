@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { uuid4 } from '@sentry/core/server';
+import { uuid4 } from '@sentry/core';
 import { waitForConnection } from '@sentry-internal/node-integration-tests';
 import { Client } from 'pg';
 

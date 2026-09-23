@@ -13,15 +13,16 @@
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "import-in-the-middle": "^2",
-    "next": "16.2.3",
+    "next": "16.2.11",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "require-in-the-middle": "^8"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^20",
     "@types/react": "^19",

@@ -16,7 +16,7 @@
     "@sentry/browser": "10.67.0",
     "rollup": "^4.60.3",
     "vite": "^6.4.3",
-    "vitest": "^3.2.6",
+    "vitest": "^3.2.7",
     "webpack": "^5.0.0"
   },
   "volta": {

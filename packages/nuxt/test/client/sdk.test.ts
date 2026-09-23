@@ -28,7 +28,7 @@ describe('Nuxt Client SDK', () => {
               { name: 'npm:@sentry/vue', version: SDK_VERSION },
             ],
             settings: {
-              infer_ip: 'never',
+              infer_ip: 'auto',
             },
           },
         },

@@ -1,8 +1,7 @@
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../utils';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmTests } from '../../utils/runner';
 
-conditionalTest({ min: 20 })('Pino integration', () => {
+describe('Pino integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

@@ -14,7 +14,7 @@
 
 ## Compatibility
 
-Currently, the minimum supported version of Next.js is `13.2.0`.
+Currently, the minimum supported version of Next.js is `14.0.0`.
 
 ## Installation
 

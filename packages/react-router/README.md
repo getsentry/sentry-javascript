@@ -4,13 +4,12 @@
   </a>
 </p>
 
-# Official Sentry SDK for React Router Framework (BETA)
+# Official Sentry SDK for React Router Framework
 
 [![npm version](https://img.shields.io/npm/v/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/react-router.svg)](https://www.npmjs.com/package/@sentry/react-router)
 
-> This SDK is currently in beta. Beta features are still in progress and may have bugs. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/) if you have any feedback or concerns.
 > This SDK is for [React Router (framework)](https://reactrouter.com/start/framework/installation). If you're using [React Router (library)](https://reactrouter.com/start/library/installation) see our
 > [React SDK here](https://docs.sentry.io/platforms/javascript/guides/react/features/react-router/v7/).
 
@@ -45,7 +44,7 @@ import { HydratedRouter } from 'react-router/dom';
 
 Sentry.init({
   dsn: '___PUBLIC_DSN___',
-  integrations: [Sentry.browserTracingIntegration()],
+  integrations: [Sentry.reactRouterTracingIntegration()],
 
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
 
@@ -57,7 +56,7 @@ startTransition(() => {
   hydrateRoot(
     document,
     <StrictMode>
-      <HydratedRouter />
+      <HydratedRouter instrumentations={[Sentry.createSentryClientInstrumentation()]} onError={Sentry.sentryOnError} />
     </StrictMode>,
   );
 });
@@ -113,9 +112,11 @@ Sentry.init({
 });
 ```
 
-In your `entry.server.tsx` file, export the `handleError` function:
+In your `entry.server.tsx` file, import the instrumentation file at the very top, export the
+`instrumentations` array, and export the `handleError` function:
 
 ```tsx
+import './instrument.server.mjs';
 import * as Sentry from '@sentry/react-router';
 import { type HandleErrorFunction } from 'react-router';
 
@@ -128,13 +129,17 @@ export const handleError: HandleErrorFunction = (error, { request }) => {
     console.error(error);
   }
 };
+
+// Register the Sentry server instrumentation so loaders, actions and middleware are traced.
+export const instrumentations = [Sentry.createSentryServerInstrumentation()];
 // ... rest of your server entry
 ```
 
-### Update Scripts
+### Loading the Instrumentation via `--import` (Alternative)
 
-Since React Router is running in ESM mode, you need to use the `--import` command line options to load our server-side instrumentation module before the application starts.
-Update the `start` and `dev` script to include the instrumentation file:
+Instead of importing the instrumentation file at the top of `entry.server.tsx`, you can load it before
+the application starts via the `--import` command line option. Since React Router runs in ESM mode,
+update the `start` and `dev` scripts accordingly:
 
 ```json
 "scripts": {
@@ -149,7 +154,7 @@ Update your vite.config.ts file to include the `sentryReactRouter` plugin and al
 
 ```ts
 import { reactRouter } from '@react-router/dev/vite';
-import { sentryReactRouter } from '@sentry/react-router';
+import { sentryReactRouter } from '@sentry/react-router/vite';
 import { defineConfig } from 'vite';
 
 const sentryConfig = {
@@ -171,7 +176,7 @@ Next, in your `react-router.config.ts` file, include the `sentryOnBuildEnd` hook
 
 ```ts
 import type { Config } from '@react-router/dev/config';
-import { sentryOnBuildEnd } from '@sentry/react-router';
+import { sentryOnBuildEnd } from '@sentry/react-router/vite';
 
 export default {
   ssr: true,

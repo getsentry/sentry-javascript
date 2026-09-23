@@ -3,17 +3,23 @@ import { webVitalsIntegration } from '../../src/integrations/webVitals';
 
 const mockAddWebVitalsToSpan = vi.hoisted(() => vi.fn());
 const mockRegisterInpInteractionListener = vi.hoisted(() => vi.fn());
-const mockStartTrackingINP = vi.hoisted(() => vi.fn());
 const mockStartTrackingWebVitals = vi.hoisted(() => vi.fn());
 const mockTrackClsAsSpan = vi.hoisted(() => vi.fn());
 const mockTrackInpAsSpan = vi.hoisted(() => vi.fn());
 const mockTrackLcpAsSpan = vi.hoisted(() => vi.fn());
+const mockEnableSoftNavigationReporting = vi.hoisted(() => vi.fn());
+const mockEnableBfcacheReporting = vi.hoisted(() => vi.fn());
+const mockStartSoftNavigationCorrelation = vi.hoisted(() => vi.fn());
+const mockSupportsSoftNavigations = vi.hoisted(() => vi.fn());
 
 vi.mock('@sentry/browser-utils', () => ({
   addWebVitalsToSpan: mockAddWebVitalsToSpan,
+  enableBfcacheReporting: mockEnableBfcacheReporting,
+  enableSoftNavigationReporting: mockEnableSoftNavigationReporting,
   registerInpInteractionListener: mockRegisterInpInteractionListener,
-  startTrackingINP: mockStartTrackingINP,
+  startSoftNavigationCorrelation: mockStartSoftNavigationCorrelation,
   startTrackingWebVitals: mockStartTrackingWebVitals,
+  supportsSoftNavigations: mockSupportsSoftNavigations,
   trackClsAsSpan: mockTrackClsAsSpan,
   trackInpAsSpan: mockTrackInpAsSpan,
   trackLcpAsSpan: mockTrackLcpAsSpan,
@@ -46,13 +52,14 @@ describe('webVitalsIntegration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStartTrackingWebVitals.mockReturnValue(vi.fn());
+    mockSupportsSoftNavigations.mockReturnValue(false);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('tracks web vitals with the existing non-streaming behavior by default', () => {
+  it('tracks CLS/LCP as measurements and INP as a span by default', () => {
     const client = getMockClient();
     const integration = webVitalsIntegration();
 
@@ -60,33 +67,14 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: false,
-      recordLcpStandaloneSpans: false,
+      trackCls: true,
+      trackLcp: true,
       client,
     });
-    expect(mockStartTrackingINP).toHaveBeenCalledTimes(1);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
     expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
     expect(mockTrackClsAsSpan).not.toHaveBeenCalled();
-    expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
-  });
-
-  it('keeps standalone LCP and CLS experiments working', () => {
-    const client = getMockClient();
-    const integration = webVitalsIntegration({
-      _experiments: {
-        enableStandaloneClsSpans: true,
-        enableStandaloneLcpSpans: true,
-      },
-    });
-
-    integration.setup?.(client as never);
-
-    expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: true,
-      recordLcpStandaloneSpans: true,
-      client,
-    });
   });
 
   it('tracks LCP, CLS and INP as streamed spans when span streaming is enabled', () => {
@@ -96,19 +84,124 @@ describe('webVitalsIntegration', () => {
     integration.setup?.(client as never);
     integration.afterAllSetup?.(client as never);
 
+    // CLS/LCP are tracked as standalone spans, not as measurements on the pageload span
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: undefined,
-      recordLcpStandaloneSpans: undefined,
+      trackCls: false,
+      trackLcp: false,
       client,
     });
-    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client);
-    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client);
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
     expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
-    expect(mockStartTrackingINP).not.toHaveBeenCalled();
     expect(mockRegisterInpInteractionListener).toHaveBeenCalledTimes(1);
   });
 
-  it('supports ignoring selected web vitals for browserTracingIntegration compatibility', () => {
+  it('does not track ignored web vitals as streamed spans when span streaming is enabled', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ ignore: ['lcp'] });
+
+    integration.setup?.(client as never);
+    integration.afterAllSetup?.(client as never);
+
+    expect(mockTrackLcpAsSpan).not.toHaveBeenCalled();
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports soft navigation web vitals by default when supported', () => {
+    mockSupportsSoftNavigations.mockReturnValue(true);
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableSoftNavigationReporting).toHaveBeenCalledTimes(1);
+    expect(mockStartSoftNavigationCorrelation).toHaveBeenCalledWith(client);
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, true);
+  });
+
+  it('does not report soft navigation web vitals when opted out', () => {
+    mockSupportsSoftNavigations.mockReturnValue(true);
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ softNavigations: false });
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableSoftNavigationReporting).not.toHaveBeenCalled();
+    expect(mockStartSoftNavigationCorrelation).not.toHaveBeenCalled();
+    // Restores still select the per-navigation path, independently of soft navigations.
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, true);
+  });
+
+  it('does not report soft navigation web vitals without span streaming', () => {
+    mockSupportsSoftNavigations.mockReturnValue(true);
+    const client = getMockClient();
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableSoftNavigationReporting).not.toHaveBeenCalled();
+    expect(mockStartSoftNavigationCorrelation).not.toHaveBeenCalled();
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, false);
+  });
+
+  it('reports bfcache web vitals by default', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableBfcacheReporting).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report bfcache web vitals when opted out', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration({ bfcacheNavigations: false });
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableBfcacheReporting).not.toHaveBeenCalled();
+  });
+
+  it('puts the trackers on the per-navigation path for bfcache alone', () => {
+    // Soft navigations are unsupported here, so bfcache restores are the only thing that can select it.
+    mockSupportsSoftNavigations.mockReturnValue(false);
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackClsAsSpan).toHaveBeenCalledWith(client, true);
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, true);
+  });
+
+  it('does not report bfcache web vitals without span streaming', () => {
+    const client = getMockClient();
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableBfcacheReporting).not.toHaveBeenCalled();
+    expect(mockTrackInpAsSpan).toHaveBeenCalledWith(client, false);
+  });
+
+  it('does not report soft navigation web vitals in unsupporting browsers', () => {
+    const client = getMockClient({ traceLifecycle: 'stream' });
+    const integration = webVitalsIntegration();
+
+    integration.setup?.(client as never);
+
+    expect(mockEnableSoftNavigationReporting).not.toHaveBeenCalled();
+    // Restores still select the per-navigation path, independently of soft navigations.
+    expect(mockTrackLcpAsSpan).toHaveBeenCalledWith(client, true);
+  });
+
+  it('supports ignoring selected web vitals', () => {
     const client = getMockClient();
     const integration = webVitalsIntegration({ ignore: ['cls', 'inp', 'lcp'] });
 
@@ -116,11 +209,10 @@ describe('webVitalsIntegration', () => {
     integration.afterAllSetup?.(client as never);
 
     expect(mockStartTrackingWebVitals).toHaveBeenCalledWith({
-      recordClsStandaloneSpans: undefined,
-      recordLcpStandaloneSpans: undefined,
+      trackCls: false,
+      trackLcp: false,
       client,
     });
-    expect(mockStartTrackingINP).not.toHaveBeenCalled();
     expect(mockTrackInpAsSpan).not.toHaveBeenCalled();
     expect(mockRegisterInpInteractionListener).not.toHaveBeenCalled();
   });
@@ -167,24 +259,6 @@ describe('webVitalsIntegration', () => {
       recordClsOnPageloadSpan: false,
       recordLcpOnPageloadSpan: false,
       spanStreamingEnabled: true,
-    });
-  });
-
-  it('does not record CLS/LCP on the pageload span when standalone spans are enabled', () => {
-    const client = getMockClient();
-    const span = {};
-    const integration = webVitalsIntegration({
-      _experiments: { enableStandaloneClsSpans: true, enableStandaloneLcpSpans: true },
-    });
-
-    integration.setup?.(client as never);
-    client.emit('afterStartPageLoadSpan', span);
-    client.emit('spanEnd', span);
-
-    expect(mockAddWebVitalsToSpan).toHaveBeenCalledWith(span, {
-      recordClsOnPageloadSpan: false,
-      recordLcpOnPageloadSpan: false,
-      spanStreamingEnabled: false,
     });
   });
 });

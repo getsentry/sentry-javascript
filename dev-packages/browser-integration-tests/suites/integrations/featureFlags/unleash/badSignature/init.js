@@ -10,6 +10,7 @@ window.Sentry = Sentry;
 window.sentryUnleashIntegration = Sentry.unleashIntegration({ featureFlagClientClass: window.UnleashClient });
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   sampleRate: 1.0,
   integrations: [window.sentryUnleashIntegration],

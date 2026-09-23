@@ -39,23 +39,49 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   );
 }) as typeof fetch;
 
-const client = Sentry.instrumentGoogleGenAIClient(new GoogleGenAI({ apiKey: 'mock-api-key' }));
-
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
-    streamGenAiSpans: true,
+    dataCollection: { genAI: { inputs: true } },
   }),
   {
     async fetch(_request, _env, _ctx) {
+      // Wrapped in-request so the SDK is initialized when recording options are resolved, which is
+      // also the only place a real Worker can read its API key from `env`.
+      const client = Sentry.instrumentGoogleGenAIClient(new GoogleGenAI({ apiKey: 'mock-api-key' }));
+
       // Test 1: chats.create and sendMessage flow
+      // Every field here is read back off the chat instance for each message the chat sends, so
+      // the create config covers all of them at once.
       const chat = client.chats.create({
         model: 'gemini-1.5-pro',
         config: {
           temperature: 0.8,
           topP: 0.9,
+          topK: 40,
           maxOutputTokens: 150,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.3,
+          systemInstruction: 'You are a friendly robot.',
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'controlLight',
+                  parametersJsonSchema: {
+                    type: 'object',
+                    properties: {
+                      brightness: { type: 'number' },
+                      colorTemperature: { type: 'string' },
+                    },
+                    required: ['brightness', 'colorTemperature'],
+                  },
+                },
+              ],
+            },
+          ],
         },
         history: [
           {

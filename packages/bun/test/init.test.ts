@@ -1,5 +1,5 @@
 import { type Integration } from '@sentry/core';
-import * as sentryNode from '@sentry/node';
+import * as sentryServerUtils from '@sentry/server-utils';
 import type { Mock } from 'bun:test';
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import {
@@ -22,26 +22,25 @@ class MockIntegration implements Integration {
 }
 
 describe('init()', () => {
-  let mockAutoPerformanceIntegrations: Mock<() => Integration[]>;
+  let mockGetTracingIntegrations: Mock<() => Integration[]>;
 
   beforeEach(() => {
-    // @ts-expect-error weird
-    mockAutoPerformanceIntegrations = spyOn(sentryNode, 'getAutoPerformanceIntegrations');
+    mockGetTracingIntegrations = spyOn(sentryServerUtils, 'getTracingIntegrations');
   });
 
   afterEach(() => {
-    mockAutoPerformanceIntegrations.mockRestore();
+    mockGetTracingIntegrations.mockRestore();
   });
 
   describe('integrations', () => {
     it("doesn't install default integrations if told not to", () => {
-      init({ dsn: PUBLIC_DSN, defaultIntegrations: false });
+      init({ dsn: PUBLIC_DSN, defaultIntegrations: false, traceLifecycle: 'static' });
 
       const client = getClient();
 
       expect(client?.getOptions().integrations).toEqual([]);
 
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('enables spotlight with default URL from config `true`', () => {
@@ -75,7 +74,7 @@ describe('init()', () => {
       expect(mockDefaultIntegrations[1]?.setupOnce).toHaveBeenCalledTimes(1);
       expect(mockIntegrations[0]?.setupOnce).toHaveBeenCalledTimes(1);
       expect(mockIntegrations[1]?.setupOnce).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('installs integrations returned from a callback function', () => {
@@ -99,12 +98,12 @@ describe('init()', () => {
       expect(mockDefaultIntegrations[0]?.setupOnce).toHaveBeenCalledTimes(1);
       expect(mockDefaultIntegrations[1]?.setupOnce).toHaveBeenCalledTimes(0);
       expect(newIntegration.setupOnce).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('installs performance default instrumentations if tracing is enabled', () => {
       const autoPerformanceIntegrations = [new MockIntegration('Performance integration')];
-      mockAutoPerformanceIntegrations.mockImplementation(() => autoPerformanceIntegrations);
+      mockGetTracingIntegrations.mockImplementation(() => autoPerformanceIntegrations);
 
       const mockIntegrations = [
         new MockIntegration('Some mock integration 4.1'),
@@ -120,7 +119,7 @@ describe('init()', () => {
       expect(mockIntegrations[0]?.setupOnce).toHaveBeenCalledTimes(1);
       expect(mockIntegrations[1]?.setupOnce).toHaveBeenCalledTimes(1);
       expect(autoPerformanceIntegrations[0]?.setupOnce).toHaveBeenCalledTimes(1);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(1);
 
       const integrations = getClient()?.getOptions().integrations;
       expect(integrations).toBeArray();
@@ -130,20 +129,38 @@ describe('init()', () => {
     });
   });
 
+  describe('runtime', () => {
+    it('defaults to bun', () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'static' });
+
+      expect(getClient()?.getOptions().runtime).toEqual({ name: 'bun', version: Bun.version });
+    });
+
+    it('respects a runtime provided through options', () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'static', runtime: { name: 'node', version: '20.0.0' } });
+
+      expect(getClient()?.getOptions().runtime).toEqual({ name: 'node', version: '20.0.0' });
+    });
+  });
+
   describe('initWithoutDefaultIntegrations()', () => {
     it('installs no default integrations', () => {
-      initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN });
+      initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN, traceLifecycle: 'static' });
 
       const client = getClient();
 
       expect(client?.getOptions().integrations).toEqual([]);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('still installs user-provided integrations', () => {
       const customIntegration = new MockIntegration('Custom integration');
 
-      initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN, integrations: [customIntegration] });
+      initWithoutDefaultIntegrations({
+        dsn: PUBLIC_DSN,
+        integrations: [customIntegration],
+        traceLifecycle: 'static',
+      });
 
       const client = getClient();
 
@@ -158,12 +175,12 @@ describe('init()', () => {
       const full = getDefaultIntegrations({}).map(({ name }) => name);
 
       expect(withoutPerformance).toEqual(full);
-      expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
+      expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(0);
     });
 
     it('omits the performance integrations that the full set adds when tracing is enabled', () => {
       const performanceIntegration = new MockIntegration('Performance integration');
-      mockAutoPerformanceIntegrations.mockImplementation(() => [performanceIntegration]);
+      mockGetTracingIntegrations.mockImplementation(() => [performanceIntegration]);
 
       const withoutPerformance = getDefaultIntegrationsWithoutPerformance().map(({ name }) => name);
       const full = getDefaultIntegrations({ tracesSampleRate: 1 }).map(({ name }) => name);

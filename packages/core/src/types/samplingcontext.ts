@@ -1,14 +1,12 @@
+import type { RawAttributes } from '../attributes';
 import type { RequestEventData } from '../types/request';
 import type { WorkerLocation } from './misc';
-import type { SpanAttributes } from './span';
 
 /**
  * Context data passed by the user when starting a transaction, to be used by the tracesSampler method.
  */
 export interface CustomSamplingContext {
-  // TODO: fix in v11, convert any to unknown
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -40,7 +38,7 @@ export interface SamplingContext extends CustomSamplingContext {
   name: string;
 
   /** Initial attributes that have been passed to the span being sampled. */
-  attributes?: SpanAttributes;
+  attributes: RawAttributes<Record<string, unknown>>;
 }
 
 /**

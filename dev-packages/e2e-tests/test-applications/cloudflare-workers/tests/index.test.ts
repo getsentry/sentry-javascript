@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForRequest, waitForTransaction } from '@sentry-internal/test-utils';
+import {
+  getSpanOp,
+  waitForError,
+  waitForRequest,
+  waitForStreamedSpan,
+  waitForStreamedSpans,
+} from '@sentry-internal/test-utils';
 import { SDK_VERSION } from '@sentry/cloudflare';
 import { WebSocket } from 'ws';
 
@@ -7,6 +13,22 @@ test('Index page', async ({ baseURL }) => {
   const result = await fetch(baseURL!);
   expect(result.status).toBe(200);
   await expect(result.text()).resolves.toBe('Hello World!');
+});
+
+test('Sends a streamed span for a basic request', async ({ baseURL }) => {
+  const spanPromise = waitForStreamedSpan('cloudflare-workers', span => {
+    return getSpanOp(span) === 'http.server' && span.is_segment;
+  });
+
+  await fetch(baseURL!);
+
+  const span = await spanPromise;
+
+  // The root path is a low-cardinality route, so the span keeps the full `GET /` name under streaming.
+  expect(span.name).toBe('GET /');
+  expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
+  expect(span.status).toBe('ok');
+  expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test("worker's withSentry", async ({ baseURL }) => {
@@ -78,26 +100,23 @@ test('sends user-agent header with SDK name and version in envelope requests', a
 
   const request = await requestPromise;
 
-  expect(request.rawProxyRequestHeaders).toMatchObject({
-    'user-agent': `sentry.javascript.cloudflare/${SDK_VERSION}`,
-  });
+  expect(request.rawProxyRequestHeaders['user-agent']).toBe(`sentry.javascript.cloudflare/${SDK_VERSION}`);
 });
 
-test('Storage operations create spans in Durable Object transactions', async ({ baseURL }) => {
-  const transactionWaiter = waitForTransaction('cloudflare-workers', event => {
-    return event.spans?.some(span => span.op === 'db' && span.description === 'durable_object_storage_put') ?? false;
+test('Storage operations create spans in Durable Object', async ({ baseURL }) => {
+  const spansPromise = waitForStreamedSpans('cloudflare-workers', spans => {
+    return spans.some(span => span.name === 'durable_object_storage_put' && getSpanOp(span) === 'db');
   });
 
   const response = await fetch(`${baseURL}/pass-to-object/storage/put`);
   expect(response.status).toBe(200);
 
-  const transaction = await transactionWaiter;
-  const putSpan = transaction.spans?.find(span => span.description === 'durable_object_storage_put');
+  const spans = await spansPromise;
+  const putSpan = spans.find(span => span.name === 'durable_object_storage_put' && getSpanOp(span) === 'db');
 
   expect(putSpan).toBeDefined();
-  expect(putSpan?.op).toBe('db');
-  expect(putSpan?.data?.['db.system.name']).toBe('cloudflare.durable_object.storage');
-  expect(putSpan?.data?.['db.operation.name']).toBe('put');
+  expect(putSpan?.attributes['db.system.name']?.value).toBe('cloudflare.durable_object.storage');
+  expect(putSpan?.attributes['db.operation.name']?.value).toBe('put');
 });
 
 test.describe('Alarm instrumentation', () => {
@@ -115,31 +134,31 @@ test.describe('Alarm instrumentation', () => {
     expect(event.exception?.values?.[0]?.mechanism?.type).toBe('auto.faas.cloudflare.durable_object');
   });
 
-  test('creates a transaction for alarm with new trace linked to setAlarm', async ({ baseURL }) => {
-    const setAlarmTransactionWaiter = waitForTransaction('cloudflare-workers', event => {
-      return event.spans?.some(span => span.description?.includes('storage_setAlarm')) ?? false;
+  test('creates a streamed span for alarm with new trace linked to setAlarm', async ({ baseURL }) => {
+    const setAlarmSpanPromise = waitForStreamedSpan('cloudflare-workers', span => {
+      return span.name === 'durable_object_storage_setAlarm' && span.is_segment === false;
     });
 
-    const alarmTransactionWaiter = waitForTransaction('cloudflare-workers', event => {
-      return event.transaction === 'alarm' && event.contexts?.trace?.op === 'function';
+    const alarmSpanPromise = waitForStreamedSpan('cloudflare-workers', span => {
+      return span.name === 'alarm' && getSpanOp(span) === 'function' && span.is_segment;
     });
 
     const response = await fetch(`${baseURL}/pass-to-object/setAlarm`);
     expect(response.status).toBe(200);
 
-    const setAlarmTransaction = await setAlarmTransactionWaiter;
-    const alarmTransaction = await alarmTransactionWaiter;
+    const setAlarmSpan = await setAlarmSpanPromise;
+    const alarmSpan = await alarmSpanPromise;
 
-    // Alarm creates a transaction with correct attributes
-    expect(alarmTransaction.contexts?.trace?.op).toBe('function');
-    expect(alarmTransaction.contexts?.trace?.origin).toBe('auto.faas.cloudflare.durable_object');
+    // Alarm creates a streamed span with correct attributes
+    expect(getSpanOp(alarmSpan)).toBe('function');
+    expect(alarmSpan.attributes['sentry.origin']?.value).toBe('auto.faas.cloudflare.durable_object');
 
     // Alarm starts a new trace (different trace ID from the request that called setAlarm)
-    expect(alarmTransaction.contexts?.trace?.trace_id).not.toBe(setAlarmTransaction.contexts?.trace?.trace_id);
+    expect(alarmSpan.trace_id).not.toBe(setAlarmSpan.trace_id);
 
     // Alarm links to the trace that called setAlarm via sentry.previous_trace attribute
-    const previousTrace = alarmTransaction.contexts?.trace?.data?.['sentry.previous_trace'];
+    const previousTrace = alarmSpan.attributes['sentry.previous_trace']?.value;
     expect(previousTrace).toBeDefined();
-    expect(previousTrace).toContain(setAlarmTransaction.contexts?.trace?.trace_id);
+    expect(previousTrace).toContain(setAlarmSpan.trace_id);
   });
 });

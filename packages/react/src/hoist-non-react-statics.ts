@@ -70,15 +70,6 @@ const ForwardRefType = Symbol.for('react.forward_ref');
 const MemoType = Symbol.for('react.memo');
 
 /**
- * Check if a component is a Memo component
- */
-function isMemo(component: unknown): boolean {
-  return (
-    typeof component === 'object' && component !== null && (component as { $$typeof?: symbol }).$$typeof === MemoType
-  );
-}
-
-/**
  * Map of React component types to their specific statics
  */
 const TYPE_STATICS: Record<symbol, Record<string, boolean>> = {};
@@ -89,12 +80,6 @@ TYPE_STATICS[MemoType] = MEMO_STATICS;
  * Get the appropriate statics object for a given component
  */
 function getStatics(component: React.ComponentType<unknown>): Record<string, boolean> {
-  // React v16.11 and below
-  if (isMemo(component)) {
-    return MEMO_STATICS;
-  }
-
-  // React v16.12 and above
   const componentType = (component as { $$typeof?: symbol }).$$typeof;
   return (componentType && TYPE_STATICS[componentType]) || REACT_STATICS;
 }
@@ -157,7 +142,7 @@ export function hoistNonReactStatics<
           try {
             // Avoid failures from read-only properties
             defineProperty(targetComponent, key, descriptor);
-          } catch (_e) {
+          } catch {
             // Silently ignore errors
           }
         }

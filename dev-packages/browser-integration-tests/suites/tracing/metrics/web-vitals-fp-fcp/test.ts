@@ -18,7 +18,7 @@ sentryTest('should capture FP vital.', async ({ browserName, getLocalTestUrl, pa
   const fpSpan = eventData.spans?.filter(({ description }) => description === 'first-paint')[0];
 
   expect(fpSpan).toBeDefined();
-  expect(fpSpan?.op).toBe('paint');
+  expect(fpSpan?.op).toBe('browser.paint');
   expect(fpSpan?.parent_span_id).toBe(eventData.contexts?.trace?.span_id);
 });
 
@@ -36,6 +36,6 @@ sentryTest('should capture FCP vital.', async ({ getLocalTestUrl, page }) => {
   const fcpSpan = eventData.spans?.filter(({ description }) => description === 'first-contentful-paint')[0];
 
   expect(fcpSpan).toBeDefined();
-  expect(fcpSpan?.op).toBe('paint');
+  expect(fcpSpan?.op).toBe('browser.paint');
   expect(fcpSpan?.parent_span_id).toBe(eventData.contexts?.trace?.span_id);
 });

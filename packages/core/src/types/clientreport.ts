@@ -2,6 +2,7 @@ import type { DataCategory } from './datacategory';
 
 export type EventDropReason =
   | 'before_send'
+  | 'callback_error'
   | 'event_processor'
   | 'network_error'
   | 'queue_overflow'

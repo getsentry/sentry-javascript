@@ -107,19 +107,15 @@ For each release or RFC that plausibly needs SDK work, draft one concrete, actio
 
 ### Step 6: Write output artifacts
 
-The `collect_updates.py` script in Step 1 prints its output path, e.g.:
+Write all files to `.agents/skills/track-framework-updates/output/` **relative to the repository root** — never relative paths like `output/` from the workspace root.
 
-```
-Wrote /abs/path/to/.agents/skills/track-framework-updates/output/framework-updates-raw.json: ...
-```
-
-Use that printed path to derive the output directory. All three files must be written to the **same directory** as `framework-updates-raw.json` — never relative paths like `output/` from the workspace root.
+Do NOT reuse the absolute directory printed by `collect_updates.py` in Step 1: in CI, Bash commands run in a sandbox where the workspace is mounted at a different absolute path (e.g. `/github/workspace/...`) that does not exist for the Write tool. The repo-relative path is valid in both contexts.
 
 Produce **three files**:
 
-1. The raw JSON was already written by Step 1 — no action needed.
-2. **`<output-dir>/framework-updates-digest.json`** — structured, machine-readable digest. Follow the schema in `assets/digest-schema.json`.
-3. **`<output-dir>/framework-updates-digest.md`** — human-readable digest. Follow the structure in `assets/digest-template.md`:
+1. `.agents/skills/track-framework-updates/output/framework-updates-raw.json` — already written by Step 1, no action needed.
+2. **`.agents/skills/track-framework-updates/output/framework-updates-digest.json`** — structured, machine-readable digest. Follow the schema in `assets/digest-schema.json`.
+3. **`.agents/skills/track-framework-updates/output/framework-updates-digest.md`** — human-readable digest. Follow the structure in `assets/digest-template.md`:
    - Group by Client-Side / Server-Side / Meta-Framework / Platform / Libraries.
    - Omit frameworks with no activity.
    - Include a "Run notes" section only if a fetcher reported errors.

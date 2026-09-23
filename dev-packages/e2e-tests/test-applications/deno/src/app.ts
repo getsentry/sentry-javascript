@@ -15,6 +15,10 @@ trace.setGlobalTracerProvider(fakeProvider as any);
 import * as Sentry from '@sentry/deno';
 import { generateText } from 'ai';
 import { MockLanguageModelV1 } from 'ai/test';
+import IORedis from 'ioredis';
+import mysql from 'mysql';
+import pg from 'pg';
+import { createClient } from 'redis';
 import { z } from 'zod';
 
 Sentry.init({
@@ -23,13 +27,96 @@ Sentry.init({
   debug: !!Deno.env.get('DEBUG'),
   tunnel: 'http://localhost:3031/',
   tracesSampleRate: 1,
-  dataCollection: { userInfo: true },
-  enableLogs: true,
+  // Left unset (so the default span streaming applies) unless the
+  // `deno (static trace lifecycle)` variant asks for the other lifecycle.
+  traceLifecycle: Deno.env.get('E2E_TEST_STATIC') ? 'static' : undefined,
 });
+
+// `mysql` and `pg` don't emit tracing signals on their own. The
+// `--preload=@sentry/deno/import` in this app's start script registers the
+// orchestrion runtime hook before the entry graph loads, so both are
+// transformed to publish the `orchestrion:mysql:query` / `orchestrion:pg:query`
+// diagnostics channels that `init()` above has just subscribed to. `deno.json`
+// maps that specifier to the installed file rather than to
+// `npm:@sentry/deno`, because this app installs the SDK from a local tarball.
+// A tarball has no registry version for Deno to match a preloaded `npm:`
+// specifier against.
+const connection = mysql.createConnection({
+  host: Deno.env.get('MYSQL_HOST') ?? '127.0.0.1',
+  port: Number(Deno.env.get('MYSQL_PORT') ?? 3306),
+  user: 'root',
+  password: 'password',
+});
+
+// Swallow connection errors (e.g. a DB container going away at teardown) so
+// they don't become an uncaught exception that crashes the process on shutdown.
+connection.on('error', (err: unknown) => {
+  // eslint-disable-next-line no-console
+  console.error('mysql connection error', err);
+});
+
+connection.connect((err: unknown) => {
+  if (err) {
+    // eslint-disable-next-line no-console
+    console.error('mysql connect error', err);
+  }
+});
+
+const pgClient = new pg.Client({
+  host: Deno.env.get('PGHOST') ?? '127.0.0.1',
+  port: Number(Deno.env.get('PGPORT') ?? 5432),
+  user: 'postgres',
+  password: 'password',
+  database: 'postgres',
+});
+
+pgClient.on('error', (err: unknown) => {
+  // eslint-disable-next-line no-console
+  console.error('pg client error', err);
+});
+
+pgClient.connect((err: unknown) => {
+  if (err) {
+    // eslint-disable-next-line no-console
+    console.error('pg connect error', err);
+  }
+});
+
+const redisUrl = Deno.env.get('REDIS_URL') ?? 'redis://127.0.0.1:6379';
+
+// One shared client per process. node-redis publishes to the
+// `node-redis:command` / `:batch` / `:connect` diagnostics channels for every
+// operation on this client; redisIntegration is already subscribed to
+// those.
+const redis = createClient({ url: redisUrl });
+function onRedisError(err: unknown) {
+  // eslint-disable-next-line no-console
+  console.error('redis client error', err);
+}
+redis.on('error', onRedisError);
+await redis.connect();
+
+// Separate ioredis client. ioredis >= 5.11 publishes to the `ioredis:command`
+// and `ioredis:connect` channels, which redisIntegration also subscribes
+// to. lazyConnect so we can yield a microtick before connecting and ensure
+// the DC subscriber is registered before ioredis creates its tracing channels.
+await Promise.resolve();
+const ioredisUrl = new URL(redisUrl);
+const ioredis = new IORedis({
+  host: ioredisUrl.hostname,
+  port: Number(ioredisUrl.port) || 6379,
+  lazyConnect: true,
+});
+function onIoredisError(err: unknown) {
+  // eslint-disable-next-line no-console
+  console.error('ioredis client error', err);
+}
+ioredis.on('error', onIoredisError);
+await ioredis.connect();
 
 const port = 3030;
 
-Deno.serve({ port }, async (req: Request) => {
+Deno.serve({ port, hostname: '0.0.0.0' }, async (req: Request) => {
   const url = new URL(req.url);
 
   if (url.pathname === '/test-success') {
@@ -300,6 +387,101 @@ Deno.serve({ port }, async (req: Request) => {
     return new Response(JSON.stringify({ message: 'Log sent' }), {
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  // Runs two queries, the second NESTED inside the first's callback. mysql
+  // dispatches that callback from its socket data handler (a fresh async
+  // context), so the nested query's span only lands on this request's
+  // http.server transaction if `denoMysqlIntegration`'s AsyncLocalStorage
+  // context strategy restored the parent across the async boundary.
+  if (url.pathname === '/test-mysql') {
+    await new Promise<void>((resolve, reject) => {
+      connection.query('SELECT 1 + 1 AS solution', (err: unknown) => {
+        if (err) return reject(err);
+        connection.query('SELECT NOW()', (err2: unknown) => {
+          if (err2) return reject(err2);
+          resolve();
+        });
+      });
+    });
+    return Response.json({ status: 'ok' });
+  }
+
+  // Same nested-callback shape as `/test-mysql`, for
+  // `denoPostgresIntegration`'s context strategy.
+  if (url.pathname === '/test-pg') {
+    await new Promise<void>((resolve, reject) => {
+      pgClient.query('SELECT 1 + 1 AS solution', (err: unknown) => {
+        if (err) return reject(err);
+        pgClient.query('SELECT NOW()', (err2: unknown) => {
+          if (err2) return reject(err2);
+          resolve();
+        });
+      });
+    });
+    return Response.json({ status: 'ok' });
+  }
+
+  // node-redis: GET — exercises the command channel, success path.
+  if (url.pathname === '/redis-get') {
+    const key = url.searchParams.get('key') ?? 'cache:key';
+    const value = await redis.get(key);
+    return Response.json({ key, value });
+  }
+
+  // node-redis: SET then GET — exercises two commands inside a single
+  // transaction so we can assert the parent has two db.query children.
+  if (url.pathname === '/redis-set-get') {
+    const key = url.searchParams.get('key') ?? 'cache:key';
+    const value = url.searchParams.get('value') ?? 'hello';
+    await redis.set(key, value);
+    const echoed = await redis.get(key);
+    return Response.json({ key, value: echoed });
+  }
+
+  // node-redis: MULTI — exercises the batch channel.
+  if (url.pathname === '/redis-multi') {
+    const result = await redis.multi().set('multi:a', '1').set('multi:b', '2').get('multi:a').exec();
+    return Response.json({ result });
+  }
+
+  // ioredis: GET — exercises the ioredis:command channel.
+  if (url.pathname === '/ioredis-get') {
+    const key = url.searchParams.get('key') ?? 'iocache:key';
+    const value = await ioredis.get(key);
+    return Response.json({ key, value });
+  }
+
+  // ioredis: SET then GET — two commands inside a transaction.
+  if (url.pathname === '/ioredis-set-get') {
+    const key = url.searchParams.get('key') ?? 'iocache:key';
+    const value = url.searchParams.get('value') ?? 'hello';
+    await ioredis.set(key, value);
+    const echoed = await ioredis.get(key);
+    return Response.json({ key, value: echoed });
+  }
+
+  // ioredis: MULTI — ioredis has no separate batch channel; per-command
+  // payloads carry `batchMode`/`batchSize` instead, so we still expect one
+  // db.query span per command.
+  if (url.pathname === '/ioredis-multi') {
+    const result = await ioredis.multi().set('iomulti:a', '1').set('iomulti:b', '2').get('iomulti:a').exec();
+    return Response.json({ result });
+  }
+
+  // ioredis: PIPELINE — same shape as MULTI from the perspective of the
+  // diagnostics channel.
+  if (url.pathname === '/ioredis-pipeline') {
+    const result = await ioredis.pipeline().set('iopipe:a', '1').set('iopipe:b', '2').get('iopipe:a').exec();
+    return Response.json({ result });
+  }
+
+  if (url.pathname === '/redis-disconnect') {
+    redis.off('error', onRedisError);
+    redis.close();
+    ioredis.off('error', onIoredisError);
+    ioredis.disconnect();
+    return new Response('ok');
   }
 
   return new Response('Not found', { status: 404 });

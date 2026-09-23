@@ -29,6 +29,7 @@ window.Sentry = Sentry;
 window.sentryStatsigIntegration = Sentry.statsigIntegration({ featureFlagClient: window.statsigClient });
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   sampleRate: 1.0,
   integrations: [window.sentryStatsigIntegration],

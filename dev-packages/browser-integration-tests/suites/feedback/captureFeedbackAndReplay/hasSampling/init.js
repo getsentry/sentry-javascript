@@ -5,6 +5,7 @@ import { feedbackIntegration } from '@sentry/browser';
 window.Sentry = Sentry;
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   replaysOnErrorSampleRate: 1.0,
   replaysSessionSampleRate: 1.0,

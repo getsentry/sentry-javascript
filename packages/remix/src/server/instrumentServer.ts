@@ -22,24 +22,35 @@ import {
   getRootSpan,
   getTraceData,
   hasSpansEnabled,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   httpHeadersToSpanAttributes,
-  isNodeEnv,
-  loadModule,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   spanToJSON,
   startSpan,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   withIsolationScope,
+  filterCollectedUrl,
 } from '@sentry/core';
+import { isNodeEnv, loadModule } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName, isCloudflareEnv } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
 import { generateSentryServerTimingHeader, injectServerTimingHeaderValue } from './serverTimingTracePropagation';
+import {
+  CODE_FUNCTION_NAME,
+  ROUTER_NAVIGATION_ROUTE_ID,
+  SENTRY_DESCRIPTION,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
+import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -122,19 +133,22 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
       if (instrumentTracing) {
         const activeSpan = getActiveSpan();
         const rootSpan = activeSpan && getRootSpan(activeSpan);
-        const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
+        const client = getClient();
+
+        const description = (rootSpan ? spanToJSON(rootSpan).name : undefined) || '<unknown>';
+        const name = client && hasSpanStreamingEnabled(client) ? 'documentRequest' : description;
 
         response = await startSpan(
           {
-            // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
-            // So we don't need to care too much about the fallback name, it's just for typing purposes....
-            name: name || '<unknown>',
+            name,
             onlyIfParent: true,
             attributes: {
               method: request.method,
-              url: request.url,
+              [URL_FULL]: filterCollectedUrl(request.url),
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
+              [SENTRY_OP]: FUNCTION,
+              [SENTRY_DESCRIPTION]: description,
+              [CODE_FUNCTION_NAME]: 'documentRequest',
             },
           },
           () => {
@@ -170,14 +184,24 @@ function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
 
     const routes = createRoutes(build.routes);
     const url = new URL(args.request.url);
-    const [transactionName] = getTransactionName(routes, url);
+    const [transactionName, source] = getTransactionName(routes, url);
 
     // Preserve the HTTP method prefix if the span already has one
     const method = args.request.method.toUpperCase();
-    const currentSpanName = spanToJSON(rootSpan).description;
+    const currentSpanName = spanToJSON(rootSpan).name;
     const newSpanName = currentSpanName?.startsWith(method) ? `${method} ${transactionName}` : transactionName;
 
-    rootSpan.updateName(newSpanName);
+    // Without a matched route `getTransactionName` falls back to the raw pathname, which would undo the
+    // low-cardinality name the span starts with under span streaming.
+    const client = getClient();
+    const isUnparameterizedStreamedSpan = source !== 'route' && !!client && hasSpanStreamingEnabled(client);
+    if (!isUnparameterizedStreamedSpan) {
+      rootSpan.updateName(newSpanName);
+    }
+    rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
+    if (source === 'route') {
+      rootSpan.setAttribute(HTTP_ROUTE, transactionName);
+    }
   } catch (e) {
     DEBUG_BUILD && debug.warn('Failed to update span name with route', e);
   }
@@ -199,14 +223,19 @@ function makeWrappedDataFunction(
         updateSpanWithRoute(args, build);
       }
 
+      const client = getClient();
+
       res = await startSpan(
         {
-          op: `function.remix.${name}`,
-          name: id,
+          // With span streaming, a `function` span is named after the function it wraps. The route
+          // module id stays on `router.navigation.route.id`.
+          name: client && hasSpanStreamingEnabled(client) ? name : id,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `function.remix.${name}`,
-            name,
+            [SENTRY_OP]: FUNCTION,
+            [SENTRY_DESCRIPTION]: id,
+            [CODE_FUNCTION_NAME]: name,
+            [ROUTER_NAVIGATION_ROUTE_ID]: id,
           },
         },
         (span: Span) => {
@@ -300,6 +329,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
 ): RequestHandler {
   let resolvedBuild: ServerBuild | { build: ServerBuild };
   let name: string;
+  let spanName: string;
   let source: TransactionSource;
 
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
@@ -327,7 +357,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
     }
 
     return withIsolationScope(async isolationScope => {
-      const clientOptions = getClient()?.getOptions();
+      const client = getClient();
 
       let normalizedRequest: RequestEventData = {};
 
@@ -337,23 +367,36 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         DEBUG_BUILD && debug.warn('Failed to normalize Remix request');
       }
 
+      const url = new URL(request.url);
       if (options?.instrumentTracing && resolvedRoutes) {
-        const url = new URL(request.url);
         [name, source] = getTransactionName(resolvedRoutes, url);
 
+        // The scope's transaction name is what error events are grouped by, so it keeps the URL path.
         isolationScope.setTransactionName(name);
+
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+        spanName =
+          source === 'route' || !client || !hasSpanStreamingEnabled(client)
+            ? name
+            : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
         // Update the span name if we're running inside an existing span
         const parentSpan = getActiveSpan();
         if (parentSpan) {
           const rootSpan = getRootSpan(parentSpan);
-          rootSpan?.updateName(name);
+          rootSpan?.updateName(spanName);
+          rootSpan?.setAttributes({
+            [SENTRY_SEGMENT_NAME_SOURCE]: source,
+            ...(source === 'route' && {
+              [HTTP_ROUTE]: name,
+            }),
+          });
         }
       }
 
       isolationScope.setSDKProcessingMetadata({ normalizedRequest });
 
-      if (!clientOptions || !hasSpansEnabled(clientOptions)) {
+      if (!client || !hasSpansEnabled(client.getOptions())) {
         return origRequestHandler.call(this, request, loadContext);
       }
 
@@ -366,19 +409,24 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
           if (options?.instrumentTracing) {
             const parentSpan = getActiveSpan();
             const rootSpan = parentSpan && getRootSpan(parentSpan);
-            rootSpan?.updateName(name);
-
+            rootSpan?.updateName(spanName);
+            rootSpan?.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
             return startSpan(
               {
-                name,
+                name: spanName,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: source,
+                  [SENTRY_OP]: HTTP_SERVER,
+                  [URL_FULL]: filterCollectedUrl(url.href),
+                  [URL_PATH]: url.pathname,
                   method: request.method,
+                  ...(source === 'route' && {
+                    [HTTP_ROUTE]: name,
+                  }),
                   ...httpHeadersToSpanAttributes(
                     winterCGHeadersToDict(request.headers),
-                    getClient()?.getDataCollectionOptions(),
+                    client.getDataCollectionOptions(),
                   ),
                 },
               },
@@ -495,7 +543,7 @@ export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: 
 
 /**
  * Monkey-patch Remix's `createRequestHandler` from `@remix-run/server-runtime`
- * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
+ * which Remix Adapters (https://remix.run/docs/en/main/other-api/adapter) use underneath.
  */
 export function instrumentServer(options?: { instrumentTracing?: boolean }): void {
   const pkg = loadModule<{

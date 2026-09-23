@@ -1,14 +1,10 @@
+import { ElementRef } from '@angular/core';
 import type { ActivatedRouteSnapshot } from '@angular/router';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SentrySpan,
-  spanToJSON,
-} from '@sentry/core';
+import { getMainCarrier, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SentrySpan, spanToJSON, startSpan } from '@sentry/core';
 import { describe, it } from 'vitest';
-import { browserTracingIntegration, init, TraceDirective } from '../src/index';
+import { browserTracingIntegration, init, TraceClass, TraceDirective } from '../src/index';
 import { _updateSpanAttributesForParametrizedUrl, getParameterizedRouteFromSnapshot } from '../src/tracing';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { expect } from 'vitest';
 
 describe('browserTracingIntegration', () => {
@@ -78,21 +74,21 @@ describe('Angular Tracing', () => {
       const route = '/users/:id/';
       const url = '/users/123/';
       const span = new SentrySpan({ name: 'initial-span-name' });
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+      span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'url');
 
       _updateSpanAttributesForParametrizedUrl(route, url, span);
 
       expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
-          data: expect.objectContaining({
+          attributes: expect.objectContaining({
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.undefined.angular',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [URL_TEMPLATE]: route,
             // URL_FULL is resolved against jsdom's http://localhost origin
             [URL_FULL]: expect.stringContaining('/users/123/'),
             [URL_PATH]: '/users/123/',
           }),
-          description: route,
+          name: route,
         }),
       );
     });
@@ -103,17 +99,17 @@ describe('Angular Tracing', () => {
       const route = '/users/:id/';
       const url = '/users/123/';
       const span = new SentrySpan({ name: 'initial-span-name' });
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'sample-source');
+      span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'sample-source');
 
       _updateSpanAttributesForParametrizedUrl(route, url, span);
 
       expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
-          data: {
+          attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'sample-source',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'sample-source',
           },
-          description: 'initial-span-name',
+          name: 'initial-span-name',
         }),
       );
     });
@@ -123,6 +119,86 @@ describe('Angular Tracing', () => {
     it('should create an instance', () => {
       const directive = new TraceDirective();
       expect(directive).toBeTruthy();
+    });
+
+    it('names the span after the element tag when the directive has no name and span streaming is enabled', () => {
+      getMainCarrier().__SENTRY__ = undefined;
+      const spans: SentrySpan[] = [];
+      const client = init({ defaultIntegrations: false, tracesSampleRate: 1, traceLifecycle: 'stream' });
+      client?.on('spanEnd', span => {
+        if (spanToJSON(span).attributes['sentry.origin'] === 'auto.ui.angular.trace_directive') {
+          spans.push(span as SentrySpan);
+        }
+      });
+
+      startSpan({ name: 'outer' }, () => {
+        const directive = new TraceDirective(new ElementRef(document.createElement('app-profile')));
+        directive.ngOnInit();
+        directive.ngAfterViewInit();
+      });
+
+      expect(spans).toHaveLength(1);
+      expect(spanToJSON(spans[0]!).name).toBe('app-profile');
+      expect(spanToJSON(spans[0]!).attributes['sentry.description']).toBe('<app-profile>');
+      expect(spanToJSON(spans[0]!).attributes['ui.component_name']).toBe('app-profile');
+    });
+  });
+
+  describe('TraceClass', () => {
+    it('uses the decorated class name when span streaming is enabled', () => {
+      getMainCarrier().__SENTRY__ = undefined;
+      const spans: SentrySpan[] = [];
+      const client = init({ defaultIntegrations: false, tracesSampleRate: 1, traceLifecycle: 'stream' });
+      client?.on('spanEnd', span => {
+        if (spanToJSON(span).attributes['sentry.origin'] === 'auto.ui.angular.trace_class_decorator') {
+          spans.push(span as SentrySpan);
+        }
+      });
+
+      class ProfileCard {
+        public ngOnInit(): void {}
+        public ngAfterViewInit(): void {}
+      }
+      TraceClass()(ProfileCard);
+
+      startSpan({ name: 'outer' }, () => {
+        const instance = new ProfileCard();
+        instance.ngOnInit();
+        instance.ngAfterViewInit();
+      });
+
+      expect(spans).toHaveLength(1);
+      expect(spanToJSON(spans[0]!).name).toBe('ProfileCard');
+      expect(spanToJSON(spans[0]!).attributes['sentry.description']).toBe('<unnamed>');
+      expect(spanToJSON(spans[0]!).attributes['ui.component_name']).toBe('ProfileCard');
+    });
+
+    it('tracks lifecycle spans independently for concurrent component instances', () => {
+      getMainCarrier().__SENTRY__ = undefined;
+      const spans: SentrySpan[] = [];
+      const client = init({ defaultIntegrations: false, tracesSampleRate: 1 });
+      client?.on('spanEnd', span => {
+        if (spanToJSON(span).attributes['sentry.origin'] === 'auto.ui.angular.trace_class_decorator') {
+          spans.push(span as SentrySpan);
+        }
+      });
+
+      class ProfileCard {
+        public ngOnInit(): void {}
+        public ngAfterViewInit(): void {}
+      }
+      TraceClass({ name: 'ProfileCard' })(ProfileCard);
+
+      startSpan({ name: 'outer' }, () => {
+        const first = new ProfileCard();
+        const second = new ProfileCard();
+        first.ngOnInit();
+        second.ngOnInit();
+        first.ngAfterViewInit();
+        second.ngAfterViewInit();
+      });
+
+      expect(spans).toHaveLength(2);
     });
   });
 });
