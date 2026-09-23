@@ -33,6 +33,16 @@
         "types": "./build/types/cli.d.ts",
         "default": "./build/cjs/cli.js"
       }
+    },
+    "./vite": {
+      "import": {
+        "types": "./build/types/vite.d.ts",
+        "default": "./build/esm/vite.js"
+      },
+      "require": {
+        "types": "./build/types/vite.d.ts",
+        "default": "./build/cjs/vite.js"
+      }
     }
   },
   "sideEffects": false,

@@ -9,11 +9,13 @@
     "react-router": "^8.0.0",
     "@react-router/node": "^8.0.0",
     "@react-router/serve": "^8.0.0",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
     "ioredis": "^5.11.1",
     "isbot": "^5.1.43"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.35.0",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@types/node": "^22",
@@ -21,18 +23,26 @@
     "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.6.3",
-    "vite": "^7.3.2"
+    "vite": "^7.3.2",
+    "wrangler": "^4.120.0"
   },
   "scripts": {
     "build": "react-router build",
     "test:build-latest": "pnpm install && pnpm add react-router@latest && pnpm add @react-router/node@latest && pnpm add @react-router/serve@latest && pnpm build",
     "dev": "NODE_OPTIONS='--import ./instrument.mjs' react-router dev",
     "start": "NODE_ENV=production NODE_OPTIONS='--import ./instrument.mjs' react-router-serve ./build/server/index.js",
+    "start:bun": "NODE_ENV=production bun --bun --preload ./instrument.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js",
+    "start:deno": "NODE_ENV=production deno run -A --preload ./instrument.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js",
+    "start:cloudflare": "wrangler dev --config ./build/server/wrangler.json --port 3030",
     "proxy": "node start-event-proxy.mjs",
     "typecheck": "react-router typegen && tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
+    "test:build:cloudflare": "pnpm install && react-router build --config vite.cloudflare.config.ts",
     "test:assert": "pnpm test:ts && pnpm test:playwright",
+    "test:assert:bun": "RUNTIME=bun pnpm test:assert",
+    "test:assert:deno": "RUNTIME=deno pnpm test:assert",
+    "test:assert:cloudflare": "RUNTIME=cloudflare pnpm test:assert",
     "test:ts": "pnpm typecheck",
     "test:playwright": "playwright test"
   },
@@ -63,6 +73,24 @@
       {
         "build-command": "pnpm test:build-latest",
         "label": "react-router-8-framework (latest)"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "assert-command": "pnpm test:assert:bun",
+        "runtime": "bun",
+        "label": "react-router-8-framework (bun)"
+      },
+      {
+        "assert-command": "pnpm test:assert:deno",
+        "runtime": "deno",
+        "deno-version": "v2.9.0",
+        "label": "react-router-8-framework (deno)"
+      },
+      {
+        "build-command": "pnpm test:build:cloudflare",
+        "assert-command": "pnpm test:assert:cloudflare",
+        "label": "react-router-8-framework (cloudflare)"
       }
     ]
   }

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { APP_NAME } from '../constants';
+import { APP_NAME, RUNTIME } from '../constants';
 
 test.describe('server - performance', () => {
   test('should send server span on pageload', async ({ page }) => {
@@ -26,7 +26,10 @@ test.describe('server - performance', () => {
       'sentry.origin': { value: 'auto.http.react_router.request_handler', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
-      'sentry.sdk.name': { value: 'sentry.javascript.react-router', type: 'string' },
+      'sentry.sdk.name': {
+        value: RUNTIME === 'cloudflare' ? 'sentry.javascript.cloudflare' : 'sentry.javascript.react-router',
+        type: 'string',
+      },
       'sentry.sdk.version': { value: expect.any(String), type: 'string' },
       'sentry.sdk.integrations': { value: expect.arrayContaining([expect.any(String)]), type: 'array' },
       'url.full': { value: expect.stringContaining('/performance'), type: 'string' },
@@ -56,7 +59,10 @@ test.describe('server - performance', () => {
       'sentry.origin': { value: 'auto.http.react_router.request_handler', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
-      'sentry.sdk.name': { value: 'sentry.javascript.react-router', type: 'string' },
+      'sentry.sdk.name': {
+        value: RUNTIME === 'cloudflare' ? 'sentry.javascript.cloudflare' : 'sentry.javascript.react-router',
+        type: 'string',
+      },
       'sentry.sdk.version': { value: expect.any(String), type: 'string' },
       'sentry.sdk.integrations': { value: expect.arrayContaining([expect.any(String)]), type: 'array' },
       'url.full': { value: expect.stringContaining('/performance/with/some-param'), type: 'string' },

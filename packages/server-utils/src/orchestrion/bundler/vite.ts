@@ -1,5 +1,6 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
-import type { ConfigEnv, Plugin, ResolvedConfig, UserConfig } from 'vite';
+import { builtinModules } from 'node:module';
+import type { ConfigEnv, Plugin, ResolvedConfig, Rollup, UserConfig } from 'vite';
 
 export type { Plugin as VitePlugin } from 'vite';
 import { instrumentedModuleNames } from '../config';
@@ -32,6 +33,20 @@ function ssrOnlyTransform(transform: Plugin['transform']): Plugin['transform'] {
     return { ...transform, handler: gate(transform.handler as TransformHandler) } as Plugin['transform'];
   }
   return transform;
+}
+
+const BARE_BUILTINS = new Set(builtinModules.filter(name => !name.startsWith('node:')));
+
+/**
+ * Wraps `output.paths` so bare Node builtin imports are written with the `node:` prefix. The
+ * force-bundled CJS dependencies call `require('events')` and similar, which Rollup keeps as a
+ * bare `import "events"`. Node and Bun load that, but Deno before 2.9 does not.
+ */
+function prefixBuiltinPaths(paths: Rollup.OutputOptions['paths']): NonNullable<Rollup.OutputOptions['paths']> {
+  return id => {
+    const path = typeof paths === 'function' ? paths(id) : (paths?.[id] ?? id);
+    return path === id && BARE_BUILTINS.has(id) ? `node:${id}` : path;
+  };
 }
 
 /**
@@ -117,6 +132,9 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       }
 
       return { resolve: { noExternal: noExternalModules() } };
+    },
+    outputOptions(outputOptions: Rollup.OutputOptions): Rollup.OutputOptions {
+      return { ...outputOptions, paths: prefixBuiltinPaths(outputOptions.paths) };
     },
     configResolved(config: ResolvedConfig): void {
       // Nothing is force-bundled in `serve`, so an externalized module is expected there.

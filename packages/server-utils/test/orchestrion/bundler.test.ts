@@ -324,6 +324,20 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(transform.call({}, 'code', 'id', { ssr: true })).toBe('transformed');
   });
 
+  it('writes bare builtin imports with the node: prefix and keeps other paths', () => {
+    const outputOptions = vitePlugin().outputOptions as (options: unknown) => { paths: (id: string) => string };
+
+    const { paths } = outputOptions({});
+    expect(paths('events')).toBe('node:events');
+    expect(paths('node:net')).toBe('node:net');
+    expect(paths('ioredis')).toBe('ioredis');
+
+    const { paths: userPaths } = outputOptions({ paths: { events: 'events-polyfill', lodash: 'lodash-es' } });
+    expect(userPaths('events')).toBe('events-polyfill');
+    expect(userPaths('lodash')).toBe('lodash-es');
+    expect(userPaths('net')).toBe('node:net');
+  });
+
   it('gates resolveId on the ssr flag and falls back to self-resolution', async () => {
     const plugin = vitePlugin();
     const resolveId = plugin.resolveId as (

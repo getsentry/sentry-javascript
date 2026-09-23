@@ -1,6 +1,7 @@
 import type { PassThrough } from 'node:stream';
 import { Transform } from 'node:stream';
 import { getTraceMetaTags } from '@sentry/core';
+import { isPrerenderRequest } from './serverBuild';
 
 /**
  * Injects Sentry trace meta tags into the HTML response by piping through a transform stream.
@@ -10,6 +11,7 @@ import { getTraceMetaTags } from '@sentry/core';
  */
 export function getMetaTagTransformer(body: PassThrough): Transform {
   const headClosingTag = '</head>';
+  const injectMetaTags = !isPrerenderRequest();
   // A single streaming decoder carries incomplete multi-byte sequences across chunk
   // boundaries. Decoding each chunk on its own (e.g. `Buffer.toString()`) would flush a
   // split character as U+FFFD, corrupting the response (see
@@ -18,7 +20,7 @@ export function getMetaTagTransformer(body: PassThrough): Transform {
   const htmlMetaTagTransformer = new Transform({
     transform(chunk, _encoding, callback) {
       const html = Buffer.isBuffer(chunk) ? decoder.decode(chunk, { stream: true }) : String(chunk);
-      if (html.includes(headClosingTag)) {
+      if (injectMetaTags && html.includes(headClosingTag)) {
         const modifiedHtml = html.replace(headClosingTag, `${getTraceMetaTags()}${headClosingTag}`);
         callback(null, modifiedHtml);
         return;
