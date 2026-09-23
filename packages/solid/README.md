@@ -14,6 +14,9 @@ The official Sentry SDK for monitoring Solid applications.
 
 For SolidStart applications, use the [SolidStart SDK](https://docs.sentry.io/platforms/javascript/guides/solidstart/).
 
+This SDK is in **Beta**. The API is stable but updates may include minor changes in behavior. Please reach out on
+[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
+
 ## Documentation
 
 - [Getting started](https://docs.sentry.io/platforms/javascript/guides/solid/)
