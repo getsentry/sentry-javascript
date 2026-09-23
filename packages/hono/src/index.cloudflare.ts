@@ -1,6 +1,7 @@
-import { earlyPatchHono } from './shared/applyPatches';
+import { earlyPatchHono } from '@sentry/server-utils/no-diagnostic-channels';
+import { Hono } from 'hono';
 
-earlyPatchHono();
+earlyPatchHono(Hono);
 
 export { sentry } from './cloudflare/middleware';
 
