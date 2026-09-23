@@ -2,6 +2,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectSyncKvStorage } from '../src/instrumentations/instrumentDurableObjectSyncKvStorage';
+import { initTestClient, resetSdk } from './testUtils';
 
 describe('instrumentDurableObjectSyncKvStorage', () => {
   afterEach(() => {
@@ -183,6 +184,31 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       expect(() => instrumented.get('myKey')).toThrow('Storage error');
+    });
+  });
+
+  describe('inside a parent span', () => {
+    afterEach(() => {
+      resetSdk();
+    });
+
+    it.each([
+      [1, true],
+      [0, false],
+    ])('with tracesSampleRate %s, starts a span: %s', (tracesSampleRate, startsSpan) => {
+      initTestClient({ tracesSampleRate });
+      const mockKv = createMockSyncKv();
+      const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
+
+      sentryCore.startSpan({ name: 'parent' }, () => {
+        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+
+        instrumented.get('myKey');
+
+        expect(startSpanSpy).toHaveBeenCalledTimes(startsSpan ? 1 : 0);
+      });
+
+      expect(mockKv.get).toHaveBeenCalledWith('myKey');
     });
   });
 });
