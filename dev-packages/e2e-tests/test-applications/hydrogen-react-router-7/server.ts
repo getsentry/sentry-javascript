@@ -9,7 +9,7 @@ import {
 import { type AppLoadContext, createRequestHandler, getStorefrontHeaders } from '@shopify/remix-oxygen';
 import { CART_QUERY_FRAGMENT } from '~/lib/fragments';
 import { AppSession } from '~/lib/session';
-import { wrapRequestHandler } from '@sentry/cloudflare/request';
+import { httpServerIntegration, wrapRequestHandler } from '@sentry/cloudflare/request';
 // Virtual entry point for the app
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
@@ -38,6 +38,7 @@ export default {
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           tracesSampleRate: 1.0,
           tunnel: `http://localhost:3031/`, // proxy server
+          integrations: [httpServerIntegration({ maxRequestBodySize: 'small' })],
         },
         // Need to cast to any because this is not on cloudflare
         request: request as any,
