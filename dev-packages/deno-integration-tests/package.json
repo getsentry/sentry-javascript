@@ -22,7 +22,7 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
-    "@sentry-internal/node-integration-tests": "10.67.0",
+    "@sentry-internal/node-integration-tests": "11.0.0",
     "vitest": "^3.2.7"
   },
   "volta": {
