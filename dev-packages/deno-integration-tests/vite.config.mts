@@ -1,8 +1,9 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
+import { NODE_SUITES_EXCLUDE } from './node-suites/excludes';
 
-// Runs the Node suites below on Deno. The scenarios stay in `node-integration-tests`, and the
+// Runs all Node suites on Deno. The scenarios stay in `node-integration-tests`, and the
 // Deno-only suites in `suites/` run with `deno test`.
 export default defineConfig({
   ...baseConfig,
@@ -13,16 +14,8 @@ export default defineConfig({
       enabled: false,
     },
     isolate: false,
-    include: [
-      'suites/public-api/**/test.ts',
-      'suites/client-reports/**/test.ts',
-      'suites/featureFlags/**/test.ts',
-      'suites/express/tracing/**/test.ts',
-      'suites/tracing/httpIntegration/test.ts',
-      'suites/tracing/httpIntegration-streamed/test.ts',
-    ],
-    // Single tests that fail on Deno are skipped with `test.skipIf` on `RUNTIME` in the Node suite.
-    exclude: ['**/node_modules/**'],
+    include: ['suites/**/test.ts'],
+    exclude: NODE_SUITES_EXCLUDE,
     env: {
       RUNTIME: 'deno',
       DENO_IMPORT_MAP: fileURLToPath(new URL('./node-suites/import-map.json', import.meta.url)),

@@ -488,7 +488,9 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
 
     createEsmAndCjsTests(__dirname, 'scenario-unsafe.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('should instrument sql.unsafe() queries', { timeout: 90_000 }, async () => {
-        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        // The last query fails on purpose, and its unhandled rejection also sends an error event, which can
+        // arrive before the transaction.
+        await createTestRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });
