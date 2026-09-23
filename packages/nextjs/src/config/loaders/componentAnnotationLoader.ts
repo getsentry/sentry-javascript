@@ -1,4 +1,4 @@
-import { createComponentNameAnnotateHooks } from '@sentry/bundler-plugins/core';
+import { createComponentNameAnnotateHooks } from '@sentry/bundler-plugins/loader-utils';
 import type { LoaderThis } from './types';
 
 export type ComponentAnnotationLoaderOptions = {
