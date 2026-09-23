@@ -19,7 +19,8 @@
   ],
   "main": "src/index.js",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v10"
   },
   "scripts": {
     "clean": "yarn rimraf sentry-eslint-plugin-sdk-*.tgz",

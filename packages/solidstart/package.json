@@ -54,7 +54,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v10"
   },
   "peerDependencies": {
     "@solidjs/router": ">=0.13.4 <2.0.0-0",

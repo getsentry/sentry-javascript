@@ -46,7 +46,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v10"
   },
   "dependencies": {
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.3",
