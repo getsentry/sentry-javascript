@@ -74,7 +74,8 @@ describe('solidErrorsIntegration', () => {
       mechanism: { type: 'auto.function.solid.error_boundary', handled: true },
     });
     // Where it broke, apart from where it was met.
-    expect(event.tags?.['solid.owner']).toBe('<App> › <Errored> › computed › <Widget> › view');
+    // The boundary's `children` memo is labelled by the primitive that made it (rc.10+).
+    expect(event.tags?.['solid.owner']).toBe('<App> › <Errored> › children › <Widget> › view');
     expect(event.tags?.['solid.boundary']).toBe('<App> › <Errored>');
     expect(event.extra?.['solid.boundaryPath']).toEqual(['<App>', '<Errored>']);
     dispose();

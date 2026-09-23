@@ -1,5 +1,5 @@
 import type { Span, SpanContextData, SpanLink } from '@sentry/core';
-import { debug, defineIntegration, startInactiveSpan } from '@sentry/core';
+import { debug, defineIntegration, hasSpansEnabled, startInactiveSpan } from '@sentry/core';
 import type { CallEvent, CallLive } from '@solidjs/web';
 import { OBSERVE } from 'solid-js';
 import type {
@@ -10,7 +10,7 @@ import type {
   NavigationEvent,
   RerunEvent,
 } from 'solid-js/attribution';
-import { attribution } from 'solid-js/attribution';
+import { attribution, isSilentHold } from 'solid-js/attribution';
 import type { DiagnosticsOptions } from '../common/diagnostics';
 import { captureDiagnostic } from '../common/diagnostics';
 import { describeOrigin, describeTarget } from '../common/target';
@@ -58,16 +58,28 @@ export interface SolidTracingOptions {
 export const solidTracingIntegration = defineIntegration((options: SolidTracingOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setup() {
+    setup(client) {
       if (OBSERVE === undefined) {
         DEBUG_BUILD && debug.warn('solidTracingIntegration: solid-js is not an observe build; no traces');
+        return;
+      }
+      // No tracing, no hold: a client that will never start a span should
+      // not keep the engine recording on its behalf.
+      if (!hasSpansEnabled(client.getOptions())) {
+        DEBUG_BUILD && debug.log('solidTracingIntegration: tracing is not enabled; the attribution engine is not held');
         return;
       }
       // Solid's channels are process-wide, not per client: a second `init`
       // (tests, HMR) replaces the previous subscriptions rather than stacking.
       uninstall?.();
       const tracer = new Tracer(options.targetText === true);
-      attribution.enable({ historyLimit: 200, ...options.attribution, log: false });
+      // `enable()` is a hold on a shared engine, not a switch: Solid's own
+      // Performance-panel tracks, a diagnostics capture and this SDK coexist,
+      // options combine by the most demanding request per key (`log: false`
+      // asks for nothing; it silences no one), and the engine stays up while
+      // any hold remains. The returned release is this SDK's — `disable()`
+      // would tear the engine down for every consumer.
+      const release = attribution.enable({ historyLimit: 200, ...options.attribution, log: false });
       const off = [
         attribution.subscribe('rerun', event => tracer.rerun(event)),
         attribution.subscribe('interaction', event => queueMicrotask(() => tracer.interaction(event))),
@@ -99,13 +111,12 @@ export const solidTracingIntegration = defineIntegration((options: SolidTracingO
       }
       uninstall = () => {
         for (const fn of off) fn();
+        release();
         uninstall = undefined;
       };
     },
   };
 });
-
-const isSilent = (hold: HoldEvent): boolean => hold.acknowledgements.length === 0 && hold.paintedDuringHold === 0;
 
 function holdSpan(hold: HoldEvent, parent: Span | null, keepText: boolean): Span {
   const span = startInactiveSpan({
@@ -117,7 +128,7 @@ function holdSpan(hold: HoldEvent, parent: Span | null, keepText: boolean): Span
       'solid.hold.ms': round(hold.holdMs),
       'solid.hold.tailMs': round(hold.tailMs),
       'solid.hold.flushes': hold.flushes,
-      'solid.hold.silent': isSilent(hold),
+      'solid.hold.silent': isSilentHold(hold),
       'solid.hold.acknowledgedBy': hold.acknowledgements.map(a => `${a.kind}:${a.source}`),
       'solid.hold.readers': hold.acknowledgements.flatMap(a => (a.reader ? [a.reader.join(' › ')] : [])),
       'solid.hold.blockers': hold.blockers,
@@ -139,7 +150,7 @@ function navigationSpan(nav: NavigationEvent, parent: Span | null, keepText: boo
     'solid.navigation.outcome': nav.outcome,
     'solid.navigation.writes': nav.writes,
     'solid.navigation.redirects': nav.redirects?.map(h => h.to ?? h.name ?? '?'),
-    'solid.navigation.silent': nav.hold !== undefined && isSilent(nav.hold),
+    'solid.navigation.silent': nav.hold !== undefined && isSilentHold(nav.hold),
     'sentry.origin': ORIGIN,
   };
   for (const [key, value] of Object.entries(nav.params ?? {})) {
@@ -221,6 +232,11 @@ class Tracer {
   public interaction(event: InteractionEvent): void {
     const { origin } = event;
     this._settled.add(origin);
+    // `at` is the browser event's own timestamp (the same instant Chrome's
+    // INP entry starts at), so the span covers the input delay the browser
+    // counts first; the handler itself ran from `at + inputDelayMs`.
+    const inputDelayMs = event.inputDelayMs ?? 0;
+    const handlerEnd = event.at + inputDelayMs + event.handlerMs;
     const span = startInactiveSpan({
       name: describeOrigin(origin, this.keepText),
       op: `ui.interaction.${event.name}`,
@@ -230,6 +246,7 @@ class Tracer {
         'solid.interaction.type': event.name,
         'solid.interaction.target': describeTarget(event.target, this.keepText),
         'solid.interaction.outcome': event.outcome,
+        'solid.interaction.inputDelayMs': event.inputDelayMs === undefined ? undefined : round(event.inputDelayMs),
         'solid.interaction.handlerMs': round(event.handlerMs),
         'solid.interaction.writes': event.writes,
         'solid.reruns': event.runs,
@@ -252,9 +269,9 @@ class Tracer {
       this._calls.delete(origin);
       for (const call of calls) callSpan(call.event, call.live, span, this.keepText);
     }
-    span.end(epochSeconds(event.at + (event.settledMs ?? event.handlerMs)));
+    span.end(epochSeconds(event.settledMs === undefined ? handlerEnd : event.at + event.settledMs));
     this._spans.set(origin, span);
-    this._recent.push({ at: event.at, until: event.at + event.handlerMs, context: span.spanContext() });
+    this._recent.push({ at: event.at, until: handlerEnd, context: span.spanContext() });
     if (this._recent.length > RECENT_LIMIT) this._recent.shift();
   }
 

@@ -18,9 +18,11 @@ Solid 2 ships three builds of every runtime package, selected by export conditio
 | `dev`     | `development` | observe + the dev checks and the console face: `DEV`. Unminified.                | —                        |
 
 The tiers nest: whatever works on `observe` works on `dev`. An app opts in with `solid({ observe: true })` in
-`@solidjs/vite-plugin`, which sets the condition for every environment and turns on the compiler's `componentNames`
-(component labels survive minification — the `<App> › <Feed>` paths below). In `vite dev` the `development`
-condition still wins, by design: the dev build is a superset.
+`@solidjs/vite-plugin`, which sets the condition for every environment and turns on the compiler's `sourceNames`
+(component labels survive minification — the `<App> › <Feed>` paths below; a follow-up plugin release extends it to
+primitives and binding effects, so owner-path labels read `count` and `span.textContent` rather than `signal` and
+`effect`, and issues fingerprinted by `[code, ...ownerPath]` re-fingerprint once when an app upgrades). In `vite dev`
+the `development` condition still wins, by design: the dev build is a superset.
 
 What this means for the SDK:
 
@@ -101,15 +103,29 @@ The contract that shapes the integration:
 
 ### The attribution engine (observe tier, `solid-js/attribution`)
 
-`attribution.enable(options)` installs the engine into the core's single hook slot; `attribution.subscribe(type, fn)`
-delivers `InteractionEvent`, `NavigationEvent`, `HoldEvent` and `RerunEvent` as they settle, bottom-up (a hold before
-the navigation it held, before the interaction that performed it). The SDK uses only those two calls. The engine's
-folds (`costs()`, `feedback()`, `why()`, `subscriptions()`) are named exports the SDK never imports, so they
-tree-shake out of an app that only ships the integration.
+`attribution.enable(options)` takes a **hold** on a shared engine and returns its release. The engine is installed
+into the core's single hook slot while any hold remains — Solid's own Performance-panel tracks
+(`@solidjs/web/performance-tracks`), a diagnostics capture and this SDK coexist and see the same records — and
+options combine across holds by the most demanding request per key (booleans OR, `historyLimit` max, the threshold
+that fires sooner wins), so `log: false` asks for nothing and silences no one, and a hold can add to what another
+asked for but never take it away. The SDK keeps the release and calls it on re-`init` (HMR, tests); it never calls
+`attribution.disable()`, which tears the engine down for every consumer and is the console's and a test harness's
+reset. `attribution.subscribe(type, fn)` delivers `InteractionEvent`, `NavigationEvent`, `HoldEvent` and
+`RerunEvent` as they settle, bottom-up (a hold before the navigation it held, before the interaction that performed
+it); subscriptions are dropped only when the last hold is released. The engine's folds (`costs()`, `feedback()`,
+`why()`, `subscriptions()`) are named exports the SDK never imports, so they tree-shake out of an app that only ships
+the integration; `isSilentHold()`/`isLongHold()` are the engine's own verdicts, and the SDK uses them so its
+`solid.hold.silent` agrees with the `SILENT_HOLD` finding by construction. Five further record types exist —
+`create`, `effect`, `flush`, `flight`, `fallback` — built only while a listener for them exists; they are
+profiler-grain and the SDK does not subscribe (`flight`, an async span per kickoff joined to its interaction, is the
+one worth a product look).
 
-- `InteractionEvent`: one per user event the web runtime stamped (`click`, `keydown`, …), with the handler's
-  duration, the writes it made, the re-runs and creations it caused, `settledMs` (dispatch → last effect that traces
-  back to it), and its `holds` and `navigations`. The integration's root span.
+- `InteractionEvent`: one per user event the web runtime stamped (`click`, `keydown`, …). `at` is the browser
+  event's own `timeStamp` — the same instant Chrome's INP entry (`PerformanceEventTiming.startTime`) starts at — and
+  `inputDelayMs` the queueing before the handler ran; the SDK's span starts at `at` and carries the delay as
+  `solid.interaction.inputDelayMs`. The record carries the handler's own duration (`handlerMs`, from handler entry),
+  the writes it made, the re-runs and creations it caused, `settledMs` (from `at` to the last effect that traces back
+  to it), and its `holds` and `navigations`. The integration's root span.
 - `NavigationEvent`: declared by the router via `withOrigin` — route pattern as `name`, concrete `to`/`from`,
   `params`, redirect hops, `outcome`. Router-agnostic: any router that wraps its location write gets these; the SDK
   has no router code.
@@ -138,9 +154,11 @@ derives its parent from the latter; the provider is where Sentry's view wins.
 
 ## What the integration decides, and what it does not
 
-- **Sampling** is the SDK's (`tracesSampleRate` / `tracesSampler`). An unsampled session still pays Solid's 1.3 KB
-  wiring, but not the engine's work: `attribution.enable()` is called regardless today — a follow-up can gate it on
-  the sampling decision.
+- **Sampling** is the SDK's (`tracesSampleRate` / `tracesSampler`). A client with tracing off takes no hold on the
+  engine (`hasSpansEnabled`), so it pays Solid's 1.3 KB wiring and nothing of the engine's work; per-trace sampling
+  happens after the fact on records the engine produced anyway. `checks: false` in `attribution` options would fold
+  the five cost checks' bookkeeping off for a records-only posture; the SDK leaves them on because it reports their
+  findings as issues.
 - **Span topology.** A user interaction is a **root** span (`parentSpan: null`); its navigations, holds and calls are
   children; a navigation or hold no interaction claims is a root of its own; an orphan navigation whose request time
   falls inside a settled interaction's handler window gets a span **link** to it rather than a guessed parent. Whether

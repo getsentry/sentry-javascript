@@ -57,6 +57,63 @@ describe('solidTracingIntegration', () => {
     flush();
   });
 
+  it('holds the engine beside other consumers and lets go of only its own hold', async () => {
+    // A co-holder (Solid's own Performance-panel tracks, a diagnostics capture) first.
+    const releaseOther = attribution.enable({ log: false });
+    const { client, captured } = clientWith();
+    expect(OBSERVE!.attribution.installed).not.toBeNull();
+
+    // The other consumer leaves; the SDK's hold keeps the engine up and recording.
+    releaseOther();
+    expect(OBSERVE!.attribution.installed).not.toBeNull();
+    const app = readerApp();
+    OBSERVE!.attribution.withInteraction({ type: 'click', target: 'button#save' }, () => app.setCount(1));
+    flush();
+    await settle();
+    await client.flush(100);
+    expect(captured.spans.some(span => span.attributes['sentry.op'] === 'ui.interaction.click')).toBe(true);
+
+    // A second init replaces the first hold rather than stacking a new one:
+    // after a co-holder's release the engine is still up (the SDK's hold),
+    // and a global disable() — the test harness's reset — takes it down.
+    clientWith();
+    const releaseAgain = attribution.enable();
+    releaseAgain();
+    expect(OBSERVE!.attribution.installed).not.toBeNull();
+    app.dispose();
+  });
+
+  it('takes no hold on a client that will never start a span', () => {
+    const client = new BrowserClient({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      integrations: [solidTracingIntegration()],
+      transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
+      stackParser: () => [],
+    });
+    setCurrentClient(client);
+    client.init();
+    expect(OBSERVE!.attribution.installed).toBeNull();
+  });
+
+  it("an interaction span starts at the browser event's own timestamp and carries the input delay", async () => {
+    const { client, captured } = clientWith();
+    const app = readerApp();
+    // The web runtime dates the frame from `event.timeStamp`; 40ms of queueing before the handler ran.
+    const at = performance.now() - 40;
+    OBSERVE!.attribution.withInteraction({ type: 'click', target: 'button#save', at }, () => app.setCount(1));
+    flush();
+    await settle();
+    await client.flush(100);
+
+    const segment = captured.spans.find(
+      span => span.is_segment && span.attributes['sentry.op'] === 'ui.interaction.click',
+    )!;
+    expect(segment.start_timestamp).toBeCloseTo((performance.timeOrigin + at) / 1000, 3);
+    expect(segment.attributes['solid.interaction.inputDelayMs']).toBeGreaterThanOrEqual(39);
+    expect(segment.end_timestamp).toBeGreaterThan(segment.start_timestamp + 0.039);
+    app.dispose();
+  });
+
   it('turns a user interaction into a segment with the navigation it performed as a child', async () => {
     const { client, captured } = clientWith();
     expect(OBSERVE!.attribution.installed).not.toBeNull();
