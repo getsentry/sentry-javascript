@@ -44,6 +44,11 @@ const thirdPartyLicensePlugin = license({
   },
 });
 
+// Split so a downstream bundler that inlines this package can drop the parse/query/generate/sourcemap
+// libraries. They are only reached through the `code-transformer` factory, whose failures surface as
+// the "bundled into your application" warning in `register.ts` instead of a crash.
+const SPLITTABLE_VENDORED = /vendored\/(meriyah|astring|source-map|esquery)\//;
+
 const orchestrionRuntimeHooks = [
   // The side-effecting `--import` entry SDKs reference via a `--import` flag. We pass it through
   // rolldown only to copy it to `build/import-hook.mjs` at the path the package.json `exports` map
@@ -72,6 +77,7 @@ export default [
           plugins.makeEsqueryCjsAliasPlugin(),
           thirdPartyLicensePlugin,
           plugins.makeBuiltinRequireShimPlugin(),
+          plugins.makeCjsExportsSplitPlugin(SPLITTABLE_VENDORED),
         ],
         output: {
           exports: 'named',
