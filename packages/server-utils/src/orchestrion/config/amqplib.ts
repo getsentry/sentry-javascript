@@ -12,7 +12,7 @@ import { getModuleNames } from './module-names';
 //   to capture connection attributes.
 //
 // The version range mirrors `supportedVersions` in the vendored OTel instrumentation.
-const module = { name: 'amqplib', versionRange: '>=0.5.5 <2' } as const;
+const module = { name: 'amqplib', versionRange: '>=0.5.5 <3' } as const;
 
 export const amqplibConfig = [
   // Producer span + trace-header injection. `sendToQueue` delegates to `publish`, so it's covered.
