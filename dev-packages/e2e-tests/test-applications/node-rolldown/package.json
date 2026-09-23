@@ -17,7 +17,7 @@
   "devDependencies": {
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "graphql": "16.9.0",
-    "rolldown": "1.2.5"
+    "rolldown": "1.2.10"
   },
   "volta": {
     "extends": "../../package.json"
