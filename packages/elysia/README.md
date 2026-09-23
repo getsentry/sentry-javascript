@@ -12,7 +12,7 @@
 
 The official Sentry SDK for monitoring Elysia applications.
 
-> **Alpha**: This SDK is in alpha stage and may have breaking changes in future releases.
+> NOTICE: This package is in alpha state and may be subject to breaking changes.
 
 ## Documentation
 
