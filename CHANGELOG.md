@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.75.3
+
+- fix(v10/tanstackstart-react): Reject non-POST requests to the managed tunnel route ([#24617](https://github.com/getsentry/sentry-javascript/pull/24617))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore(v10/bundler-plugins): move traces sample rate from 1.0 to 0.3 ([#24646](https://github.com/getsentry/sentry-javascript/pull/24646))
+- chore(v10/publish): Tag all packages as v10 ([#24619](https://github.com/getsentry/sentry-javascript/pull/24619))
+
+</details>
+
 ## 10.75.2
 
 - fix(v10/cloudflare): Enforce flush timeout across Workflow lifecycle ([#24582](https://github.com/getsentry/sentry-javascript/pull/24582))
