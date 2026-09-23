@@ -4,58 +4,20 @@
   </a>
 </p>
 
-# Official Sentry SDK for Bun (Beta)
+# Official Sentry SDK for Bun
 
 [![npm version](https://img.shields.io/npm/v/@sentry/bun.svg)](https://www.npmjs.com/package/@sentry/bun)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/bun.svg)](https://www.npmjs.com/package/@sentry/bun)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/bun.svg)](https://www.npmjs.com/package/@sentry/bun)
 
-## Links
+The official Sentry SDK for monitoring Bun applications.
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+## Documentation
 
-The Sentry Bun SDK is in beta. Please help us improve the SDK by
-[reporting any issues or giving us feedback](https://github.com/getsentry/sentry-javascript/issues).
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/bun/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/bun/configuration/)
 
-## Usage
+## Support
 
-To use this SDK, call `init(options)` as early as possible in the main entry module. This will initialize the SDK and
-hook into the environment. Note that you can turn off almost all side effects using the respective options.
-
-```javascript
-// CJS Syntax
-const Sentry = require('@sentry/bun');
-// ESM Syntax
-import * as Sentry from '@sentry/bun';
-
-Sentry.init({
-  dsn: '__DSN__',
-  // ...
-});
-```
-
-To set context information or send manual events, use the exported functions of `@sentry/bun`. Note that these functions
-will not perform any action before you have called `init()`:
-
-```javascript
-// Set user information, as well as tags and further extras
-Sentry.setExtra('battery', 0.7);
-Sentry.setTag('user_mode', 'admin');
-Sentry.setUser({ id: '4711' });
-
-// Add a breadcrumb for future events
-Sentry.addBreadcrumb({
-  message: 'My Breadcrumb',
-  // ...
-});
-
-// Capture exceptions, messages or manual events
-Sentry.captureMessage('Hello, world!');
-Sentry.captureException(new Error('Good bye'));
-Sentry.captureEvent({
-  message: 'Manual',
-  stacktrace: [
-    // ...
-  ],
-});
-```
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)
