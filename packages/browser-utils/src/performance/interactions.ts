@@ -1,4 +1,5 @@
 import {
+  BROWSER_WEB_VITAL_INP_TARGET,
   HTTP_ROUTE,
   ROUTER_NAVIGATION_ROUTE_ID,
   SENTRY_IDLE_SPAN_FINISH_REASON,
@@ -254,7 +255,7 @@ function trackInteractionsAsSpans(client: Client): void {
           attributes: {
             [SENTRY_OP]: UI_INTERACTION_CLICK,
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
-            ...(selector && selector !== UNKNOWN_ELEMENT_NAME && { 'browser.web_vital.inp.target': selector }),
+            ...(selector && selector !== UNKNOWN_ELEMENT_NAME && { [BROWSER_WEB_VITAL_INP_TARGET]: selector }),
           },
         };
 

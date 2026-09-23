@@ -1,7 +1,13 @@
 import { _INTERNAL_filterKeyValueData, defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { filterCollectedUrl } from '@sentry/core';
-import { HTTP_REQUEST_HEADER_KEY_BASE, SENTRY_OP, URL_FULL, USER_AGENT_ORIGINAL } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_HEADER_KEY_BASE,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_OP,
+  URL_FULL,
+  USER_AGENT_ORIGINAL,
+} from '@sentry/conventions/attributes';
 
 /**
  * Collects information about HTTP request headers and
@@ -61,7 +67,7 @@ export const httpContextIntegration = defineIntegration(() => {
         // Likewise for the "Filter out localhost events" feature. Deliberately inlined rather than
         // sharing the server-side helper, which costs bundle size for request headers and IPs that
         // don't exist here. Mirrors Relay's localhost filter (relay-filter/src/localhost.rs).
-        'sentry.is_localhost':
+        [SENTRY_IS_LOCALHOST]:
           protocol === 'file:' ||
           hostname === 'localhost' ||
           hostname === '127.0.0.1' ||
