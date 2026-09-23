@@ -10,34 +10,18 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry/eslint-config-sdk)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry/eslint-config-sdk)
 
+Shared ESLint configuration used at Sentry.
+
 > [!NOTE]
 > This package is an internal library published for use by Sentry-owned JavaScript SDK packages and repositories. It is
 > not part of the public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on
 > it directly.
 
-## Links
+## Documentation
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [Usage and configuration](https://github.com/getsentry/sentry-javascript/blob/develop/docs/sdk-tooling.md#eslint-configuration)
 
-## General
+## Support
 
-Install with `yarn add -D @sentry/eslint-config-sdk`
-
-## Configuration
-
-Use `@sentry` for base rules. Make sure to specify your tsconfig under `parserOptions.project` so that you can
-correctly use the typescript rules. This configuration comes with
-
-```json
-{
-  "extends": ["@sentry/sdk"],
-  "overrides": [
-    {
-      "files": ["*.ts", "*.tsx", "*.d.ts"],
-      "parserOptions": {
-        "project": "./tsconfig.json"
-      }
-    }
-  ]
-}
-```
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

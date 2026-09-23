@@ -10,45 +10,18 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/typescript.svg)](https://www.npmjs.com/package/@sentry/typescript)
 
+Shared TypeScript configuration used at Sentry.
+
 > [!NOTE]
 > This package is an internal library published for use by Sentry-owned JavaScript SDK packages and repositories. It is
 > not part of the public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on
 > it directly.
 
-## Links
+## Documentation
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [Usage and configuration](https://github.com/getsentry/sentry-javascript/blob/develop/docs/sdk-tooling.md#typescript-configuration)
 
-## General
+## Support
 
-Shared typescript configuration used at Sentry.
-
-## Installation
-
-```sh
-# With Yarn:
-yarn add --dev @sentry/typescript
-
-# With NPM:
-npm install --save-dev @sentry/typescript
-```
-
-## Usage
-
-Add the following config files to your project's root directory:
-
-**tsconfig.json**:
-
-```json
-{
-  "extends": "./node_modules/@sentry/typescript/tsconfig.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "rootDir": "src",
-    "outDir": "dist"
-  }
-}
-```
-
-For an example of how to use this package in a monorepo, check out this package's own parent repo,
-https://github.com/getsentry/sentry-javascript.
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)
