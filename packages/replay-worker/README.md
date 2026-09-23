@@ -8,6 +8,8 @@
 
 Generates a web worker and converts it to a string for use by Sentry Session Replay.
 
+By extracting this into a dedicated (private, internal) package, we can streamline the build of replay.
+
 > [!NOTE]
 > This is a private package used internally by Sentry’s JavaScript SDKs. It is not part of the public API contract
 > and may change at any time.
