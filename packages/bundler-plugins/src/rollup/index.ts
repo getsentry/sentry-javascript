@@ -168,31 +168,29 @@ export function _rollupPluginInternal(
         !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
       )
     : undefined;
-  const transformFastAnnotations =
-    options.reactComponentAnnotation?.enabled && !options.reactComponentAnnotation?._experimentalInjectIntoHtml
-      ? (() => {
-          let fastAnnotationHooksPromise: Promise<FastAnnotationHooks> | undefined;
+  const transformFastAnnotations = options.reactComponentAnnotation?.enabled
+    ? (() => {
+        let fastAnnotationHooksPromise: Promise<FastAnnotationHooks> | undefined;
 
-          return {
-            transform(code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
-              if (!fastAnnotationHooksPromise) {
-                fastAnnotationHooksPromise = import('../core/component-annotation-oxc').then(
-                  ({ createOxcComponentNameAnnotateHooks, getOxcParseAstAsync }) =>
-                    createOxcComponentNameAnnotateHooks(
-                      options.reactComponentAnnotation?.ignoredComponents || [],
-                      // Vite 8 already loads an oxc-based parser, so reuse it.
-                      buildTool === 'vite' && buildToolMajorVersion === '8'
-                        ? getViteParseAstAsync
-                        : getOxcParseAstAsync,
-                    ),
-                );
-              }
+        return {
+          transform(code: string, id: string, meta?: ComponentAnnotationTransformMeta) {
+            if (!fastAnnotationHooksPromise) {
+              fastAnnotationHooksPromise = import('../core/component-annotation-oxc').then(
+                ({ createOxcComponentNameAnnotateHooks, getOxcParseAstAsync }) =>
+                  createOxcComponentNameAnnotateHooks(
+                    options.reactComponentAnnotation?.ignoredComponents || [],
+                    // Vite 8 already loads an oxc-based parser, so reuse it.
+                    buildTool === 'vite' && buildToolMajorVersion === '8' ? getViteParseAstAsync : getOxcParseAstAsync,
+                    !!options.reactComponentAnnotation?._experimentalInjectIntoHtml,
+                  ),
+              );
+            }
 
-              return fastAnnotationHooksPromise.then(hooks => hooks.transform(code, id, meta));
-            },
-          };
-        })()
-      : undefined;
+            return fastAnnotationHooksPromise.then(hooks => hooks.transform(code, id, meta));
+          },
+        };
+      })()
+    : undefined;
 
   const transformReplace = Object.keys(replacementValues).length > 0;
   const shouldTransform = transformAnnotations || transformReplace;

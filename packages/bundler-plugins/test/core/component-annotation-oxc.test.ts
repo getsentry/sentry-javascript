@@ -3,7 +3,7 @@ import { parse } from '@babel/parser';
 import MagicString from 'magic-string';
 import { describe, expect, it, vi } from 'vitest';
 
-import componentNameAnnotatePlugin from '../../src/babel-plugin';
+import componentNameAnnotatePlugin, { experimentalComponentNameAnnotatePlugin } from '../../src/babel-plugin';
 import {
   createOxcComponentNameAnnotateHooks,
   getOxcParseAstAsync,
@@ -61,12 +61,18 @@ function collectAnnotations(code: string, id: string): Annotation[] {
   return annotations;
 }
 
-async function annotateWithBabel(code: string, id: string, ignoredComponents: string[]): Promise<Annotation[]> {
+async function annotateWithBabel(
+  code: string,
+  id: string,
+  ignoredComponents: string[],
+  injectIntoHtml = false,
+): Promise<Annotation[]> {
+  const plugin = injectIntoHtml ? experimentalComponentNameAnnotatePlugin : componentNameAnnotatePlugin;
   const result = await transformAsync(code, {
     filename: id,
     configFile: false,
     babelrc: false,
-    plugins: [[componentNameAnnotatePlugin, { ignoredComponents }]],
+    plugins: [[plugin, { ignoredComponents }]],
     parserOpts: {
       sourceType: 'module',
       allowAwaitOutsideFunction: true,
@@ -87,8 +93,9 @@ async function annotateWithOxc(
   id: string,
   ignoredComponents: string[] = [],
   getParseAstAsync: () => Promise<ParseAstAsync | null> = async () => parseAstAsync,
+  injectIntoHtml = false,
 ): Promise<ComponentAnnotationTransformResult> {
-  const hooks = createOxcComponentNameAnnotateHooks(ignoredComponents, getParseAstAsync);
+  const hooks = createOxcComponentNameAnnotateHooks(ignoredComponents, getParseAstAsync, injectIntoHtml);
 
   return hooks.transform(code, id);
 }
@@ -303,6 +310,178 @@ export const List = <T,>(props: Props<T>) => {
         },
       },
     ]);
+  });
+
+  it.each([
+    [
+      'HTML roots',
+      '/src/html-root.jsx',
+      `export default function App() {
+  return (
+    <div>
+      <span>nested html</span>
+      <CustomCard />
+    </div>
+  );
+}`,
+      [],
+    ],
+    [
+      'component wrappers',
+      '/src/wrappers.jsx',
+      `const Page = () => (
+  <Layout.Root>
+    <Layout.Body>
+      <main>content</main>
+      <aside />
+    </Layout.Body>
+  </Layout.Root>
+);
+
+export default Page;`,
+      [],
+    ],
+    [
+      'fragment roots and aliases',
+      '/src/fragments.jsx',
+      `import React, { Fragment as ImportedFragment } from "react";
+
+export function FragmentComponent() {
+  return (
+    <>
+      <ImportedFragment>
+        <section />
+      </ImportedFragment>
+      <React.Fragment>
+        <p />
+      </React.Fragment>
+    </>
+  );
+}`,
+      [],
+    ],
+    [
+      'conditional returns',
+      '/src/conditional.jsx',
+      `export function ConditionalComponent({ maybeTrue }) {
+  return maybeTrue ? <div /> : <Wrapper><span /></Wrapper>;
+}`,
+      [],
+    ],
+    [
+      'class render methods with nested render helpers',
+      '/src/class-nested-helper.jsx',
+      `import React, { Component } from "react";
+
+export class ClassComponent extends Component {
+  render() {
+    const Helper = () => {
+      return <em />;
+    };
+
+    return <section>{Helper()}</section>;
+  }
+}`,
+      [],
+    ],
+    [
+      'anonymous default classes',
+      '/src/anonymous-class.jsx',
+      `import React from "react";
+
+export default class extends React.Component {
+  render() {
+    return <div />;
+  }
+}`,
+      [],
+    ],
+    [
+      'ignored component and element names',
+      '/src/ignored.jsx',
+      `export function IgnoredComponent() {
+  return <div />;
+}
+
+export function Navigation() {
+  return (
+    <Wrapper>
+      <nav>
+        <a />
+      </nav>
+    </Wrapper>
+  );
+}
+
+export function Header() {
+  return <header />;
+}`,
+      ['IgnoredComponent', 'nav'],
+    ],
+    [
+      'existing component attributes',
+      '/src/existing.jsx',
+      `export function Existing() {
+  return <div data-sentry-component="Custom" />;
+}
+
+export function Fresh() {
+  return <div />;
+}`,
+      [],
+    ],
+    [
+      'lowercase member expressions and identifiers',
+      '/src/lowercase.jsx',
+      `export const Motion = () => (
+  <motion.div>
+    <span />
+  </motion.div>
+);
+
+export const Underscore = () => <_foo />;
+
+export const Dollar = () => <$Foo />;`,
+      [],
+    ],
+    [
+      'React Native elements',
+      '/src/native.jsx',
+      `export const Native = () => (
+  <View>
+    <Text>hello</Text>
+  </View>
+);
+
+export const Card = () => (
+  <CardContainer>
+    <Image />
+  </CardContainer>
+);`,
+      [],
+    ],
+    [
+      'tsx files with TypeScript expressions',
+      '/src/typed.tsx',
+      `type Props<T> = { items?: T[] };
+
+export const List = <T,>(props: Props<T>) => {
+  const items = props.items!;
+  return (
+    <Table<T> rows={items as unknown[]}>
+      <tr />
+    </Table>
+  );
+};`,
+      [],
+    ],
+  ])('matches Babel HTML injection annotations for %s', async (_name, id, code, ignoredComponents) => {
+    const oxcResult = await annotateWithOxc(code, id, ignoredComponents, getParseAstAsync, true);
+
+    expect(oxcResult).toBeTruthy();
+    expect(collectAnnotations(oxcResult?.code.toString() ?? '', id)).toEqual(
+      await annotateWithBabel(code, id, ignoredComponents, true),
+    );
   });
 });
 
