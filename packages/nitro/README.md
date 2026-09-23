@@ -12,6 +12,8 @@
 
 The official Sentry SDK for monitoring Nitro applications.
 
+> NOTICE: This package is in beta state and may be subject to breaking changes.
+
 ## Documentation
 
 - [Getting started](https://docs.sentry.io/platforms/javascript/guides/nitro/)
