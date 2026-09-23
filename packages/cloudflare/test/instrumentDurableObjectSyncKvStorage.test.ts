@@ -15,24 +15,21 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   describe('get', () => {
     it('instruments get with single key', () => {
-      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
       const mockKv = createMockSyncKv();
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       instrumented.get('myKey');
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
-        {
-          name: 'durable_object_storage_kv_get',
-          attributes: {
-            'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
-            'db.system.name': 'cloudflare-durable-object-sql',
-            'db.operation.name': 'get',
-          },
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'durable_object_storage_kv_get',
+        attributes: {
+          'sentry.op': 'db',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+          'db.system.name': 'cloudflare-durable-object-sql',
+          'db.operation.name': 'get',
         },
-        expect.any(Function),
-      );
+      });
     });
 
     it('returns the value from the underlying storage', () => {
@@ -58,24 +55,21 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   describe('put', () => {
     it('instruments put', () => {
-      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
       const mockKv = createMockSyncKv();
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       instrumented.put('myKey', 'myValue');
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
-        {
-          name: 'durable_object_storage_kv_put',
-          attributes: {
-            'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
-            'db.system.name': 'cloudflare-durable-object-sql',
-            'db.operation.name': 'put',
-          },
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'durable_object_storage_kv_put',
+        attributes: {
+          'sentry.op': 'db',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+          'db.system.name': 'cloudflare-durable-object-sql',
+          'db.operation.name': 'put',
         },
-        expect.any(Function),
-      );
+      });
     });
 
     it('calls the underlying put with correct args', () => {
@@ -90,24 +84,21 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   describe('delete', () => {
     it('instruments delete', () => {
-      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
       const mockKv = createMockSyncKv();
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       instrumented.delete('myKey');
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
-        {
-          name: 'durable_object_storage_kv_delete',
-          attributes: {
-            'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
-            'db.system.name': 'cloudflare-durable-object-sql',
-            'db.operation.name': 'delete',
-          },
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'durable_object_storage_kv_delete',
+        attributes: {
+          'sentry.op': 'db',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+          'db.system.name': 'cloudflare-durable-object-sql',
+          'db.operation.name': 'delete',
         },
-        expect.any(Function),
-      );
+      });
     });
 
     it('returns boolean from underlying delete', () => {
@@ -123,24 +114,21 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   describe('list', () => {
     it('instruments list', () => {
-      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
       const mockKv = createMockSyncKv();
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       instrumented.list();
 
-      expect(startSpanSpy).toHaveBeenCalledWith(
-        {
-          name: 'durable_object_storage_kv_list',
-          attributes: {
-            'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
-            'db.system.name': 'cloudflare-durable-object-sql',
-            'db.operation.name': 'list',
-          },
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'durable_object_storage_kv_list',
+        attributes: {
+          'sentry.op': 'db',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+          'db.system.name': 'cloudflare-durable-object-sql',
+          'db.operation.name': 'list',
         },
-        expect.any(Function),
-      );
+      });
     });
 
     it('passes options through to underlying list', () => {
@@ -169,13 +157,13 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   describe('non-instrumented properties', () => {
     it('passes through unknown properties without instrumentation', () => {
-      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
       const mockKv = createMockSyncKv();
       (mockKv as any).customProp = 'custom-value';
       const instrumented = instrumentDurableObjectSyncKvStorage(mockKv);
 
       expect((instrumented as any).customProp).toBe('custom-value');
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -193,13 +181,13 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
   it('does not start a span when tracing is not configured', () => {
     initTestClient({ tracesSampleRate: undefined });
-    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
     const mockKv = createMockSyncKv();
     mockKv.get = vi.fn().mockReturnValue('storedValue');
 
     const result = instrumentDurableObjectSyncKvStorage(mockKv).get('myKey');
 
-    expect(startSpanSpy).not.toHaveBeenCalled();
+    expect(startInactiveSpanSpy).not.toHaveBeenCalled();
     expect(mockKv.get).toHaveBeenCalledWith('myKey');
     expect(result).toBe('storedValue');
   });

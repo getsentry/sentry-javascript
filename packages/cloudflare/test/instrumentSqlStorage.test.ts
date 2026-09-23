@@ -15,51 +15,45 @@ describe('instrumentSqlStorage', () => {
   });
 
   it('instruments exec with summary as span name and sanitized query as db.query.text', () => {
-    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
     const mockSql = createMockSqlStorage();
     const instrumented = instrumentSqlStorage(mockSql);
 
     instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
 
-    expect(startSpanSpy).toHaveBeenCalledWith(
-      {
-        name: 'SELECT users',
-        attributes: {
-          'sentry.op': 'db.query',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
-          'db.system.name': 'cloudflare-durable-object-sql',
-          'db.operation.name': 'exec',
-          'db.query.text': 'SELECT * FROM users WHERE id = ?',
-          'db.query.summary': 'SELECT users',
-          'cloudflare.durable_object.query.bindings': 1,
-        },
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+      name: 'SELECT users',
+      attributes: {
+        'sentry.op': 'db.query',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+        'db.system.name': 'cloudflare-durable-object-sql',
+        'db.operation.name': 'exec',
+        'db.query.text': 'SELECT * FROM users WHERE id = ?',
+        'db.query.summary': 'SELECT users',
+        'cloudflare.durable_object.query.bindings': 1,
       },
-      expect.any(Function),
-    );
+    });
   });
 
   it('sanitizes embedded literals in db.query.text', () => {
-    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
     const mockSql = createMockSqlStorage();
     const instrumented = instrumentSqlStorage(mockSql);
 
     instrumented.exec("SELECT * FROM users WHERE name = 'Alice' AND age > 30");
 
-    expect(startSpanSpy).toHaveBeenCalledWith(
-      {
-        name: 'SELECT users',
-        attributes: {
-          'sentry.op': 'db.query',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
-          'db.system.name': 'cloudflare-durable-object-sql',
-          'db.operation.name': 'exec',
-          'db.query.text': 'SELECT * FROM users WHERE name = ? AND age > ?',
-          'db.query.summary': 'SELECT users',
-          'cloudflare.durable_object.query.bindings': 0,
-        },
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+      name: 'SELECT users',
+      attributes: {
+        'sentry.op': 'db.query',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+        'db.system.name': 'cloudflare-durable-object-sql',
+        'db.operation.name': 'exec',
+        'db.query.text': 'SELECT * FROM users WHERE name = ? AND age > ?',
+        'db.query.summary': 'SELECT users',
+        'cloudflare.durable_object.query.bindings': 0,
       },
-      expect.any(Function),
-    );
+    });
   });
 
   it('passes bindings through to the original exec', () => {
@@ -72,27 +66,24 @@ describe('instrumentSqlStorage', () => {
   });
 
   it('tracks binding count in span attributes', () => {
-    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
     const mockSql = createMockSqlStorage();
     const instrumented = instrumentSqlStorage(mockSql);
 
     instrumented.exec('INSERT INTO users (name, email) VALUES (?, ?)', 'Alice', 'alice@example.com');
 
-    expect(startSpanSpy).toHaveBeenCalledWith(
-      {
-        name: 'INSERT users',
-        attributes: {
-          'sentry.op': 'db.query',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
-          'db.system.name': 'cloudflare-durable-object-sql',
-          'db.operation.name': 'exec',
-          'db.query.text': 'INSERT INTO users (name, email) VALUES (?, ?)',
-          'db.query.summary': 'INSERT users',
-          'cloudflare.durable_object.query.bindings': 2,
-        },
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+      name: 'INSERT users',
+      attributes: {
+        'sentry.op': 'db.query',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+        'db.system.name': 'cloudflare-durable-object-sql',
+        'db.operation.name': 'exec',
+        'db.query.text': 'INSERT INTO users (name, email) VALUES (?, ?)',
+        'db.query.summary': 'INSERT users',
+        'cloudflare.durable_object.query.bindings': 2,
       },
-      expect.any(Function),
-    );
+    });
   });
 
   it('returns the cursor from exec', () => {
@@ -106,12 +97,12 @@ describe('instrumentSqlStorage', () => {
   });
 
   it('does not instrument non-exec properties', () => {
-    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
     const mockSql = createMockSqlStorage();
     const instrumented = instrumentSqlStorage(mockSql);
 
     expect(instrumented.databaseSize).toBe(1024);
-    expect(startSpanSpy).not.toHaveBeenCalled();
+    expect(startInactiveSpanSpy).not.toHaveBeenCalled();
   });
 
   it('preserves native getter this binding through the proxy', () => {
@@ -140,14 +131,14 @@ describe('instrumentSqlStorage', () => {
   });
 
   it('creates a span for each exec call', () => {
-    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
     const mockSql = createMockSqlStorage();
     const instrumented = instrumentSqlStorage(mockSql);
 
     instrumented.exec('SELECT 1');
     instrumented.exec('SELECT 2');
 
-    expect(startSpanSpy).toHaveBeenCalledTimes(2);
+    expect(startInactiveSpanSpy).toHaveBeenCalledTimes(2);
     expect(mockSql.exec).toHaveBeenCalledTimes(2);
   });
 
@@ -158,14 +149,14 @@ describe('instrumentSqlStorage', () => {
       ['no DSN is set', { dsn: undefined }],
     ])('skips sanitizing and span creation when %s', (_label, options) => {
       initTestClient(options);
-      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
       const sanitizeSpy = vi.spyOn(serverUtils, 'sanitizeSqlQuery');
       const mockCursor = createMockCursor();
       const mockSql = createMockSqlStorage(mockCursor);
 
       const result = instrumentSqlStorage(mockSql).exec('SELECT * FROM users WHERE id = ?', 42);
 
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
       expect(sanitizeSpy).not.toHaveBeenCalled();
       expect(mockSql.exec).toHaveBeenCalledWith('SELECT * FROM users WHERE id = ?', 42);
       expect(result).toBe(mockCursor);
@@ -177,12 +168,12 @@ describe('instrumentSqlStorage', () => {
       const instrumented = instrumentSqlStorage(mockSql);
 
       startSpan({ name: 'fetch' }, () => {
-        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+        const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
         const sanitizeSpy = vi.spyOn(serverUtils, 'sanitizeSqlQuery');
 
         instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
 
-        expect(startSpanSpy).not.toHaveBeenCalled();
+        expect(startInactiveSpanSpy).not.toHaveBeenCalled();
         expect(sanitizeSpy).not.toHaveBeenCalled();
       });
 
@@ -194,25 +185,25 @@ describe('instrumentSqlStorage', () => {
       const instrumented = instrumentSqlStorage(mockSql);
 
       startSpan({ name: 'fetch' }, () => {
-        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+        const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
 
         instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
 
-        expect(startSpanSpy).toHaveBeenCalledTimes(1);
+        expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
       });
     });
   });
 
   describe('internal storage queries', () => {
     it('does not create a span for Cloudflare-internal queries', () => {
-      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
       const mockCursor = createMockCursor();
       const mockSql = createMockSqlStorage(mockCursor);
       const instrumented = instrumentSqlStorage(mockSql);
 
       const result = instrumented.exec('SELECT * FROM cf_agents_state WHERE id = ?', 'foo');
 
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
       expect(mockSql.exec).toHaveBeenCalledWith('SELECT * FROM cf_agents_state WHERE id = ?', 'foo');
       expect(result).toBe(mockCursor);
     });
@@ -329,14 +320,14 @@ function execCreatesSpan(query: string, allowlist?: Array<string | RegExp>): boo
     initTestClient({ durableObjectSqlSpanAllowlist: allowlist });
   }
 
-  const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+  const startInactiveSpanSpy = vi.spyOn(sentryCore, 'startInactiveSpan');
 
   const mockSql = createMockSqlStorage();
   instrumentSqlStorage(mockSql).exec(query);
 
   expect(mockSql.exec).toHaveBeenCalledWith(query);
 
-  return startSpanSpy.mock.calls.length > 0;
+  return startInactiveSpanSpy.mock.calls.length > 0;
 }
 
 function createMockCursor() {

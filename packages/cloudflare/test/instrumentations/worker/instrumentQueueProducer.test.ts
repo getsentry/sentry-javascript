@@ -29,14 +29,14 @@ describe('instrumentQueueProducer', () => {
     });
 
     test('starts a queue.publish span with messaging attributes', async () => {
-      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
       const queue = createMockQueue();
       const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
 
       await wrapped.send('hello');
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const [spanCtx] = startSpanSpy.mock.calls[0]!;
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      const [spanCtx] = startInactiveSpanSpy.mock.calls[0]!;
       expect(spanCtx).toMatchObject({
         name: 'send MY_QUEUE',
         attributes: {
@@ -52,30 +52,30 @@ describe('instrumentQueueProducer', () => {
     });
 
     test('computes body size for object payloads via JSON.stringify', async () => {
-      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
       const queue = createMockQueue();
       const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
 
       await wrapped.send({ a: 1 });
 
-      const attrs = startSpanSpy.mock.calls[0]![0].attributes!;
+      const attrs = startInactiveSpanSpy.mock.calls[0]![0].attributes!;
       expect(attrs['messaging.message.body.size']).toBe(JSON.stringify({ a: 1 }).length);
     });
 
     test('computes body size for ArrayBuffer payloads', async () => {
-      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
       const queue = createMockQueue();
       const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
 
       const buf = new ArrayBuffer(42);
       await wrapped.send(buf);
 
-      const attrs = startSpanSpy.mock.calls[0]![0].attributes!;
+      const attrs = startInactiveSpanSpy.mock.calls[0]![0].attributes!;
       expect(attrs['messaging.message.body.size']).toBe(42);
     });
 
     test('omits body size when payload cannot be serialized', async () => {
-      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
       const queue = createMockQueue();
       const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
 
@@ -84,7 +84,7 @@ describe('instrumentQueueProducer', () => {
       circular.self = circular;
       await wrapped.send(circular);
 
-      const attrs = startSpanSpy.mock.calls[0]![0].attributes!;
+      const attrs = startInactiveSpanSpy.mock.calls[0]![0].attributes!;
       expect(attrs['messaging.message.body.size']).toBeUndefined();
     });
   });
@@ -100,14 +100,14 @@ describe('instrumentQueueProducer', () => {
     });
 
     test('starts a queue.publish span with batch attributes', async () => {
-      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
       const queue = createMockQueue();
       const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
 
       await wrapped.sendBatch([{ body: 'aa' }, { body: 'bbb' }]);
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const [spanCtx] = startSpanSpy.mock.calls[0]!;
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      const [spanCtx] = startInactiveSpanSpy.mock.calls[0]!;
       expect(spanCtx).toMatchObject({
         name: 'send MY_QUEUE',
         attributes: {
@@ -141,7 +141,7 @@ describe('instrumentQueueProducer', () => {
     });
 
     test('omits body size when all payloads cannot be serialized', async () => {
-      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
       const queue = createMockQueue();
       const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
 
@@ -152,12 +152,12 @@ describe('instrumentQueueProducer', () => {
 
       await wrapped.sendBatch([{ body: circular1 }, { body: circular2 }]);
 
-      const attrs = startSpanSpy.mock.calls[0]![0].attributes!;
+      const attrs = startInactiveSpanSpy.mock.calls[0]![0].attributes!;
       expect(attrs['messaging.message.body.size']).toBeUndefined();
     });
 
     test('sums only sizable bodies when batch contains mixed payloads', async () => {
-      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
       const queue = createMockQueue();
       const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
 
@@ -166,7 +166,7 @@ describe('instrumentQueueProducer', () => {
 
       await wrapped.sendBatch([{ body: 'aa' }, { body: circular }, { body: 'bbb' }]);
 
-      const attrs = startSpanSpy.mock.calls[0]![0].attributes!;
+      const attrs = startInactiveSpanSpy.mock.calls[0]![0].attributes!;
       expect(attrs['messaging.message.body.size']).toBe(5);
     });
   });
@@ -187,26 +187,26 @@ describe('instrumentQueueProducer', () => {
     });
 
     test('send does not start a span or serialize the body', async () => {
-      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
       const stringifySpy = vi.spyOn(JSON, 'stringify');
       const queue = createMockQueue();
 
       await instrumentQueueProducer(queue, 'MY_QUEUE').send({ hello: 'world' }, { contentType: 'json' });
 
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
       expect(stringifySpy).not.toHaveBeenCalled();
       expect(queue.send).toHaveBeenLastCalledWith({ hello: 'world' }, { contentType: 'json' });
     });
 
     test('sendBatch passes the messages through unchanged', async () => {
-      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
       const stringifySpy = vi.spyOn(JSON, 'stringify');
       const queue = createMockQueue();
       const messages = new Set([{ body: { a: 1 } }, { body: { b: 2 } }]);
 
       await instrumentQueueProducer(queue, 'MY_QUEUE').sendBatch(messages);
 
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
       expect(stringifySpy).not.toHaveBeenCalled();
       expect(queue.sendBatch).toHaveBeenLastCalledWith(messages, undefined);
     });

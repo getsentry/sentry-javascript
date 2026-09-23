@@ -7,7 +7,7 @@ import { getRootSpan, spanIsSampled, spanToStaticSpanJSON } from '../utils/spanU
  * Print a log message for a started span.
  */
 export function logSpanStart(span: Span): void {
-  if (!DEBUG_BUILD) return;
+  if (!DEBUG_BUILD || !debug.isEnabled()) return;
 
   const {
     description = '< unknown name >',
@@ -47,7 +47,7 @@ export function logSpanStart(span: Span): void {
  * Print a log message for an ended span.
  */
 export function logSpanEnd(span: Span): void {
-  if (!DEBUG_BUILD) return;
+  if (!DEBUG_BUILD || !debug.isEnabled()) return;
 
   const { description = '< unknown name >', op = '< unknown op >' } = spanToStaticSpanJSON(span);
   const { spanId } = span.spanContext();

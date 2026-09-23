@@ -60,7 +60,7 @@ describe('instrumentD1', () => {
     initTestClient({ traceLifecycle: 'static' });
   });
 
-  const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+  const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
   const addBreadcrumbSpy = vi.spyOn(SentryCore, 'addBreadcrumb');
 
   describe('statement.first()', () => {
@@ -74,21 +74,18 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').first();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
-        {
-          attributes: {
-            'sentry.op': 'db.query',
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'first',
-            'db.query.text': 'SELECT * FROM users',
-            'db.query.summary': 'SELECT users',
-            'sentry.origin': 'auto.db.cloudflare.d1',
-          },
-          name: 'SELECT * FROM users',
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith({
+        attributes: {
+          'sentry.op': 'db.query',
+          'db.system.name': 'cloudflare-d1',
+          'db.operation.name': 'first',
+          'db.query.text': 'SELECT * FROM users',
+          'db.query.summary': 'SELECT users',
+          'sentry.origin': 'auto.db.cloudflare.d1',
         },
-        expect.any(Function),
-      );
+        name: 'SELECT * FROM users',
+      });
     });
 
     test('instruments with breadcrumbs', async () => {
@@ -109,7 +106,7 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').bind().first();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
     });
 
@@ -122,13 +119,12 @@ describe('instrumentD1', () => {
         const instrumentedDb = instrumentD1(createMockD1Database());
         await instrumentedDb.prepare('SELECT * FROM users').first();
 
-        expect(startSpanSpy).toHaveBeenLastCalledWith(
+        expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
           expect.objectContaining({
             name: 'SELECT users',
             // the statement is still reported, just not as the name
             attributes: expect.objectContaining({ 'db.query.text': 'SELECT * FROM users' }),
           }),
-          expect.any(Function),
         );
       });
 
@@ -137,10 +133,7 @@ describe('instrumentD1', () => {
         // The `from ` inside the string literal would otherwise be read as a table reference.
         await instrumentedDb.prepare("SELECT * FROM items WHERE note LIKE '%shipped from warehouse7%'").first();
 
-        expect(startSpanSpy).toHaveBeenLastCalledWith(
-          expect.objectContaining({ name: 'SELECT items' }),
-          expect.any(Function),
-        );
+        expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'SELECT items' }));
       });
 
       test('falls back to the db system name when no summary can be derived', async () => {
@@ -149,10 +142,7 @@ describe('instrumentD1', () => {
 
         // D1 exposes no collection, namespace or server, so `{db.system.name}` is the last template
         // that can be filled before the static fallback.
-        expect(startSpanSpy).toHaveBeenLastCalledWith(
-          expect.objectContaining({ name: 'cloudflare-d1' }),
-          expect.any(Function),
-        );
+        expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'cloudflare-d1' }));
       });
     });
   });
@@ -168,21 +158,18 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('INSERT INTO users (name) VALUES (?)').run();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
-        {
-          attributes: {
-            'sentry.op': 'db.query',
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'run',
-            'db.query.text': 'INSERT INTO users (name) VALUES (?)',
-            'db.query.summary': 'INSERT users',
-            'sentry.origin': 'auto.db.cloudflare.d1',
-          },
-          name: 'INSERT INTO users (name) VALUES (?)',
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith({
+        attributes: {
+          'sentry.op': 'db.query',
+          'db.system.name': 'cloudflare-d1',
+          'db.operation.name': 'run',
+          'db.query.text': 'INSERT INTO users (name) VALUES (?)',
+          'db.query.summary': 'INSERT users',
+          'sentry.origin': 'auto.db.cloudflare.d1',
         },
-        expect.any(Function),
-      );
+        name: 'INSERT INTO users (name) VALUES (?)',
+      });
     });
 
     test('instruments with breadcrumbs', async () => {
@@ -206,7 +193,7 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').bind().run();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
     });
   });
@@ -222,21 +209,18 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('INSERT INTO users (name) VALUES (?)').all();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
-        {
-          attributes: {
-            'sentry.op': 'db.query',
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'all',
-            'db.query.text': 'INSERT INTO users (name) VALUES (?)',
-            'db.query.summary': 'INSERT users',
-            'sentry.origin': 'auto.db.cloudflare.d1',
-          },
-          name: 'INSERT INTO users (name) VALUES (?)',
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith({
+        attributes: {
+          'sentry.op': 'db.query',
+          'db.system.name': 'cloudflare-d1',
+          'db.operation.name': 'all',
+          'db.query.text': 'INSERT INTO users (name) VALUES (?)',
+          'db.query.summary': 'INSERT users',
+          'sentry.origin': 'auto.db.cloudflare.d1',
         },
-        expect.any(Function),
-      );
+        name: 'INSERT INTO users (name) VALUES (?)',
+      });
     });
 
     test('instruments with breadcrumbs', async () => {
@@ -260,7 +244,7 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').bind().all();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
     });
   });
@@ -276,21 +260,18 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').raw();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
-        {
-          attributes: {
-            'sentry.op': 'db.query',
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'raw',
-            'db.query.text': 'SELECT * FROM users',
-            'db.query.summary': 'SELECT users',
-            'sentry.origin': 'auto.db.cloudflare.d1',
-          },
-          name: 'SELECT * FROM users',
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith({
+        attributes: {
+          'sentry.op': 'db.query',
+          'db.system.name': 'cloudflare-d1',
+          'db.operation.name': 'raw',
+          'db.query.text': 'SELECT * FROM users',
+          'db.query.summary': 'SELECT users',
+          'sentry.origin': 'auto.db.cloudflare.d1',
         },
-        expect.any(Function),
-      );
+        name: 'SELECT * FROM users',
+      });
     });
 
     test('instruments with breadcrumbs', async () => {
@@ -311,7 +292,7 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare('SELECT * FROM users').bind().raw();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
       expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
     });
   });
@@ -327,21 +308,18 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.batch([instrumentedDb.prepare('SELECT 1'), instrumentedDb.prepare('SELECT 2')]);
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
-        {
-          attributes: {
-            'sentry.op': 'db.query',
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'batch',
-            'db.query.text': 'SELECT ?\nSELECT ?',
-            'db.operation.batch.size': 2,
-            'sentry.origin': 'auto.db.cloudflare.d1',
-          },
-          name: 'D1 batch',
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith({
+        attributes: {
+          'sentry.op': 'db.query',
+          'db.system.name': 'cloudflare-d1',
+          'db.operation.name': 'batch',
+          'db.query.text': 'SELECT ?\nSELECT ?',
+          'db.operation.batch.size': 2,
+          'sentry.origin': 'auto.db.cloudflare.d1',
         },
-        expect.any(Function),
-      );
+        name: 'D1 batch',
+      });
     });
 
     test('instruments with breadcrumbs', async () => {
@@ -366,21 +344,18 @@ describe('instrumentD1', () => {
 
       await instrumentedDb.batch(statementsWithoutQuery);
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
-        {
-          attributes: {
-            'sentry.op': 'db.query',
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'batch',
-            'db.query.text': undefined,
-            'db.operation.batch.size': 2,
-            'sentry.origin': 'auto.db.cloudflare.d1',
-          },
-          name: 'D1 batch',
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith({
+        attributes: {
+          'sentry.op': 'db.query',
+          'db.system.name': 'cloudflare-d1',
+          'db.operation.name': 'batch',
+          'db.query.text': undefined,
+          'db.operation.batch.size': 2,
+          'sentry.origin': 'auto.db.cloudflare.d1',
         },
-        expect.any(Function),
-      );
+        name: 'D1 batch',
+      });
     });
   });
 
@@ -395,21 +370,18 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.exec('CREATE TABLE users (id INTEGER PRIMARY KEY)');
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
-        {
-          attributes: {
-            'sentry.op': 'db.query',
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'exec',
-            'db.query.text': 'CREATE TABLE users (id INTEGER PRIMARY KEY)',
-            'db.query.summary': 'CREATE TABLE users',
-            'sentry.origin': 'auto.db.cloudflare.d1',
-          },
-          name: 'CREATE TABLE users (id INTEGER PRIMARY KEY)',
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith({
+        attributes: {
+          'sentry.op': 'db.query',
+          'db.system.name': 'cloudflare-d1',
+          'db.operation.name': 'exec',
+          'db.query.text': 'CREATE TABLE users (id INTEGER PRIMARY KEY)',
+          'db.query.summary': 'CREATE TABLE users',
+          'sentry.origin': 'auto.db.cloudflare.d1',
         },
-        expect.any(Function),
-      );
+        name: 'CREATE TABLE users (id INTEGER PRIMARY KEY)',
+      });
     });
 
     test('instruments with breadcrumbs', async () => {
@@ -433,21 +405,18 @@ describe('instrumentD1', () => {
       const session = (instrumentedDb as unknown as { withSession: () => D1DatabaseSession }).withSession();
       await session.prepare('SELECT * FROM users').first();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
-        {
-          attributes: {
-            'sentry.op': 'db.query',
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'first',
-            'db.query.text': 'SELECT * FROM users',
-            'db.query.summary': 'SELECT users',
-            'sentry.origin': 'auto.db.cloudflare.d1',
-          },
-          name: 'SELECT * FROM users',
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith({
+        attributes: {
+          'sentry.op': 'db.query',
+          'db.system.name': 'cloudflare-d1',
+          'db.operation.name': 'first',
+          'db.query.text': 'SELECT * FROM users',
+          'db.query.summary': 'SELECT users',
+          'sentry.origin': 'auto.db.cloudflare.d1',
         },
-        expect.any(Function),
-      );
+        name: 'SELECT * FROM users',
+      });
     });
 
     test('instruments session.prepare with breadcrumbs', async () => {
@@ -470,21 +439,18 @@ describe('instrumentD1', () => {
       const session = (instrumentedDb as unknown as { withSession: () => D1DatabaseSession }).withSession();
       await session.batch([session.prepare('SELECT 1'), session.prepare('SELECT 2')]);
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
-        {
-          attributes: {
-            'sentry.op': 'db.query',
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'batch',
-            'db.query.text': 'SELECT ?\nSELECT ?',
-            'db.operation.batch.size': 2,
-            'sentry.origin': 'auto.db.cloudflare.d1',
-          },
-          name: 'D1 batch',
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith({
+        attributes: {
+          'sentry.op': 'db.query',
+          'db.system.name': 'cloudflare-d1',
+          'db.operation.name': 'batch',
+          'db.query.text': 'SELECT ?\nSELECT ?',
+          'db.operation.batch.size': 2,
+          'sentry.origin': 'auto.db.cloudflare.d1',
         },
-        expect.any(Function),
-      );
+        name: 'D1 batch',
+      });
     });
 
     test('instruments session.batch with breadcrumbs', async () => {
@@ -525,7 +491,7 @@ describe('instrumentD1', () => {
       const instrumentedDb = instrumentD1(createMockD1Database());
       await instrumentedDb.prepare("SELECT * FROM users WHERE name = 'Alice'").run();
 
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
       expect(addBreadcrumbSpy).toHaveBeenLastCalledWith({
         category: 'query',
         message: 'SELECT * FROM users WHERE name = ?',
@@ -562,7 +528,7 @@ describe('instrumentD1', () => {
       await instrumentedDb.batch([instrumentedDb.prepare('SELECT 1')]);
 
       expect(sanitizeSpy).not.toHaveBeenCalled();
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
       expect(addBreadcrumbSpy).not.toHaveBeenCalled();
     });
   });

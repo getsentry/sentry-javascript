@@ -10,11 +10,11 @@ import {
   isEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
-  startSpan,
 } from '@sentry/core';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
 import { ensureInstrumented } from '../../instrument';
 import { canRecordSpan } from '../../utils/canRecordSpan';
+import { type SanitizedSqlQuery, getSanitizedSqlQuery } from '../../utils/sqlQueryCache';
+import { startLeafSpan } from '../../utils/startLeafSpan';
 
 // Patching is based on internal Cloudflare D1 API
 // https://github.com/cloudflare/workerd/blob/cd5279e7b305003f1d9c851e73efa9d67e4b68b2/src/cloudflare/internal/d1-api.ts
@@ -29,34 +29,33 @@ function instrumentD1PreparedStatementQueries(statement: D1PreparedStatement, qu
     return statement;
   }
 
-  let queryText: string | undefined;
-  const getQueryText = (): string | undefined => (queryText ??= query ? sanitizeSqlQuery(query) : undefined);
+  const getQuery = (): SanitizedSqlQuery | undefined => (query ? getSanitizedSqlQuery(query) : undefined);
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.first = new Proxy(statement.first, {
     apply(target, thisArg, args: Parameters<typeof statement.first>) {
-      return runD1Query(getQueryText, 'first', () => Reflect.apply(target, thisArg, args));
+      return runD1Query(getQuery, 'first', () => Reflect.apply(target, thisArg, args));
     },
   });
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.run = new Proxy(statement.run, {
     apply(target, thisArg, args: Parameters<typeof statement.run>) {
-      return runD1Query(getQueryText, 'run', () => Reflect.apply(target, thisArg, args), true);
+      return runD1Query(getQuery, 'run', () => Reflect.apply(target, thisArg, args), true);
     },
   });
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.all = new Proxy(statement.all, {
     apply(target, thisArg, args: Parameters<typeof statement.all>) {
-      return runD1Query(getQueryText, 'all', () => Reflect.apply(target, thisArg, args), true);
+      return runD1Query(getQuery, 'all', () => Reflect.apply(target, thisArg, args), true);
     },
   });
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.raw = new Proxy(statement.raw, {
     apply(target, thisArg, args: Parameters<typeof statement.raw>) {
-      return runD1Query(getQueryText, 'raw', () => Reflect.apply(target, thisArg, args));
+      return runD1Query(getQuery, 'raw', () => Reflect.apply(target, thisArg, args));
     },
   });
 
@@ -85,12 +84,12 @@ function instrumentD1PreparedStatement(statement: D1PreparedStatement, query: st
 
 /**
  * Runs a D1 query in a span. When no span can be sent, it only adds the breadcrumb, and it skips
- * both when the SDK is disabled. `getQueryText` sanitizes the query on first use.
+ * both when the SDK is disabled. `getQuery` sanitizes the query only when it is needed.
  *
  * @param hasD1Response - `true` when the query resolves to a `D1Response`, whose meta is added to the span and breadcrumb
  */
 async function runD1Query<T>(
-  getQueryText: () => string | undefined,
+  getQuery: () => SanitizedSqlQuery | undefined,
   type: D1QueryType,
   query: () => Promise<T>,
   hasD1Response = false,
@@ -101,18 +100,18 @@ async function runD1Query<T>(
 
   if (!canRecordSpan()) {
     const res = await query();
-    createD1Breadcrumb(getQueryText(), type, hasD1Response ? (res as D1Response) : undefined);
+    createD1Breadcrumb(getQuery()?.text, type, hasD1Response ? (res as D1Response) : undefined);
     return res;
   }
 
-  const queryText = getQueryText();
-  return startSpan(createStartSpanOptions(queryText, type), async span => {
+  const sanitized = getQuery();
+  return startLeafSpan(createStartSpanOptions(sanitized, type), async span => {
     const res = await query();
     const d1Response = hasD1Response ? (res as D1Response) : undefined;
     if (d1Response) {
       applyD1ReturnObjectToSpan(span, d1Response);
     }
-    createD1Breadcrumb(queryText, type, d1Response);
+    createD1Breadcrumb(sanitized?.text, type, d1Response);
     return res;
   });
 }
@@ -152,8 +151,9 @@ function createD1Breadcrumb(message: string | undefined, type: D1QueryType, d1Re
   });
 }
 
-function createStartSpanOptions(queryText: string | undefined, type: D1QueryType): StartSpanOptions {
-  const querySummary = queryText ? getSqlQuerySummary(queryText) : undefined;
+function createStartSpanOptions(sanitized: SanitizedSqlQuery | undefined, type: D1QueryType): StartSpanOptions {
+  const queryText = sanitized?.text;
+  const querySummary = sanitized?.summary;
 
   const client = getClient();
   const name =
@@ -205,10 +205,10 @@ function instrumentBatch(
       const queryText = statements
         .map(statement => (statement as unknown as { statement?: string }).statement ?? '')
         .filter(Boolean)
-        .map(statement => sanitizeSqlQuery(statement))
+        .map(statement => getSanitizedSqlQuery(statement).text)
         .join('\n');
 
-      return startSpan(
+      return startLeafSpan(
         {
           name: 'D1 batch',
           attributes: {
@@ -244,7 +244,7 @@ function _instrumentD1(db: D1Database): D1Database {
     apply(target, thisArg, args: Parameters<typeof db.exec>) {
       const [query] = args;
       return runD1Query(
-        () => (query ? sanitizeSqlQuery(query) : undefined),
+        () => (query ? getSanitizedSqlQuery(query) : undefined),
         'exec',
         () => Reflect.apply(target, thisArg, args),
       );

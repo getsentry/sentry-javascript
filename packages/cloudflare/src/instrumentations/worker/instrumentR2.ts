@@ -19,8 +19,9 @@ import {
   OBJECT_PUT,
   OBJECT_UPLOAD_PART,
 } from '@sentry/conventions/op';
-import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { canRecordSpan } from '../../utils/canRecordSpan';
+import { startLeafSpan } from '../../utils/startLeafSpan';
 
 const ORIGIN = 'auto.faas.cloudflare.r2';
 
@@ -89,7 +90,7 @@ function instrumentR2MultipartUpload(upload: R2MultipartUpload, bindingName: str
           const [partNumber] = args;
           const spanOptions = createSpanOptions(bindingName, 'uploadPart', key);
 
-          return startSpan(
+          return startLeafSpan(
             {
               ...spanOptions,
               attributes: {
@@ -110,7 +111,7 @@ function instrumentR2MultipartUpload(upload: R2MultipartUpload, bindingName: str
             return Reflect.apply(original, target, []);
           }
 
-          return startSpan(createSpanOptions(bindingName, 'abortMultipartUpload', key), () =>
+          return startLeafSpan(createSpanOptions(bindingName, 'abortMultipartUpload', key), () =>
             Reflect.apply(original, target, []),
           );
         };
@@ -124,7 +125,7 @@ function instrumentR2MultipartUpload(upload: R2MultipartUpload, bindingName: str
             return Reflect.apply(original, target, args);
           }
 
-          return startSpan(createSpanOptions(bindingName, 'completeMultipartUpload', key), () =>
+          return startLeafSpan(createSpanOptions(bindingName, 'completeMultipartUpload', key), () =>
             Reflect.apply(original, target, args),
           );
         };
@@ -154,7 +155,7 @@ export function instrumentR2Bucket<T extends R2Bucket>(bucket: T, bindingName: s
 
           const [key] = args;
 
-          return startSpan(createSpanOptions(bindingName, prop, key), () => Reflect.apply(original, target, args));
+          return startLeafSpan(createSpanOptions(bindingName, prop, key), () => Reflect.apply(original, target, args));
         };
       }
 
@@ -170,7 +171,7 @@ export function instrumentR2Bucket<T extends R2Bucket>(bucket: T, bindingName: s
 
           const [key] = args;
 
-          return startSpan(createSpanOptions(bindingName, 'createMultipartUpload', key), async () => {
+          return startLeafSpan(createSpanOptions(bindingName, 'createMultipartUpload', key), async () => {
             const upload = await Reflect.apply(original, target, args);
             return instrumentR2MultipartUpload(upload, bindingName);
           });

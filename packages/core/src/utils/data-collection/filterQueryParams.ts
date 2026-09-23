@@ -17,7 +17,11 @@ export function filterQueryParams(queryString: string, behavior: CollectBehavior
     .map(pair => {
       const separatorIndex = pair.indexOf('=');
       const encodedKey = separatorIndex === -1 ? pair : pair.slice(0, separatorIndex);
-      const key = new URLSearchParams(`${encodedKey}=`).keys().next().value;
+      // Decoding only changes keys that contain `%` or `+`, so skip the costly `URLSearchParams` for all others.
+      const key =
+        encodedKey.includes('%') || encodedKey.includes('+')
+          ? new URLSearchParams(`${encodedKey}=`).keys().next().value
+          : encodedKey;
 
       return key !== undefined && shouldFilterDataKey(key, behavior) ? `${encodedKey}=${FILTERED_VALUE}` : pair;
     })

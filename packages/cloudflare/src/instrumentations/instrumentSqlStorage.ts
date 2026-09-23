@@ -1,11 +1,12 @@
 import type { SqlStorage } from '@cloudflare/workers-types';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { DB_QUERY } from '@sentry/conventions/op';
-import { getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
+import { getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { CloudflareClientOptions } from '../client';
 import { canRecordSpan } from '../utils/canRecordSpan';
+import { startLeafSpan } from '../utils/startLeafSpan';
 import { targetsCloudflareInternalTable } from '../utils/internalSqlQuery';
+import { getSanitizedSqlQuery } from '../utils/sqlQueryCache';
 
 /**
  * Instruments the Durable Object SqlStorage `exec` method with Sentry spans.
@@ -29,8 +30,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
           return (original as (...a: unknown[]) => ReturnType<SqlStorage['exec']>).apply(target, args);
         }
 
-        const sanitizedQuery = sanitizeSqlQuery(query);
-        const querySummary = getSqlQuerySummary(sanitizedQuery);
+        const { text: sanitizedQuery, summary: querySummary } = getSanitizedSqlQuery(query);
 
         // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast reaches the Cloudflare-only `durableObjectSqlSpanAllowlist`; tsc errors without it
         const allowlist = (getClient()?.getOptions() as CloudflareClientOptions | undefined)
@@ -40,7 +40,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
           return (original as (...a: unknown[]) => ReturnType<SqlStorage['exec']>).apply(target, args);
         }
 
-        return startSpan(
+        return startLeafSpan(
           {
             name: querySummary || sanitizedQuery,
             attributes: {

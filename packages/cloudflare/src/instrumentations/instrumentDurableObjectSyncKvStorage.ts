@@ -1,8 +1,9 @@
 import type { SyncKvStorage } from '@cloudflare/workers-types';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { canRecordSpan } from '../utils/canRecordSpan';
+import { startLeafSpan } from '../utils/startLeafSpan';
 
 const SYNC_KV_METHODS_TO_INSTRUMENT = ['get', 'put', 'delete', 'list'] as const;
 
@@ -28,7 +29,7 @@ export function instrumentDurableObjectSyncKvStorage(syncKv: SyncKvStorage): Syn
           return (original as (...args: unknown[]) => unknown).apply(target, args);
         }
 
-        return startSpan(
+        return startLeafSpan(
           {
             name: `durable_object_storage_kv_${methodName}`,
             attributes: {

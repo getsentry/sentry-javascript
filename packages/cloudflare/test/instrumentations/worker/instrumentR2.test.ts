@@ -63,7 +63,7 @@ describe('instrumentR2Bucket', () => {
     initTestClient();
   });
 
-  const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+  const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
 
   describe('get', () => {
     test('forwards the call and returns the result', async () => {
@@ -79,8 +79,8 @@ describe('instrumentR2Bucket', () => {
       const wrapped = instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET');
       await wrapped.get('my-file.txt');
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.get',
           name: 'r2_get',
@@ -92,7 +92,6 @@ describe('instrumentR2Bucket', () => {
             'sentry.origin': 'auto.faas.cloudflare.r2',
           }),
         }),
-        expect.any(Function),
       );
     });
   });
@@ -111,8 +110,8 @@ describe('instrumentR2Bucket', () => {
       const wrapped = instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET');
       await wrapped.head('my-file.txt');
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.head',
           name: 'r2_head',
@@ -121,7 +120,6 @@ describe('instrumentR2Bucket', () => {
             'cloudflare.r2.request.key': 'my-file.txt',
           }),
         }),
-        expect.any(Function),
       );
     });
   });
@@ -141,8 +139,8 @@ describe('instrumentR2Bucket', () => {
       const wrapped = instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET');
       await wrapped.put('upload/photo.jpg', new ArrayBuffer(42));
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.put',
           name: 'r2_put',
@@ -151,7 +149,6 @@ describe('instrumentR2Bucket', () => {
             'cloudflare.r2.request.key': 'upload/photo.jpg',
           }),
         }),
-        expect.any(Function),
       );
     });
   });
@@ -169,8 +166,8 @@ describe('instrumentR2Bucket', () => {
       const wrapped = instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET');
       await wrapped.delete('my-file.txt');
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.delete',
           name: 'r2_delete',
@@ -179,7 +176,6 @@ describe('instrumentR2Bucket', () => {
             'cloudflare.r2.request.key': 'my-file.txt',
           }),
         }),
-        expect.any(Function),
       );
     });
 
@@ -187,7 +183,7 @@ describe('instrumentR2Bucket', () => {
       const wrapped = instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET');
       await wrapped.delete(['a.txt', 'b.txt']);
 
-      const attrs = startSpanSpy.mock.calls[0]![0].attributes!;
+      const attrs = startInactiveSpanSpy.mock.calls[0]![0].attributes!;
       expect(attrs['cloudflare.r2.request.key']).toBe('a.txt, b.txt');
     });
   });
@@ -205,8 +201,8 @@ describe('instrumentR2Bucket', () => {
       const wrapped = instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET');
       await wrapped.list({ prefix: 'uploads/' });
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.list',
           name: 'r2_list',
@@ -214,9 +210,8 @@ describe('instrumentR2Bucket', () => {
             'cloudflare.r2.operation': 'ListObjects',
           }),
         }),
-        expect.any(Function),
       );
-      expect(startSpanSpy.mock.calls[0]![0].attributes!['cloudflare.r2.request.key']).toBeUndefined();
+      expect(startInactiveSpanSpy.mock.calls[0]![0].attributes!['cloudflare.r2.request.key']).toBeUndefined();
     });
   });
 
@@ -235,8 +230,8 @@ describe('instrumentR2Bucket', () => {
       const wrapped = instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET');
       await wrapped.createMultipartUpload('big-file.bin');
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.multipart_upload.create',
           name: 'r2_createMultipartUpload',
@@ -245,7 +240,6 @@ describe('instrumentR2Bucket', () => {
             'cloudflare.r2.request.key': 'big-file.bin',
           }),
         }),
-        expect.any(Function),
       );
     });
 
@@ -253,11 +247,11 @@ describe('instrumentR2Bucket', () => {
       const wrapped = instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET');
       const upload = await wrapped.createMultipartUpload('big-file.bin');
 
-      startSpanSpy.mockClear();
+      startInactiveSpanSpy.mockClear();
       await upload.uploadPart(1, 'part-data');
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           name: 'r2_uploadPart',
           attributes: expect.objectContaining({
@@ -265,7 +259,6 @@ describe('instrumentR2Bucket', () => {
             'cloudflare.r2.request.part_number': 1,
           }),
         }),
-        expect.any(Function),
       );
     });
   });
@@ -285,7 +278,7 @@ describe('instrumentR2Bucket', () => {
       const wrapped = instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET');
       wrapped.resumeMultipartUpload('my-file.txt', 'upload-123');
 
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
     });
 
     test('instruments the returned multipart upload operations', async () => {
@@ -294,15 +287,14 @@ describe('instrumentR2Bucket', () => {
 
       await upload.abort();
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           name: 'r2_abortMultipartUpload',
           attributes: expect.objectContaining({
             'cloudflare.r2.request.key': 'my-file.txt',
           }),
         }),
-        expect.any(Function),
       );
     });
   });
@@ -323,8 +315,8 @@ describe('instrumentR2Bucket', () => {
       const result = await upload.complete([MOCK_UPLOADED_PART]);
       expect(result).toBe(MOCK_R2_OBJECT);
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           name: 'r2_completeMultipartUpload',
           attributes: expect.objectContaining({
@@ -332,7 +324,6 @@ describe('instrumentR2Bucket', () => {
             'cloudflare.r2.request.key': 'my-file.txt',
           }),
         }),
-        expect.any(Function),
       );
     });
   });
@@ -355,7 +346,7 @@ describe('instrumentR2Bucket', () => {
 
       const result = await instrumentR2Bucket(bucket, 'MY_BUCKET').get('my-file.txt');
 
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
       expect(bucket.get).toHaveBeenCalledWith('my-file.txt');
       expect(result).toBe(MOCK_R2_OBJECT_BODY);
     });
@@ -363,12 +354,12 @@ describe('instrumentR2Bucket', () => {
     test('still instruments the upload returned by createMultipartUpload', async () => {
       const upload = await instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET').createMultipartUpload('big-file.bin');
 
-      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
 
       initTestClient();
       await upload.uploadPart(1, 'data');
 
-      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startInactiveSpanSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

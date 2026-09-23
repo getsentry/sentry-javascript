@@ -21,7 +21,7 @@ describe('instrumentEnv', () => {
   });
 
   it('detects and instruments D1Database bindings', async () => {
-    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan');
     const mockStatement = {
       bind: vi.fn(),
       first: vi.fn().mockResolvedValue(null),
@@ -41,9 +41,8 @@ describe('instrumentEnv', () => {
     const db = instrumented.DB as typeof d1Database;
     await db.prepare('SELECT 1').first();
 
-    expect(startSpanSpy).toHaveBeenCalledWith(
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'SELECT ?', attributes: expect.objectContaining({ 'sentry.op': 'db.query' }) }),
-      expect.any(Function),
     );
   });
 

@@ -4,6 +4,7 @@ import { DB } from '@sentry/conventions/op';
 import { getClient, isThenable, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { CloudflareClientOptions } from '../client';
 import { canRecordSpan } from '../utils/canRecordSpan';
+import { startLeafSpan } from '../utils/startLeafSpan';
 import { getStorageKeys, targetsCloudflareInternalKey } from '../utils/internalStorageKey';
 import { storeSpanContext } from '../utils/traceLinks';
 import { instrumentDurableObjectSyncKvStorage } from './instrumentDurableObjectSyncKvStorage';
@@ -75,47 +76,48 @@ export function instrumentDurableObjectStorage(
           return (original as (...a: unknown[]) => unknown).apply(target, args);
         }
 
-        return startSpan(
-          {
-            // Use underscore naming to match Cloudflare's native instrumentation (e.g., "durable_object_storage_get")
-            name: `durable_object_storage_${methodName}`,
-            attributes: {
-              [SENTRY_OP]: DB,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
-              'db.system.name': 'cloudflare.durable_object.storage',
-              'db.operation.name': methodName,
-            },
+        const spanOptions = {
+          // Use underscore naming to match Cloudflare's native instrumentation (e.g., "durable_object_storage_get")
+          name: `durable_object_storage_${methodName}`,
+          attributes: {
+            [SENTRY_OP]: DB,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'db.system.name': 'cloudflare.durable_object.storage',
+            'db.operation.name': methodName,
           },
-          () => {
-            const teardown = async (): Promise<void> => {
-              // When setAlarm is called, store the current span context so that when the alarm
-              // fires later, it can link back to the trace that called setAlarm.
-              // We use the original (uninstrumented) storage (target) to avoid creating a span
-              // for this internal operation. The storage is deferred via waitUntil to not block.
-              if (methodName === 'setAlarm') {
-                storeSpanContext(target, 'alarm');
-              }
-            };
+        };
 
-            const result = (original as (...args: unknown[]) => unknown).apply(target, args);
+        if (methodName !== 'setAlarm') {
+          return startLeafSpan(spanOptions, () => (original as (...a: unknown[]) => unknown).apply(target, args));
+        }
 
-            if (!isThenable(result)) {
+        return startSpan(spanOptions, () => {
+          // Store the context of the active `setAlarm` span, so that when the alarm fires later it can
+          // link back to the trace that called setAlarm. We use the original (uninstrumented) storage
+          // (target) to avoid creating a span for this internal operation. The storage is deferred via
+          // waitUntil to not block.
+          const teardown = async (): Promise<void> => {
+            storeSpanContext(target, 'alarm');
+          };
+
+          const result = (original as (...args: unknown[]) => unknown).apply(target, args);
+
+          if (!isThenable(result)) {
+            waitUntil?.(teardown());
+
+            return result;
+          }
+
+          return result.then(
+            res => {
               waitUntil?.(teardown());
-
-              return result;
-            }
-
-            return result.then(
-              res => {
-                waitUntil?.(teardown());
-                return res;
-              },
-              e => {
-                throw e;
-              },
-            );
-          },
-        );
+              return res;
+            },
+            e => {
+              throw e;
+            },
+          );
+        });
       };
     },
   });
