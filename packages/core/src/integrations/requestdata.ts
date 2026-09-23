@@ -2,6 +2,7 @@ import type { Client } from '../client';
 import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
+import type { SdkProcessingMetadata } from '../scope';
 import type { CollectBehavior, ResolvedDataCollection } from '../types/datacollection';
 import type { Event } from '../types/event';
 import type { IntegrationFn } from '../types/integration';
@@ -10,6 +11,7 @@ import type { StreamedSpanJSON } from '../types/span';
 import { cookiePairsToRecord, parseCookieHeader } from '../utils/cookie';
 import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
 import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
+import { isLocalhostRequest } from '../utils/localhost';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
 import { filterCookiePairs, httpHeadersToSpanAttributes } from '../utils/request';
@@ -92,6 +94,15 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
       return event;
     },
+    processSpan(span) {
+      const { user, sdkProcessingMetadata } = getIsolationScope().getScopeData();
+
+      // This attribute is used by the "Filter out localhost events" feature on the Sentry backend.
+      // Therefore, it's set on every span, not just the segment span.
+      safeSetSpanJSONAttributes(span, {
+        'sentry.is_localhost': isLocalhostSpan(sdkProcessingMetadata, user.ip_address),
+      });
+    },
     processSegmentSpan(span, client) {
       const { sdkProcessingMetadata = {} } = getIsolationScope().getScopeData();
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
@@ -106,6 +117,40 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
     },
   };
 }) satisfies IntegrationFn;
+
+// Resolving the client IP walks a dozen forwarding headers, so the verdict is computed once per
+// request and shared by every span of that request.
+const localhostByRequest = new WeakMap<RequestEventData, boolean>();
+
+/**
+ * Whether a span belongs to a request served from the developer's own machine.
+ *
+ * The client IP is resolved exactly as {@link addNormalizedRequestDataToEvent} resolves the IP it
+ * writes to `user.ip_address`, so a span and the event for the same request always agree. Crucially
+ * a forwarding header wins over `ipAddress`, which is the raw socket address: a reverse proxy on the
+ * same host connects over loopback, so trusting the socket would mark genuine production traffic as
+ * localhost and let the backend filter silently drop it.
+ */
+function isLocalhostSpan(sdkProcessingMetadata: SdkProcessingMetadata, scopeUserIpAddress?: string | null): boolean {
+  const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
+
+  if (!normalizedRequest) {
+    return isLocalhostRequest(undefined, ipAddress || scopeUserIpAddress);
+  }
+
+  const cached = localhostByRequest.get(normalizedRequest);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const headers = normalizedRequest.headers;
+  const clientIpAddress = (headers && getClientIPAddress(headers)) || ipAddress || scopeUserIpAddress;
+  const isLocalhost = isLocalhostRequest(normalizedRequest, clientIpAddress);
+
+  localhostByRequest.set(normalizedRequest, isLocalhost);
+
+  return isLocalhost;
+}
 
 /**
  * Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/core`

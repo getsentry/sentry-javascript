@@ -58,6 +58,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(childSpan).toEqual({
           attributes: {
             [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+            'sentry.is_localhost': { type: 'boolean', value: false },
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
               type: 'string',
               value: 'test-child',
@@ -85,6 +86,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(inactiveSpan).toEqual({
           attributes: {
             [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+            'sentry.is_localhost': { type: 'boolean', value: false },
             [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
             [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
@@ -121,6 +123,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         expect(manualSpan).toEqual({
           attributes: {
             [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+            'sentry.is_localhost': { type: 'boolean', value: false },
             [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
             [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
@@ -141,6 +144,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
 
         const expectedAttributes: Record<string, unknown> = {
           [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+          'sentry.is_localhost': { type: 'boolean', value: false },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
           [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.node' },
