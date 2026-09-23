@@ -1,7 +1,9 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
+import * as serverUtils from '@sentry/server-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentSqlStorage } from '../src/instrumentations/instrumentSqlStorage';
+import { initTestClient, resetSdk } from './testUtils';
 
 describe('instrumentSqlStorage', () => {
   afterEach(() => {
@@ -257,6 +259,33 @@ describe('instrumentSqlStorage', () => {
       ])('%s', (_label, query, allowlist) => {
         expect(execCreatesSpan(query, allowlist)).toBe(false);
       });
+    });
+  });
+
+  describe('inside a parent span', () => {
+    afterEach(() => {
+      resetSdk();
+    });
+
+    it.each([
+      [1, true],
+      [0, false],
+    ])('with tracesSampleRate %s, sanitizes the query and starts a span: %s', (tracesSampleRate, startsSpan) => {
+      initTestClient({ tracesSampleRate });
+      const sanitizeSpy = vi.spyOn(serverUtils, 'sanitizeSqlQuery');
+      const mockSql = createMockSqlStorage();
+      const instrumented = instrumentSqlStorage(mockSql);
+
+      sentryCore.startSpan({ name: 'parent' }, () => {
+        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+
+        instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
+
+        expect(startSpanSpy).toHaveBeenCalledTimes(startsSpan ? 1 : 0);
+      });
+
+      expect(sanitizeSpy).toHaveBeenCalledTimes(startsSpan ? 1 : 0);
+      expect(mockSql.exec).toHaveBeenCalledWith('SELECT * FROM users WHERE id = ?', 42);
     });
   });
 });

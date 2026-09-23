@@ -1,7 +1,8 @@
 import type { R2Bucket, R2MultipartUpload } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentR2Bucket } from '../../../src/instrumentations/worker/instrumentR2';
+import { initTestClient, resetSdk } from '../../testUtils';
 
 const MOCK_R2_OBJECT = {
   key: 'my-file.txt',
@@ -341,5 +342,31 @@ describe('instrumentR2Bucket', () => {
     }) as unknown as R2Bucket & { customMethod: () => string };
     const wrapped = instrumentR2Bucket(bucket, 'MY_BUCKET') as R2Bucket & { customMethod: () => string };
     expect(wrapped.customMethod()).toBe('hi');
+  });
+
+  describe('inside a parent span', () => {
+    afterEach(() => {
+      resetSdk();
+    });
+
+    test.each([
+      [1, true],
+      [0, false],
+    ])('with tracesSampleRate %s, starts a span: %s', async (tracesSampleRate, startsSpan) => {
+      initTestClient({ tracesSampleRate });
+      const bucket = createMockR2Bucket();
+      const wrapped = instrumentR2Bucket(bucket, 'MY_BUCKET');
+
+      await SentryCore.startSpan({ name: 'parent' }, () => {
+        startSpanSpy.mockClear();
+
+        const result = wrapped.get('my-file.txt');
+
+        expect(startSpanSpy).toHaveBeenCalledTimes(startsSpan ? 1 : 0);
+        return result;
+      });
+
+      expect(bucket.get).toHaveBeenCalledWith('my-file.txt');
+    });
   });
 });
