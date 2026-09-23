@@ -4,13 +4,16 @@
   </a>
 </p>
 
-# Official Sentry SDK for Bun
+# Official Sentry SDK for Bun (Beta)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/bun.svg)](https://www.npmjs.com/package/@sentry/bun)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/bun.svg)](https://www.npmjs.com/package/@sentry/bun)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/bun.svg)](https://www.npmjs.com/package/@sentry/bun)
 
 The official Sentry SDK for monitoring Bun applications.
+
+The Sentry Bun SDK is in beta. Please help us improve the SDK by
+[reporting any issues or giving us feedback](https://github.com/getsentry/sentry-javascript/issues).
 
 ## Documentation
 

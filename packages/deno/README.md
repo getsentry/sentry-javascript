@@ -4,13 +4,16 @@
   </a>
 </p>
 
-# Official Sentry SDK for Deno
+# Official Sentry SDK for Deno (Beta)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/deno.svg)](https://www.npmjs.com/package/@sentry/deno)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/deno.svg)](https://www.npmjs.com/package/@sentry/deno)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/deno.svg)](https://www.npmjs.com/package/@sentry/deno)
 
 The official Sentry SDK for monitoring Deno applications.
+
+The Sentry Deno SDK is in beta. Please help us improve the SDK by
+[reporting any issues or giving us feedback](https://github.com/getsentry/sentry-javascript/issues).
 
 ## Documentation
 
