@@ -14,9 +14,9 @@ OpenTelemetry support for Sentry’s JavaScript SDKs.
 
 ## Documentation
 
-- [Setup and migration](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#better-opentelemetry-interoperability)
-- [Sentry tracer provider](../../docs/opentelemetry.md)
 - [OpenTelemetry documentation](https://docs.sentry.io/platforms/javascript/guides/node/opentelemetry/)
+- [Capture spans from OpenTelemetry APIs](https://docs.sentry.io/platforms/javascript/guides/node/opentelemetry/using-opentelemetry-apis/)
+- [Use your own OpenTelemetry pipeline](https://docs.sentry.io/platforms/javascript/guides/node/opentelemetry/custom-setup/)
 
 ## Support
 
