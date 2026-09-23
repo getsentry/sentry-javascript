@@ -10,7 +10,7 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/nestjs.svg)](https://www.npmjs.com/package/@sentry/nestjs)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nestjs.svg)](https://www.npmjs.com/package/@sentry/nestjs)
 
-Error monitoring and performance tracing for NestJS applications.
+The official Sentry SDK for monitoring NestJS applications.
 
 ## Documentation
 
