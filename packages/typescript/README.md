@@ -19,7 +19,7 @@ Shared TypeScript configuration used at Sentry.
 
 ## Documentation
 
-- [Usage and configuration](https://github.com/getsentry/sentry-javascript/blob/develop/docs/sdk-tooling.md#typescript-configuration)
+- [Usage and configuration](../../docs/sdk-tooling.md#typescript-configuration)
 
 ## Support
 

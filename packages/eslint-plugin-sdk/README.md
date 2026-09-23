@@ -19,7 +19,7 @@ Custom ESLint rules used at Sentry.
 
 ## Documentation
 
-- [SDK tooling](https://github.com/getsentry/sentry-javascript/blob/develop/docs/sdk-tooling.md#eslint-plugin)
+- [SDK tooling](../../docs/sdk-tooling.md#eslint-plugin)
 - [Available rules](https://github.com/getsentry/sentry-javascript/tree/develop/packages/eslint-plugin-sdk/src/rules)
 
 ## Support
