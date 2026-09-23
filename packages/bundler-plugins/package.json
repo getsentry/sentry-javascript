@@ -44,6 +44,11 @@
       "import": "./build/esm/core/index.js",
       "require": "./build/cjs/core/index.js"
     },
+    "./loader-utils": {
+      "types": "./build/types/loader-utils/index.d.ts",
+      "import": "./build/esm/loader-utils/index.js",
+      "require": "./build/cjs/loader-utils/index.js"
+    },
     "./babel-plugin": {
       "types": "./build/types/babel-plugin/index.d.ts",
       "import": "./build/esm/babel-plugin/index.js",
