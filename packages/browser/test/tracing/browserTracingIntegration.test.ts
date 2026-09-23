@@ -8,7 +8,6 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   getMainCarrier,
-  metrics,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -972,7 +971,6 @@ describe('browserTracingIntegration', () => {
     // so its hit/miss metric is emitted before this navigation span exists and lands on the trace
     // the page had before it was frozen. See the note on the pageshow handler.
     it('emits the bfcache metric on the pre-freeze trace, before the navigation span exists', () => {
-      const countSpy = vi.spyOn(metrics, 'count').mockImplementation(() => {});
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -985,7 +983,7 @@ describe('browserTracingIntegration', () => {
       const traceIdBeforeRestore = getCurrentScope().getPropagationContext().traceId;
 
       let traceIdAtMetricTime: string | undefined;
-      countSpy.mockImplementation(() => {
+      client.on('processMetric', () => {
         traceIdAtMetricTime = getCurrentScope().getPropagationContext().traceId;
       });
 

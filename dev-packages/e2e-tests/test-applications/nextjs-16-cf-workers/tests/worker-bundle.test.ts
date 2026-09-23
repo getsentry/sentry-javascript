@@ -53,7 +53,7 @@ function readOrchestrionPluginGraphSources(): string[] {
   const entrySource = fs.readFileSync(pluginEntry, 'utf8');
   return [
     entrySource,
-    ...[...entrySource.matchAll(/require\('(\.\.?\/[^']+)'\)/g)].map(([, specifier]) =>
+    ...[...entrySource.matchAll(/require\(['"](\.\.?\/[^'"]+)['"]\)/g)].map(([, specifier]) =>
       fs.readFileSync(path.resolve(path.dirname(pluginEntry), specifier), 'utf8'),
     ),
   ];
