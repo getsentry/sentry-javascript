@@ -2,6 +2,7 @@ import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { RPC } from '@sentry/conventions/op';
 import { debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
+import { canRecordSpan } from '../../utils/canRecordSpan';
 import { AGENT_SPAN_ORIGIN, type AgentInternals, getAgentAttributes, setAgentConversationId } from './types';
 
 /**
@@ -24,6 +25,11 @@ export function instrumentAgentCallableRpc(obj: AgentInternals): void {
 
   obj.onMessage = new Proxy(original, {
     apply(target, thisArg: AgentInternals, args: unknown[]): unknown {
+      // The conversation id set below is only read when a span starts, so it is skipped together with the span.
+      if (!canRecordSpan()) {
+        return Reflect.apply(target, thisArg, args);
+      }
+
       const method = extractCallableMethod(args[1]);
 
       if (!method) {

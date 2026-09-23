@@ -1,9 +1,14 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectSyncKvStorage } from '../src/instrumentations/instrumentDurableObjectSyncKvStorage';
+import { initTestClient } from './testUtils';
 
 describe('instrumentDurableObjectSyncKvStorage', () => {
+  beforeEach(() => {
+    initTestClient();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -184,6 +189,19 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
       expect(() => instrumented.get('myKey')).toThrow('Storage error');
     });
+  });
+
+  it('does not start a span when tracing is not configured', () => {
+    initTestClient({ tracesSampleRate: undefined });
+    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    const mockKv = createMockSyncKv();
+    mockKv.get = vi.fn().mockReturnValue('storedValue');
+
+    const result = instrumentDurableObjectSyncKvStorage(mockKv).get('myKey');
+
+    expect(startSpanSpy).not.toHaveBeenCalled();
+    expect(mockKv.get).toHaveBeenCalledWith('myKey');
+    expect(result).toBe('storedValue');
   });
 });
 

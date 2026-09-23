@@ -1,9 +1,15 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as serverUtils from '@sentry/server-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentSqlStorage } from '../src/instrumentations/instrumentSqlStorage';
+import { initTestClient } from './testUtils';
 
 describe('instrumentSqlStorage', () => {
+  beforeEach(() => {
+    initTestClient();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -145,6 +151,58 @@ describe('instrumentSqlStorage', () => {
     expect(mockSql.exec).toHaveBeenCalledTimes(2);
   });
 
+  describe('when spans cannot be sent', () => {
+    it.each([
+      ['tracing is not configured', { tracesSampleRate: undefined }],
+      ['the SDK is disabled', { enabled: false }],
+      ['no DSN is set', { dsn: undefined }],
+    ])('skips sanitizing and span creation when %s', (_label, options) => {
+      initTestClient(options);
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const sanitizeSpy = vi.spyOn(serverUtils, 'sanitizeSqlQuery');
+      const mockCursor = createMockCursor();
+      const mockSql = createMockSqlStorage(mockCursor);
+
+      const result = instrumentSqlStorage(mockSql).exec('SELECT * FROM users WHERE id = ?', 42);
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(sanitizeSpy).not.toHaveBeenCalled();
+      expect(mockSql.exec).toHaveBeenCalledWith('SELECT * FROM users WHERE id = ?', 42);
+      expect(result).toBe(mockCursor);
+    });
+
+    it('skips sanitizing and span creation inside an unsampled span', () => {
+      initTestClient({ tracesSampleRate: 0 });
+      const mockSql = createMockSqlStorage();
+      const instrumented = instrumentSqlStorage(mockSql);
+
+      startSpan({ name: 'fetch' }, () => {
+        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+        const sanitizeSpy = vi.spyOn(serverUtils, 'sanitizeSqlQuery');
+
+        instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
+
+        expect(startSpanSpy).not.toHaveBeenCalled();
+        expect(sanitizeSpy).not.toHaveBeenCalled();
+      });
+
+      expect(mockSql.exec).toHaveBeenCalledWith('SELECT * FROM users WHERE id = ?', 42);
+    });
+
+    it('creates a span inside a sampled span', () => {
+      const mockSql = createMockSqlStorage();
+      const instrumented = instrumentSqlStorage(mockSql);
+
+      startSpan({ name: 'fetch' }, () => {
+        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+
+        instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
+
+        expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
   describe('internal storage queries', () => {
     it('does not create a span for Cloudflare-internal queries', () => {
       const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
@@ -267,13 +325,11 @@ describe('instrumentSqlStorage', () => {
  * reimplementation of it.
  */
 function execCreatesSpan(query: string, allowlist?: Array<string | RegExp>): boolean {
-  const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
-
   if (allowlist) {
-    vi.spyOn(sentryCore, 'getClient').mockReturnValue({
-      getOptions: () => ({ durableObjectSqlSpanAllowlist: allowlist }),
-    } as unknown as ReturnType<typeof sentryCore.getClient>);
+    initTestClient({ durableObjectSqlSpanAllowlist: allowlist });
   }
+
+  const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
 
   const mockSql = createMockSqlStorage();
   instrumentSqlStorage(mockSql).exec(query);

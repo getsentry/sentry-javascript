@@ -2,6 +2,7 @@ import type { R2Bucket, R2MultipartUpload } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentR2Bucket } from '../../../src/instrumentations/worker/instrumentR2';
+import { initTestClient } from '../../testUtils';
 
 const MOCK_R2_OBJECT = {
   key: 'my-file.txt',
@@ -59,6 +60,7 @@ function createMockR2Bucket(): R2Bucket {
 describe('instrumentR2Bucket', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    initTestClient();
   });
 
   const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
@@ -341,5 +343,32 @@ describe('instrumentR2Bucket', () => {
     }) as unknown as R2Bucket & { customMethod: () => string };
     const wrapped = instrumentR2Bucket(bucket, 'MY_BUCKET') as R2Bucket & { customMethod: () => string };
     expect(wrapped.customMethod()).toBe('hi');
+  });
+
+  describe('when tracing is not configured', () => {
+    beforeEach(() => {
+      initTestClient({ tracesSampleRate: undefined });
+    });
+
+    test('does not start a span', async () => {
+      const bucket = createMockR2Bucket();
+
+      const result = await instrumentR2Bucket(bucket, 'MY_BUCKET').get('my-file.txt');
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(bucket.get).toHaveBeenCalledWith('my-file.txt');
+      expect(result).toBe(MOCK_R2_OBJECT_BODY);
+    });
+
+    test('still instruments the upload returned by createMultipartUpload', async () => {
+      const upload = await instrumentR2Bucket(createMockR2Bucket(), 'MY_BUCKET').createMultipartUpload('big-file.bin');
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+
+      initTestClient();
+      await upload.uploadPart(1, 'data');
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    });
   });
 });

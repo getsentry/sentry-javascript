@@ -1,7 +1,9 @@
 import type { D1Database, D1DatabaseSession, D1PreparedStatement } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import * as ServerUtils from '@sentry/server-utils';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentD1 } from '../../../src/instrumentations/worker/instrumentD1';
+import { initTestClient } from '../../testUtils';
 
 const MOCK_FIRST_RETURN_VALUE = { id: 1, name: 'Foo' };
 
@@ -55,6 +57,7 @@ function createMockD1Session(): D1DatabaseSession {
 describe('instrumentD1', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    initTestClient({ traceLifecycle: 'static' });
   });
 
   const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
@@ -111,16 +114,8 @@ describe('instrumentD1', () => {
     });
 
     describe('with span streaming enabled', () => {
-      let getClientSpy: ReturnType<typeof vi.spyOn>;
-
       beforeEach(() => {
-        getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue({
-          getOptions: () => ({ traceLifecycle: 'stream' }),
-        } as unknown as ReturnType<typeof SentryCore.getClient>);
-      });
-
-      afterEach(() => {
-        getClientSpy.mockRestore();
+        initTestClient({ traceLifecycle: 'stream' });
       });
 
       test('names the span after the query summary', async () => {
@@ -518,6 +513,57 @@ describe('instrumentD1', () => {
 
       expect(first).toBe(second);
       expect(second.prepare).toBe(prepareAfterFirst);
+    });
+  });
+
+  describe('when tracing is not configured', () => {
+    beforeEach(() => {
+      initTestClient({ tracesSampleRate: undefined });
+    });
+
+    test('does not start a span but still adds a breadcrumb with the sanitized query', async () => {
+      const instrumentedDb = instrumentD1(createMockD1Database());
+      await instrumentedDb.prepare("SELECT * FROM users WHERE name = 'Alice'").run();
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(addBreadcrumbSpy).toHaveBeenLastCalledWith({
+        category: 'query',
+        message: 'SELECT * FROM users WHERE name = ?',
+        data: {
+          'cloudflare.d1.duration': 1,
+          'cloudflare.d1.rows_read': 3,
+          'cloudflare.d1.rows_written': 4,
+          'db.operation.name': 'run',
+        },
+      });
+    });
+
+    test('does not sanitize a statement that is never executed', () => {
+      const sanitizeSpy = vi.spyOn(ServerUtils, 'sanitizeSqlQuery');
+      const instrumentedDb = instrumentD1(createMockD1Database());
+
+      instrumentedDb.prepare('SELECT * FROM users').bind(1);
+
+      expect(sanitizeSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the SDK is disabled', () => {
+    beforeEach(() => {
+      initTestClient({ enabled: false });
+    });
+
+    test('does not sanitize, start a span or add a breadcrumb', async () => {
+      const sanitizeSpy = vi.spyOn(ServerUtils, 'sanitizeSqlQuery');
+      const instrumentedDb = instrumentD1(createMockD1Database());
+
+      await instrumentedDb.prepare('SELECT * FROM users').first();
+      await instrumentedDb.exec('SELECT * FROM users');
+      await instrumentedDb.batch([instrumentedDb.prepare('SELECT 1')]);
+
+      expect(sanitizeSpy).not.toHaveBeenCalled();
+      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(addBreadcrumbSpy).not.toHaveBeenCalled();
     });
   });
 });

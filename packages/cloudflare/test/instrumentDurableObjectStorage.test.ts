@@ -1,8 +1,9 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectStorage } from '../src/instrumentations/instrumentDurableObjectStorage';
 import * as traceLinks from '../src/utils/traceLinks';
+import { initTestClient } from './testUtils';
 
 vi.mock('../src/utils/traceLinks', async importOriginal => {
   const actual = await importOriginal<typeof traceLinks>();
@@ -13,6 +14,10 @@ vi.mock('../src/utils/traceLinks', async importOriginal => {
 });
 
 describe('instrumentDurableObjectStorage', () => {
+  beforeEach(() => {
+    initTestClient();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -472,6 +477,31 @@ describe('instrumentDurableObjectStorage', () => {
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await expect(instrumented.get('myKey')).rejects.toThrow('Storage error');
+    });
+  });
+
+  describe('when tracing is not configured', () => {
+    beforeEach(() => {
+      initTestClient({ tracesSampleRate: undefined });
+    });
+
+    it('does not start a span for KV methods', async () => {
+      const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+      const mockStorage = createMockStorage();
+
+      await instrumentDurableObjectStorage(mockStorage).get('myKey');
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(mockStorage.get).toHaveBeenCalledWith('myKey');
+    });
+
+    it('still stores the span context on setAlarm', async () => {
+      const waitUntil = vi.fn();
+      const mockStorage = createMockStorage();
+
+      await instrumentDurableObjectStorage(mockStorage, waitUntil).setAlarm(Date.now() + 1000);
+
+      expect(traceLinks.storeSpanContext).toHaveBeenCalledWith(mockStorage, 'alarm');
     });
   });
 });

@@ -152,6 +152,24 @@ describe('instrumentCloudflareAgent', () => {
 
       expect(agent.seenConversationId).toBeUndefined();
     });
+
+    it('does not parse the message or create a span when tracing is not configured', async () => {
+      client.getOptions().tracesSampleRate = undefined;
+      const parseSpy = vi.spyOn(JSON, 'parse');
+      const agent = createFakeAgent();
+      instrumentCloudflareAgent(agent);
+
+      const result = await agent.onMessage(
+        {},
+        JSON.stringify({ type: 'rpc', id: '1', method: 'greet', args: ['World'] }),
+      );
+
+      await client.flush();
+
+      expect(result).toBe('handled');
+      expect(parseSpy).not.toHaveBeenCalled();
+      expect(transactions).toHaveLength(0);
+    });
   });
 
   describe('conversation id', () => {

@@ -2,6 +2,7 @@ import type { Queue } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentQueueProducer } from '../../../src/instrumentations/worker/instrumentQueueProducer';
+import { initTestClient } from '../../testUtils';
 
 function createMockQueue(): Queue {
   return {
@@ -13,6 +14,7 @@ function createMockQueue(): Queue {
 describe('instrumentQueueProducer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    initTestClient();
   });
 
   describe('send', () => {
@@ -177,5 +179,36 @@ describe('instrumentQueueProducer', () => {
     };
     const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE') as Queue & { customMethod: () => string };
     expect(wrapped.customMethod()).toBe('hi');
+  });
+
+  describe('when tracing is not configured', () => {
+    beforeEach(() => {
+      initTestClient({ tracesSampleRate: undefined });
+    });
+
+    test('send does not start a span or serialize the body', async () => {
+      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const stringifySpy = vi.spyOn(JSON, 'stringify');
+      const queue = createMockQueue();
+
+      await instrumentQueueProducer(queue, 'MY_QUEUE').send({ hello: 'world' }, { contentType: 'json' });
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(stringifySpy).not.toHaveBeenCalled();
+      expect(queue.send).toHaveBeenLastCalledWith({ hello: 'world' }, { contentType: 'json' });
+    });
+
+    test('sendBatch passes the messages through unchanged', async () => {
+      const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+      const stringifySpy = vi.spyOn(JSON, 'stringify');
+      const queue = createMockQueue();
+      const messages = new Set([{ body: { a: 1 } }, { body: { b: 2 } }]);
+
+      await instrumentQueueProducer(queue, 'MY_QUEUE').sendBatch(messages);
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(stringifySpy).not.toHaveBeenCalled();
+      expect(queue.sendBatch).toHaveBeenLastCalledWith(messages, undefined);
+    });
   });
 });

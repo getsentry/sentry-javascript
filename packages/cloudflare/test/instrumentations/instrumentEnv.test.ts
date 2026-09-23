@@ -1,6 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentEnv } from '../../src/instrumentations/worker/instrumentEnv';
+import { initTestClient } from '../testUtils';
 
 vi.mock('../../src/instrumentations/instrumentDurableObjectNamespace', () => ({
   instrumentDurableObjectNamespace: vi.fn((namespace: unknown, propagateRpcTrace: boolean) => ({
@@ -16,6 +17,7 @@ import { instrumentDurableObjectNamespace } from '../../src/instrumentations/ins
 describe('instrumentEnv', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    initTestClient({ traceLifecycle: 'static' });
   });
 
   it('detects and instruments D1Database bindings', async () => {
