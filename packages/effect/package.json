@@ -54,7 +54,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v10"
   },
   "dependencies": {
     "@sentry/browser": "10.75.2",

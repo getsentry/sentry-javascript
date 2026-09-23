@@ -45,7 +45,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v10"
   },
   "dependencies": {
     "@sentry/conventions": "^0.16.0",

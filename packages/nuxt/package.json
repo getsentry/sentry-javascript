@@ -41,7 +41,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v10"
   },
   "peerDependencies": {
     "nuxt": ">=3.7.0 || 4.x || 5.x",

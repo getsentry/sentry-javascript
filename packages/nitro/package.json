@@ -29,7 +29,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v10"
   },
   "peerDependencies": {
     "nitro": ">=3.0.0-0 <4.0.0 || 3.0.260311-beta || 3.0.260415-beta"
