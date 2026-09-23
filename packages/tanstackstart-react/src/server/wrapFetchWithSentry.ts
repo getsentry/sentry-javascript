@@ -1,7 +1,7 @@
-import { getTraceMetaTags } from '@sentry/core';
+import { getClient, getTraceMetaTags, hasSpanStreamingEnabled } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_REQUEST_METHOD, SENTRY_DESCRIPTION, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import { updateSpanWithRouteParametrization } from './routeParametrization';
 
@@ -144,12 +144,24 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
 
           // instrument server functions
           if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
+            const client = getClient();
+            const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+            const description = `${method} ${url.pathname}`;
+
             return await startSpan(
               {
-                name: `${method} ${url.pathname}`,
+                // With span streaming, a `function` span is named after the function it wraps. The
+                // request path carries the generated server function id, which is high cardinality.
+                name: hasSpanStreaming ? 'serverFn' : description,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
                   [SENTRY_OP]: FUNCTION,
+                  [CODE_FUNCTION_NAME]: 'serverFn',
+                  // The global function middleware renames this span and needs the method, which it
+                  // can no longer read off a low-cardinality span name.
+                  [HTTP_REQUEST_METHOD]: method,
+                  // Relay infers a `function` span's description from `code.function.name` alone, which drops the path.
+                  ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
                 },
               },
               async () => {
