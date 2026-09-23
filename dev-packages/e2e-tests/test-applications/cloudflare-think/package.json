@@ -1,0 +1,50 @@
+{
+  "name": "cloudflare-think",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview --port 38788",
+    "typecheck": "tsc --noEmit",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:build-ai-v6": "pnpm install && pnpm add ai@^6.0.0 @openrouter/ai-sdk-provider@^2.9.1 && pnpm build",
+    "test:assert-ai-v6": "AI_SDK_MAJOR=6 pnpm test:prod"
+  },
+  "dependencies": {
+    "@cloudflare/think": "^0.19.0",
+    "@openrouter/ai-sdk-provider": "^3.1.0",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "agents": "^0.24.0",
+    "ai": "^7.0.112",
+    "dataloader": "^2.2.3",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.57.2",
+    "@cloudflare/workers-types": "^4.20260426.0",
+    "@playwright/test": "~1.63.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "typescript": "^5.5.2",
+    "vite": "7.3.5",
+    "wrangler": "^4.136.2",
+    "ws": "^8.18.3"
+  },
+  "volta": {
+    "node": "24.15.0",
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true,
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-ai-v6",
+        "assert-command": "pnpm test:assert-ai-v6",
+        "label": "cloudflare-think (ai v6)"
+      }
+    ]
+  }
+}
