@@ -18,7 +18,6 @@ For React Router in library mode, use the [React SDK](https://docs.sentry.io/pla
 
 - [Getting started](https://docs.sentry.io/platforms/javascript/guides/react-router/)
 - [Configuration](https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/)
-- [Manual setup](https://docs.sentry.io/platforms/javascript/guides/react-router/manual-setup/)
 
 ## Support
 
