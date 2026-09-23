@@ -10,7 +10,7 @@ export type ComponentAnnotationLoaderOptions = {
  * `data-sentry-element`, and `data-sentry-source-file` attributes.
  *
  * This is the Turbopack equivalent of what `@sentry/bundler-plugins/webpack` does
- * via the `reactComponentAnnotation` option and `@sentry/babel-plugin-component-annotate`.
+ * via the `reactComponentAnnotation` option.
  *
  * Options:
  *   - `ignoredComponents`: List of component names to exclude from annotation.
