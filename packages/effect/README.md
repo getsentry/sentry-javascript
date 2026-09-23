@@ -1,10 +1,12 @@
-# Official Sentry SDK for Effect.ts
+# Official Sentry SDK for Effect.ts (Alpha)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/effect.svg)](https://www.npmjs.com/package/@sentry/effect)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/effect.svg)](https://www.npmjs.com/package/@sentry/effect)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/effect.svg)](https://www.npmjs.com/package/@sentry/effect)
 
 The official Sentry SDK for monitoring Effect applications.
+
+> NOTICE: This package is in alpha state and may be subject to breaking changes.
 
 ## Documentation
 
