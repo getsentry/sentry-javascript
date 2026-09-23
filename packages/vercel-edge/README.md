@@ -10,7 +10,7 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/vercel-edge.svg)](https://www.npmjs.com/package/@sentry/vercel-edge)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/vercel-edge.svg)](https://www.npmjs.com/package/@sentry/vercel-edge)
 
-Vercel Edge Runtime utilities used by higher-level Sentry SDKs such as `@sentry/nextjs`.
+Internal Sentry SDK for the Vercel Edge Runtime.
 
 > **NOTICE:** It is discouraged to depend on this package directly. `@sentry/vercel-edge` is used as building block for
 > higher level Sentry SDKs like `@sentry/nextjs`. The API of this `@sentry/vercel-edge` may break with any major and

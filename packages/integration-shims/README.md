@@ -6,7 +6,7 @@
 
 # Sentry Integration Shims
 
-Integration shims used internally to ensure consistent Sentry CDN bundle output.
+Internal shims that provide consistent APIs across Sentry’s CDN bundles.
 
 > [!NOTE]
 > This is a private package used internally by Sentry’s JavaScript SDKs. It is not part of the public API contract

@@ -10,11 +10,10 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 
-Interface definitions, base classes, and utilities for building Sentry JavaScript SDKs.
+Shared foundations and utilities for Sentry’s JavaScript SDKs.
 
 > [!NOTE]
-> This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
-> public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
+> Please consider all classes and exported functions and interfaces `internal`.
 
 ## Documentation
 

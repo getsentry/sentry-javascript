@@ -6,7 +6,7 @@
 
 # Sentry Session Replay Worker
 
-Generates a web worker and converts it to a string for use by Sentry Session Replay.
+Compression worker for Sentry Session Replay.
 
 By extracting this into a dedicated (private, internal) package, we can streamline the build of replay.
 

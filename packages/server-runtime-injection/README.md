@@ -8,7 +8,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@sentry/server-runtime-injection.svg)](https://www.npmjs.com/package/@sentry/server-runtime-injection)
 
-Runtime module hooks and a code transformer that instrument dependencies as they load in Sentry’s server SDKs.
+Runtime instrumentation for Sentry’s JavaScript server SDKs.
 
 > [!NOTE]
 > This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
