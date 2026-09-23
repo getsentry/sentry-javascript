@@ -12,6 +12,9 @@
 
 The official Sentry SDK for monitoring Astro applications.
 
+This SDK is in Beta and not yet fully stable. If you have feedback or encounter any bugs, feel free to
+[open an issue](https://github.com/getsentry/sentry-javascript/issues/new/choose).
+
 ## Documentation
 
 - [Getting started](https://docs.sentry.io/platforms/javascript/guides/astro/)
