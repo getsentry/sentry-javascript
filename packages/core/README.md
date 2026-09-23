@@ -10,13 +10,17 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 
-## Links
+Interface definitions, base classes, and utilities for building Sentry JavaScript SDKs.
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+> [!NOTE]
+> This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
+> public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
 
-## General
+## Documentation
 
-This package contains interface definitions, base classes and utilities for building Sentry JavaScript SDKs, like
-`@sentry/node` or `@sentry/browser`.
+- [JavaScript SDK documentation](https://docs.sentry.io/platforms/javascript/)
 
-Please consider all classes and exported functions and interfaces `internal`.
+## Support
+
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)
