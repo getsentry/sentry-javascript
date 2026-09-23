@@ -1,63 +1,40 @@
 import { expect, it } from 'vitest';
-import type { Event } from '@sentry/core';
+import type { SerializedStreamedSpan } from '@sentry/core';
 import { createRunner } from '../../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../../spanUtils';
 
 it('traces a workflow that calls a durable object with the same trace id', async ({ signal }) => {
-  let workflowTraceId: string | undefined;
-  let workflowSpanId: string | undefined;
-  let doTraceId: string | undefined;
-  let doParentSpanId: string | undefined;
+  let workflowSpan: SerializedStreamedSpan | undefined;
+  let doSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'function',
-              data: expect.objectContaining({
-                'sentry.op': 'function',
-                'sentry.origin': 'auto.faas.cloudflare.workflow',
-              }),
-              origin: 'auto.faas.cloudflare.workflow',
-            }),
-          }),
-          transaction: 'workflow-env-test',
-        }),
-      );
-      workflowTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      workflowSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      expect(segmentSpan?.name).toBe('workflow-env-test');
+      expect(getSpanOp(segmentSpan!)).toBe('function');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.workflow',
+      });
+      workflowSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /workflow-test',
-        }),
-      );
-      doTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      doParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      // `/workflow-test` is a raw URL, so the streamed segment name keeps the method only.
+      expect(segmentSpan?.name).toBe('GET');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/workflow-test' });
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      doSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
   await runner.makeRequest('get', '/workflow/trigger');
   await runner.completed();
 
-  expect(workflowTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(workflowTraceId).toBe(doTraceId);
-
-  expect(workflowSpanId).toBeDefined();
-  expect(doParentSpanId).toBeDefined();
-  expect(doParentSpanId).toBe(workflowSpanId);
+  expect(workflowSpan?.trace_id).toBeDefined();
+  expect(doSpan?.trace_id).toBe(workflowSpan?.trace_id);
+  expect(doSpan?.parent_span_id).toBe(workflowSpan?.span_id);
 });
