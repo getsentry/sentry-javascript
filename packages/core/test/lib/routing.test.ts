@@ -69,9 +69,9 @@ describe('routing', () => {
       const resolveSpy = vi.fn().mockReturnValue('/users/:id');
       setRouteProvider({ resolveRoute: resolveSpy, resolveCurrentRoute: () => undefined });
 
-      resolveRoute('/users/7');
+      resolveRoute('7');
 
-      expect(resolveSpy).toHaveBeenCalledWith(new URL('https://example.com/users/7'));
+      expect(resolveSpy).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/users/7', search: '', hash: '' }));
     });
 
     it('resolves a URL the router has already navigated away from', () => {
