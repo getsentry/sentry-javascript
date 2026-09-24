@@ -14279,10 +14279,10 @@ electron-to-chromium@^1.5.402:
   resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.5.404.tgz#9f34e6d20ae29575fbae701680c2e9f292a92929"
   integrity sha512-3WJtd7/lVq2Jnuz6wed1l9+1ZD2u2Tet1/1NBc4Iedkmgbu+I7YuAqdAQ8T+VZtnwysMsAf3IqSq9D1gyZjA2g==
 
-elysia@^1.4.0:
-  version "1.4.27"
-  resolved "https://registry.yarnpkg.com/elysia/-/elysia-1.4.27.tgz#709f07f54c0d0400aab8a18bac4d94223203ec45"
-  integrity sha512-2UlmNEjPJVA/WZVPYKy+KdsrfFwwNlqSBW1lHz6i2AHc75k7gV4Rhm01kFeotH7PDiHIX2G8X3KnRPc33SGVIg==
+elysia@^1.4.29:
+  version "1.4.29"
+  resolved "https://registry.yarnpkg.com/elysia/-/elysia-1.4.29.tgz#c55ad4a30babbb3bc5b9b49ab3f808f5cba71ec7"
+  integrity sha512-GwMRGGwSdjfPt+w3LA0fqTuYJtS8uVRJicvoar98/HrO5qdFKDc9CwjIb6Kja+v39lkY+58hr2JvdR9jQzlUuA==
   dependencies:
     cookie "^1.1.1"
     exact-mirror "^0.2.7"

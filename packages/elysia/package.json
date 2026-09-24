@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "bun-types": "^1.2.9",
-    "elysia": "^1.4.0"
+    "elysia": "^1.4.29"
   },
   "peerDependenciesMeta": {
     "elysia": {
