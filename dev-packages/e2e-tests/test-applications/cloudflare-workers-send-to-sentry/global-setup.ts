@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { deleteWorker, deployWorker, keepsWorker, waitForWorker } from './deployed-worker.mjs';
+import { deleteWorker, deployWorker, keepsWorker, waitForWorker } from './deployed-worker';
 
 const WORKER_PREFIX = 'e2e-send-to-sentry';
 
@@ -9,7 +9,7 @@ const WORKER_PREFIX = 'e2e-send-to-sentry';
  * next run of the same ref overwrites. Pull request refs look like `123/merge` and merge queue refs
  * like `gh-readonly-queue/<base>/pr-123-<sha>`; both map to the PR's Worker.
  */
-export function getWorkerName() {
+export function getWorkerName(): string {
   if (!process.env.GITHUB_ACTIONS) {
     return `${WORKER_PREFIX}-local-${randomBytes(3).toString('hex')}`;
   }
@@ -24,7 +24,7 @@ export function getWorkerName() {
   return `${WORKER_PREFIX}-${slug}`.slice(0, 63).replace(/-+$/, '');
 }
 
-export default async function globalSetup() {
+export default async function globalSetup(): Promise<void> {
   if (!existsSync(new URL('.wrangler/deploy/config.json', import.meta.url))) {
     throw new Error('Run `pnpm build` first: wrangler would deploy the uninstrumented source.');
   }

@@ -1,6 +1,6 @@
-import { deleteWorker, keepsWorker } from './deployed-worker.mjs';
+import { deleteWorker, keepsWorker } from './deployed-worker';
 
-export default function globalTeardown() {
+export default function globalTeardown(): void {
   const workerName = process.env.E2E_TEST_WORKER_NAME;
 
   if (!workerName) {
