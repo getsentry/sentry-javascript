@@ -67,7 +67,7 @@
   "dependencies": {
     "@sentry/cloudflare": "11.0.0",
     "@sentry/core": "11.0.0",
-    "@sentry/conventions": "^0.23.0",
+    "@sentry/conventions": "^0.24.0",
     "@sentry/node": "11.0.0",
     "@sentry/server-runtime-injection": "11.0.0",
     "@sentry/server-utils": "11.0.0",

@@ -130,6 +130,7 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
+  instrumentMistralAiClient,
   instrumentStateGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,

@@ -18,7 +18,7 @@ import { filterCookiePairs, httpHeadersToSpanAttributes } from '../utils/request
 import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
-import { URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import { SENTRY_IS_LOCALHOST, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
 
 type RequestDataIncludeOptions = {
   cookies?: boolean;
@@ -100,7 +100,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       // This attribute is used by the "Filter out localhost events" feature on the Sentry backend.
       // Therefore, it's set on every span, not just the segment span.
       safeSetSpanJSONAttributes(span, {
-        'sentry.is_localhost': isLocalhostSpan(sdkProcessingMetadata, user.ip_address),
+        [SENTRY_IS_LOCALHOST]: isLocalhostSpan(sdkProcessingMetadata, user.ip_address),
       });
     },
     processSegmentSpan(span, client) {

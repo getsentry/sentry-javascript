@@ -122,6 +122,40 @@ describe('parseCookieHeader', () => {
       expect(parseCookieHeader('; HttpOnly', 'set-cookie')).toEqual([]);
     });
 
+    it.each([
+      [
+        'sid=s3cr3t; Path=/, theme=dark; Path=/',
+        [
+          ['sid', 's3cr3t'],
+          ['theme', 'dark'],
+        ],
+      ],
+      [
+        'sid=s3cr3t; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Path=/, theme=dark',
+        [
+          ['sid', 's3cr3t'],
+          ['theme', 'dark'],
+        ],
+      ],
+      [
+        'sid=s3cr3t; Expires=Wed, 21 Oct 2026 07:28:00 GMT, theme=dark',
+        [
+          ['sid', 's3cr3t'],
+          ['theme', 'dark'],
+        ],
+      ],
+      ['sid=s3cr3t; Expires=Wed, 21 Oct 2026 07:28:00 GMT', [['sid', 's3cr3t']]],
+      [
+        'sid=s3cr3t,theme=dark',
+        [
+          ['sid', 's3cr3t'],
+          ['theme', 'dark'],
+        ],
+      ],
+    ])('splits headers joined with "," in %j', (header, expected) => {
+      expect(parseCookieHeader(header, 'set-cookie')).toEqual(expected);
+    });
+
     it('returns one pair per header value', () => {
       expect(parseCookieHeader(['theme=dark; HttpOnly', 'sid=s3cr3t; Secure'], 'set-cookie')).toEqual([
         ['theme', 'dark'],

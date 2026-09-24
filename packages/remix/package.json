@@ -59,7 +59,7 @@
   "dependencies": {
     "@remix-run/router": "^1.23.4",
     "@sentry/bundler-plugins": "11.0.0",
-    "@sentry/conventions": "^0.23.0",
+    "@sentry/conventions": "^0.24.0",
     "@sentry/core": "11.0.0",
     "@sentry/node": "11.0.0",
     "@sentry/react": "11.0.0",
