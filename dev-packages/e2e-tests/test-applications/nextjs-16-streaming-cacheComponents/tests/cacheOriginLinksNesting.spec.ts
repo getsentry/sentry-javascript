@@ -1,24 +1,10 @@
 import { expect, test } from '@playwright/test';
-import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { CACHE_ORIGIN_LINK_ATTRIBUTES, findCacheSpan } from './cacheOriginLinkUtils';
 
-// Origin links (`sentry.link.type: 'cache_origin'`, see cacheOriginLinks.spec.ts) for `use cache`
-// in nested layout trees under `app/(cached-nesting)/`. Not implemented yet — every test is
-// `test.fail()` with the final expected assertions.
-
-const CACHE_ORIGIN_LINK_ATTRIBUTES = {
-  'sentry.link.type': { value: 'cache_origin', type: 'string' },
-};
-
-function findCacheSpan(
-  spans: SerializedStreamedSpan[],
-  op: 'cache.get' | 'cache.put',
-  hit?: boolean,
-): SerializedStreamedSpan | undefined {
-  return spans.find(
-    span => getSpanOp(span) === op && (hit === undefined || span.attributes['cache.hit']?.value === hit),
-  );
-}
+// Origin links (`sentry.link.type: 'cache_origin'` on `cache.get` hit spans, pointing at the
+// filling `cache.put`) for `use cache` in nested layout trees under `app/(cached-nesting)/`.
+// Not implemented yet — every test is `test.fail()` with the final expected assertions.
 
 // A `use cache` layout between dynamic segments. The layout entry is keyed by the awaited [id]
 // param. If Next serves the entry from the prerendered shell (Resume Data Cache) instead of the
