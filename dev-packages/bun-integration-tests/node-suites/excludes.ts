@@ -1,13 +1,15 @@
 // Node suites that do not run on Bun, relative to `node-integration-tests`. A single test that
 // fails on Bun is skipped with `test.skipIf` on `RUNTIME` in the Node suite, not listed here.
 
-// Node-only features: ANR and native thread watchdogs, child processes, the AWS Lambda Node runtime.
+// Node-only features: ANR and native thread watchdogs, child processes, the AWS Lambda Node runtime,
+// and `node:sqlite`, which `flue` needs.
 const NODE_ONLY = [
   'suites/anr/test.ts',
   'suites/aws-serverless/**',
   'suites/breadcrumbs/**',
   'suites/child-process/test.ts',
   'suites/thread-blocked-native/test.ts',
+  'suites/tracing/flue/test.ts',
 ];
 
 // Bun does not publish `http.server.request.start`, so `@sentry/node` creates no `http.server`
@@ -95,6 +97,7 @@ const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/langchain/**',
   'suites/tracing/langgraph/test.ts',
   'suites/tracing/lru-memoizer/test.ts',
+  'suites/tracing/mastra/test.ts',
   'suites/tracing/mcp-handler-exact-once/test.ts',
   'suites/tracing/mcp-server-streamed/test.ts',
   'suites/tracing/mistral/test.ts',
@@ -114,6 +117,7 @@ const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/mysql2/test.ts',
   'suites/tracing/openai/test.ts',
   'suites/tracing/openai/v6/test.ts',
+  'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
   'suites/tracing/postgres-streamed/test.ts',
   'suites/tracing/postgres/test.ts',
@@ -138,6 +142,7 @@ const NOT_TRIAGED = [
   'suites/modules/test.ts',
   'suites/proxy/test.ts',
   'suites/system-error/test.ts',
+  'suites/tracing/graphql-tracing-channel/**',
   'suites/tracing/tracer-start-active-span-error/test.ts',
 ];
 
