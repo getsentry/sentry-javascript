@@ -4,6 +4,7 @@ import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
@@ -1020,7 +1021,7 @@ describe('Vercel AI integration experimental_evaluate', () => {
               expect(evaluateSpan.name).toBe('evaluate typesafe-ai/jev');
               expect(evaluateSpan.status).toBe('ok');
               expect(evaluateSpan.attributes['sentry.origin']?.value).toBe('auto.vercelai.channel');
-              expect(evaluateSpan.attributes['gen_ai.operation.name']?.value).toBe('evaluate');
+              expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('evaluate');
               expect(evaluateSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('gateway');
               expect(evaluateSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('typesafe-ai/jev');
               expect(evaluateSpan.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('typesafe-ai/jev');
