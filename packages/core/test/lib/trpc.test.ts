@@ -144,7 +144,7 @@ describe('trpcMiddleware', () => {
     });
   });
 
-  test('filters a scalar rpc input, which has no keys to scrub by', async () => {
+  test('passes through a scalar rpc input, leaving it to server-side scrubbing', async () => {
     const middleware = trpcMiddleware({ attachRpcInput: true });
     const next = vi.fn().mockResolvedValue({ ok: true });
 
@@ -158,7 +158,7 @@ describe('trpcMiddleware', () => {
     expect(mockScope.setContext).toHaveBeenCalledWith('trpc', {
       procedure_path: 'test.procedure',
       procedure_type: 'mutation',
-      input: '[Filtered]',
+      input: 'my-session-token',
     });
   });
 

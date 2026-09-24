@@ -329,8 +329,7 @@ describe('express tracing', () => {
                   'http.request.method': { type: 'string', value: 'POST' },
                   'http.request.header.user-agent': { type: 'array', value: [expect.stringContaining('')] },
                   'http.request.header.content-type': { type: 'array', value: ['text/plain'] },
-                  // A plain-text body has no keys the denylist can match, so it is filtered completely.
-                  'http.request.body.data': { type: 'string', value: '[Filtered]' },
+                  'http.request.body.data': { type: 'string', value: 'some plain text' },
                 }),
               });
             },
@@ -355,7 +354,7 @@ describe('express tracing', () => {
                   'http.request.method': { type: 'string', value: 'POST' },
                   'http.request.header.user-agent': { type: 'array', value: [expect.stringContaining('')] },
                   'http.request.header.content-type': { type: 'array', value: ['application/octet-stream'] },
-                  'http.request.body.data': { type: 'string', value: '[Filtered]' },
+                  'http.request.body.data': { type: 'string', value: 'some plain text in buffer' },
                 }),
               });
             },
@@ -380,7 +379,8 @@ describe('express tracing', () => {
                   'http.request.method': { type: 'string', value: 'POST' },
                   'http.request.header.user-agent': { type: 'array', value: [expect.stringContaining('')] },
                   'http.request.header.content-type': { type: 'array', value: ['application/octet-stream'] },
-                  'http.request.body.data': { type: 'string', value: '[Filtered]' },
+                  // This is some non-ascii string representation
+                  'http.request.body.data': { type: 'string', value: expect.any(String) },
                 }),
               });
             },

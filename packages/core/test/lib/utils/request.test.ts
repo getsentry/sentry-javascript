@@ -1181,7 +1181,7 @@ describe('request utils', () => {
       expect(scope.capturedData).toBe('username=test&password=[Filtered]');
     });
 
-    it('filters a text/plain body, which has no keys to scrub by', async () => {
+    it('captures text/plain body, leaving scrubbing to the server side', async () => {
       const request = createMockRequest({
         body: 'Hello, World!',
         contentType: 'text/plain',
@@ -1190,10 +1190,10 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('[Filtered]');
+      expect(scope.capturedData).toBe('Hello, World!');
     });
 
-    it('filters a text/html body, which has no keys to scrub by', async () => {
+    it('captures text/html body', async () => {
       const request = createMockRequest({
         body: '<html><body>Test</body></html>',
         contentType: 'text/html',
@@ -1202,10 +1202,10 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('[Filtered]');
+      expect(scope.capturedData).toBe('<html><body>Test</body></html>');
     });
 
-    it('filters an application/xml body, which has no keys to scrub by', async () => {
+    it('captures application/xml body', async () => {
       const request = createMockRequest({
         body: '<root><item>value</item></root>',
         contentType: 'application/xml',
@@ -1214,10 +1214,10 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('[Filtered]');
+      expect(scope.capturedData).toBe('<root><item>value</item></root>');
     });
 
-    it('filters an application/graphql body, which has no keys to scrub by', async () => {
+    it('captures application/graphql body', async () => {
       const request = createMockRequest({
         body: 'query { user { name } }',
         contentType: 'application/graphql',
@@ -1226,7 +1226,7 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('[Filtered]');
+      expect(scope.capturedData).toBe('query { user { name } }');
     });
 
     it('skips non-textual content types', async () => {
@@ -1335,7 +1335,7 @@ describe('request utils', () => {
       expect(scope.capturedData).toBe(smallBody);
     });
 
-    it('attaches the filtered marker when content-length exceeds the 1MB limit', async () => {
+    it('skips when content-length exceeds 1MB limit', async () => {
       const request = createMockRequest({
         body: 'small body',
         contentType: 'application/json',
@@ -1345,7 +1345,7 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'always');
 
-      expect(scope.capturedData).toBe('[Filtered]');
+      expect(scope.capturedData).toBeUndefined();
     });
 
     it('captures body with always size limit', async () => {

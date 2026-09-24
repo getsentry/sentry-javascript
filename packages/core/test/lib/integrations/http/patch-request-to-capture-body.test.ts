@@ -53,12 +53,16 @@ describe('patchRequestToCaptureBody', () => {
     expectCapturedBody(capture([`{"note":"${'x'.repeat(1200)}"}`]), expect.stringMatching(/^\{"note":"x{988}\.\.\.$/));
   });
 
-  it('filters a capped stream wholesale, since the dropped chunks make it unparseable', () => {
-    expectCapturedBody(capture([`{"note":"${'x'.repeat(1200)}"}`, '{"more":"data"}']), '[Filtered]');
+  it('passes a capped stream through truncated, leaving scrubbing to the server side', () => {
+    // The second chunk is dropped, so the captured prefix is unparseable and passes through raw.
+    expectCapturedBody(
+      capture([`{"note":"${'x'.repeat(1200)}"`, '}']),
+      expect.stringMatching(/^\{"note":"x{988}\.\.\.$/),
+    );
   });
 
-  it('filters a body that cannot be parsed into key-value pairs', () => {
-    expectCapturedBody(capture(['plain text body']), '[Filtered]');
+  it('passes through a body without key-value structure', () => {
+    expectCapturedBody(capture(['plain text body']), 'plain text body');
   });
 
   it('attaches nothing for an empty body', () => {

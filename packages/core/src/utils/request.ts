@@ -150,9 +150,7 @@ export async function captureBodyFromWinterCGRequest(
     if (contentLength) {
       const length = parseInt(contentLength, 10);
       if (!isNaN(length) && length > MAX_BODY_BYTE_LENGTH) {
-        // Too large to read and scrub, but the marker still records that a body existed (matching Node capped-stream behavior)
-        isolationScope.setSDKProcessingMetadata({ normalizedRequest: { data: FILTERED_VALUE } });
-        DEBUG_BUILD && debug.log('Body exceeds size cap, attaching filtered marker', length);
+        DEBUG_BUILD && debug.log('Skipping body capture: body too large', length);
         return;
       }
     }

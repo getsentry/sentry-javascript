@@ -76,8 +76,7 @@ describe('express without tracing', () => {
                   'user-agent': expect.stringContaining(''),
                   'content-type': 'text/plain',
                 },
-                // A plain-text body has no keys the denylist can match, so it is filtered completely.
-                data: '[Filtered]',
+                data: 'some plain text',
               },
             },
           })
@@ -104,7 +103,7 @@ describe('express without tracing', () => {
                   'user-agent': expect.stringContaining(''),
                   'content-type': 'application/octet-stream',
                 },
-                data: '[Filtered]',
+                data: 'some plain text in buffer',
               },
             },
           })
@@ -129,7 +128,8 @@ describe('express without tracing', () => {
                   'user-agent': expect.stringContaining(''),
                   'content-type': 'application/octet-stream',
                 },
-                data: '[Filtered]',
+                // This is some non-ascii string representation
+                data: expect.any(String),
               },
             },
           })

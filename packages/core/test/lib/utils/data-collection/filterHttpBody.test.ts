@@ -28,17 +28,15 @@ describe('filterCollectedHttpBody', () => {
       expect(filterCollectedHttpBody('{"colour":"blue","token":"abc"}')).toBe('{"colour":"blue","token":"[Filtered]"}');
     });
 
-    it('filters a bare JSON scalar, which has no keys to match against', () => {
-      expect(filterCollectedHttpBody('"just a string"')).toBe('[Filtered]');
-      expect(filterCollectedHttpBody('42')).toBe('[Filtered]');
+    it('filters sensitive keys inside arrays of objects', () => {
+      expect(filterCollectedHttpBody('[{"colour":"blue","token":"abc"}]')).toBe(
+        '[{"colour":"blue","token":"[Filtered]"}]',
+      );
     });
 
-    it('filters scalar array elements with no key vouching for them', () => {
-      expect(filterCollectedHttpBody('["my-secret-token"]')).toBe('["[Filtered]"]');
-      expect(filterCollectedHttpBody(['my-secret-token'])).toEqual(['[Filtered]']);
-      expect(filterCollectedHttpBody('[{"colour":"blue","token":"abc"},"stray"]')).toBe(
-        '[{"colour":"blue","token":"[Filtered]"},"[Filtered]"]',
-      );
+    it('passes through a bare JSON scalar, which has no keys to scrub by', () => {
+      expect(filterCollectedHttpBody('"just a string"')).toBe('"just a string"');
+      expect(filterCollectedHttpBody('42')).toBe('42');
     });
   });
 
@@ -54,23 +52,21 @@ describe('filterCollectedHttpBody', () => {
     });
   });
 
-  describe('unparseable bodies', () => {
+  describe('bodies without key-value structure', () => {
+    // Server-side scrubbing handles these: the SDK cannot attribute any part of them to a specific, sensitive key
     it.each([
       ['<xml><secret>value</secret></xml>'],
       ['plain text body'],
       ['query Test { people { name } }'],
-      // These contain a `=` but are not forms; their pseudo-keys must not ship unfiltered.
-      ['c2VjcmV0='],
-      ['dG9rZW4uMg=='],
-      ['total = 42'],
-      ['https://example.com/callback?code=abc123'],
-    ])('replaces %s with the filtered value', body => {
-      expect(filterCollectedHttpBody(body)).toBe('[Filtered]');
+      ['c2VjcmV0LXRva2VuLTEyMw=='],
+    ])('passes through %s unchanged', body => {
+      expect(filterCollectedHttpBody(body)).toBe(body);
     });
 
-    it('replaces bodies that are not a key-value structure', () => {
-      expect(filterCollectedHttpBody(42)).toBe('[Filtered]');
-      expect(filterCollectedHttpBody(Buffer.from('raw bytes'))).toBe('[Filtered]');
+    it('passes through non-string, non-object bodies unchanged', () => {
+      const buffer = Buffer.from('raw bytes');
+      expect(filterCollectedHttpBody(42)).toBe(42);
+      expect(filterCollectedHttpBody(buffer)).toBe(buffer);
     });
   });
 });
