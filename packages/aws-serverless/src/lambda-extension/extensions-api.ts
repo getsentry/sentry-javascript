@@ -23,13 +23,21 @@ export function request(
       const chunks: Buffer[] = [];
 
       res.on('data', (chunk: Buffer) => chunks.push(chunk));
-      res.on('end', () =>
+      res.on('end', () => {
+        // A response that reached `end` with no status is a transport problem rather than a verdict
+        // from the API. Rejected here so no caller has to invent a status that stands for one:
+        // registration reads any status it is given as a refusal it must never retry.
+        if (!res.statusCode) {
+          reject(new Error('The Extensions API response carried no status'));
+          return;
+        }
+
         resolve({
-          statusCode: res.statusCode ?? 0,
+          statusCode: res.statusCode,
           headers: res.headers,
           body: Buffer.concat(chunks).toString(),
-        }),
-      );
+        });
+      });
       res.on('error', err => {
         req.destroy();
         reject(err);

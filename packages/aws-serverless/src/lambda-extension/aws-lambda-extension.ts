@@ -100,12 +100,6 @@ export class AwsLambdaExtension {
       },
     });
 
-    // Reaching `end` without a status is a transport problem, not a verdict from the API, so it
-    // must not carry a status into the terminal check.
-    if (!res.statusCode) {
-      throw new Error('The Extensions API response carried no status');
-    }
-
     if (res.statusCode < 200 || res.statusCode > 299) {
       throw new ExtensionsApiError(`Failed to advance to next event: ${truncateBody(res.body)}`, res.statusCode);
     }
@@ -124,6 +118,10 @@ export class AwsLambdaExtension {
   /**
    * Polls the Extensions API until the environment shuts down.
    *
+   * Health is measured by delivery alone. How long a poll was held says nothing: the API holds a
+   * poll it is about to refuse exactly as long as one it is about to answer, so a hold may reset
+   * the retry delay and never the give-up clock or the terminal confirmations.
+   *
    * Giving up stops the loop rather than ending the process: subscribed to SHUTDOWN alone, an
    * extension that has stopped polling costs the customer nothing but this drain, while exiting
    * fails the invocation in flight as `Extension.Crash`. The outcome reports whether the API ever
@@ -131,6 +129,7 @@ export class AwsLambdaExtension {
    */
   public async run(): Promise<PollOutcome> {
     let failures = 0;
+    let unsubscribed = 0;
     let reported = 0;
     let terminalStatuses = 0;
     let failingSince = 0;
@@ -142,35 +141,19 @@ export class AwsLambdaExtension {
 
       try {
         event = await this.next();
-        // Before the contract check below, and deliberately weaker than the platform's own rule:
-        // the init phase releases when the poll *reaches* the API, which a client cannot observe
-        // once the transport dies. A resolved `next()` is the nearest thing it can see, so this
-        // errs towards reporting the gate closed — see `main` for why that is the cheap direction.
-        pollAccepted = true;
-
-        // Nothing else was subscribed to, so this is the API answering outside its own contract.
-        // Falling through would re-poll with no delay, and nothing rate-limits a loop that is no
-        // longer in the invocation gate.
-        if (event.eventType !== 'SHUTDOWN') {
-          throw new Error(`The Extensions API delivered an unsubscribed event: ${event.eventType}`);
-        }
       } catch (err) {
         const failedAt = Date.now();
 
-        // The only health signal available: one poll covers the environment's whole life, so
-        // "since the last event" would make every counter here a lifetime tally.
-        if (failedAt - sentAt >= POLL_ESTABLISHED_MS) {
-          failures = 0;
-          terminalStatuses = 0;
-          failingSince = 0;
-        }
+        // Politeness rather than health, and deliberately the only thing a hold is allowed to
+        // touch: a loop resuming after a poll the API held has no reason to start at the ceiling
+        // delay, but it has no reason to forgive the refusal that ended the hold either.
+        failures = failedAt - sentAt >= POLL_ESTABLISHED_MS ? 1 : failures + 1;
 
-        failures++;
         // From the failure rather than `sentAt`, which on a parked poll predates the whole budget.
         failingSince = failingSince === 0 ? failedAt : failingSince;
 
-        // Deliberately not reset by a non-terminal error: a permanent refusal that flaps with
-        // transport failures would otherwise never confirm.
+        // Cleared by a delivered event alone, so a permanent refusal that flaps with transport
+        // failures still confirms instead of being reprieved by every failure between.
         if (isTerminalPollStatus(err)) {
           terminalStatuses++;
         }
@@ -187,8 +170,29 @@ export class AwsLambdaExtension {
         continue;
       }
 
-      await this.drainPendingUploads(event.deadlineMs);
-      return { reason: 'shutdown', pollAccepted };
+      // The API answered, which is the only evidence this loop gets that it is working. Weaker
+      // than the platform's own rule on purpose: the init phase releases when a poll *reaches* the
+      // API, which a client cannot observe once the transport dies, so a resolved `next()` is the
+      // nearest thing it can see — see `main` for why erring this way is the cheap direction.
+      pollAccepted = true;
+      failures = 0;
+      terminalStatuses = 0;
+      failingSince = 0;
+
+      if (event.eventType === 'SHUTDOWN') {
+        await this.drainPendingUploads(event.deadlineMs);
+        return { reason: 'shutdown', pollAccepted };
+      }
+
+      // Nothing else was subscribed to, so this is the API answering outside its own contract — a
+      // delivery all the same, and not a reason to give up on an API that is plainly alive.
+      // Backed off because re-polling at once would spin, and nothing rate-limits a loop that is
+      // no longer in the invocation gate.
+      if (reported++ < MAX_REPORTED_FAILURES) {
+        logError(`the Extensions API delivered an unsubscribed event: ${event.eventType}`);
+      }
+
+      await sleep(retryDelayMs(++unsubscribed));
     }
   }
 

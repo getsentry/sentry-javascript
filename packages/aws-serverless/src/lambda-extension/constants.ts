@@ -11,16 +11,27 @@ export const EXTENSION_NAME = 'sentry-extension';
 export const POLL_RETRY_BASE_MS = 100;
 export const POLL_RETRY_MAX_MS = 5_000;
 
-/** A poll that outlasted the longest retry delay is the closest thing to a health signal here. */
+/**
+ * How long a poll must have been held before the retry delay starts over rather than resuming where
+ * a failing streak had reached. Politeness, not health: a poll the API held and then refused is not
+ * evidence of anything, so this must stay out of `POLL_GIVE_UP_MS` and the terminal confirmations.
+ */
 export const POLL_ESTABLISHED_MS = POLL_RETRY_MAX_MS;
 
 /**
- * Clear of the 900s function ceiling, so an outage spanning one whole maximum-length invocation
- * cannot trip it on its own.
+ * How long the loop keeps polling without the API delivering a single event, measured from the
+ * first failure and cleared only by a delivery. Clear of the 900s function ceiling, so an outage
+ * spanning one whole maximum-length invocation cannot trip it on its own.
  */
 export const POLL_GIVE_UP_MS = 16 * 60_000;
 
-/** A lifetime cap: the retry budget restarts on every established poll, so a per-streak one never would. */
+/**
+ * A lifetime cap on console lines, counted separately by each place that reports: the poll loop
+ * spends it on failed polls and on deliveries it never subscribed to alike, registration on its
+ * retries, and the tunnel on dropped envelopes. Per-streak instead of per-lifetime it would be no
+ * cap at all — the retry delay restarts on every established poll, so the count would restart with
+ * it and write a line every few seconds for as long as the environment lives.
+ */
 export const MAX_REPORTED_FAILURES = 20;
 
 /**

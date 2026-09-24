@@ -7,6 +7,7 @@ import {
   POLL_ESTABLISHED_MS,
   POLL_GIVE_UP_MS,
   POLL_RETRY_BASE_MS,
+  POLL_RETRY_MAX_MS,
 } from '../../src/lambda-extension/constants';
 import { ExtensionsApiError } from '../../src/lambda-extension/errors';
 import { runToOutcome, type ScriptedPoll, scriptPolls, spyOnExit } from './helpers';
@@ -144,25 +145,25 @@ describe('AwsLambdaExtension.run', () => {
     expect(next).toHaveBeenCalledTimes(flapping.length);
   });
 
-  test('starts counting over after a poll the API held open', async () => {
-    // Subscribed to SHUTDOWN alone the extension issues one poll per execution environment, so
-    // "since the last event" spans the environment's whole life. A poll the API accepted and
-    // parked is the only health signal left, and it has to clear both counters.
+  test('restarts the retry delay after a poll the API held, without forgiving the refusal that ended it', async () => {
+    // How long a poll was held is a backoff signal and nothing more. The API holds a poll it is
+    // about to refuse exactly as long as one it is about to answer, so letting a hold clear the
+    // confirmations means a refusal that always arrives after one can never be confirmed — and
+    // since the same hold cleared the give-up clock, neither branch out of this loop was reachable.
     const extension = new AwsLambdaExtension();
+    const refusals = refusalsOf(403);
     const { next, startedAt } = scriptPolls(extension, [
-      new ExtensionsApiError('refused #1', 403),
-      new ExtensionsApiError('refused #2', 403),
-      { heldForMs: POLL_ESTABLISHED_MS, then: new ExtensionsApiError('refused #3', 403) },
-      new ExtensionsApiError('refused #4', 403),
-      { eventType: 'SHUTDOWN' },
+      refusals[0]!,
+      { heldForMs: POLL_ESTABLISHED_MS, then: refusals[1]! },
+      refusals[2]!,
     ]);
 
     const outcome = await runToOutcome(extension);
 
-    expect(outcome).toEqual({ reason: 'shutdown', pollAccepted: true });
-    expect(next).toHaveBeenCalledTimes(5);
-    // The backoff starts over too, rather than staying where a long-failing loop had reached.
-    expect(startedAt[3]! - (startedAt[2]! + POLL_ESTABLISHED_MS)).toBe(POLL_RETRY_BASE_MS);
+    expect(outcome).toEqual({ reason: 'unrecoverable', pollAccepted: false, error: refusals.at(-1) });
+    expect(next).toHaveBeenCalledTimes(TERMINAL_POLL_CONFIRMATIONS);
+    // The delay does start over, rather than staying where a long-failing loop had reached.
+    expect(startedAt[2]! - (startedAt[1]! + POLL_ESTABLISHED_MS)).toBe(POLL_RETRY_BASE_MS);
   });
 
   test('measures the give-up window from the failure, not from when the parked poll was issued', async () => {
@@ -181,31 +182,52 @@ describe('AwsLambdaExtension.run', () => {
     expect(next).toHaveBeenCalledTimes(2);
   });
 
-  test('keeps the give-up window it restarted, rather than expiring on the failures before it', async () => {
-    // The restart is the point of the established-poll branch: a poll the API accepted and parked
-    // is a health signal, so the budget starts over. Clearing the counters without clearing the
-    // clock would expire the loop shortly after the very signal that was supposed to reprieve it.
+  test('restarts the give-up window on a delivered event, whatever the event was', async () => {
+    // Delivery is the health signal, and the only one: the API handing back an event is the single
+    // piece of evidence a client gets that it is working. An event the extension never subscribed
+    // to is still the API working, so it has to reprieve the clock the same way SHUTDOWN would.
     const extension = new AwsLambdaExtension();
     const failure = new Error('ECONNREFUSED');
     // Capped backoff makes this about 14 minutes of failing before the API answers once.
     const { next } = scriptPolls(extension, [
       ...Array<Error>(170).fill(failure),
-      { heldForMs: POLL_ESTABLISHED_MS, then: failure },
+      { eventType: 'INVOKE' },
       ...Array<Error>(400).fill(failure),
     ]);
 
-    // Past the give-up measured from the first failure, well short of it measured from the poll
-    // the API answered — so a loop still running here is one whose clock restarted.
+    // Past the give-up measured from the first failure, well short of it measured from the event —
+    // so a loop still running here is one whose clock the delivery restarted.
     const outcome = await runToOutcome(extension, POLL_GIVE_UP_MS + 30_000);
 
     expect(outcome).toBe('still polling');
     expect(next.mock.calls.length).toBeGreaterThan(170);
   });
 
+  test('keeps polling through events it never subscribed to, however long they go on', async () => {
+    // Counting a delivered event as a failure makes a healthy API look like a dead one: nothing
+    // ever clears the clock, and the loop gives up on an environment that is answering every poll.
+    const extension = new AwsLambdaExtension();
+    // Backoff reaches its ceiling on the seventh event, so every event past that costs
+    // `POLL_RETRY_MAX_MS` — enough of them to outlast the give-up window, which is the only
+    // reason this count is large. Derived so it stays past the window if either constant moves.
+    const unsubscribed = 7 + Math.ceil(POLL_GIVE_UP_MS / POLL_RETRY_MAX_MS);
+    const { next, startedAt } = scriptPolls(
+      extension,
+      Array.from({ length: unsubscribed }, () => ({ eventType: 'INVOKE' })),
+    );
+
+    const outcome = await runToOutcome(extension, POLL_GIVE_UP_MS + 180_000);
+
+    expect(outcome).toEqual({ reason: 'shutdown', pollAccepted: true });
+    expect(next).toHaveBeenCalledTimes(unsubscribed + 1);
+    // Read off the loop's own polls, not the driver's clock: `runToOutcome` advances the fake
+    // timers by the whole drive window whether the loop is still running or not.
+    expect(startedAt.at(-1)! - startedAt[0]!).toBeGreaterThan(POLL_GIVE_UP_MS);
+  });
+
   test('caps the console over the environment lifetime, not over the latest streak of failures', async () => {
-    // A peer that accepts the poll and then dies restarts the retry budget every time, which is
-    // right — the API is still answering. A cap tied to that counter would reset with it and write
-    // a line every few seconds for as long as the environment lives.
+    // A poll the API holds restarts the retry delay every time, so a cap tied to that counter
+    // would reset with it and write a line every few seconds for as long as the loop runs.
     const extension = new AwsLambdaExtension();
     const { next } = scriptPolls(
       extension,
@@ -230,6 +252,9 @@ describe('AwsLambdaExtension.run', () => {
     expect(outcome).toEqual({ reason: 'shutdown', pollAccepted: true });
     expect(next).toHaveBeenCalledTimes(2);
     expect(startedAt[1]! - startedAt[0]!).toBe(POLL_RETRY_BASE_MS);
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Sentry Lambda extension: the Extensions API delivered an unsubscribed event: INVOKE',
+    );
   });
 
   test('gives up on the wall clock rather than after a fixed number of polls', async () => {
