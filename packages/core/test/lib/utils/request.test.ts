@@ -1335,7 +1335,7 @@ describe('request utils', () => {
       expect(scope.capturedData).toBe(smallBody);
     });
 
-    it('skips when content-length exceeds 1MB limit', async () => {
+    it('attaches the filtered marker when content-length exceeds the 1MB limit', async () => {
       const request = createMockRequest({
         body: 'small body',
         contentType: 'application/json',
@@ -1345,7 +1345,7 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'always');
 
-      expect(scope.capturedData).toBeUndefined();
+      expect(scope.capturedData).toBe('[Filtered]');
     });
 
     it('captures body with always size limit', async () => {
