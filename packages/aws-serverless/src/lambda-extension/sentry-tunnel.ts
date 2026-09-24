@@ -1,5 +1,4 @@
 import * as http from 'node:http';
-import { buffer } from 'node:stream/consumers';
 import { Readable, type Transform } from 'node:stream';
 import { createBrotliDecompress, createGunzip, createInflate } from 'node:zlib';
 import {
@@ -11,25 +10,69 @@ import {
   makePromiseBuffer,
   type PromiseBuffer,
 } from '@sentry/core';
-import { ENVELOPE_HEADER_MAX_BYTES, MAX_PENDING_UPLOADS, MAX_REPORTED_FAILURES, TUNNEL_PORT } from './constants';
+import {
+  ENVELOPE_HEADER_MAX_BYTES,
+  MAX_ENVELOPE_BYTES,
+  MAX_PENDING_UPLOADS,
+  MAX_REPORTED_FAILURES,
+  TUNNEL_PORT,
+} from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { EnvelopeHeader } from './types';
 import { logError, logWarn } from './utils';
 
-/** What `makeNodeTransport` can put on the wire; it gzips anything over 32 KiB. */
-const DECOMPRESSORS: Record<string, () => Transform> = {
-  gzip: createGunzip,
-  deflate: createInflate,
-  br: createBrotliDecompress,
-};
+/**
+ * What `makeNodeTransport` can put on the wire; it gzips anything over 32 KiB. A `Map` rather than
+ * an object literal so a coding the sender chose cannot name something off `Object.prototype`.
+ */
+const DECOMPRESSORS = new Map<string, () => Transform>([
+  ['gzip', createGunzip],
+  ['deflate', createInflate],
+  ['br', createBrotliDecompress],
+]);
+
+const NEWLINE = 0x0a;
 
 /**
- * A header value is the sender's, so it arrives in whatever case and list form they chose. It is
- * always one string: Node types this header as such, and joins duplicates with `, ` rather than
- * collecting them the way it does `set-cookie`.
+ * A header value is the sender's, so it arrives in whatever case they chose. It is always one
+ * string: Node types this header as such, and joins duplicates with `, ` rather than collecting
+ * them the way it does `set-cookie`.
+ *
+ * Only the first coding is read. RFC 9110 lists codings in the order they were applied, so a body
+ * carrying more than one would have to be decoded from the last backwards — which nothing here
+ * does, and which `makeNodeTransport` never produces: it applies gzip or nothing.
  */
 function codingOf(contentEncoding: string | undefined): string {
   return (contentEncoding ?? '').split(',')[0]?.trim().toLowerCase() ?? '';
+}
+
+/**
+ * Reads the request body, refusing one too large to hold.
+ *
+ * The bound is on the compressed bytes because they are buffered in full before anything validates
+ * them: `ENVELOPE_HEADER_MAX_BYTES` bounds only what a body inflates to, so without this the
+ * extension would already be holding whatever a sender chose to send by the time that applied.
+ *
+ * Typed over `ArrayBuffer` rather than `ArrayBufferLike` because `BodyInit` excludes views backed
+ * by a `SharedArrayBuffer`, and without the annotation these bytes cannot reach `fetch` as they
+ * were read. Copying them into a fresh buffer to satisfy it would hold a second copy of every
+ * envelope in flight, which on a 128MB function is memory the extension does not have.
+ */
+async function readBody(req: http.IncomingMessage): Promise<Buffer<ArrayBuffer>> {
+  const chunks: Buffer[] = [];
+  let bytes = 0;
+
+  for await (const chunk of req) {
+    bytes += (chunk as Buffer).length;
+
+    if (bytes > MAX_ENVELOPE_BYTES) {
+      throw new Error('The envelope is larger than this extension will buffer');
+    }
+
+    chunks.push(chunk as Buffer);
+  }
+
+  return Buffer.concat(chunks);
 }
 
 /**
@@ -42,47 +85,80 @@ function codingOf(contentEncoding: string | undefined): string {
  * memory the extension shares with the function.
  */
 async function readEnvelopeHeader(body: Buffer, contentEncoding: string | undefined): Promise<EnvelopeHeader | null> {
-  const decompress = DECOMPRESSORS[codingOf(contentEncoding)];
+  const decompress = DECOMPRESSORS.get(codingOf(contentEncoding));
 
   // Nullable because every JSON literal parses: `null`, a number and a string all get here, and
   // only the caller's optional chaining keeps them from throwing.
   return JSON.parse(await readFirstLine(body, decompress)) as EnvelopeHeader | null;
 }
 
+/**
+ * Bytes throughout rather than characters: inflate splits its output on chunk boundaries, not on
+ * character boundaries, so decoding each chunk as it arrives turns any multi-byte character
+ * straddling two of them into replacement characters — and `length` on the decoded string would
+ * count UTF-16 units against a bound expressed in bytes.
+ */
 async function readFirstLine(body: Buffer, decompress?: () => Transform): Promise<string> {
   if (!decompress) {
-    return new TextDecoder().decode(body).split('\n')[0] || '{}';
+    return firstLineOf(body);
   }
 
   const stream = Readable.from(body).pipe(decompress());
-  let read = '';
+  const header: Buffer[] = [];
+  let bytes = 0;
 
   try {
     for await (const chunk of stream) {
-      read += chunk as string;
+      const newline = (chunk as Buffer).indexOf(NEWLINE);
+      // Only the header counts towards the bound, and it is checked before the newline ends the
+      // loop: measuring whole chunks instead would let a header through at whatever size the last
+      // one happened to arrive at, which is the inflate chunk size again on top of the bound.
+      const line = newline >= 0 ? (chunk as Buffer).subarray(0, newline) : (chunk as Buffer);
 
-      const newline = read.indexOf('\n');
-      if (newline >= 0) {
-        return read.slice(0, newline) || '{}';
+      header.push(line);
+      bytes += line.length;
+
+      if (bytes > ENVELOPE_HEADER_MAX_BYTES) {
+        throw new Error('The envelope header is longer than this extension will inflate to read it');
       }
 
-      if (read.length > ENVELOPE_HEADER_MAX_BYTES) {
-        throw new Error('The envelope header is longer than this extension will inflate to read it');
+      if (newline >= 0) {
+        break;
       }
     }
   } finally {
     stream.destroy();
   }
 
-  return read || '{}';
+  return new TextDecoder().decode(Buffer.concat(header)) || '{}';
+}
+
+function firstLineOf(body: Buffer): string {
+  const newline = body.indexOf(NEWLINE);
+
+  return new TextDecoder().decode(newline >= 0 ? body.subarray(0, newline) : body) || '{}';
 }
 
 /**
- * `makeDsn` reports a malformed DSN through an ungated `console.error`, so an envelope header is
- * caller-controlled text reaching the log verbatim — newlines included, which forges log lines.
+ * `makeDsn` reports a malformed DSN through an ungated `console.error` that includes the string, so
+ * an envelope header is caller-controlled text reaching CloudWatch verbatim. The guard is on the
+ * characters rather than on the shape because the harm is forged log lines, and `URL.canParse`
+ * accepts a newline: `http://host/\nERROR fake` parses.
  */
 function parseEnvelopeDsn(envelopeDsn: string): DsnComponents | undefined {
-  return URL.canParse(envelopeDsn) ? makeDsn(envelopeDsn) : undefined;
+  return hasControlCharacter(envelopeDsn) ? undefined : makeDsn(envelopeDsn);
+}
+
+function hasControlCharacter(value: string): boolean {
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+
+    if (code < 0x20 || code === 0x7f) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function respond(res: http.ServerResponse, statusCode: number, body: Record<string, string>): void {
@@ -165,11 +241,9 @@ export class SentryTunnel {
     allowedDsnComponents: DsnComponents | undefined,
   ): Promise<void> {
     try {
-      const buf = await buffer(req);
-      // Slice the underlying ArrayBuffer so only the data portion travels, without padding or offset.
-      const envelopeBytes = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+      const envelopeBytes = await readBody(req);
       const contentEncoding = req.headers['content-encoding'];
-      const envelope = await readEnvelopeHeader(buf, contentEncoding);
+      const envelope = await readEnvelopeHeader(envelopeBytes, contentEncoding);
       const envelopeDsn = envelope?.dsn;
 
       if (!envelopeDsn) {
@@ -196,13 +270,22 @@ export class SentryTunnel {
       // Forwarded exactly as it arrived, compression included, so the encoding has to travel with
       // it — decompressing only ever happened to read the header above.
       void this.uploads
-        .add(() =>
-          fetch(getEnvelopeEndpointWithUrlEncodedAuth(dsn), {
+        .add(async () => {
+          const upstream = await fetch(getEnvelopeEndpointWithUrlEncodedAuth(dsn), {
             method: 'POST',
-            body: envelopeBytes as BodyInit,
+            body: envelopeBytes,
             headers: contentEncoding ? { 'content-encoding': contentEncoding } : undefined,
-          }),
-        )
+          });
+
+          // `fetch` rejects for a transport failure alone, so without this a rate limit or a
+          // rejected payload counts as a delivery and the drop is never reported. Draining first
+          // because a response body left unread holds its connection until the socket times out.
+          await upstream.body?.cancel();
+
+          if (!upstream.ok) {
+            throw new Error(`Sentry refused the envelope with status ${upstream.status}`);
+          }
+        })
         .then(undefined, err => {
           // Also where a full buffer lands, which is a drop like any other rather than a silence.
           this._reportDrop('an envelope could not be delivered to Sentry.', err);

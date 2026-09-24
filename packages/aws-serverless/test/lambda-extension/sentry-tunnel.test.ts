@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { AwsLambdaExtension } from '../../src/lambda-extension/aws-lambda-extension';
 import {
   ENVELOPE_HEADER_MAX_BYTES,
+  MAX_ENVELOPE_BYTES,
   MAX_REPORTED_FAILURES,
   SHUTDOWN_BUDGET_MS,
   SHUTDOWN_IDLE_GRACE_MS,
@@ -93,7 +94,9 @@ describe('AwsLambdaExtension tunnel', () => {
   }
 
   /** Counts what actually left the extension, which is the only thing SSRF protection is about. */
-  async function startUpstream(): Promise<{ dsn: string; received: string[]; encodings: (string | undefined)[] }> {
+  async function startUpstream(
+    status = 200,
+  ): Promise<{ dsn: string; received: string[]; encodings: (string | undefined)[] }> {
     const received: string[] = [];
     const encodings: (string | undefined)[] = [];
     const port = await listen(
@@ -101,7 +104,7 @@ describe('AwsLambdaExtension tunnel', () => {
         http.createServer((req, res) => {
           received.push(req.url ?? '');
           encodings.push(req.headers['content-encoding']);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.writeHead(status, { 'Content-Type': 'application/json' });
           res.end('{}');
         }),
       ),
@@ -245,8 +248,6 @@ describe('AwsLambdaExtension tunnel', () => {
     expect(upstream.received).toHaveLength(0);
     // Silent loss is what this whole change is about, so a dropped envelope has to be visible —
     // and it has to be the bound that rejected it, not the parse failing on whatever inflated.
-    // `objectContaining` earns its exception here: the error is Node's, and only its `code` is
-    // ours to assert — it proves the bound rejected the body rather than the parse failing later.
     expect(errorSpy).toHaveBeenCalledWith(
       'Sentry Lambda extension: an envelope could not be read and was dropped.',
       new Error('The envelope header is longer than this extension will inflate to read it'),
@@ -446,9 +447,129 @@ describe('AwsLambdaExtension tunnel', () => {
       listenError,
     );
   });
-});
 
-/**
- * Long enough for a collapsed deadline to fire — the slowest measured took about 10ms — and
- * short enough that the test costs roughly the round trip it already pays for.
- */
+  test('reports an envelope Sentry refused, which fetch resolves rather than rejects', async () => {
+    // `fetch` rejects for a transport failure and nothing else, so a rate limit or a payload Sentry
+    // will not take arrives as an ordinary response. Unchecked it counts as a delivery, which is
+    // the silent loss this tunnel exists to make visible — and the body left unread holds its
+    // connection open until the socket times out on top of that.
+    const upstream = await startUpstream(429);
+    vi.stubEnv('SENTRY_DSN', upstream.dsn);
+    const extension = new AwsLambdaExtension();
+    const url = await startTunnel(extension);
+
+    const res = await fetch(`${url}/envelope`, { method: 'POST', body: envelope(upstream.dsn) });
+    await extension.drainPendingUploads(Date.now() + SHUTDOWN_BUDGET_MS);
+
+    // Answered before the upload was attempted, which is the point of tunnelling at all.
+    expect(res.status).toBe(200);
+    expect(upstream.received).toHaveLength(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Sentry Lambda extension: an envelope could not be delivered to Sentry.',
+      new Error('Sentry refused the envelope with status 429'),
+    );
+  });
+
+  test('refuses a DSN carrying control characters instead of forwarding what survives the newline', async () => {
+    // `URL.canParse` was no guard: it accepts a newline and answers true. Worse than it looks,
+    // because core's DSN regex is not anchored and `.` does not match a newline — an authority that
+    // parses matches, everything past the newline is dropped, and `makeDsn` succeeds. So the
+    // envelope goes to the host the sender named. Reaching the log is the second harm, not the first.
+    const upstream = await startUpstream();
+    const extension = new AwsLambdaExtension();
+    const url = await startTunnel(extension);
+    const forged = `${upstream.dsn}\nSentry Lambda extension: forged line`;
+
+    const res = await fetch(`${url}/envelope`, {
+      method: 'POST',
+      body: `{"dsn":${JSON.stringify(forged)}}\n{"type":"event"}\n{}`,
+    });
+    await extension.drainPendingUploads(Date.now() + SHUTDOWN_BUDGET_MS);
+
+    expect(res.status).toBe(403);
+    expect(upstream.received).toHaveLength(0);
+  });
+
+  test('refuses a DSN carrying control characters rather than letting it reach the log', async () => {
+    // A DSN its regex rejects is what `makeDsn` reports through an ungated `console.error`, and the
+    // message includes the string it was given — so the header's text reaches CloudWatch verbatim
+    // and the newline in it writes whatever the sender chose as a line of its own. The authority is
+    // broken deliberately: a DSN that parses never reaches that path and would prove nothing here.
+    const url = await startTunnel();
+    const forged = 'http://public@127.0.0.1:1/\nSentry Lambda extension: forged line';
+
+    const res = await fetch(`${url}/envelope`, {
+      method: 'POST',
+      body: `{"dsn":${JSON.stringify(forged)}}\n{"type":"event"}\n{}`,
+    });
+
+    expect(res.status).toBe(403);
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  test('treats a content-encoding naming a prototype member as no encoding at all', async () => {
+    // Looked up on an object literal, `constructor` and `toString` both answer with a function, so
+    // the sender of an envelope chooses what gets called as a decompressor.
+    const upstream = await startUpstream();
+    vi.stubEnv('SENTRY_DSN', upstream.dsn);
+    const extension = new AwsLambdaExtension();
+    const url = await startTunnel(extension);
+
+    const res = await fetch(`${url}/envelope`, {
+      method: 'POST',
+      body: envelope(upstream.dsn),
+      headers: { 'content-encoding': 'constructor' },
+    });
+    await extension.drainPendingUploads(Date.now() + SHUTDOWN_BUDGET_MS);
+
+    expect(res.status).toBe(200);
+    expect(upstream.received).toHaveLength(1);
+  });
+
+  test('bounds the header it inflates in bytes rather than in characters', async () => {
+    // The bound is there to cap the memory the extension shares with the function, and it is
+    // written in bytes — but `String.length` counts UTF-16 units, so a header of two-byte
+    // characters measured that way is allowed twice the bytes the constant names, and one of
+    // three-byte characters three times. Inflating is exactly where that slack gets spent.
+    const url = await startTunnel();
+    const twoByteCharacters = ENVELOPE_HEADER_MAX_BYTES * 0.75;
+    const header = `{"dsn":"http://public@127.0.0.1:1/1","trace":"${'é'.repeat(twoByteCharacters)}"}`;
+
+    const res = await fetch(`${url}/envelope`, {
+      method: 'POST',
+      body: new Uint8Array(await promisify(gzip)(`${header}\n{"type":"event"}\n{}`)),
+      headers: { 'content-encoding': 'gzip' },
+    });
+
+    // Pins the fixture to the boundary rather than describing it: this test means nothing unless
+    // the header is under the bound in characters and over it in bytes, so retuning the multiplier
+    // above fails here instead of quietly making the test pass for the wrong reason.
+    expect(twoByteCharacters).toBeLessThan(ENVELOPE_HEADER_MAX_BYTES);
+    expect(Buffer.byteLength(header)).toBeGreaterThan(ENVELOPE_HEADER_MAX_BYTES);
+    expect(res.status).toBe(500);
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Sentry Lambda extension: an envelope could not be read and was dropped.',
+      new Error('The envelope header is longer than this extension will inflate to read it'),
+    );
+  });
+
+  test('refuses a body larger than it will hold, instead of buffering whatever arrives', async () => {
+    // The header bound only ever applies to what a body inflates to, and the compressed bytes are
+    // buffered in full before it runs — so without a bound here the extension has already taken
+    // whatever was sent, and an OOM in this process is an `Extension.Crash` against the invocation.
+    const url = await startTunnel();
+
+    // Either shape counts as the refusal landing: the sender is still mid-body, so the socket may
+    // be reset before the 500 can be read. Accepting the body is the one outcome ruled out.
+    const res = await fetch(`${url}/envelope`, {
+      method: 'POST',
+      body: Buffer.alloc(MAX_ENVELOPE_BYTES + 1),
+    }).catch(() => undefined);
+
+    expect(res?.status).not.toBe(200);
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Sentry Lambda extension: an envelope could not be read and was dropped.',
+      new Error('The envelope is larger than this extension will buffer'),
+    );
+  });
+});

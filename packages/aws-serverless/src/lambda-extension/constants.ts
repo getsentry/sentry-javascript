@@ -91,6 +91,26 @@ export const SHUTDOWN_IDLE_GRACE_MS = 300;
 export const MAX_PENDING_UPLOADS = 1_000;
 
 /**
+ * How much of a POST to `/envelope` is read before it is refused.
+ *
+ * `ENVELOPE_HEADER_MAX_BYTES` bounds what a compressed body inflates to, but the compressed bytes
+ * are buffered in full before that ever runs — so without this the header bound protects nothing a
+ * sender controls, and an unbounded read is an OOM the platform reports as `Extension.Crash`
+ * against the invocation in flight.
+ *
+ * Like `MAX_PENDING_UPLOADS` this number is chosen rather than derived: nothing in this SDK caps an
+ * envelope, so there is no value here to read off. What is measured is where it sits — 640x the
+ * 32KiB `makeNodeTransport` calls the "estimated maximum size for reasonable standalone event", so
+ * no envelope the SDK realistically produces can be refused, and a sixth of the smallest Lambda's
+ * 128MB, so no one request can exhaust the function by itself.
+ *
+ * One request is all it bounds. Memory in aggregate is this times whatever is in flight, and the
+ * only thing between a burst and the same OOM is `MAX_PENDING_UPLOADS` — a count, not a byte
+ * budget. Neither is a capacity plan; both are runaway backstops.
+ */
+export const MAX_ENVELOPE_BYTES = 20 * 1024 * 1024;
+
+/**
  * Node's largest accepted timer delay; anything above it overflows and fires immediately. Used to
  * hold the event loop open with as few wakeups as possible when the extension has stopped polling
  * but must not exit.
