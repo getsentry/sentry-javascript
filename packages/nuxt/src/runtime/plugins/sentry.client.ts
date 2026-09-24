@@ -1,5 +1,5 @@
-import { getClient, GLOBAL_OBJ, setRouteProvider } from '@sentry/core';
-import { browserTracingIntegration, createVueRouteProvider, vueIntegration } from '@sentry/vue';
+import { getClient, GLOBAL_OBJ } from '@sentry/core';
+import { browserTracingIntegration, createVueRouteProvider, setRouteProvider, vueIntegration } from '@sentry/vue';
 import { defineNuxtPlugin, isNuxtError } from 'nuxt/app';
 import type { GlobalObjWithIntegrationOptions } from '../../client/vueIntegration';
 import { reportNuxtError } from '../utils';
