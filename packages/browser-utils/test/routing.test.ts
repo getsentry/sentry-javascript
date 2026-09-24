@@ -113,6 +113,40 @@ describe('routing', () => {
     });
   });
 
+  describe('routeProvider option', () => {
+    function makeClientWithProvider(provider: RouteProvider): TestClient {
+      const optionClient = new TestClient({ ...getDefaultClientOptions(), routeProvider: provider } as ReturnType<
+        typeof getDefaultClientOptions
+      >);
+      setCurrentClient(optionClient);
+      optionClient.init();
+
+      return optionClient;
+    }
+
+    it('resolves through the provider passed as an option', () => {
+      const optionClient = makeClientWithProvider({
+        resolveRoute: () => '/users/:id',
+        resolveCurrentRoute: () => '/users/:id',
+      });
+
+      expect(getRouteProvider(optionClient)).toBeDefined();
+      expect(resolveCurrentRoute(optionClient)).toBe('/users/:id');
+    });
+
+    it('is replaced by a provider registered at runtime', () => {
+      vi.spyOn(debug, 'warn').mockImplementation(() => {});
+      const optionClient = makeClientWithProvider({
+        resolveRoute: () => '/option',
+        resolveCurrentRoute: () => '/option',
+      });
+
+      setRouteProvider({ resolveRoute: () => '/runtime', resolveCurrentRoute: () => '/runtime' }, optionClient);
+
+      expect(resolveCurrentRoute(optionClient)).toBe('/runtime');
+    });
+  });
+
   describe('setRouteProvider', () => {
     it('scopes the provider to its client', () => {
       const otherClient = new TestClient(getDefaultClientOptions());
