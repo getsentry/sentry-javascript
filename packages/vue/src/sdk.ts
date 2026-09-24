@@ -1,4 +1,4 @@
-import { getDefaultIntegrations, init as browserInit, setRouteProvider } from '@sentry/browser';
+import { getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core';
 
@@ -13,20 +13,15 @@ import { createVueRouteProvider, getRouterFromApp } from './routeProvider';
 export function init(options: Partial<Omit<Options, 'tracingOptions'>> = {}): Client | undefined {
   const opts = {
     defaultIntegrations: [...getDefaultIntegrations(options), vueIntegration()],
+    // The router is read off the app on each call, so `app.use(router)` can run either side of `init`, and
+    // users who never pass `router` to the tracing integration still get parameterized routes.
+    ...(options.app && { routeProvider: createVueRouteProvider(() => getRouterFromApp(options.app)) }),
     ...options,
   };
 
   applySdkMetadata(opts, 'vue');
 
   const client = browserInit(opts);
-
-  // Registered here rather than from `browserTracingIntegration` so route parameterization does not
-  // depend on tracing. The router is read off the app the SDK is already given, so users who never
-  // pass `router` to the tracing integration still get parameterized routes.
-  setRouteProvider(
-    createVueRouteProvider(() => getRouterFromApp(opts.app)),
-    client,
-  );
 
   // Add vue-specific stringification
   setNormalizeStringifier(normalizeStringifyValue);
