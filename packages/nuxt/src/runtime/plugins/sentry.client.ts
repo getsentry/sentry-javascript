@@ -1,5 +1,11 @@
 import { getClient, GLOBAL_OBJ } from '@sentry/core';
-import { browserTracingIntegration, createVueRouteProvider, setRouteProvider, vueIntegration } from '@sentry/vue';
+import {
+  browserTracingIntegration,
+  createVueRouteProvider,
+  getRouteProvider,
+  setRouteProvider,
+  vueIntegration,
+} from '@sentry/vue';
 import { defineNuxtPlugin, isNuxtError } from 'nuxt/app';
 import type { GlobalObjWithIntegrationOptions } from '../../client/vueIntegration';
 import { reportNuxtError } from '../utils';
@@ -42,7 +48,8 @@ export default defineNuxtPlugin({
     // when tracing is tree-shaken away. Nuxt installs the router before its plugins run, so unlike
     // `@sentry/vue` this can read it straight off `nuxtApp`.
     const client = getClient();
-    if (client && '$router' in nuxtApp) {
+    // A `routeProvider` passed to `Sentry.init` is the user's choice, so it is left in place.
+    if (client && '$router' in nuxtApp && !getRouteProvider(client)) {
       setRouteProvider(
         createVueRouteProvider(() => nuxtApp.$router as VueRouteProviderRouter),
         client,
