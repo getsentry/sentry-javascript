@@ -176,6 +176,17 @@ describe('routing', () => {
       expect(resolveRoute('https://example.com/users/42')).toBeUndefined();
     });
 
+    it('keeps other routes when re-recording one into a full cache', () => {
+      const provider = createCachedRouteProvider(2);
+      provider.record('/users/42', '/users/:id');
+      provider.record('/posts/hello', '/posts/:slug');
+
+      provider.record('/posts/hello', '/posts/:slug');
+
+      expect(provider.resolveRoute(new URL('https://example.com/posts/hello'))).toBe('/posts/:slug');
+      expect(provider.resolveRoute(new URL('https://example.com/users/42'))).toBe('/users/:id');
+    });
+
     it('keeps resolving a URL the router has navigated away from', () => {
       const provider = createCachedRouteProvider();
       provider.record('/posts/hello', '/posts/:slug');

@@ -25,7 +25,10 @@ export class LRUMap<K, V> {
 
   /** Insert an entry and evict an older entry if we've reached maxSize */
   public set(key: K, value: V): void {
-    if (this._cache.size >= this._maxSize) {
+    // `Map.set` keeps an existing key in place, so it has to be removed to become the most recently used.
+    if (this._cache.has(key)) {
+      this._cache.delete(key);
+    } else if (this._cache.size >= this._maxSize) {
       // keys() returns an iterator in insertion order so keys().next() gives us the oldest key
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const nextKey = this._cache.keys().next().value!;
