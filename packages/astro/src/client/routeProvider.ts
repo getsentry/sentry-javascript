@@ -1,4 +1,4 @@
-import type { RouteProvider } from '@sentry/core/browser';
+import type { RouteProvider } from '@sentry/browser';
 import { WINDOW } from '@sentry/browser';
 
 /**
