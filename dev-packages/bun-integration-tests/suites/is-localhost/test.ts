@@ -10,7 +10,6 @@ afterAll(() => {
 test('sets sentry.is_localhost on every streamed span', async () => {
   const runner = createRunner(__dirname, 'index.ts')
     .withMockSentryServer()
-    .unordered()
     .expect({
       span: container => {
         expect(container.items.some(span => span.is_segment)).toBe(true);
