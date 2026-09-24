@@ -997,3 +997,71 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     },
   );
 });
+
+describe('Vercel AI integration experimental_evaluate', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmTests(
+    __dirname,
+    'scenario-evaluate.mjs',
+    'instrument-evaluate.mjs',
+    (createRunner, test) => {
+      test('creates an evaluate span', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const evaluateSpan = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.evaluate',
+              )!;
+              expect(evaluateSpan).toBeDefined();
+              expect(evaluateSpan.name).toBe('evaluate typesafe-ai/jev');
+              expect(evaluateSpan.status).toBe('ok');
+              expect(evaluateSpan.attributes['sentry.origin']?.value).toBe('auto.vercelai.channel');
+              expect(evaluateSpan.attributes['gen_ai.operation.name']?.value).toBe('evaluate');
+              expect(evaluateSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('gateway');
+              expect(evaluateSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('typesafe-ai/jev');
+              expect(evaluateSpan.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('typesafe-ai/jev');
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(275);
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(295);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]?.value as string)).toEqual([
+                {
+                  type: 'evaluation',
+                  state: 'I cannot log in, and I also want a refund for last month.',
+                  questions: {
+                    authIssue: { type: 'boolean', instructions: 'Is there a login problem?' },
+                    wantsRefund: { type: 'boolean', instructions: 'Is a refund requested?' },
+                    urgency: {
+                      type: 'score',
+                      instructions: 'How urgent is this ticket?',
+                      criteria: ['low', 'medium', 'high'],
+                    },
+                  },
+                },
+              ]);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]?.value as string)).toEqual([
+                {
+                  type: 'evaluation',
+                  answers: {
+                    authIssue: { type: 'boolean', probability: 0.97 },
+                    wantsRefund: { type: 'boolean', probability: 0.99 },
+                    urgency: { type: 'score', score: 1.8, probabilities: { 0: 0, 1: 0.2, 2: 0.8 } },
+                  },
+                },
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: '^7.0.111',
+      },
+    },
+  );
+});
