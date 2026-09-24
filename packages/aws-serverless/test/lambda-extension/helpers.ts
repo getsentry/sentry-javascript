@@ -187,6 +187,10 @@ export async function waitForQuietTimers(): Promise<void> {
   }
 }
 
+/**
+ * Rewrites every deadline primitive so that whatever duration is asked for expires at once. A
+ * request that arms no deadline is untouched; one that arms any is over before the next line runs.
+ */
 export function collapseEveryDeadline(): void {
   const timer = globalThis.setTimeout;
   const interval = globalThis.setInterval;

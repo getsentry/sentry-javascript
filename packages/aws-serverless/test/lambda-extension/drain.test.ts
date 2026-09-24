@@ -69,8 +69,10 @@ describe('AwsLambdaExtension.drainPendingUploads', () => {
 
 describe('AwsLambdaExtension.drainPendingUploads on the real clock', () => {
   test('leaves no referenced timer behind when an upload beats the deadline', async () => {
-    // `Promise.race` alone leaves the loser's timer armed, and a referenced timer holds the
-    // process open past the drain — invisible in elapsed time, which is identical either way.
+    // A timer this drain armed and never cleared holds the process open past the drain, which
+    // elapsed time cannot show: it is identical either way. Only referenced timers are counted,
+    // because only those hold anything open — the loser timer inside core's own `drain` is
+    // unref'd and so invisible here. What this does see is a `sleep` armed and never awaited.
     await waitForQuietTimers();
     expect(activeTimers()).toBe(0);
 

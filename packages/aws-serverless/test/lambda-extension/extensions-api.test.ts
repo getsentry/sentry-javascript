@@ -5,12 +5,11 @@ import { POLL_KEEPALIVE_MS } from '../../src/lambda-extension/constants';
 import { request } from '../../src/lambda-extension/extensions-api';
 import { collapseEveryDeadline, startServer } from './helpers';
 
-const POLL_DEADLINE_GRACE_MS = 50;
-
 /**
- * Rewrites every deadline primitive so that whatever duration is asked for expires at once. A
- * request that arms no deadline is untouched; one that arms any is over before the next line runs.
+ * Long enough for a collapsed deadline to fire — the slowest measured took about 10ms — and short
+ * enough that the test costs roughly the round trip it already pays for.
  */
+const POLL_DEADLINE_GRACE_MS = 50;
 
 describe('request', () => {
   afterEach(() => {
