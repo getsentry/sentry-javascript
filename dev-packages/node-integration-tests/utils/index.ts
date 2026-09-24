@@ -9,7 +9,8 @@ export const NODE_VERSION = parseSemver(process.versions.node).major || 0;
  * The runtime that runs the scenarios (`node`, `bun` or `deno`), from the `RUNTIME` env var.
  * Tests use it in `test.skipIf` for behavior that a runtime does not support.
  */
-export const RUNTIME = process.env.RUNTIME || 'node';
+export type Runtime = 'cloudflare' | 'node' | 'bun' | 'deno';
+export const RUNTIME = (process.env.RUNTIME || 'node') as Runtime;
 
 /**
  * The `sdk.name` the scenarios send. It is `sentry.javascript.node`, unless a runtime package
