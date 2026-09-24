@@ -210,6 +210,14 @@ describe('Client init()', () => {
         delete globalWithManifest._sentryRouteManifest;
       });
 
+      it('keeps a route provider passed by the user', () => {
+        const routeProvider = { resolveRoute: () => '/custom', resolveCurrentRoute: () => '/custom' };
+
+        init({ dsn: TEST_DSN, routeProvider });
+
+        expect(reactInit).toHaveBeenCalledWith(expect.objectContaining({ routeProvider }));
+      });
+
       it("doesn't run Next.js router instrumentation for bot user agents", () => {
         Object.defineProperty(WINDOW, 'navigator', {
           value: {

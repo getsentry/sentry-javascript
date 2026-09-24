@@ -71,10 +71,8 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
     stackParser: () => [],
     tracesSampleRate: 1,
     traceLifecycle,
-    integrations: [
-      routeProvider.nextjsRouteProviderIntegration(),
-      react.browserTracingIntegration({ instrumentPageLoad: false, instrumentNavigation: false }),
-    ],
+    routeProvider: routeProvider.createNextRouteProvider(),
+    integrations: [react.browserTracingIntegration({ instrumentPageLoad: false, instrumentNavigation: false })],
   });
   core.setCurrentClient(client);
   client.init();
