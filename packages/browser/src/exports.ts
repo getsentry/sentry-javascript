@@ -83,16 +83,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 
-export {
-  createCachedRouteProvider,
-  createUrlRouteProvider,
-  resolveCurrentRoute,
-  getRouteProvider,
-  resolveRoute,
-  setRouteProvider,
-} from '@sentry/browser-utils';
-export type { CachedRouteProvider, RouteProvider } from '@sentry/browser-utils';
-
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
 export { makeFetchTransport } from './transports/fetch';
