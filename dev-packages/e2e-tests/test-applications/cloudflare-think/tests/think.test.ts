@@ -5,10 +5,11 @@ import { attr, isTurnOf, newAgentId, runAgentTurn, type StreamedSpan } from './u
 const APP = 'cloudflare-think';
 
 /**
- * The whole point of the app: the user's worker imports no Sentry API at all. `sentryCloudflareVitePlugin()`
+ * The whole point of the app: nothing wires Sentry into Think by hand. `sentryCloudflareVitePlugin()`
  * detects `class ThinkAgent extends Think` and wraps the export at build time, and the `ai` SDK publishes
- * the telemetry `vercelAIIntegration` consumes. Nothing here is Think-specific on the SDK side, so this
- * test is what would catch either half of that chain breaking.
+ * the telemetry `vercelAIIntegration` consumes. The worker's only Sentry import is the `startSpan` the
+ * manual-span test below needs. Nothing here is Think-specific on the SDK side, so this test is what
+ * would catch either half of that chain breaking.
  *
  * `collectStreamedSpans` rather than `waitForStreamedSpans`: the streamed `invoke_agent` parent stays
  * open until its children settle and flushes in a separate envelope from them, so a single envelope
