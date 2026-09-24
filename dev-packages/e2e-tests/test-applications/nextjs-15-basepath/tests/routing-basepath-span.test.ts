@@ -81,3 +81,21 @@ test('Creates a navigation span for basePath <Link> with prefix', async ({ page 
 
   expect(await navigationSpanPromise).toBeDefined();
 });
+
+test('Does not prepend basePath to absolute router.push URLs', async ({ page }) => {
+  const navigationSpanPromise = waitForStreamedSpan('nextjs-15-basepath', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment;
+  });
+
+  await page.goto('/my-app/navigation');
+  await page.waitForTimeout(1000);
+  await page.getByText('Absolute URL push').click();
+
+  const navigationSpan = await navigationSpanPromise;
+
+  expect(navigationSpan.name).toBe('/my-app/navigation/:param/router-push');
+  expect(navigationSpan.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.path': { value: '/my-app/navigation/42/router-push', type: 'string' },
+  });
+});
