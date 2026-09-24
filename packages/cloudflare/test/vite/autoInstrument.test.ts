@@ -155,10 +155,11 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { WorkerEntrypoint } from 'cloudflare:workers';",
-        'class __SENTRY_ORIGINAL_AdminEntry__ extends WorkerEntrypoint {',
+        'class AdminEntry extends WorkerEntrypoint {',
         '  fetch() { return new Response("admin"); }',
         '}',
-        'export const AdminEntry = __SENTRY__.withSentry(() => undefined, __SENTRY_ORIGINAL_AdminEntry__);',
+        'const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(() => undefined, AdminEntry);',
+        'export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };',
         '',
       ].join('\n'),
     );
@@ -181,7 +182,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
 
     expect(result).toBeDefined();
-    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
   });
 
   it('wraps a WorkerEntrypoint named via a services[].entrypoint self-binding (jsonc config)', async () => {
@@ -210,7 +211,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
 
     expect(result).toBeDefined();
-    expect(result.code).toContain('export const BindingEntrypoint = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_BindingEntrypoint__ = __SENTRY__.withSentry(');
   });
 
   it('does not wrap an entrypoint that is neither detected nor self-bound', async () => {
@@ -266,7 +267,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const code = ["import { Agent } from 'agents';", 'export class MyAgent extends Agent {}'].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
       expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
     });
 
@@ -278,7 +279,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       ].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
     });
 
     it('wraps an Agent whose base class lives in another module', async () => {
@@ -288,7 +289,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const code = ["import { MyBase } from './base';", 'export class MyAgent extends MyBase {}'].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
     });
 
     it('keeps the Durable Object helper for a DO whose base class lives in another module', async () => {
@@ -301,7 +302,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const code = ["import { MyBase } from './base';", 'export class MyAgent extends MyBase {}'].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentDurableObjectWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentDurableObjectWithSentry(');
       expect(result.code).not.toContain('instrumentAgentWithSentry');
     });
 

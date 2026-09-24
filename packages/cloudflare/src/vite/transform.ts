@@ -159,7 +159,7 @@ export function applyAutoInstrumentTransforms(
     needsImport: false,
     wrappedClasses: new Set<string>(),
     topLevelClasses,
-    renamedLocals: new Set<string>(),
+    wrappedLocals: new Map<string, string>(),
     classWrappers: ctx.classWrappers,
     agentClasses: ctx.agentClasses ?? new Set<string>(),
     workerEntrypointClasses: detectWorkerEntrypointClasses(ast),
@@ -217,10 +217,10 @@ interface TransformState {
    */
   topLevelClasses: Map<string, ClassDeclarationNode>;
   /**
-   * Local class names already renamed + wrapped, so two specifiers pointing at
-   * the same class don't produce duplicate bindings.
+   * Local class name → the binding holding its wrapper, so two exports of the same class share one
+   * wrapper and a default export of it can be re-pointed.
    */
-  renamedLocals: Set<string>;
+  wrappedLocals: Map<string, string>;
   /** Class name → wrapper kind, keyed by the *exported* name (from config). */
   classWrappers: Map<string, ClassWrapperKind>;
   /** Local class names detected as `agents` Agents (see {@link TransformContext.agentClasses}). */
@@ -348,11 +348,15 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
 
   // `export default Foo` where `Foo` is a local class already wrapped by a named
   // export (e.g. a self-bound WorkerEntrypoint also used as the default handler).
-  // Wrapping again would produce `withSentry(withSentry(...))`. The binding still
-  // points at the wrapped class, so the default export counts as auto-wrapped.
-  if (decl.type === 'Identifier' && state.renamedLocals.has((decl as IdentifierNode).name)) {
-    state.autoWrapped.add(DEFAULT_EXPORT);
-    return;
+  // Wrapping again would produce `withSentry(withSentry(...))`, so the default
+  // export is re-pointed at the wrapper binding the named export created.
+  if (decl.type === 'Identifier') {
+    const wrappedName = state.wrappedLocals.get((decl as IdentifierNode).name);
+    if (wrappedName) {
+      state.ms.overwrite(decl.start, decl.end, wrappedName);
+      state.autoWrapped.add(DEFAULT_EXPORT);
+      return;
+    }
   }
 
   // `export default <expr>` → `const __SENTRY_DEFAULT_EXPORT__ = <expr>`
@@ -417,36 +421,56 @@ function wrapInlineClassExport(
   if (!classId || !kind) return;
 
   const className = classId.name;
-  const renamedClass = `__SENTRY_ORIGINAL_${className}__`;
 
   // Strip the `export ` keyword
   state.ms.overwrite(exportNode.start, classDecl.start, '');
 
-  // Rename the class to avoid a duplicate binding
-  state.ms.overwrite(classId.start, classId.end, renamedClass);
-
-  // Insert the wrapped re-export after the class body
-  state.ms.appendLeft(
-    exportNode.end,
-    `\nexport const ${className} = __SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${renamedClass});\n`,
-  );
+  const wrappedName = wrapLocalClass(className, classDecl, kind, state);
+  state.ms.appendLeft(exportNode.end, `export { ${wrappedName} as ${className} };\n`);
 
   state.wrappedClasses.add(className);
   state.autoWrapped.add(className);
-  state.renamedLocals.add(className);
+}
+
+/**
+ * Wrap a class declared in this module and return the binding that holds the wrapper.
+ *
+ * The declaration is left exactly as written. Only the *export* has to become the wrapper, so the
+ * wrapper gets its own binding and the export is aliased to it, the same shape as the documented
+ * manual `instrument*WithSentry` pattern and the cross-module re-export path below. Renaming the
+ * declaration instead (`class __SENTRY_ORIGINAL_MyAgent__`) would also rename what the class reports
+ * as `Function.prototype.name`, which libraries read to identify the user's class: `@cloudflare/think`
+ * hands `this.constructor.name` to the AI SDK as the telemetry `functionId`, and that surfaced as a
+ * `gen_ai.invoke_agent __SENTRY_ORIGINAL_MyAgent__` span.
+ */
+function wrapLocalClass(
+  localName: string,
+  localClass: ClassDeclarationNode,
+  kind: ClassWrapperKind,
+  state: TransformState,
+): string {
+  const existing = state.wrappedLocals.get(localName);
+  if (existing) return existing;
+
+  const wrappedName = `__SENTRY_WRAPPED_${localName}__`;
+  state.wrappedLocals.set(localName, wrappedName);
+  state.ms.appendLeft(
+    localClass.end,
+    `\nconst ${wrappedName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${localName});\n`,
+  );
   state.needsImport = true;
+  return wrappedName;
 }
 
 /**
  * Wrap the configured classes an `export { ... }` statement names.
  *
- * A class *declared* in this module keeps the statement intact: the declaration is renamed and the
- * wrapper takes over its binding, so the untouched specifier now exports the wrapped class.
- *
- * A class that lives in **another** module — imported and re-exported, or re-exported directly — has
- * no local binding to overwrite (import bindings are immutable). Those specifiers are re-pointed at
- * a fresh wrapper binding instead, which means rebuilding the statement; specifiers this plugin has
- * no business touching are carried over verbatim.
+ * Each such specifier is re-pointed at a binding holding the wrapper, which means rebuilding the
+ * statement; specifiers this plugin has no business touching are carried over verbatim. For a class
+ * declared in this module the wrapper binding follows the declaration (see {@link wrapLocalClass}).
+ * A class that lives in **another** module — imported and re-exported, or re-exported directly — is
+ * first bound under a private name, since an import binding cannot be reassigned and the `from` form
+ * has no local binding at all.
  */
 function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, state: TransformState): void {
   const specifiers = node.specifiers ?? [];
@@ -459,7 +483,7 @@ function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, stat
   const kept: string[] = [];
 
   for (const specifier of specifiers) {
-    const pair = wrapCrossModuleSpecifier(specifier, sourceLiteral, ctx, state, prelude);
+    const pair = wrapSpecifier(specifier, sourceLiteral, ctx, state, prelude);
     if (pair) {
       wrappedPairs.push(pair);
     } else {
@@ -478,15 +502,14 @@ function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, stat
 }
 
 /**
- * Handle one export specifier, returning the `Wrapped as Exported` pair to emit when its class has
- * to be wrapped through a fresh binding — the cross-module case. The import/wrapper statements that
- * pair depends on are pushed onto `prelude`.
+ * Handle one export specifier, returning the `Wrapped as Exported` pair to emit for a class that
+ * gets wrapped. The import/wrapper statements a cross-module pair depends on are pushed onto
+ * `prelude`; a local class's wrapper binding is emitted after its declaration instead.
  *
  * Returns `undefined` when the specifier can stay exactly as written: it doesn't name a configured
- * class, its class is declared locally (wrapped in place via {@link wrapLocalClassExport}, which
- * takes over the binding the specifier already exports), or the binding is already hand-wrapped.
+ * class, or the binding is already hand-wrapped.
  */
-function wrapCrossModuleSpecifier(
+function wrapSpecifier(
   specifier: ExportSpecifierNode,
   sourceLiteral: string | undefined,
   ctx: TransformContext,
@@ -505,16 +528,14 @@ function wrapCrossModuleSpecifier(
 
   if (!exportedName || !localName || !kind) return undefined;
 
-  // Without a `from` clause the specifier points at a module-local binding, which may already be
-  // (or become) the wrapped class without touching the export statement itself.
+  // Without a `from` clause the specifier points at a module-local binding.
   if (!sourceLiteral) {
     const localClass = state.topLevelClasses.get(localName);
 
     if (localClass?.id) {
-      wrapLocalClassExport(localName, localClass, kind, ctx, state);
+      const wrappedName = wrapLocalClass(localName, localClass, kind, state);
       state.wrappedClasses.add(exportedName);
-      state.needsImport = true;
-      return undefined;
+      return `${wrappedName} as ${exportedName}`;
     }
 
     if (state.manuallyWrappedLocals.has(localName)) {
@@ -548,24 +569,4 @@ function wrapCrossModuleSpecifier(
   state.needsImport = true;
 
   return `${wrappedName} as ${exportedName}`;
-}
-
-/** Rename a locally declared class and rebind its original name to the wrapper. */
-function wrapLocalClassExport(
-  localName: string,
-  localClass: ClassDeclarationNode,
-  kind: ClassWrapperKind,
-  ctx: TransformContext,
-  state: TransformState,
-): void {
-  const classId = localClass.id;
-  if (!classId || state.renamedLocals.has(localName)) return;
-  state.renamedLocals.add(localName);
-
-  const renamedClass = `__SENTRY_ORIGINAL_${localName}__`;
-  state.ms.overwrite(classId.start, classId.end, renamedClass);
-  state.ms.appendLeft(
-    localClass.end,
-    `\nconst ${localName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${renamedClass});\n`,
-  );
 }
