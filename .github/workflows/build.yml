@@ -783,7 +783,7 @@ jobs:
   job_node_integration_tests:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
-      Tests (shard ${{ matrix.shard }}/2)
+      Tests (shard ${{ matrix.shard }}/3)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -792,7 +792,7 @@ jobs:
       fail-fast: false
       matrix:
         node: [20.19, 22, 24, 26]
-        shard: [1, 2]
+        shard: [1, 2, 3]
         typescript:
           - false
         include:
@@ -803,6 +803,9 @@ jobs:
           - node: 24
             typescript: '5.0'
             shard: 2
+          - node: 24
+            typescript: '5.0'
+            shard: 3
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -837,7 +840,7 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
-        run: yarn test --shard=${{ matrix.shard }}/2
+        run: yarn test --shard=${{ matrix.shard }}/3
 
       - name: Upload test timing report
         uses: actions/upload-artifact@v7
