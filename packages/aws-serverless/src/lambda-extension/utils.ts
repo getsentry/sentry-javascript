@@ -1,5 +1,5 @@
 import { consoleSandbox, truncate } from '@sentry/core';
-import { ERROR_BODY_MAX_LENGTH, POLL_RETRY_BASE_MS, POLL_RETRY_MAX_MS } from './constants';
+import { ERROR_BODY_MAX_LENGTH, MAX_TIMER_DELAY_MS, POLL_RETRY_BASE_MS, POLL_RETRY_MAX_MS } from './constants';
 
 /**
  * `debug` is only enabled from `Sentry.init`, which this separate process never calls, so anything
@@ -33,4 +33,15 @@ export function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
     setTimeout(resolve, ms);
   });
+}
+
+/**
+ * Holds the process open without polling.
+ *
+ * Deliberately not an exit: a process ending outside the shutdown phase is reported as
+ * `Extension.Crash` and fails the invocation in flight. Explicit because a tunnel that failed to
+ * listen leaves no referenced handle, and an empty event loop would end the process just the same.
+ */
+export function park(): void {
+  setInterval(() => undefined, MAX_TIMER_DELAY_MS);
 }

@@ -1,6 +1,5 @@
 import type { AwsLambdaExtension } from './aws-lambda-extension';
-import { MAX_TIMER_DELAY_MS } from './constants';
-import { logError } from './utils';
+import { logError, park } from './utils';
 
 /**
  * Runs the extension for the life of the execution environment.
@@ -57,8 +56,5 @@ export async function main(
     outcome.error,
   );
 
-  // Deliberately not an exit: a process ending outside the shutdown phase is reported as
-  // `Extension.Crash` and fails the invocation in flight. Parked explicitly because a tunnel that
-  // failed to listen leaves no handle, and an empty event loop would exit just the same.
-  setInterval(() => undefined, MAX_TIMER_DELAY_MS);
+  park();
 }
