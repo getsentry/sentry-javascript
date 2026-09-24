@@ -1,19 +1,9 @@
 import type { Integration } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const mockApplySdkMetadata = vi.fn();
 const mockInitNode = vi.fn();
 const mockGetBunDefaultIntegrations = vi.fn(() => [] as Integration[]);
 const mockMakeFetchTransport = vi.fn();
-
-vi.mock('@sentry/core', async importActual => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actual = await importActual<typeof import('@sentry/core')>();
-  return {
-    ...actual,
-    applySdkMetadata: mockApplySdkMetadata,
-  };
-});
 
 vi.mock('@sentry/bun', () => ({
   init: mockInitNode,
@@ -31,20 +21,14 @@ describe('init', () => {
     vi.clearAllMocks();
   });
 
-  it('sets SDK metadata to elysia', () => {
+  it('passes Elysia SDK metadata to initNode', () => {
     init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
 
-    expect(mockApplySdkMetadata).toHaveBeenCalledWith(
-      expect.objectContaining({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' }),
-      'elysia',
-      ['elysia', 'node'],
+    expect(mockInitNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _metadata: { sdk: expect.objectContaining({ name: 'sentry.javascript.elysia' }) },
+      }),
     );
-  });
-
-  it('sets SDK metadata on the options passed to initNode', () => {
-    init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
-
-    expect(mockApplySdkMetadata.mock.calls[0]?.[0]).toBe(mockInitNode.mock.calls[0]?.[0]);
   });
 
   it('calls initNode with the options', () => {
