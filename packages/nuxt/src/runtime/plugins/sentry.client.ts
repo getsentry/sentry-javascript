@@ -28,6 +28,8 @@ interface VueRouter {
   beforeEach: (fn: (to: Route, from: Route, next?: () => void) => void) => void;
 }
 
+type VueRouteProviderRouter = ReturnType<Parameters<typeof createVueRouteProvider>[0]>;
+
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
@@ -42,7 +44,7 @@ export default defineNuxtPlugin({
     const client = getClient();
     if (client && '$router' in nuxtApp) {
       setRouteProvider(
-        createVueRouteProvider(() => nuxtApp.$router),
+        createVueRouteProvider(() => nuxtApp.$router as VueRouteProviderRouter),
         client,
       );
     }
