@@ -34,6 +34,10 @@ const NO_FETCH_INSTRUMENTATION = [
 // In the ESM tests Deno cannot find `PrismaClient`, a CommonJS export of `@prisma/client`.
 const PRISMA_ESM_INTEROP = ['suites/tracing/prisma-orm-v5/test.ts', 'suites/tracing/prisma-orm-v6/test.ts'];
 
+// In the CJS tests Deno cannot `require()` a dependency that ships only ES modules: `graphql` 17,
+// and `escape-string-regexp` under `mastra`. The ESM tests of `mastra` also check `fetch` spans.
+const REQUIRE_OF_ESM_ONLY_DEPENDENCY = ['suites/tracing/graphql-tracing-channel/**', 'suites/tracing/mastra/test.ts'];
+
 // Some or all tests fail on Deno, cause not investigated yet. In most AI suites the span
 // streaming test fails. `apollo-graphql` (CJS tests only) and `mongodb` fail on Deno 2.8.3 (the CI
 // version) and pass on Deno 2.9.0.
@@ -41,6 +45,7 @@ const NOT_TRIAGED = [
   'suites/tracing/anthropic/test.ts',
   'suites/tracing/apollo-graphql/**',
   'suites/tracing/fastify/test.ts',
+  'suites/tracing/flue/test.ts',
   'suites/tracing/google-genai/test.ts',
   'suites/tracing/groq/test.ts',
   'suites/tracing/http-client-spans/http-strip-query/test.ts',
@@ -53,6 +58,7 @@ const NOT_TRIAGED = [
   'suites/tracing/mongoose-v5/test.ts',
   'suites/tracing/mysql/test.ts',
   'suites/tracing/openai/test.ts',
+  'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
   'suites/tracing/prisma-orm-v7/test.ts',
   'suites/tracing/together-ai/test.ts',
@@ -67,6 +73,7 @@ export const NODE_SUITES_EXCLUDE = [
   ...NODE_ONLY,
   ...NO_FETCH_INSTRUMENTATION,
   ...PRISMA_ESM_INTEROP,
+  ...REQUIRE_OF_ESM_ONLY_DEPENDENCY,
   ...NOT_TRIAGED,
   ...FLAKY,
 ];
