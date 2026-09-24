@@ -18,7 +18,8 @@ const nodeSuitesTest = {
   root: NODE_SUITES_ROOT,
   include: NODE_SUITES,
   exclude: NODE_SUITES_EXCLUDE,
-  testTimeout: 15_000,
+  // Above the 30 second port timeout of the runner on Bun, so a slow start can still pass.
+  testTimeout: 45_000,
 };
 
 export default defineConfig({

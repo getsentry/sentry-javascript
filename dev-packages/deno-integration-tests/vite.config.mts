@@ -27,7 +27,8 @@ export default defineConfig({
       RUNTIME: 'deno',
       DENO_IMPORT_MAP: fileURLToPath(new URL('./node-suites/import-map.json', import.meta.url)),
     },
-    testTimeout: 15_000,
+    // Above the 30 second port timeout of the runner on Deno, so a slow start can still pass.
+    testTimeout: 45_000,
     ...(process.env.DEBUG
       ? {
           disableConsoleIntercept: true,
