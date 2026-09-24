@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @camc314. Thank you for your contribution!
+
 ## 11.0.0
 
 Version `11.0.0` marks a major release of the Sentry JavaScript SDKs containing breaking changes.
