@@ -31,7 +31,7 @@ function readRouteNameFromMeta(): string | undefined {
  * which is why `resolveRoute` refuses to answer for anything but the current path.
  */
 export function createAstroRouteProvider(): RouteProvider {
-  const isCurrentPath = (url: URL): boolean => url.pathname === WINDOW.location?.pathname;
+  const isCurrentPath = (url: { pathname: string }): boolean => url.pathname === WINDOW.location?.pathname;
 
   return {
     resolveRoute: url => (isCurrentPath(url) ? readRouteNameFromMeta() : undefined),
