@@ -4,6 +4,10 @@ import { DEBUG_BUILD } from './debug-build';
 import { getLocationHref } from './utils/browser';
 import { LRUMap } from './utils/lru';
 import { debug } from './utils/debug-logger';
+import { parseStringToURLObject } from './utils/url';
+
+/** The parts of a URL a route depends on. A `URL` satisfies it. */
+type RouteUrl = Pick<URL, 'pathname' | 'search' | 'hash'>;
 
 /**
  * Resolves URLs to low-cardinality route names.
@@ -27,7 +31,7 @@ export interface RouteProvider {
    * than for wherever the router currently is, so that callers can resolve a URL they captured earlier
    * (a web vital reported after a soft navigation, for example).
    */
-  resolveRoute(url: URL): string | undefined;
+  resolveRoute(url: RouteUrl): string | undefined;
 
   /**
    * Resolves the route the app is currently on.
@@ -87,7 +91,7 @@ export function resolveRoute(url: string | URL, client: Client | undefined = get
     return undefined;
   }
 
-  const urlObject = typeof url === 'string' ? toURLObject(url) : url;
+  const urlObject = typeof url === 'string' ? parseLocation(url) : url;
   if (!urlObject) {
     return undefined;
   }
@@ -110,11 +114,11 @@ export function resolveCurrentRoute(client: Client | undefined = getClient()): s
  * Builds a {@link RouteProvider} for a router whose location is the browser's, which covers every
  * router except memory and hash routers.
  */
-export function createUrlRouteProvider(resolveRouteFromUrl: (url: URL) => string | undefined): RouteProvider {
+export function createUrlRouteProvider(resolveRouteFromUrl: (url: RouteUrl) => string | undefined): RouteProvider {
   return {
     resolveRoute: resolveRouteFromUrl,
     resolveCurrentRoute: () => {
-      const urlObject = toURLObject(getLocationHref());
+      const urlObject = parseLocation(getLocationHref());
 
       return urlObject && resolveRouteFromUrl(urlObject);
     },
@@ -151,15 +155,12 @@ export function createCachedRouteProvider(maxEntries: number = 50): CachedRouteP
 }
 
 /**
- * Normalizes to a real `URL` so providers never have to parse, and relative locations (which memory
- * routers hand around) resolve against the document.
+ * Parses up front so providers never have to, and resolves relative locations (which memory routers
+ * hand around) against the document.
  */
-function toURLObject(url: string): URL | undefined {
-  try {
-    return new URL(url, getLocationHref() || undefined);
-  } catch {
-    return undefined;
-  }
+function parseLocation(url: string): RouteUrl | undefined {
+  // Without a document `getLocationHref()` is empty, which would otherwise parse as `/`.
+  return url ? parseStringToURLObject(url, getLocationHref() || undefined) : undefined;
 }
 
 /**
