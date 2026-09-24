@@ -8,12 +8,13 @@ import {
   filterCollectedUrl,
   timestampInSeconds,
 } from '@sentry/core';
-import { resolveCurrentRoute, resolveRoute } from '@sentry/core/browser';
 import {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
   WINDOW,
   getAbsoluteUrl,
+  resolveCurrentRoute,
+  resolveRoute,
 } from '@sentry/react';
 import { stripTrailingSlash } from './parameterization';
 import {
