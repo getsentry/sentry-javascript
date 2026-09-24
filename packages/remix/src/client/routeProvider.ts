@@ -1,5 +1,5 @@
-import type { RouteProvider } from '@sentry/core/browser';
-import { createUrlRouteProvider } from '@sentry/core/browser';
+import type { RouteProvider } from '@sentry/react';
+import { createUrlRouteProvider } from '@sentry/react';
 import { maybeParameterizeRemixRoute } from './remixRouteParameterization';
 
 /**
