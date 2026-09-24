@@ -12,7 +12,7 @@ import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
-import { nextjsRouteProviderIntegration } from './routing/routeProvider';
+import { createNextRouteProvider } from './routing/routeProvider';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
@@ -66,6 +66,9 @@ export function init(options: BrowserOptions): Client | undefined {
     environment: options.environment || process.env.SENTRY_ENVIRONMENT || getClientVercelEnv() || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
+    // Both route manifests are injected at build time, so route parameterization works from `init` on,
+    // including for the pageload span and with tracing disabled.
+    routeProvider: createNextRouteProvider(),
     ...options,
   } satisfies BrowserOptions;
 
@@ -106,7 +109,6 @@ export function init(options: BrowserOptions): Client | undefined {
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   const customDefaultIntegrations = getReactDefaultIntegrations(options);
-  customDefaultIntegrations.push(nextjsRouteProviderIntegration());
   // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
   // in which case everything inside will get tree-shaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
