@@ -57,10 +57,12 @@ function filterBodyValue(value: unknown): unknown {
     return value;
   }
 
-  // Null prototype so user-controlled keys like `__proto__` cannot pollute (CodeQL js/remote-property-injection).
-  const result: Record<string, unknown> = Object.create(null);
-  for (const [key, nested] of Object.entries(value)) {
-    result[key] = shouldFilterDataKey(key, true) ? FILTERED_VALUE : filterBodyValue(nested);
-  }
-  return result;
+  // `Object.fromEntries` instead of assigning `result[key]`, so user-controlled keys like
+  // `__proto__` never hit a computed property write (CodeQL js/remote-property-injection).
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nested]) => [
+      key,
+      shouldFilterDataKey(key, true) ? FILTERED_VALUE : filterBodyValue(nested),
+    ]),
+  );
 }
