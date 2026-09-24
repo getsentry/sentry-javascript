@@ -1,6 +1,6 @@
 import { defineIntegration } from '@sentry/core';
-import type { RouteProvider } from '@sentry/core/browser';
-import { createUrlRouteProvider, setRouteProvider } from '@sentry/core/browser';
+import type { RouteProvider } from '@sentry/react';
+import { createUrlRouteProvider, setRouteProvider } from '@sentry/react';
 import { maybeParameterizeRoute, stripBasePath, stripTrailingSlash } from './parameterization';
 import { getNextRouteFromPathname } from './pagesRouterRoutingInstrumentation';
 
