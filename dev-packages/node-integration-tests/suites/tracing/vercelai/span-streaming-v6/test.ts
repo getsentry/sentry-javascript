@@ -304,6 +304,44 @@ describe('Vercel AI integration (streaming, v6)', () => {
     },
   );
 
+  function spanWithMetadata(name: string, op: string, requestId: string) {
+    return expect.objectContaining({
+      name,
+      attributes: expect.objectContaining({
+        'vercel.ai.telemetry.metadata.requestId': attr(requestId),
+        'vercel.ai.telemetry.metadata.tenantId': attr('acme'),
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr(op),
+      }),
+    });
+  }
+
+  const EXPECTED_SPANS_TELEMETRY_METADATA = {
+    items: expect.arrayContaining([
+      spanWithMetadata('invoke_agent support-chat', 'gen_ai.invoke_agent', 'req_generate'),
+      spanWithMetadata('generate_content mock-model-id', 'gen_ai.generate_content', 'req_generate'),
+      spanWithMetadata('invoke_agent support-stream', 'gen_ai.invoke_agent', 'req_stream'),
+      spanWithMetadata('generate_content mock-model-id', 'gen_ai.generate_content', 'req_stream'),
+      spanWithMetadata('embeddings mock-model-id', 'gen_ai.embeddings', 'req_embed'),
+      spanWithMetadata('embeddings mock-model-id', 'gen_ai.embeddings', 'req_embed_many'),
+    ]),
+  };
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-telemetry-metadata.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('records experimental_telemetry.metadata as span attributes', async () => {
+        await createRunner().expect({ span: EXPECTED_SPANS_TELEMETRY_METADATA }).start().completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: '^6.0.0',
+      },
+    },
+  );
+
   createEsmAndCjsTests(
     __dirname,
     'scenario-error-in-tool.mjs',
