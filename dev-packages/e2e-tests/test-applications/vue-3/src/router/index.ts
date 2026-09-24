@@ -24,6 +24,10 @@ const router = createRouter({
       component: () => import('../views/UserIdView.vue'),
     },
     {
+      path: '/route-provider/:id',
+      component: () => import('../views/RouteProviderView.vue'),
+    },
+    {
       path: '/users-error/:id',
       component: () => import('../views/UserIdErrorView.vue'),
     },
