@@ -188,11 +188,16 @@ describe('AwsLambdaExtension.run', () => {
     // to is still the API working, so it has to reprieve the clock the same way SHUTDOWN would.
     const extension = new AwsLambdaExtension();
     const failure = new Error('ECONNREFUSED');
-    // Capped backoff makes this about 14 minutes of failing before the API answers once.
+    // Capped backoff puts these `POLL_RETRY_MAX_MS` apart, so this is most of the give-up window
+    // spent failing before the API answers once — close enough that a clock which did not restart
+    // expires within the drive window, far enough that one which did cannot.
+    const failuresBeforeDelivery = Math.floor((POLL_GIVE_UP_MS * 0.9) / POLL_RETRY_MAX_MS);
     const { next } = scriptPolls(extension, [
-      ...Array<Error>(170).fill(failure),
+      ...Array<Error>(failuresBeforeDelivery).fill(failure),
       { eventType: 'INVOKE' },
-      ...Array<Error>(400).fill(failure),
+      // Enough to outlast the drive window, so the loop never runs off the end of the script into
+      // the SHUTDOWN `scriptPolls` answers with.
+      ...Array<Error>(Math.ceil((POLL_GIVE_UP_MS + 30_000) / POLL_RETRY_MAX_MS)).fill(failure),
     ]);
 
     // Past the give-up measured from the first failure, well short of it measured from the event —
@@ -200,7 +205,7 @@ describe('AwsLambdaExtension.run', () => {
     const outcome = await runToOutcome(extension, POLL_GIVE_UP_MS + 30_000);
 
     expect(outcome).toBe('still polling');
-    expect(next.mock.calls.length).toBeGreaterThan(170);
+    expect(next.mock.calls.length).toBeGreaterThan(failuresBeforeDelivery);
   });
 
   test('keeps polling through events it never subscribed to, however long they go on', async () => {
@@ -262,18 +267,20 @@ describe('AwsLambdaExtension.run', () => {
     // cannot trip it — and a 20-poll cap would, since capped backoff reaches 20 polls in ~80s.
     const extension = new AwsLambdaExtension();
     const failure = new Error('ECONNREFUSED');
-    let polls = 0;
+    const polledAt: number[] = [];
     vi.spyOn(extension, 'next').mockImplementation(async () => {
-      polls++;
+      polledAt.push(Date.now());
       throw failure;
     });
-    const startedAt = Date.now();
 
     const outcome = await runToOutcome(extension, POLL_GIVE_UP_MS + 60_000);
 
     expect(outcome).toEqual({ reason: 'unrecoverable', pollAccepted: false, error: failure });
-    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(POLL_GIVE_UP_MS);
-    expect(polls).toBeGreaterThan(MAX_REPORTED_FAILURES);
+    // Measured across the loop's own polls: `runToOutcome` advances the fake clock by the whole
+    // drive window whether the loop is still running or not, so reading it around the call would
+    // report that window back and hold however early the loop had given up.
+    expect(polledAt.at(-1)! - polledAt[0]!).toBeGreaterThanOrEqual(POLL_GIVE_UP_MS);
+    expect(polledAt.length).toBeGreaterThan(MAX_REPORTED_FAILURES);
     // The loop outlives the console reporting, which is capped so it does not bill the customer
     // for one line every 5s until the environment is recycled.
     expect(errorSpy).toHaveBeenCalledTimes(MAX_REPORTED_FAILURES);
