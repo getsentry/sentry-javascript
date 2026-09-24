@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import type { Client } from '@sentry/core';
+import type { Breadcrumb, Client } from '@sentry/core';
 import { SentrySpan, spanToJSON } from '@sentry/core';
 import type { FetchHint, XhrHint } from '@sentry/browser-utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';
@@ -397,6 +397,33 @@ describe('GraphqlClient', () => {
       expect(json.attributes['graphql.operation.type']).toBe('query');
     });
 
+    test('redacts literals in the captured document', () => {
+      const handler = setupHandler([/\/graphql$/]);
+      const span = new SentrySpan({
+        name: 'POST http://localhost:4000/graphql',
+        op: 'http.client',
+        attributes: {
+          'http.method': 'POST',
+          [URL_FULL]: 'http://localhost:4000/graphql',
+          url: 'http://localhost:4000/graphql',
+        },
+      });
+
+      handler(
+        span,
+        makeFetchHint('http://localhost:4000/graphql', {
+          query: 'query GetUser { user(email: "jane@example.com", age: 42) { name } }',
+          operationName: 'GetUser',
+          variables: {},
+          extensions: {},
+        }),
+      );
+
+      expect(spanToJSON(span).attributes['graphql.document']).toBe(
+        'query GetUser { user(email: "*", age: *) { name } }',
+      );
+    });
+
     test('keeps the low-cardinality span name with span streaming enabled', () => {
       const handler = setupHandler([/\/graphql$/], true, 'stream');
       const span = new SentrySpan({
@@ -531,6 +558,55 @@ describe('GraphqlClient', () => {
       // The span is still renamed with the operation, but the document is not attached.
       expect(json.name).toBe('POST http://localhost:4000/graphql (query GetHello)');
       expect(json.attributes['graphql.document']).toBeUndefined();
+    });
+  });
+
+  describe('beforeOutgoingRequestBreadcrumb handler', () => {
+    test('redacts literals in the captured document', () => {
+      let capturedListener: ((breadcrumb: Breadcrumb, handlerData: FetchHint | XhrHint) => void) | undefined;
+      const mockClient = {
+        on: (eventName: string, cb: (breadcrumb: Breadcrumb, handlerData: FetchHint | XhrHint) => void) => {
+          if (eventName === 'beforeOutgoingRequestBreadcrumb') {
+            capturedListener = cb;
+          }
+        },
+        getOptions: () => ({}),
+        getDataCollectionOptions: () => ({ graphQL: { document: true, variables: true } }),
+      } as unknown as Client;
+
+      const integration = graphqlClientIntegration({ endpoints: [/\/graphql$/] });
+      integration.setup?.(mockClient);
+
+      if (!capturedListener) {
+        throw new Error('beforeOutgoingRequestBreadcrumb listener was not registered');
+      }
+
+      const breadcrumb: Breadcrumb = {
+        category: 'fetch',
+        type: 'http',
+        data: { url: 'http://localhost:4000/graphql', method: 'POST' },
+      };
+
+      capturedListener(breadcrumb, {
+        input: [
+          'http://localhost:4000/graphql',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: 'query GetUser { user(email: "jane@example.com", age: 42) { name } }',
+              operationName: 'GetUser',
+              variables: {},
+              extensions: {},
+            }),
+          },
+        ],
+        response: new Response(null, { status: 200 }),
+        startTimestamp: Date.now(),
+        endTimestamp: Date.now() + 1,
+      });
+
+      expect(breadcrumb.data?.['graphql.document']).toBe('query GetUser { user(email: "*", age: *) { name } }');
     });
   });
 });

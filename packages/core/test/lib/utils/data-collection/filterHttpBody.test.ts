@@ -32,6 +32,14 @@ describe('filterCollectedHttpBody', () => {
       expect(filterCollectedHttpBody('"just a string"')).toBe('[Filtered]');
       expect(filterCollectedHttpBody('42')).toBe('[Filtered]');
     });
+
+    it('filters scalar array elements with no key vouching for them', () => {
+      expect(filterCollectedHttpBody('["my-secret-token"]')).toBe('["[Filtered]"]');
+      expect(filterCollectedHttpBody(['my-secret-token'])).toEqual(['[Filtered]']);
+      expect(filterCollectedHttpBody('[{"colour":"blue","token":"abc"},"stray"]')).toBe(
+        '[{"colour":"blue","token":"[Filtered]"},"[Filtered]"]',
+      );
+    });
   });
 
   describe('form-encoded string bodies', () => {
@@ -40,15 +48,25 @@ describe('filterCollectedHttpBody', () => {
         'colour=blue&user%5Bpassword%5D=[Filtered]',
       );
     });
+
+    it('keeps a single-field form', () => {
+      expect(filterCollectedHttpBody('flag=on')).toBe('flag=on');
+    });
   });
 
   describe('unparseable bodies', () => {
-    it.each([['<xml><secret>value</secret></xml>'], ['plain text body'], ['query Test { people { name } }']])(
-      'replaces %s with the filtered value',
-      body => {
-        expect(filterCollectedHttpBody(body)).toBe('[Filtered]');
-      },
-    );
+    it.each([
+      ['<xml><secret>value</secret></xml>'],
+      ['plain text body'],
+      ['query Test { people { name } }'],
+      // These contain a `=` but are not forms; their pseudo-keys must not ship unfiltered.
+      ['c2VjcmV0='],
+      ['dG9rZW4uMg=='],
+      ['total = 42'],
+      ['https://example.com/callback?code=abc123'],
+    ])('replaces %s with the filtered value', body => {
+      expect(filterCollectedHttpBody(body)).toBe('[Filtered]');
+    });
 
     it('replaces bodies that are not a key-value structure', () => {
       expect(filterCollectedHttpBody(42)).toBe('[Filtered]');

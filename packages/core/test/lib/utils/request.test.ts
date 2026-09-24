@@ -217,6 +217,17 @@ describe('request utils', () => {
       });
     });
 
+    it('filters sensitive keys in a non-standard body', () => {
+      const actual = httpRequestToRequestData({
+        body: { colour: 'blue', password: 'hunter2' },
+      } as any);
+
+      expect(actual).toEqual({
+        headers: {},
+        data: { colour: 'blue', password: '[Filtered]' },
+      });
+    });
+
     describe('x-forwarded headers support', () => {
       it('should prioritize x-forwarded-proto header over explicit protocol parameter', () => {
         const actual = httpRequestToRequestData({
