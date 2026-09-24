@@ -33,7 +33,7 @@ import {
   GEN_AI_INVOKE_AGENT,
   GEN_AI_RERANK,
 } from '@sentry/conventions/op';
-import type { Span, SpanAttributes } from '@sentry/core';
+import type { Span, SpanAttributes, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_skipAiProviderWrapping,
   captureException,
@@ -86,6 +86,7 @@ type GenAiOperation = keyof typeof GEN_AI_OPERATION_SPAN_OPS;
 const VERCEL_AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
 const VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE = 'vercel.ai.model.provider';
 const VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'vercel.ai.settings.maxRetries';
+const VERCEL_AI_TELEMETRY_METADATA_ATTRIBUTE_PREFIX = 'vercel.ai.telemetry.metadata.';
 
 // Tracks the top-level operationId (and whether it streams) per `callId` so a model-call span can
 // name its `doGenerate`/`doStream` operation the same way the OTel integration does. `isStream` is
@@ -417,8 +418,9 @@ export function createSpanFromMessage(
     recordToolDescriptions(callId, event.tools);
   }
 
-  const baseAttributes: Record<string, string | number | boolean> = {
+  const baseAttributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    ...telemetryMetadataAttributes(event.telemetryMetadata),
     ...(provider ? { [GEN_AI_PROVIDER_NAME]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
     ...(modelId ? { [GEN_AI_REQUEST_MODEL]: modelId } : {}),
     ...(maxRetries !== undefined ? { [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries } : {}),
@@ -464,6 +466,21 @@ export function createSpanFromMessage(
       // Unknown event type: opt out rather than open a span we can't shape correctly.
       return undefined;
   }
+}
+
+/**
+ * `experimental_telemetry.metadata` (`ai` <= 6) as `vercel.ai.telemetry.metadata.<key>`, the names the OTel
+ * integration produced from the SDK's `ai.telemetry.metadata.*`. Only the orchestrion adapter sets
+ * `event.telemetryMetadata`; `ai` 7 has no `telemetry.metadata`.
+ */
+function telemetryMetadataAttributes(metadata: unknown): SpanAttributes {
+  const attributes: SpanAttributes = {};
+  if (isObjectLike(metadata)) {
+    for (const [key, value] of Object.entries(metadata)) {
+      attributes[`${VERCEL_AI_TELEMETRY_METADATA_ATTRIBUTE_PREFIX}${key}`] = value as SpanAttributeValue;
+    }
+  }
+  return attributes;
 }
 
 /** Start a `gen_ai.<operation>` span named `<operation> <suffix>` (or just `<operation>` when no suffix). */
