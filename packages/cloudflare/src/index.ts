@@ -127,6 +127,7 @@ export {
   getOtlpTracesEndpoint,
   prismaIntegration,
   instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,

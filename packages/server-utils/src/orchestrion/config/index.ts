@@ -35,6 +35,7 @@ import { redisConfig } from './redis';
 import { remixConfig } from './remix';
 import { tediousConfig } from './tedious';
 import { togetherAiConfig } from './together-ai';
+import { typesafeConfig } from './typesafe';
 import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
@@ -86,6 +87,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...remixConfig,
   ...tediousConfig,
   ...togetherAiConfig,
+  ...typesafeConfig,
   ...vercelAiConfig,
 ];
 
