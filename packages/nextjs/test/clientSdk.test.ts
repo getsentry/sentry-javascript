@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { debug, getMainCarrier, SentryNonRecordingSpan } from '@sentry/core';
+import { debug, getMainCarrier, GLOBAL_OBJ, SentryNonRecordingSpan, spanToJSON } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { getClient, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
@@ -186,6 +186,28 @@ describe('Client init()', () => {
 
         // @ts-expect-error Test setup for build-time flag
         delete globalThis.__SENTRY_TRACING__;
+      });
+
+      it('names the pageload span after the parameterized route', () => {
+        const globalWithManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRouteManifest?: string };
+        globalWithManifest._sentryRouteManifest = JSON.stringify({
+          staticRoutes: [{ path: '/' }],
+          dynamicRoutes: [],
+          isrRoutes: [],
+        });
+
+        init({ dsn: TEST_DSN, tracesSampleRate: 1.0 });
+
+        expect(spanToJSON(SentryReact.getActiveSpan()!)).toMatchObject({
+          name: '/',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.segment.name.source': 'route',
+            'url.template': '/',
+          },
+        });
+
+        delete globalWithManifest._sentryRouteManifest;
       });
 
       it("doesn't run Next.js router instrumentation for bot user agents", () => {

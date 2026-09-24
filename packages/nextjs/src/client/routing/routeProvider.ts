@@ -1,5 +1,6 @@
+import { defineIntegration } from '@sentry/core';
 import type { RouteProvider } from '@sentry/core/browser';
-import { createUrlRouteProvider } from '@sentry/core/browser';
+import { createUrlRouteProvider, setRouteProvider } from '@sentry/core/browser';
 import { maybeParameterizeRoute, stripBasePath, stripTrailingSlash } from './parameterization';
 import { getNextRouteFromPathname } from './pagesRouterRoutingInstrumentation';
 
@@ -24,3 +25,18 @@ function resolveNextRoute(url: URL): string | undefined {
 export function createNextRouteProvider(): RouteProvider {
   return createUrlRouteProvider(resolveNextRoute);
 }
+
+/**
+ * Registers the Next.js route provider.
+ *
+ * An integration rather than part of `browserTracingIntegration` so route parameterization does not depend
+ * on tracing: the route manifests are injected at build time, so anything that needs a route name (bfcache
+ * metrics, web vitals) can resolve one even with tracing disabled. Registered in `setup` because the pageload
+ * span is named in `browserTracingIntegration`'s `afterAllSetup`.
+ */
+export const nextjsRouteProviderIntegration = defineIntegration(() => ({
+  name: 'NextjsRouteProvider',
+  setup(client) {
+    setRouteProvider(createNextRouteProvider(), client);
+  },
+}));
