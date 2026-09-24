@@ -157,16 +157,4 @@ builds.push(
   ...makeBundleConfigVariants(tracingReplayFeedbackLogsMetricsBaseBundleConfig),
 );
 
-export default ({ configShard } = {}) => {
-  if (configShard === undefined) {
-    return builds;
-  }
-
-  const shard = Number(configShard);
-
-  if (![1, 2, 3].includes(shard)) {
-    throw new Error('configShard must be 1, 2, or 3');
-  }
-
-  return builds.filter((_, index) => Math.floor(index / 3) % 3 === shard - 1);
-};
+export default builds;
