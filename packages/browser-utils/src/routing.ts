@@ -1,10 +1,7 @@
-import type { Client } from './client';
-import { getClient } from './currentScopes';
+import type { Client } from '@sentry/core';
+import { debug, getClient, LRUMap, parseStringToURLObject } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import { getLocationHref } from './utils/browser';
-import { LRUMap } from './utils/lru';
-import { debug } from './utils/debug-logger';
-import { parseStringToURLObject } from './utils/url';
+import { getLocationHref } from './getLocationHref';
 
 /** The parts of a URL a route depends on. A `URL` satisfies it. */
 type RouteUrl = Pick<URL, 'pathname' | 'search' | 'hash'>;

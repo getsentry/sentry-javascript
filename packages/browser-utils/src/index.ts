@@ -29,6 +29,16 @@ export { isBotUserAgent } from './isBotUserAgent';
 
 export { getLocationHref } from './getLocationHref';
 
+export {
+  createCachedRouteProvider,
+  createUrlRouteProvider,
+  getRouteProvider,
+  resolveCurrentRoute,
+  resolveRoute,
+  setRouteProvider,
+} from './routing';
+export type { CachedRouteProvider, RouteProvider } from './routing';
+
 export { userTimingIntegration } from './performance/userTiming';
 
 export { extractNetworkProtocol } from './performance/utils';
