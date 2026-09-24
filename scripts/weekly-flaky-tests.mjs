@@ -2,6 +2,7 @@ import { normalizeJobName, normalizeTestName } from './report-ci-failures.mjs';
 
 const LOOKBACK_DAYS = 7;
 const MAX_TESTS = 10;
+const CONCURRENT_RUNS = 4;
 
 function jobFamily(name) {
   return normalizeJobName(
@@ -20,10 +21,11 @@ function markdownCell(value) {
     .replace(/[\r\n]+/g, ' ');
 }
 
-export async function collectReport({ github, context, now = new Date() }) {
+export async function collectReport({ github, context, core, now = new Date() }) {
   const until = now.toISOString();
   const since = new Date(now.getTime() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const repo = context.repo;
+  core.info(`Listing develop CI runs from ${since} to ${until}.`);
   const listedRuns = await github.paginate(github.rest.actions.listWorkflowRuns, {
     ...repo,
     workflow_id: 'build.yml',
@@ -39,83 +41,94 @@ export async function collectReport({ github, context, now = new Date() }) {
   const tests = new Map();
   let failedJobsWithoutTests = 0;
   let failedJobs = 0;
+  let completedRuns = 0;
+  const pendingRuns = runs.filter(run => run.conclusion !== 'success' || run.run_attempt > 1);
+  const runsToInspect = pendingRuns.length;
+  core.info(
+    `Found ${runs.length} runs; ${runsToInspect} need inspection, ${runs.length - runsToInspect} passed on the first attempt.`,
+  );
 
-  for (const run of runs) {
-    if (run.conclusion === 'success' && run.run_attempt === 1) {
-      continue;
-    }
+  async function worker() {
+    while (pendingRuns.length > 0) {
+      const run = pendingRuns.shift();
+      core.info(`Run ${run.id}: fetching jobs across ${run.run_attempt} attempt(s).`);
 
-    const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
-      ...repo,
-      run_id: run.id,
-      filter: 'all',
-      per_page: 100,
-    });
-    for (const job of jobs) {
-      if (job.conclusion !== 'failure' || job.name.includes('(optional)')) {
-        continue;
-      }
-      failedJobs++;
+      const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+        ...repo,
+        run_id: run.id,
+        filter: 'all',
+        per_page: 100,
+      });
+      const jobsToInspect = jobs.filter(job => job.conclusion === 'failure' && !job.name.includes('(optional)'));
+      core.info(`Run ${run.id}: ${jobs.length} job attempts, ${jobsToInspect.length} failures to inspect.`);
+      for (const job of jobsToInspect) {
+        failedJobs++;
 
-      let annotations;
-      try {
-        annotations = await github.paginate(github.rest.checks.listAnnotations, {
-          ...repo,
-          check_run_id: Number(job.check_run_url.split('/').pop()),
-          per_page: 100,
-        });
-      } catch (error) {
-        if (error.status !== 404 && error.status !== 410) {
-          throw error;
+        let annotations;
+        try {
+          annotations = await github.paginate(github.rest.checks.listAnnotations, {
+            ...repo,
+            check_run_id: Number(job.check_run_url.split('/').pop()),
+            per_page: 100,
+          });
+        } catch (error) {
+          if (error.status !== 404 && error.status !== 410) {
+            throw error;
+          }
+          warnings.push(`Annotations unavailable for job ${job.id} in run ${run.id}.`);
+          continue;
         }
-        warnings.push(`Annotations unavailable for job ${job.id} in run ${run.id}.`);
-        continue;
-      }
 
-      const failures = annotations.filter(
-        annotation =>
-          annotation.annotation_level === 'failure' &&
-          annotation.title &&
-          /(?:^|\/)(?:tests?|__tests__|suites)\/|(?:^|[/.])(?:test|spec)\.[cm]?[jt]sx?$/i.test(annotation.path),
+        const failures = annotations.filter(
+          annotation =>
+            annotation.annotation_level === 'failure' &&
+            annotation.title &&
+            /(?:^|\/)(?:tests?|__tests__|suites)\/|(?:^|[/.])(?:test|spec)\.[cm]?[jt]sx?$/i.test(annotation.path),
+        );
+        if (failures.length === 0) {
+          failedJobsWithoutTests++;
+        }
+
+        // Match the exact matrix job, not its normalized family, when checking recovery.
+        const recovered = jobs.some(
+          later =>
+            later.name === job.name &&
+            later.head_sha === job.head_sha &&
+            later.run_attempt > job.run_attempt &&
+            later.conclusion === 'success',
+        );
+        for (const annotation of failures) {
+          const family = jobFamily(job.name);
+          const name = normalizeTestName(annotation.title);
+          const key = JSON.stringify([family, annotation.path, name]);
+          let test = tests.get(key);
+          if (!test) {
+            test = {
+              family,
+              path: annotation.path,
+              name,
+              runs: new Set(),
+              recoveredRuns: new Set(),
+              examples: new Map(),
+            };
+            tests.set(key, test);
+          }
+          test.runs.add(run.id);
+          if (recovered) {
+            test.recoveredRuns.add(run.id);
+          }
+          if (test.examples.size < 3 && !test.examples.has(run.id)) {
+            test.examples.set(run.id, job.html_url);
+          }
+        }
+      }
+      completedRuns++;
+      core.info(
+        `Completed ${completedRuns}/${runsToInspect} runs; ${failedJobs} failed jobs inspected, ${tests.size} failing tests found.`,
       );
-      if (failures.length === 0) {
-        failedJobsWithoutTests++;
-      }
-
-      // Match the exact matrix job, not its normalized family, when checking recovery.
-      const recovered = jobs.some(
-        later =>
-          later.name === job.name &&
-          later.head_sha === job.head_sha &&
-          later.run_attempt > job.run_attempt &&
-          later.conclusion === 'success',
-      );
-      for (const annotation of failures) {
-        const family = jobFamily(job.name);
-        const name = normalizeTestName(annotation.title);
-        const key = JSON.stringify([family, annotation.path, name]);
-        let test = tests.get(key);
-        if (!test) {
-          test = {
-            family,
-            path: annotation.path,
-            name,
-            runs: new Set(),
-            recoveredRuns: new Set(),
-            examples: new Map(),
-          };
-          tests.set(key, test);
-        }
-        test.runs.add(run.id);
-        if (recovered) {
-          test.recoveredRuns.add(run.id);
-        }
-        if (test.examples.size < 3 && !test.examples.has(run.id)) {
-          test.examples.set(run.id, job.html_url);
-        }
-      }
     }
   }
+  await Promise.all(Array.from({ length: CONCURRENT_RUNS }, () => worker()));
 
   const ranked = [...tests.values()].sort(
     (a, b) =>
@@ -187,7 +200,7 @@ export function renderReport(report) {
 }
 
 export default async function run({ github, context, core }) {
-  const report = await collectReport({ github, context });
+  const report = await collectReport({ github, context, core });
   for (const warning of report.warnings) {
     core.warning(warning);
   }
