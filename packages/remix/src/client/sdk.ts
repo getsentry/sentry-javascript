@@ -1,5 +1,6 @@
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, setRouteProvider } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
+import { setRouteProvider } from '@sentry/core/browser';
 import { init as reactInit } from '@sentry/react';
 import type { RemixOptions } from '../utils/remixOptions';
 import { createRemixRouteProvider } from './routeProvider';
