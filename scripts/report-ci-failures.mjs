@@ -31,7 +31,7 @@ import { readFileSync } from 'node:fs';
  *   "Playwright esm (1/4) Tests"               -> "Playwright Tests"
  *   "E2E some-app-node-20-18 Test"             -> "E2E some-app Test"
  */
-function normalizeJobName(name) {
+export function normalizeJobName(name) {
   return name
     .replace(/\(\s*(?:\d+|TS\s+[\d.]+|Node\s+\d+|\d+\/\d+)\s*\)/gi, ' ')
     .replace(/Playwright\s+(?:bundle\w*|esm|cjs)\s+Tests/gi, 'Playwright Tests')
@@ -50,7 +50,7 @@ function normalizeJobName(name) {
  *   - bare esm/cjs describe block: "... > esm/cjs > x"        -> "... > x"
  *   - trailing module suffix:      "... should send [esm]"    -> "... should send"
  */
-function normalizeTestName(name) {
+export function normalizeTestName(name) {
   return name
     .replace(/^\[(?:chromium|firefox|webkit)\]\s*›\s*/i, '')
     .replace(/(\.[cm]?[jt]sx?):\d+:\d+/gi, '$1')
