@@ -7,7 +7,10 @@ const NODE_SUITE_FILE = /[\\/]node-integration-tests[\\/](suites|utils)[\\/]/;
 
 // Bun's runtime `onResolve` does not see bare package specifiers, so ES modules are rewritten on
 // load. `onLoad` output for a CommonJS file does not run, so those files keep their source.
-const NODE_SUITE_ESM_FILE = /[\\/]node-integration-tests[\\/](suites|utils)[\\/](?!\bnode_modules\b).*\.(mjs|ts)$/;
+// Dependencies in `node_modules` are skipped: Bun treats a module returned from `onLoad` as async,
+// and a CommonJS `require()` of it then fails.
+const NODE_SUITE_ESM_FILE =
+  /[\\/]node-integration-tests[\\/](suites|utils)[\\/](?!(?:.*[\\/])?node_modules[\\/]).*\.(mjs|ts)$/;
 const SENTRY_NODE_SPECIFIER = /(['"])@sentry\/node\1/g;
 
 plugin({
