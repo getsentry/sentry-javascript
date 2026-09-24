@@ -8,7 +8,7 @@ import {
 } from '@sentry/conventions/attributes';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import { debug, defineIntegration, getCurrentScope, metrics } from '@sentry/core';
-import { resolveCurrentRoute } from '@sentry/core/browser';
+import { resolveCurrentRoute } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 

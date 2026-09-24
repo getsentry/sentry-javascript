@@ -90,8 +90,8 @@ export {
   getRouteProvider,
   resolveRoute,
   setRouteProvider,
-} from '@sentry/core/browser';
-export type { CachedRouteProvider, RouteProvider } from '@sentry/core/browser';
+} from '@sentry/browser-utils';
+export type { CachedRouteProvider, RouteProvider } from '@sentry/browser-utils';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';

@@ -6,20 +6,17 @@ import {
   getRouteProvider,
   resolveRoute,
   setRouteProvider,
-} from '../../src/routing';
-import type { RouteProvider } from '../../src/routing';
-import { getCurrentScope } from '../../src/currentScopes';
-import { debug } from '../../src/utils/debug-logger';
-import { setCurrentClient } from '../../src/sdk';
-import { GLOBAL_OBJ } from '../../src/utils/worldwide';
-import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+} from '../src/routing';
+import type { RouteProvider } from '../src/routing';
+import { debug, getCurrentScope, GLOBAL_OBJ, setCurrentClient } from '@sentry/core';
+import { getDefaultClientOptions, TestClient } from './utils/TestClient';
 
 function setLocationHref(href: string): void {
   (GLOBAL_OBJ as { document?: unknown }).document = { location: { href } };
 }
 
 function makeClient(): TestClient {
-  const client = new TestClient(getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337' }));
+  const client = new TestClient(getDefaultClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337' }));
   setCurrentClient(client);
   client.init();
 
@@ -118,7 +115,7 @@ describe('routing', () => {
 
   describe('setRouteProvider', () => {
     it('scopes the provider to its client', () => {
-      const otherClient = new TestClient(getDefaultTestClientOptions());
+      const otherClient = new TestClient(getDefaultClientOptions());
       setRouteProvider({ resolveRoute: () => '/users/:id', resolveCurrentRoute: () => '/users/:id' }, client);
 
       expect(resolveCurrentRoute(client)).toBe('/users/:id');
