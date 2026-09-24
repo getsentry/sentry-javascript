@@ -842,17 +842,6 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: yarn test --shard=${{ matrix.shard }}/3
 
-      - name: Upload test timing report
-        uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name:
-            node-integration-timings-node-${{ matrix.node }}-ts-${{ matrix.typescript || 'default' }}-shard-${{
-            matrix.shard }}
-          path: dev-packages/node-integration-tests/vitest.junit.xml
-          retention-days: 7
-          if-no-files-found: warn
-
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
     needs: [job_get_metadata, job_build]

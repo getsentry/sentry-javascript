@@ -142,7 +142,9 @@ export function makeBaseBundleConfig(options) {
  * @param baseConfig The rollup config shared by the entire package
  * @returns An array of versions of that config
  */
-export function makeBundleConfigVariants(baseConfig) {
+export function makeBundleConfigVariants(baseConfig, options = {}) {
+  const { variants = BUNDLE_VARIANTS } = options;
+
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
   const terserPlugin = makeTerserPlugin();
@@ -172,22 +174,14 @@ export function makeBundleConfigVariants(baseConfig) {
     },
   };
 
-  const [debug, production, minifiedDebug] = BUNDLE_VARIANTS.map(variant =>
-    deepMerge(baseConfig, variantSpecificConfigMap[variant], {
+  return variants.map(variant => {
+    if (!BUNDLE_VARIANTS.includes(variant)) {
+      throw new Error(`Unknown bundle variant requested: ${variant}`);
+    }
+    return deepMerge(baseConfig, variantSpecificConfigMap[variant], {
       // Merge the plugin arrays and make sure the end result is in the correct order. Everything else can use the
       // default merge strategy.
       customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
-    }),
-  );
-
-  const isOutputPlugin = plugin => ['terser', 'license'].includes(plugin.name);
-
-  debug.output = [debug, minifiedDebug].map(config => ({
-    ...config.output,
-    plugins: config.plugins.filter(isOutputPlugin),
-  }));
-
-  debug.plugins = debug.plugins.filter(plugin => !isOutputPlugin(plugin));
-
-  return [debug, production];
+    });
+  });
 }
