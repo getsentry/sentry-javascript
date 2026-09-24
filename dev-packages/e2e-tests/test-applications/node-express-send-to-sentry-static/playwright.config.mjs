@@ -18,6 +18,7 @@ const config = {
   },
   /* Run tests in files in parallel */
   fullyParallel: true,
+  workers: process.env.CI ? 6 : undefined,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */

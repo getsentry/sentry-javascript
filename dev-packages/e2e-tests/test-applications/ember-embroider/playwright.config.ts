@@ -30,7 +30,7 @@ const config: PlaywrightTestConfig = {
     timeout: 10000,
   },
   fullyParallel: false,
-  workers: 1,
+  workers: process.env.CI ? 6 : 1,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   retries: 0,

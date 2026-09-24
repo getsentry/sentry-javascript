@@ -52,10 +52,7 @@
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
     "build:dev": "run-p build:transpile build:types",
-    "build:bundle": "run-p build:bundle:shard:*",
-    "build:bundle:shard:1": "rollup -c rollup.bundle.config.mjs --configShard=1",
-    "build:bundle:shard:2": "rollup -c rollup.bundle.config.mjs --configShard=2",
-    "build:bundle:shard:3": "rollup -c rollup.bundle.config.mjs --configShard=3",
+    "build:bundle": "rollup -c rollup.bundle.config.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:bundle:watch",

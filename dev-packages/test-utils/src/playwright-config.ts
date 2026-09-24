@@ -31,7 +31,6 @@ export function getPlaywrightConfig(
       timeout: 10000,
     },
     fullyParallel: false,
-    workers: 1,
     /* Fail the build on CI if you accidentally left test.only in the source code. */
     forbidOnly: !!process.env.CI,
     /* In dev mode some apps are flaky, so we allow retry there... */
@@ -96,5 +95,6 @@ export function getPlaywrightConfig(
   return {
     ...config,
     ...overwriteConfig,
+    workers: process.env.CI ? 6 : (overwriteConfig?.workers ?? 1),
   };
 }
