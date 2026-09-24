@@ -3,8 +3,18 @@ import { FILTERED_VALUE } from './filtering-snippets';
 import { shouldFilterDataKey } from './filterKeyValueData';
 import { filterQueryParams } from './filterQueryParams';
 
-/** Matches `key=value&key2=value2` bodies, the only non-JSON shape whose keys the denylist can check. */
-const FORM_BODY_RE = /^[^=&]+=[^&]*(?:&[^=&]+=[^&]*)*$/;
+/** One `&`-separated form segment: empty, a bare key, or `key=value`. */
+const FORM_SEGMENT_RE = /^(?:[^=]+(?:=.*)?)?$/;
+
+/**
+ * A form body is `&`-separated `key=value` pairs, the only non-JSON shape whose keys the denylist
+ * can check. Valueless keys, empty segments, and a trailing `&` are tolerated — a too-strict gate
+ * would let a body like `password=secret&` skip the filter and ship raw. At least one `=` is
+ * required so prose is never rewritten as a pseudo-form.
+ */
+function isFormBody(body: string): boolean {
+  return body.includes('=') && body.split('&').every(segment => FORM_SEGMENT_RE.test(segment));
+}
 
 /**
  * Scrubs the values of known-sensitive keys in an HTTP body the SDK collected itself, before it
@@ -40,7 +50,7 @@ export function filterCollectedHttpBodyString(body: string): string {
     // Not JSON. The form-encoded attempt below runs instead.
   }
 
-  if (FORM_BODY_RE.test(body)) {
+  if (isFormBody(body)) {
     // The query-param filter keeps the body's original encoding byte-for-byte.
     return filterQueryParams(body, true) ?? body;
   }

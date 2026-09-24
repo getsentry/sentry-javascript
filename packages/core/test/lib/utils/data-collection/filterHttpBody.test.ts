@@ -50,6 +50,12 @@ describe('filterCollectedHttpBody', () => {
     it('keeps a single-field form', () => {
       expect(filterCollectedHttpBody('flag=on')).toBe('flag=on');
     });
+
+    it('filters forms with a trailing ampersand, valueless keys, or empty segments', () => {
+      expect(filterCollectedHttpBody('password=secret&')).toBe('password=[Filtered]&');
+      expect(filterCollectedHttpBody('token=abc&flag')).toBe('token=[Filtered]&flag');
+      expect(filterCollectedHttpBody('colour=blue&&password=x')).toBe('colour=blue&&password=[Filtered]');
+    });
   });
 
   describe('bodies without key-value structure', () => {
