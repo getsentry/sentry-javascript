@@ -10,7 +10,7 @@ import { getNextRouteFromPathname } from './pagesRouterRoutingInstrumentation';
  * App Router routes are generated with `basePath` baked in, which is what `location.pathname` gives
  * us; Next strips it internally for the Pages Router, so the fallback strips it too.
  */
-function resolveNextRoute(url: URL): string | undefined {
+function resolveNextRoute(url: { pathname: string }): string | undefined {
   const pathname = stripTrailingSlash(url.pathname);
 
   return maybeParameterizeRoute(pathname) ?? getNextRouteFromPathname(stripBasePath(pathname));
