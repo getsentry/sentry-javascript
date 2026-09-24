@@ -783,7 +783,7 @@ jobs:
   job_node_integration_tests:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
-      Tests
+      Tests (shard ${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -792,12 +792,17 @@ jobs:
       fail-fast: false
       matrix:
         node: [20.19, 22, 24, 26]
+        shard: [1, 2]
         typescript:
           - false
         include:
           # Only check typescript for latest version (to streamline CI)
           - node: 24
             typescript: '5.0'
+            shard: 1
+          - node: 24
+            typescript: '5.0'
+            shard: 2
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -832,13 +837,15 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
-        run: yarn test
+        run: yarn test --shard=${{ matrix.shard }}/2
 
       - name: Upload test timing report
         uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
-          name: node-integration-timings-node-${{ matrix.node }}-ts-${{ matrix.typescript || 'default' }}
+          name:
+            node-integration-timings-node-${{ matrix.node }}-ts-${{ matrix.typescript || 'default' }}-shard-${{
+            matrix.shard }}
           path: dev-packages/node-integration-tests/vitest.junit.xml
           retention-days: 7
           if-no-files-found: warn
