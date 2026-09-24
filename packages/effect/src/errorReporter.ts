@@ -9,9 +9,9 @@ import type * as LogLevel from 'effect/LogLevel';
 
 // `effect/ErrorReporter` only exists in Effect v4, so it is read off the main entry instead of being imported
 // as a subpath. On Effect v3 the lookup yields `undefined` and no reporter is registered. The property is read
-// through a separate binding because bundlers fail the build on `Effect.ErrorReporter` when the export is absent.
-const effectExports = Effect as Record<string, unknown>;
-const ErrorReporter = effectExports.ErrorReporter as typeof EffectErrorReporter | undefined;
+// with `Reflect.get` because bundlers fail the build on `Effect.ErrorReporter` when the export is absent, and
+// an aliased property read gets folded back into exactly that member access by our own build.
+const ErrorReporter = Reflect.get(Effect, 'ErrorReporter') as typeof EffectErrorReporter | undefined;
 
 const SEVERITY_TO_LEVEL: Record<LogLevel.Severity, SeverityLevel> = {
   Fatal: 'fatal',
