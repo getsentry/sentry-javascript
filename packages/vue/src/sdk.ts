@@ -1,7 +1,6 @@
-import { getDefaultIntegrations, init as browserInit } from '@sentry/browser';
+import { getDefaultIntegrations, init as browserInit, setRouteProvider } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core';
-import { setRouteProvider } from '@sentry/core/browser';
 
 import { vueIntegration } from './integration';
 import type { Options } from './types';
