@@ -25,7 +25,7 @@ export default defineConfig({
     reporters: process.env.DEBUG
       ? [['default', { summary: false }]]
       : process.env.GITHUB_ACTIONS
-        ? ['dot', 'github-actions']
+        ? ['dot', 'github-actions', ['junit', { classnameTemplate: '{filepath}' }]]
         : ['verbose'],
   },
 });
