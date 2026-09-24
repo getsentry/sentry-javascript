@@ -38,6 +38,10 @@ test('captures the invoke_agent / generate_content / execute_tool hierarchy for 
 
   expect(attr(invokeAgent, 'sentry.origin')).toBe('auto.vercelai.channel');
   expect(attr(invokeAgent, 'gen_ai.operation.name')).toBe('invoke_agent');
+  // Think passes `this.constructor.name` to the AI SDK as the `functionId`, so this only holds while
+  // the build-time wrapper leaves the user's class name alone (#24700).
+  expect(invokeAgent?.name).toBe('invoke_agent ThinkAgent');
+  expect(attr(invokeAgent, 'gen_ai.function_id')).toBe('ThinkAgent');
   expect(attr(invokeAgent, 'gen_ai.provider.name')).toBe('openrouter');
   expect(typeof attr(invokeAgent, 'gen_ai.usage.input_tokens')).toBe('number');
   expect(typeof attr(invokeAgent, 'gen_ai.usage.output_tokens')).toBe('number');
