@@ -5,7 +5,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { getAbsoluteUrl, startBrowserTracingNavigationSpan, WINDOW } from '@sentry/react';
+import { getAbsoluteUrl, startBrowserTracingNavigationSpan } from '@sentry/react';
 import RouterImport from 'next/router';
 import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { NAVIGATION } from '@sentry/conventions/op';
@@ -17,8 +17,6 @@ import { getNextRouteFromPathname } from './pagesRouterRoutingInstrumentation';
 const Router: typeof RouterImport = RouterImport.events
   ? RouterImport
   : (RouterImport as unknown as { default: typeof RouterImport }).default;
-
-const globalObject = WINDOW;
 
 /**
  * Instruments the Next.js pages router for navigation.
