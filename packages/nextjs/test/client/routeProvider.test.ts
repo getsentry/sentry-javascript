@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BrowserClient, setCurrentClient } from '@sentry/react';
 import { createNextRouteProvider } from '../../src/client/routing/routeProvider';
 
-const globalWithManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRouteManifest?: string };
+const globalWithManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  _sentryRouteManifest?: string;
+  _sentryBasePath?: string;
+  __BUILD_MANIFEST?: { sortedPages?: string[] };
+};
 
 let originalDocument: unknown;
 
@@ -43,6 +47,8 @@ describe('createNextRouteProvider', () => {
 
   afterEach(() => {
     delete globalWithManifest._sentryRouteManifest;
+    delete globalWithManifest._sentryBasePath;
+    delete globalWithManifest.__BUILD_MANIFEST;
     (GLOBAL_OBJ as { document?: unknown }).document = originalDocument;
   });
 
@@ -66,5 +72,27 @@ describe('createNextRouteProvider', () => {
     setRouteProvider(createNextRouteProvider(), client);
 
     expect(resolveRoute('https://example.com/nope/deep', client)).toBeUndefined();
+  });
+
+  describe('Pages Router', () => {
+    beforeEach(() => {
+      globalWithManifest.__BUILD_MANIFEST = { sortedPages: ['/', '/_app', '/_error', '/posts/[slug]'] };
+    });
+
+    it('falls back to the Pages Router manifest when the App Router manifest has no match', () => {
+      const client = makeClient();
+      setRouteProvider(createNextRouteProvider(), client);
+
+      expect(resolveRoute('https://example.com/posts/hello', client)).toBe('/posts/[slug]');
+    });
+
+    it('strips `basePath` before matching, since Pages Router routes are generated without it', () => {
+      globalWithManifest._sentryBasePath = '/docs';
+      const client = makeClient();
+      setRouteProvider(createNextRouteProvider(), client);
+
+      expect(resolveRoute('https://example.com/docs/posts/hello', client)).toBe('/posts/[slug]');
+      expect(resolveRoute('https://example.com/docs', client)).toBe('/');
+    });
   });
 });

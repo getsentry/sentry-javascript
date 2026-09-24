@@ -11,11 +11,13 @@ import '@sentry/core';
 import '@sentry/react';
 import '../../src/client/routing/appRouterRoutingInstrumentation';
 import type * as AppRouterInstrumentation from '../../src/client/routing/appRouterRoutingInstrumentation';
+import type * as RouteProvider from '../../src/client/routing/routeProvider';
 import type { RouteManifest } from '../../src/config/manifest/types';
 
 type Core = typeof SentryCore;
 type React = typeof SentryReact;
 type Instrumentation = typeof AppRouterInstrumentation;
+type RouteProviderModule = typeof RouteProvider;
 
 interface NextRouter {
   back: () => void;
@@ -61,6 +63,7 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   const core: Core = await import('@sentry/core');
   const react: React = await import('@sentry/react');
   const instrumentation: Instrumentation = await import('../../src/client/routing/appRouterRoutingInstrumentation');
+  const routeProvider: RouteProviderModule = await import('../../src/client/routing/routeProvider');
 
   const client = new react.BrowserClient({
     dsn: 'http://examplePublicKey@localhost/0',
@@ -68,7 +71,10 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
     stackParser: () => [],
     tracesSampleRate: 1,
     traceLifecycle,
-    integrations: [react.browserTracingIntegration({ instrumentPageLoad: false, instrumentNavigation: false })],
+    integrations: [
+      routeProvider.nextjsRouteProviderIntegration(),
+      react.browserTracingIntegration({ instrumentPageLoad: false, instrumentNavigation: false }),
+    ],
   });
   core.setCurrentClient(client);
   client.init();
