@@ -1,5 +1,5 @@
-import type { RouteProvider } from '@sentry/core/browser';
-import { createUrlRouteProvider } from '@sentry/core/browser';
+import type { RouteProvider } from '@sentry/browser';
+import { createUrlRouteProvider } from '@sentry/browser';
 import type { Route } from './router';
 
 // Vue Router 3 resolves to `{ route }`, Vue Router 4+ returns the route itself.
