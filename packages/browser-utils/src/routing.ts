@@ -44,11 +44,12 @@ export interface RouteProvider {
 const CLIENT_ROUTE_PROVIDERS = new WeakMap<Client, RouteProvider>();
 
 /**
- * Registers the route provider for a client, replacing any previously registered one.
+ * Registers the route provider for a client, replacing any previously registered one, including the one
+ * passed as the `routeProvider` option.
  *
- * Register during an integration's `setup` rather than `afterAllSetup`: the pageload span is named
- * while `browserTracingIntegration` sets up, so a provider registered later can only rename it after
- * the fact.
+ * Prefer the `routeProvider` option where the provider is known at `init`: the pageload span is named
+ * while `browserTracingIntegration` sets up, so a provider registered after `init` can only rename it
+ * after the fact.
  *
  * A client holds one provider. An app running two routers (a framework migration, or a shell plus an
  * island) registers twice and the last one wins, so the first router's routes stop resolving.
@@ -59,7 +60,7 @@ export function setRouteProvider(provider: RouteProvider, client: Client | undef
     return;
   }
 
-  if (DEBUG_BUILD && CLIENT_ROUTE_PROVIDERS.has(client)) {
+  if (DEBUG_BUILD && getRouteProvider(client)) {
     debug.warn(
       'A route provider is already registered for this client and will be replaced. Routes only the previous provider knows about will no longer resolve.',
     );
@@ -69,10 +70,14 @@ export function setRouteProvider(provider: RouteProvider, client: Client | undef
 }
 
 /**
- * Returns the route provider registered for a client, if any.
+ * Returns the route provider registered for a client, falling back to its `routeProvider` option.
  */
 export function getRouteProvider(client: Client | undefined = getClient()): RouteProvider | undefined {
-  return client && CLIENT_ROUTE_PROVIDERS.get(client);
+  if (!client) {
+    return undefined;
+  }
+
+  return CLIENT_ROUTE_PROVIDERS.get(client) ?? (client.getOptions() as { routeProvider?: RouteProvider }).routeProvider;
 }
 
 /**
