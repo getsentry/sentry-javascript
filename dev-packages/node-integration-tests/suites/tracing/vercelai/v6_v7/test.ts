@@ -1034,6 +1034,11 @@ describe('Vercel AI integration experimental_evaluate', () => {
                   state: 'I cannot log in, and I also want a refund for last month.',
                   questions: {
                     authIssue: { type: 'boolean', instructions: 'Is there a login problem?' },
+                    department: {
+                      type: 'choice',
+                      instructions: 'Which team should handle this?',
+                      criteria: { billing: 'Charges and refunds', technical: 'Bugs and outages' },
+                    },
                     wantsRefund: { type: 'boolean', instructions: 'Is a refund requested?' },
                     urgency: {
                       type: 'score',
@@ -1048,11 +1053,36 @@ describe('Vercel AI integration experimental_evaluate', () => {
                   type: 'evaluation',
                   answers: {
                     authIssue: { type: 'boolean', probability: 0.97 },
+                    department: {
+                      type: 'choice',
+                      choice: 'billing',
+                      probabilities: { billing: 0.64, technical: 0.36 },
+                    },
                     wantsRefund: { type: 'boolean', probability: 0.99 },
                     urgency: { type: 'score', score: 1.8, probabilities: { 0: 0, 1: 0.2, 2: 0.8 } },
                   },
                 },
               ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+
+      test('does not record inputs or outputs when recording is off', async () => {
+        await createRunner()
+          .withEnv({ NO_RECORDING: 'true' })
+          .unordered()
+          .expect({
+            span: container => {
+              const evaluateSpan = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.evaluate',
+              )!;
+              expect(evaluateSpan).toBeDefined();
+              expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              // State, questions and answers must not come back through another attribute.
+              expect(JSON.stringify(evaluateSpan)).not.toMatch(/cannot log in|Charges and refunds|0\.97/);
             },
           })
           .start()

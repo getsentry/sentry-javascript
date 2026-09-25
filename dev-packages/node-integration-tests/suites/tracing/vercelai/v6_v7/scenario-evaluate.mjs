@@ -11,6 +11,11 @@ async function run() {
         doEvaluate: async () => ({
           answers: {
             authIssue: { type: 'boolean', probability: 0.97 },
+            department: {
+              type: 'choice',
+              choice: 'billing',
+              probabilities: { billing: 0.64, technical: 0.36 },
+            },
             wantsRefund: { type: 'boolean', probability: 0.99 },
             urgency: { type: 'score', score: 1.8, probabilities: { 0: 0, 1: 0.2, 2: 0.8 } },
           },
@@ -21,6 +26,11 @@ async function run() {
       state: 'I cannot log in, and I also want a refund for last month.',
       questions: {
         authIssue: { type: 'boolean', instructions: 'Is there a login problem?' },
+        department: {
+          type: 'choice',
+          instructions: 'Which team should handle this?',
+          criteria: { billing: 'Charges and refunds', technical: 'Bugs and outages' },
+        },
         wantsRefund: { type: 'boolean', instructions: 'Is a refund requested?' },
         urgency: { type: 'score', instructions: 'How urgent is this ticket?', criteria: ['low', 'medium', 'high'] },
       },
