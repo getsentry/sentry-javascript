@@ -1069,10 +1069,21 @@ describe('Vercel AI integration experimental_evaluate', () => {
           .start()
           .completed();
       });
+    },
+    {
+      additionalDependencies: {
+        ai: '^7.0.111',
+      },
+    },
+  );
 
+  createEsmTests(
+    __dirname,
+    'scenario-evaluate.mjs',
+    'instrument-evaluate-no-recording.mjs',
+    (createRunner, test) => {
       test('does not record inputs or outputs when recording is off', async () => {
         await createRunner()
-          .withEnv({ NO_RECORDING: 'true' })
           .unordered()
           .expect({
             span: container => {
