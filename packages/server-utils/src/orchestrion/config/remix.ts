@@ -49,11 +49,22 @@ const remixInstrumentationConfig = (dir: string): InstrumentationConfig[] => [
   },
 ];
 
-export const remixConfig = ['dist', 'dist/esm'].flatMap(remixInstrumentationConfig);
+// Remix 3. The subscriber rewrites the options before the asset server reads them and wraps the
+// server it returns, so browser modules carry debug IDs without any config from the app.
+const remixAssetServerConfig: InstrumentationConfig[] = [
+  {
+    channelName: 'createAssetServer',
+    module: { name: '@remix-run/assets', versionRange: '>=0.6.0 <1', filePath: 'dist/lib/asset-server.js' },
+    functionQuery: { functionName: 'createAssetServer', kind: 'Sync' },
+  },
+];
+
+export const remixConfig = [...['dist', 'dist/esm'].flatMap(remixInstrumentationConfig), ...remixAssetServerConfig];
 
 export const remixChannels = {
   REMIX_REQUEST_HANDLER: 'orchestrion:@remix-run/server-runtime:requestHandler',
   REMIX_MATCH_SERVER_ROUTES: 'orchestrion:@remix-run/server-runtime:matchServerRoutes',
   REMIX_CALL_ROUTE_LOADER: 'orchestrion:@remix-run/server-runtime:callRouteLoader',
   REMIX_CALL_ROUTE_ACTION: 'orchestrion:@remix-run/server-runtime:callRouteAction',
+  REMIX_CREATE_ASSET_SERVER: 'orchestrion:@remix-run/assets:createAssetServer',
 } as const;

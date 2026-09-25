@@ -17,6 +17,9 @@ function HomePage(handle: Handle<Record<string, never>>) {
       </head>
       <body>
         <h1 id="home">Sentry Remix 3</h1>
+        <button id="throw-error" type="button">
+          Throw error
+        </button>
       </body>
     </html>
   );
