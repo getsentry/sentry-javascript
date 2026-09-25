@@ -1,4 +1,4 @@
-import type { Mechanism, WrappedFunction } from '@sentry/core';
+import type { HandlerDataError, Mechanism, WrappedFunction } from '@sentry/core';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -15,11 +15,45 @@ export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 let ignoreOnError: number = 0;
 
+type ErrorReport = Pick<HandlerDataError, 'msg' | 'url' | 'line' | 'column'>;
+
+const ignoredErrorReports: ErrorReport[] = [];
+
 /**
  * @hidden
  */
-export function shouldIgnoreOnError(): boolean {
-  return ignoreOnError > 0;
+export function shouldIgnoreOnError(data?: HandlerDataError): boolean {
+  if (ignoreOnError > 0) {
+    return true;
+  }
+
+  const index = data ? ignoredErrorReports.findIndex(report => isSameErrorReport(report, data)) : -1;
+  if (index === -1) {
+    return false;
+  }
+
+  ignoredErrorReports.splice(index, 1);
+  return true;
+}
+
+/**
+ * Skips the next `onerror` report that matches `report`, once. A report that
+ * never arrives is forgotten after the current task.
+ *
+ * @hidden
+ */
+export function ignoreNextOnErrorMatching(report: ErrorReport): void {
+  ignoredErrorReports.push(report);
+  setTimeout(() => {
+    const index = ignoredErrorReports.indexOf(report);
+    if (index !== -1) {
+      ignoredErrorReports.splice(index, 1);
+    }
+  });
+}
+
+function isSameErrorReport(a: ErrorReport, b: ErrorReport): boolean {
+  return a.msg === b.msg && a.url === b.url && a.line === b.line && a.column === b.column;
 }
 
 /**

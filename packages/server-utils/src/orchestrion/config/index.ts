@@ -20,6 +20,7 @@ import { koaConfig } from './koa';
 import { langchainConfig } from './langchain';
 import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
+import { flueConfig } from './flue';
 import { mastraConfig } from './mastra';
 import { mistralConfig } from './mistral';
 import { mongodbConfig } from './mongodb';
@@ -30,6 +31,7 @@ import { nestjsConfig } from './nestjs';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
+import { prismaConfig } from './prisma';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
 import { tediousConfig } from './tedious';
@@ -70,6 +72,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...langchainConfig,
   ...langgraphConfig,
   ...lruMemoizerConfig,
+  ...flueConfig,
   ...mastraConfig,
   ...mistralConfig,
   ...mongodbConfig,
@@ -80,6 +83,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...openaiConfig,
   ...pgConfig,
   ...postgresJsConfig,
+  ...prismaConfig,
   ...redisConfig,
   ...remixConfig,
   ...tediousConfig,

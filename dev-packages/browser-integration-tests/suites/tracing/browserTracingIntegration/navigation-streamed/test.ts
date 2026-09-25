@@ -77,6 +77,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
 
   expect(navigationSpan).toEqual({
     attributes: {
+      'sentry.is_localhost': { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',

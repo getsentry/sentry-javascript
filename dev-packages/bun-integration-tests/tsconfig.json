@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["suites/**/*.ts", "*.ts"],
+  "include": ["suites/**/*.ts", "node-suites/**/*.ts", "*.ts"],
 
   "compilerOptions": {
     "lib": ["ES2020"],

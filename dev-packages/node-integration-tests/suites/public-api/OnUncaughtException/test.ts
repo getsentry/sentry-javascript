@@ -2,6 +2,7 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
+import { RUNTIME } from '../../../utils';
 
 describe('OnUncaughtException integration', () => {
   test('should close process on uncaught error with no additional listeners registered', () =>
@@ -122,7 +123,8 @@ describe('OnUncaughtException integration', () => {
       .completed();
   });
 
-  describe('Worker thread error handling', () => {
+  // Bun and Deno: the worker thread errors are not handled as on Node.
+  describe.skipIf(RUNTIME !== 'node')('Worker thread error handling', () => {
     test.each(['mjs', 'js'])('should not interfere with worker thread error handling ".%s"', async extension => {
       const runner = createRunner(__dirname, `worker-thread/caught-worker.${extension}`)
         .withFlags('--import', path.join(__dirname, `worker-thread/instrument.${extension}`))

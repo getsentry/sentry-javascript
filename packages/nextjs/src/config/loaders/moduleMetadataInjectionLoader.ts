@@ -1,5 +1,5 @@
+import { getCodeInjectionPosition } from '@sentry/bundler-plugins/loader-utils';
 import type { LoaderThis } from './types';
-import { findInjectionIndexAfterDirectives } from './valueInjectionLoader';
 
 export type ModuleMetadataInjectionLoaderOptions = {
   applicationKey: string;
@@ -39,6 +39,7 @@ export default function moduleMetadataInjectionLoader(
     `e._sentryModuleMetadata[(new e.Error).stack]=Object.assign({},e._sentryModuleMetadata[(new e.Error).stack],${metadata});` +
     '}catch(e){}}();';
 
-  const injectionIndex = findInjectionIndexAfterDirectives(userCode);
-  return `${userCode.slice(0, injectionIndex)}${injectedCode}${userCode.slice(injectionIndex)}`;
+  const injectionIndex = getCodeInjectionPosition(userCode);
+  const codeToInject = injectionIndex === userCode.length ? `\n${injectedCode}` : injectedCode;
+  return `${userCode.slice(0, injectionIndex)}${codeToInject}${userCode.slice(injectionIndex)}`;
 }

@@ -29,6 +29,7 @@ const { init, getDefaultIntegrations } = await import('../src/sdk');
 describe('init', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('sets SDK metadata to elysia', () => {
@@ -107,6 +108,16 @@ describe('init', () => {
     // In vitest (Node), Bun is not defined, so runtime should be node
     expect(calledOptions.runtime.name).toBe('node');
     expect(calledOptions.runtime.version).toBe(process.version);
+  });
+
+  it('detects bun runtime when Bun is defined', () => {
+    vi.stubGlobal('Bun', { version: '1.2.3' });
+
+    init({ dsn: 'https://***@o0.ingest.sentry.io/0' });
+
+    const calledOptions = mockInitNode.mock.calls[0]![0];
+    expect(calledOptions.runtime).toEqual({ name: 'bun', version: '1.2.3' });
+    expect(mockApplySdkMetadata).toHaveBeenCalledWith(expect.anything(), 'elysia', ['elysia', 'bun']);
   });
 });
 

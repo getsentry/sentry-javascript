@@ -15,17 +15,11 @@ Check out the individual packages for more information and examples:
 - [esbuild](https://www.npmjs.com/package/@sentry/esbuild-plugin)
 - [Webpack](https://www.npmjs.com/package/@sentry/webpack-plugin)
 
-### Features
+## Documentation
 
-The Sentry bundler plugin package contains the following functionality:
+- [Uploading source maps](https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/)
 
-- Sourcemap upload
-- Release creation in Sentry
-- Automatic release name discovery (based on CI environment - Vercel, AWS, Heroku, CircleCI, or current Git SHA)
-- Automatically associate errors with releases (Release injection)
+## Support
 
-### More information
-
-- [Sentry Documentation](https://docs.sentry.io/quickstart/)
-- [Sentry Discord](https://discord.gg/Ww9hbqr)
-- [Sentry Stackoverflow](http://stackoverflow.com/questions/tagged/sentry)
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

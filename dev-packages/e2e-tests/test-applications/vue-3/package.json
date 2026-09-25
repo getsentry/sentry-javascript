@@ -18,7 +18,10 @@
     "test:build-no-options-api": "pnpm install && VUE_OPTIONS_API=false pnpm build",
     "test:assert-no-options-api": "VUE_OPTIONS_API=false pnpm test:assert",
     "test:install-canary": "pnpm add vue@$(git ls-remote --tags --sort='v:refname' https://github.com/vuejs/core.git | tail -n1 | awk -F'/' '{print $NF}')",
-    "test:print-version": "node -p \"'Vue version: ' + require('vue/package.json').version\""
+    "test:print-version": "node -p \"'Vue version: ' + require('vue/package.json').version\"",
+    "test:build-vue-router-5": "pnpm install && pnpm add vue-router@5 && pnpm build",
+    "test:assert-vue-router-5": "pnpm test:print-version && pnpm test:print-router-version && playwright test",
+    "test:print-router-version": "node -p \"'Vue Router version: ' + require('vue-router/package.json').version\""
   },
   "dependencies": {
     "@sentry/vue": "file:../../packed/sentry-vue-packed.tgz",
@@ -48,6 +51,11 @@
       {
         "build-command": "pnpm test:build-latest",
         "label": "vue-3 (latest)"
+      },
+      {
+        "build-command": "pnpm test:build-vue-router-5",
+        "assert-command": "pnpm test:assert-vue-router-5",
+        "label": "vue-3 (vue-router 5)"
       }
     ],
     "optionalVariants": [

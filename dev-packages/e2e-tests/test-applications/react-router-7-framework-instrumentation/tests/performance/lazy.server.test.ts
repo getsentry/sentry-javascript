@@ -60,13 +60,14 @@ test.describe('server - instrumentation API lazy loading', () => {
     expect(loaderSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
-      name: '/performance/lazy-route',
+      name: 'loader',
     });
 
     expect(loaderSpan!.attributes).toMatchObject({
       'sentry.origin': { value: 'auto.function.react_router.instrumentation_api', type: 'string' },
       'sentry.op': { value: 'function', type: 'string' },
       'code.function.name': { value: 'loader', type: 'string' },
+      'sentry.description': { value: '/performance/lazy-route', type: 'string' },
     });
   });
 
