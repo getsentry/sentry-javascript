@@ -268,6 +268,10 @@ export type SentryBuildOptions = Omit<
    * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
    * - Pass a string path (e.g., '/monitoring') to use a custom route
    *
+   * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
+   * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
+   * can reach Sentry. Matchers have to be static, so use a fixed string route in that case rather than `true`.
+   *
    * NOTE: This feature only works with Next.js 11+
    */
   tunnelRoute?: string | boolean;

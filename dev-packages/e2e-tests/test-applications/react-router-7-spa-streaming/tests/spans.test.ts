@@ -61,7 +61,11 @@ test('sends an INP span', async ({ page }) => {
 
   const inpSpan = await inpSpanPromise;
 
-  expect(inpSpan.name).toBe('body > div#root > input#exception-button[type="button"]');
+  // The element is not annotated with a component name, so the span takes the op's fallback name.
+  expect(inpSpan.name).toBe('Click');
+  expect(inpSpan.attributes['browser.web_vital.inp.target']?.value).toBe(
+    'body > div#root > input#exception-button[type="button"]',
+  );
   expect(inpSpan.trace_id).toMatch(/[a-f0-9]{32}/);
   expect(inpSpan.span_id).toMatch(/[a-f0-9]{16}/);
   expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);

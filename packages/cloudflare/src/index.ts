@@ -88,7 +88,6 @@ export {
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   spanToStaticSpanJSON,
   spanToJSON,
@@ -108,6 +107,7 @@ export {
 } from '@sentry/core';
 export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
 export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
+export type { FlueOptions } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
@@ -137,6 +137,7 @@ export {
   instrumentCreateReactAgent,
   vercelAIIntegration,
   eveConversationHook,
+  eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 

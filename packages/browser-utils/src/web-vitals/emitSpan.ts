@@ -19,7 +19,6 @@ import {
 } from '@sentry/conventions/attributes';
 import { WINDOW } from '../types';
 import type { MetricNavigationType } from '../instrumentation/performanceObserver';
-import type { WebVitalReportEvent } from './reportEvents';
 
 // Locally-defined interfaces to avoid leaking bare global type references into the
 // generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
@@ -48,7 +47,6 @@ interface WebVitalSpanOptions {
   value: number;
   attributes?: SpanAttributes;
   parentSpan?: Span;
-  reportEvent?: WebVitalReportEvent;
   startTime: number;
   endTime?: number;
   /** Set when the vital was reported for a soft navigation rather than the initial page load. */
@@ -78,7 +76,6 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     value,
     attributes: passedAttributes,
     parentSpan,
-    reportEvent,
     startTime,
     endTime,
     standalone,
@@ -109,10 +106,6 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   if (parentSpan && spanToJSON(parentSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'pageload') {
     // for LCP and CLS, we collect the pageload span id as an attribute
     attributes['sentry.pageload.span_id'] = parentSpan.spanContext().spanId;
-  }
-
-  if (reportEvent) {
-    attributes[`browser.web_vital.${metricName}.report_event`] = reportEvent;
   }
 
   if (softNavigationId != null) {

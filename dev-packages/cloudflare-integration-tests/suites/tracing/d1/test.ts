@@ -174,6 +174,7 @@ describe('with span streaming enabled', () => {
           {
             name: 'CREATE TABLE users',
             attributes: {
+              'sentry.is_localhost': { value: true, type: 'boolean' },
               ...commonAttributes(segmentSpan),
               'db.operation.name': { type: 'string', value: 'exec' },
               'db.query.text': {
@@ -187,6 +188,7 @@ describe('with span streaming enabled', () => {
           {
             name: 'INSERT users',
             attributes: {
+              'sentry.is_localhost': { value: true, type: 'boolean' },
               ...commonAttributes(segmentSpan),
               'db.operation.name': { type: 'string', value: 'run' },
               'db.query.text': { type: 'string', value: 'INSERT INTO users (name) VALUES (?)' },
@@ -208,6 +210,7 @@ describe('with span streaming enabled', () => {
           {
             name: 'SELECT users',
             attributes: {
+              'sentry.is_localhost': { value: true, type: 'boolean' },
               ...commonAttributes(segmentSpan),
               'db.operation.name': { type: 'string', value: 'first' },
               'db.query.text': { type: 'string', value: 'SELECT * FROM users WHERE name = ?' },

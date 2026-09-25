@@ -955,4 +955,45 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
       },
     },
   );
+
+  createEsmTests(
+    __dirname,
+    'scenario-aborted-stream-text.mjs',
+    'instrument-abort.mjs',
+    (createRunner, test) => {
+      test('aborting a stream with a non-AbortError reason leaves no unhandled rejection', async () => {
+        await createRunner().ensureNoErrorOutput().start().completed();
+      });
+
+      test('an aborted stream finishes its spans with an error status and no result attributes', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const invokeAgent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.status).toBe('error');
+              expect(invokeAgent.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
+              expect(invokeAgent.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+              expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+              expect(invokeAgent.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+
+              const generateContent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+              expect(generateContent.status).toBe('error');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
 });

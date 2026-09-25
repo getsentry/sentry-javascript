@@ -239,11 +239,12 @@ test('captures correct spans for navigation', async ({ page }) => {
   expect(renderSpans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: 'runloop',
+        name: 'UI task',
         attributes: expect.objectContaining({
           'ember.runloop.queue': { type: 'string', value: 'render' },
           'sentry.op': { type: 'string', value: 'ui.task' },
           'sentry.origin': { type: 'string', value: 'auto.ui.ember' },
+          'sentry.description': { type: 'string', value: 'runloop' },
         }),
       }),
     ]),

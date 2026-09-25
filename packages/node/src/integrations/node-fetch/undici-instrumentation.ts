@@ -40,6 +40,7 @@ import {
   getUrlQuery,
   filterCollectedUrl,
   filterCollectedUrlQuery,
+  httpHeadersToSpanAttributes,
 } from '@sentry/core';
 import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
@@ -312,16 +313,21 @@ function onRequestHeaders(config: NodeFetchOptions, { request, socket }: Request
 
   // After hooks have been processed (which may modify request headers)
   // we can collect the headers based on the configuration
-  if (config.headersToSpanAttributes?.requestHeaders) {
+  const client = getClient();
+  if (config.headersToSpanAttributes?.requestHeaders && client) {
     const headersToAttribs = new Set(config.headersToSpanAttributes.requestHeaders.map(n => n.toLowerCase()));
     const headersMap = parseRequestHeaders(request);
 
+    const allowlisted: Record<string, string | string[]> = {};
     for (const [name, value] of headersMap.entries()) {
       if (headersToAttribs.has(name)) {
-        const attrValue = Array.isArray(value) ? value : [value];
-        spanAttributes[`http.request.header.${name}`] = attrValue;
+        allowlisted[name] = value;
       }
     }
+
+    // An entry in `headersToSpanAttributes` does not exempt a header from the `dataCollection`
+    // filtering, so the allowlisted subset goes through the same pipeline as any other header.
+    Object.assign(spanAttributes, httpHeadersToSpanAttributes(allowlisted, client.getDataCollectionOptions()));
   }
 
   span.setAttributes(spanAttributes);
@@ -354,10 +360,12 @@ function onResponseHeaders(config: NodeFetchOptions, { request, response }: Resp
     () => undefined,
   );
 
-  if (config.headersToSpanAttributes?.responseHeaders) {
+  const client = getClient();
+  if (config.headersToSpanAttributes?.responseHeaders && client) {
     const headersToAttribs = new Set<string>();
     config.headersToSpanAttributes?.responseHeaders.forEach(name => headersToAttribs.add(name.toLowerCase()));
 
+    const allowlisted: Record<string, string[]> = {};
     for (let idx = 0; idx < response.headers.length; idx = idx + 2) {
       const nameBuf = response.headers[idx];
       const valueBuf = response.headers[idx + 1];
@@ -365,17 +373,18 @@ function onResponseHeaders(config: NodeFetchOptions, { request, response }: Resp
         continue;
       }
       const name = nameBuf.toString().toLowerCase();
-      const value = valueBuf;
 
       if (headersToAttribs.has(name)) {
-        const attrName = `http.response.header.${name}`;
-        if (!Object.prototype.hasOwnProperty.call(spanAttributes, attrName)) {
-          spanAttributes[attrName] = [value.toString()];
-        } else {
-          (spanAttributes[attrName] as string[]).push(value.toString());
-        }
+        (allowlisted[name] ??= []).push(valueBuf.toString());
       }
     }
+
+    // An entry in `headersToSpanAttributes` does not exempt a header from the `dataCollection`
+    // filtering, so the allowlisted subset goes through the same pipeline as any other header.
+    Object.assign(
+      spanAttributes,
+      httpHeadersToSpanAttributes(allowlisted, client.getDataCollectionOptions(), 'response'),
+    );
   }
 
   span.setAttributes(spanAttributes);

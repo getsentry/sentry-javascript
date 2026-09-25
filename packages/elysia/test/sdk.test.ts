@@ -19,6 +19,7 @@ const { init, getDefaultIntegrations } = await import('../src/sdk');
 describe('init', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('passes Elysia SDK metadata to initNode', () => {
@@ -97,6 +98,19 @@ describe('init', () => {
     // In vitest (Node), Bun is not defined, so runtime should be node
     expect(calledOptions.runtime.name).toBe('node');
     expect(calledOptions.runtime.version).toBe(process.version);
+  });
+
+  it('detects bun runtime when Bun is defined', () => {
+    vi.stubGlobal('Bun', { version: '1.2.3' });
+
+    init({ dsn: 'https://***@o0.ingest.sentry.io/0' });
+
+    expect(mockInitNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtime: { name: 'bun', version: '1.2.3' },
+        _metadata: { sdk: expect.objectContaining({ name: 'sentry.javascript.elysia' }) },
+      }),
+    );
   });
 });
 

@@ -6,49 +6,19 @@
 
 # Sentry Session Replay with Canvas
 
+Canvas recording support for Sentry Session Replay.
+
 > [!NOTE]
 > This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is re-exported from
 > `@sentry/browser` and other browser-related SDKs like `@sentry/react` and `@sentry/vue`. It is not part of the public
 > API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
 
-## Pre-requisites
+## Documentation
 
-Replay with canvas requires Node 14+, and browsers newer than IE11.
+- [Canvas recording](https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording)
+- [Session Replay configuration](https://docs.sentry.io/platforms/javascript/session-replay/configuration/)
 
-## Installation
+## Support
 
-Replay and ReplayCanvas can be imported from `@sentry/browser`, or a respective SDK package like `@sentry/react` or
-`@sentry/vue`. You don't need to install anything in order to use Session Replay. The minimum version that includes
-Replay is 7.27.0.
-
-For details on using Replay when using Sentry via the CDN bundles, see [CDN bundle](#loading-replay-as-a-cdn-bundle).
-
-## Setup
-
-To set up the canvas integration, add the following to your Sentry integrations:
-
-```javascript
-Sentry.replayCanvasIntegration(),
-```
-
-### Full Example
-
-```javascript
-import * as Sentry from '@sentry/browser';
-// or e.g. import * as Sentry from '@sentry/react';
-
-Sentry.init({
-  dsn: '__DSN__',
-
-  // This sets the sample rate to be 10%. You may want this to be 100% while
-  // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
-
-  // If the entire session is not sampled, use the below sample rate to sample
-  // sessions when an error occurs.
-  replaysOnErrorSampleRate: 1.0,
-
-  integrations: [Sentry.replayIntegration(), Sentry.replayCanvasIntegration()],
-  // ...
-});
-```
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

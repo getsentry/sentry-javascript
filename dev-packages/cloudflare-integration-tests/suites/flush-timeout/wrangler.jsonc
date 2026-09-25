@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-flush-timeout",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workflows": [
+    {
+      "name": "issue-workflow",
+      "binding": "ISSUE_WORKFLOW",
+      "class_name": "IssueWorkflow",
+    },
+  ],
+}
