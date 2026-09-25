@@ -11,6 +11,7 @@ import { getClient, withIsolationScope } from './currentScopes';
 import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { startSpanManual } from './tracing/trace';
+import { filterCollectedHttpBody } from './utils/data-collection/filterHttpBody';
 import { normalize } from './utils/normalize';
 import { setNormalizationDepthOverrideHint } from './utils/normalizationHints';
 
@@ -74,15 +75,17 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
         ? options.attachRpcInput
         : dataCollection?.httpBodies.includes('incomingRequest')
     ) {
+      // Filtering runs after normalization so class instances become plain objects the
+      // key-value filter can walk instead of being redacted as a whole.
       if (rawInput !== undefined) {
-        trpcContext.input = normalize(rawInput);
+        trpcContext.input = filterCollectedHttpBody(normalize(rawInput));
       }
 
       if (getRawInput !== undefined && typeof getRawInput === 'function') {
         try {
           const rawRes = await getRawInput();
 
-          trpcContext.input = normalize(rawRes);
+          trpcContext.input = filterCollectedHttpBody(normalize(rawRes));
         } catch {
           // noop
         }

@@ -126,6 +126,42 @@ describe('trpcMiddleware', () => {
     });
   });
 
+  test('filters sensitive keys in the rpc input', async () => {
+    const middleware = trpcMiddleware({ attachRpcInput: true });
+    const next = vi.fn().mockResolvedValue({ ok: true });
+
+    await middleware({
+      path: 'test.procedure',
+      type: 'mutation',
+      next,
+      rawInput: { colour: 'blue', password: 'hunter2' },
+    });
+
+    expect(mockScope.setContext).toHaveBeenCalledWith('trpc', {
+      procedure_path: 'test.procedure',
+      procedure_type: 'mutation',
+      input: { colour: 'blue', password: '[Filtered]' },
+    });
+  });
+
+  test('passes through a scalar rpc input, leaving it to server-side scrubbing', async () => {
+    const middleware = trpcMiddleware({ attachRpcInput: true });
+    const next = vi.fn().mockResolvedValue({ ok: true });
+
+    await middleware({
+      path: 'test.procedure',
+      type: 'mutation',
+      next,
+      getRawInput: async () => 'my-session-token',
+    });
+
+    expect(mockScope.setContext).toHaveBeenCalledWith('trpc', {
+      procedure_path: 'test.procedure',
+      procedure_type: 'mutation',
+      input: 'my-session-token',
+    });
+  });
+
   test('handles thrown errors', async () => {
     const middleware = trpcMiddleware();
     const error = new Error('Test error');

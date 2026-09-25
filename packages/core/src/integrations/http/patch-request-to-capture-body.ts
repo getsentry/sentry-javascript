@@ -2,6 +2,7 @@ import type { Scope } from '../../scope';
 import { debug } from '../../utils/debug-logger';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { HttpIncomingMessage } from './types';
+import { filterCollectedHttpBodyString } from '../../utils/data-collection/filterHttpBody';
 import { getMaxBodyByteLength, type MaxRequestBodySize } from '../../utils/request';
 
 /**
@@ -92,7 +93,8 @@ export function patchRequestToCaptureBody(
 
     req.on('end', () => {
       try {
-        const body = Buffer.concat(chunks).toString('utf-8');
+        // The filter runs before truncation, because a truncated JSON body no longer parses.
+        const body = filterCollectedHttpBodyString(Buffer.concat(chunks).toString('utf-8'));
         if (body) {
           // Using Buffer.byteLength here, because the body may contain characters that are not 1 byte long
           const bodyByteLength = Buffer.byteLength(body, 'utf-8');
