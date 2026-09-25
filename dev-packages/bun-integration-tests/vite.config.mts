@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
-import { NODE_SUITES_EXCLUDE } from './node-suites/excludes';
+import { BUN_BUILD_EXCLUDE, NO_AUTO_INSTRUMENTATION, NODE_SUITES_EXCLUDE } from './node-suites/excludes';
 
 const NODE_SUITES_ROOT = fileURLToPath(new URL('../node-integration-tests', import.meta.url));
 
@@ -76,6 +76,24 @@ export default defineConfig({
           env: {
             RUNTIME: 'bun',
             RUNTIME_PRELOAD: fileURLToPath(new URL('./node-suites/alias-sentry-bun.ts', import.meta.url)),
+            EXPECTED_SDK_NAME: 'sentry.javascript.bun',
+          },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          ...nodeSuitesTest,
+          // The auto-instrumentation suites, with each scenario bundled by `@sentry/bun/plugin` before
+          // it starts, as Bun apps must be built to get these spans.
+          // See https://github.com/getsentry/sentry-javascript/issues/23882
+          name: 'node-suites-bun-build',
+          include: NO_AUTO_INSTRUMENTATION.map(glob => (glob.endsWith('/**') ? `${glob}/test.ts` : glob)),
+          exclude: BUN_BUILD_EXCLUDE,
+          env: {
+            RUNTIME: 'bun',
+            RUNTIME_PRELOAD: fileURLToPath(new URL('./node-suites/alias-sentry-bun.ts', import.meta.url)),
+            RUNTIME_BUILD_SCRIPT: fileURLToPath(new URL('./node-suites/bun-build.ts', import.meta.url)),
             EXPECTED_SDK_NAME: 'sentry.javascript.bun',
           },
         },
