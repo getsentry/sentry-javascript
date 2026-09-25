@@ -1,4 +1,4 @@
-name: 'CI: Weekly flaky tests (preview)'
+name: 'CI: Weekly flaky tests'
 
 on:
   pull_request:
@@ -6,11 +6,10 @@ on:
     paths:
       - '.github/workflows/weekly-flaky-tests.yml'
       - 'scripts/weekly-flaky-tests*'
-      - 'scripts/report-ci-failures.mjs'
   workflow_dispatch:
-  # Enable after validating the preview on PRs.
-  # schedule:
-  #   - cron: '0 7 * * 1'
+  schedule:
+    - cron: '0 7 * * 1'
+      timezone: 'Europe/Vienna'
 
 permissions:
   contents: read

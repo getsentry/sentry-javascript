@@ -1,14 +1,24 @@
-import { normalizeJobName, normalizeTestName } from './report-ci-failures.mjs';
-
 const LOOKBACK_DAYS = 7;
 const CONCURRENT_RUNS = 4;
 
-function jobFamily(name) {
-  return normalizeJobName(
-    name
-      .replace(/\(\d+(?:\.\d+)+\)/g, '')
-      .replace(/(Playwright\s+\S+)\s+(?:chromium|firefox|webkit)(?=\s+Tests)/g, '$1'),
-  );
+function normalizeJobName(name) {
+  return name
+    .replace(/\(\s*(?:(?:(?:Node|TS)\s+)?\d+(?:\.\d+)*|\d+\/\d+)\s*\)/gi, ' ')
+    .replace(/Playwright\s+(?:bundle\w*|esm|cjs)(?:\s+(?:chromium|firefox|webkit))?\s+Tests/gi, 'Playwright Tests')
+    .replace(/-node-\d+(?:-\d+)*/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeTestName(name) {
+  return name
+    .replace(/^\[(?:chromium|firefox|webkit)\]\s*›\s*/i, '')
+    .replace(/(\.[cm]?[jt]sx?):\d+:\d+/gi, '$1')
+    .replace(/esm\/cjs\s*>\s*(?:esm|cjs)\b/gi, 'esm/cjs')
+    .replace(/\besm\/cjs\s*>\s*/gi, '')
+    .replace(/\s*\[(?:esm|cjs)\]/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function markdownCell(value) {
@@ -89,7 +99,7 @@ export async function collectReport({ github, context, core, now = new Date() })
         }
 
         for (const annotation of failures) {
-          const family = jobFamily(job.name);
+          const family = normalizeJobName(job.name);
           const name = normalizeTestName(annotation.title);
           const key = JSON.stringify([family, annotation.path, name]);
           let test = tests.get(key);
