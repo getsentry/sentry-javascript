@@ -23,7 +23,10 @@ vi.mock('@nuxt/kit', () => ({
   resolvePath: resolvePathMock,
 }));
 
-vi.mock('fs');
+vi.mock('fs', async importOriginal => ({
+  ...(await importOriginal<typeof fs>()),
+  existsSync: vi.fn(),
+}));
 
 describe('findDefaultSdkInitFile', () => {
   afterEach(() => {
@@ -33,7 +36,7 @@ describe('findDefaultSdkInitFile', () => {
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
     'should return the server file path with .%s extension if it exists',
     async ext => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.toString().includes(`sentry.server.config.${ext}`);
       });
 
@@ -45,7 +48,7 @@ describe('findDefaultSdkInitFile', () => {
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
     'should return the client file path with .%s extension if it exists',
     async ext => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.toString().includes(`sentry.client.config.${ext}`);
       });
 
@@ -57,7 +60,7 @@ describe('findDefaultSdkInitFile', () => {
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
     'should return a client config from a custom config root dir if it exists with .%s extension',
     async ext => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.toString().includes(`sentry.client.config.${ext}`);
       });
 
@@ -77,7 +80,7 @@ describe('findDefaultSdkInitFile', () => {
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
     'should return a server config from a custom config root dir if it exists with .%s extension',
     async ext => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.toString().includes(`sentry.server.config.${ext}`);
       });
 
@@ -95,21 +98,21 @@ describe('findDefaultSdkInitFile', () => {
   );
 
   it('should return undefined if no file with specified extensions exists', async () => {
-    vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+    vi.mocked(fs.existsSync).mockReturnValue(false);
 
     const result = await findDefaultSdkInitFile('server');
     expect(result).toBeUndefined();
   });
 
   it('should return undefined if no file exists', async () => {
-    vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+    vi.mocked(fs.existsSync).mockReturnValue(false);
 
     const result = await findDefaultSdkInitFile('server');
     expect(result).toBeUndefined();
   });
 
   it('ignores a public/instrument.server file', async () => {
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+    vi.mocked(fs.existsSync).mockImplementation(filePath => {
       return !(filePath instanceof URL) && filePath.toString().includes('instrument.server.js');
     });
 
@@ -118,7 +121,7 @@ describe('findDefaultSdkInitFile', () => {
   });
 
   it('should return the latest layer config file path if client config exists', async () => {
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+    vi.mocked(fs.existsSync).mockImplementation(filePath => {
       return !(filePath instanceof URL) && filePath.toString().includes('sentry.client.config.ts');
     });
 
@@ -140,7 +143,7 @@ describe('findDefaultSdkInitFile', () => {
   });
 
   it('should return the latest layer config file path if server config exists', async () => {
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+    vi.mocked(fs.existsSync).mockImplementation(filePath => {
       return !(filePath instanceof URL) && filePath.toString().includes('sentry.server.config.ts');
     });
 
@@ -162,7 +165,7 @@ describe('findDefaultSdkInitFile', () => {
   });
 
   it('should return the latest layer config file path if client config exists in former layer', async () => {
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+    vi.mocked(fs.existsSync).mockImplementation(filePath => {
       return (
         !(filePath instanceof URL) &&
         filePath.toString().includes(path.join('nuxt', 'module', 'sentry.client.config.ts'))

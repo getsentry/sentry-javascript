@@ -6,7 +6,7 @@ import type { WrappingLoaderOptions } from '../../src/config/loaders/wrappingLoa
 
 vi.mock('fs', { spy: true });
 
-const originalReadfileSync = fs.readFileSync;
+const { readFileSync: originalReadfileSync } = await vi.importActual<typeof fs>('fs');
 
 vi.spyOn(fs, 'readFileSync').mockImplementation((filePath, options) => {
   if (filePath.toString().endsWith('/config/templates/apiWrapperTemplate.js')) {

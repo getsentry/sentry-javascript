@@ -15,8 +15,8 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@sentry/browser": "11.0.0",
     "rollup": "^4.60.3",
-    "vite": "^6.4.3",
-    "vitest": "^3.2.7",
+    "vite": "^8.3.1",
+    "vitest": "^4.1.11",
     "webpack": "^5.0.0"
   },
   "volta": {

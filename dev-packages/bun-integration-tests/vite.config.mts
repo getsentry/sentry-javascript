@@ -18,11 +18,7 @@ export default defineConfig({
         }
       : {}),
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
+    maxWorkers: 1,
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
       : process.env.GITHUB_ACTIONS

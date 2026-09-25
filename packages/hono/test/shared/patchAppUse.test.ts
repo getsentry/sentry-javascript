@@ -314,18 +314,19 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
       return result;
     });
     const fakeApp = Object.assign(new Hono(), { query });
+    const middlewareSpy = vi.fn();
     async function queryMiddleware(receivedContext: unknown, next: () => Promise<void>) {
+      middlewareSpy(receivedContext, next);
       expect(receivedContext).toBe(context);
       await next();
     }
-    const middleware = vi.fn(queryMiddleware);
     const handler = vi.fn((receivedContext: unknown) => {
       expect(receivedContext).toBe(context);
       return 'handled';
     });
 
     patchHttpMethodHandlers(fakeApp as unknown as Parameters<typeof patchHttpMethodHandlers>[0]);
-    const registrationResult = fakeApp.query('/test', middleware, handler);
+    const registrationResult = fakeApp.query('/test', queryMiddleware, handler);
 
     expect(registrationResult).toBe(result);
     if (!registeredMiddleware || !registeredHandler) {
@@ -339,7 +340,7 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
 
     expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
     expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'queryMiddleware' }));
-    expect(middleware).toHaveBeenCalledWith(context, next);
+    expect(middlewareSpy).toHaveBeenCalledWith(context, next);
     expect(next).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith(context);
     expect(handlerResult).toBe('handled');

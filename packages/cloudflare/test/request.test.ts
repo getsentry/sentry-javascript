@@ -1172,6 +1172,7 @@ describe('Durable Object (DO) context', () => {
 
 describe('cached client (cacheClient)', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     _clearGlobalClientCache();
   });
 

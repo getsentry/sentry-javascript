@@ -93,7 +93,7 @@
     "@types/express": "^4.17.14",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "vite": "^6.4.3"
+    "vite": "^8.3.1"
   },
   "peerDependencies": {
     "@remix-run/node": "2.x",
