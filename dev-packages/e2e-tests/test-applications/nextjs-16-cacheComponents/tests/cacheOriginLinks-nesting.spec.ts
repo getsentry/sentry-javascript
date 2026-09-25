@@ -9,7 +9,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 // param. If Next serves the entry from the prerendered shell (Resume Data Cache) instead of the
 // cache handlers, there is no `cache.get` span at all — then this stays failing until Next
 // exposes RDC reads.
-test('links a cached layout hit to the trace that filled it', async ({ request }) => {
+test('links a cached layout hit to the trace that filled the layout entry', async ({ request }) => {
   test.fail();
 
   const id = crypto.randomUUID();
@@ -53,7 +53,9 @@ test('links a cached layout hit to the trace that filled it', async ({ request }
 
 // Inverse nesting: all layouts above are dynamic, only the leaf component is cached — the leaf
 // entry is the only span that carries a link.
-test('links a cached leaf under dynamic layouts to the trace that filled it', async ({ request }) => {
+test('links a cached leaf component under dynamic layouts to the trace that filled the leaf entry', async ({
+  request,
+}) => {
   test.fail();
 
   const id = crypto.randomUUID();
@@ -175,7 +177,9 @@ test('links two cached levels to different origin traces after the layout expire
 
 // Routes `a` and `b` share one layout entry: a hit on `b` links to the fill trace of `a`, so the
 // origin is a different transaction than the serving one.
-test('links a shared layout hit on a sibling route to the route that filled it', async ({ request }) => {
+test('links a shared layout hit on a sibling route to the trace of the route that filled the entry', async ({
+  request,
+}) => {
   test.fail();
 
   const id = crypto.randomUUID();
