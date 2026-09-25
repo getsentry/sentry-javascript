@@ -42,24 +42,31 @@ export type DataCollectorOptions = {
 };
 
 /**
- * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
+ * Returns`describe` or `describe.skip` depending on allowed major versions of Node and on the
+ * runtime that runs the scenarios.
  *
  * On Bun the version gate does not apply and the block always runs. A suite that the gate keeps
  * off a Node version because it cannot run there must also be excluded for Bun in
  * `dev-packages/bun-integration-tests/node-suites/excludes.ts`.
  *
- * @param {{ min?: number; max?: number }} allowedVersion
+ * @param options.min Lowest Node major version that runs the block.
+ * @param options.max Highest Node major version that runs the block.
+ * @param options.skipRuntimes Runtimes that skip the block, for a block that cannot run there.
  */
-export function conditionalTest(allowedVersion: {
+export function conditionalTest(options: {
   min?: number;
   max?: number;
+  skipRuntimes?: Runtime[];
 }): typeof describe | typeof describe.skip {
+  if (options.skipRuntimes?.includes(RUNTIME)) {
+    return describe.skip;
+  }
   // Vitest always runs on Node, so its Node version says nothing about Bun or Deno running the
   // scenario. Those runtimes list the suites they cannot run in their own exclude lists.
   if (RUNTIME !== 'node') {
     return describe;
   }
-  return describe.skipIf(!matchesNodeVersion(allowedVersion));
+  return describe.skipIf(!matchesNodeVersion(options));
 }
 
 function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boolean {
