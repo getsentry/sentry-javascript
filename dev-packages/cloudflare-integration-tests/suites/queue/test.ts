@@ -106,11 +106,11 @@ it('emits a queue.publish span with batch attributes on env.MY_QUEUE.sendBatch',
 it('calls non-instrumented Queue methods like metrics() on the underlying binding', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect((envelope: Envelope) => {
-      expect(envelopeItemType(envelope)).toBe('transaction');
-      expect(envelopeItem(envelope)).toMatchObject({
-        transaction: 'GET /metrics',
-        contexts: { trace: { status: 'ok' } },
-      });
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      expect(segmentSpan?.name).toBe('GET');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/metrics' });
+      expect(segmentSpan?.status).toBe('ok');
     })
     .start(signal);
 
