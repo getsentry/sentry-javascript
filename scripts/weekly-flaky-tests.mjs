@@ -141,7 +141,7 @@ export function renderReport(report) {
   const lines = [
     '## Weekly test failures',
     '',
-    `Develop · ${report.since.slice(0, 10)}–${report.until.slice(0, 10)} · ${report.runs} CI runs. Each test counts once per run.`,
+    `Develop · ${report.since.slice(0, 10)}–${report.until.slice(0, 10)} · ${report.runs} CI runs.`,
     '',
   ];
 
