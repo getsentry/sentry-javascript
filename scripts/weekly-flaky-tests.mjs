@@ -1,7 +1,6 @@
 import { normalizeJobName, normalizeTestName } from './report-ci-failures.mjs';
 
 const LOOKBACK_DAYS = 7;
-const MAX_TESTS = 10;
 const CONCURRENT_RUNS = 4;
 
 function jobFamily(name) {
@@ -89,36 +88,17 @@ export async function collectReport({ github, context, core, now = new Date() })
           failedJobsWithoutTests++;
         }
 
-        // Match the exact matrix job, not its normalized family, when checking recovery.
-        const recovered = jobs.some(
-          later =>
-            later.name === job.name &&
-            later.head_sha === job.head_sha &&
-            later.run_attempt > job.run_attempt &&
-            later.conclusion === 'success',
-        );
         for (const annotation of failures) {
           const family = jobFamily(job.name);
           const name = normalizeTestName(annotation.title);
           const key = JSON.stringify([family, annotation.path, name]);
           let test = tests.get(key);
           if (!test) {
-            test = {
-              family,
-              path: annotation.path,
-              name,
-              runs: new Set(),
-              recoveredRuns: new Set(),
-              examples: new Map(),
-            };
+            test = { family, path: annotation.path, name, runs: new Map() };
             tests.set(key, test);
           }
-          test.runs.add(run.id);
-          if (recovered) {
-            test.recoveredRuns.add(run.id);
-          }
-          if (test.examples.size < 3 && !test.examples.has(run.id)) {
-            test.examples.set(run.id, job.html_url);
+          if (!test.runs.has(run.id)) {
+            test.runs.set(run.id, job.html_url);
           }
         }
       }
@@ -130,15 +110,6 @@ export async function collectReport({ github, context, core, now = new Date() })
   }
   await Promise.all(Array.from({ length: CONCURRENT_RUNS }, () => worker()));
 
-  const ranked = [...tests.values()].sort(
-    (a, b) =>
-      b.runs.size - a.runs.size ||
-      b.recoveredRuns.size - a.recoveredRuns.size ||
-      a.name.localeCompare(b.name) ||
-      a.family.localeCompare(b.family) ||
-      a.path.localeCompare(b.path),
-  );
-
   return {
     since,
     until,
@@ -146,53 +117,40 @@ export async function collectReport({ github, context, core, now = new Date() })
     failedJobs,
     failedJobsWithoutTests,
     warnings,
-    totalTests: ranked.length,
-    tests: ranked.slice(0, MAX_TESTS).map(test => ({
-      family: test.family,
-      path: test.path,
-      name: test.name,
-      runs: test.runs.size,
-      recoveredRuns: test.recoveredRuns.size,
-      examples: [...test.examples.values()],
-    })),
+    tests: [...tests.values()].sort(
+      (a, b) =>
+        b.runs.size - a.runs.size ||
+        a.name.localeCompare(b.name) ||
+        a.family.localeCompare(b.family) ||
+        a.path.localeCompare(b.path),
+    ),
   };
 }
 
 export function renderReport(report) {
   const lines = [
-    '## Top 10 failing tests this week',
+    '## Weekly test failures',
     '',
-    `Develop CI runs created between ${report.since} and ${report.until}.`,
-    '',
-    `${report.runs} runs examined, including earlier attempts of runs that eventually passed.`,
-    `Showing the ${report.tests.length} most frequent failures out of ${report.totalTests} failing tests.`,
-    '',
-    'Each test counts once per workflow run, regardless of matrix variants or reruns.',
-    'Recovery means the same job passed in a later attempt on the same commit; it does not prove the individual test reran. Recurring failures can also be regressions.',
+    `Develop · ${report.since.slice(0, 10)}–${report.until.slice(0, 10)} · ${report.runs} CI runs. Each test counts once per run.`,
     '',
   ];
 
   if (report.tests.length === 0) {
-    lines.push('No test failures found in the available annotations.', '');
+    lines.push('No test failures found.');
   } else {
-    lines.push(
-      '| Test | Job family | Affected runs | Runs with job recovery | Examples |',
-      '| --- | --- | ---: | ---: | --- |',
-    );
+    lines.push('| Test | Job | Affected runs | Example runs |', '| --- | --- | ---: | --- |');
     for (const test of report.tests) {
-      const links = test.examples.map((url, index) => `[${index + 1}](${url})`).join(', ');
-      lines.push(
-        `| ${markdownCell(test.name)} | ${markdownCell(test.family)} | ${test.runs} | ${test.recoveredRuns} | ${links} |`,
-      );
+      const links = [...test.runs]
+        .sort(([a], [b]) => b - a)
+        .map(([id, url]) => `[${id}](${url})`)
+        .join(', ');
+      lines.push(`| ${markdownCell(test.name)} | ${markdownCell(test.family)} | ${test.runs.size} | ${links} |`);
     }
   }
 
   lines.push(
     '',
-    '### Coverage',
-    '',
-    `${report.failedJobs} failed job attempts inspected; ${report.failedJobsWithoutTests} had no recognizable test failure annotations.`,
-    'Optional jobs are excluded. Setup failures and tests without annotations are not ranked. Counts are not per-test failure rates.',
+    `${report.failedJobs} failed job attempts; ${report.failedJobsWithoutTests} without test annotations. Optional jobs excluded.`,
     '',
     ...report.warnings.map(warning => `- ${markdownCell(warning)}`),
   );
