@@ -69,7 +69,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
-import { getClientIPAddress } from '../../vendor/getIpAddress';
+import { getClientIPAddress } from '../../utils/clientIPAddress';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;

@@ -2,9 +2,11 @@
 
 import type { ErrorEvent, TransactionEvent } from '@sentry/core';
 import { getMainCarrier } from '@sentry/core';
-import { assertEquals, assertExists, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+import { assertEquals, assertExists, assertMatch, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import type { DenoClient } from '../build/esm/index.js';
 import { captureException, captureMessage, init, denoServeIntegration, setTag, setUser } from '../build/esm/index.js';
+
+const LOOPBACK_ADDRESS = /^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/;
 
 function resetGlobals(): void {
   getMainCarrier().__SENTRY__ = undefined;
@@ -622,9 +624,8 @@ Deno.test('Deno.serve should fall back to the socket address when the forwarding
   assertEquals(transactionEvents.length, 1);
   const [transaction] = transactionEvents;
 
-  assertNotEquals(transaction?.contexts?.trace?.data?.['client.address'], 'unknown');
-  assertExists(transaction?.contexts?.trace?.data?.['client.address']);
-  assertExists(transaction?.contexts?.trace?.data?.['client.port']);
+  assertMatch(String(transaction?.contexts?.trace?.data?.['client.address']), LOOPBACK_ADDRESS);
+  assertEquals(typeof transaction?.contexts?.trace?.data?.['client.port'], 'number');
 });
 
 Deno.test('Deno.serve should set the socket address as the user IP on error events', async () => {
@@ -657,7 +658,7 @@ Deno.test('Deno.serve should set the socket address as the user IP on error even
   await server.finished;
 
   assertEquals(errorEvents.length, 1);
-  assertExists(errorEvents[0]?.user?.ip_address);
+  assertMatch(String(errorEvents[0]?.user?.ip_address), LOOPBACK_ADDRESS);
 });
 
 Deno.test('Deno.serve should not capture client address when userInfo collection is disabled', async () => {

@@ -246,30 +246,31 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     const client = getClient();
     const dataCollection = client?.getDataCollectionOptions();
 
-    const headers = request.headers.toJSON();
-    // Bun passes the `Server` as the second argument to both `fetch` and route handlers, except
-    // when the handler runs through `server.fetch()`.
-    const socketAddress = getRequestIP(args[1], request);
+    let socketAddress: { address: string; port: number } | undefined;
+    if (dataCollection) {
+      const headers = request.headers.toJSON();
+      // Bun passes the `Server` as the second argument to both `fetch` and route handlers, except
+      // when the handler runs through `server.fetch()`.
+      socketAddress = getRequestIP(args[1], request);
 
-    if (dataCollection?.userInfo) {
-      // `client.address` is the originating client, so a forwarding header wins over the socket, which
-      // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
-      // stays unset then.
-      const forwardedAddress = getClientIPAddress(headers);
-      if (forwardedAddress) {
-        attributes[CLIENT_ADDRESS] = forwardedAddress;
-      } else if (socketAddress) {
-        attributes[CLIENT_ADDRESS] = socketAddress.address;
-        attributes[CLIENT_PORT] = socketAddress.port;
+      if (dataCollection.userInfo) {
+        // `client.address` is the originating client, so a forwarding header wins over the socket, which
+        // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+        // stays unset then.
+        const forwardedAddress = getClientIPAddress(headers);
+        if (forwardedAddress) {
+          attributes[CLIENT_ADDRESS] = forwardedAddress;
+        } else if (socketAddress) {
+          attributes[CLIENT_ADDRESS] = socketAddress.address;
+          attributes[CLIENT_PORT] = socketAddress.port;
+        }
       }
+
+      Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
     }
 
     // describes the OSI application-layer protocol (http), not the scheme (might be https)
     attributes[NETWORK_PROTOCOL_NAME] = 'http';
-
-    if (dataCollection) {
-      Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
-    }
 
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),

@@ -16,7 +16,8 @@ import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
 import { filterCookiePairs, httpHeadersToSpanAttributes } from '../utils/request';
 import { getUrlQuery } from '../utils/url';
-import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
+import { getClientIPAddress } from '../utils/clientIPAddress';
+import { ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
 import { SENTRY_IS_LOCALHOST, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
 
