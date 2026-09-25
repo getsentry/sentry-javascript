@@ -1348,6 +1348,18 @@ describe('request utils', () => {
       expect(scope.capturedData).toBeUndefined();
     });
 
+    it('skips a body over the 1MB limit that arrives without a content-length header', async () => {
+      const request = createMockRequest({
+        body: 'x'.repeat(1_100_000),
+        contentType: 'text/plain',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'always');
+
+      expect(scope.capturedData).toBeUndefined();
+    });
+
     it('captures body with always size limit', async () => {
       const largeBody = `{"note":"${'x'.repeat(50000)}"}`;
       const request = createMockRequest({

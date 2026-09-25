@@ -3,8 +3,13 @@ import { FILTERED_VALUE } from './filtering-snippets';
 import { shouldFilterDataKey } from './filterKeyValueData';
 import { filterQueryParams } from './filterQueryParams';
 
-/** One `&`-separated form segment: empty, a bare key, or `key=value`. */
-const FORM_SEGMENT_RE = /^(?:[^=]+(?:=.*)?)?$/;
+/**
+ * One `&`-separated form segment: empty, a bare key, or `key=value`. Keys are limited to the
+ * characters `application/x-www-form-urlencoded` encoding produces and raw whitespace disqualifies
+ * (encoded forms write spaces as `+` or `%20`), so XML, multipart, prose, and URLs never count as
+ * a pseudo-form that the filter would then rewrite.
+ */
+const FORM_SEGMENT_RE = /^(?:[\w%.*+-]+(?:=[^&\s]*)?)?$/;
 
 /**
  * A form body is `&`-separated `key=value` pairs, the only non-JSON shape whose keys the denylist

@@ -180,6 +180,13 @@ export async function captureBodyFromWinterCGRequest(
     const bytes = encoder.encode(body);
     const bodyByteLength = bytes.length;
 
+    // Requests without a content-length header bypass the early size check, so the hard cap is
+    // enforced again after reading — both paths skip oversized bodies alike.
+    if (bodyByteLength > MAX_BODY_BYTE_LENGTH) {
+      DEBUG_BUILD && debug.log('Skipping body capture: body too large', bodyByteLength);
+      return;
+    }
+
     let truncatedBody: string;
     if (bodyByteLength > maxBodySize) {
       const decoder = new TextDecoder();

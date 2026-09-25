@@ -25,6 +25,9 @@ describe('_redactGraphqlDocument', () => {
   });
 
   test('replaces block string literals', () => {
+    expect(_redactGraphqlDocument('mutation { post(body: """a \\""" b""") { id } }')).toBe(
+      'mutation { post(body: "*") { id } }',
+    );
     expect(_redactGraphqlDocument('mutation { post(body: """secret\nlines""") { id } }')).toBe(
       'mutation { post(body: "*") { id } }',
     );

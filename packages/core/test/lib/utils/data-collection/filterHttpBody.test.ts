@@ -65,6 +65,11 @@ describe('filterCollectedHttpBody', () => {
       ['plain text body'],
       ['query Test { people { name } }'],
       ['c2VjcmV0LXRva2VuLTEyMw=='],
+      // These contain a `=` but are not forms; the filter must not rewrite them as one.
+      ['<login password="hunter2" />'],
+      ['--boundary\r\nContent-Disposition: form-data; name="password"\r\n\r\nhunter2\r\n--boundary--'],
+      ['https://example.com/callback?code=abc123'],
+      ['total = 42'],
     ])('passes through %s unchanged', body => {
       expect(filterCollectedHttpBody(body)).toBe(body);
     });

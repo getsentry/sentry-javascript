@@ -54,7 +54,9 @@ const INTEGRATION_NAME = 'GraphQLClient' as const;
 
 // Matches the Int, Float, String, and BlockString literals in a document, the same set the
 // server-side GraphQL integration redacts from the parsed AST. Names, enums, and booleans stay.
-const GRAPHQL_LITERAL_RE = /"""[\s\S]*?"""|"(?:[^"\\\n]|\\.)*"|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b/g;
+// The block-string branch consumes escaped `\"""` as a unit, so the lazy match cannot end on an
+// escaped delimiter and leak the remainder of the block.
+const GRAPHQL_LITERAL_RE = /"""(?:\\"""|[\s\S])*?"""|"(?:[^"\\\n]|\\.)*"|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b/g;
 
 /** Replaces every literal value in a raw GraphQL document, since literals can carry user data. */
 export function _redactGraphqlDocument(document: string): string {
