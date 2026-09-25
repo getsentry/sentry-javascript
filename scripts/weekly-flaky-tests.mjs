@@ -148,7 +148,7 @@ export function renderReport(report) {
   if (report.tests.length === 0) {
     lines.push('No test failures found.');
   } else {
-    lines.push('| Test | Job | Affected runs | Example runs |', '| --- | --- | ---: | --- |');
+    lines.push('| Test | Job | Affected runs | Links to runs |', '| --- | --- | ---: | --- |');
     for (const test of report.tests) {
       const links = [...test.runs]
         .sort(([a], [b]) => b - a)
