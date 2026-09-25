@@ -128,6 +128,30 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(originalConnect).toHaveBeenCalledWith(mockTransport);
     });
 
+    it('preserves custom handlers receiving Node-style request headers', async () => {
+      const originalOnMessage = mockTransport.onmessage;
+      await wrappedMcpServer.connect(mockTransport);
+      const message = { jsonrpc: '2.0', id: 'node-headers', method: 'tools/list' };
+      const extra = {
+        request: {
+          ip: '127.0.0.1',
+          headers: { 'user-agent': 'example-client/1.0' },
+        },
+      };
+
+      mockTransport.onmessage?.(message, extra);
+
+      expect(originalOnMessage).toHaveBeenCalledWith(message, extra);
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'network.protocol.name': 'http',
+            'user_agent.original': 'example-client/1.0',
+          }),
+        }),
+      );
+    });
+
     it('instruments requests once during and after transport startup', async () => {
       const transport = new InMemoryTransport(connectedTransport => {
         connectedTransport.onmessage?.({
@@ -150,8 +174,6 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.tool.name': 'get-weather',
           'mcp.request.id': 'queued-request',
           'mcp.transport': 'InMemoryTransport',
-          'network.transport': 'unknown',
-          'network.protocol.version': '2.0',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
           'sentry.segment.name.source': 'route',
@@ -438,7 +460,6 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.session.id': 'stdio-session-456',
           'mcp.transport': 'StdioServerTransport',
           'network.transport': 'pipe', // Should be pipe, not tcp
-          'network.protocol.version': '2.0',
           'mcp.request.argument.path': '"/tmp/data.txt"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
@@ -509,7 +530,7 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.method.name': 'resources/read',
             'mcp.resource.uri': 'https://api.example.com/data',
             'mcp.transport': 'SSEServerTransport',
-            'network.transport': 'tcp',
+            'network.protocol.name': 'http',
             'mcp.session.id': 'sse-session-789',
           }),
         }),
@@ -588,8 +609,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'client.address': '127.0.0.1',
           'client.port': 8080,
           'mcp.transport': 'StreamableHTTPServerTransport',
-          'network.transport': 'tcp',
-          'network.protocol.version': '2.0',
+          'network.protocol.name': 'http',
           'mcp.request.argument.input': '"test"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
@@ -789,7 +809,8 @@ describe('MCP Server Transport Instrumentation', () => {
       const result = getTransportTypes(transport);
 
       expect(result.mcpTransport).toBe('StreamableHTTPServerTransport');
-      expect(result.networkTransport).toBe('tcp');
+      expect(result.networkProtocolName).toBe('http');
+      expect(result.networkTransport).toBeUndefined();
     });
 
     it('extracts stdio transport and maps to pipe network', () => {
@@ -805,7 +826,8 @@ describe('MCP Server Transport Instrumentation', () => {
       const result = getTransportTypes(transport);
 
       expect(result.mcpTransport).toBe('SSEServerTransport');
-      expect(result.networkTransport).toBe('tcp');
+      expect(result.networkProtocolName).toBe('http');
+      expect(result.networkTransport).toBeUndefined();
     });
 
     it('handles transport without constructor', () => {
@@ -813,7 +835,7 @@ describe('MCP Server Transport Instrumentation', () => {
       const result = getTransportTypes(transport);
 
       expect(result.mcpTransport).toBe('unknown');
-      expect(result.networkTransport).toBe('unknown');
+      expect(result.networkTransport).toBeUndefined();
     });
 
     it('handles transport with null/undefined constructor name', () => {
@@ -825,10 +847,10 @@ describe('MCP Server Transport Instrumentation', () => {
       const result = getTransportTypes(transport);
 
       expect(result.mcpTransport).toBe('unknown');
-      expect(result.networkTransport).toBe('unknown');
+      expect(result.networkTransport).toBeUndefined();
     });
 
-    it('returns unknown network transport for unrecognized transport types', () => {
+    it('omits network transport for unrecognized transport types', () => {
       const transport = {
         constructor: { name: 'CustomTransport' },
         onmessage: () => {},
@@ -837,7 +859,7 @@ describe('MCP Server Transport Instrumentation', () => {
       const result = getTransportTypes(transport);
 
       expect(result.mcpTransport).toBe('CustomTransport');
-      expect(result.networkTransport).toBe('unknown');
+      expect(result.networkTransport).toBeUndefined();
     });
   });
 
@@ -1034,8 +1056,7 @@ describe('MCP Server Transport Instrumentation', () => {
           forceTransaction: true,
           attributes: {
             'mcp.transport': 'StreamableHTTPServerTransport',
-            'network.transport': 'tcp',
-            'network.protocol.version': '2.0',
+            'network.protocol.name': 'http',
             'mcp.protocol.version': '2026-07-28',
             'mcp.client.name': 'modern-client',
             'mcp.client.version': '2.0.0',
