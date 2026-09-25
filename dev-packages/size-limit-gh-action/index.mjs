@@ -28,37 +28,35 @@ async function fetchPreviousComment(octokit, repo, pr) {
   return !sizeLimitComment ? null : sizeLimitComment;
 }
 
-async function execSizeLimit() {
-  const { exitCode, stdout } = await getExecOutput('yarn', ['run', '--silent', 'size-limit', '--json'], {
-    ignoreReturnCode: true,
-  });
-
-  if (exitCode !== 0) {
-    throw new Error('Bundle size measurement failed.');
-  }
-
-  return stdout;
-}
-
 async function run() {
   try {
     const { payload, repo } = context;
     const pr = payload.pull_request;
 
+    // The comparison branch is the base branch we are comparing against (in our case usually develop)
     const comparisonBranch = getInput('comparison_branch');
     const githubToken = getInput('github_token');
+
+    if (comparisonBranch && !pr) {
+      throw new Error('No PR found. Only pull_request workflows are supported.');
+    }
 
     const octokit = getOctokit(githubToken);
     const limit = new SizeLimitFormatter();
     const artifactClient = new DefaultArtifactClient();
-    const current = limit.parseResults(await execSizeLimit());
 
+    // Build and measure each bundle defined in .size-limit.js for the current branch
+    const { stdout } = await getExecOutput('yarn', ['run', '--silent', 'size-limit', '--json']);
+    const current = limit.parseResults(stdout);
+
+    // If we have no comparison branch, we only store the results as artifacts (likely running on develop)
     if (!comparisonBranch) {
       await fs.writeFile(RESULTS_FILE_PATH, JSON.stringify(current), 'utf8');
       await artifactClient.uploadArtifact(ARTIFACT_NAME, [RESULTS_FILE_PATH], ACTION_DIRECTORY);
       return;
     }
 
+    // Else, we fetch the results for the comparison branch and compare them with the current branch (likely running on a PR)
     let base;
     let baseIsNotLatest = false;
     let baseWorkflowRun;
