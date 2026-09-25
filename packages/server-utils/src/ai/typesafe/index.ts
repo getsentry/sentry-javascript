@@ -119,7 +119,6 @@ export function onSystemOneResponse(
 
 /**
  * Instrument a TypeSafe client (`@typesafe-ai/sdk`) with Sentry tracing.
- * Can be used across Node.js, Cloudflare Workers, and Vercel Edge.
  */
 export function instrumentTypeSafeClient<T extends object>(client: T, options?: GenAiOptions): T {
   return new Proxy(client, {
