@@ -301,9 +301,10 @@ function convertEsmToCjs(content: string): string {
   let newContent = content;
 
   // Handle default imports: import x from 'y' -> const x = require('y')
+  // Import attributes (`with { type: 'json' }`) are dropped; `require` reads JSON natively.
   newContent = newContent.replace(
     // eslint-disable-next-line regexp/optimal-quantifier-concatenation, regexp/no-super-linear-backtracking
-    /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
+    /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"](?:\s+with\s*\{[^}]*\})?/g,
     (_, imports: string, module: string) => {
       if (imports.includes('* as')) {
         // Handle namespace imports: import * as x from 'y' -> const x = require('y')
