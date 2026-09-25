@@ -1,5 +1,9 @@
 import { afterAll, describe, expect } from 'vitest';
+import { RUNTIME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
+
+// On Bun, `postgres` resolves to its ESM build through the `bun` export condition, so
+// `require('postgres')` returns the module namespace instead of the `postgres` function.
 
 describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
@@ -223,17 +227,21 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
       },
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should auto-instrument `postgres` package', { timeout: 60_000 }, async () => {
-        await createTestRunner()
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .expect({ event: EXPECTED_ERROR_EVENT })
-          // The error event is captured via an unhandled rejection processed on a later tick than
-          // the transaction, so the two envelopes can reach the transport in either order.
-          .unordered()
-          .start()
-          .completed();
-      });
+    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test, mode) => {
+      test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+        'should auto-instrument `postgres` package',
+        { timeout: 60_000 },
+        async () => {
+          await createTestRunner()
+            .expect({ transaction: EXPECTED_TRANSACTION })
+            .expect({ event: EXPECTED_ERROR_EVENT })
+            // The error event is captured via an unhandled rejection processed on a later tick than
+            // the transaction, so the two envelopes can reach the transport in either order.
+            .unordered()
+            .start()
+            .completed();
+        },
+      );
     });
   });
 
@@ -326,10 +334,14 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
       __dirname,
       'scenario-requestHook.mjs',
       'instrument-requestHook.mjs',
-      (createTestRunner, test) => {
-        test('should call requestHook when provided', { timeout: 60_000 }, async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-        });
+      (createTestRunner, test, mode) => {
+        test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+          'should call requestHook when provided',
+          { timeout: 60_000 },
+          async () => {
+            await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          },
+        );
       },
     );
   });
@@ -407,10 +419,14 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
       ]),
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario-url.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should instrument postgres package with URL initialization', { timeout: 90_000 }, async () => {
-        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-      });
+    createEsmAndCjsTests(__dirname, 'scenario-url.mjs', 'instrument.mjs', (createTestRunner, test, mode) => {
+      test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+        'should instrument postgres package with URL initialization',
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        },
+      );
     });
   });
 
@@ -486,12 +502,16 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
       ]),
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario-unsafe.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should instrument sql.unsafe() queries', { timeout: 90_000 }, async () => {
-        // The last query fails on purpose, and its unhandled rejection also sends an error event, which can
-        // arrive before the transaction.
-        await createTestRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-      });
+    createEsmAndCjsTests(__dirname, 'scenario-unsafe.mjs', 'instrument.mjs', (createTestRunner, test, mode) => {
+      test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+        'should instrument sql.unsafe() queries',
+        { timeout: 90_000 },
+        async () => {
+          // The last query fails on purpose, and its unhandled rejection also sends an error event, which can
+          // arrive before the transaction.
+          await createTestRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        },
+      );
     });
   });
 });
