@@ -83,6 +83,10 @@ export function instrumentDOM(): void {
             if (!handlerForType.handler) {
               const handler = makeDOMEventHandler(triggerDOMHandler);
               handlerForType.handler = handler;
+              // Track the user-set `capture` option because it changes the identity of the registration of the
+              // event listener callback function (addEL(fn, true) vs addEL(fn, false) are two different registrations).
+              // Our listener needs to have the same capture setting, so that subsequent calls or removaleEventListener
+              // calls correspond to the correct handler function.
               handlerForType.capture = typeof options === 'boolean' ? options : !!options?.capture;
               originalAddEventListener.call(this, type, handler, handlerForType.capture);
             }

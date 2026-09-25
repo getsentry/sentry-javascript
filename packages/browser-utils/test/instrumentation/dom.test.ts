@@ -9,9 +9,12 @@ import { WINDOW } from '../../src/types';
 WINDOW.XMLHttpRequest = undefined;
 
 describe('instrumentDOM', () => {
+  const { addEventListener: nativeAdd, removeEventListener: nativeRemove } = EventTarget.prototype;
+
+  // `instrumentDOM` patches `EventTarget.prototype` and isn't idempotent, so restore the native methods after every test.
   afterEach(() => {
-    // @ts-expect-error - idk
-    WINDOW.XMLHttpRequest = undefined;
+    EventTarget.prototype.addEventListener = nativeAdd;
+    EventTarget.prototype.removeEventListener = nativeRemove;
   });
 
   it('does not throw if XMLHttpRequest is a key on window but not defined', () => {
@@ -19,45 +22,37 @@ describe('instrumentDOM', () => {
   });
 
   it('does not leak document click listeners when removeEventListener uses mismatched capture options', () => {
+    const documentClickListeners = { capture: new Set<unknown>(), bubble: new Set<unknown>() };
+
+    const phase = (options?: boolean | EventListenerOptions): Set<unknown> =>
+      (typeof options === 'boolean' ? options : !!options?.capture)
+        ? documentClickListeners.capture
+        : documentClickListeners.bubble;
+
+    // Installed before `instrumentDOM` so these sit underneath the SDK and also see the listeners it attaches itself.
+    EventTarget.prototype.addEventListener = function (type, listener, options) {
+      if (this === document && type === 'click') {
+        phase(options).add(listener);
+      }
+      return nativeAdd.call(this, type, listener, options);
+    };
+
+    EventTarget.prototype.removeEventListener = function (type, listener, options) {
+      if (this === document && type === 'click') {
+        phase(options).delete(listener);
+      }
+      return nativeRemove.call(this, type, listener, options);
+    };
+
     instrumentDOM();
 
-    const live = {
-      capture: new Set<EventListenerOrEventListenerObject>(),
-      bubble: new Set<EventListenerOrEventListenerObject>(),
-    };
-    const patchedAdd = EventTarget.prototype.addEventListener;
-    const patchedRemove = EventTarget.prototype.removeEventListener;
+    // baseline listenercount is 1 which comes from the SDK's global click handler registered
+    // in instrumentDOM().
+    const baseline = documentClickListeners.capture.size + documentClickListeners.bubble.size;
 
-    const captureFlag = (options?: boolean | AddEventListenerOptions | EventListenerOptions): boolean =>
-      typeof options === 'boolean' ? options : !!options?.capture;
-
-    EventTarget.prototype.addEventListener = function (
-      type: string,
-      listener: EventListenerOrEventListenerObject,
-      options?: boolean | AddEventListenerOptions,
-    ) {
-      if (this === document && type === 'click') {
-        (captureFlag(options) ? live.capture : live.bubble).add(listener);
-      }
-      return patchedAdd.call(this, type, listener, options);
-    };
-
-    EventTarget.prototype.removeEventListener = function (
-      type: string,
-      listener: EventListenerOrEventListenerObject,
-      options?: boolean | EventListenerOptions,
-    ) {
-      if (this === document && type === 'click') {
-        (captureFlag(options) ? live.capture : live.bubble).delete(listener);
-      }
-      return patchedRemove.call(this, type, listener, options);
-    };
-
-    const baseline = live.capture.size + live.bubble.size;
-
-    const never = () => {};
-    const onCapture = () => {};
-    const onBubble = () => {};
+    const never = (): void => {};
+    const onCapture = (): void => {};
+    const onBubble = (): void => {};
 
     for (let i = 0; i < 20; i++) {
       document.addEventListener('click', onCapture, true);
@@ -68,6 +63,6 @@ describe('instrumentDOM', () => {
       document.removeEventListener('click', onBubble);
     }
 
-    expect(live.capture.size + live.bubble.size - baseline).toBe(0);
+    expect(documentClickListeners.capture.size + documentClickListeners.bubble.size - baseline).toBe(0);
   });
 });
