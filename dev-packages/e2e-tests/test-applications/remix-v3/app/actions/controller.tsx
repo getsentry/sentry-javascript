@@ -24,6 +24,9 @@ function HomePage(handle: Handle<Record<string, never>>) {
         <button type="button" id="component-error">
           Component error
         </button>
+        <button id="throw-error" type="button">
+          Throw error
+        </button>
       </body>
     </html>
   );
