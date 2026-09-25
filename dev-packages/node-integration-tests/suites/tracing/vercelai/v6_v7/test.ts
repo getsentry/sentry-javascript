@@ -1082,8 +1082,11 @@ describe('Vercel AI integration experimental_evaluate', () => {
               expect(evaluateSpan).toBeDefined();
               expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
               expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
-              // State, questions and answers must not come back through another attribute.
-              expect(JSON.stringify(evaluateSpan)).not.toMatch(/cannot log in|Charges and refunds|0\.97/);
+              // State, questions and answers must not come back through another attribute. Only the attributes
+              // are checked (timestamps could match a number), and `probabilities` only occurs in answers.
+              expect(JSON.stringify(evaluateSpan.attributes)).not.toMatch(
+                /cannot log in|Charges and refunds|probabilities/,
+              );
             },
           })
           .start()
