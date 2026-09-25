@@ -570,7 +570,7 @@ describe('Bun Serve Integration', () => {
       );
     });
 
-    test('prefers the first x-forwarded-for address over the socket address', async () => {
+    test('prefers the first x-forwarded-for address over the socket address, without the socket port', async () => {
       const server = Bun.serve({
         async fetch(_req) {
           return new Response('Bun!');
@@ -593,6 +593,97 @@ describe('Bun Serve Integration', () => {
         }),
         expect.any(Function),
       );
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'client.port': expect.anything(),
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('reads the client address from other forwarding headers', async () => {
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`, {
+        headers: { 'X-Real-IP': '203.0.113.8' },
+      });
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'client.address': '203.0.113.8',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('falls back to the socket address when the forwarding header is not an IP', async () => {
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`, {
+        headers: { 'X-Forwarded-For': 'unknown' },
+      });
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'client.address': expect.stringMatching(/^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/),
+            'client.port': expect.any(Number),
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('sets the socket address as the user IP on error events', async () => {
+      const events: SentryCore.Event[] = [];
+      setupClient({
+        integrations: [SentryCore.requestDataIntegration()],
+        beforeSend: event => {
+          events.push(event);
+          return null;
+        },
+      });
+
+      const server = Bun.serve({
+        async fetch(_req) {
+          SentryCore.captureException(new Error('Boom'));
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`);
+
+      await server.stop();
+      await SentryCore.flush();
+
+      expect(events).toEqual([
+        expect.objectContaining({
+          user: expect.objectContaining({
+            ip_address: expect.stringMatching(/^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/),
+          }),
+        }),
+      ]);
     });
 
     test('does not capture client address when userInfo collection is disabled', async () => {
@@ -680,8 +771,14 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.x-forwarded-for']).toEqual(['203.0.113.7']);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'http.request.header.x-forwarded-for': ['203.0.113.7'],
+          }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('filters request headers according to the dataCollection deny list', async () => {
@@ -703,9 +800,15 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.x-internal']).toEqual(['[Filtered]']);
-      expect(attributes?.['http.request.header.x-public']).toEqual(['public-value']);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'http.request.header.x-internal': ['[Filtered]'],
+            'http.request.header.x-public': ['public-value'],
+          }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('filters always-sensitive request headers even when collection is permissive', async () => {
@@ -725,8 +828,14 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.authorization']).toEqual(['[Filtered]']);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'http.request.header.authorization': ['[Filtered]'],
+          }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('applies the dataCollection response header collection behavior', async () => {
@@ -746,9 +855,12 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(setAttributesSpy).toHaveBeenCalledTimes(1);
-      const responseAttributes = setAttributesSpy.mock.calls[0]?.[0];
-      expect(responseAttributes?.['http.response.header.x-internal']).toEqual(['[Filtered]']);
-      expect(responseAttributes?.['http.response.header.x-public']).toEqual(['public-value']);
+      expect(setAttributesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'http.response.header.x-internal': ['[Filtered]'],
+          'http.response.header.x-public': ['public-value'],
+        }),
+      );
     });
   });
 
