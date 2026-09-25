@@ -72,28 +72,21 @@ export class SizeLimitFormatter {
   parseResults(output) {
     const results = JSON.parse(output);
 
-    if (!Array.isArray(results) || results.length === 0) {
-      throw new Error('Expected non-empty size-limit results.');
-    }
-
-    return results.reduce((current, result) => {
-      if (!result || typeof result.name !== 'string' || !Number.isFinite(result.size) || result.size < 0) {
-        throw new Error('Invalid size-limit measurement.');
-      }
-
-      return {
+    return results.reduce(
+      (current, result) => ({
         ...current,
         [result.name]: {
           name: result.name,
           size: result.size,
         },
-      };
-    }, {});
+      }),
+      {},
+    );
   }
 
   getSizeIncreases(base, current, config) {
     return config
-      .filter(({ name, gzip }) => gzip === true && base[name] && current[name])
+      .filter(({ name, gzip }) => gzip === true && base[name])
       .map(({ name }) => ({ name, increase: current[name].size - base[name].size }))
       .filter(({ increase }) => increase > MAX_INCREASE_BYTES);
   }

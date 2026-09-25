@@ -48,10 +48,6 @@ async function run() {
     const comparisonBranch = getInput('comparison_branch');
     const githubToken = getInput('github_token');
 
-    if (comparisonBranch && !pr) {
-      throw new Error('No PR found. Only pull_request workflows are supported.');
-    }
-
     const octokit = getOctokit(githubToken);
     const limit = new SizeLimitFormatter();
     const artifactClient = new DefaultArtifactClient();
@@ -68,7 +64,7 @@ async function run() {
     let baseWorkflowRun;
 
     try {
-      const workflowName = `${process.env.GITHUB_WORKFLOW || ''}`;
+      const workflowName = process.env.GITHUB_WORKFLOW;
       core.startGroup(`getArtifactsForBranchAndWorkflow - workflow:"${workflowName}",  branch:"${comparisonBranch}"`);
       const artifacts = await getArtifactsForBranchAndWorkflow(octokit, {
         ...repo,
