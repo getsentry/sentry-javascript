@@ -107,6 +107,9 @@ const callIdBySpan = new WeakMap<Span, string>();
 // child `generate_content` span (whose event would fall back to the global default). v7's channel forwards
 // these flags on every event, so this keeps v6 identical.
 const recordingBySpan = new WeakMap<Span, ReturnType<typeof recording>>();
+// The operation's `experimental_telemetry.metadata`, keyed by its span, so the model-call span records it
+// too. The OTel integration put it on both, but not on tool-call spans.
+const telemetryMetadataBySpan = new WeakMap<Span, unknown>();
 interface OperationErrorInfo {
   // The span active when the operation was invoked (its call site, e.g. the enclosing request/`main` span).
   // When an operation's error bubbles out unhandled it reaches the global handler outside any span, so — as
@@ -163,6 +166,7 @@ export function subscribeVercelAiOrchestrionChannels(
           ...modelFields(callOptions.model),
           maxRetries: callOptions.maxRetries,
           value: callOptions.value,
+          telemetryMetadata: telemetry.metadata,
           ...recording(telemetry),
         },
       }),
@@ -180,6 +184,7 @@ export function subscribeVercelAiOrchestrionChannels(
           ...modelFields(callOptions.model),
           maxRetries: callOptions.maxRetries,
           values: callOptions.values,
+          telemetryMetadata: telemetry.metadata,
           ...recording(telemetry),
         },
       }),
@@ -263,6 +268,7 @@ function bindOperation(
         callIdBySpan.set(span, callId);
       }
       recordingBySpan.set(span, recording(telemetry));
+      telemetryMetadataBySpan.set(span, telemetry.metadata);
       // v5 has no `executeToolCall` channel, so patch each tool's `execute` to emit the tool-call span.
       // Inert on v6 (guarded inside `patchToolExecute` when the parent is `executeToolCall`'s own span).
       if (isObjectLike(callOptions.tools)) {
@@ -490,6 +496,7 @@ function patchModelMethod(
         // top-level `tools` array. Reading both keeps `tool.definitions` populated on the model-call span.
         tools: callArgs.tools ?? (isObjectLike(callArgs.mode) ? callArgs.mode.tools : undefined),
         messages: callArgs.prompt,
+        telemetryMetadata: telemetryMetadataBySpan.get(parent),
         // Inherit the enclosing operation's per-call recording flags so inputs/tools/outputs are recorded on
         // the model-call span whenever they are on the parent `invoke_agent` span.
         ...recordingBySpan.get(parent),
@@ -669,6 +676,7 @@ function buildTextMessage(type: 'generateText' | 'streamText' | 'generateObject'
       // Normalize to the message-array shape the shared core (and v7's channel) expects: a bare string
       // `prompt` becomes a single user message, matching the SDK's own normalization.
       messages: normalizePromptMessages(options),
+      telemetryMetadata: telemetry.metadata,
       ...recording(telemetry),
     },
   });
