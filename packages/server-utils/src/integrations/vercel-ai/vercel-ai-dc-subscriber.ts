@@ -637,7 +637,7 @@ function getOutputMessages(
   finishReason: string | undefined,
 ): string | undefined {
   if (type === 'experimental_evaluate') {
-    return stringify([{ type: 'evaluation', answers: result.answers }]);
+    return stringify([{ type: 'evaluation', answers: withProviderConfidence(result) }]);
   }
   // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
   // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
@@ -646,6 +646,28 @@ function getOutputMessages(
       ? partsFromContent(result.content)
       : partsFromTextAndToolCalls(result.text, result.toolCalls);
   return buildOutputMessages(parts, finishReason);
+}
+
+/**
+ * The AI SDK TypeSafe provider moves each answer's `confidence` out of the answers into
+ * `providerMetadata.typesafe.confidence` (keyed by question id). Put it back so evaluate answers keep it.
+ */
+function withProviderConfidence(result: Record<string, unknown>): unknown {
+  const { answers, providerMetadata } = result;
+  const typesafe = isObjectLike(providerMetadata) ? providerMetadata.typesafe : undefined;
+  const confidence = isObjectLike(typesafe) && isObjectLike(typesafe.confidence) ? typesafe.confidence : undefined;
+  if (!confidence || !isObjectLike(answers)) {
+    return answers;
+  }
+
+  return Object.fromEntries(
+    Object.entries(answers).map(([id, answer]) => [
+      id,
+      isObjectLike(answer) && typeof confidence[id] === 'number' && answer.confidence === undefined
+        ? { ...answer, confidence: confidence[id] }
+        : answer,
+    ]),
+  );
 }
 
 /** Maps a Vercel AI finish reason to the OTel `gen_ai.output.messages` form (`tool-calls` → `tool_call`). */

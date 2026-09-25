@@ -1057,6 +1057,7 @@ describe('Vercel AI integration experimental_evaluate', () => {
                       type: 'choice',
                       choice: 'billing',
                       probabilities: { billing: 0.64, technical: 0.36 },
+                      confidence: 0.28,
                     },
                     wantsRefund: { type: 'boolean', probability: 0.99 },
                     urgency: { type: 'score', score: 1.8, probabilities: { 0: 0, 1: 0.2, 2: 0.8 } },

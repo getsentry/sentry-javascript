@@ -20,6 +20,8 @@ async function run() {
             urgency: { type: 'score', score: 1.8, probabilities: { 0: 0, 1: 0.2, 2: 0.8 } },
           },
           usage: { inputTokens: 275, outputTokens: 20 },
+          // What the AI SDK TypeSafe provider returns: answer confidence moves into provider metadata.
+          providerMetadata: { typesafe: { confidence: { department: 0.28 } } },
           warnings: [],
         }),
       }),
