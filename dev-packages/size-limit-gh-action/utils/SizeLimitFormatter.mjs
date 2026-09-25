@@ -1,5 +1,6 @@
-import * as core from '@actions/core';
 import bytes from 'bytes-iec';
+
+export const MAX_INCREASE_BYTES = 500;
 
 const SIZE_RESULTS_HEADER = ['Path', 'Size', '% Change', 'Change'];
 
@@ -11,14 +12,6 @@ const EmptyResult = {
 export class SizeLimitFormatter {
   formatBytes(size) {
     return bytes.format(size, { unitSeparator: ' ' });
-  }
-
-  formatName(name, sizeLimit, passed) {
-    if (passed) {
-      return name;
-    }
-
-    return `⛔️ ${name} (max: ${this.formatBytes(sizeLimit)})`;
   }
 
   formatPercentageChange(base = 0, current = 0) {
@@ -72,14 +65,8 @@ export class SizeLimitFormatter {
   }
 
   formatSizeResult(name, base, current) {
-    if (!current.passed) {
-      core.debug(
-        `Size limit exceeded for ${name} - ${this.formatBytes(current.size)} > ${this.formatBytes(current.sizeLimit)}`,
-      );
-    }
-
     return [
-      this.formatName(name, current.sizeLimit, current.passed),
+      name,
       this.formatBytes(current.size),
       this.formatPercentageChange(base.size, current.size),
       this.formatChange(base.size, current.size),
@@ -89,36 +76,30 @@ export class SizeLimitFormatter {
   parseResults(output) {
     const results = JSON.parse(output);
 
+    if (!Array.isArray(results) || results.length === 0) {
+      throw new Error('Expected non-empty size-limit results.');
+    }
+
     return results.reduce((current, result) => {
+      if (!result || typeof result.name !== 'string' || !Number.isFinite(result.size) || result.size < 0) {
+        throw new Error('Invalid size-limit measurement.');
+      }
+
       return {
         ...current,
         [result.name]: {
           name: result.name,
-          size: +result.size,
-          sizeLimit: +result.sizeLimit,
-          passed: result.passed || false,
+          size: result.size,
         },
       };
     }, {});
   }
 
-  hasSizeChanges(base, current, threshold = 0) {
-    if (!base || !current) {
-      return true;
-    }
-
-    const names = [...new Set([...Object.keys(base), ...Object.keys(current)])];
-
-    return names.some(name => {
-      const baseResult = base[name] || EmptyResult;
-      const currentResult = current[name] || EmptyResult;
-
-      if (!baseResult.size || !currentResult.size) {
-        return true;
-      }
-
-      return Math.abs((currentResult.size - baseResult.size) / baseResult.size) * 100 > threshold;
-    });
+  getSizeIncreases(base, current, config) {
+    return config
+      .filter(({ name, gzip }) => gzip === true && base[name] && current[name])
+      .map(({ name }) => ({ name, increase: current[name].size - base[name].size }))
+      .filter(({ increase }) => increase > MAX_INCREASE_BYTES);
   }
 
   formatResults(base, current) {
