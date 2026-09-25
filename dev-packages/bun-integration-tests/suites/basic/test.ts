@@ -1,54 +1,69 @@
-import { expect, it } from 'vitest';
-import { eventEnvelope } from '../../expect';
-import { createRunner } from '../../runner';
+import { SDK_VERSION } from '@sentry/core';
+import { afterAll, expect, test } from 'vitest';
+import { cleanupChildProcesses, createRunner } from '../../../node-integration-tests/utils/runner';
 
-it('captures an error thrown in Bun.serve fetch handler', async ({ signal }) => {
-  const runner = createRunner(__dirname)
-    .expect(
-      eventEnvelope(
-        {
-          level: 'error',
-          exception: {
-            values: [
-              {
-                type: 'Error',
-                value: 'This is a test error from the Bun integration tests',
-                stacktrace: {
-                  frames: expect.any(Array),
-                },
-                mechanism: { type: 'auto.http.bun.serve', handled: false },
-              },
-            ],
-          },
-          request: expect.objectContaining({
-            method: 'GET',
-            url: expect.stringContaining('/error'),
-          }),
-        },
-        { includeSampleRand: true, includeTransaction: false },
-      ),
-    )
+afterAll(() => {
+  cleanupChildProcesses();
+});
+
+test('captures an error thrown in Bun.serve fetch handler', async () => {
+  const runner = createRunner(__dirname, 'index.ts')
+    .withMockSentryServer()
     .ignore('span')
-    .start(signal);
+    .expect({
+      event: {
+        level: 'error',
+        platform: 'node',
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'This is a test error from the Bun integration tests',
+              stacktrace: {
+                frames: expect.any(Array),
+              },
+              mechanism: { type: 'auto.http.bun.serve', handled: false },
+            },
+          ],
+        },
+        request: expect.objectContaining({
+          method: 'GET',
+          url: expect.stringContaining('/error'),
+        }),
+        sdk: expect.objectContaining({
+          name: 'sentry.javascript.bun',
+          packages: [{ name: 'npm:@sentry/bun', version: SDK_VERSION }],
+        }),
+        contexts: expect.objectContaining({
+          runtime: { name: 'bun', version: expect.any(String) },
+        }),
+      },
+    })
+    .start();
+
   await runner.makeRequest('get', '/error', { expectError: true });
   await runner.completed();
 });
 
-it('captures a manually sent message', async ({ signal }) => {
-  const runner = createRunner(__dirname)
-    .expect(envelope => {
-      const [, envelopeItems] = envelope;
-      const [itemHeader, itemPayload] = envelopeItems[0];
-
-      expect(itemHeader.type).toBe('event');
-
-      expect(itemPayload).toMatchObject({
-        level: 'info',
-        message: 'Hello from Bun',
-      });
-    })
+test('sends the error with a sampled trace envelope header', async () => {
+  const runner = createRunner(__dirname, 'index.ts')
+    .withMockSentryServer()
     .ignore('span')
-    .start(signal);
-  await runner.makeRequest('get', '/message');
+    .expectHeader({
+      event: {
+        sdk: { name: 'sentry.javascript.bun', version: SDK_VERSION },
+        trace: expect.objectContaining({
+          environment: 'production',
+          public_key: 'public',
+          trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+          sample_rate: '1',
+          sampled: 'true',
+          sample_rand: expect.stringMatching(/^[01](\.\d+)?$/),
+        }),
+      },
+    })
+    .start();
+
+  await runner.makeRequest('get', '/error', { expectError: true });
   await runner.completed();
 });

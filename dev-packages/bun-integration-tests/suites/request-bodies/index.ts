@@ -1,3 +1,4 @@
+import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/bun';
 
 // One scenario per process; the test picks the SDK setup through this variable.
@@ -32,4 +33,4 @@ const server = Bun.serve({
   },
 });
 
-process.send?.(JSON.stringify({ event: 'READY', port: server.port }));
+sendPortToRunner(server.port!);
