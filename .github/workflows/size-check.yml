@@ -1,4 +1,4 @@
-name: 'CI: Re-run Size Check'
+name: 'CI: Size Check'
 
 on:
   pull_request_target:
