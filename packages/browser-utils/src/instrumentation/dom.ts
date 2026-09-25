@@ -18,9 +18,9 @@ type RemoveEventListener = (
 type InstrumentedElement = Element & {
   __sentry_instrumentation_handlers__?: {
     [key in 'click' | 'keypress']?: {
-      handler?: unknown;
-      /** The number of custom listeners attached to this element */
-      refCount: number;
+      handler?: EventListenerOrEventListenerObject;
+      capture?: boolean;
+      listeners: Map<EventListenerOrEventListenerObject, Set<boolean>>;
     };
   };
 };
@@ -30,6 +30,48 @@ const DEBOUNCE_DURATION = 1000;
 let debounceTimerID: number | undefined;
 let lastCapturedEventType: string | undefined;
 let lastCapturedEventTargetId: string | undefined;
+
+function getCapture(options: boolean | EventListenerOptions | AddEventListenerOptions | undefined): boolean {
+  return typeof options === 'boolean' ? options : !!options?.capture;
+}
+
+function hasListener(
+  handler: { listeners: Map<EventListenerOrEventListenerObject, Set<boolean>> },
+  listener: EventListenerOrEventListenerObject,
+  capture: boolean,
+): boolean {
+  return handler.listeners.get(listener)?.has(capture) ?? false;
+}
+
+function trackListener(
+  handler: { listeners: Map<EventListenerOrEventListenerObject, Set<boolean>> },
+  listener: EventListenerOrEventListenerObject,
+  capture: boolean,
+): void {
+  const captures = handler.listeners.get(listener);
+  if (captures) {
+    captures.add(capture);
+  } else {
+    handler.listeners.set(listener, new Set([capture]));
+  }
+}
+
+function untrackListener(
+  handler: { listeners: Map<EventListenerOrEventListenerObject, Set<boolean>> },
+  listener: EventListenerOrEventListenerObject,
+  capture: boolean,
+): boolean {
+  const captures = handler.listeners.get(listener);
+  if (!captures?.delete(capture)) {
+    return false;
+  }
+
+  if (captures.size === 0) {
+    handler.listeners.delete(listener);
+  }
+
+  return true;
+}
 
 /**
  * Add an instrumentation handler for when a click or a keypress happens.
@@ -77,15 +119,21 @@ export function instrumentDOM(): void {
           try {
             const handlers = (this.__sentry_instrumentation_handlers__ =
               this.__sentry_instrumentation_handlers__ || {});
-            const handlerForType = (handlers[type] = handlers[type] || { refCount: 0 });
+            const handlerForType = (handlers[type] = handlers[type] || {
+              listeners: new Map<EventListenerOrEventListenerObject, Set<boolean>>(),
+            });
+            const capture = getCapture(options);
 
-            if (!handlerForType.handler) {
-              const handler = makeDOMEventHandler(triggerDOMHandler);
-              handlerForType.handler = handler;
-              originalAddEventListener.call(this, type, handler, options);
+            if (!hasListener(handlerForType, listener, capture)) {
+              if (!handlerForType.handler) {
+                const handler = makeDOMEventHandler(triggerDOMHandler);
+                originalAddEventListener.call(this, type, handler, capture);
+                handlerForType.handler = handler;
+                handlerForType.capture = capture;
+              }
+
+              trackListener(handlerForType, listener, capture);
             }
-
-            handlerForType.refCount++;
           } catch {
             // Accessing dom properties is always fragile.
             // Also allows us to skip `addEventListeners` calls with no proper `this` context.
@@ -106,11 +154,10 @@ export function instrumentDOM(): void {
               const handlers = this.__sentry_instrumentation_handlers__ || {};
               const handlerForType = handlers[type];
 
-              if (handlerForType) {
-                handlerForType.refCount--;
+              if (handlerForType && untrackListener(handlerForType, listener, getCapture(options))) {
                 // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
-                if (handlerForType.refCount <= 0) {
-                  originalRemoveEventListener.call(this, type, handlerForType.handler, options);
+                if (handlerForType.listeners.size === 0) {
+                  originalRemoveEventListener.call(this, type, handlerForType.handler, handlerForType.capture);
                   handlerForType.handler = undefined;
                   delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
                 }
