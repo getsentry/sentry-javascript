@@ -60,10 +60,6 @@ export class SizeLimitFormatter {
     return `${formatted} 🔽`;
   }
 
-  formatLine(value, change) {
-    return `${value} (${change})`;
-  }
-
   formatSizeResult(name, base, current) {
     return [
       name,
