@@ -171,6 +171,27 @@ describe('httpIntegration', () => {
         runner.makeRequest('post', '/test?a=1&b=2#hash', { data: 'test body' });
         await runner.completed();
       });
+
+      test('prefers the forwarded client address, without the socket port', async () => {
+        const runner = createRunner()
+          .expect({
+            transaction: transaction => {
+              const data = transaction.contexts?.trace?.data;
+              expect(data).toEqual(
+                expect.objectContaining({
+                  'client.address': '203.0.113.7',
+                  'network.peer.address': '::1',
+                  'network.peer.port': expect.any(Number),
+                }),
+              );
+              expect(data).not.toHaveProperty('client.port');
+            },
+          })
+          .start();
+
+        runner.makeRequest('get', '/test', { headers: { 'X-Forwarded-For': '203.0.113.7, 10.0.0.1' } });
+        await runner.completed();
+      });
     });
 
     describe('custom server.emit', () => {

@@ -153,12 +153,32 @@ describe('getHttpServerSubscriptions', () => {
     await makeRequest('/users/42', 'GET', { 'X-Forwarded-For': '203.0.113.7, 198.51.100.1' });
     const transaction = await waitForTransaction();
 
-    expect(transaction.contexts?.trace?.data).toEqual(
+    const data = transaction.contexts?.trace?.data;
+    expect(data).toEqual(
       expect.objectContaining({
         // the originating client, as reported by the outermost proxy
         [CLIENT_ADDRESS]: '203.0.113.7',
         // the immediate peer stays the socket, i.e. the proxy itself
         [NETWORK_PEER_ADDRESS]: '127.0.0.1',
+        [NETWORK_PEER_PORT]: expect.any(Number),
+      }),
+    );
+    // the socket port belongs to the proxy, not the forwarded client
+    expect(data).not.toHaveProperty(CLIENT_PORT);
+  });
+
+  it('falls back to the socket for `client.address` when the forwarding header is not an IP', async () => {
+    server = http.createServer((_req, res) => res.end('ok'));
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+    instrument(true);
+
+    await makeRequest('/users/42', 'GET', { 'X-Forwarded-For': 'unknown' });
+    const transaction = await waitForTransaction();
+
+    expect(transaction.contexts?.trace?.data).toEqual(
+      expect.objectContaining({
+        [CLIENT_ADDRESS]: '127.0.0.1',
+        [CLIENT_PORT]: expect.any(Number),
       }),
     );
   });
