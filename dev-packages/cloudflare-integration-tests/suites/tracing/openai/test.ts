@@ -68,6 +68,7 @@ it('traces a basic chat completion request with the openai SDK', async ({ signal
           [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 15, type: 'integer' },
           [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 25, type: 'integer' },
           [GEN_AI_RESPONSE_FINISH_REASONS]: { value: '["stop"]', type: 'string' },
+          'sentry.is_localhost': { value: true, type: 'boolean' },
           [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
           [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
           [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },

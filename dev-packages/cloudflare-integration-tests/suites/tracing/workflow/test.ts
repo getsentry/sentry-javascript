@@ -5,28 +5,19 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
-import type { SerializedStreamedSpan } from '@sentry/core';
 import { createRunner } from '../../../runner';
-import { getSpansFromEnvelope } from '../../../spanUtils';
 
 it('Workflow steps create segment spans with correct attributes', async ({ signal }) => {
-  let spans: SerializedStreamedSpan[] = [];
-
-  // Both steps run in one trace and arrive in one envelope. The trigger request runs in its own
-  // trace, so its envelope carries no step span and does not match here.
-  const runner = createRunner(__dirname)
-    .expect(envelope => {
-      const envelopeSpans = getSpansFromEnvelope(envelope);
-
-      expect(envelopeSpans.some(span => span.name === 'step-one')).toBe(true);
-      expect(envelopeSpans.some(span => span.name === 'step-two')).toBe(true);
-      spans = envelopeSpans;
-    })
-    .unordered()
-    .start(signal);
+  const runner = createRunner(__dirname).start(signal);
+  // Both steps run in one trace, but each step flushes its own span, so they arrive in separate
+  // envelopes. The trigger request runs in its own trace and does not match here.
+  const spansPromise = runner.collectStreamedSpans(spansOfTrace =>
+    ['step-one', 'step-two'].every(stepName => spansOfTrace.some(span => span.name === stepName)),
+  );
 
   await runner.makeRequest('get', '/workflow/trigger');
-  await runner.completed();
+
+  const spans = await spansPromise;
 
   for (const stepName of ['step-one', 'step-two']) {
     expect(spans.find(span => span.name === stepName)).toEqual(

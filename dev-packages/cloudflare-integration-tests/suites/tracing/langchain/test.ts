@@ -61,6 +61,7 @@ it('traces a LangChain chat model invocation', async ({ signal }) => {
           [GEN_AI_RESPONSE_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
           [GEN_AI_RESPONSE_ID]: { value: 'chatcmpl-mock123', type: 'string' },
           [GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE]: { value: 'stop', type: 'string' },
+          'sentry.is_localhost': { value: true, type: 'boolean' },
           [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
           [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
           [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
