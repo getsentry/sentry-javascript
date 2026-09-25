@@ -336,7 +336,7 @@ function getRequestIP(server: unknown, request: Request): { address: string; por
   try {
     return (server as Server).requestIP(request) ?? undefined;
   } catch {
-    // `requestIP` throws for requests that did not come from this server's socket.
+    // Defensive: never let a failed lookup break the user's handler.
     return undefined;
   }
 }
