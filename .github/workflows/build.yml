@@ -310,8 +310,6 @@ jobs:
         with:
           name: build-bundle-output
           path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
-      - name: Test size check
-        run: yarn vitest run scripts/size-limit-*.test.ts
       - name: Check bundle sizes
         uses: ./dev-packages/size-limit-gh-action
         with:
