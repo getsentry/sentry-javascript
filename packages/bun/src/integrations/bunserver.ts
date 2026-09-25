@@ -249,7 +249,8 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       // `client.address` is the originating client, so a forwarding header wins over the socket, which
       // behind a proxy holds the proxy's address.
       const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-      // Bun passes the `Server` as the second argument to both `fetch` and route handlers.
+      // Bun passes the `Server` as the second argument to both `fetch` and route handlers, except
+      // when the handler runs through `server.fetch()`.
       const socketAddress = getRequestIP(args[1], request);
       if (forwardedFor || socketAddress?.address) {
         attributes[CLIENT_ADDRESS] = forwardedFor || socketAddress?.address;

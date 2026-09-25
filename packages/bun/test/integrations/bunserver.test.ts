@@ -534,10 +534,16 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['client.address']).toMatch(/^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/);
-      expect(attributes?.['client.port']).toEqual(expect.any(Number));
-      expect(attributes?.['network.protocol.name']).toBe('http');
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'client.address': expect.stringMatching(/^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/),
+            'client.port': expect.any(Number),
+            'network.protocol.name': 'http',
+          }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('captures client address on route handlers', async () => {
@@ -553,9 +559,15 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['client.address']).toEqual(expect.any(String));
-      expect(attributes?.['client.port']).toEqual(expect.any(Number));
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'client.address': expect.stringMatching(/^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/),
+            'client.port': expect.any(Number),
+          }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('prefers the first x-forwarded-for address over the socket address', async () => {
@@ -573,8 +585,14 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['client.address']).toBe('203.0.113.7');
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'client.address': '203.0.113.7',
+          }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('does not capture client address when userInfo collection is disabled', async () => {
@@ -594,10 +612,55 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['client.address']).toBeUndefined();
-      expect(attributes?.['client.port']).toBeUndefined();
-      expect(attributes?.['network.protocol.name']).toBe('http');
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'client.address': expect.anything(),
+            'client.port': expect.anything(),
+          }),
+        }),
+        expect.any(Function),
+      );
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'network.protocol.name': 'http',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('leaves client address unset when the handler gets no server', async () => {
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      // `server.fetch()` calls the handler with the request only.
+      const response = await server.fetch(new Request(`http://localhost:${port}/`));
+
+      await server.stop();
+
+      expect(await response.text()).toBe('Bun!');
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'client.address': expect.anything(),
+            'client.port': expect.anything(),
+          }),
+        }),
+        expect.any(Function),
+      );
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({ 'network.protocol.name': 'http' }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('keeps PII request headers when dataCollection enables full header collection', async () => {
