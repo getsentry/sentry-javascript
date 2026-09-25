@@ -1,0 +1,28 @@
+{
+  "name": "remix-v3-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "NODE_ENV=production node --import @sentry/remix/v3/node server.ts",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
+    "remix": "3.0.0-rc.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
+    "@types/node": "^24.6.0",
+    "typescript": "~5.9.0"
+  },
+  "volta": {
+    "node": "24.18.0",
+    "pnpm": "9.15.9"
+  }
+}
