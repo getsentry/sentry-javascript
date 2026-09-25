@@ -19,6 +19,7 @@ type InstrumentedElement = Element & {
   __sentry_instrumentation_handlers__?: {
     [key in 'click' | 'keypress']?: {
       handler?: unknown;
+      capture?: boolean;
       /** The number of custom listeners attached to this element */
       refCount: number;
     };
@@ -82,7 +83,8 @@ export function instrumentDOM(): void {
             if (!handlerForType.handler) {
               const handler = makeDOMEventHandler(triggerDOMHandler);
               handlerForType.handler = handler;
-              originalAddEventListener.call(this, type, handler, options);
+              handlerForType.capture = typeof options === 'boolean' ? options : !!options?.capture;
+              originalAddEventListener.call(this, type, handler, handlerForType.capture);
             }
 
             handlerForType.refCount++;
@@ -110,7 +112,7 @@ export function instrumentDOM(): void {
                 handlerForType.refCount--;
                 // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
                 if (handlerForType.refCount <= 0) {
-                  originalRemoveEventListener.call(this, type, handlerForType.handler, options);
+                  originalRemoveEventListener.call(this, type, handlerForType.handler, handlerForType.capture);
                   handlerForType.handler = undefined;
                   delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
                 }
