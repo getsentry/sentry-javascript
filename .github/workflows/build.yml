@@ -1273,28 +1273,8 @@ jobs:
     # Always run this, even if a dependent job failed
     if: always()
     runs-on: ubuntu-24.04
-    permissions:
-      issues: write
-      checks: read
+    permissions: {}
     steps:
-      - name: Check out current commit
-        if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
-        uses: actions/checkout@v7
-        with:
-          sparse-checkout: |
-            .github
-            scripts
-
-      - name: Create issues for failed jobs
-        if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const { default: run } = await import(
-              `${process.env.GITHUB_WORKSPACE}/scripts/report-ci-failures.mjs`
-            );
-            await run({ github, context, core });
-
       - name: Check for failures
         if: cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
