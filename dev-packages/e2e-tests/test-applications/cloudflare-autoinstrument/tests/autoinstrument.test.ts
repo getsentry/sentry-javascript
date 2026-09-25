@@ -97,10 +97,8 @@ for (const { title, binding, agentClass } of [
     expect(rpcSpan.attributes['sentry.op']?.value).toBe('rpc');
     expect(rpcSpan.attributes['sentry.origin']?.value).toBe('auto.faas.cloudflare.agents');
     // Read back off the instance at runtime (`_ParentClass.name`), so it
-    // confirms the wrapper landed on the user's real class. Matched loosely
-    // because the transform renames the class it wraps to
-    // `__SENTRY_ORIGINAL_<name>__` and the bundler infers that name.
-    expect(rpcSpan.attributes['gen_ai.agent.name']?.value).toContain(agentClass);
+    // confirms the wrapper landed on the user's real class, with its name intact.
+    expect(rpcSpan.attributes['gen_ai.agent.name']?.value).toBe(agentClass);
   });
 }
 
