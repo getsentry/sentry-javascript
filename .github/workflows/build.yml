@@ -1,4 +1,5 @@
 name: 'CI: Build & Test'
+# Baseline run for the CI parallelism comparison.
 on:
   push:
     branches:
