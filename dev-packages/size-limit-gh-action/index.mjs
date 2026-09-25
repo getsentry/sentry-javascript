@@ -3,10 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DefaultArtifactClient } from '@actions/artifact';
 import * as core from '@actions/core';
-import { exec } from '@actions/exec';
+import { getExecOutput } from '@actions/exec';
 import { context, getOctokit } from '@actions/github';
-import * as glob from '@actions/glob';
-import * as io from '@actions/io';
 import { markdownTable } from 'markdown-table';
 import sizeConfig from '../../.size-limit.js';
 import { getArtifactsForBranchAndWorkflow } from './utils/getArtifactsForBranchAndWorkflow.mjs';
@@ -15,12 +13,8 @@ import { MAX_INCREASE_BYTES, SizeLimitFormatter } from './utils/SizeLimitFormatt
 const OVERRIDE_LABEL = 'Accept Bundlesize Increase';
 const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
 const ARTIFACT_NAME = 'size-limit-action';
-const RESULTS_FILE = 'size-limit-results.json';
-
-function getResultsFilePath() {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  return path.resolve(__dirname, RESULTS_FILE);
-}
+const ACTION_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
+const RESULTS_FILE_PATH = path.join(ACTION_DIRECTORY, 'size-limit-results.json');
 
 const { getInput, setFailed } = core;
 
@@ -35,29 +29,18 @@ async function fetchPreviousComment(octokit, repo, pr) {
 }
 
 async function execSizeLimit() {
-  let output = '';
-
-  const status = await exec('yarn run --silent size-limit --json', [], {
-    windowsVerbatimArguments: false,
+  const { exitCode, stdout } = await getExecOutput('yarn', ['run', '--silent', 'size-limit', '--json'], {
     ignoreReturnCode: true,
-    cwd: process.cwd(),
-    listeners: {
-      stdout: data => {
-        output += data.toString();
-      },
-    },
   });
 
-  if (status !== 0) {
+  if (exitCode !== 0) {
     throw new Error('Bundle size measurement failed.');
   }
 
-  return output;
+  return stdout;
 }
 
 async function run() {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
   try {
     const { payload, repo } = context;
     const pr = payload.pull_request;
@@ -71,16 +54,16 @@ async function run() {
 
     const octokit = getOctokit(githubToken);
     const limit = new SizeLimitFormatter();
-    const resultsFilePath = getResultsFilePath();
+    const artifactClient = new DefaultArtifactClient();
+    const current = limit.parseResults(await execSizeLimit());
 
-    // If we have no comparison branch, we just run size limit & store the result as artifact
     if (!comparisonBranch) {
-      return await runSizeLimitOnComparisonBranch();
+      await fs.writeFile(RESULTS_FILE_PATH, JSON.stringify(current), 'utf8');
+      await artifactClient.uploadArtifact(ARTIFACT_NAME, [RESULTS_FILE_PATH], ACTION_DIRECTORY);
+      return;
     }
 
-    // Else, we run size limit for the current branch, AND fetch it for the comparison branch
     let base;
-    let current;
     let baseIsNotLatest = false;
     let baseWorkflowRun;
 
@@ -101,14 +84,17 @@ async function run() {
 
       baseWorkflowRun = artifacts.workflowRun;
 
-      await downloadOtherWorkflowArtifact(octokit, {
-        ...repo,
-        artifactName: ARTIFACT_NAME,
-        artifactId: artifacts.artifact.id,
-        downloadPath: __dirname,
+      await artifactClient.downloadArtifact(artifacts.artifact.id, {
+        path: ACTION_DIRECTORY,
+        findBy: {
+          token: githubToken,
+          workflowRunId: artifacts.workflowRun.id,
+          repositoryOwner: repo.owner,
+          repositoryName: repo.repo,
+        },
       });
 
-      base = JSON.parse(await fs.readFile(resultsFilePath, { encoding: 'utf8' }));
+      base = JSON.parse(await fs.readFile(RESULTS_FILE_PATH, { encoding: 'utf8' }));
 
       if (!artifacts.isLatest) {
         baseIsNotLatest = true;
@@ -118,14 +104,6 @@ async function run() {
       core.startGroup('Warning, unable to find base results');
       core.error(error);
       core.endGroup();
-    }
-
-    const output = await execSizeLimit();
-    try {
-      current = limit.parseResults(output);
-    } catch (error) {
-      core.error('Error parsing size-limit output. The output should be a json.');
-      throw error;
     }
 
     const { data: currentPr } = await octokit.rest.pulls.get({
@@ -194,68 +172,4 @@ async function run() {
   }
 }
 
-async function runSizeLimitOnComparisonBranch() {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const resultsFilePath = getResultsFilePath();
-
-  const limit = new SizeLimitFormatter();
-  const artifactClient = new DefaultArtifactClient();
-
-  const baseOutput = await execSizeLimit();
-
-  try {
-    const base = limit.parseResults(baseOutput);
-    await fs.writeFile(resultsFilePath, JSON.stringify(base), 'utf8');
-  } catch (error) {
-    core.error('Error parsing size-limit output. The output should be a json.');
-    throw error;
-  }
-
-  const globber = await glob.create(resultsFilePath, {
-    followSymbolicLinks: false,
-  });
-  const files = await globber.glob();
-
-  await artifactClient.uploadArtifact(ARTIFACT_NAME, files, __dirname);
-}
-
 await run();
-
-/**
- * Use GitHub API to fetch artifact download url, then
- * download and extract artifact to `downloadPath`
- */
-async function downloadOtherWorkflowArtifact(octokit, { owner, repo, artifactId, artifactName, downloadPath }) {
-  const artifact = await octokit.rest.actions.downloadArtifact({
-    owner,
-    repo,
-    artifact_id: artifactId,
-    archive_format: 'zip',
-  });
-
-  // Make sure output path exists
-  try {
-    await io.mkdirP(downloadPath);
-  } catch {
-    // ignore errors
-  }
-
-  const downloadFile = path.resolve(downloadPath, `${artifactName}.zip`);
-
-  await exec('wget', [
-    '-nv',
-    '--retry-connrefused',
-    '--waitretry=1',
-    '--read-timeout=20',
-    '--timeout=15',
-    '-t',
-    '0',
-    '-O',
-    downloadFile,
-    artifact.url,
-  ]);
-
-  await exec('unzip', ['-q', '-d', downloadPath, downloadFile], {
-    silent: true,
-  });
-}
