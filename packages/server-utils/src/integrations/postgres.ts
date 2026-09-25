@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_NAMESPACE,
   DB_QUERY_SUMMARY,

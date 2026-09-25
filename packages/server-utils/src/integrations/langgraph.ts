@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
 import { resolveAIRecordingOptions } from '../ai/core/utils';
