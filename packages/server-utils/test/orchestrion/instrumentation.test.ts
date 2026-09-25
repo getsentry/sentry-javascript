@@ -170,7 +170,7 @@ describe('invokeOrchestrionInstrumentation', () => {
   });
 
   it('treats bundler-recorded modules as injected', () => {
-    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: ['mysql'] };
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: new Set(['mysql']) };
     const client = makeClient();
     const callback = vi.fn();
 
@@ -179,8 +179,8 @@ describe('invokeOrchestrionInstrumentation', () => {
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores a non-array bundler flag (Bun sets `true`)', () => {
-    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: true as unknown as string[] };
+  it('ignores a non-Set bundler flag written by a foreign SDK copy', () => {
+    GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { bundler: true as unknown as Set<string> };
     const client = makeClient();
     const callback = vi.fn();
 

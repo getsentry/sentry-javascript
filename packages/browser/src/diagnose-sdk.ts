@@ -1,4 +1,4 @@
-import { getClient, suppressTracing } from '@sentry/core/browser';
+import { getClient, suppressTracing } from '@sentry/core';
 
 /**
  * A function to diagnose why the SDK might not be successfully sending data.

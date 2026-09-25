@@ -44,6 +44,4 @@ app.post('/readiness', (_req, res) => {
   res.send({ response: 'readiness' });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

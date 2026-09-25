@@ -27,6 +27,7 @@ describe('httpContextIntegration', () => {
     const integration = httpContextIntegration();
 
     const span: Partial<StreamedSpanJSON> = {
+      is_segment: true,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
       },
@@ -34,14 +35,14 @@ describe('httpContextIntegration', () => {
 
     const browserClient = new BrowserClient(getDefaultBrowserClientOptions());
 
-    integration.processSegmentSpan!(span as StreamedSpanJSON, browserClient);
+    integration.processSpan!(span as StreamedSpanJSON, browserClient);
 
     expect(span.attributes).not.toHaveProperty('url.full');
     expect(span.attributes).toEqual({
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-      'http.request.header.referer': 'https://example.com',
-      'http.request.header.user_agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'http.request.header.referer': ['https://example.com'],
+      'user_agent.original': USER_AGENT,
+      'sentry.is_localhost': false,
     });
   });
 
@@ -49,6 +50,7 @@ describe('httpContextIntegration', () => {
     const integration = httpContextIntegration();
 
     const span: Partial<StreamedSpanJSON> = {
+      is_segment: true,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       },
@@ -56,14 +58,32 @@ describe('httpContextIntegration', () => {
 
     const browserClient = new BrowserClient(getDefaultBrowserClientOptions());
 
-    integration.processSegmentSpan!(span as StreamedSpanJSON, browserClient);
+    integration.processSpan!(span as StreamedSpanJSON, browserClient);
 
     expect(span.attributes).toEqual({
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-      'http.request.header.referer': 'https://example.com',
-      'http.request.header.user_agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'http.request.header.referer': ['https://example.com'],
+      'user_agent.original': USER_AGENT,
+      'sentry.is_localhost': false,
       'url.full': 'https://example.com',
+    });
+  });
+
+  it('only attaches the user agent to non-segment spans', () => {
+    const integration = httpContextIntegration();
+
+    const span: Partial<StreamedSpanJSON> = {
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
+      },
+    };
+
+    integration.processSpan!(span as StreamedSpanJSON, new BrowserClient(getDefaultBrowserClientOptions()));
+
+    expect(span.attributes).toEqual({
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
+      'user_agent.original': USER_AGENT,
+      'sentry.is_localhost': false,
     });
   });
 
@@ -140,13 +160,15 @@ describe('httpContextIntegration', () => {
         getDefaultBrowserClientOptions({ dataCollection: { httpHeaders: { request: false } } }),
       );
       const span: Partial<StreamedSpanJSON> = {
+        is_segment: true,
         attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload' },
       };
 
-      httpContextIntegration().processSegmentSpan!(span as StreamedSpanJSON, client);
+      httpContextIntegration().processSpan!(span as StreamedSpanJSON, client);
 
       expect(span.attributes).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        'sentry.is_localhost': false,
         'url.full': 'https://example.com',
       });
     });
@@ -156,17 +178,59 @@ describe('httpContextIntegration', () => {
         getDefaultBrowserClientOptions({ dataCollection: { httpHeaders: { request: { deny: ['referer'] } } } }),
       );
       const span: Partial<StreamedSpanJSON> = {
+        is_segment: true,
         attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload' },
       };
 
-      httpContextIntegration().processSegmentSpan!(span as StreamedSpanJSON, client);
+      httpContextIntegration().processSpan!(span as StreamedSpanJSON, client);
 
       expect(span.attributes).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         'url.full': 'https://example.com',
-        'http.request.header.referer': '[Filtered]',
-        'http.request.header.user_agent': USER_AGENT,
+        'http.request.header.referer': ['[Filtered]'],
+        'user_agent.original': USER_AGENT,
+        'sentry.is_localhost': false,
       });
+    });
+  });
+
+  describe('sentry.is_localhost', () => {
+    function processSpanWithLocation(location: Partial<Location>): StreamedSpanJSON['attributes'] {
+      const original = globalThis.location;
+      globalThis.location = location as Location;
+
+      try {
+        const span: Partial<StreamedSpanJSON> = { attributes: {} };
+        httpContextIntegration().processSpan!(
+          span as StreamedSpanJSON,
+          new BrowserClient(getDefaultBrowserClientOptions()),
+        );
+        return span.attributes;
+      } finally {
+        globalThis.location = original;
+      }
+    }
+
+    it.each([
+      { protocol: 'http:', hostname: 'localhost' },
+      { protocol: 'http:', hostname: '127.0.0.1' },
+      { protocol: 'http:', hostname: 'foo.localhost' },
+      { protocol: 'http:', hostname: 'foo.bar.localhost' },
+      { protocol: 'file:', hostname: '' },
+      // `location.hostname` keeps the brackets for IPv6 hosts.
+      { protocol: 'http:', hostname: '[::1]' },
+    ])('is true for $protocol//$hostname', location => {
+      expect(processSpanWithLocation(location)).toMatchObject({ 'sentry.is_localhost': true });
+    });
+
+    it.each([
+      { protocol: 'https:', hostname: 'example.com' },
+      { protocol: 'https:', hostname: 'localhost.com' },
+      { protocol: 'https:', hostname: 'foolocalhost' },
+      { protocol: 'https:', hostname: '127.0.0.2' },
+      { protocol: 'http:', hostname: '[::2]' },
+    ])('is false for $protocol//$hostname', location => {
+      expect(processSpanWithLocation(location)).toMatchObject({ 'sentry.is_localhost': false });
     });
   });
 });

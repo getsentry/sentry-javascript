@@ -2,21 +2,23 @@ import type { Client } from '../client';
 import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
+import type { SdkProcessingMetadata } from '../scope';
 import type { CollectBehavior, ResolvedDataCollection } from '../types/datacollection';
 import type { Event } from '../types/event';
 import type { IntegrationFn } from '../types/integration';
 import type { QueryParams, RequestEventData } from '../types/request';
 import type { StreamedSpanJSON } from '../types/span';
-import { parseCookie } from '../utils/cookie';
+import { cookiePairsToRecord, parseCookieHeader } from '../utils/cookie';
 import { SENSITIVE_COOKIE_NAME_SNIPPETS } from '../utils/data-collection/filtering-snippets';
 import { filterKeyValueData } from '../utils/data-collection/filterKeyValueData';
+import { isLocalhostRequest } from '../utils/localhost';
 import { filterQueryParams } from '../utils/data-collection/filterQueryParams';
 import { filterUrlQuery } from '../utils/data-collection/filterUrlQuery';
-import { httpHeadersToSpanAttributes } from '../utils/request';
+import { filterCookiePairs, httpHeadersToSpanAttributes } from '../utils/request';
 import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
-import { URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import { SENTRY_IS_LOCALHOST, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
 
 type RequestDataIncludeOptions = {
   cookies?: boolean;
@@ -92,6 +94,15 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
       return event;
     },
+    processSpan(span) {
+      const { user, sdkProcessingMetadata } = getIsolationScope().getScopeData();
+
+      // This attribute is used by the "Filter out localhost events" feature on the Sentry backend.
+      // Therefore, it's set on every span, not just the segment span.
+      safeSetSpanJSONAttributes(span, {
+        [SENTRY_IS_LOCALHOST]: isLocalhostSpan(sdkProcessingMetadata, user.ip_address),
+      });
+    },
     processSegmentSpan(span, client) {
       const { sdkProcessingMetadata = {} } = getIsolationScope().getScopeData();
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
@@ -106,6 +117,40 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
     },
   };
 }) satisfies IntegrationFn;
+
+// Resolving the client IP walks a dozen forwarding headers, so the verdict is computed once per
+// request and shared by every span of that request.
+const localhostByRequest = new WeakMap<RequestEventData, boolean>();
+
+/**
+ * Whether a span belongs to a request served from the developer's own machine.
+ *
+ * The client IP is resolved exactly as {@link addNormalizedRequestDataToEvent} resolves the IP it
+ * writes to `user.ip_address`, so a span and the event for the same request always agree. Crucially
+ * a forwarding header wins over `ipAddress`, which is the raw socket address: a reverse proxy on the
+ * same host connects over loopback, so trusting the socket would mark genuine production traffic as
+ * localhost and let the backend filter silently drop it.
+ */
+function isLocalhostSpan(sdkProcessingMetadata: SdkProcessingMetadata, scopeUserIpAddress?: string | null): boolean {
+  const { normalizedRequest, ipAddress } = sdkProcessingMetadata;
+
+  if (!normalizedRequest) {
+    return isLocalhostRequest(undefined, ipAddress || scopeUserIpAddress);
+  }
+
+  const cached = localhostByRequest.get(normalizedRequest);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const headers = normalizedRequest.headers;
+  const clientIpAddress = (headers && getClientIPAddress(headers)) || ipAddress || scopeUserIpAddress;
+  const isLocalhost = isLocalhostRequest(normalizedRequest, clientIpAddress);
+
+  localhostByRequest.set(normalizedRequest, isLocalhost);
+
+  return isLocalhost;
+}
 
 /**
  * Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/core`
@@ -185,12 +230,20 @@ function addNormalizedRequestDataToSpan(
 
   // Process cookies before headers so normalizedRequest.cookies takes precedence
   // over the raw cookie header (matching the processEvent path).
-  if (requestData.cookies && Object.keys(requestData.cookies).length > 0) {
-    const cookieString = Object.entries(requestData.cookies)
-      .map(([name, value]) => `${name}=${value}`)
-      .join('; ');
-    const cookieAttributes = httpHeadersToSpanAttributes({ cookie: cookieString }, dataCollection, 'request');
-    safeSetSpanJSONAttributes(span, cookieAttributes);
+  if (include.cookies) {
+    // Cookies are not serialized to a string and re-parsed: a decoded value could contain ";" and
+    // split into a second, differently named cookie that escapes the denylist.
+    const cookieHeader = normalizedRequest.headers?.cookie;
+    const cookiePairs = normalizedRequest.cookies
+      ? Object.entries(normalizedRequest.cookies)
+      : cookieHeader
+        ? parseCookieHeader(cookieHeader, 'cookie')
+        : [];
+    if (cookiePairs.length > 0) {
+      safeSetSpanJSONAttributes(span, {
+        'http.request.header.cookie': filterCookiePairs(cookiePairs, dataCollection.cookies),
+      });
+    }
   }
 
   if (requestData.headers) {
@@ -245,7 +298,9 @@ function extractNormalizedRequestData(
   }
 
   if (include.cookies) {
-    const cookies = normalizedRequest.cookies || (headers?.cookie ? parseCookie(headers.cookie) : undefined);
+    const cookies =
+      normalizedRequest.cookies ||
+      (headers?.cookie ? cookiePairsToRecord(parseCookieHeader(headers.cookie, 'cookie')) : undefined);
     requestData.cookies = cookies || {};
   }
 

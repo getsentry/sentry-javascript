@@ -1,4 +1,4 @@
-import { HTTP_TARGET, URL_FULL } from '@sentry/conventions/attributes';
+import { HTTP_TARGET, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import type { RawAttributes } from '@sentry/core';
 import { getClient, GLOBAL_OBJ, isSentryRequestUrl, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span } from '@sentry/core';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
@@ -32,7 +32,7 @@ export function dropMiddlewareTunnelRequests(
   const isMiddleware = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute';
   // The fetch span could be originating from rewrites re-writing a tunnel request
   // So we want to filter it out
-  const isFetchSpan = attrs?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.otel.node_fetch';
+  const isFetchSpan = attrs?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.node_fetch';
   const isBaseServerHandleRequest = attrs?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest';
 
   // If the span is not a middleware span, fetch span, or BaseServer.handleRequest span, return
@@ -68,12 +68,14 @@ function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
     return false;
   }
 
+  // `http.target` is only read for spans from a user's own OpenTelemetry instrumentation, which
+  // still emits the old semantic conventions; the SDK sets `url.path`.
   // eslint-disable-next-line typescript/no-deprecated
-  const httpTarget = spanAttributes[HTTP_TARGET];
+  const target = spanAttributes[URL_PATH] ?? spanAttributes[HTTP_TARGET];
 
-  if (typeof httpTarget === 'string') {
+  if (typeof target === 'string') {
     // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
-    const pathname = httpTarget.split('?')[0] || '';
+    const pathname = target.split('?')[0] || '';
 
     return isPathnameUnderSentryTunnelRoute(pathname, tunnelPath);
   }

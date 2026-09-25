@@ -29,15 +29,17 @@ sentryTest('creates spans for fetch requests', async ({ getLocalTestUrl, page })
 
   requestSpans.forEach((span, index) =>
     expect(span).toMatchObject({
-      name: `GET http://sentry-test-site.example/${index}`,
+      // Streamed span names drop the high-cardinality URL path.
+      name: 'GET sentry-test-site.example',
       parent_span_id: pageloadSpan?.span_id,
       span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       end_timestamp: expect.any(Number),
       trace_id: pageloadSpan?.trace_id,
       attributes: expect.objectContaining({
-        'http.method': { type: 'string', value: 'GET' },
+        'http.request.method': { type: 'string', value: 'GET' },
         'url.full': { type: 'string', value: `http://sentry-test-site.example/${index}` },
+        'url.domain': { type: 'string', value: 'sentry-test-site.example' },
         'server.address': { type: 'string', value: 'sentry-test-site.example' },
         type: { type: 'string', value: 'fetch' },
       }),

@@ -1,33 +1,34 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 // TODO: Flakey on CI
-test.skip('App router transactions should be attached to the pageload request span', async ({ page }) => {
-  const serverTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /pageload-tracing';
+test.skip('App router spans should be attached to the pageload request span', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
+    return span.name === 'GET /pageload-tracing' && span.is_segment;
   });
 
-  const pageloadTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-    return transactionEvent?.transaction === '/pageload-tracing';
+  const pageloadSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
+    return span.name === '/pageload-tracing' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/pageload-tracing`);
 
-  const [serverTransaction, pageloadTransaction] = await Promise.all([
-    serverTransactionPromise,
-    pageloadTransactionPromise,
-  ]);
+  const [serverSpan, pageloadSpan] = await Promise.all([serverSpanPromise, pageloadSpanPromise]);
 
-  const pageloadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
-
-  expect(pageloadTraceId).toBeTruthy();
-  expect(serverTransaction.contexts?.trace?.trace_id).toBe(pageloadTraceId);
+  expect(pageloadSpan.trace_id).toBeTruthy();
+  expect(serverSpan.trace_id).toBe(pageloadSpan.trace_id);
 });
 
 // TODO: HTTP request headers are not extracted as span attributes on Cloudflare Workers
 test.skip('extracts HTTP request headers as span attributes', async ({ baseURL }) => {
-  const serverTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /pageload-tracing';
+  const serverSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
+    const requestId = span.attributes['http.request.header.x-request-id'];
+    return (
+      span.name === 'GET /pageload-tracing' &&
+      span.is_segment &&
+      requestId?.type === 'array' &&
+      requestId.value[0] === 'nextjs-789'
+    );
   });
 
   await fetch(`${baseURL}/pageload-tracing`, {
@@ -41,16 +42,14 @@ test.skip('extracts HTTP request headers as span attributes', async ({ baseURL }
     },
   });
 
-  const serverTransaction = await serverTransactionPromise;
+  const serverSpan = await serverSpanPromise;
 
-  expect(serverTransaction.contexts?.trace?.data).toEqual(
-    expect.objectContaining({
-      'http.request.header.user_agent': 'Custom-NextJS-Agent/15.0',
-      'http.request.header.content_type': 'text/html',
-      'http.request.header.x_nextjs_test': 'nextjs-header-value',
-      'http.request.header.accept': 'text/html, application/xhtml+xml',
-      'http.request.header.x_framework': 'Next.js',
-      'http.request.header.x_request_id': 'nextjs-789',
-    }),
-  );
+  expect(serverSpan.attributes).toMatchObject({
+    'http.request.header.user-agent': { value: ['Custom-NextJS-Agent/15.0'], type: 'array' },
+    'http.request.header.content-type': { value: ['text/html'], type: 'array' },
+    'http.request.header.x-nextjs-test': { value: ['nextjs-header-value'], type: 'array' },
+    'http.request.header.accept': { value: ['text/html, application/xhtml+xml'], type: 'array' },
+    'http.request.header.x-framework': { value: ['Next.js'], type: 'array' },
+    'http.request.header.x-request-id': { value: ['nextjs-789'], type: 'array' },
+  });
 });

@@ -31,7 +31,7 @@ describe('SentryTracerProvider', () => {
         'sentry.sample_rate': 1,
         'db.system.name': 'postgresql',
         'db.statement': 'SELECT * FROM users',
-        'sentry.source': 'custom',
+        'sentry.segment.name.source': 'custom',
       },
       name: 'SELECT users',
       parent_span_id: undefined,

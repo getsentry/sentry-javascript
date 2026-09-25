@@ -1,7 +1,7 @@
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
-import { wrapRequestHandlerWithInit } from './request';
+import { wrapRequestHandlerWithInit } from './wrapRequestHandlerWithInit';
 import { init } from './sdk';
 import type { StrictCloudflareOptions } from './types';
 

@@ -38,7 +38,6 @@ class RetryTestWorkflowBase extends WorkflowEntrypoint<Env, WorkflowParams> {
 
 export const RetryTestWorkflow = Sentry.instrumentWorkflowWithSentry(
   (env: Env) => ({
-    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     tunnel: 'http://localhost:3031/',
   }),
@@ -47,9 +46,11 @@ export const RetryTestWorkflow = Sentry.instrumentWorkflowWithSentry(
 
 export default Sentry.withSentry(
   (env: Env) => ({
-    traceLifecycle: 'static',
     dsn: env.E2E_TEST_DSN,
     tunnel: 'http://localhost:3031/',
+    // Do not cache this client, as locally there is only one instance
+    // And when this handler is getting cached, then the workflow will reuse this very client
+    cacheClient: false,
   }),
   {
     async fetch(request, env, _ctx) {

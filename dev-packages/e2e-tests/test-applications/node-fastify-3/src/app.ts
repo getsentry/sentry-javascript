@@ -15,7 +15,6 @@ console.warn = new Proxy(console.warn, {
 });
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   integrations: [
@@ -46,8 +45,6 @@ const http = require('http') as typeof H;
 const app = fastify();
 const port = 3030;
 const port2 = 3040;
-
-Sentry.setupFastifyErrorHandler(app);
 
 app.get('/test-success', function (_req, res) {
   res.send({ version: 'v1' });

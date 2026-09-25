@@ -1,5 +1,6 @@
 import type { SentrySpan, Span, SpanTimeInput, StartSpanOptions } from '@sentry/core';
-import { spanToStaticSpanJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { spanToStaticSpanJSON, withActiveSpan } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core/browser';
 import { WINDOW } from '../types';
 
 /**

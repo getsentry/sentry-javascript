@@ -28,40 +28,40 @@ describe('detectAdapter', () => {
   const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
   const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-  describe('svelte.config.js (source of truth)', () => {
+  describe('SvelteKit config (source of truth)', () => {
     it.each(['auto', 'vercel', 'node', 'cloudflare'])(
-      'returns adapter from kit.adapter.name when provided (adapter %s)',
+      'returns adapter from adapter.name when provided (adapter %s)',
       async adapter => {
-        const svelteConfig = { kit: { adapter: { name: `@sveltejs/adapter-${adapter}` } } };
-        const detectedAdapter = await detectAdapter(svelteConfig, undefined);
+        const kitConfig = { adapter: { name: `@sveltejs/adapter-${adapter}` } };
+        const detectedAdapter = await detectAdapter(kitConfig, undefined);
         expect(detectedAdapter).toEqual(adapter);
       },
     );
 
-    it('prefers svelte.config.js over package.json when both are present', async () => {
+    it('prefers the SvelteKit config over package.json when both are present', async () => {
       pkgJson.dependencies['@sveltejs/adapter-vercel'] = '1.0.0';
-      const svelteConfig = { kit: { adapter: { name: '@sveltejs/adapter-node' } } };
-      const detectedAdapter = await detectAdapter(svelteConfig, undefined);
+      const kitConfig = { adapter: { name: '@sveltejs/adapter-node' } };
+      const detectedAdapter = await detectAdapter(kitConfig, undefined);
       expect(detectedAdapter).toEqual('node');
     });
 
-    it('returns "other" when found adapter name in svelte.config.js is unsupported', async () => {
+    it('returns "other" when the adapter name in the SvelteKit config is unsupported', async () => {
       pkgJson.dependencies['@sveltejs/adapter-vercel'] = '1.0.0';
-      const svelteConfig = { kit: { adapter: { name: '@sveltejs/adapter-netlify' } } };
-      const detectedAdapter = await detectAdapter(svelteConfig, undefined);
+      const kitConfig = { adapter: { name: '@sveltejs/adapter-netlify' } };
+      const detectedAdapter = await detectAdapter(kitConfig, undefined);
       expect(detectedAdapter).toEqual('other');
     });
 
-    it('logs a warning if in debug mode and an unsupported adapter name is found in svelte.config.js', async () => {
-      const svelteConfig = { kit: { adapter: { name: '@sveltejs/adapter-netlify' } } };
-      await detectAdapter(svelteConfig, true);
+    it('logs a warning if in debug mode and an unsupported adapter name is found in the SvelteKit config', async () => {
+      const kitConfig = { adapter: { name: '@sveltejs/adapter-netlify' } };
+      await detectAdapter(kitConfig, true);
       expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Detected unsupported adapter name'));
     });
 
-    it('logs "from svelte.config.js" in debug when adapter comes from config', async () => {
-      const svelteConfig = { kit: { adapter: { name: '@sveltejs/adapter-vercel' } } };
-      await detectAdapter(svelteConfig, true);
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('from `svelte.config.js`'));
+    it('logs the config as the source in debug when the adapter comes from it', async () => {
+      const kitConfig = { adapter: { name: '@sveltejs/adapter-vercel' } };
+      await detectAdapter(kitConfig, true);
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('from your SvelteKit config'));
     });
   });
 

@@ -1,15 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { waitForRequest } from '@sentry-internal/test-utils';
+import { waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends spans for MCP tool calls via MCPAgent (DurableObject)', async ({ baseURL }) => {
-  const mcpToolWaiter = waitForRequest('cloudflare-mcp-agent', event => {
-    const transaction = event.envelope[1][0][1];
-    return (
-      typeof transaction !== 'string' &&
-      'transaction' in transaction &&
-      transaction.transaction === 'tools/call my-tool'
-    );
-  });
+  const privateMessage = 'cloudflare-agent-private-capture-policy-message';
+  const mcpSpanPromise = waitForStreamedSpan('cloudflare-mcp-agent', span => span.name === 'tools/call my-tool');
 
   // Step 1: Initialize the MCP session
   const initResponse = await fetch(`${baseURL}/mcp`, {
@@ -66,32 +60,38 @@ test('sends spans for MCP tool calls via MCPAgent (DurableObject)', async ({ bas
       params: {
         name: 'my-tool',
         arguments: {
-          message: 'hello from MCPAgent test',
+          message: privateMessage,
         },
       },
     }),
   });
 
   expect(response.status).toBe(200);
+  await expect(response.text()).resolves.toContain(`Tool my-tool: ${privateMessage}`);
 
-  const mcpData = await mcpToolWaiter;
-  const mcpEvent = mcpData.envelope[1][0][1];
+  const mcpSpan = await mcpSpanPromise;
 
-  expect(mcpEvent.contexts?.trace?.trace_id).toBe(mcpData.envelope[0].trace.trace_id);
-  expect(mcpEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    op: 'mcp.server',
-    origin: 'auto.function.mcp_server',
+  expect(mcpSpan).toEqual({
+    trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+    parent_span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    name: 'tools/call my-tool',
+    start_timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
     status: 'ok',
-    data: expect.objectContaining({
-      'sentry.origin': 'auto.function.mcp_server',
-      'sentry.op': 'mcp.server',
-      'mcp.method.name': 'tools/call',
-      'mcp.tool.name': 'my-tool',
-      'mcp.tool.extra': 'from-mcpagent',
-      'mcp.tool.input': '{"message":"hello from MCPAgent test"}',
+    is_segment: true,
+    attributes: expect.objectContaining({
+      'sentry.origin': { value: 'auto.function.mcp_server', type: 'string' },
+      'sentry.op': { value: 'mcp.server', type: 'string' },
+      'mcp.method.name': { value: 'tools/call', type: 'string' },
+      'mcp.tool.name': { value: 'my-tool', type: 'string' },
+      'mcp.tool.extra': { value: 'from-mcpagent', type: 'string' },
+      'mcp.tool.result.content_count': { value: 1, type: 'integer' },
+      'mcp.tool.result.content_type': { value: 'text', type: 'string' },
     }),
   });
+  expect(mcpSpan.attributes['mcp.request.argument.message']).toBeUndefined();
+  expect(mcpSpan.attributes['mcp.tool.result.content']).toBeUndefined();
+  expect(mcpSpan.attributes['mcp.tool.input']).toBeUndefined();
+  expect(JSON.stringify(mcpSpan.attributes)).not.toContain(privateMessage);
 });

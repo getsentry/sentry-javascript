@@ -17,9 +17,9 @@ describe('instrumentSqlStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
-        op: 'db.query',
         name: 'SELECT users',
         attributes: {
+          'sentry.op': 'db.query',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
@@ -41,9 +41,9 @@ describe('instrumentSqlStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
-        op: 'db.query',
         name: 'SELECT users',
         attributes: {
+          'sentry.op': 'db.query',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
@@ -74,9 +74,9 @@ describe('instrumentSqlStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
-        op: 'db.query',
         name: 'INSERT users',
         attributes: {
+          'sentry.op': 'db.query',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',

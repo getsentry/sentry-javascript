@@ -6,10 +6,9 @@ import {
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '@sentry/core';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import {
@@ -132,7 +131,7 @@ describe('React Router Descendant Routes', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/child/:id');
-      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/child/:id');
     });
 
@@ -176,7 +175,7 @@ describe('React Router Descendant Routes', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/child/:id',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/child/:id',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -264,7 +263,7 @@ describe('React Router Descendant Routes', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/:orgId/:id');
-      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(URL_TEMPLATE, '/:orgId/:id');
     });
 
@@ -308,7 +307,7 @@ describe('React Router Descendant Routes', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/:orgId/:id',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/:orgId/:id',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -363,7 +362,7 @@ describe('React Router Descendant Routes', () => {
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId/:detailId');
-      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(
         URL_TEMPLATE,
         '/projects/:projectId/views/:viewId/:detailId',
@@ -419,7 +418,7 @@ describe('React Router Descendant Routes', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/projects/:projectId/views/:viewId/:detailId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId/:detailId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -480,7 +479,7 @@ describe('React Router Descendant Routes', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/projects/:projectId/views/:viewId/:detailId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId/:detailId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
@@ -555,7 +554,7 @@ describe('React Router Descendant Routes', () => {
       expect(container.innerHTML).toContain('Details');
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId/:detailId');
-      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(
         URL_TEMPLATE,
         '/projects/:projectId/views/:viewId/:detailId',
@@ -633,7 +632,7 @@ describe('React Router Descendant Routes', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/projects/:projectId/views/:viewId/:detailId',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId/:detailId',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',

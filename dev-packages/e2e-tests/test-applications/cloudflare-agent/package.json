@@ -14,17 +14,17 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@cloudflare/ai-chat": "^0.10.0",
+    "@cloudflare/ai-chat": "latest",
     "@sentry/cloudflare": "^10.68.0",
     "@sentry/core": "^10.68.0",
-    "agents": "^0.20.0",
+    "agents": "latest",
     "ai": "^6.0.235",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "workers-ai-provider": "^3.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@cloudflare/vite-plugin": "^1.47.0",
     "@cloudflare/workers-types": "^5.20260727.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
@@ -40,6 +40,9 @@
     "vite": "^8.1.5",
     "wrangler": "^4.114.0",
     "ws": "^8.21.1"
+  },
+  "sentryTest": {
+    "optional": true
   },
   "volta": {
     "node": "24.15.0",

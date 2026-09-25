@@ -1,5 +1,6 @@
 import type { Client } from '@sentry/core';
-import { createTransport, Scope, ServerRuntimeClient, withScope } from '@sentry/core';
+import { createTransport, Scope, withScope } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry/core/server';
 import { EventEmitter } from 'stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { recordRequestSession } from '../../src/integrations/http/httpServerIntegration';

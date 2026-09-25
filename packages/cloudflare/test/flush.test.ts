@@ -138,6 +138,19 @@ describe('flushAndDispose', () => {
     await expect(flushAndDispose(undefined)).resolves.toBeUndefined();
     flushSpy.mockRestore();
   });
+
+  it('should not dispose the client when it is cached (cacheClient: true)', async () => {
+    const mockClient = {
+      flush: vi.fn().mockResolvedValue(true),
+      dispose: vi.fn(),
+      isCachedClient: true,
+    } as unknown as Client;
+
+    await flushAndDispose(mockClient);
+
+    expect(mockClient.flush).toHaveBeenCalled();
+    expect(mockClient.dispose).not.toHaveBeenCalled();
+  });
 });
 
 describe('getOriginalWaitUntil', () => {

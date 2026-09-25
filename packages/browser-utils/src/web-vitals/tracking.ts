@@ -1,10 +1,12 @@
 import type { Client, Measurements, Span } from '@sentry/core';
 import { browserPerformanceTimeOrigin, debug, setMeasurement, spanToJSON } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { BROWSER_NAVIGATION_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
+import type { MetricNavigationType } from '../instrumentation/performanceObserver';
 import {
   addClsInstrumentationHandler,
+  addFcpInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
@@ -16,6 +18,7 @@ import { getActivationStart, getNavigationEntry, getVisibilityWatcher } from './
 let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
+let _navigationType: MetricNavigationType | undefined;
 
 interface StartTrackingWebVitalsOptions {
   trackCls: boolean;
@@ -35,11 +38,13 @@ export function startTrackingWebVitals({ trackCls, trackLcp }: StartTrackingWebV
     const lcpCleanupCallback = trackLcp ? _trackLCP() : undefined;
     const clsCleanupCallback = trackCls ? _trackCLS() : undefined;
     const ttfbCleanupCallback = _trackTtfb();
-    const fpFcpCleanupCallback = _trackFpFcp();
+    const fcpCleanupCallback = _trackFcp();
+    const fpCleanupCallback = _trackFp();
 
     return (): void => {
       ttfbCleanupCallback();
-      fpFcpCleanupCallback();
+      fcpCleanupCallback();
+      fpCleanupCallback();
       lcpCleanupCallback?.();
       clsCleanupCallback?.();
     };
@@ -80,6 +85,8 @@ function _trackLCP(): () => void {
 
 function _trackTtfb(): () => void {
   return addTtfbInstrumentationHandler(({ metric }) => {
+    _navigationType = metric.navigationType;
+
     const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
       return;
@@ -89,18 +96,28 @@ function _trackTtfb(): () => void {
   });
 }
 
-/** Starts tracking First Paint and First Contentful Paint on the current page. */
-function _trackFpFcp(): () => void {
+/** Starts tracking the First Contentful Paint on the current page. */
+function _trackFcp(): () => void {
+  return addFcpInstrumentationHandler(({ metric }) => {
+    _navigationType = metric.navigationType;
+    _measurements['fcp'] = { value: metric.value, unit: 'millisecond' };
+  });
+}
+
+/**
+ * Starts tracking First Paint on the current page.
+ *
+ * web-vitals has no `onFP`, so this stays on the raw paint observer, and mirrors the one thing
+ * `onFCP` does inline: skip the vital if the page was hidden before it. The raw `startTime` is
+ * stored as-is; rebasing it against `activationStart` happens in `_rebaseFpAgainstActivationStart`
+ * when the span ends, because this observer can run before the page is activated.
+ */
+function _trackFp(): () => void {
   return addPerformanceInstrumentationHandler('paint', ({ entries }) => {
     const firstHidden = getVisibilityWatcher();
     for (const entry of entries) {
-      // Only report if the page wasn't hidden prior to the web vital.
-      const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
-      if (entry.name === 'first-paint' && shouldRecord) {
+      if (entry.name === 'first-paint' && entry.startTime < firstHidden.firstHiddenTime) {
         _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
-      }
-      if (entry.name === 'first-contentful-paint' && shouldRecord) {
-        _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
       }
     }
   });
@@ -153,6 +170,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
   // Measurements are only available for pageload transactions
   if (spanToJSON(span).attributes[SENTRY_OP] === 'pageload') {
     _addTtfbRequestTimeToMeasurements(_measurements);
+    _rebaseFpAgainstActivationStart(_measurements);
 
     if (spanStreamingEnabled) {
       const setAttr = (shortWebVitalName: string, value: number, customAttrName?: string) => {
@@ -188,6 +206,12 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
       _setWebVitalAttributes(span, options);
     }
 
+    // TTFB, FP and FCP are attributes of this span rather than spans of their own, so the navigation
+    // type they were measured on is reported here for them to be read against.
+    if (_navigationType) {
+      span.setAttribute(BROWSER_NAVIGATION_TYPE, _navigationType);
+    }
+
     // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
     span.setAttribute(spanStreamingEnabled ? 'browser.performance.time_origin' : 'performance.timeOrigin', timeOrigin);
 
@@ -209,6 +233,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
 function resetWebVitalState(): void {
   _lcpEntry = undefined;
   _clsEntry = undefined;
+  _navigationType = undefined;
   _measurements = {};
 }
 
@@ -251,6 +276,24 @@ function _setWebVitalAttributes(span: Span, options: AddWebVitalsToSpanOptions):
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
+  }
+}
+
+/**
+ * Rebases First Paint against `activationStart`, so a prerendered page reports time-to-paint from
+ * the moment the user activated it rather than from the (much earlier) prerender navigation start.
+ *
+ * The vitals that come from web-vitals do this themselves, when they compute their value: they only
+ * start observing once the page is activated, so `activationStart` is known by then. FP has no
+ * web-vitals equivalent and is read off a `buffered` paint observer registered at SDK init, which
+ * on a prerendered page runs while `document.prerendering` is still true and `activationStart` is
+ * still 0. Correcting there would be a no-op, so it happens here, at span end, by which point the
+ * activation time is known.
+ */
+function _rebaseFpAgainstActivationStart(measurements: Measurements): void {
+  const fp = measurements['fp'];
+  if (fp) {
+    fp.value = Math.max(fp.value - getActivationStart(), 0);
   }
 }
 

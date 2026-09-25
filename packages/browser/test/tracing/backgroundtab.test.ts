@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { getMainCarrier, setCurrentClient } from '@sentry/core/browser';
+import { getMainCarrier, setCurrentClient } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 import { TextDecoder, TextEncoder } from 'util';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

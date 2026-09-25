@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 // TODO: Flakey on CI
 test.skip('Should capture errors from nested server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
@@ -9,16 +9,21 @@ test.skip('Should capture errors from nested server components when `Sentry.capt
     return !!errorEvent?.exception?.values?.some(value => value.value === 'I am technically uncatchable');
   });
 
-  const serverTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /nested-rsc-error/[param]';
+  // Matched on the error's own trace so a span from an earlier spec cannot satisfy the correlation.
+  const serverSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', async span => {
+    return (
+      span.name === 'GET /nested-rsc-error/[param]' &&
+      span.is_segment &&
+      (await errorEventPromise).contexts?.trace?.trace_id === span.trace_id
+    );
   });
 
   await page.goto(`/nested-rsc-error/123`);
   const errorEvent = await errorEventPromise;
-  const serverTransactionEvent = await serverTransactionPromise;
+  const serverSpan = await serverSpanPromise;
 
-  // error event is part of the transaction
-  expect(errorEvent.contexts?.trace?.trace_id).toBe(serverTransactionEvent.contexts?.trace?.trace_id);
+  // error event is part of the same trace as the server span
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(serverSpan.trace_id);
 
   expect(errorEvent.request).toMatchObject({
     headers: expect.any(Object),

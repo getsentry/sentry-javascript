@@ -1,4 +1,4 @@
-import { koaIntegration } from '@sentry/server-utils/orchestrion';
+import { koaIntegration } from '@sentry/server-utils';
 
 /**
  * Create spans for `koa` middleware/router layers under Deno. Included in the

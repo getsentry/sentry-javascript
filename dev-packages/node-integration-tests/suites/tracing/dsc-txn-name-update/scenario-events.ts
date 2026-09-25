@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
@@ -11,21 +12,18 @@ Sentry.init({
 });
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
-Sentry.startSpan(
-  { name: 'initial-name', attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } },
-  async span => {
-    Sentry.captureMessage('message-1');
+Sentry.startSpan({ name: 'initial-name', attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' } }, async span => {
+  Sentry.captureMessage('message-1');
 
-    span.updateName('updated-name-1');
-    span.setAttribute(Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  span.updateName('updated-name-1');
+  span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
 
-    Sentry.captureMessage('message-2');
+  Sentry.captureMessage('message-2');
 
-    span.updateName('updated-name-2');
-    span.setAttribute(Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+  span.updateName('updated-name-2');
+  span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'custom');
 
-    Sentry.captureMessage('message-3');
+  Sentry.captureMessage('message-3');
 
-    span.end();
-  },
-);
+  span.end();
+});

@@ -1,19 +1,33 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { DB_QUERY_TEXT, DB_SYSTEM_NAME, ERROR_TYPE, SENTRY_KIND } from '@sentry/conventions/attributes';
-import type { IntegrationFn, PostgresConnectionContext, Span } from '@sentry/core';
 import {
-  _INTERNAL_buildPostgresConnectionContext,
-  _INTERNAL_reconstructPostgresQuery,
-  _INTERNAL_sanitizeSqlQuery,
-  _INTERNAL_setPostgresConnectionAttributes,
-  _INTERNAL_setPostgresOperationName,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  ERROR_TYPE,
+  SENTRY_KIND,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
+import type { IntegrationFn, Span } from '@sentry/core';
+import {
   debug,
   defineIntegration,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import {
+  _buildConnectionContext,
+  _getConnectionAttributes,
+  _getOperationName,
+  _reconstructQuery,
+  type PostgresConnectionContext,
+} from './postgresjs';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { postgresJsModuleNames } from '../orchestrion/config/postgres';
@@ -24,6 +38,8 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 const INTEGRATION_NAME = 'PostgresJs' as const;
 
 const ORIGIN = 'auto.db.postgresjs';
+
+const DB_SYSTEM_NAME_POSTGRES = 'postgres';
 
 // Not part of `@sentry/conventions`, so we keep it inline (matches older OTel
 // `PostgresJsInstrumentation`).
@@ -108,7 +124,7 @@ function recordConnectionFromChannel(message: PostgresJsQueryContext): void {
   if (!connection || typeof connection !== 'object' || !options) {
     return;
   }
-  const context = _INTERNAL_buildPostgresConnectionContext(options);
+  const context = _buildConnectionContext(options);
   connectionContexts.set(connection, context);
   registerEndpoint(context);
 }
@@ -119,7 +135,9 @@ function setConnectionAttributes(span: Span, query: PostgresQuery, context: Post
     return;
   }
   queryRecord[CONNECTION_ATTRS_SET] = true;
-  _INTERNAL_setPostgresConnectionAttributes(span, context);
+  if (context) {
+    span.setAttributes(_getConnectionAttributes(context));
+  }
 }
 
 /**
@@ -169,10 +187,11 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
       markEnded();
       try {
         const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
-        _INTERNAL_setPostgresOperationName(span, sanitizedSqlQuery, command);
+        // Re-set the operation name with the server-reported command, which is more reliable than the query text.
+        span.setAttribute(DB_OPERATION_NAME, _getOperationName(sanitizedSqlQuery, command));
         span.end();
       } catch (e) {
-        DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error ending span in resolve:', e);
+        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in resolve:', e);
       }
       return originalResolve.apply(this, resolveArgs);
     };
@@ -187,10 +206,9 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
         span.setStatus({ code: SPAN_STATUS_ERROR, message: err?.message || 'unknown_error' });
         span.setAttribute(DB_RESPONSE_STATUS_CODE, err?.code || 'unknown');
         span.setAttribute(ERROR_TYPE, err?.name || 'unknown');
-        _INTERNAL_setPostgresOperationName(span, sanitizedSqlQuery);
         span.end();
       } catch (e) {
-        DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error ending span in reject:', e);
+        DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in reject:', e);
       }
       return originalReject.apply(this, rejectArgs);
     };
@@ -259,27 +277,39 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
         return undefined;
       }
 
-      const fullQuery = _INTERNAL_reconstructPostgresQuery(query.strings);
-      const sanitizedSqlQuery = _INTERNAL_sanitizeSqlQuery(fullQuery);
+      const fullQuery = _reconstructQuery(query.strings);
+      const sanitizedSqlQuery = sanitizeSqlQuery(fullQuery);
+
+      const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
+
+      const client = getClient();
+
+      // Single-endpoint fallback: resolve context now so the span name and `requestHook` have
+      // it, and the first-query-per-connection (bare `execute`) path still gets attrs.
+      const context = resolveSingleEndpoint();
+
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? querySummary || context?.ATTR_DB_NAMESPACE || DB_SYSTEM_NAME_POSTGRES
+          : sanitizedSqlQuery || 'postgresjs.query';
 
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
       const span = startInactiveSpan({
-        name: sanitizedSqlQuery || 'postgresjs.query',
-        op: 'db',
+        name,
         attributes: {
+          [SENTRY_OP]: DB,
           [SENTRY_KIND]: 'client',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [DB_SYSTEM_NAME]: 'postgres',
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
           [DB_QUERY_TEXT]: sanitizedSqlQuery,
+          [DB_QUERY_SUMMARY]: querySummary,
+          [DB_OPERATION_NAME]: _getOperationName(sanitizedSqlQuery),
         },
       });
 
       // Stash for the `execute`/`connect` channels to attach per-connection attributes.
       (query as Record<symbol, unknown>)[QUERY_SPAN] = span;
 
-      // Single-endpoint fallback: resolve context now so `requestHook` has it
-      // and the first-query-per-connection (bare `execute`) path still gets attrs.
-      const context = resolveSingleEndpoint();
       if (context) {
         setConnectionAttributes(span, query, context);
       }
@@ -289,7 +319,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
           requestHook(span, sanitizedSqlQuery, context);
         } catch (e) {
           span.setAttribute('sentry.hook.error', 'requestHook failed');
-          DEBUG_BUILD && debug.error('[orchestrion:postgresjs] error in requestHook:', e);
+          DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error in requestHook:', e);
         }
       }
 
@@ -318,12 +348,12 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 }
 
 /**
- * Orchestrion-driven postgres.js (`postgres` v3.x) integration.
+ * Diagnostics-channel-based postgres.js (`postgres` v3.x) integration.
  *
  * Subscribes to the `orchestrion:postgres:handle` / `:connection` / `:execute` /
  * `:connect` diagnostics channels injected into postgres.js' `Query.prototype.handle`
  * and `Connection`/`execute`/`connect` (in `src/*` and `cjs/src/*`) and creates db
- * spans matching the OTel `postgresJsIntegration`. Requires the orchestrion runtime
+ * spans matching the OTel `postgresJsIntegration`. Requires the Sentry runtime
  * hook or bundler plugin.
  */
 export const postgresJsIntegration = defineIntegration(_postgresJsIntegration);

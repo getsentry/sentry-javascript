@@ -48,11 +48,7 @@ export function links() {
 }
 
 export async function loader({ context }: { context: LoaderFunctionArgs['context'] }) {
-  const { storefront, session, cart } = context as {
-    storefront: {
-      query: (query: string, options: any) => Promise<any>;
-      CacheLong: () => any;
-    };
+  const { session, cart } = context as {
     session: HydrogenSession;
     cart: unknown;
     env: unknown;
@@ -68,27 +64,9 @@ export async function loader({ context }: { context: LoaderFunctionArgs['context
   // defer the cart query by not awaiting it
   const cartPromise = typedCart.get();
 
-  // defer the footer query (below the fold)
-  const footerPromise = storefront.query(FOOTER_QUERY, {
-    cache: storefront.CacheLong(),
-    variables: {
-      footerMenuHandle: 'footer', // Adjust to your footer menu handle
-    },
-  });
-
-  // await the header query (above the fold)
-  const headerPromise = storefront.query(HEADER_QUERY, {
-    cache: storefront.CacheLong(),
-    variables: {
-      headerMenuHandle: 'main-menu', // Adjust to your header menu handle
-    },
-  });
-
   return defer(
     {
       cart: cartPromise,
-      footer: footerPromise,
-      header: await headerPromise,
       isLoggedIn,
       publicStoreDomain,
     },
@@ -225,73 +203,3 @@ async function validateCustomerAccessToken(session: HydrogenSession, customerAcc
 
   return { isLoggedIn, headers };
 }
-
-const MENU_FRAGMENT = `#graphql
-  fragment MenuItem on MenuItem {
-    id
-    resourceId
-    tags
-    title
-    type
-    url
-  }
-  fragment ChildMenuItem on MenuItem {
-    ...MenuItem
-  }
-  fragment ParentMenuItem on MenuItem {
-    ...MenuItem
-    items {
-      ...ChildMenuItem
-    }
-  }
-  fragment Menu on Menu {
-    id
-    items {
-      ...ParentMenuItem
-    }
-  }
-` as const;
-
-const HEADER_QUERY = `#graphql
-  fragment Shop on Shop {
-    id
-    name
-    description
-    primaryDomain {
-      url
-    }
-    brand {
-      logo {
-        image {
-          url
-        }
-      }
-    }
-  }
-  query Header(
-    $country: CountryCode
-    $headerMenuHandle: String!
-    $language: LanguageCode
-  ) @inContext(language: $language, country: $country) {
-    shop {
-      ...Shop
-    }
-    menu(handle: $headerMenuHandle) {
-      ...Menu
-    }
-  }
-  ${MENU_FRAGMENT}
-` as const;
-
-const FOOTER_QUERY = `#graphql
-  query Footer(
-    $country: CountryCode
-    $footerMenuHandle: String!
-    $language: LanguageCode
-  ) @inContext(language: $language, country: $country) {
-    menu(handle: $footerMenuHandle) {
-      ...Menu
-    }
-  }
-  ${MENU_FRAGMENT}
-` as const;

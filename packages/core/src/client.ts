@@ -20,7 +20,7 @@ import type { EventDropReason, Outcome } from './types/clientreport';
 import type { DataCategory } from './types/datacategory';
 import type { DsnComponents } from './types/dsn';
 import type { DynamicSamplingContext, Envelope } from './types/envelope';
-import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types/event';
+import type { ErrorEvent, Event, EventHint, TransactionEvent } from './types/event';
 import type { EventProcessor } from './types/eventprocessor';
 import type { FeedbackEvent } from './types/feedback';
 import type { Integration } from './types/integration';
@@ -41,7 +41,7 @@ import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
-import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
+import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
@@ -50,6 +50,7 @@ import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
+import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
@@ -730,6 +731,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
 
   /**
+   * Register a callback for after an envelope has been accepted by the transport.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterEnvelope', callback: (envelope: Envelope) => void): () => void;
+
+  /**
    * Register a callback that runs when stack frame metadata should be applied to an event.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -883,6 +890,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flush', callback: () => void): () => void;
 
   /**
+   * A hook that is called when spans of a single trace should be flushed eagerly,
+   * ahead of the trace's regular flush point. Only runtimes with a span streaming
+   * buffer (e.g. the Cloudflare SDK) listen to this hook.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'flushTraceSpans', callback: (traceId: string) => void): () => void;
+
+  /**
    * A hook that is called when the client is closing
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -960,7 +975,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'stopUIProfiler', callback: () => void): () => void;
 
   /**
-   * A hook that is called when an orchestrion-instrumented module is injected —
+   * A hook that is called when an instrumented module is injected —
    * at runtime by the module hook, or at load of a bundler-transformed module.
    * Channel-based integrations use it to subscribe their diagnostics-channel
    * listeners lazily, only once the module they instrument is actually loaded.
@@ -1054,6 +1069,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * second argument.
    */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /**
+   * Fire a hook event after an envelope has been accepted by the transport.
+   */
+  public emit(hook: 'afterEnvelope', envelope: Envelope): void;
 
   /**
    * Fire a hook indicating that stack frame metadata should be applied to the event passed to the hook.
@@ -1180,6 +1200,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'flush'): void;
 
   /**
+   * Fire a hook event indicating that spans of a single trace should be flushed eagerly.
+   */
+  public emit(hook: 'flushTraceSpans', traceId: string): void;
+
+  /**
    * Emit a hook event for client close
    */
   public emit(hook: 'close'): void;
@@ -1238,7 +1263,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'stopUIProfiler'): void;
 
   /**
-   * Emit a hook when an orchestrion-instrumented module is injected (runtime
+   * Emit a hook when an instrumented module is injected (runtime
    * module hook or bundler-transformed module load).
    */
   public emit(hook: 'orchestrion.module-injected', moduleName: string): void;
@@ -1262,7 +1287,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     if (this._isEnabled() && this._transport) {
       try {
-        return await this._transport.send(envelope);
+        const result = await this._transport.send(envelope);
+        this.emit('afterEnvelope', envelope);
+        return result;
       } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
         return {};
@@ -1488,6 +1515,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
     const beforeSendLabel = `before send for type \`${eventType}\``;
+    let beforeSendDropReason: 'before_send' | 'callback_error' = 'before_send';
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
@@ -1498,7 +1526,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
         if (prepared === null) {
-          this.recordDroppedEvent('event_processor', dataCategory);
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
@@ -1507,19 +1534,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           return prepared;
         }
 
-        const result = processBeforeSend(this, options, prepared, hint);
+        const result = processBeforeSend(this, options, prepared, hint, () => {
+          beforeSendDropReason = 'callback_error';
+        });
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          this.recordDroppedEvent('before_send', dataCategory);
+          this.recordDroppedEvent(beforeSendDropReason, dataCategory);
           if (isTransaction) {
             const spans = event.spans || [];
             // the transaction itself counts as one span, plus all the child spans that are added
-            const spanCount = 1 + spans.length;
-            this.recordDroppedEvent('before_send', 'span', spanCount);
+            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + spans.length);
           }
-          throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
+          const dropMessage = beforeSendDropReason === 'callback_error' ? 'threw an error' : 'returned `null`';
+          throw _makeDoNotSendEventError(`${beforeSendLabel} ${dropMessage}, will not send event.`);
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
@@ -1662,10 +1691,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): PromiseLike<Event>;
 }
 
-function getDataCategoryByType(type: EventType | 'replay_event' | undefined): DataCategory {
-  return type === 'replay_event' ? 'replay' : type || 'error';
-}
-
 /**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
  */
@@ -1700,6 +1725,7 @@ function processBeforeSend(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
+  onCallbackError: () => void,
 ): PromiseLike<Event | null> | Event | null {
   const {
     beforeSend,
@@ -1712,7 +1738,15 @@ function processBeforeSend(
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
-    return beforeSend(processedEvent, hint);
+    const errorEvent = processedEvent;
+    return safeCallback(
+      DEBUG_BUILD ? 'The `beforeSend` callback threw an error, dropping the event:' : '',
+      () => beforeSend(errorEvent, hint),
+      () => {
+        onCallbackError();
+        return null;
+      },
+    );
   }
 
   if (isTransactionEvent(processedEvent)) {
@@ -1783,7 +1817,14 @@ function processBeforeSend(
           spanCountBeforeProcessing: spanCountBefore,
         };
       }
-      return beforeSendTransaction(processedEvent as TransactionEvent, hint);
+      return safeCallback(
+        DEBUG_BUILD ? 'The `beforeSendTransaction` callback threw an error, dropping the event:' : '',
+        () => beforeSendTransaction(processedEvent as TransactionEvent, hint),
+        () => {
+          onCallbackError();
+          return null;
+        },
+      );
     }
   }
 

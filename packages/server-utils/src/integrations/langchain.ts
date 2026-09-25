@@ -8,7 +8,9 @@ import { LANGCHAIN_INTEGRATION_NAME } from '../ai/langchain/constants';
 import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../ai/langchain/embeddings';
 import type { LangChainOptions } from '../ai/langchain/types';
 import { _INTERNAL_mergeLangChainCallbackHandler } from '../ai/langchain/utils';
+import { MISTRAL_INTEGRATION_NAME } from '../ai/mistral/constants';
 import { OPENAI_INTEGRATION_NAME } from '../ai/openai/constants';
+import { GROQ_INTEGRATION_NAME } from './groq';
 import { CHANNELS } from '../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../orchestrion/config/langchain';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -21,7 +23,14 @@ const INTEGRATION_NAME = LANGCHAIN_INTEGRATION_NAME;
 
 // LangChain drives the underlying AI provider SDKs itself, so while it's active those providers must
 // not also instrument, or every call would produce two spans (mirrors the OTel path's skip list).
-const SKIPPED_PROVIDERS = [OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION_NAME, GOOGLE_GENAI_INTEGRATION_NAME];
+const SKIPPED_PROVIDERS = [
+  OPENAI_INTEGRATION_NAME,
+  ANTHROPIC_AI_INTEGRATION_NAME,
+  GOOGLE_GENAI_INTEGRATION_NAME,
+  MISTRAL_INTEGRATION_NAME,
+  // `@langchain/groq` drives `groq-sdk`, so ChatGroq calls must not also open the Groq integration's span.
+  GROQ_INTEGRATION_NAME,
+];
 
 // The chat-model channels carry the live args array of `invoke(input, options)` / `_streamIterator(input, options)`.
 interface RunnableChannelContext {
@@ -89,13 +98,13 @@ function instrumentChatModels(options: LangChainOptions): void {
   }
 }
 
-// Embeddings don't use the callback system. Wrap the method in its own span
+// Embeddings don't use the callback system. Wrap the method in its own span.
+// Embedding errors reject to the caller, so we only open the span (which bindTracingChannelToSpan
+// still marks failed on error) and do not capture them.
 function instrumentEmbeddings(options: LangChainOptions): void {
   for (const channelName of langchainEmbeddingsChannels) {
-    bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName),
-      data => createEmbeddingsSpan(data, options),
-      { captureError: () => ({ mechanism: { handled: false, type: 'auto.ai.langchain' } }) },
+    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName), data =>
+      createEmbeddingsSpan(data, options),
     );
   }
 }
@@ -111,8 +120,8 @@ function createEmbeddingsSpan(data: EmbeddingsChannelContext, options: LangChain
 }
 
 /**
- * Orchestrion-driven LangChain integration. Subscribes to the diagnostics_channels
+ * Diagnostics-channel-based LangChain integration. Subscribes to the diagnostics_channels
  * injected into `@langchain/core`'s `BaseChatModel` (to inject the Sentry callback handler) and into
- * `@langchain/openai`'s embedding methods, so it requires the orchestrion runtime hook or bundler plugin.
+ * `@langchain/openai`'s embedding methods, so it requires the Sentry runtime hook or bundler plugin.
  */
 export const langChainIntegration = defineIntegration(_langChainIntegration);

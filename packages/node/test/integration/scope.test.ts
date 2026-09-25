@@ -106,7 +106,7 @@ describe('Integration | Scope', () => {
               trace: {
                 data: {
                   'sentry.origin': 'manual',
-                  'sentry.source': 'custom',
+                  'sentry.segment.name.source': 'custom',
                   'sentry.sample_rate': 1,
                 },
                 span_id: spanId,

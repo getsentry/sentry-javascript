@@ -1,7 +1,8 @@
 /* eslint-disable typescript-eslint/no-deprecated */
 import { DEBUG_BUILD } from '../../debug-build';
 import {
-  captureException,
+  getClient,
+  hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
@@ -58,7 +59,11 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
 /**
  * Extract request attributes from method arguments
  */
-export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
+export function extractRequestAttributes(
+  args: unknown[],
+  operationName: string,
+  recordInputs: boolean,
+): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'openai',
     [GEN_AI_OPERATION_NAME]: operationName,
@@ -68,7 +73,7 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    const availableTools = extractAvailableTools(params);
+    const availableTools = recordInputs ? extractAvailableTools(params) : undefined;
     if (availableTools) {
       attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
     }
@@ -139,14 +144,19 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
-    const requestAttributes = extractRequestAttributes(args, operationName);
+    const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
 
     const params = args[0] as Record<string, unknown> | undefined;
     const isStreamRequested = params && typeof params === 'object' && params.stream === true;
+    const client = getClient();
 
     const spanConfig = {
-      name: `${operationName} ${model}`,
+      // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
+      name:
+        model !== 'unknown' || !(client && hasSpanStreamingEnabled(client))
+          ? `${operationName} ${model}`
+          : operationName,
       op: getGenAiSpanOp(operationName),
       attributes: requestAttributes as Record<string, SpanAttributeValue>,
     };
@@ -172,20 +182,13 @@ function instrumentMethod<T extends unknown[], R>(
             ) as unknown as R;
           } catch (error) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.openai.stream',
-                data: { function: methodPath },
-              },
-            });
             span.end();
             throw error;
           }
         })();
       });
 
-      return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.openai');
+      return wrapPromiseWithMethods(originalResult, instrumentedPromise);
     }
 
     // Non-streaming
@@ -199,25 +202,13 @@ function instrumentMethod<T extends unknown[], R>(
         addRequestAttributes(span, params, operationName);
       }
 
-      return originalResult.then(
-        result => {
-          addResponseAttributes(span, result, options.recordOutputs);
-          return result;
-        },
-        error => {
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: 'auto.ai.openai',
-              data: { function: methodPath },
-            },
-          });
-          throw error;
-        },
-      );
+      return originalResult.then(result => {
+        addResponseAttributes(span, result, options.recordOutputs);
+        return result;
+      });
     });
 
-    return wrapPromiseWithMethods(originalResult, instrumentedPromise, 'auto.ai.openai');
+    return wrapPromiseWithMethods(originalResult, instrumentedPromise);
   };
 }
 

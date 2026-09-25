@@ -3,12 +3,20 @@
 /* eslint-disable import/export */
 import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
 import type { EventProcessor } from '@sentry/core';
-import { applySdkMetadata, debug, getClient, getGlobalScope, getRootSpan, GLOBAL_OBJ } from '@sentry/core';
+import {
+  applySdkMetadata,
+  debug,
+  getClient,
+  getGlobalScope,
+  getRootSpan,
+  getVercelEnv,
+  GLOBAL_OBJ,
+} from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
-import { getVercelEnv } from '../common/getVercelEnv';
+import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
 import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
@@ -20,13 +28,14 @@ import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
+import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
 
-// Explicitly re-export so it is statically detectable by turbopack
-export { pinoIntegration } from '@sentry/node';
+// Explicitly re-export so these are statically detectable by turbopack
+export { pinoIntegration, vercelAIIntegration } from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
@@ -133,11 +142,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
+  customDefaultIntegrations.push(nextjsUseCacheIntegration());
+
   // Detect if running on OpenNext/Cloudflare and get runtime config
   const cloudflareConfig = getCloudflareRuntimeConfig();
 
   const opts: NodeOptions = {
-    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv() || process.env.NODE_ENV,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
     // Next.js emits its own OpenTelemetry spans, so it defaults to registering the Sentry tracer
@@ -201,7 +212,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     }
   });
 
-  client?.on('spanStart', handleOnSpanStart);
+  client?.on('spanStart', span => handleOnSpanStart(span, client));
 
   // Normalize name/op/source/status on the request root span at span end, before it is serialized into
   // a transaction event (legacy) or streamed span JSON. Running on the live span means both lifecycles
@@ -237,6 +248,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
         if (isPostponeError) {
           // Postpone errors are used for partial-pre-rendering (PPR)
+          return null;
+        }
+
+        if (isPrerenderControlFlowError(originalException)) {
+          // Next.js aborts prerenders by rejecting the promises it handed out (e.g. `fetch()` under Cache
+          // Components) and throws to bail out of static rendering. These never reach the user, so drop them
+          // here as well - the wrappers cannot cover every path they escape through.
           return null;
         }
 

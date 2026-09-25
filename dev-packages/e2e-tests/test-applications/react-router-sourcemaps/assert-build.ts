@@ -23,32 +23,35 @@ function getClientChunks(): string[] {
 const chunks = getClientChunks();
 assert.ok(chunks.length > 0, `Expected at least one client chunk in ${CLIENT_ASSETS_DIR}`);
 
-// 1. Every chunk carries exactly one debug ID.
+// 1. No chunk carries more than one debug ID.
 //
 // Two injections per chunk is the failure mode of
 // https://github.com/getsentry/sentry-javascript/issues/22929: both snippets run at
 // runtime, `applyDebugIds` flattens them to a single filename, and the last one wins -
 // which is the CLI's, the one with no uploaded artifact bundle. Frames arrive minified.
+//
+// The other half - that a chunk which *should* carry one actually does - is asserted in
+// step 3. The CLI only injects into JS it can pair with a source map, so chunks Vite emits
+// without one (e.g. the route manifest) legitimately carry none, and which chunks those are
+// is only known from the upload requests: the maps are deleted from disk after upload.
 const injectedDebugIds = new Map<string, string>();
 
 for (const chunk of chunks) {
   const code = fs.readFileSync(chunk, 'utf-8');
   const ids = [...code.matchAll(DEBUG_ID_ASSIGNMENT)].map(match => match[1] as string);
 
-  // Exactly one, not "at most one": zero would mean injection silently skipped a chunk,
-  // which leaves its frames unresolvable just as surely as injecting twice does.
-  assert.equal(
-    ids.length,
-    1,
-    `Expected exactly one debug ID in ${chunk}, found ${ids.length}: ${JSON.stringify([...new Set(ids)])}. ` +
-      'More than one means debug IDs were injected twice (Vite plugin *and* sentryOnBuildEnd); ' +
-      'none means injection skipped this chunk.',
+  assert.ok(
+    ids.length <= 1,
+    `Expected at most one debug ID in ${chunk}, found ${ids.length}: ${JSON.stringify([...new Set(ids)])}. ` +
+      'More than one means debug IDs were injected twice (Vite plugin *and* sentryOnBuildEnd).',
   );
 
-  injectedDebugIds.set(chunk, ids[0] as string);
+  if (ids.length === 1) {
+    injectedDebugIds.set(chunk, ids[0] as string);
+  }
 }
 
-console.log(`all ${chunks.length} client chunk(s) carry exactly one debug ID\n`);
+console.log(`no client chunk carries more than one debug ID (${injectedDebugIds.size}/${chunks.length} carry one)\n`);
 
 const requests = loadMockServerResults();
 const bundles = getArtifactBundles(requests);
@@ -84,10 +87,18 @@ assert.ok(uploadedDebugIds.size > 0, 'Expected at least one uploaded JS/source m
 const uploadedJsFiles = new Set(debugIdPairs.map(pair => path.basename(pair.jsUrl)));
 let crossCheckedChunks = 0;
 
-for (const [chunk, injectedDebugId] of injectedDebugIds) {
+for (const chunk of chunks) {
   if (!uploadedJsFiles.has(path.basename(chunk))) {
     continue;
   }
+
+  const injectedDebugId = injectedDebugIds.get(chunk);
+  // Its map reached Sentry, so a missing debug ID here means injection skipped a chunk it
+  // should have covered - the frames stay minified just as surely as a double injection.
+  assert.ok(
+    injectedDebugId,
+    `Expected exactly one debug ID in ${chunk}, found none, even though its source map was uploaded.`,
+  );
 
   const debugId = injectedDebugId.toLowerCase();
   assert.ok(

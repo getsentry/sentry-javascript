@@ -4,7 +4,6 @@ import { cleanupChildProcesses, createCjsTests, createEsmAndCjsTests } from '../
 import { startMysqlTestServer } from './mysql-test-server';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
-import { isOrchestrionEnabled } from '../../../utils';
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 describe('mysql auto instrumentation', () => {
@@ -55,7 +54,7 @@ describe('mysql auto instrumentation', () => {
 
     return {
       transaction: 'Test Transaction',
-      spans: expect.arrayContaining([span('SELECT 1 + 1 AS solution'), span('SELECT NOW()')]),
+      spans: expect.arrayContaining([span('SELECT ? + ? AS solution'), span('SELECT NOW()')]),
       ...(override ?? {}),
     };
   }
@@ -145,7 +144,7 @@ describe('mysql auto instrumentation', () => {
                 transaction: (transaction): void => {
                   const transactionSpanId = transaction.contexts?.trace?.span_id;
                   const spans = transaction.spans ?? [];
-                  const mysqlSpan = spans.find(span => span.description === 'SELECT 1 + 1 AS solution');
+                  const mysqlSpan = spans.find(span => span.description === 'SELECT ? + ? AS solution');
                   const listenerSpan = spans.find(span => span.description === 'listener-child');
                   const innerSpan = spans.find(span => span.description === 'inner-span');
 
@@ -184,6 +183,8 @@ describe('mysql auto instrumentation', () => {
       expect(dbSpans.length).toBe(2);
 
       const COMMON_ATTRIBUTES = {
+        // These spans belong to a script with no incoming request, so there is nothing to judge.
+        'sentry.is_localhost': { type: 'boolean', value: false },
         'db.connection_string': {
           type: 'string',
           value: expect.stringMatching(/^jdbc:mysql:\/\/localhost:.*/),
@@ -218,7 +219,7 @@ describe('mysql auto instrumentation', () => {
         },
         'sentry.origin': {
           type: 'string',
-          value: isOrchestrionEnabled() ? 'auto.db.mysql' : 'auto.db.otel.mysql',
+          value: 'auto.db.mysql',
         },
         'sentry.release': {
           type: 'string',
@@ -262,10 +263,14 @@ describe('mysql auto instrumentation', () => {
             ...COMMON_ATTRIBUTES,
             'db.query.text': {
               type: 'string',
-              value: 'SELECT 1 + 1 AS solution',
+              value: 'SELECT ? + ? AS solution',
+            },
+            'db.query.summary': {
+              type: 'string',
+              value: 'SELECT',
             },
           },
-          name: 'SELECT 1 + 1 AS solution',
+          name: 'SELECT',
           ...COMMON_SPAN_PROPS,
         },
         {
@@ -275,8 +280,12 @@ describe('mysql auto instrumentation', () => {
               type: 'string',
               value: 'SELECT NOW()',
             },
+            'db.query.summary': {
+              type: 'string',
+              value: 'SELECT',
+            },
           },
-          name: 'SELECT NOW()',
+          name: 'SELECT',
           ...COMMON_SPAN_PROPS,
         },
       ]);

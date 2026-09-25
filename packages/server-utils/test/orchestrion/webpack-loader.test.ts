@@ -48,6 +48,7 @@ describe('orchestrion webpack/Turbopack loader', () => {
     root = mkdtempSync(join(tmpdir(), 'orch-webpack-loader-'));
     makePackage(root, 'mysql', '2.18.1');
     makePackage(root, 'left-pad', '1.3.0');
+    makePackage(root, '@mastra/core', '1.63.2');
   });
 
   afterAll(() => {
@@ -62,7 +63,7 @@ describe('orchestrion webpack/Turbopack loader', () => {
     expect(error).toBeNull();
     expect(code).toContain('orchestrion:mysql:query');
     expect(code).toMatch(
-      /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils\/orchestrion["']\)/,
+      /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils["']\)/,
     );
     expect(code).toContain('orchestrionModuleInjected("mysql", mysqlIntegration)');
   });
@@ -70,24 +71,24 @@ describe('orchestrion webpack/Turbopack loader', () => {
   it('honors a fixed importSpecifier option', () => {
     const { code } = runLoader(join(root, 'node_modules/mysql/lib/Connection.js'), MYSQL_CONNECTION_SOURCE, {
       instrumentations,
-      importSpecifier: 'my-custom-orchestrion-helper',
+      importSpecifier: 'my-custom-server-utils',
     });
 
-    expect(code).toContain('require("my-custom-orchestrion-helper")');
-    expect(code).not.toContain('require("@sentry/server-utils/orchestrion")');
+    expect(code).toContain('require("my-custom-server-utils")');
+    expect(code).not.toContain('require("@sentry/server-utils")');
   });
 
   it('derives a per-file relative specifier from importHelperPath (Turbopack)', () => {
     // Turbopack rejects absolute-path imports and bare specifiers that don't
-    // resolve from the importing file, so the snippet must import relatively.
-    const importHelperPath = join(root, 'node_modules/@sentry/server-utils/build/cjs/orchestrion/index.js');
+    // resolve from the importing file, so the snippet import must be relative.
+    const importHelperPath = join(root, 'node_modules/@sentry/server-utils/build/cjs/index.js');
     const { code } = runLoader(join(root, 'node_modules/mysql/lib/Connection.js'), MYSQL_CONNECTION_SOURCE, {
       instrumentations,
       importHelperPath,
     });
 
-    expect(code).toContain('require("../../@sentry/server-utils/build/cjs/orchestrion/index.js")');
-    expect(code).not.toContain('require("@sentry/server-utils/orchestrion")');
+    expect(code).toContain('require("../../@sentry/server-utils/build/cjs/index.js")');
+    expect(code).not.toContain('require("@sentry/server-utils")');
   });
 
   it('passes through files of packages that are not instrumented', () => {
@@ -102,6 +103,40 @@ describe('orchestrion webpack/Turbopack loader', () => {
     const source = 'export const app = 1;\n';
     const { code } = runLoader('/app/src/index.js', source, { instrumentations });
 
+    expect(code).toBe(source);
+  });
+
+  it('transforms the hashed `@mastra/core` chunk that contains `class Mastra`', () => {
+    // `class Mastra` lives only in tsdown's content-hashed file; the stable
+    // `dist/mastra/index.js` is a one-line re-export and cannot be wrapped.
+    const hashed = join(root, 'node_modules/@mastra/core/dist/mastra-RpLTNzL-.js');
+    const source = 'var Mastra = class Mastra {\n  constructor() {}\n};\nexport { Mastra };\n';
+    const { error, code } = runLoader(hashed, source, { instrumentations });
+
+    expect(error).toBeNull();
+    expect(code).toContain('orchestrion:@mastra/core:mastraConstructor');
+    expect(code).toContain('import {orchestrionModuleInjected, mastraIntegration} from "@sentry/server-utils"');
+    expect(code).toContain('orchestrionModuleInjected("@mastra/core", mastraIntegration)');
+  });
+
+  it('transforms a hashed `.mjs` `@mastra/core` chunk that contains `class Mastra`', () => {
+    const hashed = join(root, 'node_modules/@mastra/core/dist/mastra-RpLTNzL-.mjs');
+    const source = 'var Mastra = class Mastra {\n  constructor() {}\n};\nexport { Mastra };\n';
+    const { error, code } = runLoader(hashed, source, { instrumentations });
+
+    expect(error).toBeNull();
+    expect(code).toContain('orchestrion:@mastra/core:mastraConstructor');
+    expect(code).toContain('import {orchestrionModuleInjected, mastraIntegration} from "@sentry/server-utils"');
+    expect(code).toContain('orchestrionModuleInjected("@mastra/core", mastraIntegration)');
+  });
+
+  it('does not transform the stable Mastra re-export that does not contain the class', () => {
+    const source = 'import { t as Mastra } from "../mastra-RpLTNzL-.js";\nexport { Mastra };\n';
+    const { error, code } = runLoader(join(root, 'node_modules/@mastra/core/dist/mastra/index.js'), source, {
+      instrumentations,
+    });
+
+    expect(error).toBeNull();
     expect(code).toBe(source);
   });
 });

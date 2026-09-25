@@ -1,5 +1,6 @@
 import type { Envelope, Event, Log } from '@sentry/core';
-import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
+import { createStackParser, forEachEnvelopeItem } from '@sentry/core';
+import { nodeStackLineParser } from '@sentry/core/server';
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
 import { DenoClient, getCurrentScope, getDefaultIntegrations, logger, metrics, Scope } from '../build/esm/index.js';
@@ -68,7 +69,7 @@ function expectCaptureExceptionEvent(event: Event | undefined): void {
         filename: 'app:///test/mod.test.ts',
         function: '?',
         in_app: true,
-        lineno: 44,
+        lineno: 45,
       },
       {
         colno: 12,
@@ -76,7 +77,7 @@ function expectCaptureExceptionEvent(event: Event | undefined): void {
         filename: 'app:///test/mod.test.ts',
         function: 'something',
         in_app: true,
-        lineno: 41,
+        lineno: 42,
       },
     ],
   );
@@ -109,6 +110,21 @@ Deno.test('captureMessage twice', async t => {
 
   await delay(200);
   await assertSnapshot(t, ev);
+});
+
+Deno.test('records console calls as breadcrumbs', async () => {
+  let ev: Event | undefined;
+  const client = getTestClient(event => {
+    ev = event;
+  });
+
+  // eslint-disable-next-line no-console
+  console.log('console breadcrumb');
+  client.captureMessage('Message with console breadcrumb');
+
+  await delay(200);
+  const consoleBreadcrumb = ev?.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'console');
+  assertEquals(consoleBreadcrumb?.message, 'console breadcrumb');
 });
 
 Deno.test('metrics.count captures a counter metric', async () => {

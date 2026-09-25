@@ -34,6 +34,7 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   extraErrorDataIntegration: 'extraerrordata',
   reportingObserverIntegration: 'reportingobserver',
   userTimingIntegration: 'usertiming',
+  interactionsIntegration: 'interactions',
   feedbackIntegration: 'feedback',
   moduleMetadataIntegration: 'modulemetadata',
   graphqlClientIntegration: 'graphqlclient',

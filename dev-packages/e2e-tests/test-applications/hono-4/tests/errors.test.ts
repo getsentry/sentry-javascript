@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import {
+  waitForError,
+  waitForStreamedSpan,
+  getSpanOp,
+  collectStreamedSpansUntilSegment,
+} from '@sentry-internal/test-utils';
 import { APP_NAME, RUNTIME } from './constants';
 
 test.describe('route handler errors', () => {
@@ -8,17 +13,18 @@ test.describe('route handler errors', () => {
       return event.exception?.values?.[0]?.value === 'This is a test error for Sentry!';
     });
 
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/error/');
-    });
+    const segmentPromise = waitForStreamedSpan(
+      APP_NAME,
+      segment => segment.is_segment && getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/error/'),
+    );
 
     const response = await fetch(`${baseURL}/error/test-cause`);
     expect(response.status).toBe(500);
 
     const errorEvent = await errorPromise;
-    const transactionEvent = await transactionPromise;
+    const segmentEvent = await segmentPromise;
 
-    expect(transactionEvent.transaction).toBe('GET /error/:cause');
+    expect(segmentEvent.name).toBe('GET /error/:cause');
 
     expect(errorEvent.exception?.values).toHaveLength(1);
 
@@ -34,7 +40,7 @@ test.describe('route handler errors', () => {
     expect(errorEvent.request?.url).toContain('/error/test-cause');
     expect(errorEvent.request?.headers).toBeDefined();
 
-    expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
+    expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentEvent?.trace_id);
   });
 
   test('captures three linked errors', async ({ baseURL }) => {
@@ -110,11 +116,14 @@ test.describe('HTTPException errors', () => {
         return false;
       });
 
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return RUNTIME === 'cloudflare'
-          ? event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/')
-          : event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /';
-      });
+      const segmentPromise = waitForStreamedSpan(
+        APP_NAME,
+        segment =>
+          segment.is_segment &&
+          (RUNTIME === 'cloudflare'
+            ? getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/http-exception/')
+            : getSpanOp(segment) === 'http.server' && segment.name === 'GET /'),
+      );
 
       const response = await fetch(`${baseURL}/http-exception/${code}`, { redirect: 'manual' });
       expect(response.status).toBe(code);
@@ -124,10 +133,10 @@ test.describe('HTTPException errors', () => {
         await fetch(`${baseURL}/`);
       }
 
-      const transaction = await transactionPromise;
+      const segment = await segmentPromise;
 
       if (RUNTIME === 'cloudflare') {
-        expect(transaction.transaction).toBe('GET /http-exception/:code');
+        expect(segment.name).toBe('GET /http-exception/:code');
       }
 
       expect(errorEventOccurred).toBe(false);
@@ -145,11 +154,14 @@ test.describe('HTTPException errors', () => {
         return false;
       });
 
-      const transactionPromise = waitForTransaction(APP_NAME, event => {
-        return RUNTIME === 'cloudflare'
-          ? event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/http-exception/')
-          : event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /';
-      });
+      const segmentPromise = waitForStreamedSpan(
+        APP_NAME,
+        segment =>
+          segment.is_segment &&
+          (RUNTIME === 'cloudflare'
+            ? getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/http-exception/')
+            : getSpanOp(segment) === 'http.server' && segment.name === 'GET /'),
+      );
 
       const response = await fetch(`${baseURL}/http-exception/${code}`);
       expect(response.status).toBe(code);
@@ -159,10 +171,10 @@ test.describe('HTTPException errors', () => {
         await fetch(`${baseURL}/`);
       }
 
-      const transaction = await transactionPromise;
+      const segment = await segmentPromise;
 
       if (RUNTIME === 'cloudflare') {
-        expect(transaction.transaction).toBe('GET /http-exception/:code');
+        expect(segment.name).toBe('GET /http-exception/:code');
       }
 
       expect(errorEventOccurred).toBe(false);
@@ -176,12 +188,11 @@ test.describe('middleware errors', () => {
       return event.exception?.values?.[0]?.value === 'Service Unavailable from middleware';
     });
 
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return (
-        event.contexts?.trace?.op === 'http.server' &&
-        !!event.transaction?.includes('/test-errors/middleware-http-exception')
-      );
-    });
+    const segmentPromise = collectStreamedSpansUntilSegment(
+      APP_NAME,
+      segment =>
+        getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/test-errors/middleware-http-exception'),
+    );
 
     const response = await fetch(`${baseURL}/test-errors/middleware-http-exception`);
     expect(response.status).toBe(503);
@@ -192,9 +203,17 @@ test.describe('middleware errors', () => {
     expect(errorEvent.exception?.values?.[0]?.mechanism?.handled).toBe(false);
     expect(errorEvent.transaction).toBe('GET /test-errors/middleware-http-exception');
 
-    const transaction = await transactionPromise;
-    const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware');
-    expect(middlewareSpan?.status).toBe('internal_error');
+    const segmentSpans = await segmentPromise;
+    const segment = segmentSpans.find(
+      segment =>
+        segment.is_segment &&
+        getSpanOp(segment) === 'http.server' &&
+        !!segment.name?.includes('/test-errors/middleware-http-exception'),
+    )!;
+    const middlewareSpan = segmentSpans
+      .filter(span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id)
+      .find(s => getSpanOp(s) === 'middleware');
+    expect(middlewareSpan?.status).toBe('error');
   });
 
   test('does not capture 4xx HTTPException thrown in middleware', async ({ baseURL }) => {
@@ -207,14 +226,13 @@ test.describe('middleware errors', () => {
       return false;
     });
 
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
+    const segmentPromise = collectStreamedSpansUntilSegment(APP_NAME, segment => {
       if (RUNTIME === 'cloudflare') {
         return (
-          event.contexts?.trace?.op === 'http.server' &&
-          !!event.transaction?.includes('/test-errors/middleware-http-exception-4xx')
+          getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/test-errors/middleware-http-exception-4xx')
         );
       }
-      return event.contexts?.trace?.op === 'http.server' && event.transaction === 'GET /';
+      return getSpanOp(segment) === 'http.server' && segment.name === 'GET /';
     });
 
     const response = await fetch(`${baseURL}/test-errors/middleware-http-exception-4xx`);
@@ -224,13 +242,24 @@ test.describe('middleware errors', () => {
       await fetch(`${baseURL}/`);
     }
 
-    const transaction = await transactionPromise;
+    const segmentSpans = await segmentPromise;
+    const segment = segmentSpans.find(segment => {
+      if (!segment.is_segment) return false;
+      if (RUNTIME === 'cloudflare') {
+        return (
+          getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/test-errors/middleware-http-exception-4xx')
+        );
+      }
+      return getSpanOp(segment) === 'http.server' && segment.name === 'GET /';
+    })!;
 
     if (RUNTIME === 'cloudflare') {
-      expect(transaction.transaction).toBe('GET /test-errors/middleware-http-exception-4xx');
+      expect(segment.name).toBe('GET /test-errors/middleware-http-exception-4xx');
 
-      const middlewareSpan = (transaction.spans || []).find(s => s.op === 'middleware');
-      expect(middlewareSpan?.status).not.toBe('internal_error');
+      const middlewareSpan = segmentSpans
+        .filter(span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id)
+        .find(s => getSpanOp(s) === 'middleware');
+      expect(middlewareSpan?.status).not.toBe('error');
     }
 
     expect(errorEventOccurred).toBe(false);
@@ -243,17 +272,19 @@ test.describe('nested sub-app errors', () => {
       return event.exception?.values?.[0]?.value === 'Nested child app error';
     });
 
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/nested/child/error');
-    });
+    const segmentPromise = waitForStreamedSpan(
+      APP_NAME,
+      segment =>
+        segment.is_segment && getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/nested/child/error'),
+    );
 
     const response = await fetch(`${baseURL}/test-errors/nested/child/error`);
     expect(response.status).toBe(500);
 
     const errorEvent = await errorPromise;
-    const transaction = await transactionPromise;
+    const segment = await segmentPromise;
 
-    expect(transaction.transaction).toBe('GET /test-errors/nested/child/error');
+    expect(segment.name).toBe('GET /test-errors/nested/child/error');
 
     expect(errorEvent.exception?.values?.[0]?.value).toBe('Nested child app error');
     expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
@@ -272,9 +303,11 @@ test.describe('custom onError handler', () => {
       return event.exception?.values?.[0]?.value === 'Error caught by custom onError';
     });
 
-    const transactionPromise = waitForTransaction(APP_NAME, event => {
-      return event.contexts?.trace?.op === 'http.server' && !!event.transaction?.includes('/custom-on-error/fail');
-    });
+    const segmentPromise = waitForStreamedSpan(
+      APP_NAME,
+      segment =>
+        segment.is_segment && getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/custom-on-error/fail'),
+    );
 
     const response = await fetch(`${baseURL}/test-errors/custom-on-error/fail`);
     expect(response.status).toBe(500);
@@ -283,9 +316,9 @@ test.describe('custom onError handler', () => {
     expect(body).toContain('Handled by onError');
 
     const errorEvent = await errorPromise;
-    const transaction = await transactionPromise;
+    const segment = await segmentPromise;
 
-    expect(transaction.transaction).toBe('GET /test-errors/custom-on-error/fail');
+    expect(segment.name).toBe('GET /test-errors/custom-on-error/fail');
 
     expect(errorEvent.exception?.values?.[0]?.value).toBe('Error caught by custom onError');
     expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({

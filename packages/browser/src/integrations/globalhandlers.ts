@@ -1,4 +1,4 @@
-import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core/browser';
+import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core';
 import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
@@ -6,14 +6,14 @@ import {
   debug,
   defineIntegration,
   getClient,
-  getLocationHref,
   isPrimitive,
   isString,
   stripDataUrlContent,
   UNKNOWN_FUNCTION,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { BrowserClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
+import { getLocationHref } from '@sentry/browser-utils';
 import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
 
@@ -54,7 +54,7 @@ function _installGlobalOnErrorHandler(client: Client): void {
   addGlobalErrorInstrumentationHandler(data => {
     const { stackParser, attachStacktrace } = getOptions();
 
-    if (getClient() !== client || shouldIgnoreOnError()) {
+    if (getClient() !== client || shouldIgnoreOnError(data)) {
       return;
     }
 
@@ -156,7 +156,10 @@ export function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
   };
 }
 
-function _enhanceEventWithInitialFrame(
+/**
+ * Adds a frame built from the error location when the event has none.
+ */
+export function _enhanceEventWithInitialFrame(
   event: Event,
   url: string | undefined,
   lineno: number | undefined,

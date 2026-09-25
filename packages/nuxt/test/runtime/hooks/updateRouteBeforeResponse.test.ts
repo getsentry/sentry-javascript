@@ -1,9 +1,5 @@
-import {
-  getActiveSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SentrySpan,
-} from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_OP, SentrySpan } from '@sentry/core';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { updateRouteBeforeResponse } from '../../../src/runtime/hooks/updateRouteBeforeResponse';
 
@@ -44,7 +40,7 @@ describe('updateRouteBeforeResponse', () => {
       },
     } as never);
 
-    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
     expect(mockRootSpan.setAttribute).toHaveBeenCalledWith('http.route', '/users/:id');
     expect(mockRootSpan.setAttribute).toHaveBeenCalledWith('params.id', '123');
     expect(mockRootSpan.setAttribute).toHaveBeenCalledWith('url.path.parameter.id', '123');
@@ -66,7 +62,7 @@ describe('updateRouteBeforeResponse', () => {
       },
     } as never);
 
-    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
     expect(mockRootSpan.setAttribute).toHaveBeenCalledWith('http.route', '/users/:id');
     expect(mockRootSpan.setAttribute).toHaveBeenCalledWith('params.id', '123');
     expect(mockRootSpan.setAttribute).toHaveBeenCalledWith('url.path.parameter.id', '123');

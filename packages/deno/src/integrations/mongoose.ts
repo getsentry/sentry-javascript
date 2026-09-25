@@ -1,4 +1,4 @@
-import { mongooseIntegration } from '@sentry/server-utils/orchestrion';
+import { mongooseIntegration } from '@sentry/server-utils';
 
 /**
  * Create spans for `mongoose` queries under Deno. Included in the default

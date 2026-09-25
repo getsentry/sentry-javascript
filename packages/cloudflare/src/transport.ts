@@ -8,7 +8,13 @@ export interface CloudflareTransportOptions extends BaseTransportOptions {
   fetchOptions?: RequestInit;
 }
 
-const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
+/**
+ * How many payloads the buffer holds before it starts rejecting new ones.
+ *
+ * With `cacheClient` a single client is reused across an isolate's invocations, so one buffer now has to absorb
+ * the payloads of many invocations rather than one. 256 is the size that held up under load testing that scenario.
+ */
+const DEFAULT_TRANSPORT_BUFFER_SIZE = 256;
 
 /**
  * This is a modified promise buffer that collects tasks until drain is called.
@@ -22,6 +28,12 @@ export class IsolatedPromiseBuffer {
   // We just have this field because the promise buffer interface requires it.
   // If we ever remove it from the interface we should also remove it here.
   public $: Array<PromiseLike<TransportMakeRequestResponse>>;
+
+  /**
+   * Abort signal of the drain that is starting its requests. It is set only while `drain()` runs the task
+   * producers, so a request reads the signal of the drain that sends it.
+   */
+  public drainSignal: AbortSignal | undefined;
 
   private _taskProducers: (() => PromiseLike<TransportMakeRequestResponse>)[];
 
@@ -52,9 +64,21 @@ export class IsolatedPromiseBuffer {
     const oldTaskProducers = [...this._taskProducers];
     this._taskProducers = [];
 
+    const drainController = new AbortController();
+    this.drainSignal = drainController.signal;
+    let tasks: PromiseLike<TransportMakeRequestResponse>[];
+    try {
+      tasks = oldTaskProducers.map(taskProducer => taskProducer());
+    } finally {
+      this.drainSignal = undefined;
+    }
+
     return new Promise(resolve => {
       const timer = setTimeout(() => {
         if (timeout && timeout > 0) {
+          // Requests still pending when the drain times out are aborted. Otherwise Cloudflare keeps them
+          // until it cancels the invocation's `waitUntil` work and logs a warning.
+          drainController.abort();
           resolve(false);
         }
       }, timeout);
@@ -62,8 +86,8 @@ export class IsolatedPromiseBuffer {
       // This cannot reject
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       Promise.all(
-        oldTaskProducers.map(taskProducer =>
-          taskProducer().then(null, () => {
+        tasks.map(task =>
+          task.then(null, () => {
             // catch all failed requests
           }),
         ),
@@ -80,12 +104,20 @@ export class IsolatedPromiseBuffer {
  * Creates a Transport that uses the native fetch API to send events to Sentry.
  */
 export function makeCloudflareTransport(options: CloudflareTransportOptions): Transport {
+  const buffer = new IsolatedPromiseBuffer(options.bufferSize);
+
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+    const drainSignal = buffer.drainSignal;
+    const callerSignal = options.fetchOptions?.signal ?? undefined;
+    const signal =
+      drainSignal && callerSignal ? AbortSignal.any([drainSignal, callerSignal]) : (drainSignal ?? callerSignal);
+
     const requestOptions: RequestInit = {
       body: request.body as BodyInit,
       method: 'POST',
       headers: options.headers,
       ...options.fetchOptions,
+      ...(signal ? { signal } : {}),
     };
 
     return suppressTracing(() => {
@@ -112,5 +144,5 @@ export function makeCloudflareTransport(options: CloudflareTransportOptions): Tr
     });
   }
 
-  return createTransport(options, makeRequest, new IsolatedPromiseBuffer(options.bufferSize));
+  return createTransport(options, makeRequest, buffer);
 }

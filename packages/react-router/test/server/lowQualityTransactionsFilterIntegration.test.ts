@@ -21,7 +21,7 @@ describe('lowQualityTransactionsFilterIntegration', () => {
       /GET \/node_modules\//,
       /GET \/favicon\.ico/,
       /GET \/@id\//,
-      { attributes: { 'http.target': /\/__manifest/ } },
+      { attributes: { 'url.path': /\/__manifest/ } },
     ]);
   });
 
@@ -31,7 +31,7 @@ describe('lowQualityTransactionsFilterIntegration', () => {
       /GET \/node_modules\//,
       /GET \/favicon\.ico/,
       /GET \/@id\//,
-      { attributes: { 'http.target': /\/__manifest/ } },
+      { attributes: { 'url.path': /\/__manifest/ } },
     ]);
   });
 
@@ -40,7 +40,7 @@ describe('lowQualityTransactionsFilterIntegration', () => {
       ['node_modules requests', { description: 'GET /node_modules/some-package/index.js' }],
       ['favicon.ico requests', { description: 'GET /favicon.ico' }],
       ['@id/ requests', { description: 'GET /@id/some-id' }],
-      ['manifest requests', { description: 'GET *', attributes: { 'http.target': '/__manifest?paths=foo' } }],
+      ['manifest requests', { description: 'GET *', attributes: { 'url.path': '/__manifest?paths=foo' } }],
     ])('%s', (_label, span) => {
       const ignoreSpans = setupIntegrationAndGetIgnoreSpans();
       expect(shouldIgnoreSpan({ op: 'http.server', ...span }, ignoreSpans)).toBe(true);

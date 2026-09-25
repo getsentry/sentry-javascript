@@ -17,9 +17,9 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
-import { getStringAttributeValue, isOrchestrionEnabled } from '../../../../utils';
+import { getStringAttributeValue } from '../../../../utils';
 
-const expectedOrigin = isOrchestrionEnabled() ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+const expectedOrigin = 'auto.vercelai.channel';
 
 describe('Vercel AI integration (v5)', () => {
   afterAll(() => {

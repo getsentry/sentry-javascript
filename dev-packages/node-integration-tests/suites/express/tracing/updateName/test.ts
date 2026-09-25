@@ -1,5 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
@@ -15,11 +14,10 @@ describe('express tracing - updateName', () => {
     test('calling just `span.updateName` updates the final name in express', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'new-name',
-            transaction_info: {
-              source: 'custom',
-            },
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+            expect(serverSpan?.name).toBe('new-name');
+            expect(serverSpan?.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toEqual({ type: 'string', value: 'custom' });
           },
         })
         .start();
@@ -31,21 +29,15 @@ describe('express tracing - updateName', () => {
     test('calling `Sentry.updateSpanName` updates the final name and source in express', async () => {
       const runner = createRunner()
         .expect({
-          transaction: txnEvent => {
-            expect(txnEvent).toMatchObject({
-              transaction: 'new-name',
-              transaction_info: {
-                source: 'custom',
-              },
-              contexts: {
-                trace: {
-                  op: 'http.server',
-                  data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
-                },
-              },
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+            expect(serverSpan).toMatchObject({
+              name: 'new-name',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+                [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'custom' },
+              }),
             });
-            // ensure we delete the internal attribute once we're done with it
-            expect(txnEvent.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]).toBeUndefined();
           },
         })
         .start();
@@ -57,21 +49,15 @@ describe('express tracing - updateName', () => {
     test('calling `Sentry.updateSpanName` and setting source subsequently updates the final name and sets correct source', async () => {
       const runner = createRunner()
         .expect({
-          transaction: txnEvent => {
-            expect(txnEvent).toMatchObject({
-              transaction: 'new-name',
-              transaction_info: {
-                source: 'component',
-              },
-              contexts: {
-                trace: {
-                  op: 'http.server',
-                  data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component' },
-                },
-              },
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+            expect(serverSpan).toMatchObject({
+              name: 'new-name',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+                [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'component' },
+              }),
             });
-            // ensure we delete the internal attribute once we're done with it
-            expect(txnEvent.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]).toBeUndefined();
           },
         })
         .start();

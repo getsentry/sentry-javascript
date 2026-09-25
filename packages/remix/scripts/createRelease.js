@@ -1,10 +1,10 @@
 /* eslint-disable no-console */
-const SentryCli = require('@sentry/cli');
+const { createSentrySDK } = require('sentry');
 
 const { deleteSourcemaps } = require('./deleteSourcemaps');
 
 async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
-  const sentry = new SentryCli(null, {
+  const sentry = createSentrySDK({
     url: argv.url,
     org: argv.org,
     project: argv.project,
@@ -14,7 +14,7 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
 
   if (!argv.release) {
     try {
-      release = await sentry.releases.proposeVersion();
+      release = (await sentry.release['propose-version']()).version;
     } catch (error) {
       console.warn('[sentry] Failed to propose a release version.');
       console.warn('[sentry] You can specify a release version with `--release` flag.');
@@ -25,22 +25,21 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
     release = argv.release;
   }
 
-  await sentry.releases.new(release);
+  await sentry.release.create({ orgVersion: release });
 
   try {
-    await sentry.releases.uploadSourceMaps(release, {
+    await sentry.sourcemap.upload({
+      directory: BUILD_PATH,
+      release,
       urlPrefix: URL_PREFIX,
-      include: [BUILD_PATH],
-      // oxlint-disable-next-line typescript/no-deprecated -- kept for older Sentry CLI versions that still honor it
-      useArtifactBundle: !argv.disableDebugIds,
-      live: 'rejectOnError',
+      noRewrite: argv.disableDebugIds,
     });
   } catch {
     console.warn('[sentry] Failed to upload sourcemaps.');
   }
 
   try {
-    await sentry.releases.finalize(release);
+    await sentry.release.finalize({ orgVersion: release });
   } catch {
     console.warn('[sentry] Failed to finalize release.');
   }

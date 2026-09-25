@@ -1,6 +1,6 @@
 {
   "name": "@sentry/deno",
-  "version": "10.67.0",
+  "version": "11.0.0",
   "description": "Official Sentry SDK for Deno",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
@@ -28,8 +28,10 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/core": "10.67.0",
-    "@sentry/server-utils": "10.67.0"
+    "@sentry/conventions": "^0.24.0",
+    "@sentry/core": "11.0.0",
+    "@sentry/server-runtime-injection": "11.0.0",
+    "@sentry/server-utils": "11.0.0"
   },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",
@@ -43,6 +45,7 @@
     "prefix": "yarn deno-types",
     "prelint": "yarn deno-types",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",
@@ -61,12 +64,13 @@
     "targets": {
       "build:transpile": {
         "outputs": [
-          "{projectRoot}/build"
+          "{projectRoot}/build",
+          "!{projectRoot}/build/esm/**/*.d.ts"
         ]
       },
       "build:types": {
         "outputs": [
-          "{projectRoot}/build-types"
+          "{projectRoot}/build/esm/**/*.d.ts"
         ]
       }
     }

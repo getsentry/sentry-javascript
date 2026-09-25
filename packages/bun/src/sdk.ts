@@ -12,7 +12,6 @@ import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
-  getAutoPerformanceIntegrations,
   httpIntegration,
   init as initNode,
   modulesIntegration,
@@ -26,21 +25,19 @@ import { fetchIntegration } from './integrations/fetch';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 import { bunHttpServerIntegration } from './integrations/bunHttpServer';
+import { getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 
 /**
- * The performance integrations for bun: the OTel auto-performance set, but with
- * the orchestrion diagnostics-channel subscribers swapped in for their OTel
- * equivalents *only* when the orchestrion channels were actually injected (i.e.
- * the app was built with `@sentry/bun/plugin`). Without that, the channels
- * never fire — and the OTel versions rely on a runtime require-hook bun doesn't
- * support — so leave the auto-performance set alone.
+ * The tracing integrations for bun, added whenever spans are enabled. Most of them listen on
+ * the orchestrion diagnostics channels, which only exist when the app is built with
+ * `@sentry/bun/plugin`. Without the plugin, those integrations stay installed but create no spans.
  */
 function getPerformanceIntegrations(options: Options): Integration[] {
   if (!hasSpansEnabled(options)) {
     return [];
   }
 
-  return getAutoPerformanceIntegrations();
+  return getTracingIntegrations();
 }
 
 /** Get the default integrations for the Bun SDK, excluding performance integrations. */
@@ -64,6 +61,9 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     nodeContextIntegration(),
     modulesIntegration(),
     processSessionIntegration(),
+    // Framework-level integrations. These are not performance-only: they also handle error capture, so
+    // they are added by default rather than gated behind tracing
+    ...getErrorIntegrations(),
     // Bun Specific
     bunServerIntegration(),
     bunHttpServerIntegration(),
@@ -142,7 +142,7 @@ function _init(
   const options = {
     ...userOptions,
     platform: 'javascript',
-    runtime: { name: 'bun', version: typeof Bun !== 'undefined' ? Bun.version : 'unknown' },
+    runtime: userOptions.runtime || { name: 'bun', version: typeof Bun !== 'undefined' ? Bun.version : 'unknown' },
     serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),
   };
 

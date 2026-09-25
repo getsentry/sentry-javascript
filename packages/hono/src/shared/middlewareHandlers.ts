@@ -5,7 +5,7 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  INTERNAL_setSegmentNameSourceIfSegment,
   updateSpanName,
   type Scope,
   winterCGRequestToRequestData,
@@ -107,14 +107,11 @@ function updateSpanRouteName(isolationScope: Scope, context: Context): void {
 
   if (activeSpan) {
     activeSpan.updateName(routeName);
-    activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
     const rootSpan = getRootSpan(activeSpan);
     updateSpanName(rootSpan, routeName);
-    rootSpan.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      [HTTP_ROUTE]: route,
-    });
+    INTERNAL_setSegmentNameSourceIfSegment(rootSpan, 'route');
+    rootSpan.setAttribute(HTTP_ROUTE, route);
   }
 
   isolationScope.setTransactionName(routeName);

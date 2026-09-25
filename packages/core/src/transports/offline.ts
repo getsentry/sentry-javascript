@@ -3,6 +3,7 @@ import type { Envelope } from '../types/envelope';
 import type { InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types/transport';
 import { debug } from '../utils/debug-logger';
 import { envelopeContainsItemType } from '../utils/envelope';
+import { isThenable } from '../utils/is';
 import { safeDateNow } from '../utils/randomSafeContext';
 import { parseRetryAfterHeader } from '../utils/ratelimit';
 import { safeUnref } from '../utils/timer';
@@ -139,8 +140,15 @@ export function makeOfflineTransport<TO>(
       }
 
       try {
-        if (options.shouldSend && (await options.shouldSend(envelope)) === false) {
-          throw new Error('Envelope not sent because `shouldSend` callback returned false');
+        if (options.shouldSend) {
+          const decision = options.shouldSend(envelope);
+          // avoid extra microtask tick, as some hosts stop JS execution
+          // when the app goes to the background.
+          const shouldSend = isThenable(decision) ? await decision : decision;
+
+          if (shouldSend === false) {
+            throw new Error('Envelope not sent because `shouldSend` callback returned false');
+          }
         }
 
         const result = await transport.send(envelope);
@@ -163,7 +171,9 @@ export function makeOfflineTransport<TO>(
         retryDelay = START_DELAY;
         return result;
       } catch (e) {
-        if (await shouldQueue(envelope, e as Error, retryDelay)) {
+        // do not unnecessarily await if it's not a Promise
+        const decision = shouldQueue(envelope, e as Error, retryDelay);
+        if (isThenable(decision) ? await decision : decision) {
           // If this envelope was a retry, we want to add it to the front of the queue so it's retried again first.
           if (isRetry) {
             await store.unshift(envelope);

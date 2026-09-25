@@ -3,7 +3,7 @@ import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from '../src';
-import { getInstrumented } from '../src/instrument';
+import { _INTERNAL_wrapUnlessInstrumented, getInstrumented } from '../src/instrument';
 import { resetSdk } from './testUtils';
 
 describe('instrumentDurableObjectWithSentry', () => {
@@ -59,11 +59,11 @@ describe('instrumentDurableObjectWithSentry', () => {
       .fn()
       .mockReturnValueOnce({
         orgId: 1,
-        enableRpcTracePropagation: true,
+        cacheClient: false,
       })
       .mockReturnValueOnce({
         orgId: 2,
-        enableRpcTracePropagation: true,
+        cacheClient: false,
       });
     const testClass = class {
       method() {}
@@ -98,7 +98,10 @@ describe('instrumentDurableObjectWithSentry', () => {
     const mockEnv = {} as any;
     const initCore = vi.spyOn(SentryCore, 'initAndBind');
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
-    const options = vi.fn().mockReturnValueOnce({ orgId: 1 }).mockReturnValueOnce({ orgId: 2 });
+    const options = vi
+      .fn()
+      .mockReturnValueOnce({ orgId: 1, cacheClient: false })
+      .mockReturnValueOnce({ orgId: 2, cacheClient: false });
 
     const testClass = class {
       webSocketMessage() {}
@@ -118,7 +121,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });
 
-  it('does not create RPC spans without metadata when enableRpcTracePropagation is true', () => {
+  it('does not create RPC spans without metadata', () => {
     const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
 
@@ -127,28 +130,20 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'result';
       }
     };
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({
-        enableRpcTracePropagation: true,
-      }),
-      testClass as any,
-    );
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
 
     expect(obj.rpcMethod()).toBe('result');
     expect(startSpanSpy).not.toHaveBeenCalled();
   });
 
-  it('Invokes prototype methods with the instance as receiver when enableRpcTracePropagation is true', () => {
+  it('Invokes prototype methods with the instance as receiver', () => {
     const testClass = class {
       method() {
         return this;
       }
     };
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-      testClass as any,
-    );
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
 
     // The instance is not proxied, so the receiver is the instance itself — this is what keeps
@@ -242,6 +237,32 @@ describe('instrumentDurableObjectWithSentry', () => {
     }
   });
 
+  it.each(['webSocketMessage', 'webSocketClose', 'webSocketError'])('%s creates a websocket span', async methodName => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const testClass = class {
+      webSocketMessage() {}
+
+      webSocketClose() {}
+
+      webSocketError() {}
+    };
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+    const obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]);
+
+    await (obj as any)[methodName]();
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        name: methodName,
+        attributes: {
+          'sentry.op': 'websocket',
+          'sentry.origin': 'auto.faas.cloudflare.durable_object',
+        },
+      },
+      expect.any(Function),
+    );
+  });
+
   it('Built-in durable object methods are own properties and not wrapped as RPC', () => {
     const testClass = class {
       fetch() {
@@ -254,10 +275,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'rpc';
       }
     };
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-      testClass as any,
-    );
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
 
     // Built-in DO methods are set as own properties (not on prototype)
@@ -278,10 +296,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'result';
       }
     };
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-      testClass as any,
-    );
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
 
     // constructor must remain the original class reference for identity/type checks
@@ -317,7 +332,9 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(getInstrumented(obj.alarm)).toBeTruthy();
   });
 
-  it('Does not instrument RPC methods when enableRpcTracePropagation is not set', () => {
+  // A receiver has no propagation option to switch on: it continues an incoming trace whenever
+  // one arrives, so its RPC methods are always instrumented.
+  it('Instruments RPC methods without any propagation option', () => {
     const testClass = class {
       rpcMethod() {
         return 'result';
@@ -326,8 +343,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
 
-    // RPC method should not be wrapped
-    expect(getInstrumented(obj.rpcMethod)).toBeFalsy();
+    expect(getInstrumented(obj.rpcMethod)).toBeTruthy();
     expect(obj.rpcMethod()).toBe('result');
   });
 
@@ -349,10 +365,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     });
     const originalSealedMethod = testClass.prototype.sealedMethod;
 
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-      testClass as any,
-    );
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
 
     let obj: any;
     expect(() => {
@@ -368,6 +381,57 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(obj.rpcMethod()).toBe('rpc-result');
   });
 
+  it('instruments built-in handlers installed as read-only own properties', () => {
+    // Shape installed by `agents` >= 0.22: `defineProperty` without `writable`, so the handlers
+    // are read-only and a plain assignment would throw in strict mode.
+    const testClass = class {
+      constructor() {
+        for (const name of ['fetch', 'alarm', 'webSocketMessage', 'webSocketClose', 'webSocketError']) {
+          Object.defineProperty(this, name, {
+            value: () => name,
+            configurable: true,
+          });
+        }
+      }
+    };
+
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+
+    let obj: any;
+    expect(() => {
+      obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]);
+    }).not.toThrow();
+
+    for (const name of ['fetch', 'alarm', 'webSocketMessage', 'webSocketClose', 'webSocketError']) {
+      expect(getInstrumented(obj[name]), `Handler ${name} is instrumented`).toBeTruthy();
+    }
+
+    expect(obj.webSocketMessage()).toBe('webSocketMessage');
+  });
+
+  it('leaves sealed own-property handlers untouched instead of failing construction', () => {
+    const originalHandler = (): string => 'sealed-result';
+    const testClass = class {
+      constructor() {
+        Object.defineProperty(this, 'webSocketMessage', {
+          value: originalHandler,
+          writable: false,
+          configurable: false,
+        });
+      }
+    };
+
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
+
+    let obj: any;
+    expect(() => {
+      obj = Reflect.construct(instrumented, [{ waitUntil: vi.fn() }, {}]);
+    }).not.toThrow();
+
+    expect(obj.webSocketMessage).toBe(originalHandler);
+    expect(obj.webSocketMessage()).toBe('sealed-result');
+  });
+
   it('does not wrap Object.prototype methods as RPC methods', () => {
     const testClass = class {
       rpcMethod() {
@@ -377,10 +441,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     // Capture the original before construction wraps the prototype
     const originalRpcMethod = testClass.prototype.rpcMethod;
 
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-      testClass as any,
-    );
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
 
     // Object.prototype methods should NOT be wrapped with Sentry tracing.
@@ -426,10 +487,7 @@ describe('instrumentDurableObjectWithSentry', () => {
 
       const originalFetchData = FrameworkLike.prototype.fetchData;
 
-      const instrumented = instrumentDurableObjectWithSentry(
-        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-        FrameworkLike as any,
-      );
+      const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), FrameworkLike as any);
       const obj = Reflect.construct(instrumented, []) as FrameworkLike;
 
       // Left as the framework installed it, so its identity-keyed dispatch keeps resolving
@@ -463,10 +521,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         }
       }
 
-      const instrumented = instrumentDurableObjectWithSentry(
-        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-        FrameworkLike as any,
-      );
+      const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), FrameworkLike as any);
 
       Reflect.construct(instrumented, []);
       const second = Reflect.construct(instrumented, []) as FrameworkLike;
@@ -485,10 +540,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       }
     };
 
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-      testClass as any,
-    );
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     Reflect.construct(instrumented, []);
 
     expect(testClass.prototype.rpcMethod.name).toBe('rpcMethod');
@@ -520,10 +572,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       rpcMethod: testClass.prototype.rpcMethod,
     };
 
-    const instrumented = instrumentDurableObjectWithSentry(
-      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-      testClass as any,
-    );
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     Reflect.construct(instrumented, []);
 
     expect(testClass.prototype.connect).toBe(originals.connect);
@@ -553,10 +602,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         }
       }
 
-      const instrumented = instrumentAgentWithSentry(
-        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-        PartyServerLike as any,
-      );
+      const instrumented = instrumentAgentWithSentry(vi.fn().mockReturnValue({}), PartyServerLike as any);
       const obj = Reflect.construct(instrumented, []) as PartyServerLike;
 
       // This is how native RPC invokes the method: resolved on the prototype, called with the
@@ -578,10 +624,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         }
       }
 
-      const instrumented = instrumentDurableObjectWithSentry(
-        vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-        WithSecret as any,
-      );
+      const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), WithSecret as any);
       const obj = Reflect.construct(instrumented, []) as WithSecret;
 
       const rpcMeta = {
@@ -594,6 +637,158 @@ describe('instrumentDurableObjectWithSentry', () => {
       const prototypeGetSecret = Object.getPrototypeOf(obj).getSecret as WithSecret['getSecret'];
       expect(Reflect.apply(prototypeGetSecret, obj, [rpcMeta])).toBe(42);
       expect(startSpanSpy).toHaveBeenCalled();
+    });
+  });
+
+  // Callers only attach RPC metadata when they are instrumented, have an active trace and got the
+  // stub from an instrumented binding, so a Durable Object regularly serves calls without it.
+  describe('RPC calls without trace metadata', () => {
+    const DSN = 'https://public@dsn.ingest.sentry.io/1337';
+    const TRACE_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+    function setup<C extends new (...args: any[]) => any>(testClass: C) {
+      const events: Event[] = [];
+      const transactions: Event[] = [];
+      const metricNames: string[] = [];
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn((promise: Promise<unknown>) => {
+        waits.push(promise);
+      });
+
+      const instrumented = instrumentDurableObjectWithSentry(
+        () => ({
+          dsn: DSN,
+          tracesSampleRate: 1,
+          traceLifecycle: 'static',
+          beforeSend(event: Event) {
+            events.push(event);
+            return null;
+          },
+          beforeSendTransaction(event: Event) {
+            transactions.push(event);
+            return null;
+          },
+          beforeSendMetric(metric: { name: string }) {
+            metricNames.push(metric.name);
+            return null;
+          },
+        }),
+        testClass as any,
+      );
+      const obj = Reflect.construct(instrumented, [{ waitUntil }, {}]) as InstanceType<C>;
+      const settle = async (): Promise<void> => {
+        while (waits.length) {
+          await Promise.all(waits.splice(0));
+        }
+      };
+
+      return { obj, events, transactions, metricNames, waitUntil, settle };
+    }
+
+    it('captures errors and metrics', async () => {
+      const { obj, events, metricNames, settle } = setup(
+        class {
+          async rpcMethod(): Promise<never> {
+            SentryCore.metrics.count('do.rpc_called', 1);
+            throw new Error('RPC failed');
+          }
+        },
+      );
+
+      await expect(obj.rpcMethod()).rejects.toThrow('RPC failed');
+      await settle();
+
+      expect(metricNames).toEqual(['do.rpc_called']);
+      expect(events).toHaveLength(1);
+      expect(events[0]?.exception?.values?.[0]?.value).toBe('RPC failed');
+      expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual({
+        type: 'auto.faas.cloudflare.durable_object',
+        handled: false,
+      });
+    });
+
+    it('does not create a span', async () => {
+      const { obj, transactions, settle } = setup(
+        class {
+          rpcMethod(): string {
+            return 'result';
+          }
+        },
+      );
+
+      expect(obj.rpcMethod()).toBe('result');
+      await settle();
+
+      expect(transactions).toHaveLength(0);
+    });
+
+    // One Durable Object instance serves overlapping calls, so each call needs its own scope.
+    it('gives overlapping calls separate traces and keeps the events of both', async () => {
+      let release!: () => void;
+      const gate = new Promise<void>(resolve => {
+        release = resolve;
+      });
+      const { obj, events, settle } = setup(
+        class {
+          async rpcMethod(label: string): Promise<void> {
+            await gate;
+            SentryCore.captureMessage(label);
+          }
+        },
+      );
+
+      const first = obj.rpcMethod('first');
+      const second = obj.rpcMethod('second');
+      release();
+      await Promise.all([first, second]);
+      await settle();
+
+      expect(events.map(event => event.message).sort()).toEqual(['first', 'second']);
+      expect(events[0]?.contexts?.trace?.trace_id).toEqual(expect.any(String));
+      expect(events[0]?.contexts?.trace?.trace_id).not.toBe(events[1]?.contexts?.trace?.trace_id);
+    });
+
+    it('does not instrument calls the instance makes to its own methods', async () => {
+      const { obj, events, waitUntil, settle } = setup(
+        class {
+          async rpcMethod(): Promise<string> {
+            return this.helper();
+          }
+
+          async helper(): Promise<string> {
+            SentryCore.captureMessage('from helper');
+            return 'helper-result';
+          }
+        },
+      );
+
+      await expect(obj.rpcMethod()).resolves.toBe('helper-result');
+      await settle();
+
+      expect(events.map(event => event.message)).toEqual(['from helper']);
+      expect(waitUntil).toHaveBeenCalledOnce();
+    });
+
+    it('continues the caller trace when the call carries trace metadata', async () => {
+      const { obj, events, transactions, settle } = setup(
+        class {
+          async rpcMethod(arg: string): Promise<string> {
+            SentryCore.captureMessage('traced');
+            return arg;
+          }
+        },
+      );
+
+      const result = await obj.rpcMethod('arg', {
+        __sentry_rpc_meta__: { 'sentry-trace': `${TRACE_ID}-bbbbbbbbbbbbbbbb-1`, baggage: '' },
+      });
+      await settle();
+
+      expect(result).toBe('arg');
+      expect(events[0]?.contexts?.trace?.trace_id).toBe(TRACE_ID);
+      expect(transactions).toHaveLength(1);
+      expect(transactions[0]?.transaction).toBe('rpcMethod');
+      expect(transactions[0]?.contexts?.trace?.trace_id).toBe(TRACE_ID);
     });
   });
 
@@ -645,5 +840,15 @@ describe('instrumentDurableObjectWithSentry', () => {
 
     // Verify that exactly one flush call was made during this test
     expect(delta).toBe(1);
+  });
+
+  // The wrappers mark what they return, so the guard the Vite auto-instrumentation emits can
+  // recognize a hand-wrapped class and hand it back instead of nesting a second wrapper.
+  it('marks returned classes so auto-instrumentation does not wrap them again', () => {
+    const optionsCallback = vi.fn().mockReturnValue({});
+    for (const wrap of [instrumentDurableObjectWithSentry, instrumentAgentWithSentry]) {
+      const HandWrapped = wrap(optionsCallback, class {} as any);
+      expect(_INTERNAL_wrapUnlessInstrumented(wrap as any, optionsCallback, HandWrapped)).toBe(HandWrapped);
+    }
   });
 });

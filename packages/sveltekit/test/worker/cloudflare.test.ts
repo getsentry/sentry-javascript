@@ -1,13 +1,13 @@
 import * as SentryCloudflare from '@sentry/cloudflare';
-import { wrapRequestHandler } from '@sentry/cloudflare/request';
-import type * as SentryCloudflareRequest from '@sentry/cloudflare/request';
+import { _INTERNAL_wrapRequestHandler as wrapRequestHandler } from '@sentry/cloudflare';
 import type { Carrier, GLOBAL_OBJ } from '@sentry/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setCloudflareExecutionContextFallback } from '../../src/server-common/utils';
 import { initCloudflareSentryHandle } from '../../src/worker';
 
-vi.mock('@sentry/cloudflare/request', async importOriginal => {
-  const actual = await importOriginal<typeof SentryCloudflareRequest>();
-  return { ...actual, wrapRequestHandler: vi.fn(actual.wrapRequestHandler) };
+vi.mock('@sentry/cloudflare', async importOriginal => {
+  const actual = await importOriginal<typeof SentryCloudflare>();
+  return { ...actual, _INTERNAL_wrapRequestHandler: vi.fn(actual._INTERNAL_wrapRequestHandler) };
 });
 
 const globalWithSentry = globalThis as typeof GLOBAL_OBJ & Carrier;
@@ -26,6 +26,10 @@ describe('initCloudflareSentryHandle', () => {
   beforeEach(() => {
     delete globalWithSentry.__SENTRY__;
     vi.mocked(wrapRequestHandler).mockClear();
+  });
+
+  afterEach(() => {
+    setCloudflareExecutionContextFallback(undefined);
   });
 
   it('sets the async context strategy when called', () => {
@@ -84,6 +88,31 @@ describe('initCloudflareSentryHandle', () => {
 
     // @ts-expect-error - this property exists if the handler resolved correctly.
     expect(locals._sentrySkipRequestIsolation).toBe(true);
+  });
+
+  // `@sveltejs/adapter-cloudflare` >= 8.0.0-next.7 passes no `platform` at all; the `workerd` entry point
+  // registers `waitUntil` from `cloudflare:workers` as the fallback instead
+  it('calls wrapRequestHandler with the fallback execution context, if no platform data is set', async () => {
+    const { options, event, resolve, request } = getHandlerInput();
+    // @ts-expect-error - removing platform data
+    delete event.platform;
+    const fallbackContext = { waitUntil: vi.fn() };
+    setCloudflareExecutionContextFallback(() => fallbackContext);
+
+    // @ts-expect-error - resolving an empty object is enough for this test
+    vi.mocked(wrapRequestHandler).mockImplementationOnce((_, cb) => cb());
+
+    const handle = initCloudflareSentryHandle(options);
+
+    // @ts-expect-error - only passing a partial event object
+    await handle({ event, resolve });
+
+    expect(wrapRequestHandler).toHaveBeenCalledTimes(1);
+    expect(wrapRequestHandler).toHaveBeenCalledWith(
+      expect.objectContaining({ request, context: fallbackContext, captureErrors: false }),
+      expect.any(Function),
+    );
+    expect(resolve).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to resolving the event, if no platform data is set', async () => {

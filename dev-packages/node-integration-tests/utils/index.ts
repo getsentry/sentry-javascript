@@ -59,17 +59,6 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
 };
 
 /**
- * Whether channel-based (orchestrion diagnostics-channel) instrumentation is active.
- *
- * Channel-based instrumentation is the default in v11, so this is always `true`. Kept as a helper
- * (rather than inlining `true`) so the suites' origin/shape selectors read intentionally; the OTel
- * branches they still contain are dead and get removed alongside the vendored OTel code (JS-3074).
- */
-export function isOrchestrionEnabled(): boolean {
-  return true;
-}
-
-/**
  * Narrows a typed span attribute value to a string.
  *
  * Streamed span attribute values are a union (`string | number | boolean | string[] | ...`), so

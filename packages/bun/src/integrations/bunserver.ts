@@ -1,25 +1,30 @@
-import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/core';
+import type { Integration, IntegrationFn, MaxRequestBodySize, SpanAttributes } from '@sentry/core';
 import {
+  captureBodyFromWinterCGRequest,
   captureException,
   continueTrace,
   defineIntegration,
   getClient,
   getUrlFragment,
   getUrlQuery,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpan,
+  winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
 import type { ServeOptions } from 'bun';
 import {
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
   URL_DOMAIN,
   URL_FRAGMENT,
   URL_FULL,
@@ -28,12 +33,26 @@ import {
   URL_QUERY,
   URL_SCHEME,
 } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
-const _bunServerIntegration = (() => {
+export type BunServerIntegrationOptions = {
+  /**
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
+   * An explicit value overrides `dataCollection.httpBodies`.
+   *
+   * If `dataCollection.httpBodies` excludes `'incomingRequest'`, body capture defaults to `'none'`.
+   *
+   * @default 'medium'
+   */
+  maxRequestBodySize?: MaxRequestBodySize;
+};
+
+const _bunServerIntegration = ((options: BunServerIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
+    maxRequestBodySize: options.maxRequestBodySize,
     setupOnce() {
       instrumentBunServe();
     },
@@ -188,8 +207,8 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
   thisArg: unknown,
   args: Parameters<T>,
   route?: string,
-): ReturnType<T> {
-  return withIsolationScope(isolationScope => {
+): Promise<Awaited<ReturnType<T>>> {
+  return withIsolationScope(async isolationScope => {
     const request = args[0];
     const upperCaseMethod = request.method.toUpperCase();
     if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
@@ -207,7 +226,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
 
       // If a route has parameters, it's a parameterized route
       if (route) {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+        attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
         attributes['url.template'] = route;
         routeName = route;
       }
@@ -215,7 +234,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
 
     // Handle wildcard routes
     if (route?.endsWith('/*')) {
-      attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+      attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
       attributes['url.template'] = route;
       routeName = route;
     }
@@ -228,13 +247,19 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     }
 
     isolationScope.setSDKProcessingMetadata({
-      normalizedRequest: {
-        url: request.url,
-        method: request.method,
-        headers: request.headers.toJSON(),
-        query_string: parsedUrl?.search,
-      } satisfies RequestEventData,
+      normalizedRequest: winterCGRequestToRequestData(request),
     });
+
+    if (client && dataCollection) {
+      const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(
+        INTEGRATION_NAME,
+      )?.maxRequestBodySize;
+      const effectiveBodySize =
+        configuredBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+      if (upperCaseMethod !== 'GET' && effectiveBodySize !== 'none') {
+        await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
+      }
+    }
 
     return continueTrace(
       {
@@ -244,9 +269,12 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       () =>
         startSpan(
           {
-            attributes,
-            op: 'http.server',
-            name: `${request.method} ${routeName}`,
+            attributes: { ...attributes, [SENTRY_OP]: HTTP_SERVER },
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+            name:
+              attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !client || !hasSpanStreamingEnabled(client)
+                ? `${request.method} ${routeName}`
+                : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
           },
           async span => {
             try {
@@ -287,7 +315,7 @@ function getSpanAttributesFromParsedUrl(
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
     [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
   };
 
   if (parsedUrl) {

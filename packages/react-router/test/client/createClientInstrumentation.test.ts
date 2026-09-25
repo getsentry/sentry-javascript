@@ -1,5 +1,6 @@
 import * as browser from '@sentry/browser';
 import * as core from '@sentry/core';
+import * as coreBrowser from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSentryClientInstrumentation,
@@ -7,11 +8,18 @@ import {
   isNavigateHookInvoked,
 } from '../../src/client/createClientInstrumentation';
 
+vi.mock('@sentry/core/browser', async () => {
+  const actual = await vi.importActual('@sentry/core/browser');
+  return {
+    ...actual,
+    startSpan: vi.fn(),
+  };
+});
+
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
   return {
     ...actual,
-    startSpan: vi.fn(),
     captureException: vi.fn(),
     getClient: vi.fn(),
     getActiveSpan: vi.fn(),
@@ -21,7 +29,6 @@ vi.mock('@sentry/core', async () => {
     GLOBAL_OBJ: globalThis,
     SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
-    SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   };
 });
 
@@ -35,6 +42,10 @@ vi.mock('@sentry/browser', () => ({
     }
   }),
 }));
+
+// Span streaming is the default trace lifecycle, and it's what makes span names low cardinality.
+const mockStreamingClient = { getOptions: () => ({ traceLifecycle: 'stream' }) };
+const mockStaticClient = { getOptions: () => ({ traceLifecycle: 'static' }) };
 
 describe('createSentryClientInstrumentation', () => {
   beforeEach(() => {
@@ -83,7 +94,7 @@ describe('createSentryClientInstrumentation', () => {
   it('should instrument router navigate with browser tracing span', async () => {
     const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
-    const mockClient = {};
+    const mockClient = mockStreamingClient;
 
     (core.getClient as any).mockReturnValue(mockClient);
     (globalThis as any).location = {
@@ -107,9 +118,9 @@ describe('createSentryClientInstrumentation', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       mockClient,
       {
-        name: '/about',
+        name: 'Navigation',
         attributes: expect.objectContaining({
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'sentry.op': 'navigation',
           'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
           'navigation.type': 'router.navigate',
@@ -123,7 +134,7 @@ describe('createSentryClientInstrumentation', () => {
   it('should resolve relative navigate targets against the current URL', async () => {
     const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
-    const mockClient = {};
+    const mockClient = mockStreamingClient;
 
     (core.getClient as any).mockReturnValue(mockClient);
     (globalThis as any).location = {
@@ -144,7 +155,7 @@ describe('createSentryClientInstrumentation', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       mockClient,
       expect.objectContaining({
-        name: 'settings',
+        name: 'Navigation',
       }),
       { url: 'https://example.com/users/123/settings' },
     );
@@ -153,7 +164,7 @@ describe('createSentryClientInstrumentation', () => {
   it('should create navigation span with correct name when `to` is an object', async () => {
     const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
-    const mockClient = {};
+    const mockClient = mockStreamingClient;
 
     (core.getClient as any).mockReturnValue(mockClient);
     (globalThis as any).location = {
@@ -177,9 +188,9 @@ describe('createSentryClientInstrumentation', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       mockClient,
       {
-        name: '/items/123',
+        name: 'Navigation',
         attributes: expect.objectContaining({
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'sentry.op': 'navigation',
           'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
           'navigation.type': 'router.navigate',
@@ -195,7 +206,8 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallFetch = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.router?.({ instrument: mockInstrument });
@@ -209,12 +221,13 @@ describe('createSentryClientInstrumentation', () => {
       fetcherKey: 'fetcher-1',
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'Fetcher fetcher-1',
+        name: 'fetcher',
         attributes: expect.objectContaining({
           'sentry.op': 'function',
           'code.function.name': 'fetcher',
+          'sentry.description': 'Fetcher fetcher-1',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -223,11 +236,35 @@ describe('createSentryClientInstrumentation', () => {
     expect(mockCallFetch).toHaveBeenCalled();
   });
 
+  it('keeps the fetcher key in the span name without span streaming', async () => {
+    const mockCallFetch = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStaticClient);
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.router?.({ instrument: mockInstrument });
+
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.fetch(mockCallFetch, { href: '/api/data', currentUrl: '/home', fetcherKey: 'fetcher-1' });
+
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Fetcher fetcher-1',
+        attributes: expect.not.objectContaining({ 'sentry.description': expect.anything() }),
+      }),
+      expect.any(Function),
+    );
+  });
+
   it('should instrument route loader with spans', async () => {
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
 
     const instrumentation = createSentryClientInstrumentation();
     // Route has id, index, path as required properties
@@ -249,12 +286,13 @@ describe('createSentryClientInstrumentation', () => {
       context: undefined,
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '/users/:id',
+        name: 'clientLoader',
         attributes: expect.objectContaining({
           'sentry.op': 'function',
           'code.function.name': 'clientLoader',
+          'sentry.description': '/users/:id',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -267,7 +305,8 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallAction = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -287,12 +326,13 @@ describe('createSentryClientInstrumentation', () => {
       context: undefined,
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '/users/:id',
+        name: 'clientAction',
         attributes: expect.objectContaining({
           'sentry.op': 'function',
           'code.function.name': 'clientAction',
+          'sentry.description': '/users/:id',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -306,7 +346,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
     const mockInstrument = vi.fn();
 
-    (core.getClient as any).mockReturnValue({});
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
     (globalThis as any).location = {
       href: 'https://example.com/home',
       origin: 'https://example.com',
@@ -335,7 +375,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockInstrument = vi.fn();
     const mockSpan = { setStatus: vi.fn() };
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -369,7 +409,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockInstrument = vi.fn();
     const mockSpan = { setStatus: vi.fn() };
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
 
     const instrumentation = createSentryClientInstrumentation({ captureErrors: false });
     instrumentation.route?.({
@@ -401,7 +441,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockInstrument = vi.fn();
     const mockNavigationSpan = { setStatus: vi.fn() };
 
-    (core.getClient as any).mockReturnValue({});
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
     (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
 
     const instrumentation = createSentryClientInstrumentation();
@@ -450,7 +490,7 @@ describe('createSentryClientInstrumentation', () => {
         });
         const mockInstrument = vi.fn();
         const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn(), setAttributes: vi.fn() };
-        const mockClient = {};
+        const mockClient = mockStreamingClient;
 
         (core.getClient as any).mockReturnValue(mockClient);
         (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
@@ -464,9 +504,9 @@ describe('createSentryClientInstrumentation', () => {
         expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
           mockClient,
           {
-            name: '/current-page',
+            name: 'Navigation',
             attributes: expect.objectContaining({
-              'sentry.source': 'url',
+              'sentry.segment.name.source': 'url',
               'sentry.op': 'navigation',
               'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
               'navigation.type': expectedType,
@@ -474,9 +514,10 @@ describe('createSentryClientInstrumentation', () => {
           },
           { url: 'https://example.com/current-page' },
         );
-        expect(mockNavigationSpan.updateName).toHaveBeenCalledWith(destination);
+        // The destination stays on the URL attributes, the span name is low cardinality.
+        expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('Navigation');
         expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
-          'sentry.source': 'url',
+          'sentry.segment.name.source': 'url',
           'url.path': destination,
           'url.full': `https://example.com${destination}`,
         });
@@ -487,7 +528,7 @@ describe('createSentryClientInstrumentation', () => {
       const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
       const mockInstrument = vi.fn();
 
-      (core.getClient as any).mockReturnValue({});
+      (core.getClient as any).mockReturnValue(mockStreamingClient);
 
       const instrumentation = createSentryClientInstrumentation();
       instrumentation.router?.({ instrument: mockInstrument });
@@ -506,7 +547,7 @@ describe('createSentryClientInstrumentation', () => {
       });
       const mockInstrument = vi.fn();
       const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn(), setAttributes: vi.fn() };
-      const mockClient = {};
+      const mockClient = mockStreamingClient;
 
       (core.getClient as any).mockReturnValue(mockClient);
       (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
@@ -518,7 +559,7 @@ describe('createSentryClientInstrumentation', () => {
       await hooks.navigate(mockCallNavigate, { currentUrl: '/current-page', to: -1 });
 
       expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
-        'sentry.source': 'url',
+        'sentry.segment.name.source': 'url',
         'url.path': '/previous-page',
         'url.full': 'https://example.com/previous-page',
       });
@@ -533,7 +574,7 @@ describe('createSentryClientInstrumentation', () => {
       const mockInstrument = vi.fn();
       const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn(), setAttributes: vi.fn() };
 
-      (core.getClient as any).mockReturnValue({});
+      (core.getClient as any).mockReturnValue(mockStreamingClient);
       (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
 
       const instrumentation = createSentryClientInstrumentation();
@@ -552,7 +593,7 @@ describe('createSentryClientInstrumentation', () => {
       const mockInstrument = vi.fn();
       const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn(), setAttributes: vi.fn() };
 
-      (core.getClient as any).mockReturnValue({});
+      (core.getClient as any).mockReturnValue(mockStreamingClient);
       (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
 
       delete (globalThis as any).__sentryReactRouterNavigateHookInvoked;
@@ -581,7 +622,8 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStaticClient);
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -601,9 +643,42 @@ describe('createSentryClientInstrumentation', () => {
       context: undefined,
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '/users/123',
+      }),
+      expect.any(Function),
+    );
+  });
+
+  it('keeps the raw pathname out of the span name with span streaming', async () => {
+    const mockCallLoader = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.route?.({
+      id: 'test-route',
+      index: false,
+      path: '/test',
+      instrument: mockInstrument,
+    });
+
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.loader(mockCallLoader, {
+      request: { method: 'GET', url: 'http://example.com/users/123', headers: { get: () => null } },
+      params: { id: '123' },
+      unstable_pattern: undefined,
+      context: undefined,
+    });
+
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'clientLoader',
+        attributes: expect.objectContaining({ 'sentry.description': '/users/123' }),
       }),
       expect.any(Function),
     );
@@ -613,7 +688,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallMiddleware = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -632,7 +707,7 @@ describe('createSentryClientInstrumentation', () => {
       context: undefined,
     });
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'middleware test-route',
         attributes: expect.objectContaining({
@@ -652,7 +727,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockCallLazy = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -666,7 +741,7 @@ describe('createSentryClientInstrumentation', () => {
 
     await hooks.lazy(mockCallLazy, undefined);
 
-    expect(core.startSpan).toHaveBeenCalledWith(
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
@@ -722,7 +797,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     it('should create navigation span with browser.popstate type on popstate event', () => {
-      const mockClient = {};
+      const mockClient = mockStreamingClient;
       (core.getClient as any).mockReturnValue(mockClient);
 
       const mockInstrument = vi.fn();
@@ -734,9 +809,9 @@ describe('createSentryClientInstrumentation', () => {
       expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
         mockClient,
         {
-          name: '/current-page',
+          name: 'Navigation',
           attributes: expect.objectContaining({
-            'sentry.source': 'url',
+            'sentry.segment.name.source': 'url',
             'sentry.op': 'navigation',
             'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
             'navigation.type': 'browser.popstate',
@@ -759,7 +834,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     it('should update existing numeric navigation span on popstate instead of creating duplicate', async () => {
-      const mockClient = {};
+      const mockClient = mockStreamingClient;
       const mockNavigationSpan = {
         setStatus: vi.fn(),
         updateName: vi.fn(),
@@ -786,14 +861,14 @@ describe('createSentryClientInstrumentation', () => {
       // Only ONE span created (not two - no duplicate from popstate)
       expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
       expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
-        'sentry.source': 'url',
+        'sentry.segment.name.source': 'url',
         'url.path': '/previous-page',
         'url.full': 'https://example.com/previous-page',
       });
     });
 
     it('should create new span on popstate when no numeric navigation is in progress', () => {
-      const mockClient = {};
+      const mockClient = mockStreamingClient;
       (core.getClient as any).mockReturnValue(mockClient);
 
       const mockInstrument = vi.fn();
@@ -806,7 +881,7 @@ describe('createSentryClientInstrumentation', () => {
       expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
         mockClient,
         {
-          name: '/current-page',
+          name: 'Navigation',
           attributes: expect.objectContaining({
             'navigation.type': 'browser.popstate',
           }),
@@ -894,12 +969,12 @@ describe('isNavigateHookInvoked', () => {
 describe('navigation root parameterization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn({ setStatus: vi.fn() }));
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn({ setStatus: vi.fn() }));
   });
 
   it('renames the active navigation/pageload root span with the route pattern from the loader hook', async () => {
     const mockRootSpan = { setAttributes: vi.fn() };
-    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getActiveSpan as any).mockReturnValue(mockStreamingClient);
     (core.getRootSpan as any).mockReturnValue(mockRootSpan);
     (core.spanToJSON as any).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } });
 
@@ -916,12 +991,15 @@ describe('navigation root parameterization', () => {
     });
 
     expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, '/users/:id');
-    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({ 'sentry.source': 'route', 'url.template': '/users/:id' });
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
+      'sentry.segment.name.source': 'route',
+      'url.template': '/users/:id',
+    });
   });
 
   it('does not rename the root span when the route has no pattern', async () => {
     const mockRootSpan = { setAttributes: vi.fn() };
-    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getActiveSpan as any).mockReturnValue(mockStreamingClient);
     (core.getRootSpan as any).mockReturnValue(mockRootSpan);
     (core.spanToJSON as any).mockReturnValue({ attributes: { 'sentry.op': 'navigation' } });
 
@@ -940,7 +1018,7 @@ describe('navigation root parameterization', () => {
   });
 
   it('does not rename root spans that are not pageload/navigation', async () => {
-    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getActiveSpan as any).mockReturnValue(mockStreamingClient);
     (core.getRootSpan as any).mockReturnValue({ setAttribute: vi.fn() });
     (core.spanToJSON as any).mockReturnValue({ attributes: { 'sentry.op': 'http.server' } });
 

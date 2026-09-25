@@ -1,11 +1,11 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Mongoose experimental Test', () => {
-  const origin = isOrchestrionEnabled() ? 'auto.db.mongoose' : 'auto.db.otel.mongoose';
-  const driverOrigin = isOrchestrionEnabled() ? 'auto.db.mongo' : 'auto.db.otel.mongo';
+  const origin = 'auto.db.mongoose';
+  const driverOrigin = 'auto.db.mongo';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -28,7 +28,7 @@ describe('Mongoose experimental Test', () => {
           'db.collection.name': 'blogposts',
           'db.namespace': 'test',
           'db.operation.name': 'save',
-          'db.system.name': 'mongoose',
+          'db.system.name': 'mongodb',
         }),
         description: 'mongoose.BlogPost.save',
         op: 'db',
@@ -39,7 +39,7 @@ describe('Mongoose experimental Test', () => {
           'db.collection.name': 'blogposts',
           'db.namespace': 'test',
           'db.operation.name': 'findOne',
-          'db.system.name': 'mongoose',
+          'db.system.name': 'mongodb',
         }),
         description: 'mongoose.BlogPost.findOne',
         op: 'db',
@@ -50,7 +50,7 @@ describe('Mongoose experimental Test', () => {
           'db.collection.name': 'blogposts',
           'db.namespace': 'test',
           'db.operation.name': 'aggregate',
-          'db.system.name': 'mongoose',
+          'db.system.name': 'mongodb',
         }),
         description: 'mongoose.BlogPost.aggregate',
         op: 'db',
@@ -61,7 +61,7 @@ describe('Mongoose experimental Test', () => {
           'db.collection.name': 'blogposts',
           'db.namespace': 'test',
           'db.operation.name': 'insertMany',
-          'db.system.name': 'mongoose',
+          'db.system.name': 'mongodb',
         }),
         description: 'mongoose.BlogPost.insertMany',
         op: 'db',
@@ -72,7 +72,7 @@ describe('Mongoose experimental Test', () => {
           'db.collection.name': 'blogposts',
           'db.namespace': 'test',
           'db.operation.name': 'bulkWrite',
-          'db.system.name': 'mongoose',
+          'db.system.name': 'mongodb',
         }),
         description: 'mongoose.BlogPost.bulkWrite',
         op: 'db',
@@ -84,7 +84,7 @@ describe('Mongoose experimental Test', () => {
           'db.collection.name': 'blogposts',
           'db.namespace': 'test',
           'db.operation.name': 'remove',
-          'db.system.name': 'mongoose',
+          'db.system.name': 'mongodb',
         }),
         description: 'mongoose.BlogPost.remove',
         op: 'db',
@@ -94,7 +94,7 @@ describe('Mongoose experimental Test', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'db.operation.name': 'save',
-          'db.system.name': 'mongoose',
+          'db.system.name': 'mongodb',
         }),
         description: 'mongoose.RequiredDoc.save',
         op: 'db',
@@ -103,6 +103,23 @@ describe('Mongoose experimental Test', () => {
       }),
     ]),
   };
+
+  const expectedStreamedSpan = (operation: string, collection = 'blogposts', status = 'ok') =>
+    expect.objectContaining({
+      name: `${operation} ${collection}`,
+      is_segment: false,
+      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      status,
+      attributes: expect.objectContaining({
+        'db.collection.name': { type: 'string', value: collection },
+        'db.namespace': { type: 'string', value: 'test' },
+        'db.operation.name': { type: 'string', value: operation },
+        'db.system.name': { type: 'string', value: 'mongodb' },
+        'sentry.op': { type: 'string', value: 'db' },
+        'sentry.origin': { type: 'string', value: origin },
+        'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+      }),
+    });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('should auto-instrument `mongoose` package.', async () => {
@@ -121,6 +138,24 @@ describe('Mongoose experimental Test', () => {
               span => span.parent_span_id === mongooseSave?.span_id && span.origin === driverOrigin,
             );
             expect(driverChild).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+
+    test('should auto-instrument `mongoose` package with span streaming enabled.', async () => {
+      await createTestRunner()
+        .withEnv({ STREAMED: 'true' })
+        .expect({
+          span: (container: SerializedStreamedSpanContainer) => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('Test Transaction');
+
+            for (const operation of ['save', 'findOne', 'aggregate', 'insertMany', 'bulkWrite', 'remove']) {
+              expect(container.items).toContainEqual(expectedStreamedSpan(operation));
+            }
+
+            expect(container.items).toContainEqual(expectedStreamedSpan('save', 'requireddocs', 'error'));
           },
         })
         .start()

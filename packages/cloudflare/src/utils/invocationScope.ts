@@ -1,4 +1,6 @@
 import { getDefaultIsolationScope, getIsolationScope, type Scope, withIsolationScope } from '@sentry/core';
+import type { ExecutionContextCompat } from '../executionContext';
+import { setInvocationState } from './invocationContext';
 
 /**
  * Runs `callback` on the isolation scope for the current invocation.
@@ -21,10 +23,15 @@ import { getDefaultIsolationScope, getIsolationScope, type Scope, withIsolationS
  * default scope even inside an invocation; there the fork degrades to a no-op, which the stack strategy
  * tolerates. This matches the approach used by `patchEventHandler` in Nuxt.
  */
-export function withInvocationIsolationScope<T>(callback: (scope: Scope) => T): T {
+export function withInvocationIsolationScope<T>(callback: (scope: Scope) => T, context?: ExecutionContextCompat): T {
   const isolationScope = getIsolationScope();
 
-  const newIsolationScope = isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
+  const isEntryPoint = isolationScope === getDefaultIsolationScope();
+  const newIsolationScope = isEntryPoint ? isolationScope.clone() : isolationScope;
+
+  if (isEntryPoint) {
+    setInvocationState(newIsolationScope, { ctx: context });
+  }
 
   return withIsolationScope(newIsolationScope, () => callback(newIsolationScope));
 }

@@ -155,10 +155,11 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { WorkerEntrypoint } from 'cloudflare:workers';",
-        'class __SENTRY_ORIGINAL_AdminEntry__ extends WorkerEntrypoint {',
+        'class AdminEntry extends WorkerEntrypoint {',
         '  fetch() { return new Response("admin"); }',
         '}',
-        'export const AdminEntry = __SENTRY__.withSentry(() => undefined, __SENTRY_ORIGINAL_AdminEntry__);',
+        'const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(() => undefined, AdminEntry);',
+        'export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };',
         '',
       ].join('\n'),
     );
@@ -181,7 +182,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
 
     expect(result).toBeDefined();
-    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
   });
 
   it('wraps a WorkerEntrypoint named via a services[].entrypoint self-binding (jsonc config)', async () => {
@@ -210,7 +211,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
 
     expect(result).toBeDefined();
-    expect(result.code).toContain('export const BindingEntrypoint = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_BindingEntrypoint__ = __SENTRY__.withSentry(');
   });
 
   it('does not wrap an entrypoint that is neither detected nor self-bound', async () => {
@@ -266,7 +267,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const code = ["import { Agent } from 'agents';", 'export class MyAgent extends Agent {}'].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
       expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
     });
 
@@ -278,7 +279,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       ].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
     });
 
     it('wraps an Agent whose base class lives in another module', async () => {
@@ -288,7 +289,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const code = ["import { MyBase } from './base';", 'export class MyAgent extends MyBase {}'].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
     });
 
     it('keeps the Durable Object helper for a DO whose base class lives in another module', async () => {
@@ -301,8 +302,65 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const code = ["import { MyBase } from './base';", 'export class MyAgent extends MyBase {}'].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentDurableObjectWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentDurableObjectWithSentry(');
       expect(result.code).not.toContain('instrumentAgentWithSentry');
+    });
+
+    it('wraps an Agent imported from another module and exported by specifier', async () => {
+      const tx = createAgentPlugin({
+        'agent.ts': ["import { Agent } from 'agents';", 'export class MyAgent extends Agent {}'].join('\n'),
+      });
+      const code = ["import { MyAgent } from './agent';", 'export { MyAgent };'].join('\n');
+
+      const result = await tx(code);
+      expect(result.code).toBe(
+        [
+          "import * as __SENTRY__ from '@sentry/cloudflare';",
+          'const __SENTRY_OPTIONS__ = (env) => { const opts = (() => undefined)(env); return { ...opts, rpcTracePropagationBindings: ["MY_AGENT", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
+          "import { MyAgent } from './agent';",
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentAgentWithSentry, __SENTRY_OPTIONS__, MyAgent);',
+          'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
+        ].join('\n'),
+      );
+    });
+
+    it('wraps an Agent re-exported straight from another module', async () => {
+      const tx = createAgentPlugin({
+        'agent.ts': ["import { Agent } from 'agents';", 'export class MyAgent extends Agent {}'].join('\n'),
+      });
+      const code = "export { MyAgent } from './agent';";
+
+      const result = await tx(code);
+      expect(result.code).toBe(
+        [
+          "import * as __SENTRY__ from '@sentry/cloudflare';",
+          'const __SENTRY_OPTIONS__ = (env) => { const opts = (() => undefined)(env); return { ...opts, rpcTracePropagationBindings: ["MY_AGENT", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
+          "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './agent';",
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentAgentWithSentry, __SENTRY_OPTIONS__, __SENTRY_REEXPORT_MyAgent__);',
+          'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
+        ].join('\n'),
+      );
+    });
+
+    it('keeps the Durable Object helper for a re-exported plain Durable Object', async () => {
+      const tx = createAgentPlugin({
+        'do.ts': [
+          "import { DurableObject } from 'cloudflare:workers';",
+          'export class MyAgent extends DurableObject {}',
+        ].join('\n'),
+      });
+      const code = "export { MyAgent } from './do';";
+
+      const result = await tx(code);
+      expect(result.code).toBe(
+        [
+          "import * as __SENTRY__ from '@sentry/cloudflare';",
+          'const __SENTRY_OPTIONS__ = (env) => { const opts = (() => undefined)(env); return { ...opts, rpcTracePropagationBindings: ["MY_AGENT", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
+          "import { MyAgent as __SENTRY_REEXPORT_MyAgent__ } from './do';",
+          'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, __SENTRY_OPTIONS__, __SENTRY_REEXPORT_MyAgent__);',
+          'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
+        ].join('\n'),
+      );
     });
 
     it('does not warn about an Agent that was wrapped manually', async () => {
@@ -342,7 +400,8 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     plugin.configResolved({ root: dir });
 
     const warnings: string[] = [];
-    const code = "export { MyDO } from './do';";
+    // A star re-export names nothing, so there is no specifier to re-point at a wrapper.
+    const code = "export * from './do';";
     await plugin.transform.call(
       { parse: (c: string) => parseJS(c), warn: (msg: string) => warnings.push(msg) },
       code,
@@ -491,6 +550,9 @@ describe('instrument file auto-detection', () => {
 
     const code = ['class DurableObject {}', 'export class MyDO extends DurableObject {}'].join('\n');
     const result = await tx(code, entryPath)!;
-    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(__SENTRY_OPTIONS_CALLBACK__,');
+    expect(result.code).toContain(
+      'const __SENTRY_OPTIONS__ = (env) => { const opts = (__SENTRY_OPTIONS_CALLBACK__)(env); return { ...opts, rpcTracePropagationBindings: ["MY_DO", ...(opts?.rpcTracePropagationBindings ?? [])] }; };',
+    );
+    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(__SENTRY_OPTIONS__,');
   });
 });

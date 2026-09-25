@@ -22,15 +22,23 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
         origin: 'auto.graphql.diagnostic_channel',
         data: expect.objectContaining({
           'graphql.operation.type': 'query',
+          'graphql.processing.type': 'execute',
           'graphql.document': '{hello}',
           'sentry.origin': 'auto.graphql.diagnostic_channel',
         }),
       }),
-      expect.objectContaining({ description: 'graphql.parse' }),
-      expect.objectContaining({ description: 'graphql.validate' }),
+      expect.objectContaining({
+        description: 'graphql.parse',
+        data: expect.objectContaining({ 'graphql.processing.type': 'parse' }),
+      }),
+      expect.objectContaining({
+        description: 'graphql.validate',
+        data: expect.objectContaining({ 'graphql.processing.type': 'validate' }),
+      }),
       expect.objectContaining({
         description: 'graphql.resolve hello',
         data: expect.objectContaining({
+          'graphql.processing.type': 'resolve',
           'graphql.field.name': 'hello',
           'graphql.field.path': 'hello',
           'graphql.field.type': 'String',
@@ -61,15 +69,23 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
         origin: 'auto.graphql.diagnostic_channel',
         data: expect.objectContaining({
           'graphql.operation.type': 'query',
+          'graphql.processing.type': 'execute',
           'graphql.document': '{hello}',
           'sentry.origin': 'auto.graphql.diagnostic_channel',
         }),
       }),
-      expect.objectContaining({ description: 'graphql.parse' }),
-      expect.objectContaining({ description: 'graphql.validate' }),
+      expect.objectContaining({
+        description: 'graphql.parse',
+        data: expect.objectContaining({ 'graphql.processing.type': 'parse' }),
+      }),
+      expect.objectContaining({
+        description: 'graphql.validate',
+        data: expect.objectContaining({ 'graphql.processing.type': 'validate' }),
+      }),
       expect.objectContaining({
         description: 'graphql.resolve hello',
         data: expect.objectContaining({
+          'graphql.processing.type': 'resolve',
           'graphql.field.name': 'hello',
           'graphql.field.path': 'hello',
           'graphql.field.type': 'String',

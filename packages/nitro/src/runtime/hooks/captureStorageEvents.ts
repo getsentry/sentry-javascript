@@ -1,19 +1,18 @@
 import * as dc from 'node:diagnostics_channel';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
-  DATABASE_CACHE_GET_SPAN_OP,
-  DATABASE_CACHE_PUT_SPAN_OP,
-  DATABASE_CACHE_REMOVE_SPAN_OP,
-} from '@sentry/conventions/op';
-import {
-  flushIfServerless,
+  CACHE_OPERATION_NAMES,
+  getClient,
   GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
   isObjectLike,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import type { TraceContext } from 'unstorage/tracing';
 
@@ -46,16 +45,16 @@ const CACHE_HIT_OPERATIONS = new Set<TracedOperation>(['hasItem', 'getItem', 'ge
  * The precise operation stays available on `db.operation.name`.
  */
 const OPERATION_SPAN_OPS = {
-  hasItem: DATABASE_CACHE_GET_SPAN_OP,
-  getItem: DATABASE_CACHE_GET_SPAN_OP,
-  getItemRaw: DATABASE_CACHE_GET_SPAN_OP,
-  getItems: DATABASE_CACHE_GET_SPAN_OP,
-  getKeys: DATABASE_CACHE_GET_SPAN_OP,
-  setItem: DATABASE_CACHE_PUT_SPAN_OP,
-  setItemRaw: DATABASE_CACHE_PUT_SPAN_OP,
-  setItems: DATABASE_CACHE_PUT_SPAN_OP,
-  removeItem: DATABASE_CACHE_REMOVE_SPAN_OP,
-  clear: DATABASE_CACHE_REMOVE_SPAN_OP,
+  hasItem: CACHE_GET,
+  getItem: CACHE_GET,
+  getItemRaw: CACHE_GET,
+  getItems: CACHE_GET,
+  getKeys: CACHE_GET,
+  setItem: CACHE_PUT,
+  setItemRaw: CACHE_PUT,
+  setItems: CACHE_PUT,
+  removeItem: CACHE_REMOVE,
+  clear: CACHE_REMOVE,
 } as const satisfies Record<TracedOperation, string>;
 
 const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
@@ -88,11 +87,16 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
     dc.tracingChannel<TraceContext>(`unstorage.${operation}`),
     data => {
       const cacheKeys = keys(data);
+      const cacheOperationName = CACHE_OPERATION_NAMES[OPERATION_SPAN_OPS[operation]];
+      const client = getClient();
 
       return startInactiveSpan({
-        name: cacheKeys.join(', ') || operation,
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the cache keys.
+        name:
+          client && hasSpanStreamingEnabled(client) ? OPERATION_SPAN_OPS[operation] : cacheKeys.join(', ') || operation,
         attributes: {
           [SENTRY_OP]: OPERATION_SPAN_OPS[operation],
+          [CACHE_OPERATION]: cacheOperationName,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
           [SEMANTIC_ATTRIBUTE_CACHE_KEY]: cacheKeys.length > 1 ? cacheKeys : cacheKeys[0],
           'db.operation.name': operation,

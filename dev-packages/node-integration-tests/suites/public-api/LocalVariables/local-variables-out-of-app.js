@@ -1,5 +1,6 @@
 const Sentry = require('@sentry/node');
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
+const { waitForLocalVariables } = require('./wait-for-local-variables');
 
 const externalFunctionFile = require.resolve('./node_modules/out-of-app-function.js');
 
@@ -22,11 +23,13 @@ function in_app_function() {
   out_of_app_function(`${inAppVar} modified value`);
 }
 
-setTimeout(async () => {
+void (async () => {
+  await waitForLocalVariables();
+
   try {
     in_app_function();
   } catch (e) {
     Sentry.captureException(e);
     await Sentry.flush();
   }
-}, 500);
+})();

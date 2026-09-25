@@ -29,19 +29,18 @@ export { getFeedback, sendFeedback } from '@sentry/feedback';
 export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
   browserTracingIntegration,
-  isBotUserAgent,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
-export { elementTimingIntegration, getAbsoluteUrl } from '@sentry/browser-utils';
+export { elementTimingIntegration, getAbsoluteUrl, isBotUserAgent } from '@sentry/browser-utils';
 export { normalizeStringifyValue } from './normalizeStringifyValue';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
-export { spanStreamingIntegration } from './integrations/spanstreaming';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
 export { userTimingIntegration } from './integrations/usertiming';
-export { bfcacheIntegration } from './integrations/bfcache';
+export { bfcacheMetricsIntegration } from './integrations/bfcacheMetrics';
+export { interactionsIntegration } from './integrations/interactions';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
@@ -53,9 +52,6 @@ export {
   registerSpanErrorInstrumentation,
   getActiveSpan,
   getRootSpan,
-  startSpan,
-  startInactiveSpan,
-  startSpanManual,
   withActiveSpan,
   startNewTrace,
   bindScopeToEmitter,
@@ -73,8 +69,10 @@ export {
   featureFlagsIntegration,
   logger,
   metrics,
-} from '@sentry/core/browser';
-export type { Span, FeatureFlagsIntegration } from '@sentry/core/browser';
+  spanStreamingIntegration,
+} from '@sentry/core';
+export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/core/browser';
+export type { Span, FeatureFlagsIntegration } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
 export { spotlightBrowserIntegration } from './integrations/spotlight';

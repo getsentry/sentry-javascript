@@ -64,31 +64,6 @@ describe('Sentry Astro build-time options type', () => {
     expectTypeOf(completeOptions).toEqualTypeOf<SentryOptions>();
   });
 
-  it('includes all deprecated options', () => {
-    const completeOptions: SentryOptions = {
-      // SentryOptions specific options
-      enabled: true,
-      debug: true,
-      clientInitPath: './src/sentry.client.config.ts',
-      serverInitPath: './src/sentry.server.config.ts',
-      autoInstrumentation: {
-        requestHandler: true,
-      },
-      // Deprecated sourceMapsUploadOptions
-      sourceMapsUploadOptions: {
-        enabled: true,
-        authToken: 'deprecated-token',
-        org: 'deprecated-org',
-        project: 'deprecated-project',
-        telemetry: false,
-        assets: './build/**/*',
-        filesToDeleteAfterUpload: ['./build/*.map'],
-      },
-    };
-
-    expectTypeOf(completeOptions).toEqualTypeOf<SentryOptions>();
-  });
-
   it('allows partial configuration', () => {
     const minimalOptions: SentryOptions = { enabled: true };
 
@@ -140,6 +115,18 @@ describe('Sentry Astro build-time options type', () => {
       // @ts-expect-error - removed in v11, use the top-level build options instead
       unstable_sentryVitePluginOptions: {
         sourcemaps: { assets: './dist/**/*' },
+      },
+    };
+
+    expectTypeOf(options).toEqualTypeOf<SentryOptions>();
+  });
+
+  it('rejects the removed `sourceMapsUploadOptions`', () => {
+    const options: SentryOptions = {
+      // @ts-expect-error - removed in v11, use the top-level build options instead
+      sourceMapsUploadOptions: {
+        org: 'my-org',
+        project: 'my-project',
       },
     };
 

@@ -14,14 +14,14 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "agents": "0.20.1",
     "zod": "^4.2.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240725.0",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.5.2",
     "wrangler": "^4.61.0",

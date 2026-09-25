@@ -1,6 +1,6 @@
 import { cloudflare } from '@cloudflare/vite-plugin';
 import { reactRouter } from '@react-router/dev/vite';
-import { sentryReactRouter } from '@sentry/react-router';
+import { sentryReactRouter } from '@sentry/react-router/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig(async config => ({

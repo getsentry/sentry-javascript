@@ -7,6 +7,7 @@ import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { CloudflareClient } from '../../../src/client';
 import { withSentry } from '../../../src/withSentry';
+import { resetSdk } from '../../testUtils';
 
 const MOCK_ENV = {
   SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
@@ -44,6 +45,7 @@ function addDelayedWaitUntil(context: ExecutionContext) {
 describe('instrumentEmail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSdk();
   });
 
   test('does not double-wrap when withSentry is called twice', async () => {
@@ -257,15 +259,18 @@ describe('instrumentEmail', () => {
       const emailMessage = createMockEmailMessage();
       await wrappedHandler.email?.(emailMessage, MOCK_ENV, createMockExecutionContext());
 
-      expect(sentryEvent.transaction).toEqual(`Handle Email ${emailMessage.to}`);
+      // The recipient is deliberately not carried over into a description: it is PII, and the span
+      // name must stay low cardinality.
+      expect(sentryEvent.transaction).toEqual('email');
       expect(sentryEvent.spans).toHaveLength(0);
       expect(sentryEvent.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'auto.faas.cloudflare.email',
           'sentry.op': 'function',
+          'code.function.name': 'email',
           'faas.trigger': 'email',
           'sentry.sample_rate': 1,
-          'sentry.source': 'task',
+          'sentry.segment.name.source': 'task',
         },
         op: 'function',
         origin: 'auto.faas.cloudflare.email',
@@ -289,7 +294,7 @@ describe('instrumentEmail', () => {
       },
     } satisfies ExportedHandler<typeof MOCK_ENV_WITHOUT_DSN>;
 
-    const wrappedHandler = withSentry(vi.fn(), handler);
+    const wrappedHandler = withSentry(() => ({ cacheClient: false }), handler);
     const waits: Promise<unknown>[] = [];
     const waitUntil = vi.fn(promise => waits.push(promise));
     await wrappedHandler.email?.(createMockEmailMessage(), MOCK_ENV_WITHOUT_DSN, {

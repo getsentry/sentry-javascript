@@ -1,7 +1,6 @@
 const Sentry = require('@sentry/node');
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
@@ -21,8 +20,6 @@ const http = require('http');
 
 const app1 = new Koa();
 app1.use(bodyParser());
-
-Sentry.setupKoaErrorHandler(app1);
 
 const router1 = new Router();
 

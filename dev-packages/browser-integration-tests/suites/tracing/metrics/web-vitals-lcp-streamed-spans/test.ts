@@ -1,7 +1,7 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
@@ -30,7 +30,10 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   // Wait for LCP to be captured
   await page.waitForTimeout(1000);
 
-  await hidePage(page);
+  // LCP finalizes on the first trusted input or visibility change, and web-vitals checks
+  // `isTrusted`, so a synthetically dispatched `visibilitychange` does not finalize it. Click to
+  // finalize the way a real user would.
+  await page.click('body');
 
   const lcpSpan = await lcpSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
@@ -41,7 +44,7 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   expect(lcpSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
 
   // Check the LCP span carries the segment name it belongs to
-  expect(lcpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: '/index.html' });
+  expect(lcpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: 'Pageload' });
 
   // Check browser.web_vital.lcp.* attributes
   expect(lcpSpan.attributes['browser.web_vital.lcp.element']?.value).toEqual(expect.stringContaining('body > img'));

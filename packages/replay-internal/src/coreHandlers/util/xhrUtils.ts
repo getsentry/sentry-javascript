@@ -1,4 +1,5 @@
-import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/core';
+import type { Breadcrumb } from '@sentry/core';
+import type { XhrBreadcrumbData } from '@sentry/core/browser';
 import { isObjectLike } from '@sentry/core';
 import type { NetworkMetaWarning, XhrHint } from '@sentry/browser-utils';
 import { getBodyString, parseXhrResponseHeaders, SENTRY_XHR_DATA_KEY } from '@sentry/browser-utils';

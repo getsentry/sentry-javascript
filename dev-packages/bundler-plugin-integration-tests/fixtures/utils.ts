@@ -15,7 +15,8 @@ type SourceMap = {
 
 export function runBundler(command: string, opt: ExecSyncOptions, outDir?: string): void {
   if (outDir) {
-    // We've patched the sentry-cli helper to write the args to a file instead of actually executing the command
+    // The `sentry` CLI dependency is overridden with a recording stub (fixtures/sentry-stub) that
+    // writes the invoked args to `sentry-cli-mock.json` instead of talking to Sentry.
     opt.env = { ...opt.env, SENTRY_TEST_OUT_DIR: outDir };
   }
 
@@ -63,8 +64,8 @@ export function readAllFiles(
         } else if (entry === "sentry-cli-mock.json") {
           // Remove the temporary directory path too
           contents = contents.replace(
-            /"[^"]+sentry-bundler-plugin-upload.+?",/g,
-            '"sentry-bundler-plugin-upload-path",'
+            /"[^"]+sentry-bundler-plugin-upload[^"]*"/g,
+            '"sentry-bundler-plugin-upload-path"'
           );
         } else if (entry === "sentry-telemetry.json") {
           // Remove the temporary directory path too

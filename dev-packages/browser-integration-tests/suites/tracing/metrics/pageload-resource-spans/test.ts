@@ -68,7 +68,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
   // The init bundle script is served from the test origin: its description is origin-relative,
   // but `url.full` retains the full absolute URL (needed for span description inference).
   const sameOriginScriptSpan = scriptSpans?.find(({ description }) => description === '/init.bundle.js');
-  expect(sameOriginScriptSpan?.data?.['url.same_origin']).toBe(true);
+  expect(sameOriginScriptSpan?.data?.['http.request.same_origin']).toBe(true);
   expect(sameOriginScriptSpan?.data?.['url.full']).toMatch(/^https?:\/\/.+\/init\.bundle\.js$/);
 
   const customScriptSpan = scriptSpans?.find(
@@ -77,9 +77,9 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
 
   expect(imgSpan).toEqual({
     data: {
-      'http.decoded_response_content_length': expect.any(Number),
-      'http.response_content_length': expect.any(Number),
-      'http.response_transfer_size': expect.any(Number),
+      'http.response.body.decoded_size': expect.any(Number),
+      'http.response.body.size': expect.any(Number),
+      'http.response.size': expect.any(Number),
       'http.request.connect_start': expect.any(Number),
       'http.request.connection_end': expect.any(Number),
       'http.request.domain_lookup_end': expect.any(Number),
@@ -98,13 +98,16 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.img',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
-      'url.same_origin': false,
+      'url.domain': 'sentry-test-site.example',
+      'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/image.svg',
+      // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
+      // or render blocking status.
+      'http.response_delivery_type': '',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
-        'http.response_delivery_type': '',
       }),
     },
     description: 'https://sentry-test-site.example/path/to/image.svg',
@@ -118,17 +121,18 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
     trace_id: traceId,
   });
 
-  // range check: TTFB must be >0 (at least in this case) and it's reasonable to
-  // assume <10 seconds. This also tests that we're reporting TTFB in seconds.
+  // range check: TTFB is reasonably <10 seconds, which is really a check that we report it in
+  // seconds rather than milliseconds. WebKit resolves these intercepted routes without measurable
+  // delay, so only the other engines are held to a non-zero value.
   const imgSpanTtfb = imgSpan?.data['http.request.time_to_first_byte'];
-  expect(imgSpanTtfb).toBeGreaterThan(0);
+  expect(imgSpanTtfb).toBeGreaterThan(isWebkitRun ? -1 : 0);
   expect(imgSpanTtfb).toBeLessThan(10);
 
   expect(linkSpan).toEqual({
     data: {
-      'http.decoded_response_content_length': expect.any(Number),
-      'http.response_content_length': expect.any(Number),
-      'http.response_transfer_size': expect.any(Number),
+      'http.response.body.decoded_size': expect.any(Number),
+      'http.response.body.size': expect.any(Number),
+      'http.response.size': expect.any(Number),
       'http.request.connect_start': expect.any(Number),
       'http.request.connection_end': expect.any(Number),
       'http.request.domain_lookup_end': expect.any(Number),
@@ -147,13 +151,16 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.link',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
-      'url.same_origin': false,
+      'url.domain': 'sentry-test-site.example',
+      'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/style.css',
+      // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
+      // or render blocking status.
+      'http.response_delivery_type': '',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
-        'http.response_delivery_type': '',
       }),
     },
     description: 'https://sentry-test-site.example/path/to/style.css',
@@ -169,9 +176,9 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
 
   expect(customScriptSpan).toEqual({
     data: {
-      'http.decoded_response_content_length': expect.any(Number),
-      'http.response_content_length': expect.any(Number),
-      'http.response_transfer_size': expect.any(Number),
+      'http.response.body.decoded_size': expect.any(Number),
+      'http.response.body.size': expect.any(Number),
+      'http.response.size': expect.any(Number),
       'http.request.connection_end': expect.any(Number),
       'http.request.connect_start': expect.any(Number),
       'http.request.domain_lookup_end': expect.any(Number),
@@ -190,13 +197,16 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'sentry.op': 'resource.script',
       'sentry.origin': 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
-      'url.same_origin': false,
+      'url.domain': 'sentry-test-site.example',
+      'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/script.js',
+      // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
+      // or render blocking status.
+      'http.response_delivery_type': '',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
-        'http.response_delivery_type': '',
       }),
     },
     description: 'https://sentry-test-site.example/path/to/script.js',

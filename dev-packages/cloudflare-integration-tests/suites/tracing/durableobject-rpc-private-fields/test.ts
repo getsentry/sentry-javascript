@@ -3,7 +3,7 @@ import type { Event } from '@sentry/core';
 import { createRunner } from '../../../runner';
 
 // Regression for #23040 — a Durable Object using native private fields must stay functional when
-// instrumented with `enableRpcTracePropagation: true`. Native RPC dispatch (Durable Object facets,
+// instrumented with Sentry. Native RPC dispatch (Durable Object facets,
 // the Agents SDK bootstrap) invokes prototype methods with the stored instance as the receiver,
 // so the instrumented instance must not be a Proxy: a Proxy does not carry the private-field
 // brand and `this.#field` throws "Cannot read private member".

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { ElementRef } from '@angular/core';
@@ -15,26 +16,39 @@ import {
   getCurrentScope,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
   getAbsoluteUrl,
 } from '@sentry/browser';
-import { CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  URL_FULL,
+  URL_PATH,
+  URL_TEMPLATE,
+  SENTRY_DESCRIPTION,
+  UI_COMPONENT_NAME,
+} from '@sentry/conventions/attributes';
+import { FUNCTION, ROUTER } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
 import {
   debug,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
+  ROUTER_SPAN_NAME_FALLBACK,
   stripUrlQueryAndFragment,
   timestampInSeconds,
   filterCollectedUrl,
+  FUNCTION_SPAN_NAME_FALLBACK,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
-import { ANGULAR_INIT_OP } from './constants';
+import { UI_MOUNT } from '@sentry/conventions/op';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
 
@@ -70,14 +84,14 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, url: stri
 
   const attributes = spanToJSON(span).attributes;
 
-  if (!attributes || attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+  if (!attributes || attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'url') {
     span.updateName(route);
 
     const absoluteUrl = getAbsoluteUrl(url);
 
     span.setAttributes({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${attributes[SENTRY_OP]}.angular`,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       [URL_FULL]: filterCollectedUrl(absoluteUrl),
       [URL_PATH]: parseStringToURLObject(absoluteUrl)?.pathname,
       [URL_TEMPLATE]: route,
@@ -115,10 +129,12 @@ export class TraceService implements OnDestroy {
             startBrowserTracingNavigationSpan(
               client,
               {
-                name: strippedUrl,
+                // With span streaming, span names have to be low cardinality. The parameterized route
+                // is only known on `ResolveEnd`, which updates the span name then.
+                name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : strippedUrl,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                 },
               },
               {
@@ -136,12 +152,12 @@ export class TraceService implements OnDestroy {
         this._routingSpan =
           runOutsideAngular(() =>
             startInactiveSpan({
-              name: `${navigationEvent.url}`,
+              // With span streaming, span names have to be low cardinality. The parameterized route is only
+              // known at `ResolveEnd`, well after this span starts, so there is nothing but the fallback.
+              name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : `${navigationEvent.url}`,
               attributes: {
-                // TODO(conventions): Replace `'router'` with the `router` span op constant once it is released in `@sentry/conventions`.
-                [SENTRY_OP]: 'router',
+                [SENTRY_OP]: ROUTER,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
                 [URL_FULL]: strippedUrl,
                 ...(navigationEvent.navigationTrigger && {
                   navigationTrigger: navigationEvent.navigationTrigger,
@@ -298,12 +314,19 @@ export class TraceDirective implements OnInit, AfterViewInit {
     }
 
     if (getActiveSpan()) {
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+      const componentName = this.componentName;
+      const description = `<${componentName}>`;
+
       this._tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
-          name: `<${this.componentName}>`,
+          name: hasSpanStreaming ? componentName : description,
           attributes: {
-            [SENTRY_OP]: ANGULAR_INIT_OP,
+            [SENTRY_OP]: UI_MOUNT,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+            [UI_COMPONENT_NAME]: componentName,
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         }),
       );
@@ -342,22 +365,30 @@ interface TraceClassOptions {
  * Decorator function that can be used to capture initialization lifecycle of the whole component.
  */
 export function TraceClass(options?: TraceClassOptions): ClassDecorator {
-  let tracingSpan: Span;
+  const tracingSpans = new WeakMap<object, Span>();
 
   /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   return target => {
+    const componentName = options?.name || target.name;
     const originalOnInit = target.prototype.ngOnInit;
     target.prototype.ngOnInit = function (...args: unknown[]): ReturnType<typeof originalOnInit> {
-      tracingSpan = runOutsideAngular(() =>
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+      const description = `<${options?.name || 'unnamed'}>`;
+
+      const tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
           onlyIfParent: true,
-          name: `<${options?.name || 'unnamed'}>`,
+          name: hasSpanStreaming ? componentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
           attributes: {
-            [SENTRY_OP]: ANGULAR_INIT_OP,
+            [SENTRY_OP]: UI_MOUNT,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+            ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         }),
       );
+      tracingSpans.set(this, tracingSpan);
 
       if (originalOnInit) {
         return originalOnInit.apply(this, args);
@@ -366,8 +397,10 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
 
     const originalAfterViewInit = target.prototype.ngAfterViewInit;
     target.prototype.ngAfterViewInit = function (...args: unknown[]): ReturnType<typeof originalAfterViewInit> {
+      const tracingSpan = tracingSpans.get(this);
       if (tracingSpan) {
         runOutsideAngular(() => tracingSpan.end());
+        tracingSpans.delete(this);
       }
       if (originalAfterViewInit) {
         return originalAfterViewInit.apply(this, args);
@@ -393,15 +426,25 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
     descriptor.value = function (...args: unknown[]): ReturnType<typeof originalMethod> {
       const now = timestampInSeconds();
 
+      const methodName = options?.name;
+      const description = `<${methodName || 'unnamed'}>`;
+
+      const client = getClient();
+      const hasSpanStreaming = client && hasSpanStreamingEnabled(client);
+      const name = hasSpanStreaming ? methodName || FUNCTION_SPAN_NAME_FALLBACK : description;
+
       runOutsideAngular(() => {
         startInactiveSpan({
           onlyIfParent: true,
-          name: `<${options?.name ? options.name : 'unnamed'}>`,
+          name,
           startTime: now,
           attributes: {
-            [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
+            [SENTRY_OP]: FUNCTION,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
-            [CODE_FUNCTION_NAME]: String(propertyKey),
+            // override description inference by Relay to preserve the original (transaction-based) description.
+            // sentry-conventions can't map the special case with the angle brackets.
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
+            [CODE_FUNCTION_NAME]: methodName || String(propertyKey),
           },
         }).end(now);
       });

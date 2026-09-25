@@ -29,10 +29,8 @@ app.get('/test/:id/updateSpanNameAndSource', (_req, res) => {
   const span = Sentry.getActiveSpan();
   const rootSpan = Sentry.getRootSpan(span);
   Sentry.updateSpanName(rootSpan, 'new-name');
-  rootSpan.setAttribute(Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'component');
+  rootSpan.setAttribute('sentry.segment.name.source', 'component');
   res.send({ response: 'response 4' });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

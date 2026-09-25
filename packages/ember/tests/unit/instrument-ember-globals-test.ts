@@ -1,3 +1,4 @@
+import { UI_RENDER } from '@sentry/conventions/op';
 import type { RenderEntries } from '@sentry/ember/utils/instrumentEmberGlobals';
 import {
   _processComponentRenderAfter,
@@ -19,7 +20,7 @@ module('Unit | Utility | instrument-ember-globals', function (hooks) {
     _processComponentRenderBefore(payload, beforeEntries);
     assert.true(beforeEntries.has(payload), 'Entry is recorded when the render starts');
 
-    _processComponentRenderAfter(payload, beforeEntries, 'ui.ember.component.render', 1_000);
+    _processComponentRenderAfter(payload, beforeEntries, UI_RENDER, 1_000);
     assert.false(
       beforeEntries.has(payload),
       'Entry is removed when the render finishes, so the payload (and the component instance it references) is not retained',
@@ -31,7 +32,7 @@ module('Unit | Utility | instrument-ember-globals', function (hooks) {
     const payload = { containerKey: 'component:test-component', initialRender: true as const, object: '<ember124>' };
 
     _processComponentRenderBefore(payload, beforeEntries);
-    _processComponentRenderAfter(payload, beforeEntries, 'ui.ember.component.render', 0);
+    _processComponentRenderAfter(payload, beforeEntries, UI_RENDER, 0);
 
     assert.false(beforeEntries.has(payload), 'Entry is removed after the span is created');
   });
@@ -42,7 +43,7 @@ module('Unit | Utility | instrument-ember-globals', function (hooks) {
     const unknownPayload = { containerKey: 'component:unknown', initialRender: true as const, object: '<ember126>' };
 
     _processComponentRenderBefore(trackedPayload, beforeEntries);
-    _processComponentRenderAfter(unknownPayload, beforeEntries, 'ui.ember.component.render', 1_000);
+    _processComponentRenderAfter(unknownPayload, beforeEntries, UI_RENDER, 1_000);
 
     assert.true(beforeEntries.has(trackedPayload), 'The in-flight entry is still tracked');
     assert.false(beforeEntries.has(unknownPayload), 'The unknown payload was not added');

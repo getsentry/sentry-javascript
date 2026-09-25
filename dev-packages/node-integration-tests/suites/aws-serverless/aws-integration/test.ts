@@ -1,12 +1,11 @@
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // The suite runs twice on CI: once with the OTel `Aws` integration (default) and once with the
 // orchestrion diagnostics-channel integration auto-injected (`INJECT_ORCHESTRION`). Both emit the
 // same spans; only the origin differs.
-const ORIGIN = isOrchestrionEnabled() ? 'auto.aws.aws_sdk' : 'auto.otel.aws';
+const ORIGIN = 'auto.aws.aws_sdk';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
@@ -110,7 +109,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   // SQS - SendMessage (producer)
   expectSpan('SQS SendMessage', {
     description: 'my-queue send',
-    op: 'rpc',
+    op: 'queue.publish',
     origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'SendMessage',
@@ -126,7 +125,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   // SQS - ReceiveMessage (consumer)
   expectSpan('SQS ReceiveMessage', {
     description: 'my-queue receive',
-    op: 'rpc',
+    op: 'queue.receive',
     origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'ReceiveMessage',
@@ -140,7 +139,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
   // SNS - Publish (producer)
   expectSpan('SNS Publish', {
     description: 'my-topic send',
-    op: 'rpc',
+    op: 'queue.publish',
     origin: ORIGIN,
     data: expect.objectContaining({
       'rpc.method': 'Publish',
@@ -149,6 +148,19 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'messaging.destination': 'my-topic',
       'aws.sns.topic.arn': 'arn:aws:sns:us-east-1:123456789012:my-topic',
       'sentry.kind': 'producer',
+    }),
+  });
+
+  // Without span streaming the name keeps the raw ARN suffix, including the per-device id.
+  expectSpan('SNS Publish (platform endpoint)', {
+    description: 'endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3 send',
+    op: 'queue.publish',
+    data: expect.objectContaining({
+      'rpc.method': 'Publish',
+      'rpc.service': 'SNS',
+      'messaging.destination': 'endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3',
+      'messaging.destination.name':
+        'arn:aws:sns:us-east-1:123456789012:endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3',
     }),
   });
 
@@ -162,7 +174,7 @@ function assertAwsServiceSpans(transaction: TransactionEvent): void {
       'rpc.service': 'Lambda',
       'faas.invoked_name': 'my-function',
       'faas.invoked_provider': 'aws',
-      'faas.execution': 'request-id-1',
+      'faas.invocation_id': 'request-id-1',
     }),
   });
 

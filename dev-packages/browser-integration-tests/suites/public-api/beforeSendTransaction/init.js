@@ -15,7 +15,7 @@ Sentry.init({
       transactionEvent.transaction_info.source = 'route';
       transactionEvent.contexts.trace.data = {
         ...transactionEvent.contexts.trace.data,
-        [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        ['sentry.segment.name.source']: 'route',
       };
     }
     return transactionEvent;

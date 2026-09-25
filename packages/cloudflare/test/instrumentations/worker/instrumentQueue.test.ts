@@ -7,6 +7,7 @@ import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { CloudflareClient } from '../../../src/client';
 import { withSentry } from '../../../src/withSentry';
+import { resetSdk } from '../../testUtils';
 
 const MOCK_ENV = {
   SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
@@ -57,6 +58,7 @@ function addDelayedWaitUntil(context: ExecutionContext) {
 describe('instrumentQueue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSdk();
   });
 
   test('does not double-wrap when withSentry is called twice', async () => {
@@ -284,7 +286,7 @@ describe('instrumentQueue', () => {
           'messaging.batch.message_count': batch.messages.length,
           'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
           'sentry.sample_rate': 1,
-          'sentry.source': 'task',
+          'sentry.segment.name.source': 'task',
         },
         op: 'queue.process',
         origin: 'auto.faas.cloudflare.queue',
@@ -308,7 +310,7 @@ describe('instrumentQueue', () => {
       },
     } satisfies ExportedHandler<typeof MOCK_ENV_WITHOUT_DSN>;
 
-    const wrappedHandler = withSentry(vi.fn(), handler);
+    const wrappedHandler = withSentry(() => ({ cacheClient: false }), handler);
     const waits: Promise<unknown>[] = [];
     const waitUntil = vi.fn(promise => waits.push(promise));
     await wrappedHandler.queue?.(createMockQueueBatch(), MOCK_ENV_WITHOUT_DSN, {

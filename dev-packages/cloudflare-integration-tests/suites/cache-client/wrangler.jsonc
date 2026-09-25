@@ -1,0 +1,18 @@
+{
+  "name": "cache-client-test",
+  "compatibility_date": "2025-06-17",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      { "name": "CACHE_DO", "class_name": "CacheDurableObject" },
+      { "name": "NO_CACHE_DO", "class_name": "NoCacheDurableObject" },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["CacheDurableObject", "NoCacheDurableObject"],
+    },
+  ],
+}

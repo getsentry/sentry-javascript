@@ -1,4 +1,4 @@
-import type { Client, PropagationContext, Span, SpanContextData } from '@sentry/core/browser';
+import type { Client, PropagationContext, Span, SpanContextData } from '@sentry/core';
 import {
   debug,
   getCurrentScope,
@@ -7,7 +7,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   spanToJSON,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../exports';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
@@ -192,10 +192,8 @@ export function addPreviousTraceSpanLink(
       },
     });
 
-    // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
-    // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-    // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
-    // to check this at v11 time :)
+    // TODO(v12): Remove this once the Sentry trace view finds linked traces via span links. EAP stores
+    // span links, but the trace view still reads this attribute to navigate to the previous/next trace.
     span.setAttribute(
       PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE,
       `${previousTraceSpanCtx.traceId}-${previousTraceSpanCtx.spanId}-${
@@ -233,7 +231,7 @@ export function getPreviousTraceFromSessionStorage(): PreviousTraceInfo | undefi
 }
 
 /**
- * see {@link import('@sentry/core/browser').spanIsSampled}
+ * see {@link import('@sentry/core').spanIsSampled}
  */
 export function spanContextSampled(ctx: SpanContextData): boolean {
   return ctx.traceFlags === 0x1;

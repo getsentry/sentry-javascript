@@ -133,4 +133,67 @@ describe('spanStreamingIntegration (core)', () => {
 
     expect(mockSpanBufferInstance.add).not.toHaveBeenCalled();
   });
+
+  it('flushes a single trace when the flushTraceSpans hook is emitted', () => {
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
+      dsn: 'https://username@domain/123',
+      integrations: [spanStreamingIntegration()],
+      traceLifecycle: 'stream',
+      tracesSampleRate: 1,
+    });
+
+    SentryCore.setCurrentClient(client);
+    client.init();
+
+    client.emit('flushTraceSpans', 'trace-1');
+
+    expect(mockSpanBufferInstance.flush).toHaveBeenCalledTimes(1);
+    expect(mockSpanBufferInstance.flush).toHaveBeenCalledWith('trace-1');
+    expect(mockSpanBufferInstance.drain).not.toHaveBeenCalled();
+  });
+
+  it('does not flush when the segment span ends if flushOnSegmentEnd is disabled', () => {
+    vi.useFakeTimers();
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
+      dsn: 'https://username@domain/123',
+      integrations: [spanStreamingIntegration({ flushOnSegmentEnd: false })],
+      traceLifecycle: 'stream',
+    });
+
+    SentryCore.setCurrentClient(client);
+    client.init();
+
+    client.emit('afterSegmentSpanEnd', new SentryCore.SentrySpan({ name: 'test' }));
+    vi.advanceTimersByTime(500);
+
+    expect(mockSpanBufferInstance.flush).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+
+  it('flushes the trace after a delay when the segment span ends and flushOnSegmentEnd is set', () => {
+    vi.useFakeTimers();
+    const client = new TestClient({
+      ...getDefaultTestClientOptions(),
+      dsn: 'https://username@domain/123',
+      integrations: [spanStreamingIntegration({ flushOnSegmentEnd: true })],
+      traceLifecycle: 'stream',
+    });
+
+    SentryCore.setCurrentClient(client);
+    client.init();
+
+    const span = new SentryCore.SentrySpan({ name: 'test' });
+    client.emit('afterSegmentSpanEnd', span);
+
+    expect(mockSpanBufferInstance.flush).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(500);
+
+    expect(mockSpanBufferInstance.flush).toHaveBeenCalledWith(span.spanContext().traceId);
+
+    vi.useRealTimers();
+  });
 });

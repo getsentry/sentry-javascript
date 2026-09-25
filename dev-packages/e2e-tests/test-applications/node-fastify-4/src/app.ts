@@ -15,13 +15,12 @@ console.warn = new Proxy(console.warn, {
 });
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   integrations: [
     Sentry.fastifyIntegration({
-      shouldHandleError: (error, _request, _reply) => {
-        if (_request.routeOptions?.url?.includes('/test-error-not-captured')) {
+      shouldHandleError: (_error, request, _reply) => {
+        if (request.routeOptions?.url?.includes('/test-error-not-captured')) {
           // Errors from this path will not be captured by Sentry
           return false;
         }
@@ -45,8 +44,6 @@ const http = require('http') as typeof H;
 const app = fastify();
 const port = 3030;
 const port2 = 3040;
-
-Sentry.setupFastifyErrorHandler(app);
 
 app.get('/test-success', function (_req, res) {
   res.send({ version: 'v1' });

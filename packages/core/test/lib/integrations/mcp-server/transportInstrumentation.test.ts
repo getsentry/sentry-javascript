@@ -24,7 +24,7 @@ import {
   wrapTransportOnMessage,
   wrapTransportSend,
 } from '../../../../src/integrations/mcp-server/transport';
-import * as tracingModule from '../../../../src/tracing';
+import * as tracingModule from '../../../../src/tracing/trace';
 import {
   createMockClient,
   createMockMcpServer,
@@ -33,6 +33,33 @@ import {
   createMockTransport,
   createMockWrapperTransport,
 } from './testUtils';
+
+type StartImplementation = (transport: InMemoryTransport) => Promise<void>;
+
+class InMemoryTransport {
+  public onmessage?: (...args: unknown[]) => void;
+  public onclose?: (...args: unknown[]) => void;
+  public onerror?: (error: Error) => void;
+  public send = vi.fn().mockResolvedValue(undefined);
+
+  public constructor(private readonly startImplementation: StartImplementation = () => Promise.resolve()) {}
+
+  public start(): Promise<void> {
+    return this.startImplementation(this);
+  }
+}
+
+function createStartingMcpServer() {
+  return {
+    ...createMockMcpServer(),
+    connect: vi.fn(async (transport: InMemoryTransport) => {
+      transport.onmessage = vi.fn();
+      transport.onclose = vi.fn();
+      transport.onerror = vi.fn();
+      await transport.start();
+    }),
+  };
+}
 
 describe('MCP Server Transport Instrumentation', () => {
   const startSpanSpy = vi.spyOn(tracingModule, 'startSpan');
@@ -99,6 +126,139 @@ describe('MCP Server Transport Instrumentation', () => {
 
       // Check the original spy was called
       expect(originalConnect).toHaveBeenCalledWith(mockTransport);
+    });
+
+    it('instruments requests once during and after transport startup', async () => {
+      const transport = new InMemoryTransport(connectedTransport => {
+        connectedTransport.onmessage?.({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'queued-request',
+          params: { name: 'get-weather' },
+        });
+        return Promise.resolve();
+      });
+
+      await wrapMcpServerWithSentry(createStartingMcpServer()).connect(transport);
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
+        name: 'tools/call get-weather',
+        forceTransaction: true,
+        attributes: {
+          'mcp.method.name': 'tools/call',
+          'mcp.tool.name': 'get-weather',
+          'mcp.request.id': 'queued-request',
+          'mcp.transport': 'InMemoryTransport',
+          'network.transport': 'unknown',
+          'network.protocol.version': '2.0',
+          'sentry.op': 'mcp.server',
+          'sentry.origin': 'auto.function.mcp_server',
+          'sentry.segment.name.source': 'route',
+        },
+      });
+
+      startInactiveSpanSpy.mockClear();
+      transport.onmessage?.({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 'post-start-request',
+        params: { name: 'get-weather' },
+      });
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
+    });
+
+    it('preserves the start receiver and Promise and restores the inherited method before calling it', async () => {
+      const startPromise = Promise.resolve();
+      let startResult: Promise<void> | undefined;
+      let receivedExpectedThis = false;
+      let wasRestoredBeforeStart = false;
+      let originalStart: InMemoryTransport['start'];
+      const transport = new InMemoryTransport(connectedTransport => {
+        receivedExpectedThis = connectedTransport === transport;
+        wasRestoredBeforeStart = connectedTransport.start === originalStart;
+        return startPromise;
+      });
+      originalStart = transport.start;
+      const server = createStartingMcpServer();
+      server.connect.mockImplementation(async connectedTransport => {
+        startResult = connectedTransport.start();
+        await startResult;
+      });
+
+      await wrapMcpServerWithSentry(server).connect(transport);
+
+      expect(startResult).toBe(startPromise);
+      expect(receivedExpectedThis).toBe(true);
+      expect(wasRestoredBeforeStart).toBe(true);
+      expect(transport.start).toBe(originalStart);
+      expect(Object.prototype.hasOwnProperty.call(transport, 'start')).toBe(false);
+    });
+
+    it('restores start when connect rejects before starting the transport', async () => {
+      const connectionError = new Error('connection failed');
+      const transport = new InMemoryTransport();
+      const server = {
+        ...createMockMcpServer(),
+        connect: vi.fn().mockRejectedValue(connectionError),
+      };
+
+      const connection = wrapMcpServerWithSentry(server).connect(transport);
+
+      await expect(connection).rejects.toBe(connectionError);
+      expect(Object.prototype.hasOwnProperty.call(transport, 'start')).toBe(false);
+    });
+
+    it('restores start and preserves a synchronous start error', async () => {
+      const startError = new Error('start failed');
+      const originalStart = vi.fn(() => {
+        throw startError;
+      });
+      const transport = new InMemoryTransport();
+      Object.defineProperty(transport, 'start', {
+        configurable: true,
+        enumerable: false,
+        value: originalStart,
+        writable: false,
+      });
+      const originalDescriptor = Object.getOwnPropertyDescriptor(transport, 'start');
+      const callStart = vi.fn((connectedTransport: InMemoryTransport) => connectedTransport.start());
+      const server = createStartingMcpServer();
+      server.connect.mockImplementation(async connectedTransport => {
+        await callStart(connectedTransport);
+      });
+
+      const connection = wrapMcpServerWithSentry(server).connect(transport);
+
+      await expect(connection).rejects.toBe(startError);
+      expect(callStart).toHaveBeenCalledOnce();
+      expect(callStart).not.toHaveReturned();
+      expect(Object.getOwnPropertyDescriptor(transport, 'start')).toEqual(originalDescriptor);
+      expect(originalStart).toHaveBeenCalledOnce();
+    });
+
+    it('falls back to post-connect instrumentation when start cannot be replaced', async () => {
+      const originalStart = vi.fn().mockResolvedValue(undefined);
+      const transport = new InMemoryTransport();
+      Object.defineProperty(transport, 'start', {
+        configurable: false,
+        enumerable: false,
+        value: originalStart,
+        writable: false,
+      });
+
+      await wrapMcpServerWithSentry(createStartingMcpServer()).connect(transport);
+
+      transport.onmessage?.({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 'post-start-request',
+        params: { name: 'get-weather' },
+      });
+
+      expect(originalStart).toHaveBeenCalledOnce();
+      expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
     });
 
     it('should create spans for incoming JSON-RPC requests', async () => {
@@ -209,7 +369,7 @@ describe('MCP Server Transport Instrumentation', () => {
       };
       await mockTransport.send?.(jsonRpcErrorResponse as any);
 
-      expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
+      expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: jsonRpcErrorResponse.error.message });
       expect(mockSpan.end).toHaveBeenCalled();
     });
 
@@ -270,7 +430,6 @@ describe('MCP Server Transport Instrumentation', () => {
 
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         name: 'tools/call process-file',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: {
           'mcp.method.name': 'tools/call',
@@ -283,7 +442,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.request.argument.path': '"/tmp/data.txt"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         },
       });
     });
@@ -420,7 +579,6 @@ describe('MCP Server Transport Instrumentation', () => {
 
       expect(config).toEqual({
         name: 'tools/call test-tool',
-        op: 'mcp.server',
         forceTransaction: true,
         attributes: expect.objectContaining({
           'mcp.method.name': 'tools/call',
@@ -435,7 +593,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.request.argument.input': '"test"',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
-          'sentry.source': 'route',
+          'sentry.segment.name.source': 'route',
         }),
       });
     });
@@ -884,7 +1042,7 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.method.name': 'notifications/tools/list_changed',
             'sentry.op': 'mcp.notification.client_to_server',
             'sentry.origin': 'auto.mcp.notification',
-            'sentry.source': 'route',
+            'sentry.segment.name.source': 'route',
           },
         },
         expect.any(Function),
@@ -1062,7 +1220,6 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(startInactiveSpanSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call test-tool',
-          op: 'mcp.server',
         }),
       );
 

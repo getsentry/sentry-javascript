@@ -1,101 +1,154 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { isTurbopackDevMode } from './isDevMode';
 
-test('Sends a transaction for a request to app router with URL', async ({ page }) => {
+// Next.js emits these spans itself. The SDK attaches no op, description or function name to
+// them, so asserting `undefined` pins that they stay untouched.
+const nextjsSpan = { op: undefined, description: undefined, codeFunctionName: undefined };
+
+test('Sends a span for a request to app router with URL', async ({ page }) => {
   test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
 
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-16', transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'GET /parameterized/[one]/beep/[two]' &&
-      transactionEvent.contexts?.trace?.data?.['http.target']?.startsWith('/parameterized/1337/beep/42')
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-16',
+    span =>
+      span.name === 'GET /parameterized/[one]/beep/[two]' &&
+      String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
+  );
 
   await page.goto('/parameterized/1337/beep/42');
 
-  const transactionEvent = await serverComponentTransactionPromise;
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(
+    span =>
+      span.name === 'GET /parameterized/[one]/beep/[two]' &&
+      span.is_segment &&
+      String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
+  )!;
 
-  expect(transactionEvent.contexts?.trace).toEqual({
-    data: expect.objectContaining({
-      'sentry.op': 'http.server',
-      'sentry.origin': 'auto',
-      'sentry.sample_rate': 1,
-      'sentry.source': 'route',
-      'http.method': 'GET',
-      'http.response.status_code': 200,
-      'http.route': '/parameterized/[one]/beep/[two]',
-      'http.status_code': 200,
-      'http.target': '/parameterized/1337/beep/42',
-      'sentry.kind': 'server',
-      'next.route': '/parameterized/[one]/beep/[two]',
-    }),
-    op: 'http.server',
-    origin: 'auto',
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    status: 'ok',
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+  expect(segmentSpan.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(segmentSpan.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(segmentSpan.status).toBe('ok');
+  expect(segmentSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto', type: 'string' },
+    'sentry.sample_rate': { value: 1, type: 'integer' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'http.method': { value: 'GET', type: 'string' },
+    'http.response.status_code': { value: 200, type: 'integer' },
+    'http.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
+    'http.status_code': { value: 200, type: 'integer' },
+    'http.target': { value: '/parameterized/1337/beep/42', type: 'string' },
+    'sentry.kind': { value: 'server', type: 'string' },
+    'next.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
   });
 
-  expect(transactionEvent.request).toMatchObject({
-    url: expect.stringContaining('/parameterized/1337/beep/42'),
-  });
-
-  // The transaction should not contain any spans with the same name as the transaction
-  // e.g. "GET /parameterized/[one]/beep/[two]"
-  expect(
-    transactionEvent.spans?.filter(span => {
-      return span.description === transactionEvent.transaction;
-    }),
-  ).toHaveLength(0);
+  // No child span should share the segment span's name
+  expect(spans.filter(span => !span.is_segment && span.name === segmentSpan.name)).toHaveLength(0);
 });
 
-test('Will create a transaction with spans for every server component and metadata generation functions when visiting a page', async ({
+test('Will create spans for every server component and metadata generation functions when visiting a page', async ({
   page,
 }) => {
-  const serverTransactionEventPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /nested-layout';
-  });
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'GET /nested-layout');
 
   await page.goto('/nested-layout');
 
-  const spanDescriptions = (await serverTransactionEventPromise).spans?.map(span => {
-    return span.description;
-  });
+  const fullSpans = await spansPromise;
+  const spans = fullSpans.map(span => ({
+    name: span.name,
+    op: getSpanOp(span),
+    description: span.attributes['sentry.description']?.value,
+    codeFunctionName: span.attributes['code.function.name']?.value,
+  }));
 
-  expect(spanDescriptions).toContainEqual('render route (app) /nested-layout');
-  expect(spanDescriptions).toContainEqual('build component tree');
-  expect(spanDescriptions).toContainEqual('resolve root layout server component');
-  expect(spanDescriptions).toContainEqual('resolve layout server component "(nested-layout)"');
-  expect(spanDescriptions).toContainEqual('resolve layout server component "nested-layout"');
-  expect(spanDescriptions).toContainEqual('resolve page server component "/nested-layout"');
-  expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/page');
-  expect(spanDescriptions).toContainEqual('start response');
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'render route (app) /nested-layout' });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'build component tree' });
+  // Server component spans: the name is the low-cardinality `code.function.name`, and the
+  // segment each one resolved for is on the description.
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve root layout server component',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "(nested-layout)"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "nested-layout"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Page',
+    op: 'function',
+    description: 'resolve page server component "/nested-layout"',
+    codeFunctionName: 'Page',
+  });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'generateMetadata /(nested-layout)/nested-layout/page' });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'start response' });
 });
 
-test('Will create a transaction with spans for every server component and metadata generation functions when visiting a dynamic page', async ({
+test('Will create spans for every server component and metadata generation functions when visiting a dynamic page', async ({
   page,
 }) => {
   test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for dynamic routes in dev mode');
 
-  const serverTransactionEventPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /nested-layout/[dynamic]';
-  });
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'GET /nested-layout/[dynamic]');
 
   await page.goto('/nested-layout/123');
 
-  const spanDescriptions = (await serverTransactionEventPromise).spans?.map(span => {
-    return span.description;
-  });
+  const fullSpans = await spansPromise;
+  const spans = fullSpans.map(span => ({
+    name: span.name,
+    op: getSpanOp(span),
+    description: span.attributes['sentry.description']?.value,
+    codeFunctionName: span.attributes['code.function.name']?.value,
+  }));
 
-  expect(spanDescriptions).toContainEqual('resolve page components');
-  expect(spanDescriptions).toContainEqual('render route (app) /nested-layout/[dynamic]');
-  expect(spanDescriptions).toContainEqual('build component tree');
-  expect(spanDescriptions).toContainEqual('resolve root layout server component');
-  expect(spanDescriptions).toContainEqual('resolve layout server component "(nested-layout)"');
-  expect(spanDescriptions).toContainEqual('resolve layout server component "nested-layout"');
-  expect(spanDescriptions).toContainEqual('resolve layout server component "[dynamic]"');
-  expect(spanDescriptions).toContainEqual('resolve page server component "/nested-layout/[dynamic]"');
-  expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/[dynamic]/page');
-  expect(spanDescriptions).toContainEqual('start response');
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'resolve page components' });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'render route (app) /nested-layout/[dynamic]' });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'build component tree' });
+  // Server component spans: the name is the low-cardinality `code.function.name`, and the
+  // segment each one resolved for is on the description.
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve root layout server component',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "(nested-layout)"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "nested-layout"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "[dynamic]"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Page',
+    op: 'function',
+    description: 'resolve page server component "/nested-layout/[dynamic]"',
+    codeFunctionName: 'Page',
+  });
+  expect(spans).toContainEqual({
+    ...nextjsSpan,
+    name: 'generateMetadata /(nested-layout)/nested-layout/[dynamic]/page',
+  });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'start response' });
 });

@@ -7,6 +7,7 @@ import {
   serializeInstrumentations,
 } from '@sentry/server-utils/orchestrion/webpack';
 import type { VercelCronsConfig } from '../../common/types';
+import { getBuildLogger } from '../buildLogger';
 import type { RouteManifest } from '../manifest/types';
 import type {
   JSONValue,
@@ -124,8 +125,7 @@ export function constructTurbopackConfig({
     } else {
       // Without this warning the option silently no-ops, which is indistinguishable from
       // annotation being broken.
-      // eslint-disable-next-line no-console
-      console.warn(
+      getBuildLogger(userSentryOptions?.silent).warn(
         `[@sentry/nextjs] \`reactComponentAnnotation\` is enabled but React component annotation requires Next.js 16+ on Turbopack builds${
           nextJsVersion ? ` (detected ${nextJsVersion})` : ''
         }. Your components will not be annotated.`,
@@ -154,13 +154,14 @@ function maybeAddOrchestrionRule(
     return rules;
   }
 
-  // The loader's transform splices an import of the `@sentry/server-utils/orchestrion` helper into
-  // each instrumented module. Turbopack rejects absolute-path imports ("server relative imports are
-  // not implemented yet"), and under isolated installs (pnpm) the bare specifier emitted inside a
-  // bundled package doesn't resolve from that package's location — so pass the helper's absolute
-  // on-disk path and let the loader derive a per-file RELATIVE specifier, which Turbopack resolves
-  // from the importing file and bundles at build time.
-  const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils/orchestrion');
+  // The loader's transform splices an import of `@sentry/server-utils` (the module-injected helper
+  // plus the module's subscriber factory) into each instrumented module. Turbopack rejects
+  // absolute-path imports ("server relative imports are not implemented yet"), and under isolated
+  // installs (pnpm) the bare specifier emitted inside a bundled package doesn't resolve from that
+  // package's location — so pass the entry's absolute on-disk path and let the loader derive a
+  // per-file RELATIVE specifier, which Turbopack resolves from the importing file and bundles at
+  // build time.
+  const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils');
 
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',

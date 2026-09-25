@@ -92,7 +92,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
 
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
 
@@ -202,7 +202,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore NX cache
@@ -241,7 +241,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore NX cache
@@ -278,7 +278,7 @@ jobs:
       pull-requests: write
     steps:
       - name: PR is opened against master
-        uses: mshick/add-pr-comment@8e4927817251f1ff60c001f04568532b38e0b4a0
+        uses: mshick/add-pr-comment@ec328af66588ab8f77cdeb2c264f14aba45bbf59
         if: ${{ github.base_ref == 'master' && !startsWith(github.head_ref, 'prepare-release/') }}
         with:
           message: |
@@ -298,7 +298,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -330,7 +330,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -359,7 +359,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Install dependencies
@@ -385,7 +385,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
 
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
 
@@ -407,7 +407,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -429,7 +429,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -485,7 +485,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -513,7 +513,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Set up Bun
@@ -540,11 +540,11 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
@@ -577,7 +577,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
@@ -658,7 +658,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -720,7 +720,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -766,7 +766,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -783,7 +783,7 @@ jobs:
   job_node_integration_tests:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
-      Tests
+      Tests (${{ matrix.shard }}/3)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -792,12 +792,20 @@ jobs:
       fail-fast: false
       matrix:
         node: [20.19, 22, 24, 26]
+        shard: [1, 2, 3]
         typescript:
           - false
         include:
           # Only check typescript for latest version (to streamline CI)
           - node: 24
             typescript: '5.0'
+            shard: 1
+          - node: 24
+            typescript: '5.0'
+            shard: 2
+          - node: 24
+            typescript: '5.0'
+            shard: 3
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -817,7 +825,7 @@ jobs:
             echo "Sufficient disk space — skipping cleanup"
           fi
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
@@ -832,21 +840,25 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
-        run: yarn test
+        run: yarn test --shard=${{ matrix.shard }}/3
 
   job_cloudflare_integration_tests:
-    name: Cloudflare Integration Tests
+    name: Cloudflare Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -856,7 +868,7 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/cloudflare-integration-tests
-        run: yarn test
+        run: yarn test --shard=${{ matrix.shard }}/2
 
   job_bundler_plugin_integration_tests:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
@@ -874,11 +886,11 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       # The fixtures install the locally-packed `@sentry/bundler-plugins` tarball with pnpm.
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 9.15.9
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
@@ -902,7 +914,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Set up Bun
@@ -930,11 +942,11 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v2.0.4
+        uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: 'v2.8.3'
       - name: Restore caches
@@ -964,7 +976,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - name: Restore NX cache
@@ -1019,32 +1031,29 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: 9.15.9
+          version: ${{ matrix.test-application == 'nuxt-5' && '11.10.0' || '9.15.9' }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
         if:
-          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "hono-4", "bun-bytecode",
-          "bun-mysql"]'), matrix.test-application)
+          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "elysia-bun-static", "hono-4",
+          "bun-bytecode", "bun-mysql"]'), matrix.test-application)
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.14'
       - name: Set up AWS SAM
         if: matrix.test-application == 'aws-serverless' || matrix.test-application == 'aws-serverless-layer'
-        uses: aws-actions/setup-sam@v2
+        uses: aws-actions/setup-sam@v3
         with:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Deno
-        if:
-          matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed' || matrix.test-application ==
-          'deno-redis' || matrix.test-application == 'hono-4' || matrix.test-application == 'deno-mysql' ||
-          matrix.test-application == 'deno-pg'
-        uses: denoland/setup-deno@v2.0.4
+        if: matrix.test-application == 'deno' || matrix.test-application == 'hono-4'
+        uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
@@ -1149,6 +1158,10 @@ jobs:
       REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
+      E2E_OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY }}
+      # Used by test apps that deploy a real Cloudflare Worker, e.g. cloudflare-workers-send-to-sentry
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-optional) }}
@@ -1158,16 +1171,16 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: 9.15.9
+          version: ${{ matrix.test-application == 'nuxt-5' && '11.10.0' || '9.15.9' }}
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Deno
-        if: matrix.test-application == 'deno' || matrix.test-application == 'deno-streamed'
-        uses: denoland/setup-deno@v2.0.4
+        if: matrix.test-application == 'deno'
+        uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
@@ -1260,28 +1273,8 @@ jobs:
     # Always run this, even if a dependent job failed
     if: always()
     runs-on: ubuntu-24.04
-    permissions:
-      issues: write
-      checks: read
+    permissions: {}
     steps:
-      - name: Check out current commit
-        if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
-        uses: actions/checkout@v7
-        with:
-          sparse-checkout: |
-            .github
-            scripts
-
-      - name: Create issues for failed jobs
-        if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const { default: run } = await import(
-              `${process.env.GITHUB_WORKSPACE}/scripts/report-ci-failures.mjs`
-            );
-            await run({ github, context, core });
-
       - name: Check for failures
         if: cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |

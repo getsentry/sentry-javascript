@@ -1,27 +1,24 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { callRpc } from './agent-socket';
 
 const AGENT_INSTANCE = 'chat-rpc-instance';
 
 test('creates an rpc span for a @callable() invocation on an AIChatAgent', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('cloudflare-agent', transactionEvent => {
-    return (
-      transactionEvent.transaction === 'webSocketMessage' &&
-      (transactionEvent.spans ?? []).some(span => span.op === 'rpc' && span.description === 'greet')
-    );
-  });
+  // The rpc span is streamed before the webSocketMessage segment that owns it, so collect until the
+  // segment of the same trace has arrived.
+  const spansPromise = collectStreamedSpans(
+    'cloudflare-agent',
+    spans =>
+      spans.some(span => getSpanOp(span) === 'rpc' && span.name === 'greet') &&
+      spans.some(span => span.is_segment && span.name === 'webSocketMessage'),
+  );
 
   await callRpc(baseURL!, { binding: 'my-chat-agent', instance: AGENT_INSTANCE, method: 'greet', args: ['World'] });
 
-  const transaction = await transactionPromise;
+  const spans = await spansPromise;
+  const rpcSpan = spans.find(span => getSpanOp(span) === 'rpc' && span.name === 'greet')!;
 
-  const rpcSpan = (transaction.spans ?? []).find(span => span.op === 'rpc' && span.description === 'greet');
-  expect(rpcSpan).toEqual(
-    expect.objectContaining({
-      op: 'rpc',
-      description: 'greet',
-      origin: 'auto.faas.cloudflare.agents',
-    }),
-  );
+  expect(rpcSpan.attributes['sentry.op']?.value).toBe('rpc');
+  expect(rpcSpan.attributes['sentry.origin']?.value).toBe('auto.faas.cloudflare.agents');
 });

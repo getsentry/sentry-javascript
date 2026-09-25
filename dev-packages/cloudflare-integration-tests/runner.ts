@@ -141,6 +141,8 @@ type Expected = Envelope | ((envelope: Envelope) => void);
 
 type StartResult = {
   completed(): Promise<void>;
+  /** Every non-ignored envelope received so far, matched or not, for count assertions. */
+  getReceivedEnvelopes(): Envelope[];
   makeRequest<T>(
     method: 'get' | 'post',
     path: string,
@@ -161,6 +163,7 @@ export function createRunner(...paths: string[]) {
 
   // controls whether envelopes are expected in predefined order or not
   let unordered = false;
+  let failOnUnexpected = false;
 
   if (!existsSync(testPath)) {
     throw new Error(`Test scenario not found: ${testPath}`);
@@ -195,6 +198,10 @@ export function createRunner(...paths: string[]) {
       unordered = true;
       return this;
     },
+    failOnUnexpected: function () {
+      failOnUnexpected = true;
+      return this;
+    },
     ignore: function (...types: EnvelopeItemType[]) {
       types.forEach(t => ignored.add(t));
       return this;
@@ -220,8 +227,10 @@ export function createRunner(...paths: string[]) {
       });
 
       const expectedEnvelopeCount = expectedEnvelopes.length;
+      const receivedEnvelopes: Envelope[] = [];
 
       let envelopeCount = 0;
+      let unexpectedEnvelopeError: Error | undefined;
       const envelopeWaiters: { expected: Expected; resolve: () => void; reject: (e: unknown) => void }[] = [];
       const {
         resolve: setWorkerPort,
@@ -265,6 +274,8 @@ export function createRunner(...paths: string[]) {
           return;
         }
 
+        receivedEnvelopes.push(envelope);
+
         // Resolve per-request waiters first, matching in any order so a request
         // expecting multiple envelopes isn't sensitive to their arrival order.
         if (envelopeWaiters.length > 0) {
@@ -297,6 +308,10 @@ export function createRunner(...paths: string[]) {
 
             // no match found
             if (matchIndex < 0) {
+              if (failOnUnexpected) {
+                unexpectedEnvelopeError ??= new Error('Received an unexpected envelope');
+                reject(unexpectedEnvelopeError);
+              }
               return;
             }
 
@@ -429,7 +444,13 @@ export function createRunner(...paths: string[]) {
 
       return {
         completed: async function (): Promise<void> {
-          return isComplete;
+          await isComplete;
+          if (unexpectedEnvelopeError) {
+            throw unexpectedEnvelopeError;
+          }
+        },
+        getReceivedEnvelopes: function (): Envelope[] {
+          return receivedEnvelopes;
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',

@@ -1,4 +1,5 @@
-import type { BaseTransportOptions, ClientOptions, Options, ServerRuntimeOptions } from '@sentry/core';
+import type { BaseTransportOptions, ClientOptions, Options } from '@sentry/core';
+import type { ServerRuntimeOptions } from '@sentry/core/server';
 
 /**
  * Base options for the Sentry Bun SDK.
@@ -20,6 +21,14 @@ export interface BaseBunOptions extends ServerRuntimeOptions {
    * @default false
    */
   enableOpenTelemetrySetup?: boolean;
+
+  /**
+   * Override the runtime name reported in events.
+   * Defaults to 'bun' with the current Bun version if not specified.
+   *
+   * @hidden This is primarily used internally to support SDKs wrapping the Bun SDK, like Elysia.
+   */
+  runtime?: { name: string; version?: string };
 }
 
 /**

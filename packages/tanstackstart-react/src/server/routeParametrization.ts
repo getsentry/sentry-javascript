@@ -1,10 +1,9 @@
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
   escapeStringForRegex,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   updateSpanName,
 } from '@sentry/core';
@@ -61,6 +60,6 @@ export function updateSpanWithRouteParametrization(method: string, pathname: str
   const transactionName = `${method} ${matchedPattern}`;
   updateSpanName(rootSpan, transactionName);
   rootSpan.setAttribute(HTTP_ROUTE, matchedPattern);
-  rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+  rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
   getCurrentScope().setTransactionName(transactionName);
 }

@@ -61,6 +61,4 @@ app.get('/test/express-property-values', (req, res) => {
   res.send({ test_data: headers });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

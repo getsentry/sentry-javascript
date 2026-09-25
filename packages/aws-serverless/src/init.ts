@@ -2,7 +2,7 @@ import type { Integration, Options } from '@sentry/core';
 import { applySdkMetadata, debug, envToBool, getSDKSource } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegrations } from '@sentry/node';
-import { awsIntegration } from '@sentry/server-utils/orchestrion';
+import { awsIntegration } from '@sentry/server-utils';
 import { DEBUG_BUILD } from './debug-build';
 import { awsLambdaIntegration } from './integration/awslambda';
 

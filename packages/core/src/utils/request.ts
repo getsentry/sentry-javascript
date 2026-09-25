@@ -1,13 +1,15 @@
 /* eslint-disable max-lines-per-function */
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import type { ResolvedDataCollection } from '../types/datacollection';
+import type { CollectBehavior, ResolvedDataCollection } from '../types/datacollection';
 import type { PolymorphicRequest } from '../types/polymorphics';
 import type { RequestEventData } from '../types/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types/webfetchapi';
+import type { CookiePair } from './cookie';
+import { parseCookieHeader } from './cookie';
 import { debug } from './debug-logger';
 import { FILTERED_VALUE, SENSITIVE_COOKIE_NAME_SNIPPETS } from './data-collection/filtering-snippets';
-import { filterKeyValueData } from './data-collection/filterKeyValueData';
+import { shouldFilterDataKey } from './data-collection/filterKeyValueData';
 import { safeUnref } from './timer';
 import { getUrlQuery } from './url';
 
@@ -265,7 +267,7 @@ function getAbsoluteUrl({
 /**
  * Converts incoming HTTP request or response headers to OpenTelemetry span attributes following semantic conventions.
  * Header names are converted to the format: http.<request|response>.header.<key>
- * where <key> is the header name in lowercase with dashes converted to underscores.
+ * where <key> is the header name in lowercase. Header values are always emitted as a string array.
  *
  * @param lifecycle - The lifecycle of the headers, either 'request' or 'response'
  *
@@ -279,16 +281,16 @@ export function httpHeadersToSpanAttributes(
   headers: Record<string, string | string[] | undefined>,
   dataCollection: ResolvedDataCollection,
   lifecycle: 'request' | 'response' = 'request',
-): Record<string, string> {
+): Record<string, string[]> {
   const headerBehavior =
     lifecycle === 'request' ? dataCollection.httpHeaders.request : dataCollection.httpHeaders.response;
   const cookieBehavior = dataCollection.cookies;
   const prefix = `http.${lifecycle}.header.`;
 
-  const spanAttributes: Record<string, string> = {};
+  const spanAttributes: Record<string, string[]> = {};
 
   try {
-    const regularHeaders: Record<string, string> = {};
+    const regularHeaders: Record<string, string[]> = {};
 
     for (const [key, value] of Object.entries(headers)) {
       if (value == null) {
@@ -303,33 +305,29 @@ export function httpHeadersToSpanAttributes(
           continue;
         }
 
-        if (typeof value === 'string' && value !== '') {
-          const parsed = parseCookieHeader(value, lowerKey === 'set-cookie');
-          const filtered = filterKeyValueData(parsed, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS);
-          for (const [cookieKey, cookieValue] of Object.entries(filtered)) {
-            spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}.${normalizeAttributeKey(cookieKey)}`] =
-              cookieValue;
-          }
-        } else {
-          spanAttributes[`${prefix}${normalizeAttributeKey(lowerKey)}`] = FILTERED_VALUE;
-        }
+        const cookies = parseCookieHeader(value, lowerKey);
+        // A cookie header without a single pair may still hold a token, so it counts as sensitive.
+        spanAttributes[`${prefix}${lowerKey}`] = cookies.length
+          ? filterCookiePairs(cookies, cookieBehavior)
+          : [FILTERED_VALUE];
       } else {
         if (headerBehavior === false) {
           continue;
         }
 
         if (Array.isArray(value)) {
-          regularHeaders[lowerKey] = value.map(v => (v != null ? String(v) : v)).join(';');
+          regularHeaders[lowerKey] = value.filter(v => v != null).map(v => String(v));
         } else if (typeof value === 'string') {
-          regularHeaders[lowerKey] = value;
+          regularHeaders[lowerKey] = [value];
         }
       }
     }
 
     if (headerBehavior !== false) {
-      const filtered = filterKeyValueData(regularHeaders, headerBehavior);
-      for (const [headerKey, headerValue] of Object.entries(filtered)) {
-        spanAttributes[`${prefix}${normalizeAttributeKey(headerKey)}`] = headerValue;
+      for (const [headerKey, headerValues] of Object.entries(regularHeaders)) {
+        spanAttributes[`${prefix}${headerKey}`] = shouldFilterDataKey(headerKey, headerBehavior)
+          ? [FILTERED_VALUE]
+          : headerValues;
       }
     }
   } catch {
@@ -339,25 +337,17 @@ export function httpHeadersToSpanAttributes(
   return spanAttributes;
 }
 
-function normalizeAttributeKey(key: string): string {
-  return key.replace(/-/g, '_');
-}
-
-function parseCookieHeader(value: string, isSetCookie: boolean): Record<string, string> {
-  // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")
-  // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
-  const semicolonIndex = value.indexOf(';');
-  const cookieString = isSetCookie && semicolonIndex !== -1 ? value.substring(0, semicolonIndex) : value;
-  const cookies = isSetCookie ? [cookieString] : cookieString.split('; ');
-
-  const result: Record<string, string> = {};
-  for (const cookie of cookies) {
-    const equalSignIndex = cookie.indexOf('=');
-    const cookieKey = (equalSignIndex !== -1 ? cookie.substring(0, equalSignIndex) : cookie).toLowerCase();
-    const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
-    result[cookieKey] = cookieValue;
-  }
-  return result;
+/** Formats cookie pairs as `name=value` span attribute values, with sensitive values replaced. */
+export function filterCookiePairs(cookies: CookiePair[], cookieBehavior: CollectBehavior): string[] {
+  return cookies.map(([cookieKey, cookieValue]) => {
+    // A nameless cookie's bare token is its value; no denylist could match it, so it is always filtered.
+    if (cookieKey === '') {
+      return FILTERED_VALUE;
+    }
+    return shouldFilterDataKey(cookieKey, cookieBehavior, SENSITIVE_COOKIE_NAME_SNIPPETS)
+      ? `${cookieKey}=${FILTERED_VALUE}`
+      : `${cookieKey}=${cookieValue}`;
+  });
 }
 
 /** Extract the query params from an URL. */
@@ -374,4 +364,23 @@ export function extractQueryParamsFromUrl(url: string): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Read the `content-length` header as a number, if it holds a valid one.
+ *
+ * `content-length` is the encoded (on-the-wire) body size whether or not a `content-encoding` is
+ * applied, so it maps to `http.request.body.size` / `http.response.body.size`. The decoded body size
+ * cannot be derived from it.
+ */
+export function getContentLengthFromHeaders(
+  headers: Record<string, string | string[] | undefined>,
+): number | undefined {
+  const contentLength = headers['content-length'];
+  if (typeof contentLength !== 'string') {
+    return undefined;
+  }
+
+  const length = parseInt(contentLength, 10);
+  return length >= 0 ? length : undefined;
 }

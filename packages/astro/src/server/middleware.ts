@@ -1,13 +1,23 @@
 /* eslint-disable max-lines */
-import { HTTP_ROUTE, SENTRY_OP, URL_FRAGMENT, URL_FULL, URL_PATH, URL_QUERY } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_QUERY,
+} from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  flushIfServerless,
   getIsolationScope,
   getRootSpan,
   getUrlFragment,
   getUrlQuery,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
   objectify,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
@@ -15,6 +25,7 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import {
   captureException,
   continueTrace,
@@ -24,7 +35,6 @@ import {
   getTraceMetaTags,
   httpHeadersToSpanAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpan,
   winterCGHeadersToDict,
@@ -43,7 +53,7 @@ type MiddlewareOptions = {
    *
    * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
    *
-   * @default false (recommended)
+   * @default `dataCollection.userInfo` (`true` unless disabled)
    */
   trackClientIp?: boolean;
 };
@@ -68,10 +78,7 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
 };
 
 export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler = options => {
-  const handlerOptions = {
-    trackClientIp: false,
-    ...options,
-  };
+  const handlerOptions = { ...options };
 
   return async (ctx, next) => {
     // If no Sentry client exists, just bail
@@ -199,7 +206,8 @@ async function instrumentRequestStartHttpServerSpan(
           normalizedRequest: winterCGRequestToRequestData(request),
         });
 
-        if (options.trackClientIp) {
+        // The integration option wins when set; otherwise `dataCollection.userInfo` decides.
+        if (options.trackClientIp ?? client.getDataCollectionOptions().userInfo) {
           isolationScope.setUser({ ip_address: ctx.clientAddress });
         }
 
@@ -211,8 +219,9 @@ async function instrumentRequestStartHttpServerSpan(
           // invoke the catch block if next() throws
 
           const attributes: SpanAttributes = {
+            [SENTRY_OP]: HTTP_SERVER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            [SENTRY_SEGMENT_NAME_SOURCE]: source,
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
             // This is here for backwards compatibility, we used to set this here before
             method,
@@ -228,15 +237,21 @@ async function instrumentRequestStartHttpServerSpan(
           attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(ctx.url.search));
           attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
 
-          const name = `${method} ${parametrizedRoute || ctx.url.pathname}`;
+          const transactionName = `${method} ${parametrizedRoute || ctx.url.pathname}`;
 
-          isolationScope.setTransactionName(name);
+          // The scope's transaction name is what error events are grouped by, so it keeps the URL path.
+          isolationScope.setTransactionName(transactionName);
+
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+          const name =
+            parametrizedRoute || !hasSpanStreamingEnabled(client)
+              ? transactionName
+              : method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
           const res = await startSpan(
             {
               attributes,
               name,
-              op: 'http.server',
             },
             async span => {
               try {
@@ -399,7 +414,8 @@ function checkIsDynamicPageRequest(context: APIContext): boolean {
 /**
  * Join Astro route segments into a case-sensitive single path string.
  *
- * Astro lowercases the parametrized route. Joining segments manually is recommended to get the correct casing of the routes.
+ * Astro v5 and v6 lowercase the parametrized route. Joining segments manually
+ * is recommended to get the correct casing of the routes.
  * Recommendation in comment: https://github.com/withastro/astro/issues/13885#issuecomment-2934203029
  * Function Reference: https://github.com/joanrieu/astro-typed-links/blob/b3dc12c6fe8d672a2bc2ae2ccc57c8071bbd09fa/package/src/integration.ts#L16
  */
@@ -413,7 +429,7 @@ function joinRouteSegments(segments: RoutePart[][]): string {
 
 function getParametrizedRoute(ctx: APIContext & { routePattern?: string }): string | undefined {
   try {
-    // `routePattern` is available after Astro 5
+    // `routePattern` is available from Astro 5 on.
     const contextWithRoutePattern = ctx;
     const rawRoutePattern = contextWithRoutePattern.routePattern;
 
@@ -432,9 +448,12 @@ function getParametrizedRoute(ctx: APIContext & { routePattern?: string }): stri
     )?.routeData?.segments;
 
     return (
-      // Astro v5+ - Joining the segments to get the correct casing of the parametrized route
+      // Astro v5 and v6 - Joining the segments to get the correct casing of the parametrized route
       (matchedRouteSegmentsFromManifest && joinRouteSegments(matchedRouteSegmentsFromManifest)) ||
-      // Fallback (Astro v4 and earlier)
+      // Astro v7 - the manifest is no longer reachable from the context, but
+      // `routePattern` keeps the author's casing, so it needs no correction.
+      rawRoutePattern ||
+      // Fallback (Astro v4 and earlier, which has no `routePattern`)
       interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params)
     );
   } catch {

@@ -1,47 +1,27 @@
-import type { Client, Integration, Options, ServerRuntimeClientOptions, StackParser } from '@sentry/core';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import {
+  consoleIntegration,
+  conversationIdIntegration,
   createStackParser,
   dedupeIntegration,
   eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
+  hasSpansEnabled,
   initAndBind,
   linkedErrorsIntegration,
-  nodeStackLineParser,
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import {
-  amqplibIntegration,
-  anthropicAIIntegration,
-  awsIntegration,
-  expressIntegration,
-  firebaseIntegration,
-  genericPoolIntegration,
-  googleGenAIIntegration,
-  graphqlIntegration,
-  hapiIntegration,
-  kafkaIntegration,
-  koaIntegration,
-  langChainIntegration,
-  langGraphIntegration,
-  lruMemoizerIntegration,
-  mongoIntegration,
-  mongooseIntegration,
-  mysqlIntegration,
-  mysql2Integration,
-  openAIIntegration,
-  postgresIntegration,
-  postgresJsIntegration,
-  tediousIntegration,
-  vercelAIIntegration,
-  redisIntegration,
-} from '@sentry/server-utils/orchestrion';
+import { getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
+import { nodeStackLineParser } from '@sentry/core/server';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
 import { denoServeIntegration } from './integrations/deno-serve';
+import { fetchIntegration } from './integrations/fetch';
 import { denoHttpIntegration } from './integrations/http';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
@@ -50,7 +30,7 @@ import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
 /** Get the default integrations for the Deno SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
+export function getDefaultIntegrations(options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
@@ -59,44 +39,20 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
+    conversationIdIntegration(),
     // Deno Specific
     breadcrumbsIntegration(),
+    consoleIntegration(),
     denoContextIntegration(),
     denoServeIntegration(),
+    fetchIntegration(),
     denoHttpIntegration(),
-    redisIntegration(),
-    graphqlIntegration(),
-    vercelAIIntegration(),
-    // orchestrion-based instrumentations. We add a deliberate list here rather
-    // than every channel integration: each one needs a Deno test proving it
-    // records spans.
-    //
-    // The orchestrion channels may be injected after (or while) the SDK loads.
-    // If they never load, these are no-ops.
-    amqplibIntegration(),
-    anthropicAIIntegration(),
-    awsIntegration(),
-    expressIntegration(),
-    firebaseIntegration(),
-    genericPoolIntegration(),
-    googleGenAIIntegration(),
-    hapiIntegration(),
-    kafkaIntegration(),
-    koaIntegration(),
-    langChainIntegration(),
-    langGraphIntegration(),
-    lruMemoizerIntegration(),
-    mongoIntegration(),
-    mongooseIntegration(),
-    mysqlIntegration(),
-    mysql2Integration(),
-    openAIIntegration(),
-    postgresIntegration(),
-    postgresJsIntegration(),
-    tediousIntegration(),
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
+    // server-utils integrations
+    ...getErrorIntegrations(),
+    ...(hasSpansEnabled(options) ? getTracingIntegrations() : []),
   ];
 }
 
@@ -147,14 +103,15 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  * @see {@link DenoOptions} for documentation on configuration options.
  */
 export function init(options: DenoOptions = {}): Client {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
+  // Computed into a local rather than written back onto `options`: the default set
+  // depends on the tracing options, so caching it on the caller's object would pin the
+  // result of the first `init` for any reused options object.
+  const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrations(options);
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup(options),
+    integrations: getIntegrationsToSetup({ integrations: options.integrations, defaultIntegrations }),
     transport: options.transport || makeFetchTransport,
   };
 

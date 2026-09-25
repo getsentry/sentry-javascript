@@ -3,14 +3,17 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
-import { DB_OPERATION_NAME, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
+import { DB_OPERATION_NAME, DB_SYSTEM_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
+import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
+import { startSpanManual } from '../tracing/trace';
 import type { IntegrationFn } from '../types/integration';
 import type { WebFetchHeaders } from '../types/webfetchapi';
 import { debug } from '../utils/debug-logger';
@@ -271,14 +274,33 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): AuthOperationFn {
   return new Proxy(operation, {
     apply(target, thisArg, argumentsList) {
-      return startSpan(
+      const operationName = `auth${isAdmin ? '.admin' : ''}.${operation.name}`;
+
+      const client = getClient();
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? // Usually, the operation name alone is not a valid span name according to conventions.
+            // However, for this span, we neither have a table, nor a namespace, since this is a Supabase-SDK
+            // operation that internally makes the respective request to the database.
+            // So I think we can interpret this as a "db.query.summary"-esque span name.
+            // Either way, it's definitely low-cardinality.
+            // see: https://getsentry.github.io/sentry-conventions/names/#db-queries
+            operationName
+          : // This name makes little sense semantically but preserving it for now to
+            // avoid a breaking change in the transaction path. Will be removed once we remove
+            // transactions.
+            `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`;
+
+      // The span is ended by hand once the wrapped promise settles, so `startSpanManual` is used to keep
+      // `startSpan`'s automatic end from ending it a second time.
+      return startSpanManual(
         {
-          name: `auth ${isAdmin ? '(admin) ' : ''}${operation.name}`,
+          name,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+            [SENTRY_OP]: DB,
             [DB_SYSTEM_NAME]: 'postgresql',
-            [DB_OPERATION_NAME]: `auth.${isAdmin ? 'admin.' : ''}${operation.name}`,
+            [DB_OPERATION_NAME]: operationName,
           },
         },
         span => {
@@ -432,6 +454,9 @@ function instrumentPostgRESTFilterBuilder(
         const descriptionMiddle = [mutationPart.trimEnd(), queryPart].filter(Boolean).join(' ');
         const description = descriptionMiddle ? `${descriptionMiddle} from(${table})` : `from(${table})`;
 
+        const name =
+          client && hasSpanStreamingEnabled(client) ? `${operation}${table ? ` ${table}` : ''}` : description;
+
         const attributes: Record<string, any> = {
           'db.table': table,
           'db.schema': typedThis.schema,
@@ -440,7 +465,7 @@ function instrumentPostgRESTFilterBuilder(
           [DB_SYSTEM_NAME]: 'postgresql',
           [DB_OPERATION_NAME]: operation,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
         };
 
         if (queryItems.length && shouldSendData) {
@@ -451,9 +476,10 @@ function instrumentPostgRESTFilterBuilder(
           attributes['db.body'] = bodyPayload;
         }
 
-        return startSpan(
+        // Same as the auth wrapper above: the span is ended by hand, so avoid the automatic second end.
+        return startSpanManual(
           {
-            name: description,
+            name,
             attributes,
           },
           span => {

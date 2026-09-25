@@ -6,7 +6,8 @@
  * - Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/tree/15ef7506553f631ea4181391e0c5725a56f0d082/packages/instrumentation-kafkajs
  * - Upstream version: @opentelemetry/instrumentation-kafkajs@0.27.0
  * - Span builders migrated to the `@sentry/core` span API. Kept byte-identical in span name/attributes
- *   for parity with the OTel integration this replaces.
+ *   for parity with the OTel integration this replaces, except for the span name under span streaming,
+ *   which follows the Sentry messaging conventions.
  */
 
 import {
@@ -18,14 +19,12 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
-import {
-  MESSAGING_QUEUE_PROCESS_SPAN_OP,
-  MESSAGING_QUEUE_PUBLISH_SPAN_OP,
-  MESSAGING_QUEUE_RECEIVE_SPAN_OP,
-} from '@sentry/conventions/op';
+import { QUEUE_PROCESS, QUEUE_PUBLISH, QUEUE_RECEIVE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
 import {
+  getClient,
   getTraceData,
+  hasSpanStreamingEnabled,
   propagationContextFromHeaders,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
@@ -53,7 +52,7 @@ const TRACE_FLAG_NONE = 0;
 interface ConsumerSpanOptions {
   topic: string;
   message: KafkaMessage | undefined;
-  operationType: string;
+  operationType: 'process' | 'receive';
   attributes: SpanAttributes;
   links?: SpanLink[];
 }
@@ -100,6 +99,17 @@ export function getLinksFromHeaders(headers: KafkaMessage['headers']): SpanLink[
   ];
 }
 
+/**
+ * The Kafka message key is producer-supplied payload data, so `dataCollection.queues` gates it.
+ * Everything else on the span (topic, partition, offset) is structural metadata and stays.
+ */
+function collectMessageKey(key: unknown, client = getClient()): string | undefined {
+  if (!key || client?.getDataCollectionOptions().queues === false) {
+    return undefined;
+  }
+  return String(key);
+}
+
 /** Starts an inactive consumer (process/receive) span carrying the kafkajs messaging attributes. */
 export function startConsumerSpan({ topic, message, operationType, links, attributes }: ConsumerSpanOptions): Span {
   // The batch "receive" span is named `poll`; per-message spans use the operation type verbatim.
@@ -107,18 +117,20 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 
   const isBatchReceive = operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE;
 
+  const client = getClient();
+
   return startInactiveSpan({
-    name: `${operationName} ${topic}`,
+    name: client && hasSpanStreamingEnabled(client) ? `${operationType} ${topic}` : `${operationName} ${topic}`,
     links,
     attributes: {
-      [SENTRY_OP]: isBatchReceive ? MESSAGING_QUEUE_RECEIVE_SPAN_OP : MESSAGING_QUEUE_PROCESS_SPAN_OP,
+      [SENTRY_OP]: isBatchReceive ? QUEUE_RECEIVE : QUEUE_PROCESS,
       [SENTRY_KIND]: isBatchReceive ? 'client' : 'consumer',
       ...attributes,
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
       [MESSAGING_OPERATION_TYPE]: operationType,
       [MESSAGING_OPERATION_NAME]: operationName,
-      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message?.key ? String(message.key) : undefined,
+      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: collectMessageKey(message?.key, client),
       [ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE]: message?.key && message.value === null ? true : undefined,
       [ATTR_MESSAGING_KAFKA_OFFSET]: message?.offset as string | undefined,
       // Mirror the upstream behavior of only tagging per-message processing spans (not the batch
@@ -133,11 +145,11 @@ export function startProducerSpan(topic: string, message: Message): Span {
   const span = startInactiveSpan({
     name: `send ${topic}`,
     attributes: {
-      [SENTRY_OP]: MESSAGING_QUEUE_PUBLISH_SPAN_OP,
+      [SENTRY_OP]: QUEUE_PUBLISH,
       [SENTRY_KIND]: 'producer',
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
-      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message.key ? String(message.key) : undefined,
+      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: collectMessageKey(message.key),
       [ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE]: message.key && message.value === null ? true : undefined,
       [ATTR_MESSAGING_DESTINATION_PARTITION_ID]:
         message.partition !== undefined ? String(message.partition) : undefined,

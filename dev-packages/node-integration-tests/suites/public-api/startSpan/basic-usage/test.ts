@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
@@ -16,7 +16,7 @@ test('sends a manually started root span with source custom', async () => {
           trace: {
             span_id: expect.any(String),
             trace_id: expect.any(String),
-            data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
+            data: { [SENTRY_SEGMENT_NAME_SOURCE]: 'custom' },
           },
         },
       },
@@ -35,7 +35,7 @@ test("doesn't change the name for manually started spans even if attributes trig
           trace: {
             span_id: expect.any(String),
             trace_id: expect.any(String),
-            data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
+            data: { [SENTRY_SEGMENT_NAME_SOURCE]: 'custom' },
           },
         },
       },

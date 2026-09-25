@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-worker",
-  "version": "10.67.0",
+  "version": "11.0.0",
   "description": "Worker for @sentry/replay",
   "main": "build/esm/index.js",
   "module": "build/esm/index.js",
@@ -39,6 +39,7 @@
     "clean": "rimraf build",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/esm/*.js --module",
     "test": "vitest run",
     "test:watch": "vitest --watch"
@@ -54,7 +55,7 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "dependencies": {
-    "fflate": "0.8.2"
+    "fflate": "0.8.3"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"

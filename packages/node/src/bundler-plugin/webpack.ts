@@ -1,12 +1,13 @@
 import { sentryWebpackPlugin as sentryWebpackBundlerPlugin } from '@sentry/bundler-plugins/webpack';
 import type { SentryWebpackPluginOptions as SentryWebpackPluginOptionsBase } from '@sentry/bundler-plugins/webpack';
+import type { InstrumentationConfig } from '@sentry/server-utils';
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 
 export type SentryWebpackPluginOptions = SentryWebpackPluginOptionsBase & {
   /**
    * @ignore This is for internal use only when this plugin is consumed by a framework SDK
    */
-  instrumentations?: NonNullable<Parameters<typeof sentryOrchestrionWebpackPlugin>[0]>['instrumentations'];
+  instrumentations?: InstrumentationConfig[];
 
   /**
    * Automatic instrumentation of server-side dependencies at build time.

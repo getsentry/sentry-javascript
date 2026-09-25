@@ -1,5 +1,6 @@
-import { captureException, flushIfServerless, getClient, parseUrl } from '@sentry/core';
-import { HTTPError } from 'h3';
+import { captureException, getClient, parseUrl } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
+import { HTTPError } from 'nitro/h3';
 import type { CapturedErrorContext } from 'nitro/types';
 
 /**

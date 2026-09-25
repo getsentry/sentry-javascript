@@ -15,8 +15,11 @@ export * from './index.server';
 // re-export colliding types
 export declare function init(options: Options | SentryNuxtClientOptions | SentryNuxtServerOptions): Client | undefined;
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
+export declare const consoleIntegration: typeof serverSdk.consoleIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
-export declare const spanStreamingIntegration: typeof clientSdk.spanStreamingIntegration;
+export declare const startSpan: typeof clientSdk.startSpan;
+export declare const startSpanManual: typeof clientSdk.startSpanManual;
+export declare const startInactiveSpan: typeof clientSdk.startInactiveSpan;
 export declare const withStaticSpan: typeof clientSdk.withStaticSpan;
 // oxlint-disable-next-line typescript/no-deprecated
 export declare const withStreamedSpan: typeof clientSdk.withStreamedSpan;

@@ -2,9 +2,10 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import { captureException, getClient, isThenable } from '@sentry/core';
+import { getClient, isObjectLike, isThenable, stringify } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import {
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
@@ -15,7 +16,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
+import { FUNCTION } from '@sentry/conventions/op';
 
 export interface GenAiOptions {
   /**
@@ -61,7 +62,7 @@ const NON_INFERENCE_OPERATIONS = new Set(['unknown']);
  * non-inference operations (`unknown`) become the generic `function` op.
  */
 export function getGenAiSpanOp(operationName: string): string {
-  return NON_INFERENCE_OPERATIONS.has(operationName) ? GENERAL_FUNCTION_SPAN_OP : `gen_ai.${operationName}`;
+  return NON_INFERENCE_OPERATIONS.has(operationName) ? FUNCTION : `gen_ai.${operationName}`;
 }
 
 /**
@@ -82,6 +83,20 @@ export function resolveAIRecordingOptions<T extends GenAiOptions>(options?: T): 
  */
 export function buildMethodPath(currentPath: string, prop: string): string {
   return currentPath ? `${currentPath}.${prop}` : prop;
+}
+
+/**
+ * A minimal structural check for a web `ReadableStream`.
+ *
+ * The chunk type is the caller's assumption about the provider's stream (e.g. `Uint8Array` for SSE
+ * byte streams); the check itself only looks for the `ReadableStream` methods we rely on.
+ */
+export function isReadableStream<T = unknown>(value: unknown): value is ReadableStream<T> {
+  return (
+    isObjectLike(value) &&
+    typeof (value as { pipeThrough?: unknown }).pipeThrough === 'function' &&
+    typeof (value as { getReader?: unknown }).getReader === 'function'
+  );
 }
 
 /**
@@ -126,6 +141,79 @@ export function setTokenUsageAttributes(
       [GEN_AI_USAGE_TOTAL_TOKENS]: totalTokens,
     });
   }
+}
+
+/** One assistant turn for {@link setOutputMessagesAttribute}. */
+export interface GenAiOutputMessage {
+  /** The message's text content, already flattened out of any content-part array. */
+  responseText?: string;
+  /** Tool calls in either the OpenAI-compatible (`function.name`) or flat (`name`) shape. */
+  toolCalls?: unknown[];
+  /** Recorded as `finish_reason` on the message, per the `gen_ai.output.messages` schema. */
+  finishReason?: string;
+}
+
+/**
+ * Build the `gen_ai.output.messages` value (assistant messages with text and/or tool-call parts).
+ *
+ * We set this in addition to the deprecated `gen_ai.response.text` / `gen_ai.response.tool_calls`
+ * attributes because Sentry's product reads the model output from `gen_ai.output.messages` first.
+ * Relay migrates `gen_ai.response.text` into `gen_ai.output.messages`, but the tool-calls half of
+ * that migration is lossy — so tool-call turns would otherwise render an empty Output.
+ *
+ * Pass an array for providers that can return more than one choice per response; a single object is
+ * the common case of one assistant turn.
+ */
+export function setOutputMessagesAttribute(span: Span, messages: GenAiOutputMessage | GenAiOutputMessage[]): void {
+  const serialized = (Array.isArray(messages) ? messages : [messages])
+    .map(buildOutputMessage)
+    .filter((message): message is Record<string, unknown> => !!message);
+
+  if (serialized.length > 0) {
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify(serialized));
+  }
+}
+
+function buildOutputMessage({
+  responseText,
+  toolCalls,
+  finishReason,
+}: GenAiOutputMessage): Record<string, unknown> | undefined {
+  const parts: Array<Record<string, unknown>> = [];
+
+  if (typeof responseText === 'string' && responseText.length > 0) {
+    parts.push({ type: 'text', content: responseText });
+  }
+
+  if (Array.isArray(toolCalls)) {
+    for (const toolCall of toolCalls) {
+      if (!toolCall || typeof toolCall !== 'object') {
+        continue;
+      }
+      const call = toolCall as {
+        id?: unknown;
+        function?: { name?: unknown; arguments?: unknown };
+        name?: unknown;
+        arguments?: unknown;
+      };
+      // Normalize both the OpenAI-compatible shape (name/arguments nested under `function`)
+      // and the flat shape some providers use.
+      const name = call.function?.name ?? call.name;
+      const args = call.function?.arguments ?? call.arguments;
+      parts.push({
+        type: 'tool_call',
+        id: call.id,
+        name,
+        arguments: stringify(args ?? {}, String),
+      });
+    }
+  }
+
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  return finishReason ? { role: 'assistant', parts, finish_reason: finishReason } : { role: 'assistant', parts };
 }
 
 export interface StreamResponseState {
@@ -238,22 +326,11 @@ export function extractSystemInstructions(messages: unknown[] | unknown): {
 async function createWithResponseWrapper<T>(
   originalWithResponse: Promise<unknown>,
   instrumentedPromise: Promise<T>,
-  mechanismType: string,
 ): Promise<unknown> {
-  // Attach catch handler to originalWithResponse immediately to prevent unhandled rejection
-  // If instrumentedPromise rejects first, we still need this handled
-  const safeOriginalWithResponse = originalWithResponse.catch(error => {
-    captureException(error, {
-      mechanism: {
-        handled: false,
-        type: mechanismType,
-      },
-    });
-    throw error;
-  });
-
-  const instrumentedResult = await instrumentedPromise;
-  const originalWrapper = await safeOriginalWithResponse;
+  // Awaited together rather than in sequence so both promises get a handler attached synchronously.
+  // Awaiting them one after the other leaves the second unobserved when the first rejects, which
+  // surfaces as an unhandled rejection.
+  const [instrumentedResult, originalWrapper] = await Promise.all([instrumentedPromise, originalWithResponse]);
 
   // Combine instrumented result with original metadata
   if (originalWrapper && typeof originalWrapper === 'object' && 'data' in originalWrapper) {
@@ -276,7 +353,6 @@ async function createWithResponseWrapper<T>(
 export function wrapPromiseWithMethods<R>(
   originalPromiseLike: Promise<R>,
   instrumentedPromise: Promise<R>,
-  mechanismType: string,
 ): Promise<R> {
   // If the original result is not thenable, return the instrumented promise
   if (!isThenable(originalPromiseLike)) {
@@ -300,7 +376,7 @@ export function wrapPromiseWithMethods<R>(
       if (prop === 'withResponse' && typeof value === 'function') {
         return function wrappedWithResponse(this: unknown): unknown {
           const originalWithResponse = (value as (...args: unknown[]) => unknown).call(target);
-          return createWithResponseWrapper(originalWithResponse, instrumentedPromise, mechanismType);
+          return createWithResponseWrapper(originalWithResponse, instrumentedPromise);
         };
       }
 

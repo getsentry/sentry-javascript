@@ -23,15 +23,15 @@ const _expressIntegration = ((options: ExpressIntegrationOptions = {}) => {
 }) satisfies IntegrationFn;
 
 /**
- * Orchestrion-driven Express integration.
+ * Diagnostics-channel-based Express integration.
  *
  * Subscribes to the `orchestrion:express:handle` (Express v4) and
  * `orchestrion:router:handle` (Express v5, via the `router` package)
- * diagnostics_channels that the orchestrion code transform injects into the
+ * diagnostics_channels that Sentry's code transform injects into the
  * routing layer's request handler (`Layer.prototype.handle_request` /
  * `handleRequest`). One span is opened per layer invocation — producing the
  * same spans as the OTel Express instrumentation.
  *
- * Requires the orchestrion runtime hook or bundler plugin to be active.
+ * Requires the Sentry runtime hook or bundler plugin to be active.
  */
 export const expressIntegration = defineIntegration(_expressIntegration);

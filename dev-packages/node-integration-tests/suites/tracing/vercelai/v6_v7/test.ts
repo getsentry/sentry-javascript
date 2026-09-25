@@ -1,9 +1,10 @@
-import { NODE_VERSION, type Event } from '@sentry/node';
+import type { Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
@@ -15,6 +16,7 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -23,27 +25,18 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
-import { isOrchestrionEnabled } from '../../../../utils';
 
-// On Node 18, we only test v6 as v7 is not supported
-const matrix =
-  NODE_VERSION.major === 18
-    ? ([['6', '^6.0.0']] as const)
-    : ([
-        ['6', '^6.0.0'],
-        ['7', '^7.0.0'],
-      ] as const);
+const matrix = [
+  ['6', '^6.0.0'],
+  ['7', '^7.0.0'],
+] as const;
 
 describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVersion) => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  const usesChannels = version === '7' || isOrchestrionEnabled();
-
-  // in v7 and orchestrion mode, we use the channel-based integration
-  // else, we use the OTel processor
-  const expectedOrigin = usesChannels ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+  const expectedOrigin = 'auto.vercelai.channel';
 
   // We only run this in ESM and CJS to verify full support
   // Other suites we only run in ESM to simplify the test setup
@@ -822,6 +815,43 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
 
   createEsmTests(
     __dirname,
+    'scenario-cache-tokens.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('reads cache token counts from the SDK usage object', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              const generateContent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+              expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(120);
+              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(80);
+              expect(generateContent.attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]?.value).toBe(20);
+
+              const invokeAgent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(80);
+              expect(invokeAgent.attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]?.value).toBe(20);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
     'scenario-embeddings.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
@@ -923,6 +953,160 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-aborted-stream-text.mjs',
+    'instrument-abort.mjs',
+    (createRunner, test) => {
+      test('aborting a stream with a non-AbortError reason leaves no unhandled rejection', async () => {
+        await createRunner().ensureNoErrorOutput().start().completed();
+      });
+
+      test('an aborted stream finishes its spans with an error status and no result attributes', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const invokeAgent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent).toBeDefined();
+              expect(invokeAgent.status).toBe('error');
+              expect(invokeAgent.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
+              expect(invokeAgent.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+              expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+              expect(invokeAgent.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+
+              const generateContent = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+              )!;
+              expect(generateContent).toBeDefined();
+              expect(generateContent.status).toBe('error');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+});
+
+describe('Vercel AI integration experimental_evaluate', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmTests(
+    __dirname,
+    'scenario-evaluate.mjs',
+    'instrument-evaluate.mjs',
+    (createRunner, test) => {
+      test('creates an evaluate span', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const evaluateSpan = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.evaluate',
+              )!;
+              expect(evaluateSpan).toBeDefined();
+              expect(evaluateSpan.name).toBe('evaluate typesafe-ai/jev');
+              expect(evaluateSpan.status).toBe('ok');
+              expect(evaluateSpan.attributes['sentry.origin']?.value).toBe('auto.vercelai.channel');
+              expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('evaluate');
+              expect(evaluateSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('gateway');
+              expect(evaluateSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('typesafe-ai/jev');
+              expect(evaluateSpan.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('typesafe-ai/jev');
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(275);
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(295);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]?.value as string)).toEqual([
+                {
+                  type: 'evaluation',
+                  state: 'I cannot log in, and I also want a refund for last month.',
+                  questions: {
+                    authIssue: { type: 'boolean', instructions: 'Is there a login problem?' },
+                    department: {
+                      type: 'choice',
+                      instructions: 'Which team should handle this?',
+                      criteria: { billing: 'Charges and refunds', technical: 'Bugs and outages' },
+                    },
+                    wantsRefund: { type: 'boolean', instructions: 'Is a refund requested?' },
+                    urgency: {
+                      type: 'score',
+                      instructions: 'How urgent is this ticket?',
+                      criteria: ['low', 'medium', 'high'],
+                    },
+                  },
+                },
+              ]);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]?.value as string)).toEqual([
+                {
+                  type: 'evaluation',
+                  answers: {
+                    authIssue: { type: 'boolean', probability: 0.97 },
+                    department: {
+                      type: 'choice',
+                      choice: 'billing',
+                      probabilities: { billing: 0.64, technical: 0.36 },
+                      confidence: 0.28,
+                    },
+                    wantsRefund: { type: 'boolean', probability: 0.99 },
+                    urgency: { type: 'score', score: 1.8, probabilities: { 0: 0, 1: 0.2, 2: 0.8 } },
+                  },
+                },
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: '^7.0.111',
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-evaluate.mjs',
+    'instrument-evaluate-no-recording.mjs',
+    (createRunner, test) => {
+      test('does not record inputs or outputs when recording is off', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const evaluateSpan = container.items.find(
+                span => span.attributes['sentry.op']?.value === 'gen_ai.evaluate',
+              )!;
+              expect(evaluateSpan).toBeDefined();
+              expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              // State, questions and answers must not come back through another attribute. Only the attributes
+              // are checked (timestamps could match a number), and `probabilities` only occurs in answers.
+              expect(JSON.stringify(evaluateSpan.attributes)).not.toMatch(
+                /cannot log in|Charges and refunds|probabilities/,
+              );
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: '^7.0.111',
       },
     },
   );

@@ -1,14 +1,21 @@
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addNonEnumerableProperty,
   captureException,
   getActiveSpan,
+  getClient,
+  hasSpanStreamingEnabled,
   spanToJSON,
   updateSpanName,
 } from '@sentry/core';
 import type { SentryGlobalFunctionMiddleware, SentryGlobalRequestMiddleware } from '../common/types';
 import { SENTRY_INTERNAL } from './middleware';
-import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_METHOD,
+  SENTRY_DESCRIPTION,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 
 type ServerFnMeta = {
   id?: string;
@@ -41,9 +48,20 @@ function createSentryFunctionMiddlewareHandler(mechanismType: string) {
     const spanData = activeSpan ? spanToJSON(activeSpan) : undefined;
     if (activeSpan && spanData?.attributes[SENTRY_ORIGIN] === 'auto.function.tanstackstart.server') {
       if (serverFnMeta?.name) {
-        const method = spanData.name.split(' ')[0] || 'GET';
-        updateSpanName(activeSpan, `${method} /_serverFn/${serverFnMeta.name}`);
-        activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        // Read off the attribute rather than the span name, which is low cardinality with span streaming.
+        const method = (spanData.attributes[HTTP_REQUEST_METHOD] as string | undefined) || 'GET';
+        const description = `${method} /_serverFn/${serverFnMeta.name}`;
+        const client = getClient();
+        const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+
+        // With span streaming, a `function` span is named after the function it wraps.
+        updateSpanName(activeSpan, hasSpanStreaming ? serverFnMeta.name : description);
+        activeSpan.setAttribute(CODE_FUNCTION_NAME, serverFnMeta.name);
+        if (hasSpanStreaming) {
+          // Relay infers a `function` span's description from `code.function.name` alone.
+          activeSpan.setAttribute(SENTRY_DESCRIPTION, description);
+        }
+        activeSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
       }
       if (serverFnMeta?.id) {
         activeSpan.setAttribute('tanstackstart.function.id', serverFnMeta.id);

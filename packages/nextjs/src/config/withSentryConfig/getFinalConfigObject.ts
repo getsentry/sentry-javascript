@@ -40,7 +40,7 @@ export function getFinalConfigObject(
 
   maybeSetUpTunnelRouteRewriteRules(incomingUserNextConfigObject, userSentryOptions);
 
-  if (shouldReturnEarlyInExperimentalBuildMode()) {
+  if (shouldReturnEarlyInExperimentalBuildMode(userSentryOptions.silent)) {
     return incomingUserNextConfigObject;
   }
 
@@ -51,12 +51,12 @@ export function getFinalConfigObject(
   const nextJsVersion = getNextjsVersion();
   const nextMajor = getNextMajor(nextJsVersion);
 
-  maybeSetClientTraceMetadataOption(incomingUserNextConfigObject, nextJsVersion);
-  maybeSetInstrumentationHookOption(incomingUserNextConfigObject, nextJsVersion);
+  maybeSetClientTraceMetadataOption(incomingUserNextConfigObject, nextJsVersion, userSentryOptions.silent);
+  maybeSetInstrumentationHookOption(incomingUserNextConfigObject, nextJsVersion, userSentryOptions.silent);
   warnIfMissingOnRouterTransitionStartHook(userSentryOptions);
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);
-  maybeWarnAboutUnsupportedTurbopack(nextJsVersion, bundlerInfo);
+  maybeWarnAboutUnsupportedTurbopack(nextJsVersion, bundlerInfo, userSentryOptions.silent);
   maybeWarnAboutTurbopackModuleMetadata(userSentryOptions, bundlerInfo);
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook(nextJsVersion, userSentryOptions, bundlerInfo);
 

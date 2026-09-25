@@ -1,6 +1,7 @@
 import type { CustomTransform } from '../apmTypes';
 import { parse } from 'meriyah';
 import { subscriberExportForModule } from '../config/channel-integration-definitions';
+import { MODULE_REGISTRATION_TRANSFORM } from '../config/registration-only';
 
 // Tracks Program nodes we already injected into, so a package with several
 // instrumented files (or several configs pointing at one file) is injected only
@@ -12,27 +13,38 @@ interface ProgramNode {
   body: Array<{ type: string; directive?: string }>;
 }
 
-const DEFAULT_IMPORT_SPECIFIER = '@sentry/server-utils/orchestrion';
+// Where the injected snippet imports from: the `orchestrionModuleInjected`
+// helper and the module's channel-subscriber factory both live on the main
+// `@sentry/server-utils` entry, so a single import serves both. The ESM barrel
+// tree-shakes to just the helper and the factories actually referenced.
+const DEFAULT_IMPORT_SPECIFIER = '@sentry/server-utils';
+
+/**
+ * Assignment target that keeps the injected call from being tree-shaken. See
+ * {@link moduleInjectedSnippet}. The value written is always `undefined`; only
+ * the assignment matters.
+ */
+const MODULE_INJECTED_SINK = 'globalThis.__SENTRY_ORCHESTRION_INJECT__';
 
 /**
  * Entry-chunk banner that marks "the bundler plugin ran" for
- * `detectOrchestrionSetup()`. Merge-only (`g.bundler = g.bundler || []`) so it
- * can never clobber module names already recorded by an injected snippet that
- * happened to run first; the names themselves arrive per module, when each
+ * `detectOrchestrionSetup()`. Merge-only (`g.bundler = g.bundler || new Set()`)
+ * so it can never clobber module names already recorded by an injected snippet
+ * that happened to run first; the names themselves arrive per module, when each
  * transformed module is evaluated and its snippet calls
  * `orchestrionModuleInjected`.
  */
 export const ORCHESTRION_BUNDLER_MARKER_BANNER =
-  ';(function(){var g=globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{};g.bundler=g.bundler||[];})();';
+  ';(function(){var g=globalThis.__SENTRY_ORCHESTRION__=globalThis.__SENTRY_ORCHESTRION__||{};g.bundler=g.bundler||new Set();})();';
 
 /**
  * Snippet injected into each instrumented module. It imports the
  * `orchestrionModuleInjected` helper — plus the module's channel-subscriber
- * factory, when it has one — from `@sentry/server-utils/orchestrion` and calls
- * the helper with the module's real name. The helper records the module on the
- * global marker, stores the factory, and emits the `orchestrion.module-injected`
- * client event, so it runs exactly when the module is evaluated — the moment
- * its channels can start publishing. That per-module timing is what keeps
+ * factory, when it has one — from `@sentry/server-utils` and calls the helper
+ * with the module's real name. The helper records the module on the global
+ * marker, stores the factory, and emits the `orchestrion.module-injected` client
+ * event, so it runs exactly when the module is evaluated — the moment its
+ * channels can start publishing. That per-module timing is what keeps
  * subscriptions lazy (Node caps diagnostics channels in use at 1024).
  *
  * Importing the single named factory (rather than a central dispatch that pulls
@@ -45,6 +57,13 @@ export const ORCHESTRION_BUNDLER_MARKER_BANNER =
  * inside a transformed `node_modules` file can't resolve (Turbopack under
  * isolated installs); it's embedded via `JSON.stringify` so absolute Windows
  * paths survive.
+ *
+ * The call result is assigned to a global rather than discarded. The helper
+ * returns `void` and `@sentry/server-utils` is `sideEffects: false`, so a bare
+ * call statement is something a bundler can prove droppable: rollup >= 4.63.0
+ * does exactly that and removes the whole registration, leaving the module
+ * instrumented but unsubscribed. Writing to a property of `globalThis` is a
+ * side effect no bundler can shake out, so the call survives.
  */
 function moduleInjectedSnippet(
   moduleName: string,
@@ -58,7 +77,7 @@ function moduleInjectedSnippet(
     : `const { ${bindings} } = require(${JSON.stringify(importSpecifier)});`;
 
   const args = exportName ? `${JSON.stringify(moduleName)}, ${exportName}` : JSON.stringify(moduleName);
-  return `${importStmt}\norchestrionModuleInjected(${args});`;
+  return `${importStmt}\n${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
 }
 
 /**
@@ -75,6 +94,10 @@ function moduleInjectedSnippet(
  * per file. Requires `@apm-js-collab/code-transformer` >= 0.18.1, where
  * built-ins dispatch through the override map and expose the originals on
  * `state.transforms.defaults`.
+ *
+ * Also carries the registration-only operator, which splices the same snippet
+ * without any channel injection — for library versions whose tracing channels
+ * are native.
  */
 export function moduleInjectedTransforms(
   // A function is read per injected file — the webpack/Turbopack loader uses it
@@ -83,14 +106,11 @@ export function moduleInjectedTransforms(
   // importing file's location).
   importSpecifier?: string | (() => string | undefined),
 ): Record<string, CustomTransform> {
-  const injectModuleInjected: CustomTransform = (state, program, parent, ancestry) => {
-    const { moduleType, module, transforms } = state as {
+  const spliceModuleInjected = (state: unknown, program: unknown): void => {
+    const { moduleType, module } = state as {
       moduleType?: string;
       module?: { name?: string };
-      transforms: { defaults: { tracingChannelImport: CustomTransform } };
     };
-
-    transforms.defaults.tracingChannelImport(state, program, parent, ancestry);
 
     const node = program as ProgramNode;
     if (injectedPrograms.has(node)) {
@@ -116,5 +136,25 @@ export function moduleInjectedTransforms(
     node.body.splice(directiveIndex + 1, 0, ...statements);
   };
 
-  return { tracingChannelImport: injectModuleInjected };
+  const injectModuleInjected: CustomTransform = (state, program, parent, ancestry) => {
+    const { transforms } = state as {
+      transforms: { defaults: { tracingChannelImport: CustomTransform } };
+    };
+
+    transforms.defaults.tracingChannelImport(state, program, parent, ancestry);
+    spliceModuleInjected(state, program);
+  };
+
+  // Operator for registration-only configs (`transform` field, see
+  // `config/registration-only.ts`): dispatched INSTEAD of `traceSync`, so no
+  // channel is declared and no function is wrapped. Their `astQuery: 'Program'`
+  // matches only the file root, so `node` is the Program itself.
+  const injectRegistrationOnly: CustomTransform = (state, node) => {
+    spliceModuleInjected(state, node);
+  };
+
+  return {
+    tracingChannelImport: injectModuleInjected,
+    [MODULE_REGISTRATION_TRANSFORM]: injectRegistrationOnly,
+  };
 }

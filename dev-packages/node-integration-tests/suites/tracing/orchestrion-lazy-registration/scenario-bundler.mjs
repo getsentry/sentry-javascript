@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { tracingChannel } from 'node:diagnostics_channel';
-import { orchestrionModuleInjected } from '@sentry/server-utils/orchestrion';
+import { orchestrionModuleInjected } from '@sentry/server-utils';
 
 // Reproduces the force-bundled path (vite SSR, nextjs's bundle-safe packages):
 // the module is transformed at BUILD time and inlined, so it is never loaded
@@ -25,7 +25,7 @@ assert.equal(
 // real build this runs when the bundled module is first evaluated.
 orchestrionModuleInjected('generic-pool');
 
-assert.ok(marker.bundler?.includes('generic-pool'), 'expected the module to be recorded as bundler-injected');
+assert.ok(marker.bundler?.has('generic-pool'), 'expected the module to be recorded as bundler-injected');
 
 // The helper emitted `orchestrion.module-injected`, so the GenericPool
 // integration must have subscribed, even though generic-pool was never loaded

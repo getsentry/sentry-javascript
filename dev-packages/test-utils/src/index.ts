@@ -12,11 +12,25 @@ export {
   waitForStreamedSpans,
   waitForStreamedSpanEnvelope,
   collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  collectSpanNamesUntilSegment,
   getSpanOp,
 } from './event-proxy-server';
+export type { SerializedStreamedSpan } from '@sentry/core';
 
-export { findAbsolutePathImports } from './build-output';
+export {
+  findAbsolutePathImports,
+  findSourceMapFiles,
+  findSourceMappingUrlComments,
+  findInjectedDebugIds,
+  bundleReferencesModule,
+} from './build-output';
+export type { OutputScanOptions } from './build-output';
 
+export { assertBundlerInstrumentation } from './bundler-instrumentation';
+export type { InstrumentationFixture } from './bundler-instrumentation';
+
+export { hidePage } from './page';
 export { getPlaywrightConfig } from './playwright-config';
 export { createBasicSentryServer, createTestServer } from './server';
 

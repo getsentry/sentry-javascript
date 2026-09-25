@@ -4,6 +4,7 @@ import {
   filterInstrumentedExternals,
   ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
 } from '../../src/config/diagnosticsChannelInjection';
+import type { SentryBuildOptions } from '../../src/config/types';
 import * as util from '../../src/config/util';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from '../../src/config/withSentryConfig';
 import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
@@ -18,6 +19,14 @@ const EXPECTED_DEFAULT_EXTERNALS = [
 ];
 
 describe('withSentryConfig', () => {
+  beforeEach(() => {
+    delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+  });
+
+  afterEach(() => {
+    delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+  });
+
   // `next.config.js` / `next.config.mjs` get no type checking, so this warning is the only signal
   // those users receive that the option is gone.
   describe('removed `unstable_sentryWebpackPluginOptions`', () => {
@@ -581,6 +590,27 @@ describe('withSentryConfig', () => {
       // Both productionBrowserSourceMaps and deleteSourcemapsAfterUpload should be enabled
       expect(finalConfig.productionBrowserSourceMaps).toBe(true);
       expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+    });
+
+    it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      const sentryOptions: SentryBuildOptions = {
+        sourcemaps: {
+          disable: 'disable-upload',
+        },
+      };
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
+
+      // The SDK must not generate source maps it will neither upload nor delete - they would be served
+      // publicly from `.next/static`. Generating them is the user's call via `productionBrowserSourceMaps`.
+      expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
     });
 
     it('preserves explicitly configured deleteSourcemapsAfterUpload setting', () => {
@@ -1254,6 +1284,24 @@ describe('withSentryConfig', () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.3.9. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
       );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('warns only once when the config is materialized repeatedly', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+      materializeFinalNextConfig(exportedNextConfig);
+      materializeFinalNextConfig(exportedNextConfig);
+
+      const turbopackWarnings = consoleWarnSpy.mock.calls.filter(([message]) =>
+        String(message).includes('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+      expect(turbopackWarnings).toHaveLength(1);
 
       consoleWarnSpy.mockRestore();
     });

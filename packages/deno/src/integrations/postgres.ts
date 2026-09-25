@@ -1,4 +1,4 @@
-import { postgresIntegration } from '@sentry/server-utils/orchestrion';
+import { postgresIntegration } from '@sentry/server-utils';
 
 /**
  * Create spans for `pg` (node-postgres) queries under Deno. Included in the

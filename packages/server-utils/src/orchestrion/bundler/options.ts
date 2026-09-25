@@ -27,6 +27,15 @@ export type PluginOptions = {
    * run.
    */
   customTransforms?: Record<string, CustomTransform>;
+  /**
+   * Module specifier the transformed code imports its `tracingChannel` from, in
+   * place of `node:diagnostics_channel`. The Cloudflare build points this at a
+   * workerd-safe façade so channels wrapped at module scope don't throw. This is
+   * global — `code-transformer` ignores per-config `dcModule` (the matcher's value
+   * overwrites it) — but the façade delegates transparently in a request, so
+   * routing every channel through it is harmless.
+   */
+  dcModule?: string;
 };
 
 /**
@@ -55,17 +64,26 @@ export function externalizedModulesWarning(externalizedModules: string[]): strin
 
 /**
  * The `@apm-js-collab/code-transformer-bundler-plugins` options shared by every
- * orchestrion bundler plugin.
+ * orchestrion bundler plugin. This is the single assembly point for the plugin
+ * options, so a new field added here reaches every bundler at once.
  *
  * The module-injected `tracingChannelImport` override is always on: it is how
  * every transformed module announces itself (and its channel-subscriber
  * factory) at evaluation time, on every bundler. It is spread last so a user
  * transform can't clobber it.
+ *
+ * `injectDiagnostics` returns the marker banner the upstream transformer prepends
+ * to the output. Bun opts out (`{ injectDiagnostics: false }`) because it injects
+ * the same banner via its native `banner` build config instead — see `bun.ts`.
  */
-export function orchestrionTransformOptions(options: PluginOptions): CodeTransformerPluginOptions {
+export function orchestrionTransformOptions(
+  options: PluginOptions,
+  { injectDiagnostics = true }: { injectDiagnostics?: boolean } = {},
+): CodeTransformerPluginOptions {
   return {
     instrumentations: [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])],
     customTransforms: { ...options.customTransforms, ...moduleInjectedTransforms() },
-    injectDiagnostics: () => ORCHESTRION_BUNDLER_MARKER_BANNER,
+    ...(options.dcModule && { dcModule: options.dcModule }),
+    ...(injectDiagnostics && { injectDiagnostics: () => ORCHESTRION_BUNDLER_MARKER_BANNER }),
   };
 }

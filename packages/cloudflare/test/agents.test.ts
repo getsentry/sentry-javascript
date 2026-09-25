@@ -52,10 +52,7 @@ describe('instrumentAgentWithSentry', () => {
       }
     };
 
-    const instrumented = instrumentAgentWithSentry(
-      vi.fn().mockReturnValue({ enableRpcTracePropagation: true }),
-      testClass as any,
-    );
+    const instrumented = instrumentAgentWithSentry(vi.fn().mockReturnValue({}), testClass as any);
     const obj = Reflect.construct(instrumented, []);
 
     // Agent-specific handlers become own properties, so they are excluded from RPC method tracing.

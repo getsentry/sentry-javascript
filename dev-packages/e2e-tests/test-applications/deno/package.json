@@ -3,26 +3,39 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "deno run --allow-net --allow-env --allow-read src/app.ts",
+    "start": "docker compose up -d --wait && deno run --allow-net --allow-env --allow-read --allow-sys --allow-write --preload=@sentry/deno/import src/app.ts",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm test",
+    "test:build:static": "E2E_TEST_STATIC=true pnpm install",
+    "test:assert:static": "E2E_TEST_STATIC=true pnpm test"
   },
   "dependencies": {
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
-    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api": "^1.9.1",
     "ai": "^3.0.0",
+    "ioredis": "^5.11.0",
+    "mysql": "2.18.1",
+    "pg": "8.16.0",
+    "redis": "^5.12.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
     "extends": "../../package.json"
   },
   "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:static",
+        "assert-command": "pnpm test:assert:static",
+        "label": "deno (static trace lifecycle)"
+      }
+    ],
     "optionalVariants": [
       {
         "deno-version": "latest",

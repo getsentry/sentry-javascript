@@ -6,7 +6,7 @@ import type {
   SeverityLevel,
   StackFrame,
   StackParser,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import {
   _INTERNAL_enhanceErrorWithSentryInfo,
   addExceptionMechanism,
@@ -22,7 +22,7 @@ import {
   isPlainObject,
   normalizeToSize,
   resolvedSyncPromise,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 
 type Prototype = { constructor: (...args: unknown[]) => unknown };
 
@@ -301,10 +301,6 @@ export function eventFromUnknownInput(
       const message = domException.message ? `${name}: ${domException.message}` : name;
       event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
       addExceptionTypeValue(event, message);
-    }
-    if ('code' in domException) {
-      // eslint-disable-next-line typescript/no-deprecated
-      event.tags = { ...event.tags, 'DOMException.code': `${domException.code}` };
     }
 
     return event;

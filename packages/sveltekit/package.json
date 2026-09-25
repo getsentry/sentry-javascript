@@ -1,6 +1,6 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "10.67.0",
+  "version": "11.0.0",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
@@ -25,6 +25,10 @@
     },
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "workerd": {
+        "import": "./build/esm/index.workerd.js",
+        "require": "./build/cjs/index.workerd.js"
+      },
       "worker": {
         "import": "./build/esm/index.worker.js",
         "require": "./build/cjs/index.worker.js"
@@ -41,6 +45,11 @@
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
       }
+    },
+    "./opentelemetry-api": {
+      "types": "./build/types/opentelemetryApi.d.ts",
+      "import": "./build/esm/opentelemetryApi.js",
+      "require": "./build/cjs/opentelemetryApi.js"
     },
     "./vite": {
       "types": "./build/types/vite/index.d.ts",
@@ -61,13 +70,15 @@
     }
   },
   "dependencies": {
-    "@sentry/cloudflare": "10.67.0",
-    "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.19.0",
-    "@sentry/node": "10.67.0",
-    "@sentry/server-utils": "10.67.0",
-    "@sentry/svelte": "10.67.0",
-    "@sentry/bundler-plugins": "10.67.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@sentry/cloudflare": "11.0.0",
+    "@sentry/core": "11.0.0",
+    "@sentry/conventions": "^0.24.0",
+    "@sentry/node": "11.0.0",
+    "@sentry/server-runtime-injection": "11.0.0",
+    "@sentry/server-utils": "11.0.0",
+    "@sentry/svelte": "11.0.0",
+    "@sentry/bundler-plugins": "11.0.0",
     "@sveltejs/acorn-typescript": "^1.0.9",
     "acorn": "^8.14.0",
     "magic-string": "~0.30.0",
@@ -92,6 +103,7 @@
     "clean": "rimraf build coverage sentry-sveltekit-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

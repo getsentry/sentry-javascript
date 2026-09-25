@@ -1,4 +1,4 @@
-import { dataloaderIntegration } from '@sentry/server-utils/orchestrion';
+import { dataloaderIntegration } from '@sentry/server-utils';
 
 /**
  * Create spans for `dataloader` load/batch operations under Deno. Not a default;

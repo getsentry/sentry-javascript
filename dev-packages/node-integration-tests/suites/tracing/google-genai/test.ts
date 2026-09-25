@@ -3,6 +3,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -32,7 +33,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -51,6 +51,11 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
+            expect(chatSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
             expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
             expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
@@ -86,7 +91,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -106,6 +110,13 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
+            expect(chatSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(
+              '[{"type":"text","content":"You are a friendly robot who likes to be funny."}]',
+            );
             expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
             expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(12);
             expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(20);
@@ -137,7 +148,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with custom options', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -174,7 +184,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with tool calls', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -197,6 +206,22 @@ describe('Google GenAI integration', () => {
                 args: { brightness: 0.3, colorTemperature: 'warm' },
               },
             ]);
+            expect(nonStreamingToolsSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
+              JSON.stringify([
+                {
+                  role: 'assistant',
+                  parts: [
+                    { type: 'text', content: 'I need to check the light status first.' },
+                    {
+                      type: 'tool_call',
+                      id: 'call_light_control_1',
+                      name: 'controlLight',
+                      arguments: '{"brightness":0.3,"colorTemperature":"warm"}',
+                    },
+                  ],
+                },
+              ]),
+            );
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(8);
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(23);
@@ -219,6 +244,24 @@ describe('Google GenAI integration', () => {
                 args: { brightness: 0.5, colorTemperature: 'cool' },
               },
             ]);
+            // The text arrives either side of the tool call, so it stays two parts.
+            expect(streamingToolsSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
+              JSON.stringify([
+                {
+                  role: 'assistant',
+                  parts: [
+                    { type: 'text', content: 'Let me control the lights for you.' },
+                    {
+                      type: 'tool_call',
+                      id: 'call_light_stream_1',
+                      name: 'controlLight',
+                      arguments: '{"brightness":0.5,"colorTemperature":"cool"}',
+                    },
+                    { type: 'text', content: ' Done!' },
+                  ],
+                },
+              ]),
+            );
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('mock-response-tools-id');
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gemini-2.0-flash-001');
             expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(12);
@@ -245,7 +288,21 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
+        // The provider surfaces blocked content within the stream and never returns it to the caller as
+        // a thrown error, so the instrumentation intentionally captures it as an event.
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Content blocked: The prompt was blocked due to safety concerns',
+                  mechanism: { type: 'auto.ai.google_genai', handled: false },
+                },
+              ],
+            },
+          },
+        })
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -277,6 +334,10 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('mock-response-streaming-id');
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gemini-1.5-pro');
 
@@ -301,7 +362,21 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
+        // The provider surfaces blocked content within the stream and never returns it to the caller as
+        // a thrown error, so the instrumentation intentionally captures it as an event.
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                {
+                  value: 'Content blocked: The prompt was blocked due to safety concerns',
+                  mechanism: { type: 'auto.ai.google_genai', handled: false },
+                },
+              ],
+            },
+          },
+        })
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -330,6 +405,10 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
             expect(chatSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
+            // Given once to `chats.create()` and reused for every message the chat sends.
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.8);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_TOP_P].value).toBe(0.9);
+            expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(150);
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["STOP"]');
 
             const blockedSpan = container.items.find(span => span.name === 'generate_content blocked-model');
@@ -358,20 +437,40 @@ describe('Google GenAI integration', () => {
     'scenario-system-instructions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('extracts system instructions from messages', async () => {
+      test('extracts system instructions and normalizes messages', async () => {
         await createRunner()
-          .ignore('event')
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
+              expect(container.items).toHaveLength(2);
+              const [firstSpan, secondSpan] = container.items;
 
-              // [0] generate_content with system instructions extracted
+              // [0] generate_content with a string system instruction
               expect(firstSpan!.name).toBe('generate_content gemini-1.5-flash');
               expect(firstSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
               expect(firstSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(
                 JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
+              );
+              expect(firstSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+                JSON.stringify([{ role: 'user', parts: [{ type: 'text', content: 'Hello' }] }]),
+              );
+
+              // [1] generate_content with a `Content` system instruction and a tool-call turn
+              expect(secondSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(
+                JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
+              );
+              expect(secondSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+                JSON.stringify([
+                  { role: 'user', parts: [{ type: 'text', content: 'What time is it in Tokyo?' }] },
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'tool_call', name: 'get_time', arguments: '{"timezone":"Asia/Tokyo"}' }],
+                  },
+                  {
+                    role: 'user',
+                    parts: [{ type: 'tool_call_response', name: 'get_time', result: '{"output":"10:00"}' }],
+                  },
+                ]),
               );
             },
           })
@@ -384,7 +483,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording disabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -423,7 +521,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
@@ -470,7 +567,6 @@ describe('Google GenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates google genai related spans with span streaming enabled', async () => {
       await createRunner()
-        .ignore('event')
         .expect({
           span: container => {
             const generateContentSpan = container.items.find(span => span.name === 'generate_content gemini-1.5-flash');

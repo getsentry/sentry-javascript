@@ -56,18 +56,27 @@ export type InternalGlobal = {
   _sentryModuleMetadata?: Record<string, any>;
   _sentryWrappedDepth?: number;
   /**
-   * Orchestrion bundler and runtime detection.
+   * Bundler and runtime instrumentation detection.
    */
   __SENTRY_ORCHESTRION__?: {
     /** Empty array signifies runtime hooked */
     runtime?: string[];
     /**
+     * The resolved `file:` URL of a transformed file for each runtime-injected
+     * module, keyed by module name (e.g. `@mastra/core`). Lets an integration
+     * anchor `createRequire` on the app's actual copy of a dependency without
+     * relying on `process.cwd()` or the CJS `require.cache` — the latter is
+     * always empty for ESM-loaded modules. Only the runtime `--import`/hook path
+     * populates this; the bundler path inlines modules and records none.
+     */
+    runtimeFiles?: Record<string, string>;
+    /**
      * Module names recorded as each bundler-transformed module loads (the
      * injected snippet calls `orchestrionModuleInjected`). The bundler plugin's
-     * entry banner ensures `[]` at boot, so a defined array — even empty —
-     * signifies the plugin ran.
+     * entry banner ensures an empty `Set` at boot, so a defined set — even
+     * empty — signifies the plugin ran.
      */
-    bundler?: string[];
+    bundler?: Set<string>;
     /**
      * Channel-subscriber integration factories stored by the snippet the
      * bundler transform splices into each instrumented module, keyed by module
@@ -77,6 +86,22 @@ export type InternalGlobal = {
      * `init()` and instantiates them.
      */
     integrations?: Map<string, () => Integration>;
+    /**
+     * Set once `registerDiagnosticsChannelInjection()` has run but could not
+     * install the runtime module hooks — most commonly because
+     * `@sentry/server-runtime-injection` was bundled into the app (which strips its vendored
+     * code transformer) or the Node runtime lacks the required module-hook API.
+     * Dedupes the one-time warning and short-circuits repeat calls.
+     */
+    runtimeUnavailable?: boolean;
+    /**
+     * Module namespaces stashed by build-time provider imports, keyed by module
+     * name (e.g. `@mastra/observability`). A bundler plugin can splice a static
+     * `import * as ns from '<pkg>'` into an integration and record `ns` here, so
+     * the integration can read a bundled peer dependency it cannot `createRequire`
+     * in a bundled runtime such as Cloudflare Workers.
+     */
+    providedModules?: Record<string, Record<string, unknown>>;
   };
 } & Carrier;
 

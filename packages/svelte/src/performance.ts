@@ -1,7 +1,15 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { debug, startInactiveSpan } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  debug,
+  getClient,
+  hasSpanStreamingEnabled,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
+  UI_UPDATE_SPAN_NAME_FALLBACK,
+} from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core/browser';
+import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { UI_MOUNT, UI_UPDATE } from '@sentry/conventions/op';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { DEBUG_BUILD } from './debug_build';
 import type { TrackComponentOptions } from './types';
@@ -29,15 +37,16 @@ export function trackComponent(options?: TrackComponentOptions): void {
 
   const customComponentName = mergedOptions.componentName;
 
-  const componentName = `<${customComponentName || 'Svelte Component'}>`;
+  const innerName = customComponentName || 'Svelte Component';
+  const description = `<${innerName}>`;
 
   if (mergedOptions.trackInit) {
-    recordInitSpan(componentName);
+    recordInitSpan(customComponentName, description);
   }
 
   if (mergedOptions.trackUpdates) {
     try {
-      recordUpdateSpans(componentName);
+      recordUpdateSpans(customComponentName, description);
     } catch {
       DEBUG_BUILD &&
         debug.warn(
@@ -47,14 +56,18 @@ export function trackComponent(options?: TrackComponentOptions): void {
   }
 }
 
-function recordInitSpan(componentName: string): void {
+function recordInitSpan(componentName: string | undefined, description: string): void {
+  const client = getClient();
+  const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+
   const initSpan = startInactiveSpan({
     onlyIfParent: true,
-    name: componentName,
+    name: hasSpanStreaming ? componentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
     attributes: {
-      // TODO(conventions): Replace `'ui.mount'` with the `ui.mount` span op constant once it is released in `@sentry/conventions`.
-      [SENTRY_OP]: 'ui.mount',
+      [SENTRY_OP]: UI_MOUNT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte',
+      ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+      ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
     },
   });
 
@@ -63,16 +76,20 @@ function recordInitSpan(componentName: string): void {
   });
 }
 
-function recordUpdateSpans(componentName: string): void {
+function recordUpdateSpans(componentName: string | undefined, description: string): void {
   let updateSpan: Span | undefined;
   beforeUpdate(() => {
+    const client = getClient();
+    const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+
     updateSpan = startInactiveSpan({
       onlyIfParent: true,
-      name: componentName,
+      name: hasSpanStreaming ? componentName || UI_UPDATE_SPAN_NAME_FALLBACK : description,
       attributes: {
-        // TODO(conventions): Replace `'ui.update'` with the `ui.update` span op constant once it is released in `@sentry/conventions`.
-        [SENTRY_OP]: 'ui.update',
+        [SENTRY_OP]: UI_UPDATE,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte',
+        ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+        ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
       },
     });
   });

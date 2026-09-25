@@ -519,12 +519,15 @@ export function waitForStreamedSpanEnvelope(
  *   return getSpanV2Op(span) === 'http.client';
  * });
  * ```
+ *
+ * Pass `timestamp` to look further back than the moment of the call, e.g. `0` for a span the app
+ * emits at startup, before any test can start listening.
  */
 export function waitForStreamedSpan(
   proxyServerName: string,
   callback: (span: SerializedStreamedSpan) => Promise<boolean> | boolean,
+  timestamp: number = getNanosecondTimestamp(),
 ): Promise<SerializedStreamedSpan> {
-  const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
     waitForRequest(
       proxyServerName,
@@ -607,34 +610,101 @@ export function waitForStreamedSpans(
 }
 
 /**
- * Accumulate streamed Span V2 spans across multiple envelopes until `isDone` returns true.
+ * Accumulate streamed Span V2 spans across envelopes, grouped by trace, and resolve with the spans
+ * of the first trace that satisfies `isDone`.
  *
- * Unlike {@link waitForStreamedSpans}, which resolves with the spans of a single envelope, this
- * collects spans from every Span V2 envelope as they arrive and resolves with the full set once
- * `isDone` is satisfied. Streamed spans are flushed in multiple envelopes as they end (a child span
- * can be sent before its root segment span), so any assertion that needs the whole trace must
- * accumulate rather than snapshot a single envelope.
+ * A trace reaches the proxy in more than one envelope: the span buffer flushes on a timer, so a
+ * segment that is still open when its children flush arrives separately, and standalone spans (web
+ * vitals, INP) bypass the buffer entirely. Anything asserting on a whole trace therefore has to
+ * accumulate rather than snapshot a single envelope, which is what {@link waitForStreamedSpans}
+ * gives you.
  *
- * `isDone` receives all spans collected so far. A common predicate is "the segment/root span has
- * arrived", since the root ends last and therefore flushes after its children:
+ * `isDone` receives one trace's spans at a time, never a mixture, so a leftover trace from an
+ * earlier page load cannot satisfy the predicate on behalf of the trace under test. Note that it
+ * can still satisfy the predicate in its own right: when several tests exercise the same route,
+ * the predicate has to name something unique to the request under test.
+ *
+ * When the trace is complete once its segment span has arrived, prefer
+ * {@link collectStreamedSpansUntilSegment}.
  *
  * @example
  * ```ts
- * const spans = await collectStreamedSpans(PROXY_SERVER_NAME, allSpans =>
- *   allSpans.some(span => span.name === 'GET /nested-layout' && span.is_segment),
+ * const spans = await collectStreamedSpans(
+ *   PROXY_SERVER_NAME,
+ *   spansOfTrace =>
+ *     spansOfTrace.some(span => span.name === 'GET /performance/redis' && span.is_segment) &&
+ *     spansOfTrace.filter(span => getSpanOp(span) === 'db.query').length >= 2,
  * );
- * expect(spans.map(span => span.name)).toContainEqual('build component tree');
  * ```
  */
 export function collectStreamedSpans(
   proxyServerName: string,
-  isDone: (spans: SerializedStreamedSpan[]) => boolean,
+  isDone: (spansOfTrace: SerializedStreamedSpan[]) => boolean,
 ): Promise<SerializedStreamedSpan[]> {
-  const collected: SerializedStreamedSpan[] = [];
+  const spansByTrace = new Map<string, SerializedStreamedSpan[]>();
+  let matched: SerializedStreamedSpan[] | undefined;
+
   return waitForStreamedSpans(proxyServerName, spans => {
-    collected.push(...spans);
-    return isDone(collected);
-  }).then(() => collected);
+    for (const span of spans) {
+      const spansOfTrace = spansByTrace.get(span.trace_id);
+      if (spansOfTrace) {
+        spansOfTrace.push(span);
+      } else {
+        spansByTrace.set(span.trace_id, [span]);
+      }
+    }
+
+    // Every trace is a candidate, so a trace that never satisfies `isDone` cannot hold up the one
+    // that does. Insertion order means the earliest-arriving trace wins a tie.
+    for (const spansOfTrace of spansByTrace.values()) {
+      if (isDone(spansOfTrace)) {
+        matched = spansOfTrace;
+        return true;
+      }
+    }
+
+    return false;
+  }).then(() => matched ?? []);
+}
+
+/**
+ * Accumulate the spans of a trace until its segment (root) span has arrived.
+ *
+ * The segment span ends last, so its children typically flush in an earlier envelope; waiting for
+ * the segment is the common way to know that the whole trace is in hand. `segment` is either the
+ * segment span's exact name or a predicate over the segment span, for cases where the name alone is
+ * not unique (e.g. matching on `url.path` or the op).
+ *
+ * Use {@link collectStreamedSpans} directly when the trace is only complete once specific child
+ * spans have arrived as well.
+ *
+ * @example
+ * ```ts
+ * const spans = await collectStreamedSpansUntilSegment(PROXY_SERVER_NAME, 'GET /nested-layout');
+ * const spans = await collectStreamedSpansUntilSegment(PROXY_SERVER_NAME, span => getSpanOp(span) === 'pageload');
+ * ```
+ */
+export function collectStreamedSpansUntilSegment(
+  proxyServerName: string,
+  segment: string | ((segmentSpan: SerializedStreamedSpan) => boolean),
+): Promise<SerializedStreamedSpan[]> {
+  const matchesSegment =
+    typeof segment === 'string' ? (span: SerializedStreamedSpan) => span.name === segment : segment;
+
+  return collectStreamedSpans(proxyServerName, spansOfTrace =>
+    spansOfTrace.some(span => span.is_segment && matchesSegment(span)),
+  );
+}
+
+/**
+ * Like {@link collectStreamedSpansUntilSegment}, but resolves with just the span names, for tests
+ * that only assert which spans a request produced.
+ */
+export function collectSpanNamesUntilSegment(
+  proxyServerName: string,
+  segment: string | ((segmentSpan: SerializedStreamedSpan) => boolean),
+): Promise<string[]> {
+  return collectStreamedSpansUntilSegment(proxyServerName, segment).then(spans => spans.map(span => span.name));
 }
 
 /**

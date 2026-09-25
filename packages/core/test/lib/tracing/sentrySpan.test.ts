@@ -4,7 +4,6 @@ import { setCurrentClient } from '../../../src/sdk';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../../src/semanticAttributes';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
@@ -16,6 +15,7 @@ import type { Span, SpanJSON } from '../../../src/types/span';
 import { getRootSpan, spanToStaticSpanJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 
 function childSpansOf(span: Span): Set<Span> {
   return (span as unknown as { _sentryChildSpans?: Set<Span> })._sentryChildSpans ?? new Set();
@@ -40,14 +40,14 @@ describe('SentrySpan', () => {
     it('sets the source to custom when calling updateName', () => {
       const span = new SentrySpan({
         name: 'original name',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+        attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' },
       });
 
       span.updateName('new name');
 
       const spanJson = spanToStaticSpanJSON(span);
       expect(spanJson.description).toEqual('new name');
-      expect(spanJson.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
+      expect(spanJson.data[SENTRY_SEGMENT_NAME_SOURCE]).toEqual('custom');
     });
 
     it('sets the source to custom when calling updateName on a span without a source', () => {

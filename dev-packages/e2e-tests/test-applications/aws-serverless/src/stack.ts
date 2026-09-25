@@ -9,7 +9,8 @@ import { execFileSync } from 'node:child_process';
 
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
-export const SAM_PORT = Number(process.env.SAM_PORT) || 7120;
+// SAM allocates runtime container ports in [5000, 9000) before binding its own endpoint.
+export const SAM_PORT = Number(process.env.SAM_PORT) || 17120;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
 function samLambdaArchitecture(): 'arm64' | 'x86_64' {
@@ -52,17 +53,17 @@ export class LocalLambdaStack extends Stack {
       const functionName = `Npm${lambdaDir}`;
 
       const lambdaPath = path.resolve(LAMBDA_FUNCTIONS_DIR, lambdaDir);
-      const packageLockPath = path.join(lambdaPath, 'package-lock.json');
+      const lockfilePath = path.join(lambdaPath, 'pnpm-lock.yaml');
       const nodeModulesPath = path.join(lambdaPath, 'node_modules');
 
-      // `dir` is the package directory under `packages/`; `name` is the published
-      // npm name (most are `@sentry/<dir>`, but `server-utils` is `@sentry-internal`).
+      // `dir` is the package directory under `packages/`; `name` is the published npm name.
       const packagesToLink: Array<{ dir: string; name: string }> = [
         { dir: 'aws-serverless', name: '@sentry/aws-serverless' },
         { dir: 'node', name: '@sentry/node' },
         { dir: 'core', name: '@sentry/core' },
         { dir: 'opentelemetry', name: '@sentry/opentelemetry' },
         { dir: 'server-utils', name: '@sentry/server-utils' },
+        { dir: 'server-runtime-injection', name: '@sentry/server-runtime-injection' },
         { dir: 'bundler-plugins', name: '@sentry/bundler-plugins' },
       ];
       const dependencies: Record<string, string> = {};
@@ -81,8 +82,8 @@ export class LocalLambdaStack extends Stack {
 
       console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
 
-      if (fs.existsSync(packageLockPath)) {
-        fs.rmSync(packageLockPath);
+      if (fs.existsSync(lockfilePath)) {
+        fs.rmSync(lockfilePath);
       }
 
       if (fs.existsSync(nodeModulesPath)) {
@@ -91,10 +92,20 @@ export class LocalLambdaStack extends Stack {
 
       const packageJson = {
         dependencies,
+        pnpm: {
+          overrides: dependencies,
+        },
       };
 
       fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
-      execFileSync('npm', ['install', '--install-links', '--prefix', lambdaPath], { stdio: 'inherit' });
+      execFileSync(
+        'pnpm',
+        ['install', '--offline', '--prod', '--ignore-scripts', '--no-frozen-lockfile', '--config.node-linker=hoisted'],
+        {
+          cwd: lambdaPath,
+          stdio: 'inherit',
+        },
+      );
 
       if (!process.env.NODE_VERSION) {
         throw new Error('[LocalLambdaStack] NODE_VERSION is not set');
@@ -113,7 +124,6 @@ export class LocalLambdaStack extends Stack {
               SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
-              SENTRY_TRACE_LIFECYCLE: 'static',
               NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
             },
           },
@@ -134,13 +144,13 @@ export class LocalLambdaStack extends Stack {
       try {
         const response = await fetch(`http://127.0.0.1:${port}/`);
 
-        if (response.ok || response.status === 404) {
+        if (response.status === 404 && response.headers.get('x-amzn-errortype') === 'PathNotFoundLocally') {
           console.log(`[LocalLambdaStack] SAM stack is ready`);
           return;
         }
-      } catch {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      } catch {}
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     throw new Error(`[LocalLambdaStack] Failed to start SAM stack after ${timeout}ms`);

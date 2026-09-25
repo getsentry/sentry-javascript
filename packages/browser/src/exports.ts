@@ -20,7 +20,7 @@ export type {
   ExclusiveEventHintOrCaptureContext,
   Log,
   LogSeverityLevel,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 
 export type { BrowserOptions } from './client';
 
@@ -62,6 +62,7 @@ export {
   functionToStringIntegration,
   eventFiltersIntegration,
   dedupeIntegration,
+  consoleIntegration,
   parameterize,
   startSession,
   captureSession,
@@ -74,14 +75,13 @@ export {
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 
 export {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';

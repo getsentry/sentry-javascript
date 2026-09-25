@@ -108,9 +108,7 @@ export {
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  trpcMiddleware,
   spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
@@ -121,3 +119,4 @@ export {
   withStreamedSpan,
   featureFlagsIntegration,
 } from '@sentry/core';
+export { trpcMiddleware } from '@sentry/core/server';

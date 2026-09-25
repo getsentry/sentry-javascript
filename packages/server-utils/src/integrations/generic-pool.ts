@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { DATABASE_DB_SPAN_OP } from '@sentry/conventions/op';
+import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../orchestrion/channels';
@@ -26,10 +26,10 @@ const _genericPoolIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Orchestrion-driven generic-pool integration. Subscribes to
+ * Diagnostics-channel-based generic-pool integration. Subscribes to
  * `orchestrion:generic-pool:acquire` (injected into `generic-pool/lib/Pool.js`'s
  * `Pool.prototype.acquire`). Creates a `generic-pool.acquire` span for each
- * acquisition. Requires the orchestrion runtime hook or bundler plugin.
+ * acquisition. Requires the Sentry runtime hook or bundler plugin.
  */
 export const genericPoolIntegration = defineIntegration(_genericPoolIntegration);
 
@@ -40,7 +40,7 @@ function instrumentGenericPool(): void {
       startInactiveSpan({
         name: 'generic-pool.acquire',
         attributes: {
-          [SENTRY_OP]: DATABASE_DB_SPAN_OP,
+          [SENTRY_OP]: DB,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.generic_pool',
         },
       }),

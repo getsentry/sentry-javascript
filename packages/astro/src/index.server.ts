@@ -37,6 +37,7 @@ export {
   dedupeIntegration,
   defaultStackParser,
   endSession,
+  // oxlint-disable-next-line typescript/no-deprecated
   expressErrorHandler,
   expressIntegration,
   extraErrorDataIntegration,
@@ -90,18 +91,25 @@ export {
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   langChainIntegration,
   langGraphIntegration,
+  createFlueInstrumentation,
+  mastraIntegration,
+  SentryMastraExporter,
   parameterize,
   pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   processSessionIntegration,
   childProcessIntegration,
+  workerThreadsIntegration,
   createSentryWinstonTransport,
   redisIntegration,
   requestDataIntegration,
@@ -111,7 +119,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setContext,
   setConversationId,
   setCurrentClient,
@@ -123,8 +130,11 @@ export {
   setTags,
   setAttribute,
   setAttributes,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   setUser,
   spanToBaggageHeader,
@@ -150,6 +160,7 @@ export {
   withScope,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -177,6 +188,10 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   metrics,
+  eveConversationHook,
+  eveInstrumentation,
+  eveIntegration,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

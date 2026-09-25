@@ -4,14 +4,16 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
-import type { Integration, TransactionSource } from '@sentry/core/browser';
+import type { Integration, TransactionSource } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { Location } from './types';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 // Many of the types below had to be mocked out to prevent typescript issues
 // these types are required for correct functionality.
@@ -64,11 +66,12 @@ export function reactRouterV3BrowserTracingIntegration(
           match,
           (localName: string, source: ReactRouterV3TransactionSource = 'url') => {
             startBrowserTracingPageLoadSpan(client, {
-              name: localName,
+              // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+              name: source === 'route' || !hasSpanStreamingEnabled(client) ? localName : PAGELOAD_SPAN_NAME_FALLBACK,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+                [SENTRY_OP]: PAGELOAD,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                [SENTRY_SEGMENT_NAME_SOURCE]: source,
                 ...(source === 'route' && { [URL_TEMPLATE]: localName }),
               },
             });
@@ -85,11 +88,13 @@ export function reactRouterV3BrowserTracingIntegration(
               match,
               (localName: string, source: TransactionSource = 'url') => {
                 startBrowserTracingNavigationSpan(client, {
-                  name: localName,
+                  // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+                  name:
+                    source === 'route' || !hasSpanStreamingEnabled(client) ? localName : NAVIGATION_SPAN_NAME_FALLBACK,
                   attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                    [SENTRY_OP]: NAVIGATION,
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                    [SENTRY_SEGMENT_NAME_SOURCE]: source,
                     ...(source === 'route' && { [URL_TEMPLATE]: localName }),
                   },
                 });

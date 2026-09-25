@@ -4,35 +4,22 @@
   </a>
 </p>
 
-> NOTICE: This package is in alpha state and may be subject to breaking changes.
-
 # Official Sentry SDK for Elysia
 
 [![npm version](https://img.shields.io/npm/v/@sentry/elysia.svg)](https://www.npmjs.com/package/@sentry/elysia)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/elysia.svg)](https://www.npmjs.com/package/@sentry/elysia)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/elysia.svg)](https://www.npmjs.com/package/@sentry/elysia)
 
-> **Alpha**: This SDK is in alpha stage and may have breaking changes in future releases.
+The official Sentry SDK for monitoring Elysia applications.
 
-## Usage
+> NOTICE: This package is in alpha state and may be subject to breaking changes.
 
-```javascript
-import * as Sentry from '@sentry/elysia';
-import { Elysia } from 'elysia';
+## Documentation
 
-Sentry.init({
-  dsn: '__DSN__',
-  tracesSampleRate: 1.0,
-});
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/elysia/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/elysia/configuration/)
 
-const app = Sentry.withElysia(new Elysia())
-  .get('/', () => 'Hello World')
-  .listen(3000);
-```
+## Support
 
-## Links
-
-<!-- - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/elysia/) -->
-
-- [Sentry.io](https://sentry.io/?utm_source=github&utm_medium=npm_elysia)
-- [Sentry Discord Server](https://discord.gg/Ww9hbqr)
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

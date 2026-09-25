@@ -30,7 +30,7 @@ describe('outgoing fetch with tracePropagation disabled', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v0`,
                   status_code: 200,
                 },
@@ -40,7 +40,7 @@ describe('outgoing fetch with tracePropagation disabled', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v1`,
                   status_code: 200,
                 },

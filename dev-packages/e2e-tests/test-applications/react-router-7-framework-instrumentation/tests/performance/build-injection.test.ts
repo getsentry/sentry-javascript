@@ -30,7 +30,7 @@ test.describe('Orchestrion build-time injection', () => {
   });
 
   test('does not inject diagnostics-channel publishers into the client build', () => {
-    // The client build may carry the inert `__SENTRY_ORCHESTRION__.bundler = []` detection marker
+    // The client build may carry the inert `__SENTRY_ORCHESTRION__.bundler = new Set()` detection marker
     // (it's environment-agnostic and harmless in a browser), but the actual `tracingChannel` publishers
     // and their channel names must never leak — `applyToEnvironment` keeps the transform server-only, so
     // a browser never hits a `diagnostics_channel` call that would throw.

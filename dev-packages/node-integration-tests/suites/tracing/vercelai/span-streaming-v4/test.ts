@@ -17,7 +17,6 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
-import { isOrchestrionEnabled } from '../../../../utils';
 
 /**
  * Helper to match a typed attribute value in a SerializedStreamedSpan.
@@ -28,13 +27,10 @@ function attr(value: unknown) {
   return expect.objectContaining({ value });
 }
 
-const expectedOrigin = isOrchestrionEnabled() ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+const expectedOrigin = 'auto.vercelai.channel';
 
-// v4's OTel path serializes tool-call arguments from the provider's raw JSON string (whitespace
-// preserved); the channel path serializes the SDK-parsed args object (compact). Same data, different spacing.
-const toolCallArgs = isOrchestrionEnabled()
-  ? '{\\"location\\":\\"San Francisco\\"}'
-  : '{ \\"location\\": \\"San Francisco\\" }';
+// The channel path serializes the SDK-parsed args object (compact).
+const toolCallArgs = '{\\"location\\":\\"San Francisco\\"}';
 
 describe('Vercel AI integration (streaming v4)', () => {
   afterAll(() => {

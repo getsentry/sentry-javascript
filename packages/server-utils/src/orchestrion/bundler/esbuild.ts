@@ -1,10 +1,12 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/esbuild';
 import type { Plugin } from 'esbuild';
+
+export type { Plugin as EsbuildPlugin } from 'esbuild';
 import { escapeStringForRegex } from '@sentry/core';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
-import { resolveOrchestrionRuntimeRequest } from './resolve';
+import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER_FILTER } from './resolve';
 
 // esbuild `external` entries may contain `*` wildcards.
 function matchesEsbuildExternal(entry: string, moduleName: string): boolean {
@@ -51,13 +53,13 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
         build.onStart(() => ({ warnings: [{ text: externalizedModulesWarning(externalizedModules) }] }));
       }
 
-      // The module-injected snippet imports `@sentry/server-utils/orchestrion`
-      // from INSIDE transformed `node_modules` files. Under isolated installs
-      // (pnpm) that bare specifier doesn't resolve from an instrumented
-      // package's location, so try esbuild's own resolution first (the
-      // `pluginData` marker stops the recursion back into this callback) and
-      // fall back to this package's own resolution.
-      build.onResolve({ filter: /^@sentry\/server-utils\/orchestrion$/ }, async args => {
+      // The module-injected snippet imports `@sentry/server-utils` from INSIDE
+      // transformed `node_modules` files. Under isolated installs (pnpm) that
+      // bare specifier doesn't resolve from an instrumented package's location,
+      // so try esbuild's own resolution first (the `pluginData` marker stops the
+      // recursion back into this callback) and fall back to this package's own
+      // resolution.
+      build.onResolve({ filter: SNIPPET_IMPORT_SPECIFIER_FILTER }, async args => {
         if (args.pluginData === 'sentry-orchestrion-resolving') {
           return null;
         }

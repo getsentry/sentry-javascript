@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+// The `ember-strict-resolver (streamed)` variant builds the app with `traceLifecycle: 'stream'`,
+// which emits spans instead of transactions. See `streamed-performance.test.ts` for that variant.
+test.skip(process.env.E2E_TEST_TRACE_LIFECYCLE === 'stream', 'transactions are not emitted with span streaming');
+
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('ember-strict-resolver', async transactionEvent => {
     return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
@@ -15,6 +19,9 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
       trace: {
         op: 'pageload',
         origin: 'auto.pageload.ember',
+        data: {
+          'router.navigation.route.id': 'index',
+        },
       },
     },
     transaction: 'route:index',
@@ -43,6 +50,9 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
       trace: {
         op: 'navigation',
         origin: 'auto.navigation.ember',
+        data: {
+          'router.navigation.route.id': 'tracing',
+        },
       },
     },
     transaction: 'route:tracing',
@@ -177,7 +187,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'beforeModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route',
       op: 'function',
@@ -194,7 +203,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'beforeModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route.index',
       op: 'function',
@@ -214,7 +222,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'model',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route',
       op: 'function',
@@ -231,7 +238,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'model',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route.index',
       op: 'function',
@@ -251,7 +257,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'afterModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route',
       op: 'function',
@@ -268,7 +273,6 @@ test('captures correct spans for navigation', async ({ page }) => {
         'code.function.name': 'afterModel',
         'sentry.op': 'function',
         'sentry.origin': 'auto.ui.ember',
-        'sentry.source': 'custom',
       },
       description: 'slow-loading-route.index',
       op: 'function',

@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { getModuleNames } from './module-names';
 
 // `@langchain/langgraph` ships dual CJS/ESM builds (`.cjs` for `require`, `.js` for `import`) and the

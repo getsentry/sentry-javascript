@@ -57,17 +57,6 @@ export function getPortAppIsRunningOn(app: Express): number | undefined {
 }
 
 /**
- * Whether channel-based (orchestrion diagnostics-channel) instrumentation is active.
- *
- * Channel-based instrumentation is the default in v11, so this is always `true`. Kept as a helper
- * (rather than inlining `true`) so the suites' origin/shape selectors read intentionally; the OTel
- * branches they still contain are dead and get removed alongside the vendored OTel code (JS-3074).
- */
-export function isOrchestrionEnabled(): boolean {
-  return true;
-}
-
-/**
  * Retries `probe` until it resolves, or throws once `timeout` ms elapse.
  *
  * DB scenarios that start a Docker container with `docker compose up --wait` still flake on CI: `--wait`

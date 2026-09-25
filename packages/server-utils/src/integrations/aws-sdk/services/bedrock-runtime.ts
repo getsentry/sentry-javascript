@@ -12,6 +12,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_GENERATE_CONTENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../../debug-build';
 import {
   GEN_AI_OPERATION_NAME_VALUE_CHAT,
@@ -117,7 +118,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
     return {
       spanName,
-      spanOp: 'gen_ai.chat',
+      spanOp: GEN_AI_CHAT,
       isStream,
       spanAttributes,
     };
@@ -243,7 +244,7 @@ export class BedrockRuntimeServiceExtension implements ServiceExtension {
 
     return {
       spanName,
-      spanOp: 'gen_ai.generate_content',
+      spanOp: GEN_AI_GENERATE_CONTENT,
       isStream,
       spanAttributes,
     };
@@ -419,7 +420,7 @@ function parseChunk(bytes?: Uint8Array): ParsedChunk {
     const str = Buffer.from(bytes).toString('utf-8');
     return JSON.parse(str);
   } catch (err) {
-    DEBUG_BUILD && debug.warn('[orchestrion:aws-sdk] failed to parse streamed bedrock chunk', err);
+    DEBUG_BUILD && debug.warn('[instrumentation:aws-sdk] failed to parse streamed bedrock chunk', err);
     return null;
   }
 }

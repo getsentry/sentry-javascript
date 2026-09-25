@@ -1,4 +1,4 @@
-import { HTTP_METHOD } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
 import type { CollectBehavior } from '@sentry/core';
 import { addBreadcrumb, getCurrentScope, withScope } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,7 +57,7 @@ describe('addFetchRequestBreadcrumb', () => {
         data: {
           status_code: 200,
           url: 'https://example.com/api',
-          [HTTP_METHOD]: method,
+          [HTTP_REQUEST_METHOD]: method,
           'url.query': undefined,
           'url.fragment': undefined,
         },

@@ -7,7 +7,6 @@ declare global {
 }
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
@@ -103,8 +102,6 @@ app.get('/test-local-variables-caught', function (req, res) {
 
   res.send({ exceptionId, randomVariableToRecord });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 // @ts-ignore
 app.use(function onError(err, req, res, next) {

@@ -1,15 +1,15 @@
 import type { EmailMessage } from '@cloudflare/workers-types';
 import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv } from 'cloudflare:workers';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { GENERAL_FUNCTION_SPAN_OP } from '@sentry/conventions/op';
 import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
-  withIsolationScope,
-} from '@sentry/core';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  FAAS_TRIGGER,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
+import { captureException, startSpan, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
@@ -17,6 +17,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
 
 /**
@@ -31,6 +32,8 @@ function wrapEmailHandler(
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
 
+    setInvocationState(isolationScope, { ctx: context });
+
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
@@ -38,12 +41,13 @@ function wrapEmailHandler(
 
     return startSpan(
       {
-        name: `Handle Email ${emailMessage.to}`,
+        name: 'email',
         attributes: {
-          [SENTRY_OP]: GENERAL_FUNCTION_SPAN_OP,
-          'faas.trigger': 'email',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.email',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SENTRY_OP]: FUNCTION,
+          [CODE_FUNCTION_NAME]: 'email',
+          [FAAS_TRIGGER]: 'email',
+          [SENTRY_ORIGIN]: 'auto.faas.cloudflare.email',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         },
       },
       async () => {

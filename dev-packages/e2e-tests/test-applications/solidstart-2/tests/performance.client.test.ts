@@ -1,119 +1,81 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('sends a pageload transaction', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solidstart-2', async transactionEvent => {
-    return transactionEvent?.transaction === '/' && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('solidstart-2', span => {
+    return span.name === '/' && getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto('/');
-  const pageloadTransaction = await transactionPromise;
+  const pageloadSpan = await spanPromise;
 
-  expect(pageloadTransaction).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'pageload',
-        origin: 'auto.pageload.browser',
-        data: {
-          'sentry.source': 'route',
-          'url.template': '/',
-          'url.path': '/',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-        },
-      },
-    },
-    transaction: '/',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(getSpanOp(pageloadSpan)).toBe('pageload');
+  expect(pageloadSpan.attributes).toMatchObject({
+    'sentry.origin': { value: 'auto.pageload.browser', type: 'string' },
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.template': { value: '/', type: 'string' },
+    'url.path': { value: '/', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/$/), type: 'string' },
   });
 });
 
-test('sends a navigation transaction with parametrized route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solidstart-2', async transactionEvent => {
-    return transactionEvent?.transaction === '/users/:id' && transactionEvent.contexts?.trace?.op === 'navigation';
+test('sends a navigation span with parametrized route', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('solidstart-2', span => {
+    return span.name === '/users/:id' && getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
   await page.goto(`/`);
   await page.locator('#navLink').click();
-  const navigationTransaction = await transactionPromise;
+  const navigationSpan = await spanPromise;
 
-  expect(navigationTransaction).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.solidstart.solidrouter',
-        data: {
-          'sentry.source': 'route',
-          'url.template': '/users/:id',
-          'url.path': '/users/5',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/5$/),
-        },
-      },
-    },
-    transaction: '/users/:id',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(getSpanOp(navigationSpan)).toBe('navigation');
+  expect(navigationSpan.attributes).toMatchObject({
+    'sentry.origin': { value: 'auto.navigation.solidstart.solidrouter', type: 'string' },
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.template': { value: '/users/:id', type: 'string' },
+    'url.path': { value: '/users/5', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/5$/), type: 'string' },
   });
 });
 
-test('updates the transaction when using the back button', async ({ page }) => {
+test('updates the span when using the back button', async ({ page }) => {
   // Solid Router sends a `-1` navigation when using the back button.
   // The sentry solidRouterBrowserTracingIntegration tries to update such
-  // transactions with the proper name once the `useLocation` hook triggers.
-  const navigationTxnPromise = waitForTransaction('solidstart-2', async transactionEvent => {
-    return transactionEvent?.transaction === '/users/:id' && transactionEvent.contexts?.trace?.op === 'navigation';
+  // spans with the proper name once the `useLocation` hook triggers.
+  const navigationSpanPromise = waitForStreamedSpan('solidstart-2', span => {
+    return span.name === '/users/:id' && getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
   await page.goto(`/back-navigation`);
   await page.locator('#navLink').click();
-  const navigationTxn = await navigationTxnPromise;
+  const navigationSpan = await navigationSpanPromise;
 
-  expect(navigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.solidstart.solidrouter',
-        data: {
-          'sentry.source': 'route',
-          'url.template': '/users/:id',
-          'url.path': '/users/6',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/6$/),
-        },
-      },
-    },
-    transaction: '/users/:id',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(getSpanOp(navigationSpan)).toBe('navigation');
+  expect(navigationSpan.attributes).toMatchObject({
+    'sentry.origin': { value: 'auto.navigation.solidstart.solidrouter', type: 'string' },
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.template': { value: '/users/:id', type: 'string' },
+    'url.path': { value: '/users/6', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/users\/6$/), type: 'string' },
   });
 
-  const backNavigationTxnPromise = waitForTransaction('solidstart-2', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === '/back-navigation' && transactionEvent.contexts?.trace?.op === 'navigation'
-    );
+  const backNavigationSpanPromise = waitForStreamedSpan('solidstart-2', span => {
+    return span.name === '/back-navigation' && getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
   await page.goBack();
-  const backNavigationTxn = await backNavigationTxnPromise;
+  const backNavigationSpan = await backNavigationSpanPromise;
 
-  expect(backNavigationTxn).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.solidstart.solidrouter',
-        data: {
-          'sentry.source': 'route',
-          'url.template': '/back-navigation',
-          'url.path': '/back-navigation',
-          'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/back-navigation$/),
-        },
-      },
-    },
-    transaction: '/back-navigation',
-    transaction_info: {
-      source: 'route',
-    },
+  expect(getSpanOp(backNavigationSpan)).toBe('navigation');
+  expect(backNavigationSpan.attributes).toMatchObject({
+    'sentry.origin': { value: 'auto.navigation.solidstart.solidrouter', type: 'string' },
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.template': { value: '/back-navigation', type: 'string' },
+    'url.path': { value: '/back-navigation', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/back-navigation$/), type: 'string' },
   });
 });

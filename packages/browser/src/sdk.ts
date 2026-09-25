@@ -1,5 +1,6 @@
-import type { Client, Integration, Options } from '@sentry/core/browser';
+import type { Client, Integration, Options } from '@sentry/core';
 import {
+  consoleIntegration,
   conversationIdIntegration,
   dedupeIntegration,
   eventFiltersIntegration,
@@ -8,7 +9,7 @@ import {
   initAndBind,
   setNormalizeStringifier,
   stackParserFromStackParserOptions,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
@@ -19,16 +20,10 @@ import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { spotlightBrowserIntegration } from './integrations/spotlight';
-import {
-  spanStreamingIntegration,
-  INTEGRATION_NAME as SPAN_STREAMING_INTEGRATION_NAME,
-} from './integrations/spanstreaming';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { normalizeStringifyValue } from './normalizeStringifyValue';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
-
-declare const __SENTRY_TRACING__: boolean;
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
@@ -42,6 +37,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     conversationIdIntegration(),
     browserApiErrorsIntegration(),
     breadcrumbsIntegration(),
+    consoleIntegration(),
     globalHandlersIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
@@ -118,14 +114,6 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     integrations: options.integrations,
     defaultIntegrations,
   });
-
-  if (
-    (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
-    options.traceLifecycle !== 'static' &&
-    !integrations.some(integration => integration.name === SPAN_STREAMING_INTEGRATION_NAME)
-  ) {
-    integrations.push(spanStreamingIntegration());
-  }
 
   const clientOptions: BrowserClientOptions = {
     ...options,

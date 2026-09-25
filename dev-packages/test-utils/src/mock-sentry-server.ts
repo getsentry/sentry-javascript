@@ -128,14 +128,43 @@ function processChunkUpload(
 }
 
 /**
+ * Answer an artifact bundle assemble request.
+ *
+ * The CLI is assemble-first: it asks Sentry to assemble a bundle from chunk checksums and only
+ * uploads the chunks the response reports as missing. Always answering `created` therefore means
+ * the chunks are never POSTed, and the bundle contents the assertions inspect never reach this
+ * server. So report every chunk as missing the first time a bundle is seen, and `created` on the
+ * retry that follows the upload - the same handshake the real API performs.
+ */
+function sendAssembleResponse(res: http.ServerResponse, record: RequestRecord, assembled: Set<string>): void {
+  const { checksum, chunks } = record.assembleBody ?? {};
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+
+  if (!checksum || !chunks?.length || assembled.has(checksum)) {
+    res.end(JSON.stringify({ state: 'created', missingChunks: [] }));
+    return;
+  }
+
+  assembled.add(checksum);
+  res.end(JSON.stringify({ state: 'not_found', missingChunks: chunks }));
+}
+
+/**
  * Send the appropriate mock response based on the request URL.
  */
-function sendResponse(req: http.IncomingMessage, res: http.ServerResponse, port: number, org: string): void {
+function sendResponse(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  port: number,
+  org: string,
+  record: RequestRecord,
+  assembled: Set<string>,
+): void {
   const url = req.url || '';
 
   if (url.includes('/artifactbundle/assemble/')) {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ state: 'created', missingChunks: [] }));
+    sendAssembleResponse(res, record, assembled);
   } else if (url.includes('/chunk-upload/')) {
     if (req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -190,6 +219,7 @@ export function startMockSentryServer(options: MockSentryServerOptions = {}): Mo
   fs.mkdirSync(outputDir);
 
   const requests: RequestRecord[] = [];
+  const assembled = new Set<string>();
   let chunkIndex = 0;
 
   const server = http.createServer((req, res) => {
@@ -209,6 +239,9 @@ export function startMockSentryServer(options: MockSentryServerOptions = {}): Mo
         url: req.url || '',
         contentType,
         authorization,
+        requestHeaders: Object.fromEntries(
+          Object.entries(req.headers).map(([name, value]) => [name, Array.isArray(value) ? value.join(', ') : value]),
+        ) as Record<string, string>,
         bodySize: body.length,
         timestamp: new Date().toISOString(),
       };
@@ -216,6 +249,14 @@ export function startMockSentryServer(options: MockSentryServerOptions = {}): Mo
       // For chunk upload POSTs, save and extract artifact bundles
       if (req.url?.includes('chunk-upload') && req.method === 'POST' && body.length > 0) {
         chunkIndex = processChunkUpload(record, body, contentType, outputDir, chunkIndex);
+      }
+
+      if (contentType.includes('application/json') && body.length > 0) {
+        try {
+          record.jsonBody = JSON.parse(body.toString('utf-8'));
+        } catch {
+          // ignore parse errors
+        }
       }
 
       // For artifact bundle assemble, capture the request body
@@ -232,7 +273,7 @@ export function startMockSentryServer(options: MockSentryServerOptions = {}): Mo
       // Write all collected requests to the output file after each request
       fs.writeFileSync(outputFile, JSON.stringify(requests, null, 2));
 
-      sendResponse(req, res, port, org);
+      sendResponse(req, res, port, org, record, assembled);
     });
   });
 

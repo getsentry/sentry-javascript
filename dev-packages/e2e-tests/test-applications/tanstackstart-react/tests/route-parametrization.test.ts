@@ -1,82 +1,74 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const usesManagedTunnelRoute =
   (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
 
 test.skip(usesManagedTunnelRoute, 'Default e2e suites run only in the proxy variant');
 
-test('should parametrize server and client transaction names for dynamic routes', async ({ page }) => {
-  const serverTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+test('should parametrize server and client span names for dynamic routes', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      typeof transactionEvent?.transaction === 'string' &&
-      transactionEvent.transaction.includes('/param/')
+      span.is_segment &&
+      getSpanOp(span) === 'http.server' &&
+      String(span.attributes['url.path']?.value ?? '').includes('/param/')
     );
   });
 
-  const clientTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'pageload' &&
-      typeof transactionEvent?.transaction === 'string' &&
-      transactionEvent.transaction.includes('/param/')
-    );
+  const clientSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload' && String(span.name ?? '').includes('/param/');
   });
 
   await page.goto('/param/42');
 
-  const serverTx = await serverTxPromise;
-  const clientTx = await clientTxPromise;
+  const serverSpan = await serverSpanPromise;
+  const clientSpan = await clientSpanPromise;
 
-  expect(serverTx.transaction).toBe('GET /param/$id');
-  expect(serverTx.transaction_info?.source).toBe('route');
+  expect(serverSpan.name).toBe('GET /param/$id');
+  expect(serverSpan.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
 
-  expect(clientTx.transaction).toBe('/param/$id');
-  expect(clientTx.transaction_info?.source).toBe('route');
+  expect(clientSpan.name).toBe('/param/$id');
+  expect(clientSpan.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
 });
 
-test('should parametrize server and client transaction names for nested dynamic routes', async ({ page }) => {
-  const serverTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+test('should parametrize server and client span names for nested dynamic routes', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      typeof transactionEvent?.transaction === 'string' &&
-      transactionEvent.transaction.includes('/users/')
+      span.is_segment &&
+      getSpanOp(span) === 'http.server' &&
+      String(span.attributes['url.path']?.value ?? '').includes('/users/')
     );
   });
 
-  const clientTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'pageload' &&
-      typeof transactionEvent?.transaction === 'string' &&
-      transactionEvent.transaction.includes('/users/')
-    );
+  const clientSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload' && String(span.name ?? '').includes('/users/');
   });
 
   await page.goto('/users/123');
 
-  const serverTx = await serverTxPromise;
-  const clientTx = await clientTxPromise;
+  const serverSpan = await serverSpanPromise;
+  const clientSpan = await clientSpanPromise;
 
-  expect(serverTx.transaction).toBe('GET /users/$userId');
-  expect(serverTx.transaction_info?.source).toBe('route');
+  expect(serverSpan.name).toBe('GET /users/$userId');
+  expect(serverSpan.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
 
-  expect(clientTx.transaction).toBe('/users/$userId');
-  expect(clientTx.transaction_info?.source).toBe('route');
+  expect(clientSpan.name).toBe('/users/$userId');
+  expect(clientSpan.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
 });
 
-test('should parametrize API route transaction names', async ({ baseURL }) => {
-  const serverTxPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+test('should parametrize API route span names', async ({ baseURL }) => {
+  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      typeof transactionEvent?.transaction === 'string' &&
-      transactionEvent.transaction.includes('/api/user/')
+      span.is_segment &&
+      getSpanOp(span) === 'http.server' &&
+      String(span.attributes['url.path']?.value ?? '').includes('/api/user/')
     );
   });
 
   await fetch(`${baseURL}/api/user/456`);
 
-  const serverTx = await serverTxPromise;
+  const serverSpan = await serverSpanPromise;
 
-  expect(serverTx.transaction).toBe('GET /api/user/$id');
-  expect(serverTx.transaction_info?.source).toBe('route');
+  expect(serverSpan.name).toBe('GET /api/user/$id');
+  expect(serverSpan.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
 });

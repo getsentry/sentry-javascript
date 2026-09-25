@@ -30,7 +30,7 @@
     "ai": "^3.0.0",
     "import-in-the-middle": "^2",
     "ioredis": "5.10.1",
-    "next": "16.2.3",
+    "next": "16.2.11",
     "openai": "5.18.1",
     "pg": "^8.13.1",
     "react": "19.1.0",
@@ -39,7 +39,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^20",
     "@types/pg": "^8.11.10",

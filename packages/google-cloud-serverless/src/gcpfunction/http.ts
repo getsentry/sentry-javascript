@@ -1,18 +1,27 @@
-import { FAAS_TRIGGER, SENTRY_OP } from '@sentry/conventions/attributes';
-import { FAAS_FUNCTION_GCP_SPAN_OP } from '@sentry/conventions/op';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  FAAS_NAME,
+  FAAS_TRIGGER,
+  HTTP_REQUEST_METHOD,
+  SENTRY_OP,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
+import { FUNCTION_GCP } from '@sentry/conventions/op';
 import {
   debug,
+  getClient,
   handleCallbackErrors,
+  hasSpanStreamingEnabled,
   httpRequestToRequestData,
   isString,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
   setHttpStatus,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { captureException, continueTrace, flush, getCurrentScope, startSpanManual } from '@sentry/node';
 import { DEBUG_BUILD } from '../debug-build';
-import { domainify, markEventUnhandled, proxyFunction } from '../utils';
+import { domainify, getFunctionName, markEventUnhandled, proxyFunction } from '../utils';
 import type { HttpFunction, WrapperOptions } from './general';
 
 /**
@@ -50,14 +59,25 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
       const normalizedRequest = httpRequestToRequestData(req);
       getCurrentScope().setSDKProcessingMetadata({ normalizedRequest });
 
+      const functionName = getFunctionName();
+
+      const client = getClient();
+      const hasSpanStreaming = client && hasSpanStreamingEnabled(client);
+      const name = hasSpanStreaming ? functionName || SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK : `${reqMethod} ${reqUrl}`;
+
       return startSpanManual(
         {
-          name: `${reqMethod} ${reqUrl}`,
+          name,
           attributes: {
-            [SENTRY_OP]: FAAS_FUNCTION_GCP_SPAN_OP,
+            [SENTRY_OP]: FUNCTION_GCP,
+            [FAAS_NAME]: functionName,
             [FAAS_TRIGGER]: 'http',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SENTRY_SEGMENT_NAME_SOURCE]: hasSpanStreaming ? 'component' : 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
+            // The method and path used to be the span name; they stay on the span so that
+            // information survives the low-cardinality rename.
+            [HTTP_REQUEST_METHOD]: reqMethod || undefined,
+            [URL_PATH]: reqUrl || undefined,
           },
         },
         span => {

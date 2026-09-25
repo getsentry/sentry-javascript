@@ -14,15 +14,43 @@ import type {
 } from '../../../src/integrations/supabase';
 import { resolveDataCollectionOptions } from '../../../src/utils/data-collection/resolveDataCollectionOptions';
 
-const tracingMocks = vi.hoisted(() => ({
-  startSpan: vi.fn((_opts: unknown, cb: (span: unknown) => unknown) => {
-    const mockSpan = {
-      setStatus: vi.fn(),
-      end: vi.fn(),
-    };
-    return cb(mockSpan);
-  }),
-}));
+const tracingMocks = vi.hoisted(() => {
+  const createMockSpan = () => ({
+    setStatus: vi.fn(),
+    end: vi.fn(),
+  });
+
+  const startedSpans: Array<ReturnType<typeof createMockSpan>> = [];
+
+  return {
+    startedSpans,
+    // Mirrors the real `startSpan`, which ends the span itself once the callback's promise settles.
+    startSpan: vi.fn((_opts: unknown, cb: (span: unknown) => unknown) => {
+      const mockSpan = createMockSpan();
+      startedSpans.push(mockSpan);
+      const result = cb(mockSpan);
+      if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
+        return (result as Promise<unknown>).then(
+          value => {
+            mockSpan.end();
+            return value;
+          },
+          err => {
+            mockSpan.end();
+            throw err;
+          },
+        );
+      }
+      mockSpan.end();
+      return result;
+    }),
+    startSpanManual: vi.fn((_opts: unknown, cb: (span: unknown, finish: () => void) => unknown) => {
+      const mockSpan = createMockSpan();
+      startedSpans.push(mockSpan);
+      return cb(mockSpan, () => mockSpan.end());
+    }),
+  };
+});
 
 const currentScopesMocks = vi.hoisted(() => ({
   getClient: vi.fn(),
@@ -30,10 +58,14 @@ const currentScopesMocks = vi.hoisted(() => ({
 
 // Mock tracing to avoid needing full SDK setup
 vi.mock('../../../src/tracing', () => ({
-  startSpan: tracingMocks.startSpan,
   setHttpStatus: vi.fn(),
   SPAN_STATUS_OK: 1,
   SPAN_STATUS_ERROR: 2,
+}));
+
+vi.mock('../../../src/tracing/trace', () => ({
+  startSpan: tracingMocks.startSpan,
+  startSpanManual: tracingMocks.startSpanManual,
 }));
 
 vi.mock('../../../src/currentScopes', () => ({
@@ -48,9 +80,15 @@ type CreateMockSupabaseClientOptions = {
   headers?: PostgRESTHeaders;
   /** When set, configures the mocked Sentry client's `dataCollection.databaseQueryData`. Omit to leave `getClient` to the test file `beforeEach`. */
   dataCollectionDatabaseQueryData?: boolean;
+  /** Defaults to `'static'`, so span names keep the full description. */
+  traceLifecycle?: 'static' | 'stream';
+  /** When set, the builder's `then` rejects with this value instead of resolving with `resolveWith`. */
+  rejectWith?: unknown;
 };
 
 const DEFAULT_MOCK_SUPABASE_REST_URL = 'https://example.supabase.co/rest/v1/todos';
+
+const flushPromises = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0));
 
 /** Shared PATCH + query string + body shape for operation data tests. */
 const MOCK_SUPABASE_PII_SCENARIO: Pick<CreateMockSupabaseClientOptions, 'method' | 'url' | 'body'> = {
@@ -63,6 +101,7 @@ function createMockSupabaseClient(resolveWith: unknown, options?: CreateMockSupa
   if (options?.dataCollectionDatabaseQueryData !== undefined) {
     currentScopesMocks.getClient.mockReturnValue({
       getDataCollectionOptions: () => ({ databaseQueryData: options.dataCollectionDatabaseQueryData }),
+      getOptions: () => ({ traceLifecycle: options.traceLifecycle ?? 'static' }),
     } as any);
   }
 
@@ -84,7 +123,9 @@ function createMockSupabaseClient(resolveWith: unknown, options?: CreateMockSupa
     body = body;
 
     then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any): Promise<any> {
-      return Promise.resolve(resolveWith).then(onfulfilled, onrejected);
+      const promise =
+        options?.rejectWith !== undefined ? Promise.reject(options.rejectWith) : Promise.resolve(resolveWith);
+      return promise.then(onfulfilled, onrejected);
     }
   }
 
@@ -122,6 +163,7 @@ function createMockSupabaseClient(resolveWith: unknown, options?: CreateMockSupa
 describe('Supabase Integration', () => {
   beforeEach(() => {
     currentScopesMocks.getClient.mockReturnValue(undefined);
+    tracingMocks.startedSpans.length = 0;
   });
 
   describe('getHeader', () => {
@@ -258,6 +300,65 @@ describe('Supabase Integration', () => {
     });
   });
 
+  describe('span lifecycle', () => {
+    beforeEach(() => {
+      vi.spyOn(exportsModule, 'captureException').mockImplementation(() => '');
+      vi.spyOn(breadcrumbModule, 'addBreadcrumb').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('ends the PostgREST span exactly once when the query resolves', async () => {
+      const client = createMockSupabaseClient({ status: 200, data: [] });
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('todos').select('*');
+      // Awaiting the builder settles through the `resolve` passed to `then`, before the wrapped promise chain
+      // has fully unwound. Yield once so any trailing `end()` call has had a chance to run.
+      await flushPromises();
+
+      expect(tracingMocks.startedSpans).toHaveLength(1);
+      expect(tracingMocks.startedSpans[0]!.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('ends the PostgREST span exactly once when the query rejects', async () => {
+      const rejection = new Error('network down');
+      const client = createMockSupabaseClient(undefined, { rejectWith: rejection });
+      instrumentSupabaseClient(client);
+
+      await expect((client as any).from('todos').select('*')).rejects.toBe(rejection);
+      await flushPromises();
+
+      expect(tracingMocks.startedSpans).toHaveLength(1);
+      expect(tracingMocks.startedSpans[0]!.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('ends the auth span exactly once', async () => {
+      const client = createMockSupabaseClient(undefined) as any;
+      client.auth.signInWithPassword = vi.fn(() => Promise.resolve({ data: { user: {} }, error: null }));
+      instrumentSupabaseClient(client);
+
+      await client.auth.signInWithPassword({ email: 'a@b.c', password: 'pw' });
+
+      expect(tracingMocks.startedSpans).toHaveLength(1);
+      expect(tracingMocks.startedSpans[0]!.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('ends the auth span exactly once when the operation rejects', async () => {
+      const client = createMockSupabaseClient(undefined) as any;
+      const rejection = new Error('auth down');
+      client.auth.signInWithPassword = vi.fn(() => Promise.reject(rejection));
+      instrumentSupabaseClient(client);
+
+      await expect(client.auth.signInWithPassword({ email: 'a@b.c', password: 'pw' })).rejects.toBe(rejection);
+
+      expect(tracingMocks.startedSpans).toHaveLength(1);
+      expect(tracingMocks.startedSpans[0]!.end).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('operation data collection', () => {
     let captureExceptionSpy: ReturnType<typeof vi.spyOn>;
     let addBreadcrumbSpy: ReturnType<typeof vi.spyOn>;
@@ -280,7 +381,7 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('users').update({}).then();
 
-      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as {
         name: string;
         attributes: Record<string, unknown>;
       };
@@ -302,7 +403,7 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('users').update({}).then();
 
-      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as {
         name: string;
         attributes: Record<string, unknown>;
       };
@@ -333,7 +434,7 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('users').update({}).then();
 
-      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as {
         name: string;
         attributes: Record<string, unknown>;
       };
@@ -355,7 +456,7 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('users').update({}).then();
 
-      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as {
         name: string;
         attributes: Record<string, unknown>;
       };
@@ -368,6 +469,7 @@ describe('Supabase Integration', () => {
       const resolved = resolveDataCollectionOptions({});
       currentScopesMocks.getClient.mockReturnValue({
         getDataCollectionOptions: () => resolved,
+        getOptions: () => ({ traceLifecycle: 'static' }),
       } as any);
 
       const client = createMockSupabaseClient({ status: 200 }, { ...MOCK_SUPABASE_PII_SCENARIO });
@@ -375,7 +477,7 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('users').update({}).then();
 
-      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as {
         name: string;
         attributes: Record<string, unknown>;
       };
@@ -388,10 +490,11 @@ describe('Supabase Integration', () => {
       );
     });
 
-    it('redacts data when dataCollection.databaseQueryData is false', async () => {
-      const resolved = resolveDataCollectionOptions({ dataCollection: { databaseQueryData: false } });
+    it('names the span from the conventions instead of the description with span streaming enabled', async () => {
+      const resolved = resolveDataCollectionOptions({ dataCollection: { databaseQueryData: true } });
       currentScopesMocks.getClient.mockReturnValue({
         getDataCollectionOptions: () => resolved,
+        getOptions: () => ({ traceLifecycle: 'stream' }),
       } as any);
 
       const client = createMockSupabaseClient({ status: 200 }, { ...MOCK_SUPABASE_PII_SCENARIO });
@@ -399,7 +502,32 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('users').update({}).then();
 
-      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as {
+        name: string;
+        attributes: Record<string, unknown>;
+      };
+      // `{db.operation.name} {db.collection.name}` — the description, which carries the filters, is
+      // not used as the name.
+      expect(spanOptions.name).toBe('update users');
+      // the filters are still reported, just not as the name
+      expect(spanOptions.attributes['db.query']).toEqual(
+        expect.arrayContaining([expect.stringContaining('secret@example.com')]),
+      );
+    });
+
+    it('redacts data when dataCollection.databaseQueryData is false', async () => {
+      const resolved = resolveDataCollectionOptions({ dataCollection: { databaseQueryData: false } });
+      currentScopesMocks.getClient.mockReturnValue({
+        getDataCollectionOptions: () => resolved,
+        getOptions: () => ({ traceLifecycle: 'static' }),
+      } as any);
+
+      const client = createMockSupabaseClient({ status: 200 }, { ...MOCK_SUPABASE_PII_SCENARIO });
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('users').update({}).then();
+
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as {
         name: string;
         attributes: Record<string, unknown>;
       };
@@ -444,7 +572,7 @@ describe('Supabase Integration', () => {
     });
 
     it('includes insert(...) in span description and db.body when payload is a non-empty array', async () => {
-      tracingMocks.startSpan.mockClear();
+      tracingMocks.startSpanManual.mockClear();
       const client = createMockSupabaseClient(
         { status: 200 },
         {
@@ -458,7 +586,7 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('todos').insert({}).then();
 
-      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as {
         name: string;
         attributes: Record<string, unknown>;
       };
@@ -481,7 +609,7 @@ describe('Supabase Integration', () => {
     });
 
     it('sets db.sdk from X-Client-Info', async () => {
-      tracingMocks.startSpan.mockClear();
+      tracingMocks.startSpanManual.mockClear();
       const client = createMockSupabaseClient(
         { status: 200 },
         { headers: createHeaders({ 'X-Client-Info': 'supabase-js/2.112.0' }) },
@@ -490,12 +618,12 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('todos').select().then();
 
-      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as { attributes: Record<string, unknown> };
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as { attributes: Record<string, unknown> };
       expect(spanOptions.attributes['db.sdk']).toBe('supabase-js/2.112.0');
     });
 
     it('detects upsert from the Prefer header', async () => {
-      tracingMocks.startSpan.mockClear();
+      tracingMocks.startSpanManual.mockClear();
       const client = createMockSupabaseClient(
         { status: 200 },
         {
@@ -508,7 +636,7 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('todos').upsert({}).then();
 
-      const spanOptions = tracingMocks.startSpan.mock.calls[0]![0] as {
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as {
         name: string;
         attributes: Record<string, unknown>;
       };

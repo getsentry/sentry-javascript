@@ -1,18 +1,50 @@
 /* eslint-disable max-lines */
-import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
+  BROWSER_NAVIGATION_TIMING_SPAN_NAMES,
   browserPerformanceTimeOrigin,
   getActiveSpan,
-  getComponentName,
   parseUrl,
+  RESOURCE_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
   filterCollectedUrl,
+  UI_LONG_TASK_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
-import { CODE_FILE_PATH, CODE_FUNCTION_NAME, SENTRY_OP, URL_FULL } from '@sentry/conventions/attributes';
-import { BROWSER_BROWSER_PAINT_SPAN_OP } from '@sentry/conventions/op';
-import { htmlTreeAsString } from '../htmlTreeAsString';
+import {
+  BROWSER_PAINT_TYPE,
+  CODE_FILE_PATH,
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_SAME_ORIGIN,
+  HTTP_RESPONSE_BODY_SIZE,
+  HTTP_RESPONSE_SIZE,
+  HTTP_RESPONSE_STATUS_CODE,
+  NETWORK_CONNECTION_EFFECTIVE_TYPE,
+  NETWORK_CONNECTION_RTT,
+  NETWORK_CONNECTION_TYPE,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FULL,
+  URL_SCHEME,
+} from '@sentry/conventions/attributes';
+import {
+  BROWSER_CACHE,
+  BROWSER_CONNECT,
+  BROWSER_DNS,
+  BROWSER_DOM_CONTENT_LOADED_EVENT,
+  BROWSER_LOAD_EVENT,
+  BROWSER_PAINT,
+  BROWSER_REDIRECT,
+  BROWSER_REQUEST,
+  BROWSER_RESPONSE,
+  BROWSER_TLS_SSL,
+  BROWSER_UNLOAD_EVENT,
+  RESOURCE_OTHER,
+  UI_LONG_ANIMATION_FRAME,
+  UI_LONG_TASK,
+} from '@sentry/conventions/op';
 import {
   addPerformanceInstrumentationHandler,
   type PerformanceLongAnimationFrameTiming,
@@ -88,8 +120,8 @@ export function startTrackingLongTasks(): void {
       }
 
       startAndEndSpan(parent, startTime, startTime + duration, {
-        name: 'Main UI thread blocked',
-        op: 'ui.long_task',
+        name: UI_LONG_TASK_SPAN_NAME_FALLBACK,
+        op: UI_LONG_TASK,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
@@ -150,48 +182,14 @@ export function startTrackingLongAnimationFrames(): void {
       }
 
       startAndEndSpan(parent, startTime, startTime + duration, {
-        name: 'Main UI thread blocked',
-        op: 'ui.long_animation_frame',
+        name: UI_LONG_TASK_SPAN_NAME_FALLBACK,
+        op: UI_LONG_ANIMATION_FRAME,
         attributes,
       });
     }
   });
 
   observer.observe({ type: 'long-animation-frame', buffered: true });
-}
-
-/**
- * Start tracking interaction events.
- */
-export function startTrackingInteractions(): void {
-  addPerformanceInstrumentationHandler('event', ({ entries }) => {
-    const parent = getActiveSpan();
-    if (!parent) {
-      return;
-    }
-    for (const entry of entries) {
-      if (entry.name === 'click') {
-        const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
-        const duration = msToSec(entry.duration);
-
-        const spanOptions: StartSpanOptions & Required<Pick<StartSpanOptions, 'attributes'>> = {
-          name: htmlTreeAsString(entry.target),
-          op: `ui.interaction.${entry.name}`,
-          startTime: startTime,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-          },
-        };
-
-        const componentName = getComponentName(entry.target);
-        if (componentName) {
-          spanOptions.attributes['ui.component_name'] = componentName;
-        }
-
-        startAndEndSpan(parent, startTime, startTime + duration, spanOptions);
-      }
-    }
-  });
 }
 
 interface AddPerformanceEntriesOptions {
@@ -245,7 +243,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
     switch (entry.entryType) {
       case 'navigation': {
-        _addNavigationSpans(span, entry as PerformanceNavigationTiming, timeOrigin);
+        _addNavigationSpans(span, entry as PerformanceNavigationTiming, timeOrigin, spanStreamingEnabled);
         break;
       }
       case 'paint': {
@@ -261,6 +259,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
           duration,
           timeOrigin,
           ignoreResourceSpans,
+          spanStreamingEnabled,
         );
         break;
       }
@@ -273,8 +272,11 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   _trackNavigator(span, spanStreamingEnabled);
 }
 
-/** Create a span for a browser paint performance entry. */
-function _addPaintSpan(
+/**
+ * Create a span for a browser paint performance entry.
+ * Exported only for tests.
+ */
+export function _addPaintSpan(
   span: Span,
   entry: PerformanceEntry,
   startTime: number,
@@ -284,10 +286,13 @@ function _addPaintSpan(
   const startTimestamp = timeOrigin + startTime;
 
   startAndEndSpan(span, startTimestamp, startTimestamp + duration, {
+    // The entry name (`first-paint`, `first-contentful-paint`) is already the low-cardinality name
+    // the conventions ask for, so only the attribute backing it has to be added.
     name: entry.name,
     attributes: {
-      [SENTRY_OP]: BROWSER_BROWSER_PAINT_SPAN_OP,
+      [SENTRY_OP]: BROWSER_PAINT,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+      [BROWSER_PAINT_TYPE]: entry.name,
     },
   });
 }
@@ -296,17 +301,22 @@ function _addPaintSpan(
  * Instrument navigation entries
  * exported only for tests
  */
-export function _addNavigationSpans(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
-  _addPerformanceNavigationTiming(span, entry, 'unloadEvent', timeOrigin, 'unload_event');
-  _addPerformanceNavigationTiming(span, entry, 'redirect', timeOrigin, 'redirect');
-  _addPerformanceNavigationTiming(span, entry, 'domContentLoadedEvent', timeOrigin, 'dom_content_loaded_event');
-  _addPerformanceNavigationTiming(span, entry, 'loadEvent', timeOrigin, 'load_event');
-  _addPerformanceNavigationTiming(span, entry, 'connect', timeOrigin, 'connect');
-  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, 'tls_ssl');
-  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, 'cache');
-  _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin, 'dns');
+export function _addNavigationSpans(
+  span: Span,
+  entry: PerformanceNavigationTiming,
+  timeOrigin: number,
+  spanStreamingEnabled?: boolean,
+): void {
+  _addPerformanceNavigationTiming(span, entry, 'unloadEvent', timeOrigin, spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'redirect', timeOrigin, spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'domContentLoadedEvent', timeOrigin, spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'loadEvent', timeOrigin, spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'connect', timeOrigin, spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin, spanStreamingEnabled);
 
-  _addRequest(span, entry, timeOrigin);
+  _addRequest(span, entry, timeOrigin, spanStreamingEnabled);
 }
 
 type StartEventName =
@@ -318,6 +328,17 @@ type StartEventName =
   | 'connect'
   | 'domContentLoadedEvent'
   | 'loadEvent';
+
+const NAVIGATION_TIMING_SPAN_OPS = {
+  secureConnection: BROWSER_TLS_SSL,
+  fetch: BROWSER_CACHE,
+  domainLookup: BROWSER_DNS,
+  unloadEvent: BROWSER_UNLOAD_EVENT,
+  redirect: BROWSER_REDIRECT,
+  connect: BROWSER_CONNECT,
+  domContentLoadedEvent: BROWSER_DOM_CONTENT_LOADED_EVENT,
+  loadEvent: BROWSER_LOAD_EVENT,
+} as const satisfies Record<StartEventName, string>;
 
 type EndEventName =
   | 'domainLookupStart'
@@ -334,7 +355,7 @@ function _addPerformanceNavigationTiming(
   entry: PerformanceNavigationTiming,
   event: StartEventName,
   timeOrigin: number,
-  name: string = event,
+  spanStreamingEnabled: boolean | undefined,
 ): void {
   const eventEnd = _getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
   const end = entry[eventEnd];
@@ -342,11 +363,15 @@ function _addPerformanceNavigationTiming(
   if (!start || !end) {
     return;
   }
+  const op = NAVIGATION_TIMING_SPAN_OPS[event];
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
-    op: `browser.${name}`,
-    name: entry.name,
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the
+    // document URL. `url.full` keeps it, and is what Relay derives the description from.
+    name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[op] : entry.name,
     attributes: {
+      [SENTRY_OP]: op,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+      [URL_FULL]: filterCollectedUrl(entry.name),
       ...(event === 'redirect' && entry.redirectCount != null ? { 'http.redirect_count': entry.redirectCount } : {}),
     },
   });
@@ -363,7 +388,12 @@ function _getEndPropertyNameForNavigationTiming(event: StartEventName): EndEvent
 }
 
 /** Create request and response related spans */
-function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
+function _addRequest(
+  span: Span,
+  entry: PerformanceNavigationTiming,
+  timeOrigin: number,
+  spanStreamingEnabled: boolean | undefined,
+): void {
   const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart);
   const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd);
   const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart);
@@ -372,19 +402,26 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin:
     // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
     // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
     // these spans when the responseEnd value is available. The backend (Relay) would drop the entire span if it contained faulty spans.
+
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the
+    // document URL. `url.full` keeps it, and is what Relay derives the description from.
+    const url = filterCollectedUrl(entry.name);
+
     startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
-      op: 'browser.request',
-      name: entry.name,
+      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_REQUEST] : entry.name,
       attributes: {
+        [SENTRY_OP]: BROWSER_REQUEST,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        [URL_FULL]: url,
       },
     });
 
     startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
-      op: 'browser.response',
-      name: entry.name,
+      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_RESPONSE] : entry.name,
       attributes: {
+        [SENTRY_OP]: BROWSER_RESPONSE,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        [URL_FULL]: url,
       },
     });
   }
@@ -402,6 +439,7 @@ export function _addResourceSpans(
   duration: number,
   timeOrigin: number,
   ignoredResourceSpanOps?: Array<string>,
+  spanStreamingEnabled?: boolean,
 ): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
@@ -409,7 +447,7 @@ export function _addResourceSpans(
     return;
   }
 
-  const op = entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other';
+  const op = entry.initiatorType ? `resource.${entry.initiatorType}` : RESOURCE_OTHER;
   if (ignoredResourceSpanOps?.includes(op)) {
     return;
   }
@@ -421,24 +459,34 @@ export function _addResourceSpans(
   const parsedUrl = parseUrl(resourceUrl);
 
   if (parsedUrl.protocol) {
-    attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
+    attributes[URL_SCHEME] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
   }
 
-  if (parsedUrl.host) {
-    attributes['server.address'] = parsedUrl.host;
+  // `host` is the URL authority, so it can carry userinfo, which doesn't belong on either attribute.
+  const host = parsedUrl.host?.replace(/^.*@/, '');
+
+  if (host) {
+    attributes[SERVER_ADDRESS] = host;
   }
 
-  attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
+  // Unlike `server.address`, `url.domain` excludes the port.
+  const domain = host?.replace(/:\d+$/, '');
+
+  if (domain) {
+    attributes[URL_DOMAIN] = domain;
+  }
+
+  attributes[HTTP_REQUEST_SAME_ORIGIN] = resourceUrl.includes(WINDOW.location.origin);
 
   attributes[URL_FULL] = filterCollectedUrl(resourceUrl);
 
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
-    ['responseStatus', 'http.response.status_code'],
+    ['responseStatus', HTTP_RESPONSE_STATUS_CODE],
 
-    ['transferSize', 'http.response_transfer_size'],
-    ['encodedBodySize', 'http.response_content_length'],
-    ['decodedBodySize', 'http.decoded_response_content_length'],
+    ['transferSize', HTTP_RESPONSE_SIZE],
+    ['encodedBodySize', HTTP_RESPONSE_BODY_SIZE],
+    ['decodedBodySize', 'http.response.body.decoded_size'],
 
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/renderBlockingStatus
     ['renderBlockingStatus', 'resource.render_blocking_status'],
@@ -453,7 +501,10 @@ export function _addResourceSpans(
   const endTimestamp = startTimestamp + duration;
 
   startAndEndSpan(span, startTimestamp, endTimestamp, {
-    name: resourceUrl.replace(WINDOW.location.origin, ''),
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    name: spanStreamingEnabled
+      ? domain || RESOURCE_SPAN_NAME_FALLBACK
+      : resourceUrl.replace(WINDOW.location.origin, ''),
     op,
     attributes: attributesWithResourceTiming,
   });
@@ -461,7 +512,7 @@ export function _addResourceSpans(
 
 /**
  * Capture the information of the user agent.
- * TODO v11: Remove non-span-streaming attributes and measurements once we removed transactions
+ * TODO(v12): Remove non-span-streaming attributes and measurements once the static trace lifecycle is removed
  */
 function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined): void {
   const navigator = WINDOW.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
@@ -474,18 +525,18 @@ function _trackNavigator(span: Span, spanStreamingEnabled: boolean | undefined):
   if (connection) {
     if (connection.effectiveType) {
       span.setAttribute(
-        spanStreamingEnabled ? 'network.connection.effective_type' : 'effectiveConnectionType',
+        spanStreamingEnabled ? NETWORK_CONNECTION_EFFECTIVE_TYPE : 'effectiveConnectionType',
         connection.effectiveType,
       );
     }
 
     if (connection.type) {
-      span.setAttribute(spanStreamingEnabled ? 'network.connection.type' : 'connectionType', connection.type);
+      span.setAttribute(spanStreamingEnabled ? NETWORK_CONNECTION_TYPE : 'connectionType', connection.type);
     }
 
     if (isMeasurementValue(connection.rtt)) {
       if (spanStreamingEnabled) {
-        span.setAttribute('network.connection.rtt', connection.rtt);
+        span.setAttribute(NETWORK_CONNECTION_RTT, connection.rtt);
       } else if (spanToJSON(span).attributes[SENTRY_OP] === 'pageload') {
         // Measurements are only recorded on the pageload span, matching the historical
         // behavior where `connection.rtt` was only flushed for pageload transactions.

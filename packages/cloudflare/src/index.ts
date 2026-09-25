@@ -84,20 +84,16 @@ export {
   moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentPostgresJsSql,
   zodErrorsIntegration,
   consoleIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  trpcMiddleware,
   spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
-  wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
   featureFlagsIntegration,
@@ -109,23 +105,28 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
+export type { FlueOptions } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './durableobject';
+export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
-export { getDefaultIntegrations } from './sdk';
+export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { spotlightIntegration } from './integrations/spotlight';
-export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export {
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -134,6 +135,10 @@ export {
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentCreateReactAgent,
+  vercelAIIntegration,
+  eveConversationHook,
+  eveIntegration,
+  getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

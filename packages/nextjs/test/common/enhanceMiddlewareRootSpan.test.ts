@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
 import { enhanceMiddlewareRootSpan } from '../../src/common/enhanceMiddlewareRootSpan';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
@@ -19,7 +19,7 @@ function makeSpan(attributes: Record<string, unknown>, name?: string) {
     },
     getName: () => currentName,
     getOp: () => currentOp,
-    getSource: () => attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE],
+    getSource: () => attributes[SENTRY_SEGMENT_NAME_SOURCE],
   };
 }
 
@@ -106,7 +106,7 @@ describe('enhanceMiddlewareRootSpan', () => {
       {
         [ATTR_NEXT_SPAN_TYPE]: 'Middleware.execute',
         [ATTR_NEXT_SPAN_NAME]: 'middleware GET /foo',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
       'middleware GET /foo',
     );

@@ -59,9 +59,15 @@ export {
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
+  createFlueInstrumentation,
   modulesIntegration,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,
@@ -89,13 +95,15 @@ export {
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   expressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
   koaIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   fastifyIntegration,
   firebaseIntegration,
@@ -116,11 +124,13 @@ export {
   postgresJsIntegration,
   processSessionIntegration,
   prismaIntegration,
-  otlpIntegration,
+  openTelemetryIntegration,
   getOtlpTracesEndpoint,
   childProcessIntegration,
+  workerThreadsIntegration,
   createSentryWinstonTransport,
   hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
@@ -133,6 +143,7 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentMistralAiClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -163,6 +174,10 @@ export {
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
+  eveConversationHook,
+  eveInstrumentation,
+  eveIntegration,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export {
@@ -172,7 +187,7 @@ export {
   rewriteFramesIntegration,
 } from '@sentry/core';
 
-export { awsIntegration } from '@sentry/server-utils/orchestrion';
+export { awsIntegration } from '@sentry/server-utils';
 export { awsLambdaIntegration } from './integration/awslambda';
 
 export { getDefaultIntegrations, init } from './init';

@@ -1,20 +1,22 @@
 import * as path from 'node:path';
-import type { Client, Event, EventProcessor, Integration } from '@sentry/core';
+import type { Client, Event, EventProcessor } from '@sentry/core';
 import {
   applySdkMetadata,
+  consoleSandbox,
   debug,
   DEFAULT_ENVIRONMENT,
   DEV_ENVIRONMENT,
-  flushIfServerless,
+  getClient,
   getGlobalScope,
 } from '@sentry/core';
-import {
-  getDefaultIntegrations as getDefaultNodeIntegrations,
-  httpIntegration,
-  init as initNode,
-  type NodeOptions,
-} from '@sentry/node';
+import { init as initNode } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
+import {
+  isNuxtDevRuntime,
+  isNuxtPrerenderRuntime,
+  isNuxtServerInitialized,
+  markNuxtServerInitialized,
+} from '../common/devMode';
 import type { SentryNuxtServerOptions } from '../common/types';
 
 /**
@@ -23,24 +25,46 @@ import type { SentryNuxtServerOptions } from '../common/types';
  * @param options Configuration options for the SDK.
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
-  let envFallback: string;
-  /*! rollup-include-cjs-only */
-  envFallback = DEFAULT_ENVIRONMENT;
-  /*! rollup-include-cjs-only-end */
+  // The prerenderer executes the server bundle (including nitro plugins) at build time (pollutes release health and adds build-time traces)
+  if (isNuxtPrerenderRuntime()) {
+    // potential follow-up: configurable with `capturePrerenderErrors`
+    DEBUG_BUILD && debug.log('Detected a Nitro prerender build. Skipping Sentry server initialization.');
+    return undefined;
+  }
 
+  // Since the server config is bundled into the Nitro build, a `node --import` preload of a config
+  // file initializes the SDK a second time. The first init wins so a preload keeps its semantics.
+  if (isNuxtServerInitialized()) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[Sentry] The Sentry server SDK is already initialized, skipping a second initialization. The Sentry server config is bundled into the Nitro server build, so a `node --import` preload of the config file is no longer needed and can be removed.',
+      );
+    });
+    return getClient();
+  }
+
+  let isDevBuild = false;
   /*! rollup-include-esm-only */
-  envFallback = import.meta.dev ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT;
+  isDevBuild = !!import.meta.dev;
   /*! rollup-include-esm-only-end */
+
+  // `import.meta.dev` is only substituted when this file itself is bundled; the generated
+  // runtime-flags module sets the global flag for the (usual) externalized case.
+  const envFallback = isDevBuild || isNuxtDevRuntime() ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT;
 
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
-    defaultIntegrations: getNuxtDefaultIntegrations(options),
     ...options,
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
 
   const client = initNode(sentryOptions);
+
+  if (client) {
+    markNuxtServerInitialized();
+  }
 
   getGlobalScope().addEventProcessor(lowQualityTransactionsFilter(options));
   getGlobalScope().addEventProcessor(clientSourceMapErrorFilter(options));
@@ -99,24 +123,6 @@ export function clientSourceMapErrorFilter(options: SentryNuxtServerOptions): Ev
     }) satisfies EventProcessor,
     { id: 'NuxtClientSourceMapErrorFilter' },
   );
-}
-
-function getNuxtDefaultIntegrations(options: NodeOptions): Integration[] {
-  return [
-    ...getDefaultNodeIntegrations(options).filter(integration => integration.name !== 'Http'),
-    // The httpIntegration is added as defaultIntegration, so users can still overwrite it
-    httpIntegration({
-      instrumentation: {
-        responseHook: () => {
-          // Flush eagerly on serverless platforms, where the function may be frozen before the transport
-          // sends, handing the flush to a platform `waitUntil` where one exists so it doesn't block. On a
-          // long-running server this is a no-op, so pending outcomes keep aggregating on the flush interval
-          // instead of shipping one client_report envelope per response.
-          void flushIfServerless();
-        },
-      },
-    }),
-  ];
 }
 
 /**

@@ -1481,7 +1481,7 @@ describe('orchestrion build-time instrumentation', () => {
     expect(JSON.parse(JSON.stringify(firestore!.module.filePath))).not.toEqual({});
   });
 
-  it('passes the helper module as an absolute importHelperPath', () => {
+  it('passes the snippet module as an absolute importHelperPath', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},
       userSentryOptions: {},
@@ -1496,9 +1496,12 @@ describe('orchestrion build-time instrumentation', () => {
     // The loader derives a per-file RELATIVE specifier from this path —
     // Turbopack rejects absolute-path imports, and a bare specifier doesn't
     // resolve from inside a transformed package under isolated installs (pnpm).
+    // The snippet imports the helper and the subscriber factory from
+    // `@sentry/server-utils` (the main entry), not the orchestrion subpath.
     expect(importHelperPath).toBeDefined();
     expect(path.isAbsolute(importHelperPath!)).toBe(true);
-    expect(importHelperPath).toContain('orchestrion');
+    expect(importHelperPath).toContain('server-utils');
+    expect(importHelperPath).not.toContain('orchestrion');
   });
 
   it('restricts the orchestrion rule to the node environment', () => {

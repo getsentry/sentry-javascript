@@ -6,16 +6,18 @@ import { beforeAll, describe, expect, it } from 'vitest';
 /**
  * Node-only exports must be statically resolvable from the server AND edge builds, since Next.js compiles
  * instrumentation modules for the edge runtime too. Otherwise named imports from `@sentry/nextjs` fail to compile
- * under Turbopack/webpack.
+ * under Turbopack/webpack. Exports that are Node-only get a no-op shim on the edge build (e.g. `vercelAIIntegration`).
  *
  *
  * Regression test for https://github.com/getsentry/sentry-javascript/issues/21317
  */
-describe('`pinoIntegration` is a statically detectable export from every runtime build', () => {
+describe('Node-only integrations are statically detectable exports from every runtime build', () => {
   const builds = {
     server: resolve(__dirname, '../build/cjs/index.server.js'),
     edge: resolve(__dirname, '../build/cjs/edge/index.js'),
   };
+
+  const dualRuntimeExports = ['pinoIntegration', 'vercelAIIntegration'];
 
   const staticExports: Record<string, string[]> = {};
 
@@ -26,7 +28,10 @@ describe('`pinoIntegration` is a statically detectable export from every runtime
     }
   });
 
-  it.each(Object.keys(builds))('statically exports `pinoIntegration` from the %s build', runtime => {
-    expect(staticExports[runtime]).toContain('pinoIntegration');
-  });
+  it.each(Object.keys(builds).flatMap(runtime => dualRuntimeExports.map(name => ({ runtime, name }))))(
+    'statically exports `$name` from the $runtime build',
+    ({ runtime, name }) => {
+      expect(staticExports[runtime]).toContain(name);
+    },
+  );
 });

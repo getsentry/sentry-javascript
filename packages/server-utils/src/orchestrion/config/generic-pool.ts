@@ -1,4 +1,5 @@
-import type { InstrumentationConfig } from '..';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { getModuleNames } from './module-names';
 
 // Two shapes of `acquire`, both publishing to the same `orchestrion:generic-pool:acquire` channel:

@@ -24,8 +24,9 @@ sentryTest(
 
     const span = await spanPromise;
 
-    expect(span.name).toMatch(/^GET /);
+    expect(span.name).toBe('GET sentry-test-site.example');
     expect(span.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser' });
     expect(span.attributes['sentry.op']).toEqual({ type: 'string', value: 'http.client' });
+    expect(span.attributes['url.domain']).toEqual({ type: 'string', value: 'sentry-test-site.example' });
   },
 );

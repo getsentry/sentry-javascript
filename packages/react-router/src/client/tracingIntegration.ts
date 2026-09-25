@@ -1,6 +1,6 @@
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
-import type { ClientInstrumentation } from '../common/types';
+import type { ClientInstrumentation } from 'react-router';
 import {
   createSentryClientInstrumentation,
   type CreateSentryClientInstrumentationOptions,

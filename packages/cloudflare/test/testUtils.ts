@@ -1,5 +1,6 @@
 import { context, propagation, trace } from '@opentelemetry/api';
 import { getMainCarrier } from '@sentry/core';
+import { _clearGlobalClientCache } from '../src/clientCache';
 
 function resetGlobals(): void {
   getMainCarrier().__SENTRY__ = undefined;
@@ -15,4 +16,5 @@ function cleanupOtel(): void {
 export function resetSdk(): void {
   resetGlobals();
   cleanupOtel();
+  _clearGlobalClientCache();
 }

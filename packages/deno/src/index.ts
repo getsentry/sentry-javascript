@@ -74,16 +74,15 @@ export {
   functionToStringIntegration,
   requestDataIntegration,
   captureConsoleIntegration,
+  consoleIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
-  instrumentPostgresJsSql,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   startSession,
   captureSession,
@@ -93,7 +92,6 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
-  wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
   withStaticSpan,
@@ -103,12 +101,16 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
+export { wrapMcpServerWithSentry } from '@sentry/core/server';
+export { instrumentPostgresJsSql } from '@sentry/server-utils';
 
 export { DenoClient } from './client';
 
 export { getDefaultIntegrations, init } from './sdk';
 export { denoServeIntegration } from './integrations/deno-serve';
 export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
+export { fetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 
@@ -133,17 +135,26 @@ export {
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  SentryMastraExporter,
+  createFlueInstrumentation,
   lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
-} from '@sentry/server-utils/orchestrion';
-export { otlpIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
+  eveConversationHook,
+  eveIntegration,
+  getInstrumentedModuleNames,
+} from '@sentry/server-utils';
+export { openTelemetryIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared
 // integration above, so its name is the shared name (e.g. `Mysql`), not the old
 // `Deno*` name. See each alias's `@deprecated` note.

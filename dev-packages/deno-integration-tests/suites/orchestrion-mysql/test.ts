@@ -10,14 +10,17 @@ import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('mysql instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    traceLifecycle: 'static',
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Mysql'), `Mysql should be in defaults, got ${names.join(', ')}`);
 });
 
-// The orchestrion runtime hook (`@sentry/deno/import`) only works as a FIRST
-// import inside the entry graph in Deno 2.8.0 through 2.8.2.
-// TODO: revisit a `--import` or `--preload` approach once Deno 2.8.3 ships.
+// Covers the import form of the hook. The `--preload` form the README
+// documents is covered by the `deno` E2E app.
 Deno.test('@sentry/deno/import: transforms mysql so it publishes the orchestrion channel', async () => {
   const scenario = new URL('./scenario.mjs', import.meta.url);
 
@@ -89,9 +92,9 @@ Deno.test('mysql instrumentation: orchestrion:mysql:query channel produces a nes
 
   const mysqlSpan = parent.spans?.find(s => s.op === 'db');
   assertExists(mysqlSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(mysqlSpan!.description, 'SELECT 1 AS solution');
+  assertEquals(mysqlSpan!.description, 'SELECT ? AS solution');
   assertEquals(mysqlSpan!.data?.['db.system.name'], 'mysql');
-  assertEquals(mysqlSpan!.data?.['db.query.text'], 'SELECT 1 AS solution');
+  assertEquals(mysqlSpan!.data?.['db.query.text'], 'SELECT ? AS solution');
   assertEquals(mysqlSpan!.data?.['server.address'], '127.0.0.1');
   assertEquals(mysqlSpan!.data?.['server.port'], 3306);
   assertEquals(mysqlSpan!.data?.['db.user'], 'root');

@@ -8,6 +8,7 @@ const browserPluggableIntegrationFiles = [
   'reportingobserver',
   'browserprofiling',
   'usertiming',
+  'interactions',
 ];
 
 const reexportedPluggableIntegrationFiles = [

@@ -1,15 +1,15 @@
 /**
- * EXPERIMENTAL: orchestrion runtime hook for Deno.
+ * Orchestrion runtime hook for Deno.
  *
- * Load this via the `--import` or `--preload` argument to `deno run` to
- * enable the channel-based instrumentations.
+ * Load this via the `--preload` argument to `deno run` to enable the
+ * channel-based instrumentations.
  *
  * For example:
  *
  * ```bash
- * $ deno run --import=@sentry/deno/import app.ts
+ * $ deno run --preload=npm:@sentry/deno/import app.ts
  * ```
  *
  * @module
  */
-import '@sentry/server-utils/orchestrion/import-hook';
+import '@sentry/server-runtime-injection/import-hook';

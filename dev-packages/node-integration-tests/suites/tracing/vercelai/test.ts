@@ -3,7 +3,6 @@ import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
-  GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
@@ -20,10 +19,9 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
-import { getStringAttributeValue, isOrchestrionEnabled } from '../../../utils';
+import { getStringAttributeValue } from '../../../utils';
 
-const orchestrion = isOrchestrionEnabled();
-const expectedOrigin = orchestrion ? 'auto.vercelai.channel' : 'auto.vercelai.otel';
+const expectedOrigin = 'auto.vercelai.channel';
 
 describe('Vercel AI integration (v4)', () => {
   afterAll(() => {
@@ -390,42 +388,13 @@ describe('Vercel AI integration (v4)', () => {
           }),
         ]),
       );
-      expect(errorEvent!.contexts!.trace!.span_id).toBe(transactionEvent!.contexts!.trace!.span_id);
-    });
-  });
-
-  createEsmAndCjsTests(__dirname, 'scenario-late-model-id.mjs', 'instrument.mjs', (createRunner, test) => {
-    // The late-model-id span-naming behaviour (e.g. `generateText.doGenerate`) is specific to the OTel
-    // span processor. The channel subscriber names the model-call span from the model id captured at
-    // call time, so there is no equivalent assertion in orchestrion mode.
-    if (orchestrion) {
-      return;
-    }
-    test('sets op correctly even when model ID is not available at span start', async () => {
-      await createRunner()
-        .expect({ transaction: { transaction: 'main' } })
-        .expect({
-          span: container => {
-            expect(container.items).toHaveLength(2);
-            const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent');
-            expect(invokeAgentSpan).toBeDefined();
-            expect(invokeAgentSpan!.name).toBe('invoke_agent');
-            expect(invokeAgentSpan!.status).toBe('ok');
-            expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(invokeAgentSpan!.attributes['sentry.origin'].value).toBe('auto.vercelai.otel');
-            expect(invokeAgentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
-
-            const generateContentSpan = container.items.find(span => span.name === 'generateText.doGenerate');
-            expect(generateContentSpan).toBeDefined();
-            expect(generateContentSpan!.name).toBe('generateText.doGenerate');
-            expect(generateContentSpan!.status).toBe('ok');
-            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            expect(generateContentSpan!.attributes['sentry.origin'].value).toBe('auto.vercelai.otel');
-            expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-          },
-        })
-        .start()
-        .completed();
+      // The error is captured on the Express layer span (a child of the request transaction), so its
+      // `span_id` is one of the transaction's spans rather than the transaction's own (root) span.
+      const transactionSpanIds = [
+        transactionEvent!.contexts!.trace!.span_id,
+        ...(transactionEvent!.spans ?? []).map(span => span.span_id),
+      ];
+      expect(transactionSpanIds).toContain(errorEvent!.contexts!.trace!.span_id);
     });
   });
 
@@ -602,11 +571,6 @@ describe('Vercel AI integration (v4)', () => {
             expect(invokeAgentSpan!.attributes['gen_ai.usage.input_tokens'].value).toBe(15);
             expect(invokeAgentSpan!.attributes['gen_ai.usage.output_tokens'].value).toBe(25);
             expect(invokeAgentSpan!.attributes['gen_ai.usage.total_tokens'].value).toBe(40);
-            // The JSON schema attribute is derived from the SDK's Zod schema by the OTel span processor;
-            // the channel subscriber does not reconstruct it, so assert it only in OTel mode.
-            if (!orchestrion) {
-              expect(invokeAgentSpan!.attributes['gen_ai.request.schema']).toBeDefined();
-            }
 
             // generateObject.doGenerate (generate_content)
             const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');

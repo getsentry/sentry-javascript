@@ -1,48 +1,41 @@
 /* eslint-disable max-lines */
 import { errorMonitor } from 'node:events';
-import type { IncomingHttpHeaders } from 'node:http';
 import {
-  HTTP_CLIENT_IP,
-  HTTP_FLAVOR,
-  HTTP_HOST,
-  HTTP_METHOD,
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
-  HTTP_SCHEME,
-  HTTP_STATUS_CODE,
-  HTTP_TARGET,
-  HTTP_USER_AGENT,
-  NET_HOST_IP,
-  NET_HOST_NAME,
-  NET_HOST_PORT,
-  NET_PEER_IP,
-  NET_PEER_PORT,
-  NET_TRANSPORT,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
   SENTRY_HTTP_PREFETCH,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
   URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
   URL_QUERY,
-  SENTRY_KIND,
+  URL_SCHEME,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
-import type {
-  Event,
-  HttpClientRequest,
-  HttpIncomingMessage,
-  HttpServerResponse,
-  Integration,
-  IntegrationFn,
-  Span,
-  SpanAttributes,
-  SpanStatus,
-} from '@sentry/core';
+import { HTTP_SERVER } from '@sentry/conventions/op';
+import type { Event, Integration, IntegrationFn, Span, SpanAttributes, SpanStatus } from '@sentry/core';
+import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
+import { DEFAULT_IGNORE_STATUS_CODES, processHttpServerTransactionEvent } from '@sentry/core/server';
 import {
   debug,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
+  getContentLengthFromHeaders,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
   isTracingSuppressed,
@@ -53,6 +46,8 @@ import {
   getUrlQuery,
   filterCollectedUrl,
   filterCollectedUrlQuery,
+  hasSpanStreamingEnabled,
+  HTTP_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -89,22 +84,16 @@ export interface HttpServerSpansIntegrationOptions {
    * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
+   * Important: This option is ignored by default! It only has an effect if `traceLifecycle` is set to `'static'`.
+   *
    * @default `[[401, 404], [301, 303], [305, 399]]`
+   *
+   * @deprecated This option only has an effect if `traceLifecycle` is set to `'static'`. With span streaming
+   * (`traceLifecycle: 'stream'`, the default), the SDK ignores it: child spans are sent as they end, before the
+   * response status code is known, so a request's spans cannot be dropped retroactively. `ignoreStatusCodes` will be
+   * removed in v12 of the SDK, without replacement.
    */
   ignoreStatusCodes?: (number | [number, number])[];
-
-  /**
-   * @deprecated This is deprecated in favor of `incomingRequestSpanHook`.
-   */
-  instrumentation?: {
-    requestHook?: (span: Span, req: HttpClientRequest | HttpIncomingMessage) => void;
-    responseHook?: (span: Span, response: HttpIncomingMessage | HttpServerResponse) => void;
-    applyCustomAttributesOnSpan?: (
-      span: Span,
-      request: HttpClientRequest | HttpIncomingMessage,
-      response: HttpIncomingMessage | HttpServerResponse,
-    ) => void;
-  };
 
   /**
    * A hook that can be used to mutate the span for incoming requests.
@@ -116,16 +105,10 @@ export interface HttpServerSpansIntegrationOptions {
 const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
   const ignoreStaticAssets = options.ignoreStaticAssets ?? true;
   const ignoreIncomingRequests = options.ignoreIncomingRequests;
-  const ignoreStatusCodes = options.ignoreStatusCodes ?? [
-    [401, 404],
-    // 300 and 304 are possibly valid status codes we do not want to filter
-    [301, 303],
-    [305, 399],
-  ];
+  // oxlint-disable-next-line typescript/no-deprecated
+  const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
   const { onSpanCreated } = options;
-  // eslint-disable-next-line typescript/no-deprecated
-  const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
   return {
     name: INTEGRATION_NAME,
@@ -156,14 +139,14 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
           const headers = request.headers;
           const userAgent = headers['user-agent'];
-          const ips = headers['x-forwarded-for'];
           const httpVersion = request.httpVersion;
           const host = headers.host as string | undefined;
           const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
 
           const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
 
-          const method = normalizedRequest.method || request.method?.toUpperCase() || 'GET';
+          const requestMethod = normalizedRequest.method || request.method?.toUpperCase();
+          const method = requestMethod || 'GET';
           const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
           const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
 
@@ -171,42 +154,34 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const fragment = getUrlFragment(urlObj?.hash);
 
           const span = startInactiveSpan({
-            name: bestEffortTransactionName,
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+            // Route instrumentations rename the span to `${method} ${route}` once a route is known.
+            name: hasSpanStreamingEnabled(client)
+              ? requestMethod || HTTP_SPAN_NAME_FALLBACK
+              : bestEffortTransactionName,
             attributes: {
               // Sentry specific attributes
               [SENTRY_KIND]: 'server',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
+              [SENTRY_OP]: HTTP_SERVER,
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
               [URL_FULL]: filterCollectedUrl(fullUrl, client),
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
               [URL_QUERY]: filterCollectedUrlQuery(query, client),
               [URL_FRAGMENT]: fragment,
-              // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
-              /* eslint-disable typescript/no-deprecated */
-              [HTTP_METHOD]: normalizedRequest.method,
-              [HTTP_TARGET]: filterCollectedUrl(
-                urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
-                client,
-              ),
-              [HTTP_HOST]: host,
-              [NET_HOST_NAME]: hostname,
-              [HTTP_CLIENT_IP]: typeof ips === 'string' ? ips.split(',')[0] : undefined,
-              [HTTP_USER_AGENT]: userAgent,
-              [HTTP_SCHEME]: scheme,
-              [HTTP_FLAVOR]: httpVersion,
-              [NET_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
-              /* eslint-enable typescript/no-deprecated */
-              ...getRequestContentLengthAttribute(request),
+              [HTTP_REQUEST_METHOD]: normalizedRequest.method,
+              [USER_AGENT_ORIGINAL]: userAgent,
+              [URL_SCHEME]: scheme,
+              [SERVER_ADDRESS]: hostname,
+              [NETWORK_PROTOCOL_NAME]: 'http',
+              [NETWORK_PROTOCOL_VERSION]: httpVersion,
+              [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
+              'http.request.body.size': getContentLengthFromHeaders(request.headers),
               ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
             },
           });
 
-          // TODO v11: Remove the following three hooks, only onSpanCreated should remain
-          requestHook?.(span, request);
-          responseHook?.(span, response);
-          applyCustomAttributesOnSpan?.(span, request, response);
           onSpanCreated?.(span, request, response);
 
           return withActiveSpan(span, () => {
@@ -223,7 +198,11 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
               isEnded = true;
 
-              const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
+              const newAttributes = getIncomingRequestAttributesOnResponse(
+                request,
+                response,
+                client.getDataCollectionOptions().userInfo,
+              );
               span.setAttributes(newAttributes);
               span.setStatus(status);
               span.end();
@@ -246,29 +225,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
       });
     },
     processEvent(event) {
-      if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
-        if (typeof statusCode === 'number') {
-          // Drop transaction if it has a status code that should be ignored
-          if (shouldFilterStatusCode(statusCode, ignoreStatusCodes)) {
-            DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
-            return null;
-          }
-
-          // Surface the HTTP status as the top-level `response` context. The OTel SDK span
-          // exporter already does this on its path; doing it here covers transactions produced
-          // by the `SentryTracerProvider`, which bypasses that exporter.
-          event.contexts = {
-            ...event.contexts,
-            response: {
-              ...event.contexts?.response,
-              status_code: statusCode,
-            },
-          };
-        }
-      }
-
-      return event;
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes);
     },
     afterAllSetup(client) {
       if (!DEBUG_BUILD) {
@@ -363,42 +320,18 @@ function shouldIgnoreSpansForIncomingRequest(
   return false;
 }
 
-function getRequestContentLengthAttribute(request: HttpIncomingMessage): SpanAttributes {
-  const length = getContentLength(request.headers);
-  if (length == null) {
-    return {};
-  }
-
-  if (isCompressed(request.headers)) {
-    return {
-      ['http.request_content_length']: length,
-    };
-  } else {
-    return {
-      ['http.request_content_length_uncompressed']: length,
-    };
-  }
-}
-
-function getContentLength(headers: IncomingHttpHeaders): number | null {
-  const contentLengthHeader = headers['content-length'];
-  if (contentLengthHeader === undefined) return null;
-
-  const contentLength = parseInt(contentLengthHeader, 10);
-  if (isNaN(contentLength)) return null;
-
-  return contentLength;
-}
-
-function isCompressed(headers: IncomingHttpHeaders): boolean {
-  const encoding = headers['content-encoding'];
-
-  return !!encoding && encoding !== 'identity';
+/**
+ * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
+ * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
+ */
+function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
+  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
 }
 
 function getIncomingRequestAttributesOnResponse(
   request: HttpIncomingMessage,
   response: HttpServerResponse,
+  collectClientAddress: boolean,
 ): SpanAttributes {
   // take socket from the request,
   // since it may be detached from the response object in keep-alive mode
@@ -407,36 +340,25 @@ function getIncomingRequestAttributesOnResponse(
 
   const newAttributes: SpanAttributes = {
     [HTTP_RESPONSE_STATUS_CODE]: statusCode,
-    // eslint-disable-next-line typescript/no-deprecated
-    [HTTP_STATUS_CODE]: statusCode,
-    'http.status_text': statusMessage?.toUpperCase(),
+    'http.response.status_text': statusMessage?.toUpperCase(),
   };
+
+  if (collectClientAddress) {
+    // `client.address` is the originating client, so a forwarding header wins over the socket, which
+    // behind a proxy holds the proxy's address. `network.peer.address` below keeps the socket value.
+    newAttributes[CLIENT_ADDRESS] =
+      getForwardedClientAddress(request.headers['x-forwarded-for']) ?? socket?.remoteAddress;
+  }
 
   if (socket) {
     const { localAddress, localPort, remoteAddress, remotePort } = socket;
-    // eslint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_HOST_IP] = localAddress;
-    // eslint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_HOST_PORT] = localPort;
-    // eslint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_PEER_IP] = remoteAddress;
-    // oxlint-disable-next-line typescript/no-deprecated
-    newAttributes[NET_PEER_PORT] = remotePort;
+    newAttributes[SERVER_PORT] = localPort;
+    newAttributes[NETWORK_LOCAL_ADDRESS] = localAddress;
+    newAttributes[NETWORK_LOCAL_PORT] = localPort;
+    newAttributes[CLIENT_PORT] = remotePort;
+    newAttributes[NETWORK_PEER_ADDRESS] = collectClientAddress ? remoteAddress : undefined;
+    newAttributes[NETWORK_PEER_PORT] = remotePort;
   }
 
   return newAttributes;
-}
-
-/**
- * If the given status code should be filtered for the given list of status codes/ranges.
- */
-function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (number | [number, number])[]): boolean {
-  return dropForStatusCodes.some(code => {
-    if (typeof code === 'number') {
-      return code === statusCode;
-    }
-
-    const [min, max] = code;
-    return statusCode >= min && statusCode <= max;
-  });
 }

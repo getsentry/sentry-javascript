@@ -1,6 +1,6 @@
 {
   "name": "@sentry/eslint-plugin-sdk",
-  "version": "10.67.0",
+  "version": "11.0.0",
   "description": "Official Sentry SDK eslint plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/eslint-plugin-sdk",
@@ -25,6 +25,7 @@
     "clean": "yarn rimraf sentry-eslint-plugin-sdk-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "build:tarball": "npm pack",

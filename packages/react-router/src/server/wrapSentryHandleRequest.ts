@@ -1,13 +1,12 @@
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import {
-  flushIfServerless,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   updateSpanName,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 import { isInstrumentationApiUsed } from './serverGlobals';
 
@@ -81,12 +80,12 @@ export function wrapSentryHandleRequest(
       if (isInstrumentationApiUsed()) {
         rootSpan.setAttributes({
           [HTTP_ROUTE]: routeName,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         });
       } else {
         rootSpan.setAttributes({
           [HTTP_ROUTE]: routeName,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
         });
       }

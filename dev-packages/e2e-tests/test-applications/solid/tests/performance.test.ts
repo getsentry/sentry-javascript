@@ -1,23 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('sends a pageload transaction', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solid', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('sends a pageload span', async ({ page }) => {
+  const pageloadSpanPromise = waitForStreamedSpan('solid', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const [, pageloadTransaction] = await Promise.all([page.goto('/'), transactionPromise]);
+  const [, pageloadSpan] = await Promise.all([page.goto('/'), pageloadSpanPromise]);
 
-  expect(pageloadTransaction).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'pageload',
-        origin: 'auto.pageload.browser',
-      },
-    },
-    transaction: '/',
-    transaction_info: {
-      source: 'url',
-    },
+  expect(pageloadSpan.name).toBe('Pageload');
+  expect(pageloadSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.browser', type: 'string' },
+    'sentry.segment.name.source': { value: 'url', type: 'string' },
   });
 });
