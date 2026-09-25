@@ -52,11 +52,7 @@ export default defineConfig({
           env: { RUNTIME: 'bun' },
           // Above the 30 second port timeout of the runner on Bun, so a slow start can still pass.
           testTimeout: 45_000,
-          poolOptions: {
-            threads: {
-              singleThread: true,
-            },
-          },
+          maxWorkers: 1,
         },
       },
       {
