@@ -19298,7 +19298,7 @@ magic-string@^0.30.0, magic-string@^0.30.10, magic-string@^0.30.14, magic-string
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.5.5"
 
-magic-string@^1.1.0, magic-string@^1.4.2:
+magic-string@^1.1.0, "magic-string@~0.30.8 || ^1.0.0":
   version "1.4.2"
   resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-1.4.2.tgz#508aef4aac7319496dc074ec60ea511c49daf138"
   integrity sha512-vG+rjFRj1PqdIBozIxAGMjPlOhaVe+GXpbttY/iSK7rGcJRMlwNJO7dcUwmUqkymsFLJiNGI06t4D7Fr7yRC9g==
