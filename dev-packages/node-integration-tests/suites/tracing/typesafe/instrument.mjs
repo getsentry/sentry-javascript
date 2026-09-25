@@ -6,4 +6,6 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
+  // `NO_RECORDING` turns off recording of inputs and outputs for the privacy test.
+  ...(process.env.NO_RECORDING ? { dataCollection: { genAI: { inputs: false, outputs: false } } } : {}),
 });

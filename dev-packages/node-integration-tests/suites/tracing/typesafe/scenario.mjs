@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { noul, score, TypeSafeClient } from '@typesafe-ai/sdk';
+import { choice, noul, score, TypeSafeClient } from '@typesafe-ai/sdk';
 import express from 'express';
 
 function startMockServer() {
@@ -16,6 +16,12 @@ function startMockServer() {
       model: 'jev-1.13.0',
       answers: {
         authIssue: { type: 'noul', noul: 0.98 },
+        department: {
+          type: 'choice',
+          choice: 'billing',
+          confidence: 0.28,
+          probabilities: { billing: 0.64, technical: 0.36 },
+        },
         urgency: {
           type: 'score',
           score: 1.58,
@@ -48,6 +54,10 @@ async function run() {
   const state = 'I cannot log in, and I also want a refund for last month.';
   const questions = {
     authIssue: noul('Is there a login problem?'),
+    department: choice('Which team should handle this?', {
+      billing: 'Charges and refunds',
+      technical: 'Bugs and outages',
+    }),
     urgency: score('How urgent is this ticket?', ['low', 'medium', 'high']),
   };
 
@@ -60,6 +70,13 @@ async function run() {
 
     try {
       await client.systemOne({ model: 'error-model', state, questions });
+    } catch {
+      // expected
+    }
+
+    // The SDK rejects empty questions with a `TypeSafeError` before sending the request.
+    try {
+      await client.systemOne({ model: 'validation-error', state, questions: {} });
     } catch {
       // expected
     }

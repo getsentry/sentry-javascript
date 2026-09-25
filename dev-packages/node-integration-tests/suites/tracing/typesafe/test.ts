@@ -36,7 +36,7 @@ describe('TypeSafe integration', () => {
                 const evaluateSpans = container.items.filter(
                   span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
                 );
-                expect(evaluateSpans).toHaveLength(3);
+                expect(evaluateSpans).toHaveLength(4);
                 for (const span of evaluateSpans) {
                   expect(span.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.typesafe');
                   expect(span.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('evaluate');
@@ -57,6 +57,11 @@ describe('TypeSafe integration', () => {
                     state: 'I cannot log in, and I also want a refund for last month.',
                     questions: {
                       authIssue: { type: 'noul', instructions: 'Is there a login problem?' },
+                      department: {
+                        type: 'choice',
+                        instructions: 'Which team should handle this?',
+                        criteria: { billing: 'Charges and refunds', technical: 'Bugs and outages' },
+                      },
                       urgency: {
                         type: 'score',
                         instructions: 'How urgent is this ticket?',
@@ -70,6 +75,12 @@ describe('TypeSafe integration', () => {
                     type: 'evaluation',
                     answers: {
                       authIssue: { type: 'noul', noul: 0.98 },
+                      department: {
+                        type: 'choice',
+                        choice: 'billing',
+                        confidence: 0.28,
+                        probabilities: { billing: 0.64, technical: 0.36 },
+                      },
                       urgency: {
                         type: 'score',
                         score: 1.58,
@@ -91,6 +102,34 @@ describe('TypeSafe integration', () => {
                 expect(errorSpan.status).toBe('error');
                 expect(errorSpan.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
                 expect(errorSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+
+                const validationErrorSpan = evaluateSpans.find(span => span.name === 'evaluate validation-error')!;
+                expect(validationErrorSpan).toBeDefined();
+                expect(validationErrorSpan.status).toBe('error');
+                expect(validationErrorSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              },
+            })
+            .start()
+            .completed();
+        });
+
+        test('does not record inputs or outputs when recording is off', async () => {
+          await createRunner()
+            .withEnv({ NO_RECORDING: 'true' })
+            .unordered()
+            .expect({
+              span: container => {
+                const evaluateSpans = container.items.filter(
+                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
+                );
+                expect(evaluateSpans).toHaveLength(4);
+                expect(evaluateSpans.filter(span => span.status === 'error')).toHaveLength(2);
+                for (const span of evaluateSpans) {
+                  expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+                  expect(span.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+                  // State, questions and answers must not come back through another attribute (e.g. an error message).
+                  expect(JSON.stringify(span)).not.toMatch(/cannot log in|Charges and refunds|0\.98/);
+                }
               },
             })
             .start()
