@@ -20,9 +20,9 @@ describe('TypeSafe integration', () => {
   });
 
   describe.each([
-    ['automatic', 'instrument.mjs'],
-    ['manual', 'instrument-manual.mjs'],
-  ])('%s instrumentation', (_, instrumentFile) => {
+    ['automatic', 'instrument.mjs', 'instrument-no-recording.mjs'],
+    ['manual', 'instrument-manual.mjs', 'instrument-manual-no-recording.mjs'],
+  ])('%s instrumentation', (_, instrumentFile, noRecordingInstrumentFile) => {
     createEsmAndCjsTests(
       __dirname,
       'scenario.mjs',
@@ -112,10 +112,21 @@ describe('TypeSafe integration', () => {
             .start()
             .completed();
         });
+      },
+      {
+        additionalDependencies: {
+          '@typesafe-ai/sdk': '^0.6.0',
+        },
+      },
+    );
 
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      noRecordingInstrumentFile,
+      (createRunner, test) => {
         test('does not record inputs or outputs when recording is off', async () => {
           await createRunner()
-            .withEnv({ NO_RECORDING: 'true' })
             .unordered()
             .expect({
               span: container => {

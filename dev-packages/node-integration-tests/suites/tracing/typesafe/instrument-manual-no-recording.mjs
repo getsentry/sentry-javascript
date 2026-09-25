@@ -6,6 +6,7 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
+  dataCollection: { genAI: { inputs: false, outputs: false } },
   // `instrumentTypeSafeClient` is the manual path for runtimes without the orchestrion hook.
   // Drop the automatic integration so the scenario exercises it alone.
   integrations: integrations => integrations.filter(integration => integration.name !== 'TypeSafe'),
