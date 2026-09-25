@@ -1,6 +1,11 @@
 name: 'CI: Weekly flaky tests'
 
 on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - '.github/workflows/weekly-flaky-tests.yml'
+      - 'scripts/weekly-flaky-tests*'
   workflow_dispatch:
   schedule:
     - cron: '0 7 * * 1'

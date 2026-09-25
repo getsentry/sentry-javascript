@@ -137,7 +137,9 @@ export async function collectReport({ github, context, core, now = new Date() })
   };
 }
 
-export function renderReport(report) {
+export function renderReport(report, context) {
+  const repositoryUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}`;
+  const reportUrl = `${repositoryUrl}/actions/runs/${context.runId}`;
   const lines = [
     '## Weekly test failures',
     '',
@@ -148,13 +150,22 @@ export function renderReport(report) {
   if (report.tests.length === 0) {
     lines.push('No test failures found.');
   } else {
-    lines.push('| Test | Job | Affected runs | Links to runs |', '| --- | --- | ---: | --- |');
+    lines.push('| Test | Job | Affected runs | Links to runs | Issue |', '| --- | --- | ---: | --- | --- |');
     for (const test of report.tests) {
-      const links = [...test.runs]
-        .sort(([a], [b]) => b - a)
-        .map(([id, url]) => `[${id}](${url})`)
-        .join(', ');
-      lines.push(`| ${markdownCell(test.name)} | ${markdownCell(test.family)} | ${test.runs.size} | ${links} |`);
+      const runs = [...test.runs].sort(([a], [b]) => b - a);
+      const links = runs.map(([id, url]) => `[${id}](${url})`).join(', ');
+      const issueParams = new URLSearchParams({
+        template: 'flaky.yml',
+        title: `[Flaky CI]: ${test.name}`,
+        'job-name': test.family,
+        'test-name': test.name,
+        'test-run-link': runs[0][1],
+        details: `${markdownCell(test.path)}\n\nFailed in ${test.runs.size} CI runs on develop during ${report.since.slice(0, 10)}–${report.until.slice(0, 10)}.\n\n[Weekly report](${reportUrl})`,
+      });
+      const issueUrl = `${repositoryUrl}/issues/new?${issueParams}`;
+      lines.push(
+        `| ${markdownCell(test.name)} | ${markdownCell(test.family)} | ${test.runs.size} | ${links} | [Create issue](${issueUrl}) |`,
+      );
     }
   }
 
@@ -172,6 +183,6 @@ export default async function run({ github, context, core }) {
   for (const warning of report.warnings) {
     core.warning(warning);
   }
-  await core.summary.addRaw(renderReport(report)).write();
+  await core.summary.addRaw(renderReport(report, context)).write();
   return report;
 }
