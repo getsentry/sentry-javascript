@@ -20,12 +20,12 @@ describe('TypeSafe integration', () => {
   });
 
   describe.each([
-    ['automatic', 'instrument.mjs', 'instrument-no-recording.mjs'],
-    ['manual', 'instrument-manual.mjs', 'instrument-manual-no-recording.mjs'],
-  ])('%s instrumentation', (_, instrumentFile, noRecordingInstrumentFile) => {
+    ['automatic', 'scenario.mjs', 'instrument.mjs', 'instrument-no-recording.mjs'],
+    ['manual', 'scenario-manual.mjs', 'instrument-manual.mjs', 'instrument-manual-no-recording.mjs'],
+  ])('%s instrumentation', (_, scenarioFile, instrumentFile, noRecordingInstrumentFile) => {
     createEsmAndCjsTests(
       __dirname,
-      'scenario.mjs',
+      scenarioFile,
       instrumentFile,
       (createRunner, test) => {
         test('creates evaluate spans for systemOne', async () => {
@@ -122,7 +122,7 @@ describe('TypeSafe integration', () => {
 
     createEsmAndCjsTests(
       __dirname,
-      'scenario.mjs',
+      scenarioFile,
       noRecordingInstrumentFile,
       (createRunner, test) => {
         test('does not record inputs or outputs when recording is off', async () => {

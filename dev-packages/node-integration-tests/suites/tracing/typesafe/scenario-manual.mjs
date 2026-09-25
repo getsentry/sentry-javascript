@@ -43,11 +43,13 @@ function startMockServer() {
 
 async function run() {
   const server = await startMockServer();
-  const client = new TypeSafeClient({
-    apiKey: 'mock-api-key',
-    baseURL: `http://localhost:${server.address().port}`,
-    retry: { maxRetries: 0 },
-  });
+  const client = Sentry.instrumentTypeSafeClient(
+    new TypeSafeClient({
+      apiKey: 'mock-api-key',
+      baseURL: `http://localhost:${server.address().port}`,
+      retry: { maxRetries: 0 },
+    }),
+  );
   const state = 'I cannot log in, and I also want a refund for last month.';
   const questions = {
     authIssue: noul('Is there a login problem?'),
