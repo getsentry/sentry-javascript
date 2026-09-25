@@ -25,15 +25,22 @@ import type { Context, ContextManager } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import type { AsyncLocalStorage } from 'node:async_hooks';
 import type { EventEmitter } from 'node:events';
-import { SENTRY_SCOPES_CONTEXT_KEY } from './constants';
+import type { CurrentScopes } from './types';
 import { buildContextWithSentryScopes } from './utils/buildContextWithSentryScopes';
+import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
+
+export interface AsyncContextStore extends CurrentScopes {
+  context?: Context;
+  // Set by plain scope forks; absent on OpenTelemetry-bound stores.
+  useActiveScopeContext?: boolean;
+}
 
 export type AsyncLocalStorageLookup = {
   asyncLocalStorage: AsyncLocalStorage<unknown>;
   /**
    * The OpenTelemetry context key under which the `{ scope, isolationScope }` object is stored, for
    * native threads that read scope out of the AsyncLocalStorage (e.g. `@sentry/node-native`). Omitted
-   * for the pure AsyncLocalStorage strategy, whose store already is that object.
+   * when the store already contains that object directly.
    */
   contextSymbol?: symbol;
 };
@@ -50,17 +57,31 @@ const ADD_LISTENER_METHODS = ['addListener', 'on', 'once', 'prependListener', 'p
  * OpenTelemetry-compatible context manager using Node.js `AsyncLocalStorage`.
  */
 export class SentryAsyncLocalStorageContextManager implements ContextManager {
-  protected readonly _asyncLocalStorage: AsyncLocalStorage<Context>;
+  protected readonly _asyncLocalStorage: AsyncLocalStorage<AsyncContextStore>;
 
   private readonly _kOtListeners = Symbol('OtListeners');
   private _wrapped = false;
 
-  public constructor(asyncLocalStorage: AsyncLocalStorage<Context>) {
+  public constructor(asyncLocalStorage: AsyncLocalStorage<AsyncContextStore>) {
     this._asyncLocalStorage = asyncLocalStorage;
   }
 
   public active(): Context {
-    return this._asyncLocalStorage.getStore() ?? ROOT_CONTEXT;
+    const store = this._asyncLocalStorage.getStore();
+    if (!store) {
+      return ROOT_CONTEXT;
+    }
+
+    const context = store.context ?? ROOT_CONTEXT;
+    const scopes = getScopesFromContext(context);
+    if (scopes?.scope === store.scope && scopes.isolationScope === store.isolationScope) {
+      return context;
+    }
+
+    // The plain strategy can fork scopes without updating the OpenTelemetry context.
+    const updatedContext = setScopesOnContext(context, { scope: store.scope, isolationScope: store.isolationScope });
+    store.context = updatedContext;
+    return updatedContext;
   }
 
   public with<A extends unknown[], F extends (...args: A) => ReturnType<F>>(
@@ -71,7 +92,7 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   ): ReturnType<F> {
     const ctx2 = buildContextWithSentryScopes(context);
     const cb = thisArg == null ? fn : fn.bind(thisArg);
-    return this._asyncLocalStorage.run(ctx2, cb as never, ...args);
+    return this._asyncLocalStorage.run({ ...getScopesFromContext(ctx2)!, context: ctx2 }, cb as never, ...args);
   }
 
   public enable(): this {
@@ -98,13 +119,12 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   }
 
   /**
-   * Gets underlying AsyncLocalStorage and symbol to allow lookup of scope.
+   * Gets the underlying AsyncLocalStorage for direct scope lookup.
    * This is Sentry-specific.
    */
   public getAsyncLocalStorageLookup(): AsyncLocalStorageLookup {
     return {
       asyncLocalStorage: this._asyncLocalStorage,
-      contextSymbol: SENTRY_SCOPES_CONTEXT_KEY,
     };
   }
 

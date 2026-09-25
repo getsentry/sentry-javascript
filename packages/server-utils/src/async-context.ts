@@ -11,7 +11,13 @@ import {
   setAsyncContextStrategy,
 } from '@sentry/core';
 
-type ScopeStore = { scope: Scope; isolationScope: Scope };
+type ScopeStore = {
+  scope: Scope;
+  isolationScope: Scope;
+  // Plain forks use the active context; borrowed/default scope ancestry keeps its saved context.
+  // Unset means an OpenTelemetry-bound store whose newly forked scopes can use the active context.
+  useActiveScopeContext?: boolean;
+};
 
 /**
  * Sets the async context strategy to use AsyncLocalStorage.
@@ -29,7 +35,7 @@ export function setAsyncLocalStorageAsyncContextStrategy(): AsyncLocalStorage<Sc
 
   const asyncStorage = existingAsyncStorage ?? new AsyncLocalStorage<ScopeStore>();
 
-  function getScopes(): { scope: Scope; isolationScope: Scope } {
+  function getScopes(): ScopeStore {
     const scopes = asyncStorage.getStore();
 
     if (scopes) {
@@ -41,33 +47,49 @@ export function setAsyncLocalStorageAsyncContextStrategy(): AsyncLocalStorage<Sc
     return {
       scope: getDefaultCurrentScope(),
       isolationScope: getDefaultIsolationScope(),
+      useActiveScopeContext: false,
     };
   }
 
   function withScope<T>(callback: (scope: Scope) => T): T {
-    const scope = getScopes().scope.clone();
-    const isolationScope = getScopes().isolationScope;
-    return asyncStorage.run({ scope, isolationScope }, () => {
-      return callback(scope);
-    });
+    const parent = getScopes();
+    const scope = parent.scope.clone();
+    const isolationScope = parent.isolationScope;
+    // Preserve context carried by another strategy sharing this storage.
+    return asyncStorage.run(
+      { ...parent, scope, isolationScope, useActiveScopeContext: parent.useActiveScopeContext !== false },
+      () => {
+        return callback(scope);
+      },
+    );
   }
 
   // The isolation scope is shared, not forked, matching `withScope` above and the OpenTelemetry
   // strategy. Forking it would silently discard `setUser`/`setTag`/`setContext` calls made inside
   // the callback, as those write to the isolation scope.
   function withSetScope<T>(scope: Scope, callback: (scope: Scope) => T): T {
-    const isolationScope = getScopes().isolationScope;
-    return asyncStorage.run({ scope, isolationScope }, () => {
-      return callback(scope);
-    });
+    const parent = getScopes();
+    const isolationScope = parent.isolationScope;
+    return asyncStorage.run(
+      {
+        ...parent,
+        scope,
+        isolationScope,
+        useActiveScopeContext: scope === parent.scope ? parent.useActiveScopeContext : false,
+      },
+      () => {
+        return callback(scope);
+      },
+    );
   }
 
   // The current scope is forked alongside the isolation scope, matching the OpenTelemetry strategy
   // (`buildContextWithSentryScopes` clones it on every fork). Sharing it by reference would let
   // current-scope mutations inside the callback leak back out to the caller.
   function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
-    const scope = getScopes().scope.clone();
-    const isolationScope = getScopes().isolationScope.clone();
+    const parent = getScopes();
+    const scope = parent.scope.clone();
+    const isolationScope = parent.isolationScope.clone();
 
     // When forking an isolation scope, unless we are continuing an incoming
     // trace, we give the freshly forked scope its own trace. This way, new
@@ -82,16 +104,23 @@ export function setAsyncLocalStorageAsyncContextStrategy(): AsyncLocalStorage<Sc
       });
     }
 
-    return asyncStorage.run({ scope, isolationScope }, () => {
-      return callback(isolationScope);
-    });
+    return asyncStorage.run(
+      { ...parent, scope, isolationScope, useActiveScopeContext: parent.useActiveScopeContext !== false },
+      () => {
+        return callback(isolationScope);
+      },
+    );
   }
 
   function withSetIsolationScope<T>(isolationScope: Scope, callback: (isolationScope: Scope) => T): T {
-    const scope = getScopes().scope.clone();
-    return asyncStorage.run({ scope, isolationScope }, () => {
-      return callback(isolationScope);
-    });
+    const parent = getScopes();
+    const scope = parent.scope.clone();
+    return asyncStorage.run(
+      { ...parent, scope, isolationScope, useActiveScopeContext: parent.useActiveScopeContext !== false },
+      () => {
+        return callback(isolationScope);
+      },
+    );
   }
 
   setAsyncContextStrategy({
