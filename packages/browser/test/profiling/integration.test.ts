@@ -26,10 +26,12 @@ describe('BrowserProfilingIntegration', () => {
       resources: [],
     });
 
-    const mockProfiler = vi.fn().mockImplementation(() => ({
-      stop: stopProfile,
-      addEventListener: vi.fn(),
-    }));
+    const mockProfiler = vi.fn().mockImplementation(function () {
+      return {
+        stop: stopProfile,
+        addEventListener: vi.fn(),
+      };
+    });
 
     // @ts-expect-error this is a mock constructor
     window.Profiler = mockProfiler;

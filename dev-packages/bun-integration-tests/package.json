@@ -23,7 +23,7 @@
   "devDependencies": {
     "@sentry-internal/test-utils": "11.0.0",
     "bun-types": "^1.2.9",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11"
   },
   "volta": {
     "extends": "../../package.json"

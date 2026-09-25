@@ -162,6 +162,7 @@ function createMockSupabaseClient(resolveWith: unknown, options?: CreateMockSupa
 
 describe('Supabase Integration', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     currentScopesMocks.getClient.mockReturnValue(undefined);
     tracingMocks.startedSpans.length = 0;
   });

@@ -17,6 +17,8 @@ export function makeBuildInstrumentationFilePlugin(options: SentrySolidStartPlug
       const instrumentationFilePath = options.instrumentation || './src/instrument.server.ts';
       const router = (config as UserConfig & { router: { target: string; name: string; root: string } }).router;
       const build = config.build || {};
+      // SolidStart builds with vinxi's Vite, which predates `rolldownOptions`
+      // oxlint-disable-next-line typescript/no-deprecated
       const rollupOptions = build.rollupOptions || {};
       const input = [...((rollupOptions.input || []) as string[])];
 
@@ -44,6 +46,7 @@ export function makeBuildInstrumentationFilePlugin(options: SentrySolidStartPlug
         ...config,
         build: {
           ...build,
+          // oxlint-disable-next-line typescript/no-deprecated
           rollupOptions: {
             ...rollupOptions,
             input,

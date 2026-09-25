@@ -184,7 +184,9 @@ describe('makeNewHttpsTransport()', () => {
     const proxyAgentSpy = vi
       .spyOn(httpProxyAgent, 'HttpsProxyAgent')
       // @ts-expect-error using http agent as https proxy agent
-      .mockImplementation(() => new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 }));
+      .mockImplementation(function () {
+        return new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
+      });
 
     it('can be configured through option', () => {
       makeNodeTransport({
