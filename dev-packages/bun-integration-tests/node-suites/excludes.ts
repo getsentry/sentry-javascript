@@ -13,7 +13,8 @@ const NODE_ONLY = [
 ];
 
 // Bun does not publish `http.server.request.start`, so `@sentry/node` creates no `http.server`
-// span and does not isolate incoming requests. `@sentry/bun` has `bunHttpServerIntegration` for this.
+// span and does not isolate incoming requests. `@sentry/bun` has `bunHttpServerIntegration` for this,
+// so the `@sentry/bun` project runs these suites, except the ones in `SENTRY_BUN_EXCLUDE`.
 const NO_HTTP_SERVER_SPANS = [
   'suites/sessions/**',
   'suites/tracing/envelope-header/sampleRate-propagation/test.ts',
@@ -33,7 +34,8 @@ const NO_HTTP_SERVER_SPANS = [
 ];
 
 // `@sentry/node` instruments `fetch` through undici's diagnostics channels, which Bun's `fetch`
-// does not publish. `@sentry/bun` has its own `fetchIntegration` for this.
+// does not publish. `@sentry/bun` has its own `fetchIntegration` for this, so the `@sentry/bun`
+// project runs these suites, except the ones in `SENTRY_BUN_EXCLUDE`.
 const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/double-baggage/**',
   'suites/tracing/http-client-span-streamed/test.ts',
@@ -151,13 +153,71 @@ const NOT_TRIAGED = [
 // no spans arrive. See https://github.com/oven-sh/bun/issues/43086
 const CHANNEL_GARBAGE_COLLECTED = ['suites/tracing/graphql-tracing-channel/**'];
 
+// The scenario configures `nativeNodeFetchIntegration`, which `@sentry/bun` does not export.
+const NO_NATIVE_NODE_FETCH_INTEGRATION = [
+  'suites/tracing/http-client-spans/fetch-forward-request-hook/test.ts',
+  'suites/tracing/http-client-spans/fetch-headers-to-span-attributes/test.ts',
+  'suites/tracing/requests/fetch-no-trace-propagation/test.ts',
+  'suites/tracing/requests/fetch-no-tracing-no-spans/test.ts',
+];
+
+// The `fetchIntegration` of `@sentry/bun` comes from `@sentry/core`. Its spans, breadcrumbs and
+// `sentry-trace` headers differ from the ones `@sentry/node` creates, for example the span origin
+// is `auto.http.fetch`, not `auto.http.node_fetch`, and the spans have no `url.path`, so
+// `ignoreSpans` cannot match them on it.
+const FETCH_INTEGRATION_DIFFERS = [
+  'suites/tracing/double-baggage/spans-parent/test.ts',
+  'suites/tracing/http-client-spans/fetch-basic/test.ts',
+  'suites/tracing/http-client-spans/fetch-error/test.ts',
+  'suites/tracing/http-client-spans/fetch-strip-query/test.ts',
+  'suites/tracing/ignoreSpans-streamed/continued-trace-http-client/test.ts',
+  'suites/tracing/requests/fetch-breadcrumbs/test.ts',
+  'suites/tracing/requests/fetch-sampled-no-active-span/test.ts',
+];
+
+// `@sentry/bun` creates `http.server` spans with `bunHttpServerIntegration`, not `httpIntegration`,
+// so the incoming-request options that the scenario passes to `httpIntegration` (for example
+// `sessionFlushingDelayMS`, `onSpanCreated`, `ignoreIncomingRequests`, `ignoreStaticAssets`) have
+// no effect. Its spans also differ: the origin is `auto.http.server`, not `auto.http.http_server`,
+// response headers become attributes, and there is no `http.response.status_text`. And a server
+// that sets `emit` back to the `emit` it had before its first request gets no spans after that.
+const HTTP_SERVER_OPTIONS_IGNORED = [
+  'suites/sessions/exited-session-aggregate/test.ts',
+  'suites/tracing/httpIntegration/test.ts',
+];
+
+// With `@sentry/bun`, these suites fail only because they need Express spans or route names,
+// which `bun run` does not create. The crashed and errored session suites also need
+// `sessionFlushingDelayMS` (see above).
+// See https://github.com/getsentry/sentry-javascript/issues/23882
+const NO_EXPRESS_INSTRUMENTATION = [
+  'suites/sessions/crashed-session-aggregate/test.ts',
+  'suites/sessions/errored-session-aggregate/test.ts',
+  'suites/tracing/httpIntegration-streamed/test.ts',
+  'suites/tracing/ignoreSpans-streamed/attributes/test.ts',
+  'suites/tracing/ignoreSpans-streamed/children/test.ts',
+  'suites/tracing/ignoreSpans-streamed/continued-trace-child/test.ts',
+  'suites/tracing/ignoreSpans-streamed/segments/test.ts',
+  'suites/tracing/sampling-streamed/test.ts',
+  'suites/tracing/traceid-recycling-with-spans/test.ts',
+];
+
 export const NODE_SUITES_EXCLUDE = [
   '**/node_modules/**',
   ...NODE_ONLY,
-  ...NO_HTTP_SERVER_SPANS,
-  ...NO_FETCH_INSTRUMENTATION,
   ...NO_OUTGOING_HTTP_INSTRUMENTATION,
   ...NO_AUTO_INSTRUMENTATION,
   ...NOT_TRIAGED,
   ...CHANNEL_GARBAGE_COLLECTED,
+];
+
+// Excluded only in the `node-suites` project, which runs the suites with `@sentry/node`.
+export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUMENTATION];
+
+// Excluded only in the `node-suites-sentry-bun` project, which maps `@sentry/node` to `@sentry/bun`.
+export const SENTRY_BUN_EXCLUDE = [
+  ...HTTP_SERVER_OPTIONS_IGNORED,
+  ...NO_EXPRESS_INSTRUMENTATION,
+  ...NO_NATIVE_NODE_FETCH_INTEGRATION,
+  ...FETCH_INTEGRATION_DIFFERS,
 ];

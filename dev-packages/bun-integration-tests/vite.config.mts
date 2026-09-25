@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
-import { NODE_SUITES_EXCLUDE } from './node-suites/excludes';
+import { NODE_SUITES_EXCLUDE, SENTRY_BUN_EXCLUDE, SENTRY_NODE_EXCLUDE } from './node-suites/excludes';
 
 const NODE_SUITES_ROOT = fileURLToPath(new URL('../node-integration-tests', import.meta.url));
 
@@ -58,6 +58,7 @@ export default defineConfig({
         test: {
           ...nodeSuitesTest,
           name: 'node-suites',
+          exclude: [...NODE_SUITES_EXCLUDE, ...SENTRY_NODE_EXCLUDE],
           env: { RUNTIME: 'bun' },
         },
       },
@@ -68,6 +69,7 @@ export default defineConfig({
           name: 'node-suites-sentry-bun',
           exclude: [
             ...NODE_SUITES_EXCLUDE,
+            ...SENTRY_BUN_EXCLUDE,
             // The scenario creates a `NodeClient` itself, which sends `sentry.javascript.node`.
             'suites/public-api/logs/test.ts',
             // `@sentry/bun` has `bunRuntimeMetricsIntegration` instead of `nodeRuntimeMetricsIntegration`.
