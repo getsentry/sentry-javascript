@@ -146,6 +146,10 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: 'http:',
     },
+    'user.ip_address': {
+      type: 'string',
+      value: expect.any(String),
+    },
     'user_agent.original': {
       type: 'string',
       value: 'node',
