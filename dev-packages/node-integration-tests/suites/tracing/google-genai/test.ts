@@ -190,7 +190,13 @@ describe('Google GenAI integration', () => {
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
-            expect(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
+            expect(JSON.parse(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value as string)).toEqual([
+              {
+                id: 'call_light_control_1',
+                name: 'controlLight',
+                args: { brightness: 0.3, colorTemperature: 'warm' },
+              },
+            ]);
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(8);
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(23);
@@ -206,7 +212,13 @@ describe('Google GenAI integration', () => {
             expect(streamingToolsSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
             expect(streamingToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
-            expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
+            expect(JSON.parse(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value as string)).toEqual([
+              {
+                id: 'call_light_stream_1',
+                name: 'controlLight',
+                args: { brightness: 0.5, colorTemperature: 'cool' },
+              },
+            ]);
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('mock-response-tools-id');
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gemini-2.0-flash-001');
             expect(streamingToolsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(12);
