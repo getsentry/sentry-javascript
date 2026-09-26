@@ -1,7 +1,14 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { ProxyTracer } from '@opentelemetry/api';
 import type { Event, EventHint, Log } from '@sentry/core';
-import { getAsyncContextStrategy, getMainCarrier, Scope, SDK_VERSION } from '@sentry/core';
+import {
+  getAsyncContextStrategy,
+  getCurrentScope,
+  getMainCarrier,
+  Scope,
+  SDK_VERSION,
+  withIsolationScope,
+} from '@sentry/core';
 import type { SentryTracerProvider } from '@sentry/opentelemetry';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
@@ -62,7 +69,16 @@ describe('NodeClient', () => {
       expect(otelStrategySpy).toHaveBeenCalledTimes(1);
       expect(alsStrategySpy).not.toHaveBeenCalled();
       expect(client.asyncLocalStorageLookup?.asyncLocalStorage).toBeInstanceOf(AsyncLocalStorage);
-      expect(client.asyncLocalStorageLookup?.contextSymbol).toBeDefined();
+      expect(client.asyncLocalStorageLookup?.contextSymbol).toBeUndefined();
+
+      withIsolationScope(isolationScope => {
+        const store = client.asyncLocalStorageLookup?.asyncLocalStorage.getStore() as {
+          scope: Scope;
+          isolationScope: Scope;
+        };
+        expect(store.scope).toBe(getCurrentScope());
+        expect(store.isolationScope).toBe(isolationScope);
+      });
     });
   });
 

@@ -20,7 +20,7 @@ import type { CurrentScopes } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { AsyncLocalStorageLookup } from './asyncLocalStorageContextManager';
+import type { AsyncContextStore, AsyncLocalStorageLookup } from './asyncLocalStorageContextManager';
 import { SentryAsyncLocalStorageContextManager } from './asyncLocalStorageContextManager';
 
 /**
@@ -33,9 +33,9 @@ export function setOpenTelemetryContextAsyncContextStrategy(): AsyncLocalStorage
   // `getTracingChannelBinding().asyncLocalStorage`) keep reading the old one, breaking scope
   // propagation across async boundaries.
   const existingAsyncLocalStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()
-    ?.asyncLocalStorage as AsyncLocalStorage<api.Context> | undefined;
+    ?.asyncLocalStorage as AsyncLocalStorage<AsyncContextStore> | undefined;
 
-  const asyncLocalStorage = existingAsyncLocalStorage ?? new AsyncLocalStorage<api.Context>();
+  const asyncLocalStorage = existingAsyncLocalStorage ?? new AsyncLocalStorage<AsyncContextStore>();
 
   function getScopes(): CurrentScopes {
     const ctx = api.context.active();
@@ -67,7 +67,11 @@ export function setOpenTelemetryContextAsyncContextStrategy(): AsyncLocalStorage
   }
 
   function withSetScope<T>(scope: Scope, callback: (scope: Scope) => T): T {
-    const ctx = getContextFromScope(scope) || api.context.active();
+    const store = asyncLocalStorage.getStore();
+    const ctx =
+      store?.scope === scope && store.useActiveScopeContext
+        ? api.context.active()
+        : getContextFromScope(scope) || api.context.active();
 
     // We depend on the otelContextManager to handle the context/hub
     // We set the `SENTRY_FORK_SET_SCOPE_CONTEXT_KEY` context value, which is picked up by
