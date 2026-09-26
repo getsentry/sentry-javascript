@@ -42,20 +42,27 @@ export type DataCollectorOptions = {
 };
 
 /**
- * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
+ * Returns`describe` or `describe.skip` depending on allowed major versions of Node and on the
+ * runtime that runs the scenarios.
  *
- * @param {{ min?: number; max?: number }} allowedVersion
+ * @param options.min Lowest Node major version that runs the block.
+ * @param options.max Highest Node major version that runs the block.
+ * @param options.skipRuntimes Runtimes that skip the block, for a block that cannot run there.
  */
-export function conditionalTest(allowedVersion: {
+export function conditionalTest(options: {
   min?: number;
   max?: number;
+  skipRuntimes?: Runtime[];
 }): typeof describe | typeof describe.skip {
+  if (options.skipRuntimes?.includes(RUNTIME)) {
+    return describe.skip;
+  }
   // Vitest always runs on Node, so its Node version says nothing about Bun or Deno running the
   // scenario. Those runtimes list the suites they cannot run in their own exclude lists.
   if (RUNTIME !== 'node') {
     return describe;
   }
-  return describe.skipIf(!matchesNodeVersion(allowedVersion));
+  return describe.skipIf(!matchesNodeVersion(options));
 }
 
 function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boolean {
