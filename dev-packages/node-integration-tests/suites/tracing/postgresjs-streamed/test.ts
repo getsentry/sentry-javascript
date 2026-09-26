@@ -1,6 +1,10 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { RUNTIME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
+
+// On Bun, `postgres` resolves to its ESM build through the `bun` export condition, so
+// `require('postgres')` returns the module namespace instead of the `postgres` function.
 
 /**
  * Streamed span attributes are `{ value, type }` objects, unlike transaction span `data`,
@@ -168,30 +172,34 @@ describeWithDockerCompose('postgresjs auto instrumentation (streamed)', { workin
       },
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should auto-instrument `postgres` package', { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .expect({
-            span: container => {
-              expect(container).toMatchObject(EXPECTED_SPANS);
+    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test, mode) => {
+      test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+        'should auto-instrument `postgres` package',
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner()
+            .expect({
+              span: container => {
+                expect(container).toMatchObject(EXPECTED_SPANS);
 
-              // The assertions above only cover the queries the scenario issues itself. postgres.js
-              // also runs internal ones (e.g. the `pg_catalog` type lookup), so guard the invariant
-              // across every query span: the name is the summary, never the statement.
-              const dbSpans = getDbSpans(container);
-              expect(dbSpans.length).toBeGreaterThan(0);
-              for (const span of dbSpans) {
-                expect(span.name).toBe(span.attributes['db.query.summary']?.value);
-              }
-            },
-          })
-          .expect({ event: EXPECTED_ERROR_EVENT })
-          // The error event is captured via an unhandled rejection processed on a later tick than
-          // the spans, so the two envelopes can reach the transport in either order.
-          .unordered()
-          .start()
-          .completed();
-      });
+                // The assertions above only cover the queries the scenario issues itself. postgres.js
+                // also runs internal ones (e.g. the `pg_catalog` type lookup), so guard the invariant
+                // across every query span: the name is the summary, never the statement.
+                const dbSpans = getDbSpans(container);
+                expect(dbSpans.length).toBeGreaterThan(0);
+                for (const span of dbSpans) {
+                  expect(span.name).toBe(span.attributes['db.query.summary']?.value);
+                }
+              },
+            })
+            .expect({ event: EXPECTED_ERROR_EVENT })
+            // The error event is captured via an unhandled rejection processed on a later tick than
+            // the spans, so the two envelopes can reach the transport in either order.
+            .unordered()
+            .start()
+            .completed();
+        },
+      );
     });
   });
 
@@ -228,10 +236,14 @@ describeWithDockerCompose('postgresjs auto instrumentation (streamed)', { workin
       __dirname,
       'scenario-requestHook.mjs',
       'instrument-requestHook.mjs',
-      (createTestRunner, test) => {
-        test('should call requestHook when provided', { timeout: 90_000 }, async () => {
-          await createTestRunner().expect({ span: EXPECTED_SPANS }).start().completed();
-        });
+      (createTestRunner, test, mode) => {
+        test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+          'should call requestHook when provided',
+          { timeout: 90_000 },
+          async () => {
+            await createTestRunner().expect({ span: EXPECTED_SPANS }).start().completed();
+          },
+        );
       },
     );
   });
@@ -262,10 +274,14 @@ describeWithDockerCompose('postgresjs auto instrumentation (streamed)', { workin
       ]),
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario-url.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should instrument postgres package with URL initialization', { timeout: 90_000 }, async () => {
-        await createTestRunner().ignore('event').expect({ span: EXPECTED_SPANS }).start().completed();
-      });
+    createEsmAndCjsTests(__dirname, 'scenario-url.mjs', 'instrument.mjs', (createTestRunner, test, mode) => {
+      test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+        'should instrument postgres package with URL initialization',
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner().ignore('event').expect({ span: EXPECTED_SPANS }).start().completed();
+        },
+      );
     });
   });
 
@@ -296,10 +312,14 @@ describeWithDockerCompose('postgresjs auto instrumentation (streamed)', { workin
       ]),
     };
 
-    createEsmAndCjsTests(__dirname, 'scenario-unsafe.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should instrument sql.unsafe() queries', { timeout: 90_000 }, async () => {
-        await createTestRunner().ignore('event').expect({ span: EXPECTED_SPANS }).start().completed();
-      });
+    createEsmAndCjsTests(__dirname, 'scenario-unsafe.mjs', 'instrument.mjs', (createTestRunner, test, mode) => {
+      test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+        'should instrument sql.unsafe() queries',
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner().ignore('event').expect({ span: EXPECTED_SPANS }).start().completed();
+        },
+      );
     });
   });
 });

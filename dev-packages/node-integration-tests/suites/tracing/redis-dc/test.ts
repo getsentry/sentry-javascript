@@ -1,6 +1,7 @@
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose(
@@ -183,7 +184,7 @@ describeWithDockerCompose(
               'sentry.op': op,
               'sentry.origin': ORIGIN,
               'sentry.release': '1.0',
-              'sentry.sdk.name': 'sentry.javascript.node',
+              'sentry.sdk.name': EXPECTED_SDK_NAME,
               'sentry.segment.name': SEGMENT_NAME,
               'server.address': HOST,
               'server.port': PORT,
