@@ -5,7 +5,8 @@ export * from '@sentry/browser';
 
 export { init } from './sdk';
 export { browserTracingIntegration } from './browserTracingIntegration';
-export { attachErrorHandler } from './errorhandler';
+export { attachErrorHandler, captureVueException } from './errorhandler';
+export type { ViewModel } from './types';
 export { createTracingMixins } from './tracing';
 export { vueIntegration } from './integration';
 export type { VueIntegrationOptions } from './integration';
