@@ -3,6 +3,7 @@ import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as initBr
 import type { Client, Integration } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import { browserTracingIntegration } from './browserTracingIntegration';
+import { createAstroRouteProvider } from './routeProvider';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -15,6 +16,9 @@ declare const __SENTRY_TRACING__: boolean;
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
+    // The middleware injects the route into the document, so route parameterization works from `init` on,
+    // even with tracing disabled.
+    routeProvider: createAstroRouteProvider(),
     ...options,
   };
 

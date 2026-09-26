@@ -92,6 +92,17 @@ describe('Sentry client SDK', () => {
       });
     });
 
+    it('passes the Astro route provider unless the user passed one', () => {
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+      expect(browserInit).toHaveBeenLastCalledWith(
+        expect.objectContaining({ routeProvider: expect.objectContaining({ resolveRoute: expect.any(Function) }) }),
+      );
+
+      const routeProvider = { resolveRoute: () => '/custom', resolveCurrentRoute: () => '/custom' };
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', routeProvider });
+      expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining({ routeProvider }));
+    });
+
     it('returns client from init', () => {
       expect(init({})).not.toBeUndefined();
     });
