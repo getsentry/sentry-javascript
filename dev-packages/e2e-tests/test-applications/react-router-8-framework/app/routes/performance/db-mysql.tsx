@@ -1,8 +1,8 @@
 import mysql from 'mysql';
 import type { Route } from './+types/db-mysql';
 
-// These queries produce `db` spans from the build-time orchestrion transform alone — workerd can't
-// monkey-patch requires, so there's no OTel hook involved.
+// On Cloudflare these `db` spans come from the build-time orchestrion transform alone, because workerd
+// can't monkey-patch requires.
 export async function loader(): Promise<{ status: string }> {
   // Connect inside the loader: workerd forbids I/O in global scope.
   const connection = mysql.createConnection({
