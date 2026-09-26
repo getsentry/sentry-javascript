@@ -1,5 +1,11 @@
 import { getClient, GLOBAL_OBJ } from '@sentry/core';
-import { browserTracingIntegration, vueIntegration } from '@sentry/vue';
+import {
+  browserTracingIntegration,
+  createVueRouteProvider,
+  getRouteProvider,
+  setRouteProvider,
+  vueIntegration,
+} from '@sentry/vue';
 import { defineNuxtPlugin, isNuxtError } from 'nuxt/app';
 import type { GlobalObjWithIntegrationOptions } from '../../client/vueIntegration';
 import { reportNuxtError } from '../utils';
@@ -28,6 +34,8 @@ interface VueRouter {
   beforeEach: (fn: (to: Route, from: Route, next?: () => void) => void) => void;
 }
 
+type VueRouteProviderRouter = ReturnType<Parameters<typeof createVueRouteProvider>[0]>;
+
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
@@ -35,6 +43,19 @@ export default defineNuxtPlugin({
   name: 'sentry-client-integrations',
   dependsOn: ['sentry-client-config'],
   async setup(nuxtApp) {
+    // Registered outside the tracing guard, because route parameterization should not depend on
+    // tracing: anything that needs a route name (bfcache metrics, web vitals) can resolve one even
+    // when tracing is tree-shaken away. Nuxt installs the router before its plugins run, so unlike
+    // `@sentry/vue` this can read it straight off `nuxtApp`.
+    const client = getClient();
+    // A `routeProvider` passed to `Sentry.init` is the user's choice, so it is left in place.
+    if (client && '$router' in nuxtApp && !getRouteProvider(client)) {
+      setRouteProvider(
+        createVueRouteProvider(() => nuxtApp.$router as VueRouteProviderRouter),
+        client,
+      );
+    }
+
     // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
     // will get tree-shaken away
     if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
