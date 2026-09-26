@@ -30,6 +30,7 @@
     "@types/qs": "6.9.17"
   },
   "volta": {
+    "node": "20.19.5",
     "extends": "../../package.json"
   }
 }
