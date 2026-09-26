@@ -18,16 +18,6 @@ const RESULTS_FILE_PATH = path.join(ACTION_DIRECTORY, 'size-limit-results.json')
 
 const { getInput, setFailed } = core;
 
-async function fetchPreviousComment(octokit, repo, pr) {
-  const { data: commentList } = await octokit.rest.issues.listComments({
-    ...repo,
-    issue_number: pr.number,
-  });
-
-  const sizeLimitComment = commentList.find(comment => comment.body.startsWith(SIZE_LIMIT_HEADING));
-  return !sizeLimitComment ? null : sizeLimitComment;
-}
-
 async function run() {
   try {
     const { payload, repo } = context;
@@ -133,7 +123,12 @@ async function run() {
     await core.summary.addRaw(body).write();
 
     try {
-      const sizeLimitComment = await fetchPreviousComment(octokit, repo, pr);
+      const comments = await octokit.paginate(octokit.rest.issues.listComments, {
+        ...repo,
+        issue_number: pr.number,
+        per_page: 100,
+      });
+      const sizeLimitComment = comments.find(comment => comment.body.startsWith(SIZE_LIMIT_HEADING));
       if (sizeLimitComment) {
         await octokit.rest.issues.updateComment({
           ...repo,
@@ -148,7 +143,7 @@ async function run() {
         });
       }
 
-      if (increases.length > 0 && !approved) {
+      if (increases.length > 0 && !approved && !comments.some(comment => comment.body === failure)) {
         await octokit.rest.issues.createComment({
           ...repo,
           issue_number: pr.number,
