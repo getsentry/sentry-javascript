@@ -3,6 +3,7 @@ import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { getClient, isThenable, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { CloudflareClientOptions } from '../client';
+import { isInUnsampledSpan } from '../utils/isInUnsampledSpan';
 import { getStorageKeys, targetsCloudflareInternalKey } from '../utils/internalStorageKey';
 import { storeSpanContext } from '../utils/traceLinks';
 import { instrumentDurableObjectSyncKvStorage } from './instrumentDurableObjectSyncKvStorage';
@@ -59,6 +60,11 @@ export function instrumentDurableObjectStorage(
       }
 
       return function (this: unknown, ...args: unknown[]) {
+        // `setAlarm` keeps its span, because the alarm links back to the span context stored here.
+        if (methodName !== 'setAlarm' && isInUnsampledSpan()) {
+          return (original as (...a: unknown[]) => unknown).apply(target, args);
+        }
+
         // KV entries managed by the DO framework itself (agents/partyserver state) are bookkeeping
         // rather than user work — skip the span, mirroring how `cf_` SQL tables are treated.
         // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast reaches the Cloudflare-only `durableObjectStorageSpanAllowlist`; tsc errors without it
