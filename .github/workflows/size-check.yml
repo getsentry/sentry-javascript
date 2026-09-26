@@ -1,8 +1,7 @@
 name: 'CI: Size Check'
 
 on:
-  # Temporary: exercise this workflow on PR #24737 before it exists on develop.
-  pull_request:
+  pull_request_target:
     types: [labeled, unlabeled]
 
 permissions:
@@ -16,14 +15,14 @@ concurrency:
 
 jobs:
   rerun:
-    if: github.event.pull_request.number == 24737 && github.event.label.name == 'Accept Bundlesize Increase'
+    if: github.event.label.name == 'Accept Bundlesize Increase'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - name: Check out PR commit
+      - name: Check out base commit
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
       - uses: actions/github-script@v9
         with:
