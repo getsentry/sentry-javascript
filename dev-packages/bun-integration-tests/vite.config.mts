@@ -1,18 +1,12 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
+import { NODE_SUITES_EXCLUDE } from './node-suites/excludes';
 
 const NODE_SUITES_ROOT = fileURLToPath(new URL('../node-integration-tests', import.meta.url));
 
-// Node suites that also run on Bun. The scenarios stay in `node-integration-tests`.
-const NODE_SUITES = [
-  'suites/public-api/**/test.ts',
-  'suites/client-reports/**/test.ts',
-  'suites/featureFlags/**/test.ts',
-];
-
-// Single tests that fail on Bun are skipped with `test.skipIf` on `RUNTIME` in the Node suite.
-const NODE_SUITES_EXCLUDE = ['**/node_modules/**'];
+// All Node suites also run on Bun. The scenarios stay in `node-integration-tests`.
+const NODE_SUITES = ['suites/**/test.ts'];
 
 const nodeSuitesTest = {
   root: NODE_SUITES_ROOT,
@@ -76,6 +70,8 @@ export default defineConfig({
             ...NODE_SUITES_EXCLUDE,
             // The scenario creates a `NodeClient` itself, which sends `sentry.javascript.node`.
             'suites/public-api/logs/test.ts',
+            // `@sentry/bun` has `bunRuntimeMetricsIntegration` instead of `nodeRuntimeMetricsIntegration`.
+            'suites/node-runtime-metrics/test.ts',
           ],
           env: {
             RUNTIME: 'bun',
