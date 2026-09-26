@@ -2,7 +2,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
-    entrypoints: ['src/index.ts', 'src/cli.ts'],
+    entrypoints: ['src/index.ts', 'src/cli.ts', 'src/vite.ts'],
     packageSpecificConfig: {
       output: {
         // set exports to 'named' or 'auto' so that rollup doesn't warn

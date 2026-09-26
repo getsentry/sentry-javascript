@@ -23,10 +23,11 @@ export function makeServerBuildCapturePlugin(): Plugin {
         return null;
       }
 
-      // `routes` is a module-scope export in the virtual:react-router/server-build module
+      // `routes` and `prerender` are module-scope exports in the virtual:react-router/server-build
+      // module. `prerender` is guarded with `typeof` because older React Router versions don't declare it.
       const injectedCode = `${code}
 if (typeof globalThis !== 'undefined' && typeof globalThis["${GLOBAL_KEY}"] === 'function') {
-  globalThis["${GLOBAL_KEY}"]({ routes });
+  globalThis["${GLOBAL_KEY}"]({ routes, prerender: typeof prerender !== 'undefined' ? prerender : undefined });
 }
 `;
 

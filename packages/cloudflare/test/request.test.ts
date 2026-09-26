@@ -211,6 +211,29 @@ describe('withSentry', () => {
       });
     });
 
+    test('sets the request as the transaction name for events', async () => {
+      let sentryEvent: Event = {};
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com/users/42?tab=posts', { method: 'POST' }),
+          context: createMockExecutionContext(),
+        },
+        () => {
+          SentryCore.captureMessage('transaction name');
+          return new Response('test');
+        },
+      );
+
+      expect(sentryEvent.transaction).toBe('POST /users/42');
+    });
+
     test('adds culture context', async () => {
       const mockRequest = new Request('https://example.com') as any;
       mockRequest.cf = {

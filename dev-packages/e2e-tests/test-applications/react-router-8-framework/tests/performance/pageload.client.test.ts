@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { APP_NAME } from '../constants';
+import { APP_NAME, RUNTIME } from '../constants';
 
 test.describe('client - pageload performance', () => {
   test('should send pageload span', async ({ page }) => {
@@ -30,9 +30,16 @@ test.describe('client - pageload performance', () => {
       'sentry.sdk.version': { value: expect.any(String), type: 'string' },
       'sentry.sdk.integrations': { value: expect.arrayContaining([expect.any(String)]), type: 'array' },
       'url.template': { value: '/performance', type: 'string' },
-      // react-router-serve 301-redirects the bare index route to a trailing slash
-      'url.path': { value: '/performance/', type: 'string' },
-      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/$/), type: 'string' },
+      // react-router-serve 301-redirects the bare index route to a trailing slash, workerd does not
+      'url.path': { value: RUNTIME === 'cloudflare' ? '/performance' : '/performance/', type: 'string' },
+      'url.full': {
+        value: expect.stringMatching(
+          RUNTIME === 'cloudflare'
+            ? /^https?:\/\/localhost:\d+\/performance$/
+            : /^https?:\/\/localhost:\d+\/performance\/$/,
+        ),
+        type: 'string',
+      },
     });
   });
 

@@ -11,11 +11,11 @@ async function getUser() {
   };
 }
 
-const authMiddleware: Route.MiddlewareFunction = async ({ request, context }, next) => {
-  Sentry.startSpan({ name: 'authMiddleware', op: 'middleware.auth' }, async () => {
+const authMiddleware: Route.MiddlewareFunction = async ({ context }, next) => {
+  return Sentry.startSpan({ name: 'authMiddleware', op: 'middleware.auth' }, async () => {
     const user: User = await getUser();
     context.set(userContext, user);
-    await next();
+    return next();
   });
 };
 

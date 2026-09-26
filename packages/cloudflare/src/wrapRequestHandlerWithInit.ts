@@ -125,6 +125,9 @@ export function wrapRequestHandlerWithInit(
 
     addCloudResourceContext(isolationScope);
     addRequest(isolationScope, request);
+    // Errors thrown before a framework names the route (e.g. in a loader) would otherwise have no
+    // `transaction`. Frameworks overwrite this once they know the parameterized route.
+    isolationScope.setTransactionName(rawName);
     if (request.cf) {
       addCultureContext(isolationScope, request.cf);
 

@@ -116,6 +116,51 @@ Make sure to add a `test:build` and `test:assert` command to the new app's `pack
 Sentry packages are automatically resolved to the local build via pnpm overrides injected at test time, so no manual
 registry configuration is needed.
 
+## Runtime variants (Bun, Deno, Cloudflare)
+
+To test a framework on a runtime other than Node.js, add an `optionalVariants` entry to the existing test app instead of
+creating a new app. `react-router-8-framework` is the reference setup.
+
+- **`RUNTIME` env var**: `node` (default), `bun`, `deno` or `cloudflare`. `tests/constants.ts` exports it, so tests can
+  branch on it where the runtimes are expected to differ (for example `platform` or `sdk.name`).
+- **Start commands**: `playwright.config.mjs` selects the start command from `RUNTIME`. Bun and Deno use the same build
+  as Node and only change the start command, for example
+  `bun --bun --preload ./instrument.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
+  `deno run -A --preload ./instrument.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js`.
+- **Cloudflare**: the app has the Cloudflare dependencies installed all the time. The Cloudflare build has its own
+  `vite.cloudflare.config.ts` with `@cloudflare/vite-plugin` and `sentryCloudflareVitePlugin` from
+  `@sentry/cloudflare/vite`, and the variant's `build-command` passes it with `--config`. Node, Bun and Deno share
+  `vite.config.ts`. The Worker entry lives in a separate file (for example `workers/app.ts`) and exports a plain
+  handler: the Sentry plugin wraps it with `withSentry` and reads the init options from `instrument.server.ts` next to
+  the entry. The start command runs `wrangler dev` on the build output. Code at module scope must not do I/O (for
+  example open a database connection), because workerd does not allow it.
+- **Runtime-specific files**: name them `<name>.<runtime>.<ext>` (for example `entry.server.cloudflare.tsx`). When the
+  framework does not let you configure a server entry, add `runtimeEntryPlugin` from
+  `@sentry-internal/test-utils/vite` to the runtime's Vite config, for example
+  `runtimeEntryPlugin('app/entry.server.tsx', 'cloudflare')`.
+- **Scripts**: put `RUNTIME` in a named script (`"test:assert:bun": "RUNTIME=bun pnpm test:assert"`), not in the
+  `assert-command`. `yarn test:run` prefixes the command with `volta run`, which cannot run a leading env assignment.
+- **`runtime` matrix key**: set `"runtime": "bun"` or `"runtime": "deno"` on the variant. CI then installs that runtime
+  for the job, so a new variant needs no change to `.github/workflows/build.yml`. A variant can also pin the version,
+  for example `"deno-version": "v2.9.0"`.
+- **Bun**: under `bun run` the SDK cannot inject diagnostics channels into packages that stay outside the build (for
+  example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
+  on `RUNTIME` and say why in a comment.
+
+```json
+"sentryTest": {
+  "optionalVariants": [
+    { "assert-command": "pnpm test:assert:bun", "runtime": "bun", "label": "my-app (bun)" },
+    { "assert-command": "pnpm test:assert:deno", "runtime": "deno", "label": "my-app (deno)" },
+    {
+      "build-command": "pnpm test:build:cloudflare",
+      "assert-command": "pnpm test:assert:cloudflare",
+      "label": "my-app (cloudflare)"
+    }
+  ]
+}
+```
+
 ## Troubleshooting
 
 ### Common Issues

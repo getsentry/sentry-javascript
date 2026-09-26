@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-import { APP_NAME } from '../constants';
+import { APP_NAME, RUNTIME } from '../constants';
 
 test.describe('client - navigation performance', () => {
   test('should create navigation span', async ({ page }) => {
@@ -88,10 +88,14 @@ test.describe('client - navigation performance', () => {
       'sentry.op': { value: 'navigation', type: 'string' },
       'sentry.origin': { value: 'auto.navigation.react_router', type: 'string' },
       'url.template': { value: '/performance', type: 'string' },
-      // the initial pageload to `/performance` gets 301-redirected to a trailing slash by react-router-serve
-      'url.path': { value: '/performance/', type: 'string' },
+      // the initial pageload to `/performance` gets 301-redirected to a trailing slash by react-router-serve, workerd does not
+      'url.path': { value: RUNTIME === 'cloudflare' ? '/performance' : '/performance/', type: 'string' },
       'url.full': {
-        value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/\?query=test$/),
+        value: expect.stringMatching(
+          RUNTIME === 'cloudflare'
+            ? /^https?:\/\/localhost:\d+\/performance\?query=test$/
+            : /^https?:\/\/localhost:\d+\/performance\/\?query=test$/,
+        ),
         type: 'string',
       },
     });
@@ -166,9 +170,16 @@ test.describe('client - navigation performance', () => {
       'sentry.op': { value: 'navigation', type: 'string' },
       'sentry.origin': { value: 'auto.navigation.react_router', type: 'string' },
       'url.template': { value: '/performance', type: 'string' },
-      // react-router-serve 301-redirects the bare index route to a trailing slash
-      'url.path': { value: '/performance/', type: 'string' },
-      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/$/), type: 'string' },
+      // react-router-serve 301-redirects the bare index route to a trailing slash, workerd does not
+      'url.path': { value: RUNTIME === 'cloudflare' ? '/performance' : '/performance/', type: 'string' },
+      'url.full': {
+        value: expect.stringMatching(
+          RUNTIME === 'cloudflare'
+            ? /^https?:\/\/localhost:\d+\/performance$/
+            : /^https?:\/\/localhost:\d+\/performance\/$/,
+        ),
+        type: 'string',
+      },
     });
   });
 });

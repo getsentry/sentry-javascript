@@ -1,8 +1,9 @@
-import { GLOBAL_OBJ } from '@sentry/core';
+import { getIsolationScope, GLOBAL_OBJ } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   _resetServerBuild,
   getMiddlewareName,
+  isPrerenderRequest,
   isServerBuildLike,
   registerServerBuildGlobal,
   setServerBuild,
@@ -58,6 +59,38 @@ describe('serverBuild', () => {
       expect(isServerBuildLike({})).toBe(false);
       expect(isServerBuildLike({ routes: null })).toBe(false);
       expect(isServerBuildLike({ routes: 'string' })).toBe(false);
+    });
+  });
+
+  describe('isPrerenderRequest', () => {
+    afterEach(() => {
+      getIsolationScope().setSDKProcessingMetadata({ normalizedRequest: undefined });
+    });
+
+    it('is true when the current request path is in the prerender list, with or without a trailing slash', () => {
+      setServerBuild({ routes: {}, prerender: ['/performance/static', '/about/'] });
+
+      getIsolationScope().setSDKProcessingMetadata({
+        normalizedRequest: { url: 'http://localhost/performance/static/' },
+      });
+      expect(isPrerenderRequest()).toBe(true);
+
+      getIsolationScope().setSDKProcessingMetadata({ normalizedRequest: { url: 'http://localhost/about' } });
+      expect(isPrerenderRequest()).toBe(true);
+    });
+
+    it('is false for other paths, without a prerender list, or without a request', () => {
+      setServerBuild({ routes: {}, prerender: ['/performance/static'] });
+      expect(isPrerenderRequest()).toBe(false);
+
+      getIsolationScope().setSDKProcessingMetadata({ normalizedRequest: { url: 'http://localhost/performance' } });
+      expect(isPrerenderRequest()).toBe(false);
+
+      setServerBuild({ routes: {} });
+      getIsolationScope().setSDKProcessingMetadata({
+        normalizedRequest: { url: 'http://localhost/performance/static' },
+      });
+      expect(isPrerenderRequest()).toBe(false);
     });
   });
 

@@ -2,12 +2,17 @@ import { getTraceMetaTags } from '@sentry/core';
 import { PassThrough } from 'stream';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
+import { isPrerenderRequest } from '../../src/server/serverBuild';
 
 vi.mock('@sentry/core', () => ({
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
   getActiveSpan: vi.fn(),
   getRootSpan: vi.fn(),
   getTraceMetaTags: vi.fn(),
+}));
+
+vi.mock('../../src/server/serverBuild', () => ({
+  isPrerenderRequest: vi.fn(() => false),
 }));
 
 describe('getMetaTagTransformer', () => {
@@ -33,6 +38,31 @@ describe('getMetaTagTransformer', () => {
           expect(outputData).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
           expect(outputData).not.toContain('</head></head>');
           expect(getTraceMetaTags).toHaveBeenCalledTimes(1);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
+
+      transformer.write('<html><head></head><body>Test</body></html>');
+      transformer.end();
+    }));
+
+  test('should not inject meta tags into a prerendered page', () =>
+    new Promise<void>((resolve, reject) => {
+      vi.mocked(isPrerenderRequest).mockReturnValueOnce(true);
+      const bodyStream = new PassThrough();
+      const transformer = getMetaTagTransformer(bodyStream);
+
+      let outputData = '';
+      bodyStream.on('data', chunk => {
+        outputData += chunk.toString();
+      });
+
+      bodyStream.on('end', () => {
+        try {
+          expect(outputData).toBe('<html><head></head><body>Test</body></html>');
+          expect(getTraceMetaTags).not.toHaveBeenCalled();
           resolve();
         } catch (e) {
           reject(e);
