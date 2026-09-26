@@ -1,3 +1,4 @@
+import { getTrustedScriptURL } from '@sentry/browser-utils';
 import type { ReportDialogOptions } from '@sentry/core';
 import { debug, getClient, getCurrentScope, getReportDialogEndpoint, lastEventId } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
@@ -39,7 +40,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   const script = WINDOW.document.createElement('script');
   script.async = true;
   script.crossOrigin = 'anonymous';
-  script.src = getReportDialogEndpoint(dsn, mergedOptions);
+  script.src = getTrustedScriptURL(getReportDialogEndpoint(dsn, mergedOptions));
 
   const { onLoad, onClose } = mergedOptions;
 

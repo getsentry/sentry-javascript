@@ -57,6 +57,8 @@ export { isElement } from './is';
 
 export { getAbsoluteUrl } from './instrumentation/location';
 
+export { getTrustedScriptURL, TRUSTED_TYPES_POLICY_NAME } from './trustedTypes';
+
 export type {
   FetchHint,
   HandlerDataDom,
