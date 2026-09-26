@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*"],
+
+  "compilerOptions": {
+    "lib": ["DOM", "es2020"]
+  }
+}
