@@ -1,4 +1,3 @@
-import { subscribe } from 'node:diagnostics_channel';
 import { context, trace } from '@opentelemetry/api';
 import type { ClientRequest, IncomingMessage } from 'node:http';
 import type { Span } from '@sentry/core';
@@ -10,6 +9,7 @@ import {
   HTTP_ON_CLIENT_REQUEST,
   patchHttpModuleClient,
 } from '@sentry/core/server';
+import { subscribeDiagnosticsChannel } from '@sentry/server-utils';
 import { NODE_VERSION } from '../../nodeVersion';
 import { errorMonitor } from 'node:events';
 import * as http from 'node:http';
@@ -125,7 +125,7 @@ export function instrumentHttpOutgoingRequests(
 
 function instrumentHttpOutgoingRequestsViaChannel(options: HttpInstrumentationOptions): void {
   const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequestCreated } = getHttpClientSubscriptions(options);
-  subscribe(HTTP_ON_CLIENT_REQUEST, onHttpClientRequestCreated);
+  subscribeDiagnosticsChannel(HTTP_ON_CLIENT_REQUEST, onHttpClientRequestCreated);
 }
 
 /**

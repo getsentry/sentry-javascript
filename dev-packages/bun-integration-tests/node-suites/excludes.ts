@@ -145,11 +145,6 @@ const NOT_TRIAGED = [
   'suites/tracing/tracer-start-active-span-error/test.ts',
 ];
 
-// Bun garbage-collects a diagnostics channel that no code references, and its subscribers with it.
-// `graphql` 17 publishes its own tracing channels, so the integration only subscribes to them, and
-// no spans arrive. See https://github.com/oven-sh/bun/issues/43086
-const CHANNEL_GARBAGE_COLLECTED = ['suites/tracing/graphql-tracing-channel/**'];
-
 export const NODE_SUITES_EXCLUDE = [
   '**/node_modules/**',
   ...NODE_ONLY,
@@ -158,5 +153,4 @@ export const NODE_SUITES_EXCLUDE = [
   ...NO_OUTGOING_HTTP_INSTRUMENTATION,
   ...NO_AUTO_INSTRUMENTATION,
   ...NOT_TRIAGED,
-  ...CHANNEL_GARBAGE_COLLECTED,
 ];

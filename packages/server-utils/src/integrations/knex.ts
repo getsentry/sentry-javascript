@@ -2,7 +2,7 @@
 // emit them deliberately to preserve parity with what `@opentelemetry/instrumentation-knex` produced.
 /* oxlint-disable typescript/no-deprecated */
 
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
