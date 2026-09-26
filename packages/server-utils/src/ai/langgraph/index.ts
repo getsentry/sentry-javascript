@@ -154,28 +154,32 @@ export function instrumentCompiledGraphInvoke(
               span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
             }
 
-            // Parse input messages
-            const inputMessages =
-              args.length > 0 ? ((args[0] as { messages?: LangChainMessage[] } | null)?.messages ?? []) : [];
+            // Custom state annotations have no `messages` array, the whole state is recorded instead.
+            const inputState = args[0] as { messages?: LangChainMessage[] } | null | undefined;
+            const inputMessages = Array.isArray(inputState?.messages) ? inputState.messages : null;
 
-            if (inputMessages && recordInputs) {
-              const normalizedMessages = normalizeLangChainMessages(inputMessages);
-              const { systemInstructions, filteredMessages } = extractSystemInstructions(normalizedMessages);
+            if (recordInputs) {
+              if (inputMessages) {
+                const normalizedMessages = normalizeLangChainMessages(inputMessages);
+                const { systemInstructions, filteredMessages } = extractSystemInstructions(normalizedMessages);
 
-              if (systemInstructions) {
-                span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
+                if (systemInstructions) {
+                  span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
+                }
+
+                span.setAttributes({
+                  [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
+                });
+              } else if (inputState && typeof inputState === 'object') {
+                span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify([{ role: 'user', content: stringify(inputState) }]));
               }
-
-              span.setAttributes({
-                [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
-              });
             }
 
             // Call original invoke
             const result = await Reflect.apply(target, thisArg, args);
 
             if (recordOutputs) {
-              setResponseAttributes(span, inputMessages ?? null, result);
+              setResponseAttributes(span, inputMessages, result);
             }
 
             return result;
