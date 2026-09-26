@@ -3,6 +3,7 @@ import { initWithoutDefaultIntegrations } from '@sentry/node';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { AwsServerlessOptions } from '../src/init';
 import { init } from '../src/init';
+import { TUNNEL_URL } from '../src/lambda-extension/constants';
 
 vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal()),
@@ -55,7 +56,7 @@ describe('init', () => {
 
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
         expect.objectContaining({
-          tunnel: 'http://localhost:9000/envelope',
+          tunnel: TUNNEL_URL,
         }),
       );
     });

@@ -5,3 +5,9 @@ tmp
 pnpm-lock.yaml
 .last-run.json
 packed
+
+# Written by Playwright on a failing run, in whichever application failed
+test-results
+
+# Synthesised from the CDK stack on every run of this one application
+test-applications/aws-serverless-layer/sam.template.yml

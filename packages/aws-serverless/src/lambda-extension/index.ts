@@ -1,21 +1,12 @@
 #!/usr/bin/env node
-import { debug } from '@sentry/core';
 import { AwsLambdaExtension } from './aws-lambda-extension';
-import { DEBUG_BUILD } from './debug-build';
+import { main } from './main';
+import { logError, park } from './utils';
 
-async function main(): Promise<void> {
-  const extension = new AwsLambdaExtension();
-
-  await extension.register();
-
-  extension.startSentryTunnel();
-
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    await extension.next();
-  }
-}
-
-main().catch(err => {
-  DEBUG_BUILD && debug.error('Error in Lambda Extension', err);
+// An unhandled rejection ends the process, and a process ending outside the shutdown phase is
+// reported as `Extension.Crash` against the invocation in flight. Parked rather than exited for the
+// same reason `main` parks: whatever failed here, the tunnel may still be serving envelopes.
+main(new AwsLambdaExtension()).catch(err => {
+  logError('the extension stopped unexpectedly.', err);
+  park();
 });
