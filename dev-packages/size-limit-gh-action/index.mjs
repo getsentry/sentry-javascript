@@ -45,6 +45,15 @@ async function run() {
     const limit = new SizeLimitFormatter();
     const artifactClient = new DefaultArtifactClient();
 
+    if (comparisonBranch) {
+      const { data: currentPr } = await octokit.rest.pulls.get({ ...repo, pull_number: pr.number });
+      if (currentPr.labels.some(label => label.name === OVERRIDE_LABEL)) {
+        core.info('Bundle size increase accepted.');
+        return;
+      }
+    }
+
+
     // Build and measure each bundle defined in .size-limit.js for the current branch
     const { stdout } = await getExecOutput('yarn', ['run', '--silent', 'size-limit', '--json']);
     const current = limit.parseResults(stdout);
@@ -100,12 +109,6 @@ async function run() {
       core.endGroup();
     }
 
-    const { data: currentPr } = await octokit.rest.pulls.get({
-      ...repo,
-      pull_number: pr.number,
-    });
-    const approved = currentPr.labels.some(label => label.name === OVERRIDE_LABEL);
-    const increases = base ? limit.getSizeIncreases(base, current, sizeConfig) : [];
     const bodyParts = [SIZE_LIMIT_HEADING];
 
     if (baseIsNotLatest) {
