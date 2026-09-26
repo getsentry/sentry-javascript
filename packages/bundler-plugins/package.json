@@ -113,7 +113,7 @@
     "@sentry/core": "11.0.0",
     "dotenv": "^17.4.2",
     "glob": "^13.0.6",
-    "magic-string": "~0.30.8",
+    "magic-string": "~0.30.8 || ^1.0.0",
     "oxc-parser": "^0.143.0",
     "sentry": "^0.44.0",
     "supports-color": "^8.1.1"
