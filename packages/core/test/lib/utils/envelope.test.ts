@@ -4,6 +4,7 @@ import type { EventEnvelope } from '../../../src/types/envelope';
 import type { Event } from '../../../src/types/event';
 import {
   addItemToEnvelope,
+  createAttachmentEnvelopeItem,
   createEnvelope,
   forEachEnvelopeItem,
   parseEnvelope,
@@ -88,6 +89,22 @@ describe('envelope', () => {
       ]);
 
       after?.();
+    });
+
+    it('parses an envelope with an empty attachment', () => {
+      const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+        [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
+        createAttachmentEnvelopeItem({ filename: 'empty.txt', data: '' }),
+        createAttachmentEnvelopeItem({ filename: 'foo.txt', data: 'foo' }),
+      ]);
+
+      const [, parsedItems] = parseEnvelope(serializeEnvelope(env));
+
+      expect(parsedItems).toEqual([
+        [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
+        [{ type: 'attachment', filename: 'empty.txt', length: 0 }, new Uint8Array(0)],
+        [{ type: 'attachment', filename: 'foo.txt', length: 3 }, new TextEncoder().encode('foo')],
+      ]);
     });
 
     it("doesn't throw when being passed a an envelope that contains a circular item payload", () => {

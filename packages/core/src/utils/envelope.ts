@@ -168,7 +168,7 @@ export function parseEnvelope(env: string | Uint8Array): Envelope {
     const itemHeader = readJson<BaseEnvelopeItemHeaders>();
     const binaryLength = typeof itemHeader.length === 'number' ? itemHeader.length : undefined;
 
-    items.push([itemHeader, binaryLength ? readBinary(binaryLength) : readJson()]);
+    items.push([itemHeader, binaryLength !== undefined ? readBinary(binaryLength) : readJson()]);
   }
 
   return [envelopeHeader, items];
