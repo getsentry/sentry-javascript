@@ -5,6 +5,7 @@ import { applySdkMetadata, setNormalizeStringifier } from '@sentry/core';
 import { vueIntegration } from './integration';
 import type { Options } from './types';
 import { normalizeStringifyValue } from './normalizeStringifyValue';
+import { createVueRouteProvider, getRouterFromApp } from './routeProvider';
 
 /**
  * Inits the Vue SDK
@@ -12,6 +13,9 @@ import { normalizeStringifyValue } from './normalizeStringifyValue';
 export function init(options: Partial<Omit<Options, 'tracingOptions'>> = {}): Client | undefined {
   const opts = {
     defaultIntegrations: [...getDefaultIntegrations(options), vueIntegration()],
+    // The router is read off the app on each call, so `app.use(router)` can run either side of `init`, and
+    // users who never pass `router` to the tracing integration still get parameterized routes.
+    ...(options.app && { routeProvider: createVueRouteProvider(() => getRouterFromApp(options.app)) }),
     ...options,
   };
 
