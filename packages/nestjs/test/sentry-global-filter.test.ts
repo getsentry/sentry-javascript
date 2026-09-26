@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { ArgumentsHost } from '@nestjs/common';
 import { HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { BaseExceptionFilter } from '@nestjs/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Helpers from '../src/helpers';
@@ -320,6 +321,54 @@ describe('SentryGlobalFilter', () => {
         },
       });
       expect(mockLoggerError).toHaveBeenCalledWith(error.message, error.stack);
+    });
+  });
+
+  describe('non-HTTP custom context', () => {
+    it.each(['necord', 'custom'])(
+      'captures unexpected errors for context type %s without delegating to HTTP',
+      contextType => {
+        vi.mocked(mockArgumentsHost.getType).mockReturnValue(contextType);
+        const superCatchSpy = vi.spyOn(BaseExceptionFilter.prototype, 'catch').mockImplementation(() => undefined);
+        const error = new Error('Custom context failed');
+
+        filter.catch(error, mockArgumentsHost);
+
+        expect(mockCaptureException).toHaveBeenCalledWith(error, {
+          mechanism: {
+            handled: false,
+            type: `auto.${contextType}.nestjs.global_filter`,
+          },
+        });
+        expect(mockLoggerError).toHaveBeenCalledWith(error.message, error.stack);
+        expect(superCatchSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not capture expected exceptions for non-HTTP contexts', () => {
+      vi.mocked(mockArgumentsHost.getType).mockReturnValue('necord');
+      isExpectedErrorMock.mockReturnValueOnce(true);
+      const exception = new HttpException('Unknown interaction', HttpStatus.BAD_REQUEST);
+
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(mockCaptureException).not.toHaveBeenCalled();
+      expect(mockLoggerError).toHaveBeenCalledWith(exception.message, exception.stack);
+    });
+
+    it('captures unexpected non-Error values for non-HTTP contexts', () => {
+      vi.mocked(mockArgumentsHost.getType).mockReturnValue('custom');
+      const nonErrorObject = { message: 'interaction failed' };
+
+      filter.catch(nonErrorObject, mockArgumentsHost);
+
+      expect(mockCaptureException).toHaveBeenCalledWith(nonErrorObject, {
+        mechanism: {
+          handled: false,
+          type: 'auto.custom.nestjs.global_filter',
+        },
+      });
+      expect(mockLoggerError).not.toHaveBeenCalled();
     });
   });
 });

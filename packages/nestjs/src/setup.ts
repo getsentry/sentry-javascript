@@ -179,6 +179,25 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       return;
     }
 
+    // Custom context types (necord, ...) run through ExternalContextCreator and have no HTTP adapter.
+    // BaseExceptionFilter expects an HTTP adapter and cannot reply on those hosts.
+    if (contextType !== 'http') {
+      if (!isExpectedError(exception)) {
+        captureException(exception, {
+          mechanism: {
+            handled: false,
+            type: `auto.${contextType}.nestjs.global_filter`,
+          },
+        });
+      }
+
+      if (exception instanceof Error) {
+        this._logger.error(exception.message, exception.stack);
+      }
+
+      return;
+    }
+
     // HTTP exceptions
     if (!isExpectedError(exception)) {
       captureException(exception, {
