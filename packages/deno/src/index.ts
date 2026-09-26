@@ -147,6 +147,7 @@ export {
   openAIIntegration,
   groqIntegration,
   togetherAIIntegration,
+  typesafeIntegration,
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
