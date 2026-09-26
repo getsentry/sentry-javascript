@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../../../src/api';
 import { makeDsn } from '../../../src/utils/dsn';
-import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
+import { createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
 import { handleTunnelRequest } from '../../../src/utils/tunnel';
 
 const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
@@ -40,6 +40,24 @@ describe('handleTunnelRequest', () => {
     expect(init.headers).toEqual({ 'Content-Type': 'application/x-sentry-envelope' });
     expect(init.body).toBeInstanceOf(Uint8Array);
 
+    expect(result).toBe(upstreamResponse);
+  });
+
+  it('forwards an envelope that contains an empty attachment', async () => {
+    const upstreamResponse = new Response('ok', { status: 200 });
+    fetchMock.mockResolvedValueOnce(upstreamResponse);
+
+    const envelope = createEnvelope({ dsn: TEST_DSN }, [
+      [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
+      createAttachmentEnvelopeItem({ filename: 'empty.txt', data: '' }),
+    ]);
+
+    const result = await handleTunnelRequest({
+      request: new Request('http://localhost/tunnel', { method: 'POST', body: serializeEnvelope(envelope) }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
     expect(result).toBe(upstreamResponse);
   });
 
