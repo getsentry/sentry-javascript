@@ -4,8 +4,11 @@ export const assets = createAssetServer({
   basePath: '/assets',
   rootDir: process.cwd(),
   allowFiles: ['app/routes.ts', 'app/**/public/**'],
-  allowPackages: ['remix', '@sentry/remix'],
+  allowPackages: ['remix', '@sentry/browser', '@sentry/remix'],
   minify: true,
+  scripts: {
+    define: { 'process.env.E2E_TEST_DSN': JSON.stringify(process.env.E2E_TEST_DSN) },
+  },
   watch: false,
 });
 

@@ -11,6 +11,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
+    "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
     "remix": "3.0.0-rc.1"
   },

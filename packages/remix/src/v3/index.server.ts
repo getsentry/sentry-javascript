@@ -2,3 +2,5 @@
 // `http.server` spans, so this is useful on its own; route parameterisation and router error capture
 // are what is still missing.
 export * from '@sentry/node';
+
+export { instrumentAssetServer } from './assetServer';
