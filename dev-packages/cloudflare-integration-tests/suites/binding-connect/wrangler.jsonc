@@ -1,0 +1,26 @@
+{
+  "name": "binding-connect-worker",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "migrations": [
+    {
+      "new_sqlite_classes": ["ConnectDurableObject"],
+      "tag": "v1",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "ConnectDurableObject",
+        "name": "CONNECT_DO",
+      },
+    ],
+  },
+  "services": [
+    {
+      "binding": "SELF",
+      "service": "binding-connect-worker",
+    },
+  ],
+}
