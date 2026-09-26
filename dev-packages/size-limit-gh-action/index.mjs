@@ -118,16 +118,10 @@ async function run() {
     if (!base) {
       failure = 'No baseline size measurements found. Re-run after the base build completes.';
       bodyParts.push(failure);
-    } else if (increases.length > 0) {
-      const details = increases.map(({ name, increase }) => `${name}: +${increase} bytes`).join('\n');
-      if (approved) {
-        bodyParts.push(`Bundle size increase acknowledged by "${OVERRIDE_LABEL}".\n\n${details}`);
-      } else {
-        failure =
-          `Gzipped bundles increased by more than ${MAX_INCREASE_BYTES} bytes:\n${details}\n` +
-          `Apply "${OVERRIDE_LABEL}" to acknowledge the increase.`;
-        bodyParts.push(failure);
-      }
+    } else if (increases.length > 0 && !approved) {
+      failure =
+        `One or more gzipped bundles increased by more than ${MAX_INCREASE_BYTES} bytes. ` +
+        `If this increase is intentional, add the **${OVERRIDE_LABEL}** label to this PR to rerun and accept the check.`;
     }
 
     bodyParts.push(markdownTable(limit.formatResults(base, current)));
@@ -153,8 +147,16 @@ async function run() {
           body,
         });
       }
+
+      if (increases.length > 0 && !approved) {
+        await octokit.rest.issues.createComment({
+          ...repo,
+          issue_number: pr.number,
+          body: failure,
+        });
+      }
     } catch {
-      core.warning('Unable to update the PR comment. The size report is available in the job summary.');
+      core.warning('Unable to update PR comments. The size report is available in the job summary.');
     }
 
     if (failure) {
