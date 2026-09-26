@@ -156,7 +156,7 @@ const globalWithInjectedBasePath = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 export function appRouterInstrumentNavigation(client: Client): void {
   routerTransitionHandler = (href, navigationType) => {
     const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
-    const normalizedHref = basePath && !href.startsWith(basePath) ? `${basePath}${href}` : href;
+    const normalizedHref = basePath && href.startsWith('/') && !href.startsWith(basePath) ? `${basePath}${href}` : href;
     const unparameterizedPathname = stripTrailingSlash(new URL(normalizedHref, WINDOW.location.href).pathname);
     const parameterizedPathname = maybeParameterizeRoute(unparameterizedPathname);
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
@@ -304,7 +304,9 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
           const href = argArray[0];
           const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
           const normalizedHref =
-            basePath && typeof href === 'string' && !href.startsWith(basePath) ? `${basePath}${href}` : href;
+            basePath && typeof href === 'string' && href.startsWith('/') && !href.startsWith(basePath)
+              ? `${basePath}${href}`
+              : href;
           const transactionName = stripTrailingSlash(transactionNameifyRouterArgument(normalizedHref));
           const parameterizedPathname = maybeParameterizeRoute(transactionName);
 
