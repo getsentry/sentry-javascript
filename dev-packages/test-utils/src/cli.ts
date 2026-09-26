@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import type { SpawnSyncReturns } from 'node:child_process';
 
 /**
  * Spans only become queryable once they have made it through to EAP, which takes
@@ -30,13 +31,8 @@ export function traceTarget(traceId: string): string {
   return `${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/${process.env['E2E_TEST_SENTRY_PROJECT']}/${traceId}`;
 }
 
-/**
- * Fetch a trace of the E2E test project through the `sentry` CLI, which the calling test app has to
- * list as a dev dependency. Returns an empty list while the trace has not landed yet.
- */
-export function fetchTrace(traceId: string): TraceItem[] {
-  const target = traceTarget(traceId);
-  const result = spawnSync('pnpm', ['exec', 'sentry', 'trace', 'view', target, '--json', '--fresh'], {
+function runSentryCli(args: string[]): SpawnSyncReturns<string> {
+  const result = spawnSync('pnpm', ['exec', 'sentry', ...args], {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     env: {
@@ -50,10 +46,21 @@ export function fetchTrace(traceId: string): TraceItem[] {
 
   if (result.error) {
     throw new Error(
-      `Could not run \`pnpm exec sentry trace view\`: ${result.error.message}. ` +
+      `Could not run \`pnpm exec sentry ${args[0]}\`: ${result.error.message}. ` +
         'The test app needs `sentry` as a dev dependency.',
     );
   }
+
+  return result;
+}
+
+/**
+ * Fetch a trace of the E2E test project through the `sentry` CLI, which the calling test app has to
+ * list as a dev dependency. Returns an empty list while the trace has not landed yet.
+ */
+export function fetchTrace(traceId: string): TraceItem[] {
+  const target = traceTarget(traceId);
+  const result = runSentryCli(['trace', 'view', target, '--json', '--fresh']);
 
   if (result.status === 0) {
     return (JSON.parse(result.stdout) as { spans?: TraceItem[] }).spans ?? [];
@@ -78,6 +85,31 @@ export function fetchTrace(traceId: string): TraceItem[] {
   }
 
   throw new Error(`sentry trace view ${target} exited with ${result.status}: ${result.stderr}`);
+}
+
+/**
+ * Fetch all attributes of a span in the E2E test project, keyed by attribute name. Returns
+ * `undefined` while the span is not queryable yet.
+ *
+ * `sentry trace view --json` cannot be used for this: the trace-items endpoint sends `int` attribute
+ * values as strings, the CLI's schema rejects that, and the CLI then drops all attributes of the span.
+ */
+export function fetchSpanAttributes(traceId: string, spanId: string): Record<string, unknown> | undefined {
+  const path =
+    `/projects/${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/${process.env['E2E_TEST_SENTRY_PROJECT']}` +
+    `/trace-items/${spanId}/?trace_id=${traceId}&item_type=spans`;
+  const result = runSentryCli(['api', path]);
+
+  if (result.status === 0) {
+    const { attributes } = JSON.parse(result.stdout) as { attributes: { name: string; value: unknown }[] };
+    return Object.fromEntries(attributes.map(({ name, value }) => [name, value]));
+  }
+
+  if (result.stdout.includes('"Not found."')) {
+    return undefined;
+  }
+
+  throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);
 }
 
 /**
