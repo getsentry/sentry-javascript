@@ -44,6 +44,10 @@ export type DataCollectorOptions = {
 /**
  * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
  *
+ * On Bun the version gate does not apply and the block always runs. A suite that the gate keeps
+ * off a Node version because it cannot run there must also be excluded for Bun in
+ * `dev-packages/bun-integration-tests/node-suites/excludes.ts`.
+ *
  * @param {{ min?: number; max?: number }} allowedVersion
  */
 export function conditionalTest(allowedVersion: {
