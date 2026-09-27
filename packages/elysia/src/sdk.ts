@@ -3,6 +3,7 @@ import {
   bunServerIntegration,
   getDefaultIntegrations as getBunDefaultIntegrations,
   makeFetchTransport,
+  makeNodeTransport,
 } from '@sentry/bun';
 import type { Integration, Options } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
@@ -41,16 +42,17 @@ function getRuntime(): { name: string; version: string } {
  * ```
  */
 export function init(userOptions: ElysiaOptions = {}): NodeClient | undefined {
+  const runtime = getRuntime();
   const options = {
     ...userOptions,
     platform: 'javascript',
-    runtime: getRuntime(),
+    runtime,
     serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),
   };
 
-  applySdkMetadata(userOptions, 'elysia', ['elysia', options.runtime.name]);
+  applySdkMetadata(userOptions, 'elysia', ['elysia', runtime.name]);
 
-  options.transport = options.transport || makeFetchTransport;
+  options.transport = options.transport || (runtime.name === 'bun' ? makeFetchTransport : makeNodeTransport);
 
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrations(options);
