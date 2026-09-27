@@ -82,6 +82,13 @@ describe('LangChain integration', () => {
             expect(errorSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
             expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
+
+            for (const span of [sonnetSpan!, opusSpan!, errorSpan!]) {
+              expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeUndefined();
+            }
           },
         })
         .start()
@@ -333,6 +340,10 @@ describe('LangChain integration', () => {
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe(GEN_AI_EMBEDDINGS);
             expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
+
+            for (const span of [...successfulSpans, errorSpan!]) {
+              expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
+            }
           },
         })
         .start()

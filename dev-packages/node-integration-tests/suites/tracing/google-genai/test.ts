@@ -81,6 +81,15 @@ describe('Google GenAI integration', () => {
             expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
             expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
+
+            for (const span of [chatSpan!, generateContentSpan!, errorSpan!]) {
+              expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeUndefined();
+            }
           },
         })
         .start()
@@ -352,6 +361,15 @@ describe('Google GenAI integration', () => {
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
             expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
+
+            for (const span of [generateContentSpan!, chatSpan!, blockedSpan!, errorSpan!]) {
+              expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeUndefined();
+            }
           },
         })
         .start()
@@ -511,6 +529,7 @@ describe('Google GenAI integration', () => {
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
             expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
+            expect(errorSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
           },
         })
         .start()

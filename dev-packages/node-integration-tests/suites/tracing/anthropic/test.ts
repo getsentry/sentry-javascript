@@ -93,6 +93,14 @@ describe('Anthropic integration', () => {
             expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(streamingSpan!.status).toBe('ok');
             expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+
+            for (const span of [completionSpan!, errorSpan!, streamingSpan!]) {
+              expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_TOOL_DEFINITIONS]).toBeUndefined();
+            }
           },
         })
         .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
