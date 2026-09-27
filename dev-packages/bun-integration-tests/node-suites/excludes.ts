@@ -126,6 +126,7 @@ const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/prisma-orm-v5/test.ts',
   'suites/tracing/prisma-orm-v6/test.ts',
   'suites/tracing/prisma-orm-v7/test.ts',
+  'suites/tracing/prisma-orm-v8/test.ts',
   'suites/tracing/redis-cache/test.ts',
   'suites/tracing/redis-dc/test.ts',
   'suites/tracing/redis/test.ts',
