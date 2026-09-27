@@ -8,9 +8,8 @@ import type {
   HoldEvent,
   InteractionEvent,
   NavigationEvent,
-  RerunEvent,
 } from 'solid-js/attribution';
-import { attribution, isSilentHold } from 'solid-js/attribution';
+import { attribution } from 'solid-js/attribution';
 import type { DiagnosticsOptions } from '../common/diagnostics';
 import { captureDiagnostic } from '../common/diagnostics';
 import { describeOrigin, describeTarget } from '../common/target';
@@ -37,10 +36,13 @@ export interface SolidTracingOptions {
    */
   records?: boolean;
   /**
-   * Keep the element text Solid puts in an interaction's target
-   * (`button#next "Next →"`, up to 30 characters) in span names and
-   * attributes. Off by default — the text of a `<td>` a user clicked is user
-   * data; the element alone (`button#next`) is kept either way.
+   * Keep the caption of the control an interaction hit (`button#next "Next
+   * →"`) in span names and attributes. Off by default: the engine is asked
+   * for `values: "none"`, so records carry the element alone (`button#next`)
+   * and no value previews. On, the engine's `"labels"` level applies — the
+   * caption of a `button` or an `a` is kept, the text of anything else (a
+   * `td`, a `div`) is still dropped. Scrubbed where the record is built, so
+   * nothing in the SDK ever holds the text.
    */
   targetText?: boolean;
 }
@@ -72,23 +74,33 @@ export const solidTracingIntegration = defineIntegration((options: SolidTracingO
       // Solid's channels are process-wide, not per client: a second `init`
       // (tests, HMR) replaces the previous subscriptions rather than stacking.
       uninstall?.();
-      const tracer = new Tracer(options.targetText === true);
+      const tracer = new Tracer();
       // `enable()` is a hold on a shared engine, not a switch: Solid's own
       // Performance-panel tracks, a diagnostics capture and this SDK coexist,
       // options combine by the most demanding request per key (`log: false`
       // asks for nothing; it silences no one), and the engine stays up while
       // any hold remains. The returned release is this SDK's — `disable()`
       // would tear the engine down for every consumer.
-      const release = attribution.enable({ historyLimit: 200, ...options.attribution, log: false });
+      // `values` is the least-permissive-wins key: asking for "none" here
+      // holds even beside a dev console that asked for "full". No `rerun`
+      // subscription — the engine builds re-run records only for an
+      // audience, and the interaction record's `runs`/`runMs` are what the
+      // span needs; a records-only consumer stays a lean one.
+      const release = attribution.enable({
+        historyLimit: 200,
+        ...options.attribution,
+        values: options.targetText === true ? 'labels' : 'none',
+        log: false,
+      });
       const off = [
-        attribution.subscribe('rerun', event => tracer.rerun(event)),
-        attribution.subscribe('interaction', event => queueMicrotask(() => tracer.interaction(event))),
-        attribution.subscribe('navigation', event => {
+        release,
+        OBSERVE.records.subscribe('interaction', event => queueMicrotask(() => tracer.interaction(event))),
+        OBSERVE.records.subscribe('navigation', event => {
           if (event.interaction === undefined) queueMicrotask(() => tracer.orphanNavigation(event));
         }),
-        attribution.subscribe('hold', event => {
+        OBSERVE.records.subscribe('hold', event => {
           if (event.interaction === undefined && event.origin?.kind !== 'navigation') {
-            queueMicrotask(() => holdSpan(event, null, tracer.keepText));
+            queueMicrotask(() => holdSpan(event, null));
           }
         }),
       ];
@@ -102,7 +114,7 @@ export const solidTracingIntegration = defineIntegration((options: SolidTracingO
         off.push(
           OBSERVE.records.subscribe('call', (event, live) => {
             if (tracer.claimCall(event, live)) return;
-            queueMicrotask(() => callSpan(event, live, null, tracer.keepText));
+            queueMicrotask(() => callSpan(event, live, null));
           }),
           OBSERVE.records.subscribe('frame', (event, live) => {
             if (event.side === 'client') queueMicrotask(() => frameSpan(event, live));
@@ -111,14 +123,13 @@ export const solidTracingIntegration = defineIntegration((options: SolidTracingO
       }
       uninstall = () => {
         for (const fn of off) fn();
-        release();
         uninstall = undefined;
       };
     },
   };
 });
 
-function holdSpan(hold: HoldEvent, parent: Span | null, keepText: boolean): Span {
+function holdSpan(hold: HoldEvent, parent: Span | null): Span {
   const span = startInactiveSpan({
     name: `hold${hold.blockers.length ? ` waiting on ${hold.blockers.join(', ')}` : ''}`,
     op: 'solid.hold',
@@ -128,14 +139,15 @@ function holdSpan(hold: HoldEvent, parent: Span | null, keepText: boolean): Span
       'solid.hold.ms': round(hold.holdMs),
       'solid.hold.tailMs': round(hold.tailMs),
       'solid.hold.flushes': hold.flushes,
-      'solid.hold.silent': isSilentHold(hold),
+      'solid.hold.silent': hold.silent,
+      'solid.hold.long': hold.long,
       'solid.hold.acknowledgedBy': hold.acknowledgements.map(a => `${a.kind}:${a.source}`),
       'solid.hold.readers': hold.acknowledgements.flatMap(a => (a.reader ? [a.reader.join(' › ')] : [])),
       'solid.hold.blockers': hold.blockers,
       'solid.hold.heldWrites': hold.heldWrites.map(w => w.name),
       'solid.hold.painted': hold.paintedDuringHold,
       'solid.hold.action': hold.action,
-      'solid.hold.navigation': hold.origin ? describeOrigin(hold.origin, keepText) : undefined,
+      'solid.hold.navigation': hold.origin ? describeOrigin(hold.origin) : undefined,
       'sentry.origin': ORIGIN,
     },
   });
@@ -143,14 +155,14 @@ function holdSpan(hold: HoldEvent, parent: Span | null, keepText: boolean): Span
   return span;
 }
 
-function navigationSpan(nav: NavigationEvent, parent: Span | null, keepText: boolean, links?: SpanLink[]): Span {
+function navigationSpan(nav: NavigationEvent, parent: Span | null, links?: SpanLink[]): Span {
   const attributes: Record<string, string | number | boolean | string[] | undefined> = {
     'solid.navigation.to': nav.to,
     'solid.navigation.from': nav.from,
     'solid.navigation.outcome': nav.outcome,
     'solid.navigation.writes': nav.writes,
     'solid.navigation.redirects': nav.redirects?.map(h => h.to ?? h.name ?? '?'),
-    'solid.navigation.silent': nav.hold !== undefined && isSilentHold(nav.hold),
+    'solid.navigation.silent': nav.hold?.silent ?? false,
     'sentry.origin': ORIGIN,
   };
   for (const [key, value] of Object.entries(nav.params ?? {})) {
@@ -164,7 +176,7 @@ function navigationSpan(nav: NavigationEvent, parent: Span | null, keepText: boo
     attributes,
     links,
   });
-  if (nav.hold !== undefined) holdSpan(nav.hold, span, keepText);
+  if (nav.hold !== undefined) holdSpan(nav.hold, span);
   span.end(epochSeconds(nav.at + (nav.settledMs ?? 0)));
   return span;
 }
@@ -177,8 +189,6 @@ interface RecentInteraction {
 const RECENT_LIMIT = 50;
 
 class Tracer {
-  /** Self-time per node name for each open interaction — the record has totals, not the breakdown. */
-  private readonly _hot: WeakMap<ChangeOrigin, Map<string, number>>;
   private readonly _settled: WeakSet<ChangeOrigin>;
   /** The root span each settled interaction became — the parent for work it caused after its window closed. */
   private readonly _spans: WeakMap<ChangeOrigin, Span>;
@@ -187,21 +197,11 @@ class Tracer {
   /** Settled interactions kept for the time join, newest last. */
   private readonly _recent: RecentInteraction[];
 
-  public constructor(public readonly keepText: boolean) {
-    this._hot = new WeakMap();
+  public constructor() {
     this._settled = new WeakSet();
     this._spans = new WeakMap();
     this._calls = new WeakMap();
     this._recent = [];
-  }
-
-  public rerun(event: RerunEvent): void {
-    const origin = event.interaction;
-    // Runs after settle (an async landing behind a Loading boundary) are the record's, not its wait.
-    if (origin === undefined || this._settled.has(origin)) return;
-    let hot = this._hot.get(origin);
-    if (hot === undefined) this._hot.set(origin, (hot = new Map()));
-    hot.set(event.nodeName, (hot.get(event.nodeName) ?? 0) + event.selfMs);
   }
 
   /**
@@ -220,7 +220,7 @@ class Tracer {
     if (this._settled.has(interaction)) {
       const parent = this._spans.get(interaction);
       if (parent === undefined) return false;
-      queueMicrotask(() => callSpan(event, live, parent, this.keepText, true));
+      queueMicrotask(() => callSpan(event, live, parent, true));
       return true;
     }
     let calls = this._calls.get(interaction);
@@ -238,13 +238,13 @@ class Tracer {
     const inputDelayMs = event.inputDelayMs ?? 0;
     const handlerEnd = event.at + inputDelayMs + event.handlerMs;
     const span = startInactiveSpan({
-      name: describeOrigin(origin, this.keepText),
+      name: describeOrigin(origin),
       op: `ui.interaction.${event.name}`,
       parentSpan: null,
       startTime: epochSeconds(event.at),
       attributes: {
         'solid.interaction.type': event.name,
-        'solid.interaction.target': describeTarget(event.target, this.keepText),
+        'solid.interaction.target': describeTarget(event.target),
         'solid.interaction.outcome': event.outcome,
         'solid.interaction.inputDelayMs': event.inputDelayMs === undefined ? undefined : round(event.inputDelayMs),
         'solid.interaction.handlerMs': round(event.handlerMs),
@@ -252,7 +252,6 @@ class Tracer {
         'solid.reruns': event.runs,
         'solid.created': event.created,
         'solid.runMs': round(event.runMs),
-        'solid.hot': this._hotList(origin),
         'solid.holds': event.holds.length,
         'solid.navigations': event.navigations.length,
         'sentry.origin': ORIGIN,
@@ -261,13 +260,13 @@ class Tracer {
     const underNavigation = new Set<HoldEvent>();
     for (const nav of event.navigations) {
       if (nav.hold !== undefined) underNavigation.add(nav.hold);
-      navigationSpan(nav, span, this.keepText);
+      navigationSpan(nav, span);
     }
-    for (const hold of event.holds) if (!underNavigation.has(hold)) holdSpan(hold, span, this.keepText);
+    for (const hold of event.holds) if (!underNavigation.has(hold)) holdSpan(hold, span);
     const calls = this._calls.get(origin);
     if (calls !== undefined) {
       this._calls.delete(origin);
-      for (const call of calls) callSpan(call.event, call.live, span, this.keepText);
+      for (const call of calls) callSpan(call.event, call.live, span);
     }
     span.end(epochSeconds(event.settledMs === undefined ? handlerEnd : event.at + event.settledMs));
     this._spans.set(origin, span);
@@ -290,16 +289,6 @@ class Tracer {
     const links: SpanLink[] | undefined = cause
       ? [{ context: cause.context, attributes: { 'solid.link': 'interaction-by-time' } }]
       : undefined;
-    navigationSpan(nav, null, this.keepText, links);
-  }
-
-  private _hotList(origin: ChangeOrigin): string[] {
-    const hot = this._hot.get(origin);
-    this._hot.delete(origin);
-    if (hot === undefined) return [];
-    return [...hot]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([name, ms]) => `${name} ${ms.toFixed(2)}ms`);
+    navigationSpan(nav, null, links);
   }
 }

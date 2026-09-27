@@ -8731,10 +8731,10 @@
   resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-1.0.0.tgz#9e4e5d6dbdeb725e8e4a9b5a3c7158c39fff096f"
   integrity sha512-cCSk1hvgCowiMa9bzzYWHiLu1U4E22+DfJe6/rOwAyECKrxc3jrd5QnoW3sDDJtW+e077cz/M67bPl3DqOBw1Q==
 
-"@solidjs/signals@^2.0.0-rc.9":
-  version "2.0.0-rc.9"
-  resolved "https://registry.yarnpkg.com/@solidjs/signals/-/signals-2.0.0-rc.9.tgz#2140db06574f917ec35ce590f3420bd37a05c9b5"
-  integrity sha512-o3pqiTgpH5NR2DstiKrt9s/6+0YOFtv+MfvLONwLsS247I+EWMMyTu9BkRcgd35UR5Pa1DM16lI1/5uaIMY6Gw==
+"@solidjs/signals@^2.0.0-rc.10":
+  version "2.0.0-rc.10"
+  resolved "https://registry.yarnpkg.com/@solidjs/signals/-/signals-2.0.0-rc.10.tgz#d0395b8a7df151672c7e1a1c7942a4f6788d9c89"
+  integrity sha512-+5JN0259Scjqft7kTCv1pc3rMRniAxNr1We748UU2zz7MrE8MVn65IPt8VS3rA/7DubRCxoiBdDl+aUlJY9v5g==
 
 "@solidjs/start@^1.3.2":
   version "1.3.2"
@@ -8764,10 +8764,10 @@
   dependencies:
     "@testing-library/dom" "^9.3.1"
 
-"@solidjs/web@^2.0.0-rc.9":
-  version "2.0.0-rc.9"
-  resolved "https://registry.yarnpkg.com/@solidjs/web/-/web-2.0.0-rc.9.tgz#a056d25115dcefd9aed178716c8bf7e6c031400f"
-  integrity sha512-pfiWoLDnLc+QYWc7UyLqO+5QrPEf3oTiNmmRC+C+uM6AZ5VH0bZMNPtLM5rJ29LKPiTwQitKV843IQDf/oeyhQ==
+"@solidjs/web@^2.0.0-rc.10":
+  version "2.0.0-rc.10"
+  resolved "https://registry.yarnpkg.com/@solidjs/web/-/web-2.0.0-rc.10.tgz#ce78347769b50a8ea40e3394240920b223d5079a"
+  integrity sha512-CHXXV5BtqUkuxz/AM45WUKCYF/OiBhC6fOe9gyiktES2bpKj6SUL2xxIciM7q7G+ewYXAN/SGy1/SNFSrxjrOQ==
   dependencies:
     seroval "~1.6.7"
     seroval-plugins "~1.6.7"
@@ -25391,12 +25391,12 @@ solid-js@^1.9.11:
     seroval "~1.5.0"
     seroval-plugins "~1.5.0"
 
-solid-js@^2.0.0-rc.9:
-  version "2.0.0-rc.9"
-  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-2.0.0-rc.9.tgz#f07125cee1149da629326beed94afdf71c6188b9"
-  integrity sha512-J/oHWnWqe7S0FeIEdIRKDvyyo+HY/TYKr2PrIB8VlePMWuErDg78QHqdsAV7f6HKa9qhWR/23eqzR/ZRV9ep0g==
+solid-js@^2.0.0-rc.10:
+  version "2.0.0-rc.10"
+  resolved "https://registry.yarnpkg.com/solid-js/-/solid-js-2.0.0-rc.10.tgz#e473575d9be4b252cf0da791d535576d48ebf2e2"
+  integrity sha512-eh25kmg7yXuJCVN2VpS03bUuTJ0rvb7MnJyIw+8tcSRwnINaugyI5RLwPMy9Rji94CqsMbDrD9Ixh9bRuBMwwQ==
   dependencies:
-    "@solidjs/signals" "^2.0.0-rc.9"
+    "@solidjs/signals" "^2.0.0-rc.10"
     csstype "^3.1.0"
     seroval "~1.6.7"
     seroval-plugins "~1.6.7"

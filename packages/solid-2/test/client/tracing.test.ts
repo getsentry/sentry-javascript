@@ -143,8 +143,11 @@ describe('solidTracingIntegration', () => {
         'sentry.origin': 'auto.ui.solid.attribution',
       }),
     });
+    // The record's totals are the span's; no per-run subscription (the engine
+    // builds re-run records only for an audience, and the SDK is not one).
     expect(segment!.attributes['solid.reruns']).toBeGreaterThanOrEqual(1);
-    expect(segment!.attributes['solid.hot']).toEqual(expect.arrayContaining([expect.stringMatching(/^reader /)]));
+    expect(segment!.attributes['solid.runMs']).toBeGreaterThanOrEqual(0);
+    expect(segment!.attributes['solid.hot']).toBeUndefined();
 
     const nav = captured.spans.find(span => span.attributes['sentry.op'] === 'navigation');
     expect(nav).toMatchObject({

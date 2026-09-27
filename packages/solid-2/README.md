@@ -103,8 +103,10 @@ Sentry.init({
   and no body rewriting; plus one span per server-function execution, per `<Loading>` boundary that waited, and per
   frame stream produced.
 
-Element text Solid attaches to an interaction's target (`button#next "Next →"`) is user data and left out of span
-names and attributes unless `solidTracingIntegration({ targetText: true })`; the element itself is kept. A finding's
+Element text Solid attaches to an interaction's target (`button#next "Next →"`) is user data: the SDK asks the
+engine for `values: "none"`, so records are built without it (the element alone, `button#next`, stays) and without
+value previews. `solidTracingIntegration({ targetText: true })` asks for `"labels"` instead — the caption of a
+`button` or an `a` is kept, the text of anything else is not. A finding's
 `data.error` — the error as thrown, on the server error findings — is not forwarded as an issue extra (the error hook
 already captured it as an exception).
 

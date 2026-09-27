@@ -110,15 +110,17 @@ options combine across holds by the most demanding request per key (booleans OR,
 that fires sooner wins), so `log: false` asks for nothing and silences no one, and a hold can add to what another
 asked for but never take it away. The SDK keeps the release and calls it on re-`init` (HMR, tests); it never calls
 `attribution.disable()`, which tears the engine down for every consumer and is the console's and a test harness's
-reset. `attribution.subscribe(type, fn)` delivers `InteractionEvent`, `NavigationEvent`, `HoldEvent` and
-`RerunEvent` as they settle, bottom-up (a hold before the navigation it held, before the interaction that performed
-it); subscriptions are dropped only when the last hold is released. The engine's folds (`costs()`, `feedback()`,
-`why()`, `subscriptions()`) are named exports the SDK never imports, so they tree-shake out of an app that only ships
-the integration; `isSilentHold()`/`isLongHold()` are the engine's own verdicts, and the SDK uses them so its
-`solid.hold.silent` agrees with the `SILENT_HOLD` finding by construction. Five further record types exist —
-`create`, `effect`, `flush`, `flight`, `fallback` — built only while a listener for them exists; they are
-profiler-grain and the SDK does not subscribe (`flight`, an async span per kickoff joined to its interaction, is the
-one worth a product look).
+reset. The engine's records arrive on the one channel, `OBSERVE.records.subscribe(type, (event, live) => …)` —
+`interaction`, `navigation`, `hold`, `rerun`, `graph`, and the profiler-grain `create`/`effect`/`flush`/`flight`/
+`fallback` — delivered as they settle, bottom-up (a hold before the navigation it held, before the interaction that
+performed it). Channel listeners outlive any hold: subscribe before or after `enable()`, unsubscribe with the
+returned function. The engine builds `rerun` records **only for an audience** (a `rerun` listener, an imported fold,
+or `log: true`); the SDK subscribes to none of those, so it is a lean consumer — the interaction record's
+`runs`/`runMs` are what its span needs. `HoldEvent.silent`/`long` carry the engine's own verdicts (computed at
+settle with the thresholds in effect), so `solid.hold.silent` agrees with the `SILENT_HOLD` finding by construction.
+The folds (`costs()`, `feedback()`, `why()`, `subscriptions()`) are named exports the SDK never imports, so they
+tree-shake out of an app that only ships the integration. (`flight`, an async span per kickoff joined to its
+interaction, is the record worth a product look.)
 
 - `InteractionEvent`: one per user event the web runtime stamped (`click`, `keydown`, …). `at` is the browser
   event's own `timeStamp` — the same instant Chrome's INP entry (`PerformanceEventTiming.startTime`) starts at — and
@@ -134,7 +136,9 @@ one worth a product look).
 - `RerunEvent`: per re-run, `nodeId` (no live node), causes, self-time. The integration folds these into a per-
   interaction hot list; it never sends one per run.
 - The engine also emits **diagnostics** (`OBSERVE.diagnostics`): `SILENT_HOLD`, `LONG_HOLD`, `HOT_SCOPE_RERUNS`,
-  `ASYNC_WATERFALL`, and the server's `SSR_RENDER_ERROR_CONTAINED`, `SSR_ERROR_SANITIZED`, … A finding is an
+  `ASYNC_WATERFALL`, `UNTRACKED_ASYNC_HANDLER`, `OPTIMISTIC_REVERTED`, `ABANDONED_FLIGHTS`, `FALLBACK_FLASH`,
+  `STACKED_HOLDS`, `WASTED_RECOMPUTE`, `GRAPH_GROWTH`, and the server's `SSR_RENDER_ERROR_CONTAINED`,
+  `SERVER_ERROR_SANITIZED`, `SSR_BOUNDARY_WATERFALL`, … A finding is an
   **issue**, not a span: it has a stable identity and recurs, so the SDK fingerprints it by `[code, ...ownerPath]`.
   Severity is Solid's: `info` is advisory and not reported by default; `error` findings do not exist in the observe
   build (they are dev-only checks) except the server's contained-render-error family.
@@ -164,11 +168,13 @@ derives its parent from the latter; the provider is where Sentry's view wins.
   falls inside a settled interaction's handler window gets a span **link** to it rather than a guessed parent. Whether
   an interaction should instead parent under an active `pageload`/`navigation` idle span is an open product question
   (`forceTransaction` is deprecated; span streaming makes "root or child" the only distinction).
-- **Calls after the interaction settled.** `onClick={async () => set(await call())}` makes no synchronous write, so
-  the engine settles the interaction as `idle` at once and the call it dispatched lands afterwards — carrying the
-  interaction's frame. It becomes a child of the interaction's (already ended) span by that identity, marked
-  `solid.server_function.after_settle`, rather than a root: the causal tree is right, the timing tells the truth.
-  Whether the engine should keep an interaction open across the handler's returned promise is a Solid-side question.
+- **Calls after the interaction settled.** Since rc.10 an interaction whose handler returns a promise stays open
+  until it settles (`InteractionEvent.continuationMs`; `UNTRACKED_ASYNC_HANDLER` when nothing acknowledged the
+  wait), so `onClick={async () => set(await call())}` no longer settles early and its call arrives while the
+  interaction is open. The `after_settle` path remains for the shape that still escapes — a non-async handler that
+  dispatches a call and returns (`onClick={() => { save().then(set) }}`): the call lands after the `idle` settle,
+  carrying the interaction's frame, and becomes a child of the ended span by that identity, marked
+  `solid.server_function.after_settle`.
 - **Mechanism types** follow the `auto.function.solid.*` family; `sentry.origin` is `auto.ui.solid.attribution`,
   `auto.http.solid.call`, `auto.ui.solid.frame`, `auto.function.solid.server`.
 - **Process-wide channels vs. per-client integrations.** Solid's channels are singletons; the integrations keep an
@@ -181,15 +187,18 @@ Solid's records name things — owner paths, `name` options, store paths, route 
 otherwise numbers, kinds and outcomes. The complete list of fields that carry user data is in RFC 08 ("Values in
 records — the PII surface"); what the integration does with each:
 
-| Field                                                 | Content                                             | Integration                                                             |
-| ----------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------- |
-| `InteractionRef.target` / `ChangeOrigin.target`       | `tag#id "text"` with up to 30 chars of text content | Text stripped from names and attributes unless `targetText: true`       |
-| `ChangeRecord.prev`/`value`, `HeldWrite.prev`/`value` | Value previews (strings cut at 40 chars)            | Never sent — re-runs are folded to names and counts                     |
-| `ChangeOrigin`/`NavigationEvent` `to`/`from`/`params` | Concrete paths and bound params                     | Sent as span attributes (URLs are already in the trace)                 |
-| `DiagnosticEvent.data.error` (server error findings)  | The error as thrown, unsanitized                    | Not forwarded as an extra; the error hook captured it as an exception   |
-| `DiagnosticEvent.data`, `.message` (responsiveness)   | Interaction target, navigation paths                | Forwarded as extras / issue title, target text subject to the same gate |
+| Field                                                 | Content                                             | Integration                                                                                                                           |
+| ----------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `InteractionRef.target` / `ChangeOrigin.target`       | `tag#id "text"` with up to 30 chars of text content | Engine `values: "none"` (default) — no text is ever built; `targetText: true` asks for `"labels"`, the caption of a `button`/`a` only |
+| `ChangeRecord.prev`/`value`, `HeldWrite.prev`/`value` | Value previews (strings cut at 40 chars)            | Never built under `"none"`/`"labels"`; never sent either way                                                                          |
+| `ChangeOrigin`/`NavigationEvent` `to`/`from`/`params` | Concrete paths and bound params                     | Sent as span attributes (URLs are already in the trace)                                                                               |
+| `DiagnosticEvent.data.error` (server error findings)  | The error as thrown, unsanitized                    | Not forwarded as an extra; the error hook captured it as an exception                                                                 |
+| `DiagnosticEvent.data`, `.message` (responsiveness)   | Interaction target, navigation paths                | Forwarded as extras / issue title, target text subject to the same gate                                                               |
 
-No `dataCollection` category fits UI text today; `targetText` is the integration's own switch until one exists.
+Scrubbing happens in the engine where the record is built (`AttributionOptions.values`, the one key where the
+least permissive holder wins across holds), so nothing in the SDK holds text it then drops; `targetText` maps onto
+that option. No `dataCollection` category fits UI text today; `targetText` is the integration's switch until one
+exists.
 
 ## Where the proofs are
 

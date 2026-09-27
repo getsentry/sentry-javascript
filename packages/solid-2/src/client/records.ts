@@ -16,13 +16,7 @@ const FRAME_ORIGIN = 'auto.ui.solid.frame';
  * only: the error itself reaches the caller, and whatever catches it there
  * (an `<Errored>`, the server error hook on the other side) reports it once.
  */
-export function callSpan(
-  event: CallEvent,
-  _live: CallLive,
-  parent: Span | null,
-  keepText: boolean,
-  afterSettle = false,
-): Span {
+export function callSpan(event: CallEvent, _live: CallLive, parent: Span | null, afterSettle = false): Span {
   const origin = event.origin;
   const span = startInactiveSpan({
     name: event.id,
@@ -34,7 +28,7 @@ export function callSpan(
       'solid.server_function.method': event.method,
       'solid.server_function.outcome': event.outcome,
       'solid.server_function.deferred': event.deferred === true,
-      'solid.server_function.origin': origin ? describeOrigin(origin, keepText) : undefined,
+      'solid.server_function.origin': origin ? describeOrigin(origin) : undefined,
       'solid.server_function.origin.kind': origin?.kind,
       'http.response.status_code': event.status,
       'solid.server_function.after_settle': afterSettle ? true : undefined,
