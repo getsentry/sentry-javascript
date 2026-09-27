@@ -1,11 +1,10 @@
 import { afterAll, describe, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../utils/runner';
-import { EXPECTED_SDK_NAME, RUNTIME } from '../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../node-integration-tests/utils/runner';
 
 const SENTRY_ATTRIBUTES = {
   'sentry.release': { value: '1.0.0', type: 'string' },
   'sentry.environment': { value: 'test', type: 'string' },
-  'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
+  'sentry.sdk.name': { value: 'sentry.javascript.bun', type: 'string' },
   'sentry.sdk.version': { value: expect.any(String), type: 'string' },
   'sentry.origin': { value: 'auto.bun.runtime_metrics', type: 'string' },
 };
@@ -30,8 +29,7 @@ const counter = (name: string, unit?: string) => ({
   attributes: expect.objectContaining(SENTRY_ATTRIBUTES),
 });
 
-// The integration measures the Bun process, so the suite runs on Bun only.
-describe.skipIf(RUNTIME !== 'bun')('bunRuntimeMetricsIntegration', () => {
+describe('bunRuntimeMetricsIntegration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
