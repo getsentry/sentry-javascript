@@ -35,8 +35,14 @@ const NO_FETCH_INSTRUMENTATION = [
 const PRISMA_ESM_INTEROP = ['suites/tracing/prisma-orm-v5/test.ts', 'suites/tracing/prisma-orm-v6/test.ts'];
 
 // In the CJS tests Deno cannot `require()` a dependency that ships only ES modules: `graphql` 17,
-// and `escape-string-regexp` under `mastra`. The ESM tests of `mastra` also check `fetch` spans.
-const REQUIRE_OF_ESM_ONLY_DEPENDENCY = ['suites/tracing/graphql-tracing-channel/**', 'suites/tracing/mastra/test.ts'];
+// `escape-string-regexp` under `mastra`, and `@prisma/orm-postgres`. The ESM tests of `mastra` also
+// check `fetch` spans. The ESM test of `prisma-orm-v8` imports JSON with `with { type: 'json' }`,
+// which any module load hook breaks on Deno 2.8.3 (the CI version); it passes on Deno 2.9.0.
+const REQUIRE_OF_ESM_ONLY_DEPENDENCY = [
+  'suites/tracing/graphql-tracing-channel/**',
+  'suites/tracing/mastra/test.ts',
+  'suites/tracing/prisma-orm-v8/test.ts',
+];
 
 // Some or all tests fail on Deno, cause not investigated yet. In most AI suites the span
 // streaming test fails. `apollo-graphql` (CJS tests only) and `mongodb` fail on Deno 2.8.3 (the CI
