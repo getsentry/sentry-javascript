@@ -18,7 +18,7 @@ export const MCP_REQUEST_ID_ATTRIBUTE = 'mcp.request.id';
 /** Identifies the MCP session */
 export const MCP_SESSION_ID_ATTRIBUTE = 'mcp.session.id';
 
-/** Transport method used for MCP communication */
+/** Class name of the MCP transport implementation */
 export const MCP_TRANSPORT_ATTRIBUTE = 'mcp.transport';
 
 // =============================================================================
@@ -128,8 +128,14 @@ export const MCP_LOGGING_MESSAGE_ATTRIBUTE = 'mcp.logging.message';
 /** OSI transport layer protocol */
 export const NETWORK_TRANSPORT_ATTRIBUTE = 'network.transport';
 
-/** The version of JSON RPC protocol used */
+/** Application-layer network protocol, such as HTTP */
+export const NETWORK_PROTOCOL_NAME_ATTRIBUTE = 'network.protocol.name';
+
+/** Actual network protocol version, such as HTTP 1.1 or 2 */
 export const NETWORK_PROTOCOL_VERSION_ATTRIBUTE = 'network.protocol.version';
+
+/** Original User-Agent header of the incoming HTTP request */
+export const USER_AGENT_ORIGINAL_ATTRIBUTE = 'user_agent.original';
 
 /** Client address - domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name */
 export const CLIENT_ADDRESS_ATTRIBUTE = 'client.address';

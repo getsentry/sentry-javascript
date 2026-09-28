@@ -13,8 +13,10 @@ import {
   MCP_SERVER_VERSION_ATTRIBUTE,
   MCP_SESSION_ID_ATTRIBUTE,
   MCP_TRANSPORT_ATTRIBUTE,
+  NETWORK_PROTOCOL_NAME_ATTRIBUTE,
   NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
   NETWORK_TRANSPORT_ATTRIBUTE,
+  USER_AGENT_ORIGINAL_ATTRIBUTE,
 } from './attributes';
 import {
   getClientInfoForTransport,
@@ -239,27 +241,54 @@ export function extractClientInfo(extra: ExtraHandlerData): {
 }
 
 /**
- * Extracts transport types based on transport constructor name
+ * Identifies known transport implementations without guessing from custom class names.
  * @param transport - MCP transport instance
  * @returns Transport type mapping for span attributes
  */
-export function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
-  if (!transport?.constructor) {
-    return { mcpTransport: 'unknown', networkTransport: 'unknown' };
-  }
-  const transportName = typeof transport.constructor?.name === 'string' ? transport.constructor.name : 'unknown';
-  let networkTransport = 'unknown';
-
-  const lowerTransportName = transportName.toLowerCase();
-  if (lowerTransportName.includes('stdio')) {
-    networkTransport = 'pipe';
-  } else if (lowerTransportName.includes('http') || lowerTransportName.includes('sse')) {
-    networkTransport = 'tcp';
-  }
+export function getTransportTypes(transport: MCPTransport): {
+  mcpTransport: string;
+  networkTransport?: string;
+  networkProtocolName?: string;
+} {
+  const transportName = typeof transport?.constructor?.name === 'string' ? transport.constructor.name : 'unknown';
+  const isHttp = [
+    'StreamableHTTPServerTransport',
+    'NodeStreamableHTTPServerTransport',
+    'WebStandardStreamableHTTPServerTransport',
+    'SSEServerTransport',
+  ].includes(transportName);
 
   return {
     mcpTransport: transportName,
-    networkTransport,
+    networkTransport: transportName === 'StdioServerTransport' ? 'pipe' : undefined,
+    networkProtocolName: isHttp ? 'http' : undefined,
+  };
+}
+
+/**
+ * Extracts HTTP metadata available on the current MCP request.
+ * @param extra - Request metadata provided by the MCP transport
+ * @see https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/mcp.md#recording-mcp-transport
+ */
+function getHttpAttributes(extra?: ExtraHandlerData): Record<string, string> {
+  const headers = extra?.request?.headers ?? extra?.requestInfo?.headers;
+  const userAgent =
+    typeof headers?.get === 'function'
+      ? headers.get('user-agent')
+      : headers && 'user-agent' in headers
+        ? headers['user-agent']
+        : undefined;
+  const httpProtocol = extra?.request?.cf?.httpProtocol;
+  const httpVersion = typeof httpProtocol === 'string' ? /^HTTP\/([\d.]+)$/i.exec(httpProtocol)?.[1] : undefined;
+  const networkTransport =
+    httpVersion === '3' ? 'quic' : httpVersion && ['1.0', '1.1', '2'].includes(httpVersion) ? 'tcp' : undefined;
+
+  return {
+    ...((headers || httpVersion) && { [NETWORK_PROTOCOL_NAME_ATTRIBUTE]: 'http' }),
+    ...(httpVersion && { [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: httpVersion }),
+    ...(networkTransport && { [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport }),
+    ...(typeof userAgent === 'string' && userAgent && { [USER_AGENT_ORIGINAL_ATTRIBUTE]: userAgent }),
+    ...(Array.isArray(userAgent) && { [USER_AGENT_ORIGINAL_ATTRIBUTE]: userAgent.join(', ') }),
   };
 }
 
@@ -280,7 +309,7 @@ export function buildTransportAttributes(
   const hasRequestMetadata = messageData?.protocolVersion !== undefined || messageData?.clientInfo !== undefined;
   const sessionId = !hasRequestMetadata && transport && 'sessionId' in transport ? transport.sessionId : undefined;
   const clientInfo = extra ? extractClientInfo(extra) : {};
-  const { mcpTransport, networkTransport } = getTransportTypes(transport);
+  const { mcpTransport, networkTransport, networkProtocolName } = getTransportTypes(transport);
   const clientAttributes = hasRequestMetadata
     ? buildClientAttributesFromInfo(messageData?.clientInfo)
     : getClientAttributes(transport);
@@ -292,8 +321,9 @@ export function buildTransportAttributes(
     ...(clientInfo.address && { [CLIENT_ADDRESS_ATTRIBUTE]: clientInfo.address }),
     ...(clientInfo.port && { [CLIENT_PORT_ATTRIBUTE]: clientInfo.port }),
     [MCP_TRANSPORT_ATTRIBUTE]: mcpTransport,
-    [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport,
-    [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: '2.0',
+    ...(networkTransport && { [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport }),
+    ...(networkProtocolName && { [NETWORK_PROTOCOL_NAME_ATTRIBUTE]: networkProtocolName }),
+    ...getHttpAttributes(extra),
     ...(protocolVersion && { [MCP_PROTOCOL_VERSION_ATTRIBUTE]: protocolVersion }),
     ...clientAttributes,
     ...serverAttributes,
