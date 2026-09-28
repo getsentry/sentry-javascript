@@ -4,23 +4,24 @@ import { CACHE_ORIGIN_LINK_ATTRIBUTES, findCacheSpan } from './cacheOriginLinks-
 
 // Background stale-while-revalidate refills. Target behavior: the revalidation gets its own trace,
 // separate from the request trace that served the stale value. The revalidation trace links back to
-// that request and becomes the `cache_origin` for future hits.
+// that request, and its `cache.put` becomes the `cache_origin` for future hits.
 
 /*
 
 Trace1 (fill)              Trace2 (stale hit)               Trace3 (hit)
 |- put key:A <----link-----o get hit=true key:A             |- get hit=true key:A
-|                                                           |
-TraceR: cache.revalidate  (own trace, NOT part of Trace2)   |
-^- link back to Trace2 (link type TBD in the RFC)           |
+                           ^                                |
+                           | link (type TBD in the RFC)     |
+TraceR: cache.revalidate --o  (own trace)                   |
 |                                                           |
 |- put key:A  <----------------------link-------------------o cache_origin
 
 */
 
-// Not implemented yet. Unlike the nesting specs, this cannot be `test.fail()`: the test waits for a
-// `cache.revalidate` trace that never arrives, so it would time out — and Playwright reports a
-// timeout as a real failure even under `test.fail()`. Hence `test.fixme()`.
+// Not implemented yet. Unlike cacheOriginLinks-nesting.spec.ts, this test cannot document the
+// target behavior with `test.fail()`: it would wait for a `cache.revalidate` trace that never
+// arrives and time out, and Playwright reports a timeout as a real failure even under
+// `test.fail()`. So the test is `test.fixme()` until the SDK emits the revalidation trace.
 
 test('runs background revalidation in its own trace linked to the triggering request', async ({ request }) => {
   test.skip(process.env.TEST_ENV !== 'production', 'SWR revalidation timing only holds in production');
@@ -49,7 +50,7 @@ test('runs background revalidation in its own trace linked to the triggering req
     );
   });
 
-  // The visitor never waited for the refill, so it is not part of the serving trace: the
+  // The visitor never waited for the refill, so the refill is not part of the serving trace: the
   // background revalidation is its own trace with a `cache.revalidate` segment.
   const revalidationSpansPromise = collectStreamedSpans('nextjs-16-streaming-cacheComponents', spansOfTrace => {
     return (
@@ -85,7 +86,7 @@ test('runs background revalidation in its own trace linked to the triggering req
       trace_id: staleHitGetSpan!.trace_id,
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
       sampled: true,
-      // The link type for "revalidation triggered by" is not final yet; the target trace is.
+      // No link type for cache spans specced yet, so assert only the link target.
       attributes: { 'sentry.link.type': { value: expect.any(String), type: 'string' } },
     },
   ]);
@@ -93,7 +94,7 @@ test('runs background revalidation in its own trace linked to the triggering req
   const revalidationPutSpan = findCacheSpan(revalidationSpans, 'cache.put');
   expect(revalidationPutSpan).toBeDefined();
 
-  // The revalidation becomes the origin for future hits.
+  // The revalidation's `cache.put` becomes the `cache_origin` for future hits.
   const hitAfterRefillSpansPromise = collectStreamedSpans('nextjs-16-streaming-cacheComponents', spansOfTrace => {
     return (
       spansOfTrace.some(span => span.name === 'GET /api/use-cache-swr' && span.is_segment) &&
