@@ -43,7 +43,8 @@ grep "import.*from '" <file> | grep -v "@opentelemetry\|'\./\|@sentry\|'util'\|'
 
 Check test coverage and report gaps:
 
-- Integration tests: `dev-packages/node-integration-tests/suites/tracing/<name>/`
+- Integration tests: `dev-packages/node-integration-tests/suites/tracing/<name>/`. Other runtimes run these
+  suites too; see "Other Runtimes" in `dev-packages/node-integration-tests/README.md`.
 - E2E tests: `dev-packages/e2e-tests/test-applications/node-<name>/`
 - Unit tests: `packages/node/test/integrations/tracing/<name>.test.ts`
 
