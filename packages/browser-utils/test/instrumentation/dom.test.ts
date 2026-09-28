@@ -8,6 +8,8 @@ import { WINDOW } from '../../src/types';
 // @ts-expect-error - idk
 WINDOW.XMLHttpRequest = undefined;
 
+type InstrumentedDocument = Document & { __sentry_instrumentation_handlers__?: Record<string, any> };
+
 describe('instrumentDOM', () => {
   const { addEventListener: nativeAdd, removeEventListener: nativeRemove } = EventTarget.prototype;
 
@@ -15,6 +17,7 @@ describe('instrumentDOM', () => {
   afterEach(() => {
     EventTarget.prototype.addEventListener = nativeAdd;
     EventTarget.prototype.removeEventListener = nativeRemove;
+    delete (document as InstrumentedDocument).__sentry_instrumentation_handlers__;
   });
 
   /** Runs `instrumentDOM` and returns a function counting the click listeners actually attached to `document`. */
@@ -90,5 +93,37 @@ describe('instrumentDOM', () => {
     document.removeEventListener('click', onClick);
 
     expect(countDocumentClickListeners() - baseline).toBe(0);
+  });
+
+  it('does not retain listeners added with `once` or `signal`, which the browser removes on its own', () => {
+    instrumentDOM();
+
+    for (let i = 0; i < 20; i++) {
+      const controller = new AbortController();
+      document.addEventListener('click', () => {}, { signal: controller.signal });
+      document.addEventListener('click', () => {}, { once: true, capture: true });
+      controller.abort();
+    }
+    document.dispatchEvent(new MouseEvent('click'));
+
+    const clickHandlers = (document as InstrumentedDocument).__sentry_instrumentation_handlers__?.click;
+    expect(clickHandlers.bubbleListeners.size).toBe(0);
+    expect(clickHandlers.captureListeners.size).toBe(0);
+    expect(clickHandlers.handler).toBeDefined();
+  });
+
+  it('keeps its handler attached after removing tracked listeners if a `once` or `signal` listener was added', () => {
+    const countDocumentClickListeners = instrumentAndTrackDocumentClickListeners();
+    const baseline = countDocumentClickListeners();
+
+    const onClick = (): void => {};
+    const onceClick = (): void => {};
+
+    document.addEventListener('click', onClick);
+    document.addEventListener('click', onceClick, { once: true });
+    document.removeEventListener('click', onClick);
+
+    // `onceClick` plus the SDK's handler, which must still see the pending `once` listener's event
+    expect(countDocumentClickListeners() - baseline).toBe(2);
   });
 });

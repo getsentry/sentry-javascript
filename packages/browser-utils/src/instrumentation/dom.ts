@@ -26,6 +26,9 @@ type InstrumentedElement = Element & {
       // listeners added with `capture: false` (default), meaning the listener is invoked
       // after other listeners inside the element's hierarchy (i.e. the event bubbles up)
       bubbleListeners: Set<unknown>;
+      // Set once a `once` or `signal` listener was added. The browser removes those without going
+      // through `removeEventListener`, so we can't tell when they're gone and must keep our handler attached.
+      sticky?: boolean;
     };
   };
 };
@@ -105,7 +108,12 @@ export function instrumentDOM(): void {
               originalAddEventListener.call(this, type, handler, handlerForType.capture);
             }
 
-            handlerForType[capture ? 'captureListeners' : 'bubbleListeners'].add(listener);
+            if (typeof options === 'object' && (options.once || options.signal)) {
+              // Not tracked to avoid retaining listeners the browser auto-removes.
+              handlerForType.sticky = true;
+            } else {
+              handlerForType[capture ? 'captureListeners' : 'bubbleListeners'].add(listener);
+            }
           } catch {
             // Accessing dom properties is always fragile.
             // Also allows us to skip `addEventListeners` calls with no proper `this` context.
@@ -129,7 +137,11 @@ export function instrumentDOM(): void {
               // Removing a listener that was never added is a no-op in the browser, so it mustn't count for ours either.
               if (handlerForType?.[getCapture(options) ? 'captureListeners' : 'bubbleListeners'].delete(listener)) {
                 // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
-                if (!handlerForType.captureListeners.size && !handlerForType.bubbleListeners.size) {
+                if (
+                  !handlerForType.sticky &&
+                  !handlerForType.captureListeners.size &&
+                  !handlerForType.bubbleListeners.size
+                ) {
                   originalRemoveEventListener.call(this, type, handlerForType.handler, handlerForType.capture);
                   handlerForType.handler = undefined;
                   delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
