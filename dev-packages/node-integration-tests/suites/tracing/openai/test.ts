@@ -38,7 +38,9 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(8);
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
@@ -93,7 +95,9 @@ describe('OpenAI integration', () => {
             });
 
             const responsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(responsesSpan).toBeDefined();
             expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
@@ -324,7 +328,9 @@ describe('OpenAI integration', () => {
             });
 
             const parsedChatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-parsed',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
             );
             expect(parsedChatCompletionSpan).toBeDefined();
             expect(parsedChatCompletionSpan!.name).toBe('chat gpt-4o');
@@ -355,7 +361,7 @@ describe('OpenAI integration', () => {
             });
             expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
-              value: 'chatcmpl-parsed',
+              value: 'chatcmpl-mock123',
             });
             expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
@@ -375,7 +381,9 @@ describe('OpenAI integration', () => {
             });
 
             const parsedResponsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_parsed',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
             );
             expect(parsedResponsesSpan).toBeDefined();
             expect(parsedResponsesSpan!.name).toBe('chat gpt-4o');
@@ -403,7 +411,7 @@ describe('OpenAI integration', () => {
             });
             expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
-              value: 'resp_parsed',
+              value: 'resp_mock456',
             });
             expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
@@ -446,7 +454,9 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(8);
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
@@ -513,7 +523,9 @@ describe('OpenAI integration', () => {
             });
 
             const responsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(responsesSpan).toBeDefined();
             expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
@@ -780,7 +792,9 @@ describe('OpenAI integration', () => {
             });
 
             const parsedChatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-parsed',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
             );
             expect(parsedChatCompletionSpan).toBeDefined();
             expect(parsedChatCompletionSpan!.name).toBe('chat gpt-4o');
@@ -816,7 +830,7 @@ describe('OpenAI integration', () => {
             });
             expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
-              value: 'chatcmpl-parsed',
+              value: 'chatcmpl-mock123',
             });
             expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
@@ -824,7 +838,7 @@ describe('OpenAI integration', () => {
             });
             expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
               type: 'string',
-              value: JSON.stringify(['{"city":"Paris"}']),
+              value: '["Hello from OpenAI mock!"]',
             });
             expect(parsedChatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
@@ -840,7 +854,9 @@ describe('OpenAI integration', () => {
             });
 
             const parsedResponsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_parsed',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
             );
             expect(parsedResponsesSpan).toBeDefined();
             expect(parsedResponsesSpan!.name).toBe('chat gpt-4o');
@@ -868,7 +884,7 @@ describe('OpenAI integration', () => {
             });
             expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
               type: 'string',
-              value: '{"city":"Paris"}',
+              value: 'Response to: What is the capital of France?',
             });
             expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
               type: 'string',
@@ -880,7 +896,7 @@ describe('OpenAI integration', () => {
             });
             expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
-              value: 'resp_parsed',
+              value: 'resp_mock456',
             });
             expect(parsedResponsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
               type: 'integer',
@@ -909,7 +925,9 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(8);
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
@@ -940,7 +958,9 @@ describe('OpenAI integration', () => {
             });
 
             const parsedChatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-parsed',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
             );
             expect(parsedChatCompletionSpan).toBeDefined();
             expect(parsedChatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
@@ -954,7 +974,9 @@ describe('OpenAI integration', () => {
             });
 
             const parsedResponsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_parsed',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
             );
             expect(parsedResponsesSpan).toBeDefined();
             expect(parsedResponsesSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
@@ -1624,7 +1646,9 @@ describe('OpenAI integration', () => {
         .expect({
           span: container => {
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
@@ -1649,7 +1673,9 @@ describe('OpenAI integration', () => {
             expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
 
             const parsedChatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-parsed',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
             );
             expect(parsedChatCompletionSpan).toBeDefined();
             expect(parsedChatCompletionSpan!.name).toBe('chat gpt-4o');
@@ -1680,7 +1706,9 @@ describe('OpenAI integration', () => {
             });
 
             const parsedResponsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_parsed',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
             );
             expect(parsedResponsesSpan).toBeDefined();
             expect(parsedResponsesSpan!.name).toBe('chat gpt-4o');

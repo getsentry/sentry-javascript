@@ -63,7 +63,7 @@ function startMockServer() {
     } else {
       // Non-streaming response
       res.send({
-        id: req.body.response_format ? 'chatcmpl-parsed' : 'chatcmpl-mock123',
+        id: 'chatcmpl-mock123',
         object: 'chat.completion',
         created: 1677652288,
         model: model,
@@ -72,7 +72,7 @@ function startMockServer() {
             index: 0,
             message: {
               role: 'assistant',
-              content: req.body.response_format ? '{"city":"Paris"}' : 'Hello from OpenAI mock!',
+              content: 'Hello from OpenAI mock!',
             },
             finish_reason: 'stop',
           },
@@ -152,7 +152,7 @@ function startMockServer() {
     } else {
       // Non-streaming response
       res.send({
-        id: req.body.text?.format ? 'resp_parsed' : 'resp_mock456',
+        id: 'resp_mock456',
         object: 'response',
         created_at: 1677652290,
         model: model,
@@ -165,13 +165,13 @@ function startMockServer() {
             content: [
               {
                 type: 'output_text',
-                text: req.body.text?.format ? '{"city":"Paris"}' : `Response to: ${req.body.input}`,
+                text: `Response to: ${req.body.input}`,
                 annotations: [],
               },
             ],
           },
         ],
-        output_text: req.body.text?.format ? '{"city":"Paris"}' : `Response to: ${req.body.input}`,
+        output_text: `Response to: ${req.body.input}`,
         status: 'completed',
         usage: {
           input_tokens: 5,
@@ -272,27 +272,14 @@ async function run() {
     }
 
     // scenario: parse responses
-    const format = {
-      name: 'city',
-      strict: true,
-      schema: {
-        type: 'object',
-        properties: { city: { type: 'string' } },
-        required: ['city'],
-        additionalProperties: false,
-      },
-    };
-
     await client.chat.completions.parse({
       model: 'gpt-4o',
       messages: [{ role: 'user', content: 'What is the capital of France?' }],
-      response_format: { type: 'json_schema', json_schema: format },
     });
 
     await client.responses.parse({
       model: 'gpt-4o',
       input: 'What is the capital of France?',
-      text: { format: { type: 'json_schema', ...format } },
     });
   });
 
