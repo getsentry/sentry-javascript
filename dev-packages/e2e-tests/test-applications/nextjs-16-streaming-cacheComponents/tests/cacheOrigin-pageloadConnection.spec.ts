@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-// The pageload should connect to the live serving request even though the shell is prerendered
-// (trace context can only travel in the dynamic/resumed part of the response, never in cacheable
-// HTML). The inverse assertion in cacheComponents.spec.ts ("Prerendered shell does not stitch
-// the pageload onto a stale trace") documents today's un-connectedness.
-test('connects the pageload trace to the live serving request', async ({ page }) => {
+// TODO: Remove the inverse assertion in cacheComponents.spec.ts ("Prerendered shell does not stitch the pageload onto a stale trace") when this test passes.
+test('connects the pageload trace to the runtime server request', async ({ page }) => {
   test.fail();
 
+  // The shell is prerendered, but the page's dynamic part (`DynamicContent` awaits `headers()`)
+  // runs on the server on every request and produces the `GET /pageload-tracing` root span.
+  // A fully prerendered page would produce no server span.
   const serverSpanPromise = waitForStreamedSpan('nextjs-16-streaming-cacheComponents', span => {
     return span.name === 'GET /pageload-tracing' && getSpanOp(span) === 'http.server' && span.is_segment;
   });
