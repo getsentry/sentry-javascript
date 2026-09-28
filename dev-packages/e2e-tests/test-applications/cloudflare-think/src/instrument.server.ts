@@ -1,8 +1,10 @@
-import type { CloudflareOptions } from '@sentry/cloudflare';
+import { defineCloudflareOptions } from '@sentry/cloudflare';
 
-export default (env: Env): CloudflareOptions => ({
+// The Sentry Vite plugin picks this file up by convention, next to the worker entry named in
+// wrangler's `main`, and hands its default export to `withSentry`.
+export default defineCloudflareOptions((env: Env) => ({
   dsn: env.E2E_TEST_DSN,
   environment: 'qa',
   tunnel: 'http://localhost:3031/',
   tracesSampleRate: 1.0,
-});
+}));
