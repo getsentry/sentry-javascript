@@ -5,6 +5,7 @@ import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   parseUrl,
+  performanceTimeToSeconds,
   RESOURCE_SPAN_NAME_FALLBACK,
   setMeasurement,
   spanToJSON,
@@ -108,7 +109,7 @@ export function startTrackingLongTasks(): void {
     const { attributes: parentAttributes, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
 
     for (const entry of entries) {
-      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+      const startTime = performanceTimeToSeconds(entry.startTime) as number;
       const duration = msToSec(entry.duration);
 
       if (parentAttributes[SENTRY_OP] === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
@@ -147,7 +148,7 @@ export function startTrackingLongAnimationFrames(): void {
         continue;
       }
 
-      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+      const startTime = performanceTimeToSeconds(entry.startTime) as number;
 
       const {
         start_timestamp: parentStartTimestamp,
@@ -217,13 +218,14 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
   const { spanStreamingEnabled, ignoreResourceSpans } = options;
 
-  const timeOrigin = msToSec(origin);
-
   const performanceEntries = performance.getEntries();
 
   const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
   performanceEntries.slice(_performanceCursor).forEach(entry => {
+    // Navigations can happen long after page load, and after a clock drift correction. All timings of an entry share
+    // the origin in effect when it started, so the entry keeps its duration.
+    const timeOrigin = msToSec(browserPerformanceTimeOrigin(entry.startTime) as number);
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(
       // Inexplicably, Chrome sometimes emits a negative duration. We need to work around this.

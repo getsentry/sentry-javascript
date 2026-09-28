@@ -476,6 +476,22 @@ describe('_sendLcpSpan', () => {
     expect(mockSpan.end).toHaveBeenCalledWith(3.25);
   });
 
+  it('times a soft navigation LCP against the origin in effect when the navigation started', () => {
+    // The soft navigation happens after the SDK corrected its time origin for a clock drift.
+    const sleepDurationMs = 3_600_000;
+    vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockImplementation((monotonicTimeInMs = 0) =>
+      monotonicTimeInMs < 1500 ? 1000 : 1000 + sleepDurationMs,
+    );
+    const entry = { element: { tagName: 'img' } as Element, startTime: 2250 } as LargestContentfulPaint;
+
+    _sendLcpSpan(250, entry, undefined, 2, 'soft-navigation', 2000);
+
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({ startTime: (1000 + sleepDurationMs + 2000) / 1000 }),
+    );
+    expect(mockSpan.end).toHaveBeenCalledWith((1000 + sleepDurationMs + 2250) / 1000);
+  });
+
   it('drops implausible LCP values', () => {
     _sendLcpSpan(0, undefined);
     _sendLcpSpan(MAX_PLAUSIBLE_LCP_DURATION + 1, undefined);

@@ -10,10 +10,10 @@ const ONE_SECOND_IN_MS = 1000;
 const CLOCK_DRIFT_THRESHOLD_MS = 300_000; // 5 minutes in milliseconds
 
 /**
- * Upper bound on the number of drift corrections {@link performanceTimeToSeconds} remembers. A page has to survive that
- * many separate clock jumps to reach it, so the cap only keeps a pathological clock from growing the list without
- * bound. Once reached, the oldest segments are merged away, which at worst makes the very earliest monotonic
- * timestamps convert against a later origin — the same result as not tracking segments at all.
+ * Upper bound on the number of drift corrections {@link browserPerformanceTimeOrigin} remembers. A page has to survive
+ * that many separate clock jumps to reach it, so the cap only keeps a pathological clock from growing the list without
+ * bound. Once reached, the oldest corrections are merged away. The origin at page load is always kept, because the
+ * pageload span and its children are anchored to it.
  */
 const MAX_TIME_ORIGIN_SEGMENTS = 30;
 
@@ -71,6 +71,10 @@ function createUnixTimestampInSecondsFunc(): () => number {
   // Some browser and environments don't have a performance or timeOrigin, so we fallback to
   // using Date.now() to compute the starting time.
   if (!performance?.now || !performance.timeOrigin) {
+    if (performance?.now) {
+      // Monotonic times can still be converted, just without drift correction.
+      _timeOriginSegments = [{ from: 0, origin: safeDateNow() - withRandomSafeContext(() => performance.now()) }];
+    }
     return dateTimestampInSeconds;
   }
 
@@ -79,6 +83,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
   let timeOrigin = performance.timeOrigin;
   _timeOriginSegments = [{ from: 0, origin: timeOrigin }];
   let isFirstCall = true;
+  let lastCheckedPerformanceNow = 0;
 
   return () => {
     return withRandomSafeContext(() => {
@@ -89,29 +94,33 @@ function createUnixTimestampInSecondsFunc(): () => number {
       // performance.now() stops advancing while the device is asleep, so it under-counts elapsed wall time; conversely
       // the wall clock itself can be stepped by Network Time Protocol (NTP) or the user. Either way the two drift apart
       // by arbitrary amounts. Re-deriving the origin restores absolute accuracy while still taking elapsed time from
-      // the monotonic clock, so durations keep sub-millisecond precision and cannot run backwards.
+      // the monotonic clock, so durations keep sub-millisecond precision.
       // Timestamps taken before a correction are measured against a different origin than those taken after it, so a
-      // span that starts before one and ends after it absorbs the drift into its duration. Spans that lie entirely on
-      // one side of a correction are unaffected.
+      // span that starts before one and ends after it absorbs the drift into its duration. If the wall clock was stepped
+      // backwards, that duration can even be negative. Spans that lie entirely on one side of a correction are
+      // unaffected.
       // See: https://github.com/getsentry/sentry-javascript/issues/2590
       // See: https://github.com/mdn/content/issues/4713
       // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
       if (Math.abs(timeOrigin + performanceNow - dateNow) > CLOCK_DRIFT_THRESHOLD_MS) {
         timeOrigin = dateNow - performanceNow;
         // The very first check runs before any timestamp has been handed out, so a `performance.timeOrigin` that was
-        // already unreliable at startup never applied to anything and is replaced outright. Later corrections only
-        // apply from the point they are detected at — an upper bound on where the drift actually happened, and as
-        // close as it can be pinned down without a second clock. Timestamps taken before that keep their old origin.
+        // already unreliable at startup never applied to anything and is replaced outright.
+        // Later corrections apply from the previous check on, the last point the clocks were known to agree. Drift is
+        // usually only noticed when an interaction wakes the SDK up again, and the entry for that interaction starts
+        // slightly before the check that detects it, so it has to be on the corrected side. The cost is that entries
+        // recorded between that previous check and the device going to sleep are shifted by the drift.
         if (isFirstCall) {
           _timeOriginSegments = [{ from: 0, origin: timeOrigin }];
         } else {
-          _timeOriginSegments.push({ from: performanceNow, origin: timeOrigin });
+          _timeOriginSegments.push({ from: lastCheckedPerformanceNow, origin: timeOrigin });
           if (_timeOriginSegments.length > MAX_TIME_ORIGIN_SEGMENTS) {
-            _timeOriginSegments.shift();
+            _timeOriginSegments.splice(1, 1);
           }
         }
       }
       isFirstCall = false;
+      lastCheckedPerformanceNow = performanceNow;
 
       return (timeOrigin + performanceNow) / ONE_SECOND_IN_MS;
     });
@@ -125,28 +134,11 @@ let _cachedTimestampInSeconds: (() => number) | undefined;
  * `timestamp`, or any other `performance.now()`-relative value in milliseconds) to a wall clock timestamp in seconds
  * since the UNIX epoch, on the same timeline as {@link timestampInSeconds}.
  *
- * Prefer this over combining a monotonic time with {@link browserPerformanceTimeOrigin} by hand: because the SDK
- * re-derives its time origin when the monotonic and wall clocks drift apart, a single origin is only valid for part of
- * the page's lifetime. This picks the origin that was in effect when the passed time was measured, so entries reported
- * long after the fact (INP on pagehide, replay entries buffered until flush) do not get retroactively shifted by a
- * drift that happened after they were recorded.
- *
  * Returns `undefined` if the Performance API is unavailable, in which case monotonic times cannot be converted at all.
  */
 export function performanceTimeToSeconds(monotonicTimeInMs: number): number | undefined {
-  // Segments are only populated once `timestampInSeconds` has resolved which clock source to use.
-  timestampInSeconds();
-
-  let segment: TimeOriginSegment | undefined;
-  for (const candidate of _timeOriginSegments) {
-    // Times preceding the oldest retained segment fall back to it, which is the best guess available for them.
-    if (segment && candidate.from > monotonicTimeInMs) {
-      break;
-    }
-    segment = candidate;
-  }
-
-  return segment && (segment.origin + monotonicTimeInMs) / ONE_SECOND_IN_MS;
+  const origin = browserPerformanceTimeOrigin(monotonicTimeInMs);
+  return origin === undefined ? undefined : (origin + monotonicTimeInMs) / ONE_SECOND_IN_MS;
 }
 
 /**
@@ -167,49 +159,27 @@ export function timestampInSeconds(): number {
 }
 
 /**
- * Cached result of getBrowserTimeOrigin.
- */
-let cachedTimeOrigin: number | null | undefined = null;
-
-/**
- * Gets the time origin and the mode used to determine it.
+ * Returns the time origin (milliseconds since the UNIX epoch that `performance.now() === 0` corresponds to) that was in
+ * effect at the given monotonic time, which defaults to the page load.
  *
- * Unfortunately browsers may report inaccurate time origin data through performance.timeOrigin,
- * which results in poor results in performance data. We only treat time origin data as reliable
- * if it is within a reasonable threshold of the current time.
+ * Because the SDK re-derives its time origin when the monotonic and wall clocks drift apart, a single origin is only
+ * valid for part of the page's lifetime. Pass the monotonic time that is being converted, so that entries reported long
+ * after the fact (INP on pagehide, replay entries buffered until flush) are not shifted by a drift that happened after
+ * they were recorded. Use the same time for every timing of one entry, so its duration stays intact.
  *
- * TODO: move to `@sentry/browser-utils` package.
+ * Returns `undefined` if the Performance API is unavailable.
  */
-function getBrowserTimeOrigin(): number | undefined {
-  const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
-  if (!performance?.now) {
-    return undefined;
-  }
+export function browserPerformanceTimeOrigin(monotonicTimeInMs = 0): number | undefined {
+  // Segments are only populated once `timestampInSeconds` has resolved which clock source to use.
+  timestampInSeconds();
 
-  const performanceNow = withRandomSafeContext(() => performance.now());
-  const dateNow = safeDateNow();
-
-  const timeOrigin = performance.timeOrigin;
-  if (typeof timeOrigin === 'number') {
-    const timeOriginDelta = Math.abs(timeOrigin + performanceNow - dateNow);
-    if (timeOriginDelta < CLOCK_DRIFT_THRESHOLD_MS) {
-      return timeOrigin;
+  let segment: TimeOriginSegment | undefined;
+  for (const candidate of _timeOriginSegments) {
+    if (segment && candidate.from > monotonicTimeInMs) {
+      break;
     }
+    segment = candidate;
   }
 
-  // timeOrigin is skewed or unavailable, fallback to subtracting
-  // `performance.now()` from `Date.now()`.
-  return dateNow - performanceNow;
-}
-
-/**
- * The number of milliseconds since the UNIX epoch. This value is only usable in a browser, and only when the
- * performance API is available.
- */
-export function browserPerformanceTimeOrigin(): number | undefined {
-  if (cachedTimeOrigin === null) {
-    cachedTimeOrigin = getBrowserTimeOrigin();
-  }
-
-  return cachedTimeOrigin;
+  return segment?.origin;
 }

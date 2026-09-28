@@ -2,10 +2,10 @@ import type { SpanAttributes } from '@sentry/core';
 import { browserPerformanceTimeOrigin } from '@sentry/core';
 import { extractNetworkProtocol, getBrowserPerformanceAPI } from './utils';
 
-function getAbsoluteTime(time: number | undefined): number | undefined {
+function getAbsoluteTime(time: number | undefined, timeOrigin: number): number | undefined {
   // falsy values should be preserved so that we can later on drop undefined values and
   // preserve 0 vals for cross-origin resources without proper `Timing-Allow-Origin` header.
-  return time ? ((browserPerformanceTimeOrigin() || performance.timeOrigin) + time) / 1000 : time;
+  return time ? (timeOrigin + time) / 1000 : time;
 }
 
 /**
@@ -28,31 +28,33 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
     timingSpanData['network.protocol.name'] = name;
   }
 
-  if (!(browserPerformanceTimeOrigin() || getBrowserPerformanceAPI()?.timeOrigin)) {
+  // All timings share the origin in effect when the request started, so the phases between them stay intact.
+  const timeOrigin = browserPerformanceTimeOrigin(resourceTiming.startTime) || getBrowserPerformanceAPI()?.timeOrigin;
+  if (!timeOrigin) {
     return timingSpanData;
   }
 
   return dropUndefinedKeysFromObject({
     ...timingSpanData,
 
-    'http.request.redirect_start': getAbsoluteTime(resourceTiming.redirectStart),
-    'http.request.redirect_end': getAbsoluteTime(resourceTiming.redirectEnd),
+    'http.request.redirect_start': getAbsoluteTime(resourceTiming.redirectStart, timeOrigin),
+    'http.request.redirect_end': getAbsoluteTime(resourceTiming.redirectEnd, timeOrigin),
 
-    'http.request.worker_start': getAbsoluteTime(resourceTiming.workerStart),
+    'http.request.worker_start': getAbsoluteTime(resourceTiming.workerStart, timeOrigin),
 
-    'http.request.fetch_start': getAbsoluteTime(resourceTiming.fetchStart),
+    'http.request.fetch_start': getAbsoluteTime(resourceTiming.fetchStart, timeOrigin),
 
-    'http.request.domain_lookup_start': getAbsoluteTime(resourceTiming.domainLookupStart),
-    'http.request.domain_lookup_end': getAbsoluteTime(resourceTiming.domainLookupEnd),
+    'http.request.domain_lookup_start': getAbsoluteTime(resourceTiming.domainLookupStart, timeOrigin),
+    'http.request.domain_lookup_end': getAbsoluteTime(resourceTiming.domainLookupEnd, timeOrigin),
 
-    'http.request.connect_start': getAbsoluteTime(resourceTiming.connectStart),
-    'http.request.secure_connection_start': getAbsoluteTime(resourceTiming.secureConnectionStart),
-    'http.request.connection_end': getAbsoluteTime(resourceTiming.connectEnd),
+    'http.request.connect_start': getAbsoluteTime(resourceTiming.connectStart, timeOrigin),
+    'http.request.secure_connection_start': getAbsoluteTime(resourceTiming.secureConnectionStart, timeOrigin),
+    'http.request.connection_end': getAbsoluteTime(resourceTiming.connectEnd, timeOrigin),
 
-    'http.request.request_start': getAbsoluteTime(resourceTiming.requestStart),
+    'http.request.request_start': getAbsoluteTime(resourceTiming.requestStart, timeOrigin),
 
-    'http.request.response_start': getAbsoluteTime(resourceTiming.responseStart),
-    'http.request.response_end': getAbsoluteTime(resourceTiming.responseEnd),
+    'http.request.response_start': getAbsoluteTime(resourceTiming.responseStart, timeOrigin),
+    'http.request.response_end': getAbsoluteTime(resourceTiming.responseEnd, timeOrigin),
 
     // For TTFB we actually want the relative time from timeOrigin to responseStart
     // This way, TTFB always measures the "first page load" experience.

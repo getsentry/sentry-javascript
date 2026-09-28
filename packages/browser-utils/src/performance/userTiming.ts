@@ -26,11 +26,9 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
     name: INTEGRATION_NAME,
     setup(client) {
       const performance = getBrowserPerformanceAPI();
-      const timeOrigin = browserPerformanceTimeOrigin();
-      if (!performance?.getEntries || !timeOrigin) {
+      if (!performance?.getEntries || !browserPerformanceTimeOrigin()) {
         return;
       }
-      const timeOriginInSeconds = msToSec(timeOrigin);
       let performanceCursor = 0;
 
       client.on('beforeIdleSpanEnd', idleSpan => {
@@ -49,6 +47,8 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
             continue;
           }
 
+          // Navigations can happen long after page load, and after a clock drift correction.
+          const timeOriginInSeconds = msToSec(browserPerformanceTimeOrigin(entry.startTime) as number);
           const startTime = msToSec(entry.startTime);
           const absoluteStartTime = timeOriginInSeconds + startTime;
 

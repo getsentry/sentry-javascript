@@ -191,10 +191,11 @@ export function _sendLcpSpan(
 
   DEBUG_BUILD && debug.log(`Sending LCP span (${lcpValue})`);
 
-  const performanceTimeOrigin = browserPerformanceTimeOrigin() || 0;
   // A soft navigation's LCP is measured from the triggering interaction, not the document time
   // origin. Starting the span there too keeps it inside the navigation span it is parented to and
-  // keeps its duration equal to the value it reports.
+  // keeps its duration equal to the value it reports. The span's end shares that origin for the
+  // same reason, even if the clock drift was corrected in between.
+  const performanceTimeOrigin = browserPerformanceTimeOrigin(navigationStartTime || 0) || 0;
   const startTime = msToSec(performanceTimeOrigin + (navigationStartTime || 0));
   // Without an entry there is no render time to end at, so the span lasts the value it reports,
   // like an entry-less INP does. Ending at the time origin instead would invert the span.
@@ -344,9 +345,7 @@ export function _sendClsSpan(
  */
 export function trackInpAsSpan(client: Client, perNavigation = false): void {
   const performance = getBrowserPerformanceAPI();
-  // `performanceTimeToSeconds` is what the entries are converted with, so it also decides whether they can be converted
-  // at all — `browserPerformanceTimeOrigin` has a `Date.now()` fallback that it does not share.
-  if (!performance || performanceTimeToSeconds(0) === undefined) {
+  if (!performance || !browserPerformanceTimeOrigin()) {
     return;
   }
 
