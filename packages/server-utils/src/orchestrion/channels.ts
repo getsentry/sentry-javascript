@@ -26,10 +26,12 @@ import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
 import { postgresJsChannels } from './config/postgres';
+import { prismaChannels } from './config/prisma';
 import { redisChannels } from './config/redis';
 import { remixChannels } from './config/remix';
 import { tediousChannels } from './config/tedious';
 import { togetherAiChannels } from './config/together-ai';
+import { typesafeChannels } from './config/typesafe';
 import { vercelAiChannels } from './config/vercel-ai';
 
 /**
@@ -77,10 +79,12 @@ export const CHANNELS = {
   ...openaiChannels,
   ...pgChannels,
   ...postgresJsChannels,
+  ...prismaChannels,
   ...redisChannels,
   ...remixChannels,
   ...tediousChannels,
   ...togetherAiChannels,
+  ...typesafeChannels,
   ...vercelAiChannels,
 } as const;
 

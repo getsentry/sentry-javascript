@@ -1,0 +1,21 @@
+services:
+  db:
+    # Prisma 8 requires PostgreSQL 15 or newer.
+    image: postgres:16
+    restart: always
+    container_name: e2e-tests-node-prisma-8
+    ports:
+      - '5438:5432'
+    environment:
+      POSTGRES_USER: prisma
+      POSTGRES_PASSWORD: prisma
+      POSTGRES_DB: tests
+    # Dumped from `prisma-cli db init`; the Prisma 8 CLI needs Node 22.18+, so it isn't run at test time.
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U prisma -d tests']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s

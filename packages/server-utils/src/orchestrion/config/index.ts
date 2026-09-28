@@ -31,10 +31,12 @@ import { nestjsConfig } from './nestjs';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
+import { prismaConfig } from './prisma';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
 import { tediousConfig } from './tedious';
 import { togetherAiConfig } from './together-ai';
+import { typesafeConfig } from './typesafe';
 import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
@@ -82,10 +84,12 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...openaiConfig,
   ...pgConfig,
   ...postgresJsConfig,
+  ...prismaConfig,
   ...redisConfig,
   ...remixConfig,
   ...tediousConfig,
   ...togetherAiConfig,
+  ...typesafeConfig,
   ...vercelAiConfig,
 ];
 

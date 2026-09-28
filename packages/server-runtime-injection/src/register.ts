@@ -1,5 +1,5 @@
 import { consoleSandbox, debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import * as Module from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -28,20 +28,63 @@ function hasStableSyncModuleHooks(isDeno: boolean): boolean {
   return major > 25 || (major === 25 && minor >= 1) || (major === 24 && minor >= 13);
 }
 
-/**
- * Deno's `nextLoad` reports no `format` for a `.json` file, where Node reports `'json'`. With any
- * load hook installed, Deno's CJS loader then compiles the JSON as JavaScript and `require()` of it
- * throws `SyntaxError: Unexpected token ':'`. Restoring the format is enough, and only Deno needs
- * it: on Node the format is never missing.
- */
-function withDenoJsonFormat(loadHook: Function): Function {
-  return (url: string, context: unknown, nextLoad: Function) => {
-    const result = loadHook(url, context, nextLoad) as { format?: string };
-    if (result?.format === undefined && url.endsWith('.json')) {
-      result.format = 'json';
+/** `"type"` of the nearest `package.json`, keyed by the directory the lookup started in. */
+const packageTypeByDir = new Map<string, string | undefined>();
+
+function getPackageType(dir: string): string | undefined {
+  if (packageTypeByDir.has(dir)) {
+    return packageTypeByDir.get(dir);
+  }
+
+  let type: string | undefined;
+  const packageJsonPath = join(dir, 'package.json');
+  if (existsSync(packageJsonPath)) {
+    try {
+      type = (JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { type?: string }).type;
+    } catch {
+      type = undefined;
     }
-    return result;
-  };
+  } else if (dirname(dir) !== dir) {
+    type = getPackageType(dirname(dir));
+  }
+
+  packageTypeByDir.set(dir, type);
+  return type;
+}
+
+/** The `format` Node would report for `url`, for the formats Deno leaves out. */
+function getMissingDenoFormat(url: string): string | undefined {
+  if (url.endsWith('.json')) {
+    return 'json';
+  }
+  if (url.endsWith('.mjs')) {
+    return 'module';
+  }
+  if (url.startsWith('file:') && url.endsWith('.js') && getPackageType(dirname(fileURLToPath(url))) === 'module') {
+    return 'module';
+  }
+  return undefined;
+}
+
+/**
+ * Deno's `nextLoad` reports no `format` for a `.json` file or an ES module, where Node reports
+ * `'json'` or `'module'`. Without the format, Deno's CJS loader compiles JSON as JavaScript
+ * (`SyntaxError: Unexpected token ':'`), and the transform treats an ES module as CommonJS and
+ * injects a `require()` into it (`ReferenceError: require is not defined`). The format is restored
+ * on the `nextLoad` result, so the transform sees it too. Only Deno needs this.
+ */
+function withDenoFormats(loadHook: Function): Function {
+  return (url: string, context: unknown, nextLoad: Function) =>
+    loadHook(url, context, (nextUrl: string, nextContext: unknown) => {
+      const result = nextLoad(nextUrl, nextContext) as { format?: string | null } | undefined;
+      if (result && result.format == null) {
+        const format = getMissingDenoFormat(nextUrl);
+        if (format) {
+          result.format = format;
+        }
+      }
+      return result;
+    });
 }
 
 /**
@@ -181,7 +224,7 @@ export function registerDiagnosticsChannelInjection(): void {
   try {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
-      mod.registerHooks({ resolve, load: globalAny.Deno ? withDenoJsonFormat(load) : load });
+      mod.registerHooks({ resolve, load: globalAny.Deno ? withDenoFormats(load) : load });
       debug.log('Registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0

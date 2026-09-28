@@ -16,7 +16,6 @@
 
 /* eslint-disable max-lines */
 
-import * as diagch from 'diagnostics_channel';
 import { URL } from 'url';
 
 import type { Span, SpanAttributes } from '@sentry/core';
@@ -42,6 +41,7 @@ import {
   filterCollectedUrlQuery,
   httpHeadersToSpanAttributes,
 } from '@sentry/core';
+import { subscribeDiagnosticsChannel } from '@sentry/server-utils';
 import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
   HTTP_REQUEST_METHOD,
@@ -118,7 +118,7 @@ function subscribeToChannel(
   diagnosticChannel: string,
   onMessage: (message: unknown, name: string | symbol) => void,
 ): void {
-  diagch.subscribe?.(diagnosticChannel, onMessage);
+  subscribeDiagnosticsChannel(diagnosticChannel, onMessage);
 }
 
 function parseRequestHeaders(request: UndiciRequest): Map<string, string | string[]> {
