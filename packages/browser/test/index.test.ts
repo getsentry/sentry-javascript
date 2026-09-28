@@ -206,6 +206,18 @@ describe('SentryBrowser', () => {
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
       });
+
+      it('should remove the `onClose` listener when the script fails to load', async () => {
+        const onClose = vi.fn();
+
+        showReportDialog({ eventId: 'foobar', onClose });
+
+        const script = WINDOW.document.head.lastElementChild as HTMLScriptElement;
+        script.dispatchEvent(new Event('error'));
+
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).not.toHaveBeenCalled();
+      });
     });
 
     describe('onError', () => {

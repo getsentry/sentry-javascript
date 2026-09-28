@@ -71,6 +71,10 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
       }
     };
     WINDOW.addEventListener('message', reportDialogClosedMessageHandler);
+    // A dialog that never loads never closes, so the listener would stay forever
+    script.addEventListener('error', () => {
+      WINDOW.removeEventListener('message', reportDialogClosedMessageHandler);
+    });
   }
 
   injectionPoint.appendChild(script);
