@@ -3,17 +3,27 @@
  */
 
 import { getRouteProvider, resolveCurrentRoute, setRouteProvider } from '@sentry/browser-utils';
+import * as SentryCore from '@sentry/core';
 import { debug, getCurrentScope, makeSession, setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
 
-function setDocumentHidden(): void {
+vi.mock('@sentry/core', async importOriginal => {
+  const actual = await importOriginal<typeof SentryCore>();
+  return { ...actual, timestampInSeconds: vi.fn(actual.timestampInSeconds) };
+});
+
+function setDocumentVisibility(visibilityState: DocumentVisibilityState): void {
   if (WINDOW.document) {
-    Object.defineProperty(WINDOW.document, 'visibilityState', { value: 'hidden', configurable: true });
+    Object.defineProperty(WINDOW.document, 'visibilityState', { value: visibilityState, configurable: true });
     WINDOW.document.dispatchEvent(new Event('visibilitychange'));
   }
+}
+
+function setDocumentHidden(): void {
+  setDocumentVisibility('hidden');
 }
 
 describe('BrowserClient', () => {
@@ -38,6 +48,19 @@ describe('BrowserClient', () => {
 
     expect(flushOutcomesSpy).toHaveBeenCalled();
     expect(flushSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('checks the clocks for drift when the page is hidden and shown again', () => {
+    client = new BrowserClient(getDefaultBrowserClientOptions());
+    vi.spyOn(client, 'flush').mockReturnValue(Promise.resolve(true) as any);
+    vi.mocked(SentryCore.timestampInSeconds).mockClear();
+
+    setDocumentHidden();
+    expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
+
+    vi.mocked(SentryCore.timestampInSeconds).mockClear();
+    setDocumentVisibility('visible');
+    expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
   });
 
   it('does not flush outcomes when sendClientReports is disabled but still flushes the client', async () => {
