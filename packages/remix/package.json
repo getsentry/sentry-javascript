@@ -51,6 +51,23 @@
       "import": {
         "default": "./build/import-hook.mjs"
       }
+    },
+    "./v3": {
+      "import": {
+        "types": "./build/types/v3/index.server.d.ts",
+        "default": "./build/esm/v3/index.server.js"
+      }
+    },
+    "./v3/client": {
+      "import": {
+        "types": "./build/types/v3/index.client.d.ts",
+        "default": "./build/esm/v3/index.client.js"
+      }
+    },
+    "./v3/node": {
+      "import": {
+        "default": "./build/v3-node.mjs"
+      }
     }
   },
   "publishConfig": {
@@ -58,6 +75,7 @@
   },
   "dependencies": {
     "@remix-run/router": "^1.23.4",
+    "@sentry/browser": "11.0.0",
     "@sentry/bundler-plugins": "11.0.0",
     "@sentry/conventions": "^0.24.0",
     "@sentry/core": "11.0.0",
@@ -81,7 +99,8 @@
     "@remix-run/node": "2.x",
     "@remix-run/react": "2.x",
     "@remix-run/server-runtime": "2.x",
-    "react": "18.x"
+    "react": "18.x",
+    "remix": ">=3.0.0-rc.1 <4"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -115,9 +134,27 @@
           "{projectRoot}/build/cjs",
           "{projectRoot}/build/npm/esm",
           "{projectRoot}/build/npm/cjs",
-          "{projectRoot}/build/import-hook.mjs"
+          "{projectRoot}/build/import-hook.mjs",
+          "{projectRoot}/build/v3-node.mjs"
         ]
       }
+    }
+  },
+  "peerDependenciesMeta": {
+    "@remix-run/node": {
+      "optional": true
+    },
+    "@remix-run/react": {
+      "optional": true
+    },
+    "@remix-run/server-runtime": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "remix": {
+      "optional": true
     }
   }
 }

@@ -783,7 +783,7 @@ jobs:
   job_node_integration_tests:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
-      Tests
+      Tests (${{ matrix.shard }}/3)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -792,12 +792,20 @@ jobs:
       fail-fast: false
       matrix:
         node: [20.19, 22, 24, 26]
+        shard: [1, 2, 3]
         typescript:
           - false
         include:
           # Only check typescript for latest version (to streamline CI)
           - node: 24
             typescript: '5.0'
+            shard: 1
+          - node: 24
+            typescript: '5.0'
+            shard: 2
+          - node: 24
+            typescript: '5.0'
+            shard: 3
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -832,14 +840,18 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
-        run: yarn test
+        run: yarn test --shard=${{ matrix.shard }}/3
 
   job_cloudflare_integration_tests:
-    name: Cloudflare Integration Tests
+    name: Cloudflare Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -856,7 +868,7 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/cloudflare-integration-tests
-        run: yarn test
+        run: yarn test --shard=${{ matrix.shard }}/2
 
   job_bundler_plugin_integration_tests:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
@@ -1261,28 +1273,8 @@ jobs:
     # Always run this, even if a dependent job failed
     if: always()
     runs-on: ubuntu-24.04
-    permissions:
-      issues: write
-      checks: read
+    permissions: {}
     steps:
-      - name: Check out current commit
-        if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
-        uses: actions/checkout@v7
-        with:
-          sparse-checkout: |
-            .github
-            scripts
-
-      - name: Create issues for failed jobs
-        if: github.ref == 'refs/heads/develop' && contains(needs.*.result, 'failure')
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const { default: run } = await import(
-              `${process.env.GITHUB_WORKSPACE}/scripts/report-ci-failures.mjs`
-            );
-            await run({ github, context, core });
-
       - name: Check for failures
         if: cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |

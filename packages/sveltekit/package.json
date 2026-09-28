@@ -46,6 +46,11 @@
         "require": "./build/cjs/index.server.js"
       }
     },
+    "./opentelemetry-api": {
+      "types": "./build/types/opentelemetryApi.d.ts",
+      "import": "./build/esm/opentelemetryApi.js",
+      "require": "./build/cjs/opentelemetryApi.js"
+    },
     "./vite": {
       "types": "./build/types/vite/index.d.ts",
       "import": "./build/esm/vite/index.js",
@@ -65,6 +70,7 @@
     }
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
     "@sentry/cloudflare": "11.0.0",
     "@sentry/core": "11.0.0",
     "@sentry/conventions": "^0.24.0",

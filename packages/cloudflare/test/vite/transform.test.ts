@@ -132,11 +132,50 @@ describe('Durable Object class wrapping', () => {
     const result = transform(code, ctx)!;
     expect(result).toBeDefined();
 
-    expect(result.code).toContain('class __SENTRY_ORIGINAL_MyDurableObject__');
+    expect(result.code).toContain('class MyDurableObject extends DurableObject {');
     expect(result.code).not.toContain('export class MyDurableObject');
-    expect(result.code).toContain('__SENTRY__.instrumentDurableObjectWithSentry(');
-    expect(result.code).toContain('export const MyDurableObject =');
-    expect(result.code).toContain('__SENTRY_ORIGINAL_MyDurableObject__');
+    expect(result.code).toContain(
+      'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), MyDurableObject);',
+    );
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };');
+  });
+
+  // The wrapper must not touch the declaration: `Function.prototype.name` is what libraries read to
+  // identify the user's class (`@cloudflare/think` passes `this.constructor.name` to the AI SDK as the
+  // telemetry `functionId`, which becomes the `gen_ai.invoke_agent` span name), and a user-chosen
+  // `static name` has to keep winning too.
+  it('leaves the class declaration untouched and aliases the export instead', () => {
+    const code = [
+      'class DurableObject {}',
+      'export class MyDurableObject extends DurableObject { static name = "user-chosen"; }',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+
+    expect(result.code).toContain('class MyDurableObject extends DurableObject { static name = "user-chosen"; }');
+    expect(result.code).not.toContain('__SENTRY_ORIGINAL_');
+    expect(result.code).not.toContain('Object.defineProperty');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };');
+  });
+
+  it('shares one wrapper between two exports of the same local class', () => {
+    const code = [
+      'class DurableObject {}',
+      'class MyDurableObject extends DurableObject {}',
+      'export { MyDurableObject };',
+      'export { MyDurableObject as Alias };',
+    ].join('\n');
+
+    const result = transform(code, {
+      classWrappers: doWrappers('MyDurableObject', 'Alias'),
+      optionsFn: '(env) => ({})',
+    })!;
+
+    const wrapCount = (result.code.match(/instrumentDurableObjectWithSentry\(/g) ?? []).length;
+    expect(wrapCount).toBe(1);
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDurableObject__ as Alias };');
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject', 'Alias']));
   });
 
   it('wraps multiple DO classes', () => {
@@ -153,10 +192,10 @@ describe('Durable Object class wrapping', () => {
 
     const result = transform(code, multi)!;
     expect(result).toBeDefined();
-    expect(result.code).toContain('export const DOA =');
-    expect(result.code).toContain('export const DOB =');
-    expect(result.code).toContain('class __SENTRY_ORIGINAL_DOA__');
-    expect(result.code).toContain('class __SENTRY_ORIGINAL_DOB__');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_DOA__ as DOA };');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_DOB__ as DOB };');
+    expect(result.code).toContain('class DOA extends DurableObject');
+    expect(result.code).toContain('class DOB extends DurableObject');
   });
 
   it('ignores classes not listed in wrangler config', () => {
@@ -181,12 +220,11 @@ describe('Durable Object class wrapping', () => {
 
     const result = transform(code, ctx)!;
     expect(result).toBeDefined();
-    expect(result.code).toContain('class __SENTRY_ORIGINAL_MyDurableObject__');
+    expect(result.code).toContain('class MyDurableObject extends DurableObject {');
     expect(result.code).toContain(
-      'const MyDurableObject = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_ORIGINAL_MyDurableObject__);',
+      'const __SENTRY_WRAPPED_MyDurableObject__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), MyDurableObject);',
     );
-    // The original specifier export keeps exporting the wrapped binding.
-    expect(result.code).toContain('export { MyDurableObject };');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDurableObject__ as MyDurableObject };');
     expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
   });
 
@@ -199,11 +237,11 @@ describe('Durable Object class wrapping', () => {
 
     const result = transform(code, ctx)!;
     expect(result).toBeDefined();
-    expect(result.code).toContain('class __SENTRY_ORIGINAL_Internal__');
+    expect(result.code).toContain('class Internal extends DurableObject {}');
     expect(result.code).toContain(
-      'const Internal = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_ORIGINAL_Internal__);',
+      'const __SENTRY_WRAPPED_Internal__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), Internal);',
     );
-    expect(result.code).toContain('export { Internal as MyDurableObject };');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_Internal__ as MyDurableObject };');
     expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
   });
 
@@ -293,20 +331,19 @@ describe('Durable Object class wrapping', () => {
     ].join('\n');
 
     const result = transform(code, mixed)!;
-    // The local class keeps its binding (renamed declaration + wrapper), so its specifier is
-    // carried over untouched alongside the unrelated one.
+    // Both classes export through a wrapper binding; only the unrelated specifier is carried over.
     expect(result.code).toBe(
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { ImportedDO } from './do';",
         'class DurableObject {}',
-        'class __SENTRY_ORIGINAL_LocalDO__ extends DurableObject {}',
-        'const LocalDO = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), __SENTRY_ORIGINAL_LocalDO__);',
+        'class LocalDO extends DurableObject {}',
+        'const __SENTRY_WRAPPED_LocalDO__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({}), LocalDO);',
         '',
         'const unrelated = 1;',
         'const __SENTRY_WRAPPED_ImportedDO__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.instrumentDurableObjectWithSentry, (env) => ({}), ImportedDO);',
-        'export { __SENTRY_WRAPPED_ImportedDO__ as ImportedDO };',
-        'export { LocalDO, unrelated };',
+        'export { __SENTRY_WRAPPED_LocalDO__ as LocalDO, __SENTRY_WRAPPED_ImportedDO__ as ImportedDO };',
+        'export { unrelated };',
       ].join('\n'),
     );
     expect(result.wrappedClasses).toEqual(new Set(['LocalDO', 'ImportedDO']));
@@ -344,7 +381,7 @@ describe('Durable Object class wrapping', () => {
     const result = transform(code, { classWrappers: doWrappers('MyDurableObject'), optionsFn: '(env) => ({})' })!;
     expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
     expect(result.code).toBe(code);
-    expect(result.code).not.toContain('__SENTRY_ORIGINAL_');
+    expect(result.code).not.toContain('__SENTRY_WRAPPED_');
     expect(result.code).not.toContain("import * as __SENTRY__ from '@sentry/cloudflare'");
   });
 
@@ -378,9 +415,10 @@ describe('Workflow class wrapping', () => {
 
     const result = transform(code, ctx)!;
     expect(result).toBeDefined();
-    expect(result.code).toContain('class __SENTRY_ORIGINAL_MyWorkflow__');
+    expect(result.code).toContain('class MyWorkflow extends WorkflowEntrypoint {');
     expect(result.code).not.toContain('export class MyWorkflow');
-    expect(result.code).toContain('export const MyWorkflow = __SENTRY__.instrumentWorkflowWithSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_MyWorkflow__ = __SENTRY__.instrumentWorkflowWithSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyWorkflow__ as MyWorkflow };');
     // A workflow must never be wrapped with the DO helper.
     expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
     expect(result.wrappedClasses).toEqual(new Set(['MyWorkflow']));
@@ -395,9 +433,9 @@ describe('Workflow class wrapping', () => {
 
     const result = transform(code, ctx)!;
     expect(result.code).toContain(
-      'const MyWorkflow = __SENTRY__.instrumentWorkflowWithSentry((env) => ({}), __SENTRY_ORIGINAL_MyWorkflow__);',
+      'const __SENTRY_WRAPPED_MyWorkflow__ = __SENTRY__.instrumentWorkflowWithSentry((env) => ({}), MyWorkflow);',
     );
-    expect(result.code).toContain('export { MyWorkflow };');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyWorkflow__ as MyWorkflow };');
     expect(result.wrappedClasses).toEqual(new Set(['MyWorkflow']));
   });
 
@@ -455,9 +493,10 @@ describe('WorkerEntrypoint class wrapping (structural)', () => {
 
     const result = transform(code, ctx)!;
     expect(result).toBeDefined();
-    expect(result.code).toContain('class __SENTRY_ORIGINAL_AdminEntry__');
+    expect(result.code).toContain('class AdminEntry extends WorkerEntrypoint {');
     expect(result.code).not.toContain('export class AdminEntry');
-    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
     expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
   });
 
@@ -468,7 +507,8 @@ describe('WorkerEntrypoint class wrapping (structural)', () => {
     ].join('\n');
 
     const result = transform(code, ctx)!;
-    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
   });
 
   it('wraps a class extending a namespace-imported WorkerEntrypoint', () => {
@@ -478,7 +518,8 @@ describe('WorkerEntrypoint class wrapping (structural)', () => {
     ].join('\n');
 
     const result = transform(code, ctx)!;
-    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
   });
 
   it('wraps a class via an indirect same-file base chain', () => {
@@ -489,7 +530,8 @@ describe('WorkerEntrypoint class wrapping (structural)', () => {
     ].join('\n');
 
     const result = transform(code, ctx)!;
-    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
     expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
   });
 
@@ -502,9 +544,9 @@ describe('WorkerEntrypoint class wrapping (structural)', () => {
 
     const result = transform(code, ctx)!;
     expect(result.code).toContain(
-      'const AdminEntry = __SENTRY__.withSentry((env) => ({}), __SENTRY_ORIGINAL_AdminEntry__);',
+      'const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry((env) => ({}), AdminEntry);',
     );
-    expect(result.code).toContain('export { AdminEntry };');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
     expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
   });
 
@@ -541,7 +583,8 @@ describe('WorkerEntrypoint class wrapping (config fallback)', () => {
     const code = ["import { BaseEntry } from './base';", 'export class AdminEntry extends BaseEntry {}'].join('\n');
 
     const result = transform(code, ctx)!;
-    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
     expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
   });
 
@@ -599,7 +642,8 @@ describe('agent class wrapping', () => {
       optionsFn: '(env) => ({})',
     })!;
 
-    expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };');
     expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
     expect(result.wrappedClasses).toEqual(new Set(['MyAgent']));
   });
@@ -613,7 +657,8 @@ describe('agent class wrapping', () => {
       optionsFn: '(env) => ({})',
     })!;
 
-    expect(result.code).toContain('export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_MyDO__ = __SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDO__ as MyDO };');
     expect(result.code).not.toContain('instrumentAgentWithSentry');
   });
 
@@ -631,8 +676,10 @@ describe('agent class wrapping', () => {
       optionsFn: '(env) => ({})',
     })!;
 
-    expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
-    expect(result.code).toContain('export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_MyDO__ = __SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDO__ as MyDO };');
   });
 
   it('emits the expected source for a mixed Agent/chat-agent/DO entry', () => {
@@ -658,14 +705,17 @@ describe('agent class wrapping', () => {
         "import { Agent } from 'agents';",
         "import { AIChatAgent } from '@cloudflare/ai-chat';",
         "import { DurableObject } from 'cloudflare:workers';",
-        'class __SENTRY_ORIGINAL_MyAgent__ extends Agent {}',
-        'export const MyAgent = __SENTRY__.instrumentAgentWithSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_ORIGINAL_MyAgent__);',
+        'class MyAgent extends Agent {}',
+        'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry((env) => ({ dsn: env.SENTRY_DSN }), MyAgent);',
+        'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
         '',
-        'class __SENTRY_ORIGINAL_MyChat__ extends AIChatAgent {}',
-        'export const MyChat = __SENTRY__.instrumentAgentWithSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_ORIGINAL_MyChat__);',
+        'class MyChat extends AIChatAgent {}',
+        'const __SENTRY_WRAPPED_MyChat__ = __SENTRY__.instrumentAgentWithSentry((env) => ({ dsn: env.SENTRY_DSN }), MyChat);',
+        'export { __SENTRY_WRAPPED_MyChat__ as MyChat };',
         '',
-        'class __SENTRY_ORIGINAL_MyDO__ extends DurableObject {}',
-        'export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_ORIGINAL_MyDO__);',
+        'class MyDO extends DurableObject {}',
+        'const __SENTRY_WRAPPED_MyDO__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({ dsn: env.SENTRY_DSN }), MyDO);',
+        'export { __SENTRY_WRAPPED_MyDO__ as MyDO };',
         '',
         'const __SENTRY_DEFAULT_EXPORT__ = { fetch() {} };',
         'export default __SENTRY__.withSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_DEFAULT_EXPORT__);',
@@ -687,7 +737,8 @@ describe('agent class wrapping', () => {
       optionsFn: '(env) => ({})',
     })!;
 
-    expect(result.code).toContain('const LocalAgent = __SENTRY__.instrumentAgentWithSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_LocalAgent__ = __SENTRY__.instrumentAgentWithSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_LocalAgent__ as ConfiguredAgent };');
   });
 
   it('does not report a manually Agent-wrapped export as unwrapped', () => {
@@ -749,8 +800,10 @@ describe('combined transforms', () => {
     ].join('\n');
 
     const result = transform(code, mixed)!;
-    expect(result.code).toContain('export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry(');
-    expect(result.code).toContain('export const MyWorkflow = __SENTRY__.instrumentWorkflowWithSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_MyDO__ = __SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDO__ as MyDO };');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_MyWorkflow__ = __SENTRY__.instrumentWorkflowWithSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyWorkflow__ as MyWorkflow };');
     expect(result.wrappedClasses).toEqual(new Set(['MyDO', 'MyWorkflow']));
     const importCount = (result.code.match(/import \* as __SENTRY__/g) ?? []).length;
     expect(importCount).toBe(1);
@@ -771,8 +824,9 @@ describe('combined transforms', () => {
     expect(result).toBeDefined();
 
     // DO wrapped
-    expect(result.code).toContain('class __SENTRY_ORIGINAL_MyDO__');
-    expect(result.code).toContain('export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).toContain('class MyDO extends DurableObject {');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_MyDO__ = __SENTRY__.instrumentDurableObjectWithSentry(');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDO__ as MyDO };');
 
     // Default export wrapped
     expect(result.code).toContain('const __SENTRY_DEFAULT_EXPORT__ =');
@@ -796,10 +850,10 @@ describe('combined transforms', () => {
     // The named export wraps it once; the default re-export must not wrap again.
     const wrapCount = (result.code.match(/withSentry\(/g) ?? []).length;
     expect(wrapCount).toBe(1);
-    expect(result.code).toContain('const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
     expect(result.code).not.toContain('__SENTRY_DEFAULT_EXPORT__');
-    // The default export still points at the (single-)wrapped binding.
-    expect(result.code).toContain('export default AdminEntry;');
+    // The default export is re-pointed at the (single-)wrapped binding.
+    expect(result.code).toContain('export default __SENTRY_WRAPPED_AdminEntry__;');
   });
 
   it('handles the default export appearing before its named wrap in source order', () => {
@@ -827,7 +881,7 @@ describe('combined transforms', () => {
     const result = transform(code, ctx)!;
     expect(result).toBeDefined();
     // DO still wrapped
-    expect(result.code).toContain('export const MyDO =');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_MyDO__ as MyDO };');
     // Default not double-wrapped
     expect(result.code).not.toContain('__SENTRY_DEFAULT_EXPORT__');
   });

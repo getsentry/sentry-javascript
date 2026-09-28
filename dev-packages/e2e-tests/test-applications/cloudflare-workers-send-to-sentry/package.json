@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml dist .wrangler",
     "test:build": "pnpm install && pnpm build",

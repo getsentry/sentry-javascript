@@ -3,6 +3,7 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { RUNTIME } from '../../../utils';
 
 describe('onUnhandledRejectionIntegration', () => {
   afterAll(() => {
@@ -141,7 +142,8 @@ test rejection`);
       .completed();
   });
 
-  test('handles unhandled rejection in spans', async () => {
+  // Bun: the error event arrives before the transaction, or has a different span id.
+  test.skipIf(RUNTIME === 'bun')('handles unhandled rejection in spans', async () => {
     let transactionEvent: Event | undefined;
     let errorEvent: Event | undefined;
 
@@ -168,7 +170,7 @@ test rejection`);
     expect(transactionEvent!.contexts!.trace!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
   });
 
-  test('handles unhandled rejection in spans that are ended early', async () => {
+  test.skipIf(RUNTIME === 'bun')('handles unhandled rejection in spans that are ended early', async () => {
     let transactionEvent: Event | undefined;
     let errorEvent: Event | undefined;
 

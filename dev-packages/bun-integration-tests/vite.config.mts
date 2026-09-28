@@ -1,5 +1,20 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
+import { NODE_SUITES_EXCLUDE, SENTRY_BUN_EXCLUDE, SENTRY_NODE_EXCLUDE } from './node-suites/excludes';
+
+const NODE_SUITES_ROOT = fileURLToPath(new URL('../node-integration-tests', import.meta.url));
+
+// All Node suites also run on Bun. The scenarios stay in `node-integration-tests`.
+const NODE_SUITES = ['suites/**/test.ts'];
+
+const nodeSuitesTest = {
+  root: NODE_SUITES_ROOT,
+  include: NODE_SUITES,
+  exclude: NODE_SUITES_EXCLUDE,
+  // Above the 30 second port timeout of the runner on Bun, so a slow start can still pass.
+  testTimeout: 45_000,
+};
 
 export default defineConfig({
   ...baseConfig,
@@ -9,7 +24,6 @@ export default defineConfig({
       enabled: false,
     },
     isolate: false,
-    include: ['./suites/**/test.ts'],
     testTimeout: 20_000,
     ...(process.env.DEBUG
       ? {
@@ -18,15 +32,56 @@ export default defineConfig({
         }
       : {}),
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
       : process.env.GITHUB_ACTIONS
         ? ['dot', 'github-actions']
         : ['verbose'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'bun',
+          include: ['./suites/**/test.ts'],
+          env: { RUNTIME: 'bun' },
+          // Above the 30 second port timeout of the runner on Bun, so a slow start can still pass.
+          testTimeout: 45_000,
+          poolOptions: {
+            threads: {
+              singleThread: true,
+            },
+          },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          ...nodeSuitesTest,
+          name: 'node-suites',
+          exclude: [...NODE_SUITES_EXCLUDE, ...SENTRY_NODE_EXCLUDE],
+          env: { RUNTIME: 'bun' },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          ...nodeSuitesTest,
+          name: 'node-suites-sentry-bun',
+          exclude: [
+            ...NODE_SUITES_EXCLUDE,
+            ...SENTRY_BUN_EXCLUDE,
+            // The scenario creates a `NodeClient` itself, which sends `sentry.javascript.node`.
+            'suites/public-api/logs/test.ts',
+            // `@sentry/bun` has `bunRuntimeMetricsIntegration` instead of `nodeRuntimeMetricsIntegration`.
+            'suites/node-runtime-metrics/test.ts',
+          ],
+          env: {
+            RUNTIME: 'bun',
+            RUNTIME_PRELOAD: fileURLToPath(new URL('./node-suites/alias-sentry-bun.ts', import.meta.url)),
+            EXPECTED_SDK_NAME: 'sentry.javascript.bun',
+          },
+        },
+      },
+    ],
   },
 });
