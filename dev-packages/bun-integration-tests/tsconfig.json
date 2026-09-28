@@ -4,7 +4,7 @@
   "include": ["suites/**/*.ts", "node-suites/**/*.ts", "*.ts"],
 
   "compilerOptions": {
-    "lib": ["ES2020"],
+    "lib": ["DOM", "ES2020"],
     "esModuleInterop": true,
     "types": ["bun-types"]
   }
