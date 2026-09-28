@@ -22,7 +22,7 @@ async function getFreshTimestampInSeconds(): Promise<() => number> {
   return (await getFreshTimeModule()).timestampInSeconds;
 }
 
-const RELIABLE_THRESHOLD_MS = 300_000;
+const RELIABLE_THRESHOLD_MS = 15_000;
 
 describe('timestampInSeconds', () => {
   afterEach(() => {

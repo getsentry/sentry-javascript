@@ -7,7 +7,7 @@ const ONE_SECOND_IN_MS = 1000;
  * Maximum tolerated difference between the monotonic clock and the wall clock before we consider
  * the monotonic clock's time origin stale.
  */
-const CLOCK_DRIFT_THRESHOLD_MS = 300_000; // 5 minutes in milliseconds
+const CLOCK_DRIFT_THRESHOLD_MS = 15_000; // 15 seconds in milliseconds
 
 /**
  * Upper bound on the number of drift corrections {@link browserPerformanceTimeOrigin} remembers. A page has to survive
