@@ -931,11 +931,15 @@ jobs:
         run: yarn test
 
   job_deno_integration_tests:
-    name: Deno Integration Tests
+    name: Deno Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -956,9 +960,16 @@ jobs:
       - name: Build @sentry/deno
         working-directory: packages/deno
         run: yarn build
-      - name: Run integration tests
+      - name: Run native Deno integration tests
+        if: matrix.shard == 1
         working-directory: dev-packages/deno-integration-tests
-        run: yarn test
+        run: |
+          yarn install:deno
+          yarn deno-types
+          yarn test:unit
+      - name: Run shared Node integration tests
+        working-directory: dev-packages/deno-integration-tests
+        run: yarn test:node-suites --shard=${{ matrix.shard }}/2
 
   job_build_tarballs:
     name: Build tarballs
