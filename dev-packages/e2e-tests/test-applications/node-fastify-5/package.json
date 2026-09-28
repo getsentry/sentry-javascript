@@ -23,6 +23,11 @@
     "@playwright/test": "~1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
+  "pnpm": {
+    "overrides": {
+      "pg-protocol": "1.10.3"
+    }
+  },
   "volta": {
     "extends": "../../package.json"
   }
