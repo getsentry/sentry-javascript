@@ -1,15 +1,27 @@
 import type * as SentryCore from '@sentry/core';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import type * as NodeModule from 'node:module';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+type LoadResult = { format?: string | null };
+type LoadHook = (url: string, context: unknown, nextLoad: (url: string, context: unknown) => LoadResult) => unknown;
 
 // The registration installs real Node module hooks, which we neither want nor need here. Stub the
 // tracing-hooks surface so the tests can drive the diagnostics callback directly, and neuter
 // `node:module`'s hook installers: on Node 24.13+/26 the stable-sync-hooks path would otherwise call
 // the real `Module.registerHooks({ resolve, load })` with the mocked (undefined-returning) callbacks,
 // leaving a broken resolve hook installed process-wide that crashes vitest's next dynamic `import()`.
+const registerHooksMock = vi.fn<(options: { load: LoadHook; resolve: unknown }) => void>();
 vi.mock('node:module', async importOriginal => {
   const actual = await importOriginal<typeof NodeModule>();
-  return { ...actual, registerHooks: vi.fn(), register: vi.fn() };
+  return {
+    ...actual,
+    registerHooks: (options: { load: LoadHook; resolve: unknown }) => registerHooksMock(options),
+    register: vi.fn(),
+  };
 });
 
 const setDiagnosticsHookMock = vi.fn<(cb: DiagnosticsCallback) => void>();
@@ -21,9 +33,10 @@ vi.mock('@apm-js-collab/tracing-hooks', () => ({
     patch(): void {}
   },
 }));
+const loadMock = vi.fn<LoadHook>();
 vi.mock('@apm-js-collab/tracing-hooks/hook-sync.mjs', () => ({
   initialize: vi.fn(),
-  load: vi.fn(),
+  load: (...args: Parameters<LoadHook>) => loadMock(...args),
   resolve: vi.fn(),
   createDiagnosticsPort: vi.fn(),
 }));
@@ -190,5 +203,71 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     registerDiagnosticsChannelInjection();
 
     expect(setDiagnosticsHookMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('registerDiagnosticsChannelInjection - Deno module formats', () => {
+  let fixtureDir: string;
+  let registerDiagnosticsChannelInjection: typeof RegisterModule.registerDiagnosticsChannelInjection;
+  let loadHook: LoadHook;
+
+  beforeAll(() => {
+    fixtureDir = mkdtempSync(join(tmpdir(), 'sentry-deno-formats-'));
+    mkdirSync(join(fixtureDir, 'esm-package', 'lib'), { recursive: true });
+    writeFileSync(join(fixtureDir, 'esm-package', 'package.json'), JSON.stringify({ type: 'module' }));
+    writeFileSync(join(fixtureDir, 'esm-package', 'lib', 'index.js'), 'export default 1;');
+    mkdirSync(join(fixtureDir, 'cjs-package'), { recursive: true });
+    writeFileSync(join(fixtureDir, 'cjs-package', 'package.json'), JSON.stringify({}));
+    writeFileSync(join(fixtureDir, 'cjs-package', 'index.js'), 'module.exports = 1;');
+  });
+
+  afterAll(() => {
+    rmSync(fixtureDir, { recursive: true, force: true });
+  });
+
+  beforeEach(async () => {
+    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+    (globalThis as { Deno?: unknown }).Deno = { version: { deno: '2.8.3' } };
+    vi.resetModules();
+    registerHooksMock.mockClear();
+    // The transform reads the format from what `nextLoad` returns, so the stub forwards to it.
+    loadMock.mockImplementation((url, context, nextLoad) => nextLoad(url, context));
+
+    ({ registerDiagnosticsChannelInjection } = await import('../src/register'));
+    registerDiagnosticsChannelInjection();
+
+    const [options] = registerHooksMock.mock.lastCall ?? [];
+    if (!options) {
+      throw new Error('registerDiagnosticsChannelInjection() did not call Module.registerHooks()');
+    }
+    loadHook = options.load;
+  });
+
+  afterEach(() => {
+    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+    delete (globalThis as { Deno?: unknown }).Deno;
+    loadMock.mockReset();
+  });
+
+  it.each([
+    ['a `.js` file in a `"type": "module"` package', 'esm-package/lib/index.js', 'module'],
+    ['an `.mjs` file', 'cjs-package/other.mjs', 'module'],
+    ['a `.json` file', 'cjs-package/package.json', 'json'],
+  ])('restores the format Deno leaves out for %s', (_label, file, format) => {
+    const url = pathToFileURL(join(fixtureDir, file)).href;
+
+    expect(loadHook(url, {}, () => ({ format: null }))).toEqual({ format });
+  });
+
+  it('keeps the format missing for a `.js` file in a package without `"type": "module"`', () => {
+    const url = pathToFileURL(join(fixtureDir, 'cjs-package', 'index.js')).href;
+
+    expect(loadHook(url, {}, () => ({ format: null }))).toEqual({ format: null });
+  });
+
+  it('keeps a format that Deno reports', () => {
+    const url = pathToFileURL(join(fixtureDir, 'esm-package', 'lib', 'index.js')).href;
+
+    expect(loadHook(url, {}, () => ({ format: 'commonjs' }))).toEqual({ format: 'commonjs' });
   });
 });

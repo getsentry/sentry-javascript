@@ -8,7 +8,7 @@ import * as Layer from 'effect/Layer';
 import * as Logger from 'effect/Logger';
 import * as Tracer from 'effect/Tracer';
 import * as References from 'effect/References';
-import { HttpRouter, HttpServerResponse } from 'effect/unstable/http';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 import { createServer } from 'http';
 
 const SentryLive = Layer.mergeAll(
