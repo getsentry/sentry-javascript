@@ -7,6 +7,7 @@ import { sentryRemixVitePlugin } from '../../src/vite';
 const orchestrionConfig = vi.fn((_config: UserConfig, env: ConfigEnv) =>
   env.command === 'serve' ? null : { ssr: { noExternal: ['mysql'] } },
 );
+const orchestrionConfigEnvironment = vi.fn(() => ({ resolve: { noExternal: ['mysql'] } }));
 const orchestrionConfigResolved = vi.fn();
 const orchestrionTransform = vi.fn(() => ({ code: 'transformed' }));
 
@@ -17,6 +18,7 @@ const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean })
         name: 'code-transformer',
         enforce: 'pre',
         config: orchestrionConfig,
+        configEnvironment: orchestrionConfigEnvironment,
         configResolved: orchestrionConfigResolved,
         transform: orchestrionTransform,
       },
@@ -25,6 +27,27 @@ const orchestrionVite = vi.fn((options?: { buildTimeInstrumentation?: boolean })
 vi.mock('@sentry/server-utils/orchestrion/vite', () => ({
   sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionVite(options),
 }));
+
+type CapturedSentryOptions = {
+  applicationKey?: string;
+  bundleSizeOptimizations?: { excludeTracing?: boolean };
+  sourcemaps?: { filesToDeleteAfterUpload?: Promise<unknown> };
+};
+
+let capturedSentryOptions: CapturedSentryOptions | undefined;
+
+vi.mock('@sentry/bundler-plugins/vite', () => ({
+  sentryVitePlugin: (options: CapturedSentryOptions) => {
+    capturedSentryOptions = options;
+    return [{ name: 'sentry-vite-plugin' }];
+  },
+}));
+
+const SOURCE_MAP_PLUGINS = [
+  'sentry-remix-files-to-delete-after-upload',
+  'sentry-vite-plugin',
+  'sentry-remix-update-source-map-setting',
+];
 
 const NODE_CONFIG = { ssr: { target: 'node' } } as UserConfig;
 const WORKER_CONFIG = { ssr: { target: 'webworker' } } as UserConfig;
@@ -48,13 +71,76 @@ function callHook(hook: unknown, ...args: unknown[]): unknown {
 describe('sentryRemixVitePlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    capturedSentryOptions = undefined;
   });
 
-  it('returns the route manifest plugin and the orchestrion plugin', () => {
+  // Vite hands every `config` hook the already-merged config, so the deletion plugin has to read
+  // `build.sourcemap` before `makeEnableSourceMapsPlugin` sets it. Running the hooks in isolation
+  // hides that, which is why this drives them in plugin order over one shared config.
+  it('still deletes the generated source maps once the hooks run in plugin order', async () => {
+    const plugins = sentryRemixVitePlugin();
+    const config: UserConfig = {};
+
+    for (const plugin of plugins) {
+      if (!plugin.config) {
+        continue;
+      }
+
+      const result = callHook(plugin.config, config, BUILD_ENV) as UserConfig | null;
+      const sourcemap = result?.build?.sourcemap;
+
+      if (sourcemap !== undefined) {
+        config.build = { ...config.build, sourcemap };
+      }
+    }
+
+    await expect(capturedSentryOptions?.sourcemaps?.filesToDeleteAfterUpload).resolves.toEqual(['./build/**/*.map']);
+  });
+
+  it('returns the route manifest, orchestrion and source map plugins', () => {
+    const plugins = sentryRemixVitePlugin();
+
+    expect(plugins.map(plugin => plugin.name)).toEqual([
+      'sentry-remix-route-manifest',
+      'code-transformer',
+      ...SOURCE_MAP_PLUGINS,
+    ]);
+    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+  });
+
+  // Uploading from the dev server would upload a new set of artifacts on every restart.
+  it('leaves out the source map plugins in development', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+
     const plugins = sentryRemixVitePlugin();
 
     expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-remix-route-manifest', 'code-transformer']);
-    expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+  });
+
+  // Disabling source maps must not drop the bundler plugin: it also applies bundle size
+  // optimizations, module metadata, the application key and release management, and it skips the
+  // upload on its own.
+  it('only drops the source map setting plugin when source maps are disabled', () => {
+    const plugins = sentryRemixVitePlugin({ sourcemaps: { disable: true } });
+
+    expect(plugins.map(plugin => plugin.name)).toEqual([
+      'sentry-remix-route-manifest',
+      'code-transformer',
+      'sentry-remix-files-to-delete-after-upload',
+      'sentry-vite-plugin',
+    ]);
+  });
+
+  it('forwards the non-source-map options when source maps are disabled', () => {
+    sentryRemixVitePlugin({
+      sourcemaps: { disable: true },
+      applicationKey: 'my-app-key',
+      bundleSizeOptimizations: { excludeTracing: true },
+    });
+
+    expect(capturedSentryOptions?.applicationKey).toBe('my-app-key');
+    expect(capturedSentryOptions?.bundleSizeOptimizations).toEqual({ excludeTracing: true });
   });
 
   it('adds an inert orchestrion plugin when `buildTimeInstrumentation` is `false`', () => {
@@ -62,6 +148,13 @@ describe('sentryRemixVitePlugin', () => {
 
     expect(orchestrionVite).toHaveBeenCalledWith({ buildTimeInstrumentation: false });
     expect(plugins.map(plugin => plugin.name)).toContain('sentry-orchestrion-disabled');
+  });
+
+  // Turning off the build-time transform says nothing about source maps.
+  it('keeps the source map plugins when `buildTimeInstrumentation` is `false`', () => {
+    const plugins = sentryRemixVitePlugin({ buildTimeInstrumentation: false });
+
+    expect(plugins.map(plugin => plugin.name)).toEqual(expect.arrayContaining(SOURCE_MAP_PLUGINS));
   });
 
   it('keeps the upstream `enforce: "pre"` but defers its `config` hook to the end', () => {
@@ -86,6 +179,9 @@ describe('sentryRemixVitePlugin', () => {
       const orchestrion = sentryRemixVitePlugin()[1]!;
 
       expect(callHook(orchestrion.config, NODE_CONFIG, BUILD_ENV)).toEqual({ ssr: { noExternal: ['mysql'] } });
+      expect(callHook(orchestrion.configEnvironment, 'ssr', {}, BUILD_ENV)).toEqual({
+        resolve: { noExternal: ['mysql'] },
+      });
 
       callHook(orchestrion.configResolved, NODE_CONFIG);
       expect(orchestrionConfigResolved).toHaveBeenCalledTimes(1);
@@ -98,6 +194,9 @@ describe('sentryRemixVitePlugin', () => {
 
       expect(callHook(orchestrion.config, config, BUILD_ENV)).toBeNull();
       expect(orchestrionConfig).not.toHaveBeenCalled();
+
+      expect(callHook(orchestrion.configEnvironment, 'ssr', {}, BUILD_ENV)).toBeNull();
+      expect(orchestrionConfigEnvironment).not.toHaveBeenCalled();
 
       callHook(orchestrion.configResolved, config);
       expect(orchestrionConfigResolved).not.toHaveBeenCalled();

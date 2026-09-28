@@ -14,7 +14,7 @@ const INTERACTIONS_SPAN_MAP = new Map<number, InteractionContext>();
 
 // Map to store element names by timestamp, since we get the DOM event before the PerformanceObserver entry
 /** What `htmlTreeAsString` returns when it cannot describe the target. */
-const UNKNOWN_ELEMENT_NAME = '<unknown>';
+export const UNKNOWN_ELEMENT_NAME = '<unknown>';
 
 const ELEMENT_NAME_TIMESTAMP_MAP = new Map<number, string>();
 

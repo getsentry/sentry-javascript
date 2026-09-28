@@ -10,6 +10,7 @@ import type { LangChainOptions } from '../ai/langchain/types';
 import { _INTERNAL_mergeLangChainCallbackHandler } from '../ai/langchain/utils';
 import { MISTRAL_INTEGRATION_NAME } from '../ai/mistral/constants';
 import { OPENAI_INTEGRATION_NAME } from '../ai/openai/constants';
+import { GROQ_INTEGRATION_NAME } from './groq';
 import { CHANNELS } from '../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../orchestrion/config/langchain';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -27,6 +28,8 @@ const SKIPPED_PROVIDERS = [
   ANTHROPIC_AI_INTEGRATION_NAME,
   GOOGLE_GENAI_INTEGRATION_NAME,
   MISTRAL_INTEGRATION_NAME,
+  // `@langchain/groq` drives `groq-sdk`, so ChatGroq calls must not also open the Groq integration's span.
+  GROQ_INTEGRATION_NAME,
 ];
 
 // The chat-model channels carry the live args array of `invoke(input, options)` / `_streamIterator(input, options)`.

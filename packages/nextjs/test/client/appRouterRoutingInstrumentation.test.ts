@@ -3,6 +3,13 @@ import type { Client } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
 import type * as SentryReact from '@sentry/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+// Loaded for their side effect: `setup()` re-imports these for every test, and the first of
+// those imports also pays for transforming the whole `@sentry/react` graph. Charged to a test
+// that ran into the 5s timeout on a loaded CI runner; charged to collection it is untimed.
+// Later imports only re-evaluate an already transformed graph, which is cheap.
+import '@sentry/core';
+import '@sentry/react';
+import '../../src/client/routing/appRouterRoutingInstrumentation';
 import type * as AppRouterInstrumentation from '../../src/client/routing/appRouterRoutingInstrumentation';
 import type { RouteManifest } from '../../src/config/manifest/types';
 

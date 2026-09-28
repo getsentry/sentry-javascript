@@ -1,8 +1,9 @@
 import type { Client, Measurements, Span } from '@sentry/core';
 import { browserPerformanceTimeOrigin, debug, setMeasurement, spanToJSON } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { BROWSER_NAVIGATION_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
+import type { MetricNavigationType } from '../instrumentation/performanceObserver';
 import {
   addClsInstrumentationHandler,
   addFcpInstrumentationHandler,
@@ -17,6 +18,7 @@ import { getActivationStart, getNavigationEntry, getVisibilityWatcher } from './
 let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
+let _navigationType: MetricNavigationType | undefined;
 
 interface StartTrackingWebVitalsOptions {
   trackCls: boolean;
@@ -83,6 +85,8 @@ function _trackLCP(): () => void {
 
 function _trackTtfb(): () => void {
   return addTtfbInstrumentationHandler(({ metric }) => {
+    _navigationType = metric.navigationType;
+
     const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
       return;
@@ -95,6 +99,7 @@ function _trackTtfb(): () => void {
 /** Starts tracking the First Contentful Paint on the current page. */
 function _trackFcp(): () => void {
   return addFcpInstrumentationHandler(({ metric }) => {
+    _navigationType = metric.navigationType;
     _measurements['fcp'] = { value: metric.value, unit: 'millisecond' };
   });
 }
@@ -201,6 +206,12 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
       _setWebVitalAttributes(span, options);
     }
 
+    // TTFB, FP and FCP are attributes of this span rather than spans of their own, so the navigation
+    // type they were measured on is reported here for them to be read against.
+    if (_navigationType) {
+      span.setAttribute(BROWSER_NAVIGATION_TYPE, _navigationType);
+    }
+
     // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
     span.setAttribute(spanStreamingEnabled ? 'browser.performance.time_origin' : 'performance.timeOrigin', timeOrigin);
 
@@ -222,6 +233,7 @@ export function addWebVitalsToSpan(span: Span, options: AddWebVitalsToSpanOption
 function resetWebVitalState(): void {
   _lcpEntry = undefined;
   _clsEntry = undefined;
+  _navigationType = undefined;
   _measurements = {};
 }
 

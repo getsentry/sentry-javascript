@@ -19,9 +19,8 @@ Deno.test('mysql instrumentation: included in default integrations (Deno 2.8.0+)
   assert(names.includes('Mysql'), `Mysql should be in defaults, got ${names.join(', ')}`);
 });
 
-// The orchestrion runtime hook (`@sentry/deno/import`) only works as a FIRST
-// import inside the entry graph in Deno 2.8.0 through 2.8.2.
-// TODO: revisit a `--import` or `--preload` approach once Deno 2.8.3 ships.
+// Covers the import form of the hook. The `--preload` form the README
+// documents is covered by the `deno` E2E app.
 Deno.test('@sentry/deno/import: transforms mysql so it publishes the orchestrion channel', async () => {
   const scenario = new URL('./scenario.mjs', import.meta.url);
 

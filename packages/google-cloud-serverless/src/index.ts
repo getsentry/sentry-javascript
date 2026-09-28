@@ -61,6 +61,8 @@ export {
   onUnhandledRejectionIntegration,
   mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
@@ -94,7 +96,6 @@ export {
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
@@ -174,6 +175,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   eveConversationHook,
+  eveInstrumentation,
+  eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/node';
 

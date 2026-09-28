@@ -69,4 +69,27 @@ test.describe('server-side errors', async () => {
       exception_id: 0,
     });
   });
+
+  // ky and got name their errors `HTTPError` too. h3 wraps a thrown one in its own error before the
+  // hook sees it, so this checks it still gets reported. The hook's handling of an unwrapped lookalike
+  // is covered by the unit tests.
+  test('captures a thrown third-party `HTTPError`', async ({ page }) => {
+    const errorPromise = waitForError('nuxt-5', async errorEvent => {
+      return !!errorEvent?.exception?.values?.some(value => value.value === 'Nuxt 5 third-party HTTPError');
+    });
+
+    await page.goto(`/fetch-server-routes`);
+    await page.getByText('Fetch Third-Party HTTPError', { exact: true }).click();
+
+    const error = await errorPromise;
+
+    expect(error.transaction).toEqual('GET /api/third-party-http-error');
+    expect(error.exception.values).toContainEqual(
+      expect.objectContaining({
+        type: 'HTTPError',
+        value: 'Nuxt 5 third-party HTTPError',
+        mechanism: expect.objectContaining({ handled: false, type: 'auto.function.nuxt.nitro' }),
+      }),
+    );
+  });
 });

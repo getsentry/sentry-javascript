@@ -76,6 +76,7 @@ sentryTest(
     expect(spans).toEqual([
       {
         attributes: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
             type: 'string',
             value: 'test-child',
@@ -124,6 +125,7 @@ sentryTest(
       },
       {
         attributes: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
@@ -168,6 +170,7 @@ sentryTest(
       },
       {
         attributes: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
@@ -216,6 +219,7 @@ sentryTest(
       },
       {
         attributes: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
           'culture.calendar': {
             type: 'string',
             value: expect.any(String),

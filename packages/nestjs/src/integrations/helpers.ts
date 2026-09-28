@@ -1,7 +1,9 @@
 import {
+  CODE_FUNCTION_NAME,
   MESSAGING_DESTINATION_NAME,
   MESSAGING_OPERATION_TYPE,
   MESSAGING_SYSTEM,
+  SENTRY_DESCRIPTION,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, MIDDLEWARE, QUEUE_PROCESS } from '@sentry/conventions/op';
@@ -111,11 +113,20 @@ export function getEventSpanOptions(event: string): {
   attributes: Record<string, string>;
   forceTransaction: boolean;
 } {
+  const client = getClient();
+  const isStreamed = !!client && hasSpanStreamingEnabled(client);
+  const description = `event ${event}`;
+
   return {
-    name: `event ${event}`,
+    // With span streaming, a `function` span is named after what it wraps. An `@OnEvent` handler is
+    // identified by the event it listens to, so that doubles as its `code.function.name`.
+    name: isStreamed ? event : description,
     attributes: {
       [SENTRY_OP]: FUNCTION,
+      [CODE_FUNCTION_NAME]: event,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
+      // Relay infers a `function` span's description from `code.function.name` alone, which drops the prefix.
+      ...(isStreamed && { [SENTRY_DESCRIPTION]: description }),
     },
     // oxlint-disable-next-line typescript/no-deprecated
     forceTransaction: true,

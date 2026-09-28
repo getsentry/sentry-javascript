@@ -876,9 +876,35 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
     await (descriptor.value as AnyFn)();
 
     const json = spanToJSON(spanInside!);
-    expect(json.name).toBe('event user.created');
+    expect(json.name).toBe('user.created');
     expect(json.attributes['sentry.op']).toBe('function');
+    expect(json.attributes['code.function.name']).toBe('user.created');
+    expect(json.attributes['sentry.description']).toBe('event user.created');
     expect(json.attributes['sentry.origin']).toBe('auto.event.nestjs');
+  });
+
+  it('event @OnEvent: keeps the transaction-mode span name when span streaming is off', async () => {
+    installTestAsyncContextStrategy();
+    initTestClient('static');
+    subscribeToNestChannels();
+
+    const wrappedDecorator = driveFactory(CHANNELS.NESTJS_ONEVENT, ['user.created'], (_t, _k, d) => d);
+
+    let spanInside: Span | undefined;
+    const descriptor: PropertyDescriptor = {
+      value: async function onUserCreated(): Promise<string> {
+        spanInside = getActiveSpan();
+        return 'ok';
+      },
+      configurable: true,
+    };
+    wrappedDecorator({}, 'onUserCreated', descriptor);
+
+    await (descriptor.value as AnyFn)();
+
+    const json = spanToJSON(spanInside!);
+    expect(json.name).toBe('event user.created');
+    expect(json.attributes['sentry.description']).toBeUndefined();
   });
 
   it('bullmq @Processor: patches `process` into a queue.process transaction (string queue name)', async () => {
@@ -1014,12 +1040,12 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
   });
 
   it.each([
-    { label: 'symbol', event: Symbol('user.created'), expected: 'event Symbol(user.created)' },
-    { label: 'string array', event: ['user.created', 'user.updated'], expected: 'event user.created,user.updated' },
+    { label: 'symbol', event: Symbol('user.created'), expected: 'Symbol(user.created)' },
+    { label: 'string array', event: ['user.created', 'user.updated'], expected: 'user.created,user.updated' },
     {
       label: 'mixed array',
       event: [Symbol('user.created'), 'user.updated'],
-      expected: 'event Symbol(user.created),user.updated',
+      expected: 'Symbol(user.created),user.updated',
     },
   ])('event @OnEvent: names the transaction from a $label event', async ({ event, expected }) => {
     installTestAsyncContextStrategy();

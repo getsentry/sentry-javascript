@@ -6,83 +6,14 @@
 
 # Official Sentry SDK for GatsbyJS
 
-First register the package as a plugin in `gatsby-config.js`:
+The official Sentry SDK for monitoring Gatsby applications.
 
-```javascript
-module.exports = {
-  // ...
-  plugins: [
-    {
-      resolve: '@sentry/gatsby',
-      options: {
-        dsn: process.env.SENTRY_DSN, // this is the default
-      },
-    },
-    // ...
-  ],
-};
-```
+## Documentation
 
-Then configure your `Sentry.init` call:
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/gatsby/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/gatsby/configuration/)
 
-```javascript
-import * as Sentry from '@sentry/gatsby';
+## Support
 
-Sentry.init({
-  dsn: '__PUBLIC_DSN__',
-  integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
-
-  // Set tracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
-  // We recommend adjusting this value in production
-  tracesSampleRate: 1.0,
-
-  // Capture Replay for 10% of all sessions,
-  // plus for 100% of sessions with an error
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
-
-  // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ['localhost', /^https:\/\/yourserver\.io\/api/],
-});
-```
-
-The Gatsby SDK also automatically sets up sourcemaps uploading for you. To disable this functionality, set the
-`enableClientWebpackPlugin` option to be `false`.
-
-```javascript
-module.exports = {
-  // ...
-  plugins: [
-    {
-      resolve: '@sentry/gatsby',
-      options: {
-        enableClientWebpackPlugin: false,
-      },
-    },
-    // ...
-  ],
-};
-```
-
-Additionally, you can delete source map files after they have been uploaded by setting the `deleteSourcemapsAfterUpload`
-option to be `true`.
-
-```javascript
-module.exports = {
-  // ...
-  plugins: [
-    {
-      resolve: '@sentry/gatsby',
-      options: {
-        deleteSourcemapsAfterUpload: true,
-      },
-    },
-    // ...
-  ],
-};
-```
-
-## Links
-
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

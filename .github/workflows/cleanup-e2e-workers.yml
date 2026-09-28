@@ -1,0 +1,36 @@
+name: 'Automation: Cleanup E2E workers'
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  cleanup:
+    # The optional E2E job deploys only for PRs from this repository, so forks never have a worker to delete.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions: {}
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    strategy:
+      matrix:
+        # Name prefix of every E2E app that deploys a real worker, see the app's global-setup.mjs
+        worker-prefix:
+          - e2e-send-to-sentry
+    steps:
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Delete worker
+        run: |
+          WORKER="${{ matrix.worker-prefix }}-pr-${{ github.event.pull_request.number }}"
+
+          if ! output=$(npx --yes wrangler@4 delete --name "$WORKER" --force 2>&1); then
+            echo "$output"
+            # 10007 means the worker does not exist, i.e. the PR never ran the optional E2E job.
+            echo "$output" | grep -q 'code: 10007' || exit 1
+          fi

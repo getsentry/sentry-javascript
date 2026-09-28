@@ -372,7 +372,7 @@ test.describe('the navigation span for a restore', () => {
       attributes: {
         'sentry.op': { type: 'string', value: 'navigation' },
         'sentry.origin': { type: 'string', value: 'auto.navigation.browser.bfcache' },
-        'browser.navigation.type': { type: 'string', value: 'bfcache' },
+        'browser.navigation.type': { type: 'string', value: 'back-forward-cache' },
       },
     });
   });
@@ -467,7 +467,7 @@ test.describe('the navigation span for a restore', () => {
     const inpSpan = spans.find(span => getSpanOp(span) === 'ui.interaction.click')!;
 
     expect(restoreSpan.attributes).toMatchObject({
-      'browser.navigation.type': { type: 'string', value: 'bfcache' },
+      'browser.navigation.type': { type: 'string', value: 'back-forward-cache' },
     });
 
     // All three hang off the restore itself. They also carry the `bfcache` navigation type, so the
@@ -475,7 +475,7 @@ test.describe('the navigation span for a restore', () => {
     for (const vital of [lcpSpan, clsSpan, inpSpan]) {
       expect(vital.parent_span_id).toBe(restoreSpan.span_id);
       expect(vital.attributes).toMatchObject({
-        'browser.navigation.type': { type: 'string', value: 'bfcache' },
+        'browser.navigation.type': { type: 'string', value: 'back-forward-cache' },
       });
     }
   });

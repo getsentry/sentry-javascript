@@ -7,6 +7,7 @@ import { firebaseChannels } from './config/firebase';
 import { genericPoolChannels } from './config/generic-pool';
 import { googleGenAiChannels } from './config/google-genai';
 import { graphqlChannels } from './config/graphql';
+import { groqChannels } from './config/groq';
 import { hapiChannels } from './config/hapi';
 import { ioredisChannels } from './config/ioredis';
 import { kafkajsChannels } from './config/kafkajs';
@@ -25,9 +26,11 @@ import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
 import { postgresJsChannels } from './config/postgres';
+import { prismaChannels } from './config/prisma';
 import { redisChannels } from './config/redis';
 import { remixChannels } from './config/remix';
 import { tediousChannels } from './config/tedious';
+import { togetherAiChannels } from './config/together-ai';
 import { vercelAiChannels } from './config/vercel-ai';
 
 /**
@@ -56,6 +59,7 @@ export const CHANNELS = {
   ...genericPoolChannels,
   ...googleGenAiChannels,
   ...graphqlChannels,
+  ...groqChannels,
   ...hapiChannels,
   ...ioredisChannels,
   ...kafkajsChannels,
@@ -74,9 +78,11 @@ export const CHANNELS = {
   ...openaiChannels,
   ...pgChannels,
   ...postgresJsChannels,
+  ...prismaChannels,
   ...redisChannels,
   ...remixChannels,
   ...tediousChannels,
+  ...togetherAiChannels,
   ...vercelAiChannels,
 } as const;
 

@@ -99,7 +99,9 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
         };
       }
 
-      return Reflect.get(target, prop, receiver);
+      const value = Reflect.get(target, prop) as unknown;
+
+      return typeof value === 'function' ? value.bind(target) : value;
     },
   });
 }

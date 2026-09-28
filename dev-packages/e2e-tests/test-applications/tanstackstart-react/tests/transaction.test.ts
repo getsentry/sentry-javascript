@@ -17,7 +17,12 @@ function isServerFnSegment(span: Parameters<typeof getSpanOp>[0]): boolean {
 test('Sends a server function span with auto-instrumentation', async ({ page }) => {
   const spansPromise = collectStreamedSpans(
     'tanstackstart-react',
-    spans => spans.some(isServerFnSegment) && spans.some(span => span.name === 'GET /_serverFn/testLog'),
+    spans =>
+      spans.some(isServerFnSegment) &&
+      spans.some(
+        span =>
+          span.name === 'testLog' && span.attributes['sentry.origin']?.value === 'auto.function.tanstackstart.server',
+      ),
   );
 
   await page.goto('/test-serverFn');
@@ -31,11 +36,12 @@ test('Sends a server function span with auto-instrumentation', async ({ page }) 
   expect(spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: 'GET /_serverFn/testLog',
+        name: 'testLog',
         status: 'ok',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
+          'sentry.description': { type: 'string', value: 'GET /_serverFn/testLog' },
           'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
         }),
       }),
@@ -50,7 +56,11 @@ test('Sends a server function span for a nested server function only if it is ma
     'tanstackstart-react',
     spans =>
       spans.some(isServerFnSegment) &&
-      spans.some(span => span.name === 'GET /_serverFn/testNestedLog') &&
+      spans.some(
+        span =>
+          span.name === 'testNestedLog' &&
+          span.attributes['sentry.origin']?.value === 'auto.function.tanstackstart.server',
+      ) &&
       spans.some(span => span.name === 'testNestedLog') &&
       spans.some(span => span.name === 'globalFunctionMiddleware'),
   );
@@ -66,11 +76,12 @@ test('Sends a server function span for a nested server function only if it is ma
   expect(spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: 'GET /_serverFn/testNestedLog',
+        name: 'testNestedLog',
         status: 'ok',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'function' },
           'sentry.origin': { type: 'string', value: 'auto.function.tanstackstart.server' },
+          'sentry.description': { type: 'string', value: 'GET /_serverFn/testNestedLog' },
           'tanstackstart.function.filename': { type: 'string', value: 'src/routes/test-serverFn.tsx' },
         }),
       }),

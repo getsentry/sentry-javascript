@@ -52,6 +52,7 @@ describe('Edge Transport', () => {
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_EDGE_TRANSPORT_OPTIONS.url, {
       body: serializeEnvelope(ERROR_ENVELOPE),
       method: 'POST',
+      signal: expect.any(AbortSignal),
     });
   });
 
@@ -104,6 +105,7 @@ describe('Edge Transport', () => {
       body: serializeEnvelope(ERROR_ENVELOPE),
       method: 'POST',
       ...REQUEST_OPTIONS,
+      signal: expect.any(AbortSignal),
     });
   });
 
@@ -248,5 +250,108 @@ describe('IsolatedPromiseBuffer', () => {
     await transport.send(ERROR_ENVELOPE);
     await transport.flush();
     expect(customFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts a request that is still pending when its drain times out', async () => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const customFetch = vi.fn(
+        (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+          new Promise((_resolve, reject) => {
+            signal = init?.signal ?? undefined;
+            signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+          }),
+      );
+      const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
+
+      await transport.send(ERROR_ENVELOPE);
+      const flush = transport.flush(1000);
+
+      await vi.advanceTimersByTimeAsync(999);
+      expect(signal?.aborted).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(flush).resolves.toBe(false);
+      expect(signal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not abort requests of a drain without a timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const customFetch = vi.fn(
+        (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+          new Promise(() => {
+            signal = init?.signal ?? undefined;
+          }),
+      );
+      const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
+
+      await transport.send(ERROR_ENVELOPE);
+      void transport.flush();
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(signal?.aborted).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('preserves a caller-provided abort signal', async () => {
+    let signal: AbortSignal | undefined;
+    const callerController = new AbortController();
+    const customFetch = vi.fn(
+      (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+        new Promise((_resolve, reject) => {
+          signal = init?.signal ?? undefined;
+          signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+        }),
+    );
+    const transport = makeCloudflareTransport({
+      ...DEFAULT_EDGE_TRANSPORT_OPTIONS,
+      fetch: customFetch,
+      fetchOptions: { signal: callerController.signal },
+    });
+
+    await transport.send(ERROR_ENVELOPE);
+    const flush = transport.flush();
+    callerController.abort();
+
+    await expect(flush).resolves.toBe(true);
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it('does not abort requests belonging to another drain', async () => {
+    vi.useFakeTimers();
+    try {
+      const signals: AbortSignal[] = [];
+      const customFetch = vi.fn(
+        (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+          new Promise((_resolve, reject) => {
+            const signal = init?.signal as AbortSignal;
+            signals.push(signal);
+            signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+          }),
+      );
+      const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
+
+      await transport.send(ERROR_ENVELOPE);
+      void transport.flush(2000);
+      await transport.send(ERROR_ENVELOPE);
+      void transport.flush(1000);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(signals[0]?.aborted).toBe(false);
+      expect(signals[1]?.aborted).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(signals[0]?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -12,6 +12,10 @@ import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose 
 const QUERY_ORIGIN = 'auto.db.postgres';
 
 const COMMON_DB_ATTRIBUTES = {
+  'sentry.is_localhost': {
+    type: 'boolean',
+    value: false,
+  },
   'db.connection_string': {
     type: 'string',
     value: expect.stringMatching(/^postgresql:\/\/localhost:\d+\/tests$/),

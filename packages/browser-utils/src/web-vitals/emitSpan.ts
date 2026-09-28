@@ -19,21 +19,6 @@ import {
 } from '@sentry/conventions/attributes';
 import { WINDOW } from '../types';
 import type { MetricNavigationType } from '../instrumentation/performanceObserver';
-import type { WebVitalReportEvent } from './reportEvents';
-
-// web-vitals reports a wider set of navigation types than the attribute defines. Only the states
-// Navigation Timing cannot express keep their own value; every ordinary document navigation folds
-// into `navigate`, including a back/forward that missed the bfcache and a discarded-tab restore.
-const BROWSER_NAVIGATION_TYPES: Partial<Record<MetricNavigationType, string>> = {
-  reload: 'reload',
-  prerender: 'prerender',
-  'back-forward-cache': 'bfcache',
-  'soft-navigation': 'soft-navigation',
-};
-
-function toBrowserNavigationType(navigationType: MetricNavigationType): string {
-  return BROWSER_NAVIGATION_TYPES[navigationType] ?? 'navigate';
-}
 
 // Locally-defined interfaces to avoid leaking bare global type references into the
 // generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
@@ -62,7 +47,6 @@ interface WebVitalSpanOptions {
   value: number;
   attributes?: SpanAttributes;
   parentSpan?: Span;
-  reportEvent?: WebVitalReportEvent;
   startTime: number;
   endTime?: number;
   /** Set when the vital was reported for a soft navigation rather than the initial page load. */
@@ -92,7 +76,6 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     value,
     attributes: passedAttributes,
     parentSpan,
-    reportEvent,
     startTime,
     endTime,
     standalone,
@@ -125,16 +108,12 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     attributes['sentry.pageload.span_id'] = parentSpan.spanContext().spanId;
   }
 
-  if (reportEvent) {
-    attributes[`browser.web_vital.${metricName}.report_event`] = reportEvent;
-  }
-
   if (softNavigationId != null) {
     attributes[BROWSER_NAVIGATION_ID] = softNavigationId;
   }
 
   if (navigationType) {
-    attributes[BROWSER_NAVIGATION_TYPE] = toBrowserNavigationType(navigationType);
+    attributes[BROWSER_NAVIGATION_TYPE] = navigationType;
   }
 
   // A standalone span is sent as a plain v2 span without running the `processSpan` hooks (see

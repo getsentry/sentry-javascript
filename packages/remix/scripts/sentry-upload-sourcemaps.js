@@ -63,6 +63,9 @@ const argv = yargs(process.argv.slice(2))
       '  [--deleteAfterUpload true|false]\n\n' +
       'This CLI tool will upload sourcemaps to Sentry for the given release.\n' +
       'It has defaults for URL prefix and build path for Remix builds, but you can override them.\n\n' +
+      'Vite-based Remix apps should use `sentryRemixVitePlugin()` from `@sentry/remix/vite` instead,\n' +
+      'which injects debug IDs and uploads source maps as part of the build. Running both injects a\n' +
+      'second debug ID per chunk, which breaks source map resolution.\n\n' +
       'If you need a more advanced configuration, you can use `sentry-cli` instead.\n' +
       'https://github.com/getsentry/sentry-cli',
   )

@@ -129,6 +129,20 @@ describe('init()', () => {
     });
   });
 
+  describe('runtime', () => {
+    it('defaults to bun', () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'static' });
+
+      expect(getClient()?.getOptions().runtime).toEqual({ name: 'bun', version: Bun.version });
+    });
+
+    it('respects a runtime provided through options', () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'static', runtime: { name: 'node', version: '20.0.0' } });
+
+      expect(getClient()?.getOptions().runtime).toEqual({ name: 'node', version: '20.0.0' });
+    });
+  });
+
   describe('initWithoutDefaultIntegrations()', () => {
     it('installs no default integrations', () => {
       initWithoutDefaultIntegrations({ dsn: PUBLIC_DSN, traceLifecycle: 'static' });

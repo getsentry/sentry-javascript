@@ -12,6 +12,7 @@ import type {
 } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { expect } from 'vitest';
+import { EXPECTED_SDK_NAME } from './index';
 
 export type DeepPartial<T> = T extends object
   ? {
@@ -108,7 +109,7 @@ export function assertEnvelopeHeader(actual: Envelope[0], expected: Partial<Enve
     event_id: expect.any(String),
     sent_at: expect.any(String),
     sdk: {
-      name: 'sentry.javascript.node',
+      name: EXPECTED_SDK_NAME,
       version: SDK_VERSION,
     },
     ...expected,
@@ -119,7 +120,7 @@ export function assertSpanEnvelopeHeader(actual: Envelope[0], expected: Partial<
   expect(actual).toEqual({
     sent_at: expect.any(String),
     sdk: {
-      name: 'sentry.javascript.node',
+      name: EXPECTED_SDK_NAME,
       version: SDK_VERSION,
     },
     ...expected,

@@ -199,7 +199,13 @@ describe('Google GenAI integration', () => {
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
-            expect(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
+            expect(JSON.parse(nonStreamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value as string)).toEqual([
+              {
+                id: 'call_light_control_1',
+                name: 'controlLight',
+                args: { brightness: 0.3, colorTemperature: 'warm' },
+              },
+            ]);
             expect(nonStreamingToolsSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
               JSON.stringify([
                 {
@@ -231,7 +237,13 @@ describe('Google GenAI integration', () => {
             expect(streamingToolsSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
             expect(streamingToolsSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
-            expect(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
+            expect(JSON.parse(streamingToolsSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value as string)).toEqual([
+              {
+                id: 'call_light_stream_1',
+                name: 'controlLight',
+                args: { brightness: 0.5, colorTemperature: 'cool' },
+              },
+            ]);
             // The text arrives either side of the tool call, so it stays two parts.
             expect(streamingToolsSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
               JSON.stringify([

@@ -183,6 +183,8 @@ describe('mysql auto instrumentation', () => {
       expect(dbSpans.length).toBe(2);
 
       const COMMON_ATTRIBUTES = {
+        // These spans belong to a script with no incoming request, so there is nothing to judge.
+        'sentry.is_localhost': { type: 'boolean', value: false },
         'db.connection_string': {
           type: 'string',
           value: expect.stringMatching(/^jdbc:mysql:\/\/localhost:.*/),

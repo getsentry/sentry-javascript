@@ -103,7 +103,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   }
 
   const rawAttributes: Record<string, string | number> = {
-    ...buildTransportAttributes(transport, extra),
+    ...buildTransportAttributes(transport, extra, message),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
     ...buildTypeSpecificAttributes(type, message, params, options?.recordInputs),
     ...buildSentryAttributes(type),
@@ -201,7 +201,7 @@ export function buildMcpServerSpanConfig(
   const spanName = method ? createSpanName(method, target) : MCP_SERVER_SPAN_NAME_FALLBACK;
 
   const rawAttributes: Record<string, string | number> = {
-    ...buildTransportAttributes(transport, extra),
+    ...buildTransportAttributes(transport, extra, jsonRpcMessage),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
     ...buildTypeSpecificAttributes('request', jsonRpcMessage, params, options?.recordInputs),
     ...buildSentryAttributes('request'),

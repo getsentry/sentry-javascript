@@ -640,6 +640,158 @@ describe('instrumentDurableObjectWithSentry', () => {
     });
   });
 
+  // Callers only attach RPC metadata when they are instrumented, have an active trace and got the
+  // stub from an instrumented binding, so a Durable Object regularly serves calls without it.
+  describe('RPC calls without trace metadata', () => {
+    const DSN = 'https://public@dsn.ingest.sentry.io/1337';
+    const TRACE_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+    function setup<C extends new (...args: any[]) => any>(testClass: C) {
+      const events: Event[] = [];
+      const transactions: Event[] = [];
+      const metricNames: string[] = [];
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn((promise: Promise<unknown>) => {
+        waits.push(promise);
+      });
+
+      const instrumented = instrumentDurableObjectWithSentry(
+        () => ({
+          dsn: DSN,
+          tracesSampleRate: 1,
+          traceLifecycle: 'static',
+          beforeSend(event: Event) {
+            events.push(event);
+            return null;
+          },
+          beforeSendTransaction(event: Event) {
+            transactions.push(event);
+            return null;
+          },
+          beforeSendMetric(metric: { name: string }) {
+            metricNames.push(metric.name);
+            return null;
+          },
+        }),
+        testClass as any,
+      );
+      const obj = Reflect.construct(instrumented, [{ waitUntil }, {}]) as InstanceType<C>;
+      const settle = async (): Promise<void> => {
+        while (waits.length) {
+          await Promise.all(waits.splice(0));
+        }
+      };
+
+      return { obj, events, transactions, metricNames, waitUntil, settle };
+    }
+
+    it('captures errors and metrics', async () => {
+      const { obj, events, metricNames, settle } = setup(
+        class {
+          async rpcMethod(): Promise<never> {
+            SentryCore.metrics.count('do.rpc_called', 1);
+            throw new Error('RPC failed');
+          }
+        },
+      );
+
+      await expect(obj.rpcMethod()).rejects.toThrow('RPC failed');
+      await settle();
+
+      expect(metricNames).toEqual(['do.rpc_called']);
+      expect(events).toHaveLength(1);
+      expect(events[0]?.exception?.values?.[0]?.value).toBe('RPC failed');
+      expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual({
+        type: 'auto.faas.cloudflare.durable_object',
+        handled: false,
+      });
+    });
+
+    it('does not create a span', async () => {
+      const { obj, transactions, settle } = setup(
+        class {
+          rpcMethod(): string {
+            return 'result';
+          }
+        },
+      );
+
+      expect(obj.rpcMethod()).toBe('result');
+      await settle();
+
+      expect(transactions).toHaveLength(0);
+    });
+
+    // One Durable Object instance serves overlapping calls, so each call needs its own scope.
+    it('gives overlapping calls separate traces and keeps the events of both', async () => {
+      let release!: () => void;
+      const gate = new Promise<void>(resolve => {
+        release = resolve;
+      });
+      const { obj, events, settle } = setup(
+        class {
+          async rpcMethod(label: string): Promise<void> {
+            await gate;
+            SentryCore.captureMessage(label);
+          }
+        },
+      );
+
+      const first = obj.rpcMethod('first');
+      const second = obj.rpcMethod('second');
+      release();
+      await Promise.all([first, second]);
+      await settle();
+
+      expect(events.map(event => event.message).sort()).toEqual(['first', 'second']);
+      expect(events[0]?.contexts?.trace?.trace_id).toEqual(expect.any(String));
+      expect(events[0]?.contexts?.trace?.trace_id).not.toBe(events[1]?.contexts?.trace?.trace_id);
+    });
+
+    it('does not instrument calls the instance makes to its own methods', async () => {
+      const { obj, events, waitUntil, settle } = setup(
+        class {
+          async rpcMethod(): Promise<string> {
+            return this.helper();
+          }
+
+          async helper(): Promise<string> {
+            SentryCore.captureMessage('from helper');
+            return 'helper-result';
+          }
+        },
+      );
+
+      await expect(obj.rpcMethod()).resolves.toBe('helper-result');
+      await settle();
+
+      expect(events.map(event => event.message)).toEqual(['from helper']);
+      expect(waitUntil).toHaveBeenCalledOnce();
+    });
+
+    it('continues the caller trace when the call carries trace metadata', async () => {
+      const { obj, events, transactions, settle } = setup(
+        class {
+          async rpcMethod(arg: string): Promise<string> {
+            SentryCore.captureMessage('traced');
+            return arg;
+          }
+        },
+      );
+
+      const result = await obj.rpcMethod('arg', {
+        __sentry_rpc_meta__: { 'sentry-trace': `${TRACE_ID}-bbbbbbbbbbbbbbbb-1`, baggage: '' },
+      });
+      await settle();
+
+      expect(result).toBe('arg');
+      expect(events[0]?.contexts?.trace?.trace_id).toBe(TRACE_ID);
+      expect(transactions).toHaveLength(1);
+      expect(transactions[0]?.transaction).toBe('rpcMethod');
+      expect(transactions[0]?.contexts?.trace?.trace_id).toBe(TRACE_ID);
+    });
+  });
+
   it('flush performs after all waitUntil promises are finished', async () => {
     // Spy on Client.prototype.flush and mock it to resolve immediately to avoid timeout issues with fake timers
     const flush = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);

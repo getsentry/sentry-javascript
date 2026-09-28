@@ -62,19 +62,21 @@ test.describe('client-specific performance events', () => {
         attributes: expect.objectContaining({
           'sentry.op': { value: op, type: 'string' },
           'sentry.origin': { value: 'auto.ui.svelte', type: 'string' },
+          'ui.component_name': { value: name, type: 'string' },
+          'sentry.description': { value: `<${name}>`, type: 'string' },
         }),
       });
 
     expect(componentTraceSpans).toEqual(
       expect.arrayContaining([
-        componentSpan('ui.mount', '<components/+page>'),
-        componentSpan('ui.mount', '<Component1>'),
-        componentSpan('ui.mount', '<Component2>'),
-        componentSpan('ui.mount', '<Component3>'),
-        componentSpan('ui.update', '<components/+page>'),
-        componentSpan('ui.update', '<Component1>'),
-        componentSpan('ui.update', '<Component2>'),
-        componentSpan('ui.update', '<Component3>'),
+        componentSpan('ui.mount', 'components/+page'),
+        componentSpan('ui.mount', 'Component1'),
+        componentSpan('ui.mount', 'Component2'),
+        componentSpan('ui.mount', 'Component3'),
+        componentSpan('ui.update', 'components/+page'),
+        componentSpan('ui.update', 'Component1'),
+        componentSpan('ui.update', 'Component2'),
+        componentSpan('ui.update', 'Component3'),
       ]),
     );
   });

@@ -8,7 +8,7 @@ const MODULE_NAME = 'tedious';
 // OTel `supportedVersions`). Orchestrion never matches a file that doesn't exist, so a single entry is
 // safe even for versions that shipped extra layouts.
 const FILE_PATH = 'lib/connection.js';
-const VERSION_RANGE = '>=1.11.0 <20';
+const VERSION_RANGE = '>=1.11.0 <21';
 
 // `Connection` methods that dispatch a request (each traced as one db span) plus `connect`, which the
 // subscriber wraps for bookkeeping only (tracking the connection's active database, read into `db.name`).

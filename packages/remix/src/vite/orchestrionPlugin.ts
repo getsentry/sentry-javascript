@@ -57,6 +57,7 @@ export function makeOrchestrionPlugin(options: Pick<SentryRemixVitePluginOptions
   const config = hookHandler(orchestrion.config as ObjectHook<ConfigHook> | undefined);
   const configResolved = hookHandler(orchestrion.configResolved);
 
+  let isWorkerConfig = false;
   let isWorkerBuild = false;
 
   return {
@@ -66,9 +67,13 @@ export function makeOrchestrionPlugin(options: Pick<SentryRemixVitePluginOptions
     config: {
       order: 'post',
       handler(userConfig: UserConfig, env: ConfigEnv) {
-        return isWorkerTarget(userConfig) ? null : (config?.(userConfig, env) ?? null);
+        isWorkerConfig = isWorkerTarget(userConfig);
+        return isWorkerConfig ? null : (config?.(userConfig, env) ?? null);
       },
     },
+    // Gated on the worker check from the `config` hook, because Vite calls `configEnvironment`
+    // before `configResolved`.
+    configEnvironment: gateHook(orchestrion.configEnvironment as ObjectHook<AnyHook> | undefined, () => isWorkerConfig),
     // The authoritative check: the resolved config reflects every plugin regardless of ordering,
     // and this always runs before the first `transform`.
     configResolved(resolvedConfig: ResolvedConfig) {

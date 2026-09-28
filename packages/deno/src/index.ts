@@ -83,7 +83,6 @@ export {
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   startSession,
   captureSession,
@@ -146,10 +145,13 @@ export {
   mysql2Integration,
   mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
   postgresIntegration,
   postgresJsIntegration,
   tediousIntegration,
   eveConversationHook,
+  eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';

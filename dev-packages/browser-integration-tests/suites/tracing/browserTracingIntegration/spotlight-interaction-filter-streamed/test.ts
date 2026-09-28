@@ -3,6 +3,11 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipCdnBundleTest, shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, observeStreamedSpan, waitForStreamedSpan, waitForStreamedSpans } from '../../../../utils/spanUtils';
 
+// Interaction spans are named after the component, so the element is on `browser.web_vital.inp.target`.
+// The click handler adds the `clicked` class before the event timing entry is recorded.
+const SPOTLIGHT_BUTTON = 'body > div#sentry-spotlight > button.clicked';
+const REGULAR_BUTTON = 'body > button.clicked';
+
 sentryTest(
   'filters ui.interaction.click spans for spotlight elements via ignoreSpans in streaming mode',
   async ({ getLocalTestUrl, page }) => {
@@ -16,7 +21,10 @@ sentryTest(
     // Set up an observer that fails if a spotlight interaction span is ever sent
     let sawSpotlightInteractionSpan = false;
     await observeStreamedSpan(page, span => {
-      if (getSpanOp(span) === 'ui.interaction.click' && span.name?.includes('#sentry-spotlight')) {
+      if (
+        getSpanOp(span) === 'ui.interaction.click' &&
+        span.attributes['browser.web_vital.inp.target']?.value === SPOTLIGHT_BUTTON
+      ) {
         sawSpotlightInteractionSpan = true;
         return true;
       }
@@ -39,7 +47,7 @@ sentryTest(
 
     // Click on the regular button — its ui.interaction.click child should be kept
     const regularInteractionSpansPromise = waitForStreamedSpans(page, spans =>
-      spans.some(span => getSpanOp(span) === 'ui.interaction.click' && !span.name?.includes('#sentry-spotlight')),
+      spans.some(span => span.attributes['browser.web_vital.inp.target']?.value === REGULAR_BUTTON),
     );
 
     await page.locator('[data-test-id=regular-button]').click();
@@ -47,10 +55,9 @@ sentryTest(
 
     const regularSpans = await regularInteractionSpansPromise;
     const regularInteractionSpan = regularSpans.find(
-      span => getSpanOp(span) === 'ui.interaction.click' && !span.name?.includes('#sentry-spotlight'),
+      span => span.attributes['browser.web_vital.inp.target']?.value === REGULAR_BUTTON,
     );
-    expect(regularInteractionSpan).toBeDefined();
-    expect(regularInteractionSpan!.name).toContain('button');
+    expect(getSpanOp(regularInteractionSpan!)).toBe('ui.interaction.click');
 
     // Verify no spotlight interaction span was ever sent
     expect(sawSpotlightInteractionSpan).toBe(false);
