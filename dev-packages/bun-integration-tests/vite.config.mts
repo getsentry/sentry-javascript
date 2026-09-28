@@ -53,6 +53,8 @@ export default defineConfig({
           // Above the 30 second port timeout of the runner on Bun, so a slow start can still pass.
           testTimeout: 45_000,
           maxWorkers: 1,
+          // Vitest requires projects with a different `maxWorkers` to run in their own group.
+          sequence: { groupOrder: 1 },
         },
       },
       {
