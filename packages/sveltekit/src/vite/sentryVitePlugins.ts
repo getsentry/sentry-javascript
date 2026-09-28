@@ -78,6 +78,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     sentryOrchestrionPlugin({
       buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation,
     }),
+    makeBuildFlagPlugin(),
   );
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
@@ -106,6 +107,21 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   }
 
   return sentryPlugins;
+}
+
+/**
+ * Flags `vite build` so `sentryHandle` can skip trace meta tags on prerendered pages.
+ * SvelteKit prerenders in a worker that inherits `process.env`, while the production
+ * server runs in a separate process that never sees this flag.
+ */
+function makeBuildFlagPlugin(): Plugin {
+  return {
+    name: 'sentry-sveltekit-build-flag',
+    apply: 'build',
+    config() {
+      process.env._SENTRY_SVELTEKIT_BUILDING = 'true';
+    },
+  };
 }
 
 // A bare subpath (not a relative import) so this plugin's `resolveId` can intercept it.

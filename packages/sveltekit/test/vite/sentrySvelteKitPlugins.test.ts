@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import type { Plugin } from 'vite';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as autoInstrument from '../../src/vite/autoInstrument';
 import { generateVitePluginOptions, sentrySvelteKit } from '../../src/vite/sentryVitePlugins';
 import * as sourceMaps from '../../src/vite/sourceMaps';
@@ -69,9 +69,9 @@ describe('sentrySvelteKit()', () => {
     expect(plugins).toBeInstanceOf(Array);
     // 1 kit config resolver + 1 browser-tracing variant resolver + 1 OpenTelemetry API resolver
     // + 1 auto instrument plugin
-    // + 1 orchestrion plugin + 1 global values injection plugin + 1 modified main plugin
+    // + 1 orchestrion plugin + 1 build flag plugin + 1 global values injection plugin + 1 modified main plugin
     // + 3 custom plugins
-    expect(plugins).toHaveLength(10);
+    expect(plugins).toHaveLength(11);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
@@ -88,6 +88,8 @@ describe('sentrySvelteKit()', () => {
       'sentry-auto-instrumentation',
       // orchestrion build-time instrumentation plugin:
       'sentry-orchestrion-vite',
+      // build flag plugin:
+      'sentry-sveltekit-build-flag',
       // global values injection plugin:
       'sentry-sveltekit-global-values-injection-plugin',
       // modified main plugin (writeBundle deferred to closeBundle):
@@ -101,7 +103,7 @@ describe('sentrySvelteKit()', () => {
 
   it("doesn't return the sentry source maps plugins if autoUploadSourcemaps is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    expect(plugins).toHaveLength(5); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + auto instrument + orchestrion
+    expect(plugins).toHaveLength(6); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + auto instrument + orchestrion + build flag
   });
 
   it("doesn't return the sentry source maps plugins if `NODE_ENV` is development", async () => {
@@ -111,7 +113,7 @@ describe('sentrySvelteKit()', () => {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: true, autoInstrument: true });
     const instrumentPlugin = plugins[3];
 
-    expect(plugins).toHaveLength(6); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + auto instrument + orchestrion + global values injection
+    expect(plugins).toHaveLength(7); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + auto instrument + orchestrion + build flag + global values injection
     expect(instrumentPlugin?.name).toEqual('sentry-auto-instrumentation');
 
     process.env.NODE_ENV = previousEnv;
@@ -120,7 +122,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(9); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + orchestrion + global values injection + 1 modified main plugin + 3 custom plugins
+    expect(plugins).toHaveLength(10); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + orchestrion + build flag + global values injection + 1 modified main plugin + 3 custom plugins
     expect(pluginNames).not.toContain('sentry-auto-instrumentation');
   });
 
@@ -290,6 +292,32 @@ describe('OpenTelemetry API resolver plugin', () => {
     await expect(
       resolveId('@opentelemetry/api', '/app/node_modules/@sentry/sveltekit/build/esm/opentelemetryApi.js'),
     ).resolves.toBeNull();
+  });
+});
+
+describe('build flag plugin', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  async function getBuildFlagPlugin() {
+    const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
+    return plugins.find(p => p.name === 'sentry-sveltekit-build-flag')!;
+  }
+
+  it('only applies to builds', async () => {
+    const plugin = await getBuildFlagPlugin();
+    expect(plugin?.apply).toBe('build');
+  });
+
+  it('sets `_SENTRY_SVELTEKIT_BUILDING` so the prerender worker inherits it', async () => {
+    vi.stubEnv('_SENTRY_SVELTEKIT_BUILDING', undefined);
+    const plugin = await getBuildFlagPlugin();
+
+    // @ts-expect-error - hook is a plain function here and doesn't need a plugin context
+    plugin?.config?.({}, { command: 'build', mode: 'production' });
+
+    expect(process.env._SENTRY_SVELTEKIT_BUILDING).toBe('true');
   });
 });
 
