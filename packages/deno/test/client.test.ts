@@ -50,7 +50,7 @@ Deno.test('flushes buffered logs and metrics before natural exit', async () => {
   }
 });
 
-Deno.test('removes its beforeExit listener when closed', async () => {
+Deno.test('removes log and metric beforeExit listeners when closed', async () => {
   const originalListeners = process.listeners('beforeExit');
   const client = new DenoClient({
     dsn: 'https://public@example.com/1',
@@ -62,6 +62,6 @@ Deno.test('removes its beforeExit listener when closed', async () => {
 
   await client.close();
 
-  assertEquals(addedListeners.length, 1);
+  assertEquals(addedListeners.length, 2);
   assertEquals(process.listeners('beforeExit'), originalListeners);
 });

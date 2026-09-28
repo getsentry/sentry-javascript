@@ -22,7 +22,8 @@ function getHostName(): string | undefined {
  * @see SentryClient for usage documentation.
  */
 export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
-  private _onExitFlushListener: (() => void) | undefined;
+  private _logOnExitFlushListener: (() => void) | undefined;
+  private _metricsOnExitFlushListener: (() => void) | undefined;
 
   /**
    * Creates a new Deno SDK instance.
@@ -52,8 +53,11 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
 
     super(clientOptions);
 
-    this._onExitFlushListener = () => {
+    this._logOnExitFlushListener = () => {
       _INTERNAL_flushLogsBuffer(this);
+    };
+
+    this._metricsOnExitFlushListener = () => {
       _INTERNAL_flushMetricsBuffer(this);
     };
 
@@ -67,8 +71,10 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
     }
 
     // Unlike unload, beforeExit lets the transport finish asynchronous sends.
-    process.on('beforeExit', this._onExitFlushListener);
-    globalThis.addEventListener('unload', this._onExitFlushListener);
+    process.on('beforeExit', this._logOnExitFlushListener);
+    process.on('beforeExit', this._metricsOnExitFlushListener);
+    globalThis.addEventListener('unload', this._logOnExitFlushListener);
+    globalThis.addEventListener('unload', this._metricsOnExitFlushListener);
   }
 
   /** @inheritDoc */
@@ -84,9 +90,14 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   /** @inheritDoc */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number | undefined): PromiseLike<boolean> {
-    if (this._onExitFlushListener) {
-      process.off('beforeExit', this._onExitFlushListener);
-      globalThis.removeEventListener('unload', this._onExitFlushListener);
+    if (this._logOnExitFlushListener) {
+      process.off('beforeExit', this._logOnExitFlushListener);
+      globalThis.removeEventListener('unload', this._logOnExitFlushListener);
+    }
+
+    if (this._metricsOnExitFlushListener) {
+      process.off('beforeExit', this._metricsOnExitFlushListener);
+      globalThis.removeEventListener('unload', this._metricsOnExitFlushListener);
     }
 
     return super.close(timeout);
