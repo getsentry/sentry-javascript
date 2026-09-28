@@ -41,10 +41,16 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   script.crossOrigin = 'anonymous';
   script.src = getReportDialogEndpoint(dsn, mergedOptions);
 
-  const { onLoad, onClose } = mergedOptions;
+  const { onLoad, onClose, onError } = mergedOptions;
 
   if (onLoad) {
     script.onload = onLoad;
+  }
+
+  if (onError) {
+    script.onerror = () => {
+      onError(new Error('Failed to load the report dialog script'));
+    };
   }
 
   if (onClose) {

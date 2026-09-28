@@ -207,6 +207,20 @@ describe('SentryBrowser', () => {
         expect(onClose).toHaveBeenCalledTimes(1);
       });
     });
+
+    describe('onError', () => {
+      it('should call `onError` when the script fails to load', () => {
+        const onError = vi.fn();
+
+        showReportDialog({ onError });
+
+        const script = WINDOW.document.head.lastElementChild as HTMLScriptElement;
+        script.dispatchEvent(new Event('error'));
+
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError).toHaveBeenCalledWith(new Error('Failed to load the report dialog script'));
+      });
+    });
   });
 
   describe('breadcrumbs', () => {
