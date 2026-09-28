@@ -46,7 +46,9 @@ export function parseCookieHeader(value: string | string[], headerName: 'cookie'
     if (typeof headerValue !== 'string') {
       return [];
     }
-    return headerName === 'set-cookie' ? [headerValue.split(';')[0]!] : headerValue.split(';');
+    return headerName === 'set-cookie'
+      ? splitJoinedSetCookieHeader(headerValue).map(cookie => cookie.split(';')[0]!)
+      : headerValue.split(';');
   });
 
   return (
@@ -64,6 +66,15 @@ export function parseCookieHeader(value: string | string[], headerName: 'cookie'
             [segment.slice(0, equalSignIndex).trim(), segment.slice(equalSignIndex + 1).trim()];
       })
   );
+}
+
+/**
+ * No SDK path reads a joined header today, but `Headers.get('set-cookie')` and `xhr.getResponseHeader()`
+ * join repeated `Set-Cookie` headers with ", ". A "," only starts a new cookie when a "name=" follows
+ * before the next ";" or ",", so the "," in `Expires=Wed, 21 Oct 2026 07:28:00 GMT` does not split.
+ */
+function splitJoinedSetCookieHeader(headerValue: string): string[] {
+  return headerValue.split(/,(?=[^;=,]*=)/);
 }
 
 /**

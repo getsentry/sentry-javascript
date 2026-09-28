@@ -1,4 +1,4 @@
-import { getCodeInjectionPosition } from '@sentry/bundler-plugins/core';
+import { getCodeInjectionPosition } from '@sentry/bundler-plugins/loader-utils';
 import type { LoaderThis } from './types';
 
 export type ModuleMetadataInjectionLoaderOptions = {

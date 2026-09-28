@@ -14,7 +14,7 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 /* eslint-disable max-lines */
 
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import {
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,

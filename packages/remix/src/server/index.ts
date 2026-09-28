@@ -126,6 +126,8 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentStateGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,

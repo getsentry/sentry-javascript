@@ -3,8 +3,8 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   // The worker is deployed once for the whole run and deleted again afterwards.
-  globalSetup: './global-setup.mjs',
-  globalTeardown: './global-teardown.mjs',
+  globalSetup: './global-setup.ts',
+  globalTeardown: './global-teardown.ts',
   /* Spans take ~2min to become queryable via the trace endpoint. */
   timeout: 210_000,
   fullyParallel: true,

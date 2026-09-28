@@ -1,26 +1,25 @@
-import type { Envelope, TransactionEvent } from '@sentry/core';
-import { expect, it } from 'vitest';
-import { createRunner } from '../../runner';
+import { afterAll, expect, test } from 'vitest';
+import { cleanupChildProcesses, createRunner } from '../../../node-integration-tests/utils/runner';
 
-function getTransaction(envelope: Envelope): TransactionEvent {
-  const [itemHeader, itemPayload] = envelope[1][0];
-  expect(itemHeader.type).toBe('transaction');
-  return itemPayload as TransactionEvent;
-}
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-it('captures incoming request bodies by default', async ({ signal }) => {
-  const runner = createRunner(__dirname)
-    .expect(envelope => {
-      const transaction = getTransaction(envelope);
-      expect(transaction.request).toMatchObject({
-        method: 'POST',
-        url: expect.stringContaining('/default'),
-        query_string: 'source=test',
-        headers: expect.objectContaining({ 'content-type': 'text/plain' }),
-        data: 'captured-by-default',
-      });
+test('captures incoming request bodies by default', async () => {
+  const runner = createRunner(__dirname, 'index.ts')
+    .withMockSentryServer()
+    .expect({
+      transaction: transaction => {
+        expect(transaction.request).toMatchObject({
+          method: 'POST',
+          url: expect.stringContaining('/default'),
+          query_string: 'source=test',
+          headers: expect.objectContaining({ 'content-type': 'text/plain' }),
+          data: 'captured-by-default',
+        });
+      },
     })
-    .start(signal);
+    .start();
 
   const response = await runner.makeRequest<string>('post', '/default?source=test', {
     headers: { 'content-type': 'text/plain' },
@@ -30,14 +29,16 @@ it('captures incoming request bodies by default', async ({ signal }) => {
   await runner.completed();
 });
 
-it('an explicit small size overrides disabled body collection', async ({ signal }) => {
-  const runner = createRunner(__dirname)
+test('an explicit small size overrides disabled body collection', async () => {
+  const runner = createRunner(__dirname, 'index.ts')
+    .withMockSentryServer()
     .withEnv({ BODY_MODE: 'explicit-small' })
-    .expect(envelope => {
-      const transaction = getTransaction(envelope);
-      expect(transaction.request?.data).toBe(`${'a'.repeat(997)}...`);
+    .expect({
+      transaction: transaction => {
+        expect(transaction.request?.data).toBe(`${'a'.repeat(997)}...`);
+      },
     })
-    .start(signal);
+    .start();
 
   const body = 'a'.repeat(1_001);
   const response = await runner.makeRequest<string>('post', '/explicit-small', {
@@ -48,15 +49,17 @@ it('an explicit small size overrides disabled body collection', async ({ signal 
   await runner.completed();
 });
 
-it('an explicit none overrides enabled body collection', async ({ signal }) => {
-  const runner = createRunner(__dirname)
+test('an explicit none overrides enabled body collection', async () => {
+  const runner = createRunner(__dirname, 'index.ts')
+    .withMockSentryServer()
     .withEnv({ BODY_MODE: 'explicit-none' })
-    .expect(envelope => {
-      const transaction = getTransaction(envelope);
-      expect(transaction.request?.method).toBe('POST');
-      expect(transaction.request?.data).toBeUndefined();
+    .expect({
+      transaction: transaction => {
+        expect(transaction.request?.method).toBe('POST');
+        expect(transaction.request?.data).toBeUndefined();
+      },
     })
-    .start(signal);
+    .start();
 
   const response = await runner.makeRequest<string>('post', '/explicit-none', {
     headers: { 'content-type': 'text/plain' },

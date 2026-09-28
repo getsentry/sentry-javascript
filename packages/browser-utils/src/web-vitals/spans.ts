@@ -30,7 +30,12 @@ import {
   addLcpInstrumentationHandler,
 } from '../instrumentation/performanceObserver';
 import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
-import { BROWSER_NAVIGATION_TYPE, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import {
+  BROWSER_NAVIGATION_TYPE,
+  BROWSER_WEB_VITAL_INP_INTERACTION_TYPE,
+  BROWSER_WEB_VITAL_INP_TARGET,
+  UI_COMPONENT_NAME,
+} from '@sentry/conventions/attributes';
 import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
 import { listenForWebVitalReportEvents } from './reportEvents';
@@ -437,9 +442,8 @@ export function _sendInpSpan(
   // say whether there was an interaction to describe. These attributes can: they are only set for
   // what was actually observed. The name no longer holds the selector either, now that it is the
   // component name or the op's fallback under span streaming.
-  // TODO: use the `@sentry/conventions` constants once getsentry/sentry-conventions#641 is released.
-  selector && selector !== UNKNOWN_ELEMENT_NAME && (attributes['browser.web_vital.inp.target'] = selector);
-  entryInteractionType && (attributes['browser.web_vital.inp.interaction_type'] = entryInteractionType);
+  selector && selector !== UNKNOWN_ELEMENT_NAME && (attributes[BROWSER_WEB_VITAL_INP_TARGET] = selector);
+  entryInteractionType && (attributes[BROWSER_WEB_VITAL_INP_INTERACTION_TYPE] = entryInteractionType);
 
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;

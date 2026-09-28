@@ -76,7 +76,7 @@
     "@rollup/plugin-commonjs": "28.0.1",
     "@sentry/browser-utils": "11.0.0",
     "@sentry/bundler-plugins": "11.0.0",
-    "@sentry/conventions": "^0.23.0",
+    "@sentry/conventions": "^0.24.0",
     "@sentry/core": "11.0.0",
     "@sentry/node": "11.0.0",
     "@sentry/opentelemetry": "11.0.0",

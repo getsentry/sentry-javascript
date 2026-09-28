@@ -44,6 +44,11 @@
       "import": "./build/esm/core/index.js",
       "require": "./build/cjs/core/index.js"
     },
+    "./loader-utils": {
+      "types": "./build/types/loader-utils/index.d.ts",
+      "import": "./build/esm/loader-utils/index.js",
+      "require": "./build/cjs/loader-utils/index.js"
+    },
     "./babel-plugin": {
       "types": "./build/types/babel-plugin/index.d.ts",
       "import": "./build/esm/babel-plugin/index.js",
@@ -105,7 +110,6 @@
     }
   },
   "dependencies": {
-    "@babel/core": "^7.18.5",
     "@sentry/core": "11.0.0",
     "dotenv": "^17.4.2",
     "glob": "^13.0.6",
@@ -115,10 +119,14 @@
     "supports-color": "^8.1.1"
   },
   "peerDependencies": {
+    "@babel/core": "^7.18.5",
     "rollup": ">=3.2.0",
     "webpack": ">=5.1.0"
   },
   "peerDependenciesMeta": {
+    "@babel/core": {
+      "optional": true
+    },
     "rollup": {
       "optional": true
     },
@@ -127,6 +135,7 @@
     }
   },
   "devDependencies": {
+    "@babel/core": "^7.18.5",
     "@babel/preset-react": "^7.23.3",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^18.6.3",
