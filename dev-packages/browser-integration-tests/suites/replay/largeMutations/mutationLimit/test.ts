@@ -61,9 +61,12 @@ sentryTest(
     const incrementalSnapshots = replayRecordingSnapshots.filter(
       snapshot => snapshot.type === EventType.IncrementalSnapshot,
     );
-    const breadcrumbCategories = getReplayBreadcrumbs(replayRecordingSnapshots)
-      .map(({ category }) => category)
-      .sort();
+    // A still-in-flight envelope from the setup flush can re-deliver the
+    // `#noop` `ui.click` breadcrumb into the collected set, so assert on the
+    // unique categories rather than the raw (potentially duplicated) list.
+    const breadcrumbCategories = [
+      ...new Set(getReplayBreadcrumbs(replayRecordingSnapshots).map(({ category }) => category)),
+    ].sort();
 
     // Breadcrumbs (click and mutation);
     expect(fullSnapshots.length).toBe(0);
