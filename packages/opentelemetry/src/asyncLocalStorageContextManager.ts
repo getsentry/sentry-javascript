@@ -92,6 +92,7 @@ export class SentryAsyncLocalStorageContextManager implements ContextManager {
   ): ReturnType<F> {
     const ctx2 = buildContextWithSentryScopes(context);
     const cb = thisArg == null ? fn : fn.bind(thisArg);
+    // buildContextWithSentryScopes always stores both scopes; Context's key-value type cannot express that guarantee.
     return this._asyncLocalStorage.run({ ...getScopesFromContext(ctx2)!, context: ctx2 }, cb as never, ...args);
   }
 
