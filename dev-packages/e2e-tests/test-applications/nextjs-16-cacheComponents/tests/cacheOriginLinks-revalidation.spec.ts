@@ -1,13 +1,29 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-// Background stale-while-revalidate refills. Target behavior: the revalidation runs in its own
-// trace (not grafted onto the serving trace), links back to the request that triggered it, and
-// becomes the `cache_origin` for future hits. Not implemented yet — the test is `test.fail()`.
+// Background stale-while-revalidate refills. Target behavior: the revalidation gets its own trace,
+// separate from the request trace that served the stale value. The revalidation trace links back to
+// that request and becomes the `cache_origin` for future hits.
+
+/*
+
+Trace1 (fill)              Trace2 (stale hit)               Trace3 (hit)
+|- put key:A <----link-----o get hit=true key:A             |- get hit=true key:A
+|                                                           |
+TraceR: cache.revalidate  (own trace, NOT part of Trace2)   |
+^- link back to Trace2 (link type TBD in the RFC)           |
+|                                                           |
+|- put key:A  <----------------------link-------------------o cache_origin
+
+*/
+
+// Not implemented yet. Unlike the nesting specs, this cannot be `test.fail()`: the test waits for a
+// `cache.revalidate` trace that never arrives, so it would time out — and Playwright reports a
+// timeout as a real failure even under `test.fail()`. Hence `test.fixme()`.
 
 test('runs background revalidation in its own trace linked to the triggering request', async ({ request }) => {
   test.skip(process.env.TEST_ENV !== 'production', 'SWR revalidation timing only holds in production');
-  test.fail();
+  test.fixme();
 
   const id = crypto.randomUUID();
 
@@ -21,8 +37,7 @@ test('runs background revalidation in its own trace linked to the triggering req
   await request.get(`/api/use-cache-swr?id=${id}`);
   const fillTx = await fillTxPromise;
 
-  // Sleep past `revalidate` (2s) but not `expire`, so the next read serves the stale value and
-  // triggers a background refill.
+  // Sleep past `revalidate` (2s) but not `expire`, so the next read serves the stale value and triggers a background refill.
   await new Promise(resolve => setTimeout(resolve, 3_000));
 
   const staleHitTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
@@ -54,7 +69,7 @@ test('runs background revalidation in its own trace linked to the triggering req
     },
   ]);
 
-  // Refill work the visitor never waited for is not grafted onto the serving trace: the
+  // The visitor never waited for the refill, so it is not part of the serving trace: the
   // background revalidation is its own trace, linked back to the request that triggered it.
   const revalidationTx = await revalidationTxPromise;
   expect(revalidationTx.contexts?.trace?.trace_id).not.toBe(staleHitTx.contexts?.trace?.trace_id);
