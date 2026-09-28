@@ -27,6 +27,7 @@ interface NextRouter {
 const globalWithNext = globalThis as typeof globalThis & {
   next?: { router?: NextRouter };
   _sentryRouteManifest?: string;
+  _sentryBasePath?: string;
 };
 
 const manifest: RouteManifest = {
@@ -35,6 +36,12 @@ const manifest: RouteManifest = {
     {
       path: '/navigation/:param/router-back',
       regex: '^/navigation/([^/]+)/router-back$',
+      paramNames: ['param'],
+      hasOptionalPrefix: false,
+    },
+    {
+      path: '/my-app/navigation/:param/router-push',
+      regex: '^/my-app/navigation/([^/]+)/router-push$',
       paramNames: ['param'],
       hasOptionalPrefix: false,
     },
@@ -56,6 +63,7 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   core: Core;
   router: NextRouter;
   client: Client;
+  instrumentation: Instrumentation;
 }> {
   vi.resetModules();
   const core: Core = await import('@sentry/core');
@@ -80,7 +88,7 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   instrumentation.appRouterInstrumentNavigation(client);
   await vi.waitFor(() => expect(router.back).not.toBe(originalBack));
 
-  return { core, router, client };
+  return { core, router, client, instrumentation };
 }
 
 describe('appRouterInstrumentNavigation (router-patch mode)', () => {
@@ -205,5 +213,51 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
         expect.objectContaining({ 'navigation.type': 'browser.popstate' }),
       );
     });
+  });
+});
+
+describe('appRouterInstrumentNavigation with basePath', () => {
+  beforeEach(() => {
+    globalWithNext._sentryRouteManifest = JSON.stringify(manifest);
+    globalWithNext._sentryBasePath = '/my-app';
+    window.history.replaceState({}, '', '/my-app/navigation');
+  });
+
+  afterEach(() => {
+    delete globalWithNext.next;
+    delete globalWithNext._sentryRouteManifest;
+    delete globalWithNext._sentryBasePath;
+  });
+
+  it.each([
+    ['a root-relative path without basePath', '/navigation/42/router-push'],
+    ['a root-relative path with basePath', '/my-app/navigation/42/router-push'],
+    ['an absolute URL', 'http://localhost:3000/my-app/navigation/42/router-push'],
+  ])('names the router-patch navigation span correctly for %s', async (_, href) => {
+    const { core, router } = await setup('static');
+
+    router.push(href);
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    const spanJson = core.spanToJSON(span!);
+    expect(spanJson.name).toBe('/my-app/navigation/:param/router-push');
+    expect(spanJson.attributes).toEqual(
+      expect.objectContaining({ 'url.full': 'http://localhost:3000/my-app/navigation/42/router-push' }),
+    );
+  });
+
+  it.each([
+    ['a root-relative path without basePath', '/navigation/42/router-push'],
+    ['a root-relative path with basePath', '/my-app/navigation/42/router-push'],
+    ['an absolute URL', 'http://localhost:3000/my-app/navigation/42/router-push'],
+  ])('names the transition-start-hook navigation span correctly for %s', async (_, href) => {
+    const { core, instrumentation } = await setup('static');
+
+    instrumentation.captureRouterTransitionStart(href, 'push');
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    expect(core.spanToJSON(span!).name).toBe('/my-app/navigation/:param/router-push');
   });
 });
