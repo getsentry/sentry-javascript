@@ -17,8 +17,13 @@ vi.mock('../../src/config/addInstrumentation', () => ({
 const orchestrionRollupMock = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
   name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-plugin',
 }));
+const commonJSInteropOptionsMock = {
+  requireReturnsDefault: vi.fn(),
+  ignoreTryCatch: vi.fn(),
+};
 vi.mock('@sentry/server-utils/orchestrion/rollup', () => ({
   sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionRollupMock(options),
+  commonJSInteropOptions: () => commonJSInteropOptionsMock,
 }));
 vi.mock('@sentry/server-utils/orchestrion/config', () => ({
   INSTRUMENTED_MODULE_NAMES: ['mysql', 'ioredis'],
@@ -216,6 +221,31 @@ describe('withSentry()', () => {
       expect(externals?.inline).toEqual(['ioredis', 'custom-dependency', 'mysql', 'standard-as-callback']);
     });
 
+    it('sets the CommonJS interop options for the inlined drivers by default', () => {
+      const config = withSentry(solidStartConfig, {});
+      const commonJS = (config?.server as { commonJS?: Record<string, unknown> })?.commonJS;
+      expect(commonJS).toEqual(commonJSInteropOptionsMock);
+    });
+
+    it('preserves user-provided CommonJS options', () => {
+      const userRequireReturnsDefault = vi.fn();
+      const config = withSentry(
+        {
+          ...solidStartConfig,
+          server: {
+            ...solidStartConfig.server,
+            commonJS: { requireReturnsDefault: userRequireReturnsDefault },
+          },
+        } as Parameters<typeof withSentry>[0],
+        {},
+      );
+      const commonJS = (config?.server as { commonJS?: Record<string, unknown> })?.commonJS;
+      expect(commonJS).toEqual({
+        requireReturnsDefault: userRequireReturnsDefault,
+        ignoreTryCatch: commonJSInteropOptionsMock.ignoreTryCatch,
+      });
+    });
+
     it('adds an inert orchestrion plugin and skips externals when buildTimeInstrumentation is false', async () => {
       const config = withSentry(solidStartConfig, { buildTimeInstrumentation: false });
       const { hookFn } = callSentryNitroModule(config);
@@ -225,6 +255,8 @@ describe('withSentry()', () => {
       expect(plugins).toHaveLength(0);
       const externals = (config?.server as { externals?: { inline?: string[] } })?.externals;
       expect(externals).toBeUndefined();
+      const commonJS = (config?.server as { commonJS?: Record<string, unknown> })?.commonJS;
+      expect(commonJS).toBeUndefined();
     });
   });
 });

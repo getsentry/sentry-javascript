@@ -1,6 +1,6 @@
 import type { Nuxt } from '@nuxt/schema';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
-import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
+import { commonJSInteropOptions, sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
 import type { NitroConfig } from 'nitropack';
 import { isCloudflarePreset } from './utils';
 
@@ -55,5 +55,12 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
     const inline = externals.inline;
     const existingInline = Array.isArray(inline) ? inline : inline ? [inline] : [];
     externals.inline = [...new Set([...existingInline, ...INSTRUMENTED_MODULE_NAMES, ...IORedisDependencies])];
+
+    // The inlined drivers `require()` CommonJS dependencies that stay external. Fix the interop
+    // for those requires (see `commonJSInteropOptions`). User-provided options win.
+    const commonJS = (nitroConfig.commonJS ||= {});
+    const interop = commonJSInteropOptions();
+    commonJS.requireReturnsDefault ??= interop.requireReturnsDefault;
+    commonJS.ignoreTryCatch ??= interop.ignoreTryCatch;
   });
 }

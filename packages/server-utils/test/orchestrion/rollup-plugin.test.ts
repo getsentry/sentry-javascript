@@ -1,6 +1,6 @@
 import type { InputOptions, NormalizedInputOptions, PluginContext } from 'rollup';
 import { describe, expect, it, vi } from 'vitest';
-import { sentryOrchestrionPlugin } from '../../src/orchestrion/bundler/rollup';
+import { commonJSInteropOptions, sentryOrchestrionPlugin } from '../../src/orchestrion/bundler/rollup';
 
 type OptionsHook = (this: unknown, inputOptions: InputOptions) => null;
 type BuildStartHook = (this: Pick<PluginContext, 'warn'>, rollupOptions: NormalizedInputOptions) => void;
@@ -45,5 +45,32 @@ describe('sentryOrchestrionPlugin (rollup) externalized-modules warning', () => 
       expect(warnings).toHaveLength(1);
       expect(warnings[0]).toContain('express');
     });
+  });
+});
+
+describe('commonJSInteropOptions', () => {
+  const { requireReturnsDefault, ignoreTryCatch } = commonJSInteropOptions();
+
+  it('resolves builtins to their default export directly', () => {
+    expect(requireReturnsDefault('crypto')).toBe(true);
+    expect(requireReturnsDefault('node:crypto')).toBe(true);
+  });
+
+  it('unwraps the known driver dependencies', () => {
+    expect(requireReturnsDefault('mquery')).toBe(true);
+    expect(requireReturnsDefault('denque')).toBe(true);
+    expect(requireReturnsDefault('sqlstring')).toBe(true);
+    expect(requireReturnsDefault('lodash.defaults')).toBe(true);
+  });
+
+  it('keeps auto for dependencies with call-position `.default` reads', () => {
+    expect(requireReturnsDefault('debug')).toBe('auto');
+    expect(requireReturnsDefault('some-unknown-package')).toBe('auto');
+  });
+
+  it('converts only builtin requires inside try blocks', () => {
+    expect(ignoreTryCatch('crypto')).toBe(false);
+    expect(ignoreTryCatch('node:crypto')).toBe(false);
+    expect(ignoreTryCatch('kerberos')).toBe(true);
   });
 });

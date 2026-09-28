@@ -1,3 +1,5 @@
+import { isBuiltin } from 'node:module';
+
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
 import type {
   ExternalOption,
@@ -28,6 +30,66 @@ function rawExternalMatchesModule(external: ExternalOption, name: string): boole
   return entries.some(entry =>
     typeof entry === 'string' ? externalEntryMatchesModule(entry, name) : entry.test(name),
   );
+}
+
+/**
+ * Structural subset of `@rollup/plugin-commonjs` options, so this package needs no dependency on
+ * the plugin for its types.
+ */
+export interface CommonJSInteropOptions {
+  requireReturnsDefault: (id: string) => boolean | 'auto' | 'preferred' | 'namespace';
+  ignoreTryCatch: (id: string) => boolean;
+}
+
+// External CommonJS dependencies of the force-inlined drivers whose `require()` must unwrap to
+// `module.exports`, because the driver calls or constructs the result (`new mquery()`, `ms(val)`)
+// or the plugin rewrites a plain-member `.default` read into a direct read of the require proxy
+// (ioredis' `exports.defaults = lodash_defaults_1.default`). The `'auto'` mode never unwraps on
+// Node >= 23: a CommonJS namespace now carries a `'module.exports'` key next to `default`
+// (nodejs/node#53848), so the driver receives the namespace object and crashes.
+//
+// Unwrapping everything is no alternative. A call-position `.default` read (ioredis'
+// `(0, debug_1.default)(...)`) survives the rewrite and needs the `'auto'` namespace, so `debug`
+// must stay off this list. The list goes stale when a driver gains a new dependency of the first
+// kind. The symptom is "x is not a constructor" or "x is not a function" on Node >= 23, at server
+// startup or on first connect.
+const UNWRAPPED_DRIVER_DEPENDENCIES = new Set([
+  // mongoose
+  'kareem',
+  'mpath',
+  'mquery',
+  'ms',
+  'sift',
+  // ioredis
+  '@ioredis/commands',
+  'cluster-key-slot',
+  'denque',
+  'lodash.defaults',
+  'lodash.isarguments',
+  // mysql
+  'bignumber.js',
+  'sqlstring',
+]);
+
+/**
+ * `@rollup/plugin-commonjs` options for builds that force-inline the instrumented CommonJS
+ * packages (Nitro-based frameworks: Nuxt, SolidStart) while those packages' own CommonJS
+ * dependencies stay external.
+ *
+ * `requireReturnsDefault` restores `require()` semantics on Node >= 23 for builtins and the
+ * dependencies in {@link UNWRAPPED_DRIVER_DEPENDENCIES}. Everything else keeps the plugin's
+ * `'auto'` behavior.
+ *
+ * `ignoreTryCatch` converts builtin `require()`s inside `try` blocks, which the plugin leaves
+ * untouched by default. A bare `require` throws in Nitro's ESM output (mongodb lazily requires
+ * `crypto` for SCRAM-SHA-1 auth). Non-builtins stay untouched so optional-dependency probes
+ * still behave as "not installed".
+ */
+export function commonJSInteropOptions(): CommonJSInteropOptions {
+  return {
+    requireReturnsDefault: id => (isBuiltin(id) || UNWRAPPED_DRIVER_DEPENDENCIES.has(id) ? true : 'auto'),
+    ignoreTryCatch: id => !isBuiltin(id),
+  };
 }
 
 /**
