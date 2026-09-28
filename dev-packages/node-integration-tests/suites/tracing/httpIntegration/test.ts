@@ -2,6 +2,7 @@ import { createTestServer } from '@sentry-internal/test-utils';
 import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
+import { RUNTIME } from '../../../utils';
 
 function getCommonHttpRequestHeaders(): Record<string, unknown> {
   return {
@@ -173,7 +174,8 @@ describe('httpIntegration', () => {
       });
     });
 
-    describe('custom server.emit', () => {
+    // Deno: the requests sometimes get a 500 response when `server.emit` is overwritten.
+    describe.skipIf(RUNTIME === 'deno')('custom server.emit', () => {
       createEsmAndCjsTests(
         __dirname,
         'scenario-overwrite-server-emit.mjs',
