@@ -11,7 +11,7 @@ import { CACHE_ORIGIN_LINK_ATTRIBUTES, findCacheSpan } from './cacheOriginLinks-
 Trace1 (fill)              Trace2 (stale hit)               Trace3 (hit)
 |- put key:A <----link-----o get hit=true key:A             |- get hit=true key:A
                            ^                                |
-                           | link (type TBD in the RFC)     |
+                           | link (type TBD in the spec)    |
 TraceR: cache.revalidate --o  (own trace)                   |
 |                                                           |
 |- put key:A  <----------------------link-------------------o cache_origin
