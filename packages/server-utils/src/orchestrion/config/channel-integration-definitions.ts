@@ -33,6 +33,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'mistralAIIntegration', modules: ['@mistralai/mistralai'] },
   { exportName: 'groqIntegration', modules: ['groq-sdk'] },
   { exportName: 'togetherAIIntegration', modules: ['together-ai'] },
+  { exportName: 'typesafeIntegration', modules: ['@typesafe-ai/sdk'] },
   { exportName: 'vercelAIIntegration', modules: ['ai'] },
   {
     exportName: 'langChainIntegration',

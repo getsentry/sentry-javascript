@@ -1,5 +1,4 @@
-import * as Sentry from '@sentry/node';
-import { bunRuntimeMetricsIntegration } from '@sentry/bun';
+import * as Sentry from '@sentry/bun';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
@@ -9,7 +8,7 @@ Sentry.init({
   environment: 'test',
   transport: loggingTransport,
   integrations: [
-    bunRuntimeMetricsIntegration({
+    Sentry.bunRuntimeMetricsIntegration({
       collectionIntervalMs: 1000,
     }),
   ],

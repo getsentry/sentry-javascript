@@ -13,6 +13,10 @@ export type { InstrumentationConfig } from './orchestrion/apmTypes';
 // `orchestrion/bundler/moduleInjectedTransform.ts`); it is a plain runtime
 // helper with no orchestrion build-time dependency.
 export { orchestrionModuleInjected } from './utils/moduleInjected';
+export {
+  subscribe as subscribeDiagnosticsChannel,
+  tracingChannel as diagnosticsTracingChannel,
+} from './utils/diagnosticsChannel';
 export { eveConversationHook, eveIntegration } from './eve';
 export { getInstrumentedModuleNames } from './orchestrion/config';
 export {
@@ -53,6 +57,7 @@ export { mongooseIntegration } from './integrations/mongoose';
 export { mistralAIIntegration } from './integrations/mistral';
 export { groqIntegration } from './integrations/groq';
 export { togetherAIIntegration } from './integrations/together-ai';
+export { typesafeIntegration } from './integrations/typesafe';
 export { mysqlIntegration } from './integrations/mysql';
 export { mysql2Integration } from './integrations/mysql2';
 export { openAIIntegration } from './integrations/openai';

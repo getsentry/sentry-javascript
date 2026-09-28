@@ -34,6 +34,13 @@ Nock interceptors are internally used to capture envelope requests by `getEnvelo
 be used inside the test cases to intercept requests but should be removed before the test ends, as not to cause
 flakiness.
 
+## Other Runtimes
+
+`dev-packages/bun-integration-tests` and `dev-packages/deno-integration-tests` run every suite of this package on Bun
+and Deno as well. When you add a suite, check that it passes on both. If it cannot, add it to
+`node-suites/excludes.ts` of the runtime's package with the reason, or skip the single tests that fail with
+`test.skipIf(RUNTIME === 'bun')` or `test.skipIf(RUNTIME === 'deno')`.
+
 ## Running Tests Locally
 
 Tests can be run locally with:
