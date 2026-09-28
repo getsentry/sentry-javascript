@@ -28,6 +28,7 @@ import {
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   CODE_FUNCTION_NAME,
+  SENTRY_DESCRIPTION,
   SENTRY_OP,
   URL_FULL,
   URL_TEMPLATE,
@@ -231,13 +232,21 @@ export function createSentryClientInstrumentation(
         },
 
         async fetch(callFetch, info) {
+          const client = getClient();
+          const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+          const description = `Fetcher ${info.fetcherKey}`;
+
           await startSpan(
             {
-              name: `Fetcher ${info.fetcherKey}`,
+              // With span streaming, a `function` span is named after the function it wraps. The
+              // fetcher key identifies a single fetcher instance and would be high cardinality.
+              name: hasSpanStreaming ? 'fetcher' : description,
               attributes: {
                 [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'fetcher',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                // Relay infers a `function` span's description from `code.function.name` alone, which drops the key.
+                ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },
             },
             async span => {
@@ -266,13 +275,20 @@ export function createSentryClientInstrumentation(
           // pageload, so this only affects navigations.)
           updateRootSpanRoute(routePattern, !!pattern);
 
+          const client = getClient();
+          const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+
           await startSpan(
             {
-              name: routePattern,
+              // With span streaming, a `function` span is named after the function it wraps, because
+              // `routePattern` falls back to the raw request path for routes without a pattern.
+              name: hasSpanStreaming ? 'clientLoader' : routePattern,
               attributes: {
                 [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'clientLoader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                // Relay infers a `function` span's description from `code.function.name` alone, which drops the route.
+                ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: routePattern }),
               },
             },
             async span => {
@@ -293,13 +309,20 @@ export function createSentryClientInstrumentation(
           const routePattern = pattern || urlPath;
           updateRootSpanRoute(routePattern, !!pattern);
 
+          const client = getClient();
+          const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+
           await startSpan(
             {
-              name: routePattern,
+              // With span streaming, a `function` span is named after the function it wraps, because
+              // `routePattern` falls back to the raw request path for routes without a pattern.
+              name: hasSpanStreaming ? 'clientAction' : routePattern,
               attributes: {
                 [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'clientAction',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                // Relay infers a `function` span's description from `code.function.name` alone, which drops the route.
+                ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: routePattern }),
               },
             },
             async span => {

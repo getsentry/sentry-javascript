@@ -16,6 +16,28 @@ import type {
 import { isAstNode, isObjectLike } from './component-annotation-oxc-ast';
 
 const UNKNOWN_ELEMENT_NAME = 'unknown';
+const REACT_NATIVE_ELEMENTS = new Set([
+  'Image',
+  'Text',
+  'View',
+  'ScrollView',
+  'TextInput',
+  'TouchableOpacity',
+  'TouchableHighlight',
+  'TouchableWithoutFeedback',
+  'FlatList',
+  'SectionList',
+  'ActivityIndicator',
+  'Button',
+  'Switch',
+  'Modal',
+  'SafeAreaView',
+  'StatusBar',
+  'KeyboardAvoidingView',
+  'RefreshControl',
+  'Picker',
+  'Slider',
+]);
 const WEB_ATTRIBUTE_NAMES = [WEB_ELEMENT_NAME, WEB_COMPONENT_NAME, WEB_SOURCE_FILE_NAME] as const;
 const WEB_ATTRIBUTE_NAME_SET = new Set<string>(WEB_ATTRIBUTE_NAMES);
 
@@ -140,18 +162,77 @@ export function addPendingAttributes(
     return;
   }
 
-  const insertion =
-    pendingInsertion ??
-    insertionsByOffset
-      .set(offset, {
-        offset,
-        attributeValues: new Map(),
-      })
-      .get(offset);
+  const insertion = getOrCreateInsertion(insertionsByOffset, offset);
 
   for (const [name, value] of attributes) {
-    insertion?.attributeValues.set(name, value);
+    insertion.attributeValues.set(name, value);
   }
+}
+
+/**
+ * Returns `true` when the element is an HTML element, because HTML mode only
+ * annotates the first HTML elements below a component root.
+ */
+export function addPendingHtmlAttribute(
+  code: string,
+  openingElement: JSXOpeningElementNode,
+  componentName: string,
+  ignoredComponents: string[],
+  fragmentContext: FragmentContext,
+  insertionsByOffset: Map<number, PendingInsertion>,
+): boolean {
+  if (isReactFragment(openingElement, fragmentContext)) {
+    return false;
+  }
+
+  const elementName = getJSXName(openingElement.name);
+
+  if (!isHtmlElement(elementName)) {
+    return false;
+  }
+
+  if (ignoredComponents.includes(componentName) || ignoredComponents.includes(elementName)) {
+    return true;
+  }
+
+  const offset = getInsertionOffset(code, openingElement);
+  if (offset === null) {
+    return true;
+  }
+
+  if (
+    getExistingAttributeNames(openingElement).has(WEB_COMPONENT_NAME) ||
+    insertionsByOffset.get(offset)?.attributeValues.has(WEB_COMPONENT_NAME)
+  ) {
+    return true;
+  }
+
+  getOrCreateInsertion(insertionsByOffset, offset).attributeValues.set(WEB_COMPONENT_NAME, componentName);
+
+  return true;
+}
+
+function isHtmlElement(elementName: string): boolean {
+  if (elementName === UNKNOWN_ELEMENT_NAME) {
+    return false;
+  }
+
+  if (elementName.charAt(0) === elementName.charAt(0).toLowerCase()) {
+    return true;
+  }
+
+  return REACT_NATIVE_ELEMENTS.has(elementName);
+}
+
+function getOrCreateInsertion(insertionsByOffset: Map<number, PendingInsertion>, offset: number): PendingInsertion {
+  let insertion = insertionsByOffset.get(offset);
+
+  if (!insertion) {
+    insertion = { offset, attributeValues: new Map() };
+    insertionsByOffset.set(offset, insertion);
+  }
+
+  return insertion;
 }
 
 export function toAttributeInsertions(insertionsByOffset: Map<number, PendingInsertion>): AttributeInsertion[] {
@@ -181,7 +262,8 @@ function getOrderedAttributes(attributeValues: ReadonlyMap<string, string>): Com
 
   for (const name of WEB_ATTRIBUTE_NAMES) {
     const value = attributeValues.get(name);
-    if (value) {
+    // HTML mode writes an empty component name for anonymous classes.
+    if (value !== undefined) {
       attributes.push([name, value]);
     }
   }

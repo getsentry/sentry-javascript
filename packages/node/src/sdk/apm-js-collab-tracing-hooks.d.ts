@@ -5,7 +5,7 @@ declare module '@apm-js-collab/tracing-hooks' {
 
   /** Hooks require */
   export default class ModulePatch {
-    public constructor(config: PatchConfig): ModulePatch;
+    public constructor(config: PatchConfig);
     public patch(): void;
   }
 }

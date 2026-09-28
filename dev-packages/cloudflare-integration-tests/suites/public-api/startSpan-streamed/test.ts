@@ -80,6 +80,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       expect(childSpan).toBeDefined();
       expect(childSpan).toEqual({
         attributes: {
+          'sentry.is_localhost': { value: true, type: 'boolean' },
           [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
             type: 'string',
@@ -107,6 +108,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       expect(inactiveSpan).toBeDefined();
       expect(inactiveSpan).toEqual({
         attributes: {
+          'sentry.is_localhost': { value: true, type: 'boolean' },
           [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
@@ -143,6 +145,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       expect(manualSpan).toBeDefined();
       expect(manualSpan).toEqual({
         attributes: {
+          'sentry.is_localhost': { value: true, type: 'boolean' },
           [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
@@ -164,6 +167,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
 
       expect(parentTestSpan).toEqual({
         attributes: {
+          'sentry.is_localhost': { value: true, type: 'boolean' },
           [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
           [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
@@ -186,6 +190,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
 
       expect(segmentSpan).toEqual({
         attributes: {
+          'sentry.is_localhost': { value: true, type: 'boolean' },
           [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
           [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },

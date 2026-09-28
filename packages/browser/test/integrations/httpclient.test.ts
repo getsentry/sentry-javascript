@@ -146,7 +146,7 @@ describe('httpClientIntegration', () => {
 
       triggerFetch(fetchHandler, {
         requestHeaders: { Authorization: 'Bearer x', Accept: 'application/json', Cookie: 'theme=dark; session=secret' },
-        responseHeaders: { 'Content-Type': 'text/html', 'Set-Cookie': 'locale=en; session=secret' },
+        responseHeaders: { 'Content-Type': 'text/html', 'Set-Cookie': 'session=secret; Path=/; HttpOnly' },
       });
 
       expect(captureEventSpy).toHaveBeenCalledTimes(1);
@@ -158,7 +158,7 @@ describe('httpClientIntegration', () => {
       });
       expect(event.request?.cookies).toEqual({ theme: 'dark', session: '[Filtered]' });
       expect(event.contexts?.response?.headers).toEqual({ 'content-type': 'text/html', 'set-cookie': '[Filtered]' });
-      expect(event.contexts?.response?.cookies).toEqual({ locale: 'en', session: '[Filtered]' });
+      expect(event.contexts?.response?.cookies).toEqual({ session: '[Filtered]' });
     });
 
     it('filters PII headers when an explicit deny list is configured', () => {
@@ -244,14 +244,20 @@ describe('httpClientIntegration', () => {
       const { xhrHandler, captureEventSpy } = setup();
 
       triggerXhr(xhrHandler, {
-        setCookie: 'session=abc123; theme=dark; connect.sid=secret',
+        setCookie: 'connect.sid=s3cr3t; Path=/; HttpOnly',
       });
 
-      expect(getEvent(captureEventSpy).contexts?.response?.cookies).toEqual({
-        session: '[Filtered]',
-        theme: 'dark',
-        'connect.sid': '[Filtered]',
+      expect(getEvent(captureEventSpy).contexts?.response?.cookies).toEqual({ 'connect.sid': '[Filtered]' });
+    });
+
+    it('does not report Set-Cookie attributes as response cookies', () => {
+      const { xhrHandler, captureEventSpy } = setup();
+
+      triggerXhr(xhrHandler, {
+        setCookie: 'theme=dark; Max-Age=3600; Path=/; Domain=example.com',
       });
+
+      expect(getEvent(captureEventSpy).contexts?.response?.cookies).toEqual({ theme: 'dark' });
     });
 
     it('collects response headers and filters response cookies by default', () => {
@@ -259,7 +265,7 @@ describe('httpClientIntegration', () => {
 
       triggerXhr(xhrHandler, {
         requestHeaders: { Authorization: 'Bearer x' },
-        setCookie: 'session=abc123; theme=dark',
+        setCookie: 'session=abc123; Path=/',
         allResponseHeaders: 'content-type: text/html',
       });
 
@@ -267,7 +273,7 @@ describe('httpClientIntegration', () => {
       const event = getEvent(captureEventSpy);
       expect(event.request?.headers).toEqual({ Authorization: '[Filtered]' });
       expect(event.contexts?.response?.headers).toEqual({ 'content-type': 'text/html' });
-      expect(event.contexts?.response?.cookies).toEqual({ session: '[Filtered]', theme: 'dark' });
+      expect(event.contexts?.response?.cookies).toEqual({ session: '[Filtered]' });
     });
   });
 });

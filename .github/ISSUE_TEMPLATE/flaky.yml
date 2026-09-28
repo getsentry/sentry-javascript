@@ -12,6 +12,7 @@ body:
         - Timeout
         - Assertion failure
         - Other / Unknown
+      default: 1
     validations:
       required: true
   - type: input

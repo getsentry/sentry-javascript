@@ -4,6 +4,7 @@ export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     entrypoints: [
       'src/core/index.ts',
+      'src/loader-utils/index.ts',
       'src/rollup/index.ts',
       'src/vite/index.ts',
       'src/esbuild/index.ts',

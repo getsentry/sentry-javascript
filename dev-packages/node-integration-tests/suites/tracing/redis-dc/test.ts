@@ -192,6 +192,7 @@ describeWithDockerCompose(
             }),
             'sentry.sdk.version': { type: 'string', value: expect.any(String) },
             'sentry.segment.id': { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
+            'sentry.is_localhost': { type: 'boolean', value: false },
           },
           end_timestamp: expect.any(Number),
           is_segment: false,

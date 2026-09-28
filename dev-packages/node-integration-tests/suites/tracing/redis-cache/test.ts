@@ -710,6 +710,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         [SENTRY_TRACE_LIFECYCLE]: 'stream',
       }),
       'sentry.sdk.version': { type: 'string', value: expect.any(String) },
+      'sentry.is_localhost': { type: 'boolean', value: false },
       'sentry.segment.id': { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
     });
 

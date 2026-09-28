@@ -161,6 +161,8 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
       if (!staticInjectionCode.isEmpty()) {
         const virtualInjectionFilePath = path.resolve('_sentry-injection-stub');
         initialOptions.inject = initialOptions.inject || [];
+        // esbuild emits injected files after an entry's directive prologue. A banner would precede
+        // "use strict" and turn it into an ordinary string expression.
         initialOptions.inject.push(virtualInjectionFilePath);
 
         onResolve({ filter: /_sentry-injection-stub/ }, args => {

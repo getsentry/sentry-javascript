@@ -7,6 +7,7 @@ import { createTracingMixins } from '../../src/tracing';
 vi.mock('@sentry/browser', () => {
   return {
     getActiveSpan: vi.fn(),
+    getClient: vi.fn(),
     startInactiveSpan: vi.fn().mockImplementation(({ name, op }) => {
       return {
         end: vi.fn(),

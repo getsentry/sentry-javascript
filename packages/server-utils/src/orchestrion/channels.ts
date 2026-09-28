@@ -26,6 +26,7 @@ import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
 import { postgresJsChannels } from './config/postgres';
+import { prismaChannels } from './config/prisma';
 import { redisChannels } from './config/redis';
 import { remixChannels } from './config/remix';
 import { tediousChannels } from './config/tedious';
@@ -77,6 +78,7 @@ export const CHANNELS = {
   ...openaiChannels,
   ...pgChannels,
   ...postgresJsChannels,
+  ...prismaChannels,
   ...redisChannels,
   ...remixChannels,
   ...tediousChannels,

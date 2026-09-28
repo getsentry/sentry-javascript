@@ -1,5 +1,6 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
+import { RUNTIME } from '../../../../utils';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('outgoing traceparent', () => {
@@ -39,7 +40,9 @@ describe('outgoing traceparent', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-http.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('outgoing http requests should get traceparent headers', async () => {
+    // Bun 1.3.14 does not instrument outgoing `node:http` requests.
+    // See https://github.com/getsentry/sentry-javascript/issues/23881
+    test.skipIf(RUNTIME === 'bun')('outgoing http requests should get traceparent headers', async () => {
       expect.assertions(5);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()

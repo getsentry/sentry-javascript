@@ -12,21 +12,26 @@ type PluginClass = new (options: unknown) => unknown;
 type Compiler = {
   options: { plugins: unknown[] };
   hooks: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
-  webpack?: { BannerPlugin: PluginClass; DefinePlugin: PluginClass };
+  webpack?: {
+    DefinePlugin: PluginClass;
+    Compilation: { PROCESS_ASSETS_STAGE_ADDITIONS: number };
+    sources: { ReplaceSource: PluginClass };
+  };
 };
-
-class BannerPlugin {
-  public constructor(public options: unknown) {}
-}
 
 class DefinePlugin {
   public constructor(public options: unknown) {}
+}
+
+class ReplaceSource {
+  public constructor(public source: unknown) {}
 }
 
 function createCompiler(webpack?: Compiler['webpack']): Compiler {
   return {
     options: { plugins: [] },
     hooks: {
+      compilation: { tap: vi.fn() },
       thisCompilation: { tap: vi.fn() },
       afterEmit: { tapAsync: vi.fn() },
       done: { tap: vi.fn() },
@@ -47,12 +52,19 @@ describe('sentryWebpackPlugin', () => {
     expect(plugin).toEqual({ apply: expect.any(Function) });
   });
 
-  it('registers the plugin classes provided by `compiler.webpack`', () => {
-    const compiler = createCompiler({ BannerPlugin, DefinePlugin });
+  it('registers code injection through the compilation hook', () => {
+    const compiler = createCompiler({
+      DefinePlugin,
+      Compilation: { PROCESS_ASSETS_STAGE_ADDITIONS: -100 },
+      sources: { ReplaceSource },
+    });
 
-    sentryWebpackPlugin({ telemetry: false, release: { name: 'my-release' } }).apply(compiler);
+    sentryWebpackPlugin({ telemetry: false, release: { name: 'my-release' } }).apply(compiler as never);
 
-    expect(compiler.options.plugins).toEqual([expect.any(BannerPlugin)]);
+    expect(compiler.hooks.compilation?.tap).toHaveBeenCalledWith(
+      'sentry-webpack-plugin-injection',
+      expect.any(Function),
+    );
   });
 
   it('warns instead of throwing when `compiler.webpack` is unavailable', () => {
@@ -60,11 +72,11 @@ describe('sentryWebpackPlugin', () => {
     const compiler = createCompiler(undefined);
 
     expect(() =>
-      sentryWebpackPlugin({ telemetry: false, release: { name: 'my-release' } }).apply(compiler),
+      sentryWebpackPlugin({ telemetry: false, release: { name: 'my-release' } }).apply(compiler as never),
     ).not.toThrow();
 
     expect(compiler.options.plugins).toEqual([]);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('BannerPlugin is not available'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Webpack sources are not available'));
     warn.mockRestore();
   });
 });

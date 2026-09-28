@@ -1,6 +1,7 @@
 import type { AstNode, AttributeInsertion, FragmentContext, JSXRootNode } from './component-annotation-oxc-ast';
 import {
   addPendingAttributes,
+  addPendingHtmlAttribute,
   getStringName,
   isJSXElement,
   isJSXRoot,
@@ -16,6 +17,7 @@ export function collectOxcComponentAnnotationInsertions(
   ast: AstNode,
   ignoredComponents: string[],
   sourceFileName: string,
+  injectIntoHtml: boolean,
 ): AttributeInsertion[] {
   const fragmentContext = collectFragmentContext(ast);
   const components = collectComponentJSXRoots(ast);
@@ -23,11 +25,44 @@ export function collectOxcComponentAnnotationInsertions(
 
   for (const component of components) {
     for (const root of component.roots) {
-      processJSX(code, root, component.name, ignoredComponents, fragmentContext, sourceFileName, insertionsByOffset);
+      if (injectIntoHtml) {
+        processHtmlJSX(code, root, component.name, ignoredComponents, fragmentContext, insertionsByOffset);
+      } else {
+        processJSX(code, root, component.name, ignoredComponents, fragmentContext, sourceFileName, insertionsByOffset);
+      }
     }
   }
 
   return toAttributeInsertions(insertionsByOffset);
+}
+
+function processHtmlJSX(
+  code: string,
+  node: JSXRootNode,
+  componentName: string,
+  ignoredComponents: string[],
+  fragmentContext: FragmentContext,
+  insertionsByOffset: Map<number, { offset: number; attributeValues: Map<string, string> }>,
+): void {
+  if (
+    isJSXElement(node) &&
+    addPendingHtmlAttribute(
+      code,
+      node.openingElement,
+      componentName,
+      ignoredComponents,
+      fragmentContext,
+      insertionsByOffset,
+    )
+  ) {
+    return;
+  }
+
+  for (const child of node.children ?? []) {
+    if (isJSXRoot(child)) {
+      processHtmlJSX(code, child, componentName, ignoredComponents, fragmentContext, insertionsByOffset);
+    }
+  }
 }
 
 function getJSXRootsFromReturnArgument(argument: unknown): JSXRootNode[] {

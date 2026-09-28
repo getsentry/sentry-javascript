@@ -1,7 +1,13 @@
 import { _INTERNAL_filterKeyValueData, defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { filterCollectedUrl } from '@sentry/core';
-import { HTTP_REQUEST_HEADER_KEY_BASE, SENTRY_OP, URL_FULL, USER_AGENT_ORIGINAL } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_HEADER_KEY_BASE,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_OP,
+  URL_FULL,
+  USER_AGENT_ORIGINAL,
+} from '@sentry/conventions/attributes';
 
 /**
  * Collects information about HTTP request headers and
@@ -51,11 +57,23 @@ export const httpContextIntegration = defineIntegration(() => {
         client.getDataCollectionOptions().httpHeaders.request,
       );
       const referer = headers['Referer'];
+      const { hostname, protocol } = WINDOW.location || {};
 
       safeSetSpanJSONAttributes(span, {
         // This attribute is used by the "Filter out events from legacy browsers and crawlers" features on the Sentry backend.
         // Therefore, it's set on every span.
         [USER_AGENT_ORIGINAL]: headers['User-Agent'],
+
+        // Likewise for the "Filter out localhost events" feature. Deliberately inlined rather than
+        // sharing the server-side helper, which costs bundle size for request headers and IPs that
+        // don't exist here. Mirrors Relay's localhost filter (relay-filter/src/localhost.rs).
+        [SENTRY_IS_LOCALHOST]:
+          protocol === 'file:' ||
+          hostname === 'localhost' ||
+          hostname === '127.0.0.1' ||
+          // `location.hostname` keeps the brackets for IPv6 hosts, so this is `[::1]`, not `::1`.
+          hostname === '[::1]' ||
+          !!hostname?.endsWith('.localhost'),
 
         // These attributes, we only need on the segment span (analogous to the `request` context for events)
         ...(span.is_segment && {
