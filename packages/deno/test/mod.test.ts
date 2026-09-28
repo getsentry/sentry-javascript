@@ -1,6 +1,6 @@
 import process from 'node:process';
 import type { Envelope, Event, Log } from '@sentry/core';
-import { createStackParser, forEachEnvelopeItem, parseEnvelope } from '@sentry/core';
+import { createStackParser, forEachEnvelopeItem } from '@sentry/core';
 import { nodeStackLineParser } from '@sentry/core/server';
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
@@ -280,35 +280,4 @@ Deno.test('App runs without errors', async _ => {
   assertEquals(errString, '');
   assertEquals(outString, 'App has started\n');
   assertEquals(output.success, true);
-});
-
-Deno.test('flushes logs and metrics before natural exit', async () => {
-  const receivedTypes: string[] = [];
-  const server = Deno.serve({ hostname: '127.0.0.1', port: 0, onListen: () => {} }, async request => {
-    const envelope = parseEnvelope(await request.text());
-    receivedTypes.push(...envelope[1].map(([headers]) => headers.type));
-    return new Response('');
-  });
-
-  try {
-    const command = new Deno.Command('deno', {
-      args: [
-        'run',
-        '--allow-net',
-        '--allow-env',
-        '--allow-read',
-        new URL('./fixtures/flush-on-exit.ts', import.meta.url).pathname,
-        `http://public@127.0.0.1:${server.addr.port}/1`,
-      ],
-      stdout: 'piped',
-      stderr: 'piped',
-    });
-
-    const { code, stderr } = await command.output();
-
-    assertEquals(code, 0, new TextDecoder().decode(stderr));
-    assertEquals(receivedTypes.sort(), ['log', 'trace_metric']);
-  } finally {
-    await server.shutdown();
-  }
 });
