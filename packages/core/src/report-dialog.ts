@@ -26,6 +26,6 @@ export interface ReportDialogOptions extends Record<string, unknown> {
   onLoad?(this: void): void;
   /** Callback after reportDialog closed */
   onClose?(this: void): void;
-  /** Callback if the reportDialog script fails to load (e.g. blocked by an ad blocker) */
+  /** Callback if the reportDialog cannot be shown (no event ID, or the script fails to load, e.g. blocked by an ad blocker) */
   onError?(this: void, error: Error): void;
 }

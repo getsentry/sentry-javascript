@@ -36,12 +36,19 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
     eventId: options.eventId || lastEventId(),
   };
 
+  const { onLoad, onClose, onError } = mergedOptions;
+
+  // The endpoint rejects requests without an event ID, and a failed script load hides the reason
+  if (!mergedOptions.eventId) {
+    DEBUG_BUILD && debug.error('[showReportDialog] No event ID');
+    onError?.(new Error('No event ID to show the report dialog for'));
+    return;
+  }
+
   const script = WINDOW.document.createElement('script');
   script.async = true;
   script.crossOrigin = 'anonymous';
   script.src = getReportDialogEndpoint(dsn, mergedOptions);
-
-  const { onLoad, onClose, onError } = mergedOptions;
 
   if (onLoad) {
     script.onload = onLoad;
