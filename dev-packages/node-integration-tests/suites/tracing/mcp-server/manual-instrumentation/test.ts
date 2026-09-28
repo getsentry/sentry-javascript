@@ -1,6 +1,6 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 function mcpSpans(container: SerializedStreamedSpanContainer): SerializedStreamedSpanContainer['items'] {
   return container.items.filter(item => item.attributes['sentry.op']?.value === 'mcp.server');
@@ -20,7 +20,7 @@ function assertInitializeSpan(container: SerializedStreamedSpanContainer): void 
   expect(initializeSpan.attributes['test.mcp.initialize_spans_started']).toEqual({ type: 'integer', value: 1 });
 }
 
-describe('MCP server spans (streamed)', () => {
+describe('MCP server spans (streamed, manual instrumentation)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

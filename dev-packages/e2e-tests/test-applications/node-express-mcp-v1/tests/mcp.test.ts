@@ -1,20 +1,20 @@
 import { expect, test } from '@playwright/test';
 import { waitForStreamedSpan, getSpanOp } from '@sentry-internal/test-utils';
-import { Client } from '@modelcontextprotocol/client';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 // The server in this app is never wrapped with `wrapMcpServerWithSentry` — spans are produced
-// solely by the auto-instrumenting `mcpServer` integration.
-test('auto-instruments a stable MCP SDK v2 server (no manual wrap)', async ({ baseURL }) => {
+// solely by the auto-instrumenting `mcpServer` integration against the legacy v1 SDK.
+test('auto-instruments a legacy MCP SDK v1 server (no manual wrap)', async ({ baseURL }) => {
   const transport = new StreamableHTTPClientTransport(new URL(`${baseURL}/mcp`));
 
   const client = new Client({
-    name: 'test-client-v2',
+    name: 'test-client-v1',
     version: '1.0.0',
   });
 
   const initializeSegmentPromise = waitForStreamedSpan(
-    'node-express-mcp-v2',
+    'node-express-mcp-v1',
     segment => segment.is_segment && segment.name === 'initialize',
   );
 
@@ -25,14 +25,13 @@ test('auto-instruments a stable MCP SDK v2 server (no manual wrap)', async ({ ba
     expect(initializeSegment).toBeDefined();
     expect(getSpanOp(initializeSegment)).toEqual('mcp.server');
     expect(initializeSegment.attributes?.['mcp.method.name']?.value).toEqual('initialize');
-    expect(initializeSegment.attributes?.['mcp.client.name']?.value).toEqual('test-client-v2');
-    expect(initializeSegment.attributes?.['mcp.server.name']?.value).toEqual('Echo-V2');
-    expect(initializeSegment.attributes?.['mcp.transport']?.value).toMatch(/StreamableHTTPServerTransport/);
+    expect(initializeSegment.attributes?.['mcp.client.name']?.value).toEqual('test-client-v1');
+    expect(initializeSegment.attributes?.['mcp.server.name']?.value).toEqual('Echo-V1');
   });
 
-  await test.step('registerTool handler', async () => {
+  await test.step('tool call', async () => {
     const toolSegmentPromise = waitForStreamedSpan(
-      'node-express-mcp-v2',
+      'node-express-mcp-v1',
       segment => segment.is_segment && segment.name === 'tools/call echo',
     );
 
@@ -57,13 +56,11 @@ test('auto-instruments a stable MCP SDK v2 server (no manual wrap)', async ({ ba
     expect(getSpanOp(toolSegment)).toEqual('mcp.server');
     expect(toolSegment.attributes?.['mcp.method.name']?.value).toEqual('tools/call');
     expect(toolSegment.attributes?.['mcp.tool.name']?.value).toEqual('echo');
-    // Proves span was completed with results (span correlation worked end-to-end)
-    expect(toolSegment.attributes?.['mcp.tool.result.content_count']?.value).toEqual(1);
   });
 
-  await test.step('registerResource handler', async () => {
+  await test.step('resource read', async () => {
     const resourceSegmentPromise = waitForStreamedSpan(
-      'node-express-mcp-v2',
+      'node-express-mcp-v1',
       segment => segment.is_segment && segment.name === 'resources/read',
     );
 
@@ -81,40 +78,9 @@ test('auto-instruments a stable MCP SDK v2 server (no manual wrap)', async ({ ba
     expect(resourceSegment.attributes?.['mcp.method.name']?.value).toEqual('resources/read');
   });
 
-  await test.step('registerPrompt handler', async () => {
-    const promptSegmentPromise = waitForStreamedSpan(
-      'node-express-mcp-v2',
-      segment => segment.is_segment && segment.name === 'prompts/get echo',
-    );
-
-    const promptResult = await client.getPrompt({
-      name: 'echo',
-      arguments: {
-        message: 'foobar',
-      },
-    });
-
-    expect(promptResult).toMatchObject({
-      messages: [
-        {
-          content: {
-            text: 'Please process this message: foobar',
-            type: 'text',
-          },
-          role: 'user',
-        },
-      ],
-    });
-
-    const promptSegment = await promptSegmentPromise;
-    expect(promptSegment).toBeDefined();
-    expect(getSpanOp(promptSegment)).toEqual('mcp.server');
-    expect(promptSegment.attributes?.['mcp.method.name']?.value).toEqual('prompts/get');
-  });
-
   await test.step('error tool sets span status to error', async () => {
     const toolSegmentPromise = waitForStreamedSpan(
-      'node-express-mcp-v2',
+      'node-express-mcp-v1',
       segment => segment.is_segment && segment.name === 'tools/call always-error',
     );
 

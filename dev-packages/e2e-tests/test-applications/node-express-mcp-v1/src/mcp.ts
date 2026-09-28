@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import express from 'express';
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/server';
-import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 
 const mcpRouter = express.Router();
@@ -9,8 +9,8 @@ const mcpRouter = express.Router();
 // Intentionally NOT wrapped with `wrapMcpServerWithSentry`: the `mcpServer` integration
 // auto-instruments the `McpServer` constructor, so spans must be produced anyway.
 const server = new McpServer({
-  name: 'Echo-V2',
-  version: '2.0.0',
+  name: 'Echo-V1',
+  version: '1.0.0',
 });
 
 server.registerResource(
@@ -29,44 +29,40 @@ server.registerResource(
 
 server.registerTool(
   'echo',
-  { description: 'Echo tool', inputSchema: z.object({ message: z.string() }) },
+  { description: 'Echo tool', inputSchema: { message: z.string() } },
   async ({ message }) => ({
     content: [{ type: 'text', text: `Tool echo: ${message}` }],
   }),
 );
 
-server.registerPrompt(
-  'echo',
-  { description: 'Echo prompt', argsSchema: z.object({ message: z.string() }) },
-  ({ message }) => ({
-    messages: [
-      {
-        role: 'user',
-        content: {
-          type: 'text',
-          text: `Please process this message: ${message}`,
-        },
+server.registerPrompt('echo', { description: 'Echo prompt', argsSchema: { message: z.string() } }, ({ message }) => ({
+  messages: [
+    {
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `Please process this message: ${message}`,
       },
-    ],
-  }),
-);
+    },
+  ],
+}));
 
 server.registerTool('always-error', {}, async () => {
   throw new Error('intentional error for span status testing');
 });
 
-const transports: Record<string, NodeStreamableHTTPServerTransport> = {};
+const transports: Record<string, StreamableHTTPServerTransport> = {};
 
 mcpRouter.post('/mcp', async (req, res) => {
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
   try {
-    let transport: NodeStreamableHTTPServerTransport;
+    let transport: StreamableHTTPServerTransport;
 
     if (sessionId && transports[sessionId]) {
       transport = transports[sessionId];
     } else if (!sessionId && req.body?.method === 'initialize') {
-      transport = new NodeStreamableHTTPServerTransport({
+      transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: sid => {
           transports[sid] = transport;
