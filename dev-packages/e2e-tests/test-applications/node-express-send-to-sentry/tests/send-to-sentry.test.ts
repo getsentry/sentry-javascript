@@ -1,45 +1,22 @@
 import { expect, test } from '@playwright/test';
-
-const EVENT_POLLING_TIMEOUT = 90_000;
-
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_PROJECT;
+import { EVENT_POLLING_OPTIONS, findErrorInTrace, findTransactionInTrace } from './utils/sentry-api';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/test-error`);
-  const { exceptionId } = await response.json();
+  const { exceptionId, traceId } = await response.json();
 
-  const url = `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionId}/`;
+  console.log(`Polling for error eventId: ${exceptionId} in trace: ${traceId}`);
 
-  console.log(`Polling for error eventId: ${exceptionId}`);
-
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(url, { headers: { Authorization: `Bearer ${authToken}` } });
-        return response.status;
-      },
-      { timeout: EVENT_POLLING_TIMEOUT },
-    )
-    .toBe(200);
+  await expect.poll(() => findErrorInTrace(traceId, exceptionId), EVENT_POLLING_OPTIONS).toBeDefined();
 });
 
 test('Sends transaction to Sentry', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/test-transaction`);
-  const { transactionId } = await response.json();
+  const { transactionId, traceId } = await response.json();
 
-  const url = `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionId}/`;
-
-  console.log(`Polling for transaction eventId: ${transactionId}`);
+  console.log(`Polling for transaction eventId: ${transactionId} in trace: ${traceId}`);
 
   await expect
-    .poll(
-      async () => {
-        const response = await fetch(url, { headers: { Authorization: `Bearer ${authToken}` } });
-        return response.status;
-      },
-      { timeout: EVENT_POLLING_TIMEOUT },
-    )
-    .toBe(200);
+    .poll(() => findTransactionInTrace(traceId, transactionId), EVENT_POLLING_OPTIONS)
+    .toMatchObject({ op: 'e2e-test' });
 });
