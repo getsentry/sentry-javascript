@@ -158,7 +158,7 @@ describe('timestampInSeconds', () => {
     }
   });
 
-  it('produces monotonically increasing timestamps when the wall clock steps backwards', async () => {
+  it('follows a backwards wall clock step and stays monotonic afterwards', async () => {
     const currentTimeMs = 1767778040866;
 
     let timeSincePageloadMs = 1_000;
@@ -266,20 +266,70 @@ describe('performanceTimeToSeconds', () => {
 
     const { performanceTimeToSeconds, timestampInSeconds } = await getFreshTimeModule();
 
+    // The last check at which both clocks still agreed is where the corrected origin starts to apply.
+    const lastAgreedCheckMs = monotonicNowMs;
     timestampInSeconds();
 
     const monotonicAdvanceMs = 10;
     vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
-    const correctionPointMs = (monotonicNowMs += monotonicAdvanceMs);
+    monotonicNowMs += monotonicAdvanceMs;
     timestampInSeconds();
 
-    const beforeCorrection = performanceTimeToSeconds(correctionPointMs - 1) as number;
-    const afterCorrection = performanceTimeToSeconds(correctionPointMs + 1) as number;
+    const beforeCorrection = performanceTimeToSeconds(lastAgreedCheckMs - 1) as number;
+    const afterCorrection = performanceTimeToSeconds(lastAgreedCheckMs + 1) as number;
 
     // The two are 2ms apart on the monotonic clock, but the origins they resolve to are a whole sleep apart: the wall
     // clock advanced `sleepDurationMs` while the monotonic clock only advanced `monotonicAdvanceMs`.
     const driftMs = sleepDurationMs - monotonicAdvanceMs;
     expect(afterCorrection - beforeCorrection).toBeCloseTo((driftMs + 2) / 1000, 6);
+  });
+
+  it('converts the interaction that wakes the SDK up after a sleep against the corrected origin', async () => {
+    let monotonicNowMs = timeSincePageloadMs;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(currentTimeMs));
+    vi.stubGlobal('performance', {
+      timeOrigin: currentTimeMs - timeSincePageloadMs,
+      now: () => monotonicNowMs,
+    });
+
+    const { performanceTimeToSeconds, timestampInSeconds } = await getFreshTimeModule();
+
+    timestampInSeconds();
+
+    // After waking up, the user clicks. The click's entry starts when the input arrives, the SDK only notices the
+    // drift a few milliseconds later, while handling that click.
+    vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
+    const clickStartTime = (monotonicNowMs += 10);
+    monotonicNowMs += 5;
+    vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs + 5));
+    const detectedAt = timestampInSeconds();
+
+    expect(performanceTimeToSeconds(clickStartTime)).toBeCloseTo(detectedAt - 0.005, 6);
+  });
+
+  it('keeps the page load origin once the number of remembered corrections is exceeded', async () => {
+    let monotonicNowMs = timeSincePageloadMs;
+    let wallNowMs = currentTimeMs;
+    const timeOrigin = currentTimeMs - timeSincePageloadMs;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(wallNowMs));
+    vi.stubGlobal('performance', { timeOrigin, now: () => monotonicNowMs });
+
+    const { browserPerformanceTimeOrigin, timestampInSeconds } = await getFreshTimeModule();
+
+    timestampInSeconds();
+    for (let i = 0; i < 40; i++) {
+      monotonicNowMs += 1_000;
+      wallNowMs += 1_000 + sleepDurationMs;
+      vi.setSystemTime(new Date(wallNowMs));
+      timestampInSeconds();
+    }
+
+    expect(browserPerformanceTimeOrigin()).toBe(timeOrigin);
+    expect(browserPerformanceTimeOrigin(monotonicNowMs)).toBe(wallNowMs - monotonicNowMs);
   });
 
   it('converts times preceding the oldest known origin against that origin', async () => {
@@ -309,6 +359,16 @@ describe('performanceTimeToSeconds', () => {
     const { performanceTimeToSeconds } = await getFreshTimeModule();
 
     expect(performanceTimeToSeconds(0)).toBe((currentTimeMs - timeSincePageloadMs) / 1000);
+  });
+
+  it('converts against `Date.now() - performance.now()` if `performance.timeOrigin` is not available', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(currentTimeMs));
+    vi.stubGlobal('performance', { timeOrigin: undefined, now: () => timeSincePageloadMs });
+
+    const { performanceTimeToSeconds } = await getFreshTimeModule();
+
+    expect(performanceTimeToSeconds(500)).toBe((currentTimeMs - timeSincePageloadMs + 500) / 1000);
   });
 
   it('returns `undefined` if the performance API is unavailable', async () => {
