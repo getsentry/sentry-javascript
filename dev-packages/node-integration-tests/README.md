@@ -36,9 +36,10 @@ flakiness.
 
 ## Other Runtimes
 
-`dev-packages/bun-integration-tests` runs every suite of this package on Bun as well. When you add a suite, check that it
-passes on Bun. If it cannot, add it to `dev-packages/bun-integration-tests/node-suites/excludes.ts` with the reason, or
-skip the single tests that fail with `test.skipIf(RUNTIME === 'bun')`.
+`dev-packages/bun-integration-tests` and `dev-packages/deno-integration-tests` run every suite of this package on Bun
+and Deno as well. When you add a suite, check that it passes on both. If it cannot, add it to
+`node-suites/excludes.ts` of the runtime's package with the reason, or skip the single tests that fail with
+`test.skipIf(RUNTIME === 'bun')` or `test.skipIf(RUNTIME === 'deno')`.
 
 ## Running Tests Locally
 

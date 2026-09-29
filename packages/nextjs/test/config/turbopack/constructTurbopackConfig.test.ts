@@ -1455,7 +1455,7 @@ describe('orchestrion build-time instrumentation', () => {
   function getOrchestrionOptions(result: ReturnType<typeof constructTurbopackConfig>): {
     instrumentations: Array<{ module: { name: string; filePath: unknown } }>;
   } {
-    const rule = result.rules!['*.{js,mjs,cjs}'] as {
+    const rule = result.rules!['*.{js,mjs,cjs}'] as unknown as {
       loaders: Array<{ options: { instrumentations: Array<{ module: { name: string; filePath: unknown } }> } }>;
     };
     return rule.loaders[0]!.options;
@@ -1504,6 +1504,13 @@ describe('orchestrion build-time instrumentation', () => {
     expect(importHelperPath).not.toContain('orchestrion');
   });
 
+  function getOrchestrionCondition(result: ReturnType<typeof constructTurbopackConfig>): {
+    all: [string, { path: RegExp }];
+  } {
+    const rule = result.rules!['*.{js,mjs,cjs}'] as unknown as { condition: { all: [string, { path: RegExp }] } };
+    return rule.condition;
+  }
+
   it('restricts the orchestrion rule to the node environment', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},
@@ -1511,10 +1518,35 @@ describe('orchestrion build-time instrumentation', () => {
       nextJsVersion: '16.0.0',
     });
 
-    // `condition: 'node'` is what keeps the transform off client code — orchestrion
+    // `'node'` is what keeps the transform off client code — orchestrion
     // splices `node:diagnostics_channel` calls that throw `X is not a function` in the browser.
-    const rule = result.rules!['*.{js,mjs,cjs}'] as { condition?: unknown };
-    expect(rule.condition).toBe('node');
+    expect(getOrchestrionCondition(result)).toEqual({ all: ['node', { path: expect.any(RegExp) }] });
+  });
+
+  it('only sends files of instrumented packages through the loader', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '16.0.0',
+    });
+
+    // Turbopack runs webpack loaders out of process, per file. Without a path filter every
+    // server-side JS file — all of node_modules included — pays that cost (see #24764).
+    const { path: pathCondition } = getOrchestrionCondition(result).all[1];
+
+    expect(pathCondition.test('node_modules/openai/resources/chat/completions/completions.js')).toBe(true);
+    expect(pathCondition.test('node_modules/@anthropic-ai/sdk/resources/messages/messages.mjs')).toBe(true);
+    expect(
+      pathCondition.test(
+        'node_modules/.pnpm/@anthropic-ai+sdk@0.50.0/node_modules/@anthropic-ai/sdk/resources/messages/messages.js',
+      ),
+    ).toBe(true);
+    expect(pathCondition.test('apps/web/node_modules/pg/lib/client.js')).toBe(true);
+
+    expect(pathCondition.test('node_modules/next/dist/server/app-render/app-render.js')).toBe(false);
+    expect(pathCondition.test('node_modules/openai-agents/dist/index.js')).toBe(false);
+    expect(pathCondition.test('node_modules/lodash/lodash.js')).toBe(false);
+    expect(pathCondition.test('app/api/chat/route.js')).toBe(false);
   });
 
   it('does not add the orchestrion rule when build-time instrumentation is turned off', () => {

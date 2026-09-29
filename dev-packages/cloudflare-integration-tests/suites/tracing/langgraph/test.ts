@@ -1,5 +1,4 @@
 import { expect, it } from 'vitest';
-import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_INPUT_MESSAGES,
@@ -11,6 +10,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { createRunner } from '../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
 // These tests are not exhaustive because the instrumentation is
 // already tested in the node integration tests and we merely
@@ -21,22 +21,15 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
-      // Transaction item (first item in envelope)
-      const transactionEvent = envelope[1]?.[0]?.[1] as any;
-      expect(transactionEvent.transaction).toBe('GET /');
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+      expect(segmentSpan?.name).toBe('GET /');
 
-      // Span container item (second item in same envelope)
-      const container = envelope[1]?.[1]?.[1] as any;
-      expect(container).toBeDefined();
+      const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
+      expect(genAiSpans).toHaveLength(1);
+      expect(genAiSpans.map(span => span.name).sort()).toEqual(['invoke_agent weather_assistant']);
 
-      expect(container.items).toHaveLength(1);
-      expect(container.items.map((span: SerializedStreamedSpan) => span.name).sort()).toEqual([
-        'invoke_agent weather_assistant',
-      ]);
-
-      const invokeAgentSpan = container.items.find(
-        (span: SerializedStreamedSpan) => span.name === 'invoke_agent weather_assistant',
-      );
+      const invokeAgentSpan = genAiSpans.find(span => span.name === 'invoke_agent weather_assistant');
       expect(invokeAgentSpan).toBeDefined();
       expect(invokeAgentSpan!.status).toBe('ok');
       expect(invokeAgentSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({

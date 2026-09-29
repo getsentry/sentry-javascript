@@ -52,6 +52,8 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
 
   for (const processor of client.getEventProcessors()) {
     if (event === null) break;
+    // Dedupe would drop this placeholder event when the worker restarts, and the contexts would be lost.
+    if (processor.id === 'Dedupe') continue;
     event = await processor(event, eventHint);
   }
 

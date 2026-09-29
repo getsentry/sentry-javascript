@@ -3,7 +3,7 @@
 /* oxlint-disable typescript/no-deprecated */
 
 import { EventEmitter } from 'node:events';
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
   defineIntegration,

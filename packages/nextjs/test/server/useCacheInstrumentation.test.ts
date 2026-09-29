@@ -17,12 +17,13 @@ const mocks = vi.hoisted(() => {
     }),
     activeSpan: undefined as object | undefined,
     sampled: true,
+    client: undefined as { getOptions: () => { traceLifecycle?: 'static' | 'stream' } } | undefined,
   };
 });
 
 vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal<typeof SentryCore>()),
-  getClient: () => undefined,
+  getClient: () => mocks.client,
   getActiveSpan: () => mocks.activeSpan,
   spanIsSampled: () => mocks.sampled,
   startSpan: mocks.startSpan,
@@ -63,6 +64,7 @@ describe('instrumentUseCacheHandlers', () => {
   beforeEach(() => {
     mocks.activeSpan = {};
     mocks.sampled = true;
+    mocks.client = undefined;
     mocks.state.spanCount = 0;
     mocks.state.recording = true;
   });
@@ -291,6 +293,40 @@ describe('instrumentUseCacheHandlers', () => {
       expect(mocks.setAttribute).toHaveBeenCalledWith('cache.hit', false);
       expect(mocks.setAttribute).not.toHaveBeenCalledWith('cache.ttl', expect.anything());
     });
+  });
+
+  it('names spans with the low-cardinality op when span streaming is enabled', async () => {
+    mocks.client = { getOptions: () => ({ traceLifecycle: 'stream' }) };
+    const handler = installWithDefaultHandler();
+
+    await handler.get('cache-key');
+    await handler.set('cache-key', Promise.resolve({}));
+
+    // The key digest stays on `cache.key`, where Relay reads the span description from.
+    expect(mocks.startSpan).toHaveBeenCalledWith(
+      {
+        op: 'cache.get',
+        name: 'cache.get',
+        attributes: {
+          'sentry.origin': 'auto.cache.nextjs',
+          'cache.key': [expect.stringMatching(/^[0-9a-f]{12}$/)],
+          'cache.operation': 'get',
+        },
+      },
+      expect.any(Function),
+    );
+    expect(mocks.startSpan).toHaveBeenCalledWith(
+      {
+        op: 'cache.put',
+        name: 'cache.put',
+        attributes: {
+          'sentry.origin': 'auto.cache.nextjs',
+          'cache.key': [expect.stringMatching(/^[0-9a-f]{12}$/)],
+          'cache.operation': 'put',
+        },
+      },
+      expect.any(Function),
+    );
   });
 
   describe('origin links', () => {

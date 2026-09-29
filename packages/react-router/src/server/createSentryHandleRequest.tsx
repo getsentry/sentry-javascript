@@ -51,6 +51,12 @@ export interface SentryHandleRequestOptions {
    * @default /bot|crawler|spider|googlebot|chrome-lighthouse|baidu|bing|google|yahoo|lighthouse/i
    */
   botRegex?: RegExp;
+
+  /**
+   * Returns a Content Security Policy nonce for the current request.
+   * The nonce is passed to both `<ServerRouter />` and `renderToPipeableStream`.
+   */
+  getNonce?: (args: { request: Request; loadContext: AppLoadContext | RouterContextProvider }) => string | undefined;
 }
 
 type HandleRequestWithoutMiddleware = (
@@ -85,6 +91,7 @@ export function createSentryHandleRequest(
     ServerRouter,
     createReadableStreamFromReadable,
     botRegex = /bot|crawler|spider|googlebot|chrome-lighthouse|baidu|bing|google|yahoo|lighthouse/i,
+    getNonce,
   } = options;
 
   const handleRequest = function handleRequest(
@@ -92,7 +99,7 @@ export function createSentryHandleRequest(
     responseStatusCode: number,
     responseHeaders: Headers,
     routerContext: EntryContext,
-    _loadContext: AppLoadContext | RouterContextProvider,
+    loadContext: AppLoadContext | RouterContextProvider,
   ): Promise<Response> {
     return new Promise((resolve, reject) => {
       let shellRendered = false;
@@ -103,8 +110,11 @@ export function createSentryHandleRequest(
       const isSpaMode = !!(routerContext as { isSpaMode?: boolean }).isSpaMode;
 
       const readyOption = isBot || isSpaMode ? 'onAllReady' : 'onShellReady';
+      const nonce = getNonce?.({ request, loadContext });
+      const app = <ServerRouter context={routerContext} url={request.url} nonce={nonce} />;
 
-      const { pipe, abort } = renderToPipeableStream(<ServerRouter context={routerContext} url={request.url} />, {
+      const { pipe, abort } = renderToPipeableStream(app, {
+        nonce,
         [readyOption]() {
           shellRendered = true;
           const body = new PassThrough();

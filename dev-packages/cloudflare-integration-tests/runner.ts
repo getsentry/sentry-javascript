@@ -1,11 +1,12 @@
-import type { Envelope, EnvelopeItemType } from '@sentry/core';
+import type { Envelope, EnvelopeItemType, SerializedStreamedSpan } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
 import { spawn, spawnSync } from 'child_process';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { inspect } from 'util';
-import { expect } from 'vitest';
+import { expect, onTestFinished } from 'vitest';
+import { getSpansFromEnvelope } from './spanUtils';
 
 const CLEANUP_STEPS = new Set<() => void>();
 
@@ -114,9 +115,11 @@ async function fetchWithRetry(
   throw new Error('fetchWithRetry: unreachable');
 }
 
-function deferredPromise<T = void>(
-  done?: () => void,
-): { resolve: (val: T) => void; reject: (reason?: unknown) => void; promise: Promise<T> } {
+function deferredPromise<T = void>(): {
+  resolve: (val: T) => void;
+  reject: (reason?: unknown) => void;
+  promise: Promise<T>;
+} {
   let resolve;
   let reject;
   const promise = new Promise<T>((res, rej) => {
@@ -133,11 +136,14 @@ function deferredPromise<T = void>(
   return {
     resolve,
     reject,
-    promise: promise.finally(() => done?.()),
+    promise,
   };
 }
 
 type Expected = Envelope | ((envelope: Envelope) => void);
+
+/** Either the name of the segment span, or a predicate over it. */
+type SegmentMatcher = string | ((segmentSpan: SerializedStreamedSpan) => boolean);
 
 type StartResult = {
   completed(): Promise<void>;
@@ -154,6 +160,25 @@ type StartResult = {
     expected: Expected | Expected[],
     options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
   ): Promise<T | undefined>;
+  /**
+   * Accumulates spans across envelopes, grouped by trace, and resolves with the spans of the first
+   * trace that satisfies `isDone`.
+   *
+   * A trace reaches the mock server in more than one envelope: the span buffer flushes on a timer, so
+   * a segment that is still open when its children flush arrives separately, and a Durable Object or a
+   * service binding sends its own spans from its own isolate. Anything asserting on a whole trace has
+   * to accumulate rather than read a single envelope.
+   */
+  collectStreamedSpans(isDone: (spansOfTrace: SerializedStreamedSpan[]) => boolean): Promise<SerializedStreamedSpan[]>;
+  /**
+   * Accumulates the spans of a trace until its segment span has arrived.
+   *
+   * Only use this to assert on the segment span itself. The segment span ends last, but each
+   * envelope is its own request to the mock server, so the segment can still be *received* before
+   * the envelope carrying its children. A suite that asserts on the children has to wait for those
+   * children by name or by count through `collectStreamedSpans`.
+   */
+  collectStreamedSpansUntilSegment(segment: SegmentMatcher): Promise<SerializedStreamedSpan[]>;
 };
 
 /** Creates a test runner */
@@ -213,17 +238,54 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     start: function (signal?: AbortSignal): StartResult {
-      const { resolve, reject, promise: isComplete } = deferredPromise(cleanupChildProcesses);
+      let child: ReturnType<typeof spawn> | undefined;
+      let childSubWorker: ReturnType<typeof spawn> | undefined;
+      let closeMockServer: (() => void) | undefined;
+      // True after `cleanupThisRunner` ran. The async startup below checks it, so a mock server that
+      // comes up after the teardown is closed and no `wrangler dev` is spawned.
+      let disposed = false;
+
+      function cleanupThisRunner(): void {
+        disposed = true;
+        CLEANUP_STEPS.delete(cleanupThisRunner);
+        child?.kill();
+        childSubWorker?.kill();
+        closeMockServer?.();
+        closeMockServer = undefined;
+      }
+
+      // A suite that asserts on streamed spans never calls `completed()`, so `isComplete` never
+      // settles and its worker would stay alive until the vitest process exits. With one such suite
+      // per file, a full run ends up with dozens of `wrangler dev` processes competing for the
+      // machine, and the later suites time out. Tie the teardown to the test instead.
+      onTestFinished(cleanupThisRunner);
+      CLEANUP_STEPS.add(cleanupThisRunner);
+
+      const { resolve, reject, promise: isComplete } = deferredPromise();
+
+      const spanWaiters: {
+        onSpans: (spans: SerializedStreamedSpan[]) => boolean;
+        resolve: () => void;
+        reject: (e: unknown) => void;
+      }[] = [];
+      let failure: unknown;
 
       // `reject` is called from background event handlers (child process `error`/`exit`, mock server
       // callbacks) that fire at arbitrary times relative to the test's `await` points. If `reject` runs
       // while nothing is awaiting `isComplete` yet (e.g. a child transiently exits while the test is
       // parked in `makeRequest`), the rejection has no handler attached and surfaces as an unhandled
       // promise rejection — which Vitest reports as a spurious "Unhandled error" that fails the whole
-      // suite. Attaching a no-op catch keeps the promise "handled"; the real rejection is still delivered
+      // suite. Attaching a catch keeps the promise "handled"; the real rejection is still delivered
       // to callers via `completed()`, so genuine failures still fail the test.
-      isComplete.catch(() => {
-        // handled in `completed()`
+      //
+      // A test that only asserts on streamed spans never calls `completed()`, so the same rejection is
+      // handed to the span waiters as well. Without it, a worker that fails to boot would surface as a
+      // Vitest timeout instead of the actual error.
+      isComplete.catch(e => {
+        failure = e;
+        for (const waiter of spanWaiters.splice(0)) {
+          waiter.reject(e);
+        }
       });
 
       const expectedEnvelopeCount = expectedEnvelopes.length;
@@ -240,8 +302,6 @@ export function createRunner(...paths: string[]) {
       workerPortPromise.catch(() => {
         // handled in `makeRequest`
       });
-      let child: ReturnType<typeof spawn> | undefined;
-      let childSubWorker: ReturnType<typeof spawn> | undefined;
 
       /** Called after each expect callback to check if we're complete */
       function expectCallbackCalled(): void {
@@ -257,6 +317,44 @@ export function createRunner(...paths: string[]) {
         });
       }
 
+      /** Resolves once `onSpans` returns true for the spans of an arriving span envelope. */
+      function waitForSpans(onSpans: (spans: SerializedStreamedSpan[]) => boolean): Promise<void> {
+        return new Promise((resolveWaiter, rejectWaiter) => {
+          if (failure) {
+            rejectWaiter(failure);
+            return;
+          }
+          spanWaiters.push({ onSpans, resolve: resolveWaiter, reject: rejectWaiter });
+        });
+      }
+
+      /**
+       * Span waiters observe the envelope stream, they never consume from it: a suite can assert on
+       * streamed spans and on error envelopes at the same time.
+       */
+      function notifySpanWaiters(envelope: Envelope): void {
+        const spans = getSpansFromEnvelope(envelope);
+        if (!spans.length) {
+          return;
+        }
+
+        for (const waiter of spanWaiters.slice()) {
+          let done: boolean;
+          try {
+            done = waiter.onSpans(spans);
+          } catch (e) {
+            spanWaiters.splice(spanWaiters.indexOf(waiter), 1);
+            waiter.reject(e);
+            continue;
+          }
+
+          if (done) {
+            spanWaiters.splice(spanWaiters.indexOf(waiter), 1);
+            waiter.resolve();
+          }
+        }
+      }
+
       function assertEnvelopeMatches(expected: Expected, envelope: Envelope): void {
         if (typeof expected === 'function') {
           expected(envelope);
@@ -267,6 +365,8 @@ export function createRunner(...paths: string[]) {
 
       function newEnvelope(envelope: Envelope): void {
         if (process.env.DEBUG) log('newEnvelope', inspect(envelope, false, null, true));
+
+        notifySpanWaiters(envelope);
 
         const envelopeItemType = envelope[1][0][0].type;
 
@@ -336,11 +436,12 @@ export function createRunner(...paths: string[]) {
 
       createBasicSentryServer(newEnvelope)
         .then(async ([mockServerPort, mockServerClose]) => {
-          if (mockServerClose) {
-            CLEANUP_STEPS.add(() => {
-              mockServerClose();
-            });
+          // The test can end before the mock server is up, e.g. when it throws right after `start()`.
+          if (disposed) {
+            mockServerClose();
+            return;
           }
+          closeMockServer = mockServerClose;
 
           if (process.env.DEBUG) log('Starting scenario', testPath);
 
@@ -402,6 +503,10 @@ export function createRunner(...paths: string[]) {
             });
 
             await waitForReady(childSubWorker);
+
+            if (disposed) {
+              return;
+            }
           }
 
           child = spawn(
@@ -424,11 +529,6 @@ export function createRunner(...paths: string[]) {
             ],
             { stdio: ['ignore', 'pipe', 'inherit'], signal },
           );
-
-          CLEANUP_STEPS.add(() => {
-            child?.kill();
-            childSubWorker?.kill();
-          });
 
           childSubWorker?.on('error', onChildError);
           child.on('error', onChildError);
@@ -508,6 +608,44 @@ export function createRunner(...paths: string[]) {
           const result = await this.makeRequest<T>(method, path, options);
           await Promise.all(envelopePromises);
           return result;
+        },
+        collectStreamedSpans: async function (
+          isDone: (spansOfTrace: SerializedStreamedSpan[]) => boolean,
+        ): Promise<SerializedStreamedSpan[]> {
+          const spansByTrace = new Map<string, SerializedStreamedSpan[]>();
+          let matched: SerializedStreamedSpan[] = [];
+
+          await waitForSpans(spans => {
+            for (const span of spans) {
+              const spansOfTrace = spansByTrace.get(span.trace_id);
+              if (spansOfTrace) {
+                spansOfTrace.push(span);
+              } else {
+                spansByTrace.set(span.trace_id, [span]);
+              }
+            }
+
+            // Every trace is a candidate, so a trace that never satisfies `isDone` cannot hold up the
+            // one that does. Insertion order means the earliest-arriving trace wins a tie.
+            for (const spansOfTrace of spansByTrace.values()) {
+              if (isDone(spansOfTrace)) {
+                matched = spansOfTrace;
+                return true;
+              }
+            }
+
+            return false;
+          });
+
+          return matched;
+        },
+        collectStreamedSpansUntilSegment: function (segment: SegmentMatcher): Promise<SerializedStreamedSpan[]> {
+          const matchesSegment =
+            typeof segment === 'string' ? (span: SerializedStreamedSpan) => span.name === segment : segment;
+
+          return this.collectStreamedSpans(spansOfTrace =>
+            spansOfTrace.some(span => span.is_segment && matchesSegment(span)),
+          );
         },
       };
     },
