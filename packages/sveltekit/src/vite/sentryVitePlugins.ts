@@ -156,7 +156,7 @@ function makeBuildFlagPlugin(): Plugin {
     },
     buildApp: {
       order: 'post',
-      handler() {
+      handler: async () => {
         // Without an app builder config, Vite 7+ calls `buildApp` hooks *before* the actual (legacy) build
         if (usesAppBuilder && !isWatchMode) {
           clearFlag();
