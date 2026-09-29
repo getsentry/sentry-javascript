@@ -1,5 +1,6 @@
 import type { Integration } from '@sentry/core';
-import { GLOBAL_OBJ, getMainCarrier } from '@sentry/core';
+import { GLOBAL_OBJ, getGlobalScope, getMainCarrier, withIsolationScope } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -18,10 +19,12 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Server init()', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
 
     getMainCarrier().__SENTRY__ = undefined;
 
     delete process.env.VERCEL;
+    delete (process as { turbopack?: boolean }).turbopack;
   });
 
   it('inits the Node SDK', () => {
@@ -64,6 +67,34 @@ describe('Server init()', () => {
     init({});
     expect(nodeInit).toHaveBeenCalledTimes(1);
     init({});
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips init and sets the `turbopack` tag on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+    (process as { turbopack?: boolean }).turbopack = true;
+
+    withIsolationScope(() => init({}));
+
+    expect(nodeInit).not.toHaveBeenCalled();
+    expect(getGlobalScope().getScopeData().tags.turbopack).toBe(true);
+  });
+
+  it('inits on Cloudflare Workers outside of a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    init({});
+
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('inits outside of Cloudflare Workers when an AsyncLocalStorage strategy is installed', () => {
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({}));
+
     expect(nodeInit).toHaveBeenCalledTimes(1);
   });
 

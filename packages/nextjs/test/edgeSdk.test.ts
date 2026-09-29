@@ -1,5 +1,6 @@
 import type { Integration } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
+import { getMainCarrier, GLOBAL_OBJ, withIsolationScope } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import * as SentryVercelEdge from '@sentry/vercel-edge';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
@@ -21,6 +22,9 @@ describe('Edge init()', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
+
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   it('inits the Vercel Edge SDK', () => {
@@ -50,6 +54,15 @@ describe('Edge init()', () => {
         defaultIntegrations: expect.any(Array),
       }),
     );
+  });
+
+  it('skips init on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({}));
+
+    expect(vercelEdgeInit).not.toHaveBeenCalled();
   });
 
   describe('integrations', () => {
