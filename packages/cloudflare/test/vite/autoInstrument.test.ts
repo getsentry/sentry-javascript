@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse } from 'acorn';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { sentryCloudflareAutoInstrumentPlugin } from '../../src/vite/autoInstrument';
 
 function parseJS(code: string) {
@@ -53,6 +53,95 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const result = await tx(code, entryPath);
     expect(result).toBeDefined();
     expect(result.code).toContain('__SENTRY__.withSentry(');
+  });
+
+  it('wraps the entry with `@sentry/nextjs/cloudflare` in a vinext build', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ id: join(dir, 'node_modules/@sentry/nextjs/build/esm/cloudflare/index.js') });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(resolve).toHaveBeenCalledWith('@sentry/nextjs/cloudflare', join(dir, 'src/index.ts'));
+    expect(result.code).toBe(
+      "import * as __SENTRY__ from '@sentry/nextjs/cloudflare';\n" +
+        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);\n',
+    );
+  });
+
+  it('wraps the entry with `@sentry/cloudflare` when `@sentry/nextjs/cloudflare` resolves outside a vinext build', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vite:react' }] });
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ id: join(dir, 'node_modules/@sentry/nextjs/build/esm/cloudflare/index.js') });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toBe(
+      "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
+        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);\n',
+    );
+  });
+
+  it('wraps the entry with `@sentry/cloudflare` in a vinext build without `@sentry/nextjs`', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+    const resolve = vi.fn().mockResolvedValue(null);
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toBe(
+      "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
+        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);\n',
+    );
+  });
+
+  it('wraps the entry with `@sentry/cloudflare` in a vinext build with an `@sentry/nextjs` without the `./cloudflare` entry', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+    const resolve = vi
+      .fn()
+      .mockRejectedValue(
+        new Error('"./cloudflare" is not exported under the conditions ["workerd"] from package @sentry/nextjs'),
+      );
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toBe(
+      "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
+        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);\n',
+    );
   });
 
   it('leaves an already-manually-wrapped entry untouched', async () => {
