@@ -87,10 +87,10 @@ function createGenAiSpan(
   }
 
   // `messages.stream()` internally calls the instrumented `messages.create({ stream: true })` tagged with
-  // an `X-Stainless-Helper-Method: 'stream'` header. The messages-stream channel already covers it, so skip
-  // the nested create to avoid a duplicate span.
-  const requestOptions = args[1] as { headers?: Record<string, unknown> } | undefined;
-  if (requestOptions?.headers?.['X-Stainless-Helper-Method'] === 'stream') {
+  // a `stream` helper-method header. The messages-stream channel already covers it, so skip the nested
+  // create to avoid a duplicate span.
+  const requestOptions = args[1] as { headers?: unknown } | undefined;
+  if (isStreamHelperRequest(requestOptions?.headers)) {
     return undefined;
   }
 
@@ -115,6 +115,28 @@ function createGenAiSpan(
   }
 
   return span;
+}
+
+const STREAM_HELPER_METHOD_HEADER = 'x-stainless-helper-method';
+
+/**
+ * Whether request options carry the header the SDK's `messages.stream()` helper puts on its internal
+ * `create` call. The SDK sent it as `X-Stainless-Helper-Method` up to 0.100 and lowercase since 0.110, and
+ * HTTP header names are case-insensitive either way, so match without regard to case. The headers
+ * arrive as a plain object; a `Headers` instance is handled for completeness.
+ */
+function isStreamHelperRequest(headers: unknown): boolean {
+  if (!headers || typeof headers !== 'object') {
+    return false;
+  }
+
+  if (typeof (headers as Headers).get === 'function') {
+    return (headers as Headers).get(STREAM_HELPER_METHOD_HEADER) === 'stream';
+  }
+
+  return Object.entries(headers as Record<string, unknown>).some(
+    ([name, value]) => name.toLowerCase() === STREAM_HELPER_METHOD_HEADER && value === 'stream',
+  );
 }
 
 type AsyncIterableStream = { [Symbol.asyncIterator]: () => AsyncIterator<unknown> };
