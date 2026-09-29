@@ -19,7 +19,7 @@ import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolica
 import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
-import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
+import { isAsyncContextOwnedByCloudflare, isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
@@ -182,8 +182,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   DEBUG_BUILD && debug.log('Initializing SDK...');
 
+  // The client of `withSentry` from `@sentry/cloudflare` handles this request, so `init` creates none. The global
+  // parts below still apply.
+  const isOwnedByCloudflare = isAsyncContextOwnedByCloudflare();
   const existingClient = _INTERNAL_getActiveClient<NodeClient>();
-  if (existingClient) {
+  if (existingClient && !isOwnedByCloudflare) {
     DEBUG_BUILD && debug.log('SDK already initialized');
     return existingClient;
   }
@@ -191,7 +194,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // Use appropriate SDK metadata based on the runtime environment
   applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
-  const client = nodeInit(opts);
+  const client = isOwnedByCloudflare ? undefined : nodeInit(opts);
 
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
@@ -233,8 +236,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
   client?.on('spanEnd', maybeCleanupQueueSpan);
 
   // On the client, not the global scope, so a later `init()` after
-  // `close()` does not stack another copy.
-  client?.addEventProcessor(
+  // `close()` does not stack another copy. In a request of `withSentry` on
+  // Workers, `init` runs once per isolate and creates no client, so the global
+  // scope gets them and reaches every client of `withSentry`.
+  const eventProcessorTarget = isOwnedByCloudflare ? getGlobalScope() : client;
+  eventProcessorTarget?.addEventProcessor(
     Object.assign(
       ((event, hint) => {
         if (event.type !== undefined) {
@@ -281,7 +287,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   });
 
   if (process.env.NODE_ENV === 'development') {
-    client?.addEventProcessor(devErrorSymbolicationEventProcessor);
+    eventProcessorTarget?.addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   try {
@@ -295,7 +301,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // The statement above can throw because process is not defined on the client
   }
 
-  DEBUG_BUILD && debug.log('SDK successfully initialized');
+  if (isOwnedByCloudflare) {
+    DEBUG_BUILD &&
+      debug.log(
+        'The client of `withSentry` handles this Worker, so `init` creates no client. Set the options in `withSentry`.',
+      );
+  } else {
+    DEBUG_BUILD && debug.log('SDK successfully initialized');
+  }
 
   return client;
 }
