@@ -520,20 +520,16 @@ describe('addSentryCodeToPage', () => {
       vi.unstubAllEnvs();
     });
 
-    // `_SENTRY_SVELTEKIT_BUILDING` is set by our Vite plugin, `SVELTEKIT_FORK` by SvelteKit's prerender worker
-    it.each(['_SENTRY_SVELTEKIT_BUILDING', 'SVELTEKIT_FORK'])(
-      "doesn't add meta tags but still adds the fetch proxy script if %s is set",
-      envVar => {
-        vi.stubEnv(envVar, 'true');
+    it("doesn't add meta tags but still adds the fetch proxy script if _SENTRY_SVELTEKIT_BUILDING is set", () => {
+      vi.stubEnv('_SENTRY_SVELTEKIT_BUILDING', 'true');
 
-        const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
-        const transformed = transformPageChunk({ html, done: true }) as string;
+      const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: true });
+      const transformed = transformPageChunk({ html, done: true }) as string;
 
-        expect(transformed).not.toContain('<meta name="sentry-trace"');
-        expect(transformed).not.toContain('<meta name="baggage"');
-        expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
-      },
-    );
+      expect(transformed).not.toContain('<meta name="sentry-trace"');
+      expect(transformed).not.toContain('<meta name="baggage"');
+      expect(transformed).toContain(`<script>${FETCH_PROXY_SCRIPT}</script>`);
+    });
   });
 });
 

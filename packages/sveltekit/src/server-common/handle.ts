@@ -92,14 +92,13 @@ export function addSentryCodeToPage(options: {
 
 /**
  * `building` from `$app/environment` isn't available here (the SDK is loaded from node_modules at
- * runtime), so we rely on env vars that SvelteKit copies into the worker it prerenders in:
- * - `_SENTRY_SVELTEKIT_BUILDING`: set by our Vite plugin during `vite build`
- * - `SVELTEKIT_FORK`: set by SvelteKit itself, covers apps without our Vite plugin
+ * runtime), so we rely on `_SENTRY_SVELTEKIT_BUILDING`, which our Vite plugin sets during `vite build`
+ * and SvelteKit copies into the worker it prerenders in.
  */
 function isSvelteKitBuilding(): boolean {
   // `process` doesn't exist in every runtime (e.g. Cloudflare Workers without `nodejs_compat`)
   const env = typeof process !== 'undefined' ? process.env : undefined;
-  return !!(env?._SENTRY_SVELTEKIT_BUILDING || env?.SVELTEKIT_FORK);
+  return !!env?._SENTRY_SVELTEKIT_BUILDING;
 }
 
 /**
