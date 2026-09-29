@@ -48,20 +48,36 @@ export class AwsLambdaExtension {
    * Advances the extension to the next event.
    */
   public async next(): Promise<void> {
-    if (!this._extensionId) {
+    const extensionId = this._extensionId;
+    if (!extensionId) {
       throw new Error('Extension ID is not set');
     }
 
-    const res = await fetch(`${this._baseUrl}/event/next`, {
-      headers: {
-        'Lambda-Extension-Identifier': this._extensionId,
-        'Content-Type': 'application/json',
-      },
-    });
+    // The Extensions API long poll must not time out. fetch applies a 300s headers timeout.
+    await new Promise<void>((resolve, reject) => {
+      const req = http.get(
+        `${this._baseUrl}/event/next`,
+        {
+          agent: false,
+          timeout: 0,
+          headers: {
+            'Lambda-Extension-Identifier': extensionId,
+            'Content-Type': 'application/json',
+          },
+        },
+        res => {
+          buffer(res).then(body => {
+            if (res.statusCode !== 200) {
+              reject(new Error(`Failed to advance to next event: ${body.toString()}`));
+            } else {
+              resolve();
+            }
+          }, reject);
+        },
+      );
 
-    if (!res.ok) {
-      throw new Error(`Failed to advance to next event: ${await res.text()}`);
-    }
+      req.on('error', reject);
+    });
   }
 
   /**
