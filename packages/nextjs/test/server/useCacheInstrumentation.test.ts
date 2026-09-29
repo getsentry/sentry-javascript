@@ -3,9 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
   const setAttribute = vi.fn();
+  const addLink = vi.fn();
+  const state = { spanCount: 0 };
   return {
     setAttribute,
-    startSpan: vi.fn((_options: unknown, callback: (span: unknown) => unknown) => callback({ setAttribute })),
+    addLink,
+    state,
+    startSpan: vi.fn((_options: unknown, callback: (span: unknown) => unknown) => {
+      const n = ++state.spanCount;
+      const spanContext = { traceId: `trace-${n}`, spanId: `span-${n}`, traceFlags: 1 };
+      return callback({ setAttribute, addLink, spanContext: () => spanContext });
+    }),
     activeSpan: undefined as object | undefined,
     sampled: true,
   };
@@ -25,6 +33,7 @@ const NEXT_CACHE_HANDLERS_MAP = Symbol.for('@next/cache-handlers-map');
 const NEXT_PRIVATE_CACHE_HANDLER = Symbol.for('@next/cache-handlers-private');
 const SENTRY_CACHE_INSTRUMENTED = Symbol.for('sentry.nextjs.cacheHandlersInstrumented');
 const SENTRY_WRAPPED_HANDLERS = Symbol.for('sentry.nextjs.wrappedCacheHandlers');
+const SENTRY_CACHE_ORIGINS = Symbol.for('sentry.nextjs.cacheOrigins');
 
 function createHandler(entry?: unknown) {
   return {
@@ -53,6 +62,7 @@ describe('instrumentUseCacheHandlers', () => {
   beforeEach(() => {
     mocks.activeSpan = {};
     mocks.sampled = true;
+    mocks.state.spanCount = 0;
   });
 
   afterEach(() => {
@@ -65,6 +75,7 @@ describe('instrumentUseCacheHandlers', () => {
       NEXT_PRIVATE_CACHE_HANDLER,
       SENTRY_CACHE_INSTRUMENTED,
       SENTRY_WRAPPED_HANDLERS,
+      SENTRY_CACHE_ORIGINS,
     ]) {
       Reflect.deleteProperty(globalThis, symbol);
     }
@@ -277,6 +288,96 @@ describe('instrumentUseCacheHandlers', () => {
 
       expect(mocks.setAttribute).toHaveBeenCalledWith('cache.hit', false);
       expect(mocks.setAttribute).not.toHaveBeenCalledWith('cache.ttl', expect.anything());
+    });
+  });
+
+  describe('origin links', () => {
+    it('links a cache hit to the `cache.put` span of the fill', async () => {
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.set('cache-key', Promise.resolve({}));
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).toHaveBeenCalledTimes(1);
+      expect(mocks.addLink).toHaveBeenCalledWith({
+        context: { traceId: 'trace-1', spanId: 'span-1', traceFlags: 1 },
+        attributes: { 'sentry.link.type': 'cache_origin' },
+      });
+    });
+
+    it('links to the most recent fill', async () => {
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.set('cache-key', Promise.resolve({}));
+      await handler.set('cache-key', Promise.resolve({}));
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).toHaveBeenCalledWith(
+        expect.objectContaining({ context: { traceId: 'trace-2', spanId: 'span-2', traceFlags: 1 } }),
+      );
+    });
+
+    it('does not link a miss', async () => {
+      const handler = installWithDefaultHandler(undefined);
+
+      await handler.set('cache-key', Promise.resolve({}));
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
+    it('does not link a hit whose fill is unknown', async () => {
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
+    it('does not link a hit to a fill of the same cache key in a different handler', async () => {
+      const entry = { timestamp: nowMs() };
+      const defaultHandler = createHandler(entry);
+      const remoteHandler = createHandler(entry);
+      setGlobal(
+        NEXT_CACHE_HANDLERS_MAP,
+        new Map([
+          ['default', defaultHandler],
+          ['remote', remoteHandler],
+        ]),
+      );
+      _instrumentUseCacheHandlers();
+
+      await defaultHandler.set('cache-key', Promise.resolve({}));
+      await remoteHandler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+
+      await defaultHandler.get('cache-key');
+
+      expect(mocks.addLink).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not link a hit that was filled under a different cache key', async () => {
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.set('other-key', Promise.resolve({}));
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
+    it('does not remember fills whose write failed', async () => {
+      const handler = {
+        get: vi.fn(() => Promise.resolve({ timestamp: nowMs() })),
+        set: vi.fn(() => Promise.reject(new Error('write failed'))),
+      };
+      setGlobal(NEXT_CACHE_HANDLERS_MAP, new Map([['default', handler]]));
+      _instrumentUseCacheHandlers();
+
+      await expect(handler.set('cache-key', Promise.resolve({}))).rejects.toThrow('write failed');
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
     });
   });
 
