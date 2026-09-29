@@ -16,6 +16,9 @@ describe('tracer.startActiveSpan errors', () => {
     // `catch` inside the callback.
     test('does NOT mark span errored when uncaught error escapes raw tracer.startActiveSpan callback', async () => {
       await createRunner()
+        // The rejection is captured as an error event, which can reach the transport before the
+        // transaction.
+        .ignore('event')
         .expect({
           transaction: {
             transaction: 'test span name',
