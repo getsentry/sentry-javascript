@@ -15,17 +15,16 @@ export function newInstanceId(prefix: string): string {
  */
 export async function runAgentTurn(workerUrl: string, instanceId: string, message: string): Promise<string> {
   const url = `${workerUrl}/agents/hello/${instanceId}`;
-  const authorization = `Bearer ${process.env.E2E_TEST_WORKER_TOKEN}`;
 
   await fetchFromWorker(url, 202, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: authorization },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ kind: 'user', body: message }),
   });
 
   const deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
-    const conversation = JSON.parse(await fetchFromWorker(url, 200, { headers: { Authorization: authorization } })) as {
+    const conversation = JSON.parse(await fetchFromWorker(url, 200)) as {
       conversationId: string;
       settlements?: unknown[];
     };
