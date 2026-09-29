@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import { createRequire } from 'node:module';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
@@ -82,18 +82,12 @@ export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegra
   });
 }
 
+type ChannelArgs = { arguments: unknown[] };
+
 // A Hono `matchResult[0]` entry: `[[handler, routeMeta], paramIndexMap]` — `compose` runs the
 // handler (`entry[0][0]`) and the `matchedRoutes` getter reads `routeMeta` (`entry[0][1]`).
 // oxlint-disable-next-line typescript/no-explicit-any
 type MatchedHandlerEntry = [[any, any], any];
-
-// `router.match` may hand back a cached handler array for a route, so track the lists we've already
-// prepended into and never inject the Sentry middleware twice.
-const _injectedHandlerLists = new WeakSet<object>();
-
-// The request/response middleware is stateless (per-request state lives on the request scope) and
-// `options` is fixed, so build it once and reuse it across every dispatched Context.
-let cachedRequestMiddleware: MiddlewareHandler | undefined;
 
 /**
  * Per-request Context hook. `#dispatch` builds `new Context(req, { matchResult })` before its
@@ -106,16 +100,16 @@ let cachedRequestMiddleware: MiddlewareHandler | undefined;
  * Running per request (no module-scope state) is what lets this work on Cloudflare.
  */
 function injectHonoInstrumentation(
-  // oxlint-disable-next-line typescript/no-explicit-any
-  message: { arguments?: any[] },
-  options: HonoIntegrationOptions,
+  message: ChannelArgs,
+  requestMiddleware: MiddlewareHandler,
+  injectedHandlerLists: WeakSet<object>,
 ): void {
   const ctorOptions = message.arguments?.[1] as { matchResult?: [MatchedHandlerEntry[], unknown] } | undefined;
   const handlers = ctorOptions?.matchResult?.[0];
-  if (!Array.isArray(handlers) || _injectedHandlerLists.has(handlers)) {
+  if (!Array.isArray(handlers) || injectedHandlerLists.has(handlers)) {
     return;
   }
-  _injectedHandlerLists.add(handlers);
+  injectedHandlerLists.add(handlers);
 
   // Classify matched handlers with the same positional heuristic as `wrapSubAppMiddleware`: within a
   // method+path group the last handler is the route handler and earlier ones are middleware; `.use()`
@@ -151,12 +145,8 @@ function injectHonoInstrumentation(
 
   // Prepend the Sentry request/response middleware. `routeMeta` is what the `matchedRoutes` getter
   // exposes; its middleware arity keeps route-name resolution from picking it.
-  const middleware = (cachedRequestMiddleware ??= createHonoRequestMiddleware({
-    getConnInfo: resolveGetConnInfo(),
-    shouldHandleError: options.shouldHandleError,
-  }));
-  const routeMeta = { basePath: '/', path: '/*', method: 'ALL', handler: middleware };
-  handlers.unshift([[middleware, routeMeta], {}]);
+  const routeMeta = { basePath: '/', path: '/*', method: 'ALL', handler: requestMiddleware };
+  handlers.unshift([[requestMiddleware, routeMeta], {}]);
 }
 
 /**
@@ -165,8 +155,7 @@ function injectHonoInstrumentation(
  */
 function instrumentInternalRequests(): void {
   bindTracingChannelToSpan(
-    // oxlint-disable-next-line typescript/no-explicit-any
-    diagnosticsChannel.tracingChannel<{ arguments: any[] }>(CHANNELS.HONO_REQUEST),
+    diagnosticsChannel.tracingChannel<ChannelArgs>(CHANNELS.HONO_REQUEST),
     data => {
       // Alongside the manual middleware, the instance `app.request` Proxy has already opened this
       // span and is calling through — returning `undefined` (no span) avoids nesting a duplicate.
@@ -191,15 +180,24 @@ function instrumentInternalRequests(): void {
 }
 
 function instrumentHono(options: HonoIntegrationOptions): void {
+  // `router.match` may hand back a cached handler array for a route, so track the lists we've already
+  // prepended into and never inject the Sentry middleware twice.
+  const injectedHandlerLists = new WeakSet<object>();
+
+  // The request/response middleware is stateless (per-request state lives on the request scope) and
+  // `options` is fixed, so build it once and reuse it across every dispatched Context.
+  const requestMiddleware = createHonoRequestMiddleware({
+    getConnInfo: resolveGetConnInfo(),
+    shouldHandleError: options.shouldHandleError,
+  });
+
   // The Context constructor's `end` fires synchronously inside `new Context()`, before `#dispatch`
   // reads `matchResult[0].length`, so the injected middleware is in place for the same request.
-  diagnosticsChannel
-    // oxlint-disable-next-line typescript/no-explicit-any
-    .tracingChannel<{ arguments: any[] }>(CHANNELS.HONO_CONTEXT)
-    .end.subscribe(message => {
-      // oxlint-disable-next-line typescript/no-explicit-any
-      safeChannelCallback(() => injectHonoInstrumentation(message as { arguments?: any[] }, options));
-    });
+  diagnosticsChannel.tracingChannel<ChannelArgs>(CHANNELS.HONO_CONTEXT).end.subscribe(message => {
+    safeChannelCallback(() =>
+      injectHonoInstrumentation(message as ChannelArgs, requestMiddleware, injectedHandlerLists),
+    );
+  });
 
   instrumentInternalRequests();
 }
