@@ -1,12 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
-// Build-time instrumentation force-inlines the instrumented drivers into the Nitro bundle while
-// their CommonJS dependencies and the Node builtins stay external. Every `require()` that crosses
-// that boundary needs a working interop, or the driver breaks at startup or on first use
-// (https://github.com/getsentry/sentry-javascript/issues/24775). mongoose exercises both kinds:
-// its external dependencies are called directly (`new mquery()`), and SCRAM-SHA-1 auth lazily
-// `require()`s the `crypto` builtin.
+// The Nitro bundle force-inlines the instrumented drivers while their CommonJS dependencies and
+// Node builtins stay external, and every `require()` across that boundary needs working interop
+// (#24775). mongoose covers both: `new mquery()`, and SCRAM-SHA-1 auth lazily requiring `crypto`.
 async function collectRequestSpans() {
   const spans = await collectStreamedSpansUntilSegment(
     'nuxt-5',
@@ -26,35 +23,27 @@ test('Instruments mongoose automatically', async ({ baseURL }) => {
 
   const spans = await spansPromise;
 
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      name: 'save blogposts',
-      status: 'ok',
-      is_segment: false,
-      attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'db' },
-        'sentry.origin': { type: 'string', value: 'auto.db.mongoose.diagnostic_channel' },
-        'db.system.name': { type: 'string', value: 'mongodb' },
-        'db.namespace': { type: 'string', value: 'test' },
-        'db.collection.name': { type: 'string', value: 'blogposts' },
-        'db.operation.name': { type: 'string', value: 'save' },
-      }),
-    }),
+  const mongooseSpans = spans.filter(
+    span => span.attributes['sentry.origin']?.value === 'auto.db.mongoose.diagnostic_channel',
   );
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      name: 'findOne blogposts',
-      status: 'ok',
-      is_segment: false,
-      attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'db' },
-        'sentry.origin': { type: 'string', value: 'auto.db.mongoose.diagnostic_channel' },
-        'db.system.name': { type: 'string', value: 'mongodb' },
-        'db.namespace': { type: 'string', value: 'test' },
-        'db.collection.name': { type: 'string', value: 'blogposts' },
-        'db.operation.name': { type: 'string', value: 'findOne' },
-        'db.query.text': { type: 'string', value: '{"title":"?"}' },
-      }),
-    }),
-  );
+  expect(mongooseSpans).toHaveLength(2);
+
+  const saveSpan = mongooseSpans.find(span => span.name === 'save blogposts');
+  expect(saveSpan?.status).toBe('ok');
+  expect(saveSpan?.is_segment).toBe(false);
+  expect(saveSpan?.attributes['sentry.op']).toEqual({ type: 'string', value: 'db' });
+  expect(saveSpan?.attributes['db.system.name']).toEqual({ type: 'string', value: 'mongodb' });
+  expect(saveSpan?.attributes['db.namespace']).toEqual({ type: 'string', value: 'test' });
+  expect(saveSpan?.attributes['db.collection.name']).toEqual({ type: 'string', value: 'blogposts' });
+  expect(saveSpan?.attributes['db.operation.name']).toEqual({ type: 'string', value: 'save' });
+
+  const findOneSpan = mongooseSpans.find(span => span.name === 'findOne blogposts');
+  expect(findOneSpan?.status).toBe('ok');
+  expect(findOneSpan?.is_segment).toBe(false);
+  expect(findOneSpan?.attributes['sentry.op']).toEqual({ type: 'string', value: 'db' });
+  expect(findOneSpan?.attributes['db.system.name']).toEqual({ type: 'string', value: 'mongodb' });
+  expect(findOneSpan?.attributes['db.namespace']).toEqual({ type: 'string', value: 'test' });
+  expect(findOneSpan?.attributes['db.collection.name']).toEqual({ type: 'string', value: 'blogposts' });
+  expect(findOneSpan?.attributes['db.operation.name']).toEqual({ type: 'string', value: 'findOne' });
+  expect(findOneSpan?.attributes['db.query.text']).toEqual({ type: 'string', value: '{"title":"?"}' });
 });
