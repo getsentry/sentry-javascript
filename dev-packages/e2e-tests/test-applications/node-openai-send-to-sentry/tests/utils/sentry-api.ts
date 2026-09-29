@@ -24,18 +24,37 @@ export interface TraceItem {
   occurrences?: TraceItem[];
 }
 
+/**
+ * One request to the Sentry API with the E2E token. Returns `undefined` when the connection
+ * fails or drops mid-response: over the minutes a test polls, the API closes the odd
+ * connection ("TypeError: terminated"), and an error thrown inside `expect.poll` fails the
+ * test instead of letting it retry, so a network error is treated like a "not there yet".
+ */
+async function fetchSentryApi(what: string, path: string): Promise<{ status: number; body: string } | undefined> {
+  try {
+    const response = await fetch(`https://sentry.io/api/0/${path}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return { status: response.status, body: await response.text() };
+  } catch (error) {
+    console.log(`${what} failed: ${error}`);
+    return undefined;
+  }
+}
+
 export async function fetchTrace(traceId: string): Promise<TraceItem[]> {
-  const response = await fetch(
-    `https://sentry.io/api/0/organizations/${sentryTestOrgSlug}/trace/${traceId}/?statsPeriod=1h`,
-    { headers: { Authorization: `Bearer ${authToken}` } },
-  );
+  const what = `Trace lookup for ${traceId}`;
+  const response = await fetchSentryApi(what, `organizations/${sentryTestOrgSlug}/trace/${traceId}/?statsPeriod=1h`);
+  if (!response) {
+    return [];
+  }
 
   // The trace endpoint is org scoped, so the auth token needs `org:read` on top of the
   // project scopes the other assertions rely on. That never resolves by waiting, so fail
   // loudly instead of polling until the timeout and reporting it as a missing event.
   if (response.status === 401 || response.status === 403) {
     throw new Error(
-      `Trace lookup for ${traceId} was rejected with ${response.status}: ${await response.text()}. ` +
+      `${what} was rejected with ${response.status}: ${response.body}. ` +
         'E2E_TEST_AUTH_TOKEN needs the `org:read` scope.',
     );
   }
@@ -43,12 +62,12 @@ export async function fetchTrace(traceId: string): Promise<TraceItem[]> {
   // Empty traces and the occasional rate limit are expected while polling, so treat anything
   // else that is not a success as "not there yet" -- but log it, since a rejected request and
   // a trace that has not landed are otherwise indistinguishable.
-  if (!response.ok) {
-    console.log(`Trace lookup for ${traceId} returned ${response.status}: ${await response.text()}`);
+  if (response.status !== 200) {
+    console.log(`${what} returned ${response.status}: ${response.body}`);
     return [];
   }
 
-  return await response.json();
+  return JSON.parse(response.body);
 }
 
 /**
@@ -82,26 +101,30 @@ export async function fetchSpanAttributes(
   traceId: string,
   spanId: string,
 ): Promise<Record<string, unknown> | undefined> {
-  const response = await fetch(
-    `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/trace-items/${spanId}/?trace_id=${traceId}&item_type=spans`,
-    { headers: { Authorization: `Bearer ${authToken}` } },
+  const what = `Span lookup for ${spanId}`;
+  const response = await fetchSentryApi(
+    what,
+    `projects/${sentryTestOrgSlug}/${sentryTestProject}/trace-items/${spanId}/?trace_id=${traceId}&item_type=spans`,
   );
+  if (!response) {
+    return undefined;
+  }
 
   if (response.status === 401 || response.status === 403) {
     throw new Error(
-      `Span lookup for ${spanId} was rejected with ${response.status}: ${await response.text()}. ` +
+      `${what} was rejected with ${response.status}: ${response.body}. ` +
         'E2E_TEST_AUTH_TOKEN needs the `org:read` scope.',
     );
   }
 
-  if (!response.ok) {
+  if (response.status !== 200) {
     if (response.status !== 404) {
-      console.log(`Span lookup for ${spanId} returned ${response.status}: ${await response.text()}`);
+      console.log(`${what} returned ${response.status}: ${response.body}`);
     }
     return undefined;
   }
 
-  const { attributes } = (await response.json()) as { attributes?: { name: string; type: string; value: unknown }[] };
+  const { attributes } = JSON.parse(response.body) as { attributes?: { name: string; type: string; value: unknown }[] };
   return Object.fromEntries(
     (attributes ?? []).map(({ name, type, value }) => [name, type === 'int' ? Number(value) : value]),
   );
