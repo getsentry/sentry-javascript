@@ -21,8 +21,11 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import type { ServeOptions } from 'bun';
+import type { Server, ServeOptions } from 'bun';
 import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PROTOCOL_NAME,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_DOMAIN,
@@ -242,6 +245,24 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     const client = getClient();
     const dataCollection = client?.getDataCollectionOptions();
 
+    if (dataCollection?.userInfo) {
+      // `client.address` is the originating client, so a forwarding header wins over the socket, which
+      // behind a proxy holds the proxy's address.
+      const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+      // Bun passes the `Server` as the second argument to both `fetch` and route handlers, except
+      // when the handler runs through `server.fetch()`.
+      const socketAddress = getRequestIP(args[1], request);
+      if (forwardedFor || socketAddress?.address) {
+        attributes[CLIENT_ADDRESS] = forwardedFor || socketAddress?.address;
+      }
+      if (socketAddress?.port) {
+        attributes[CLIENT_PORT] = socketAddress.port;
+      }
+    }
+
+    // describes the OSI application-layer protocol (http), not the scheme (might be https)
+    attributes[NETWORK_PROTOCOL_NAME] = 'http';
+
     if (dataCollection) {
       Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), dataCollection));
     }
@@ -306,6 +327,18 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
         ),
     );
   });
+}
+
+function getRequestIP(server: unknown, request: Request): { address: string; port: number } | undefined {
+  if (typeof (server as Partial<Server> | undefined)?.requestIP !== 'function') {
+    return undefined;
+  }
+  try {
+    return (server as Server).requestIP(request) ?? undefined;
+  } catch {
+    // Defensive: never let a failed lookup break the user's handler.
+    return undefined;
+  }
 }
 
 function getSpanAttributesFromParsedUrl(

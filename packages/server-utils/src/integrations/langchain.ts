@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { _INTERNAL_skipAiProviderWrapping, defineIntegration, startInactiveSpan } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../ai/anthropic-ai/constants';

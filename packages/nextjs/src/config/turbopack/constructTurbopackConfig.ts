@@ -1,5 +1,6 @@
-import { debug } from '@sentry/core';
+import { debug, escapeStringForRegex } from '@sentry/core';
 import * as path from 'path';
+import { getInstrumentedModuleNames } from '@sentry/server-utils/orchestrion/config';
 import {
   getOrchestrionLoaderPath,
   getSentryInstrumentations,
@@ -163,10 +164,16 @@ function maybeAddOrchestrionRule(
   // build time.
   const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils');
 
+  // Turbopack runs webpack loaders out of process, one round trip per matched file. The transform
+  // only ever touches files of the instrumented packages, so limit the rule to those instead of
+  // paying that round trip for every server-side module (all of node_modules included).
+  const instrumentedPackages = getInstrumentedModuleNames().map(escapeStringForRegex);
+  const instrumentedPackagePath = new RegExp(`node_modules/(?:${instrumentedPackages.join('|')})/`);
+
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',
     rule: {
-      condition: 'node',
+      condition: { all: ['node', { path: instrumentedPackagePath }] },
       loaders: [
         {
           loader: getOrchestrionLoaderPath(),

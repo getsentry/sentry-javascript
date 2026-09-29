@@ -8,20 +8,20 @@ const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
 
 describe('httpContextIntegration', () => {
-  globalThis.navigator = {
+  vi.stubGlobal('navigator', {
     userAgent:
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-  } as unknown as Navigator;
-  globalThis.location = {
+  } as unknown as Navigator);
+  vi.stubGlobal('location', {
     href: 'https://example.com',
-  } as unknown as Location;
-  globalThis.document = {
+  } as unknown as Location);
+  vi.stubGlobal('document', {
     referrer: 'https://example.com',
     addEventListener: vi.fn(),
     location: {
       href: 'https://example.com',
     },
-  } as unknown as Document;
+  } as unknown as Document);
 
   it("doesn't attach url.full to http.client segment spans", () => {
     const integration = httpContextIntegration();

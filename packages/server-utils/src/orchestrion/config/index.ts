@@ -22,6 +22,7 @@ import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
 import { flueConfig } from './flue';
 import { mastraConfig } from './mastra';
+import { mcpServerConfig } from './mcp-server';
 import { mistralConfig } from './mistral';
 import { mongodbConfig } from './mongodb';
 import { mongooseConfig } from './mongoose';
@@ -31,10 +32,12 @@ import { nestjsConfig } from './nestjs';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
+import { prismaConfig } from './prisma';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
 import { tediousConfig } from './tedious';
 import { togetherAiConfig } from './together-ai';
+import { typesafeConfig } from './typesafe';
 import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
@@ -73,6 +76,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...lruMemoizerConfig,
   ...flueConfig,
   ...mastraConfig,
+  ...mcpServerConfig,
   ...mistralConfig,
   ...mongodbConfig,
   ...mongooseConfig,
@@ -82,10 +86,12 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...openaiConfig,
   ...pgConfig,
   ...postgresJsConfig,
+  ...prismaConfig,
   ...redisConfig,
   ...remixConfig,
   ...tediousConfig,
   ...togetherAiConfig,
+  ...typesafeConfig,
   ...vercelAiConfig,
 ];
 

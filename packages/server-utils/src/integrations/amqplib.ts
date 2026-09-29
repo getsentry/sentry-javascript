@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   continueTrace,

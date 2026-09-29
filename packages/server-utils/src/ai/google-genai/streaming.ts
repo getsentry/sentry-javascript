@@ -72,6 +72,7 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
  * @param recordOutputs - Whether to record outputs
  */
 function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean): void {
+  // The SDK getter already extracts function calls from candidate parts.
   if (Array.isArray(chunk.functionCalls)) {
     state.toolCalls.push(...chunk.functionCalls);
   }
@@ -87,14 +88,6 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
 
     for (const part of candidate?.content?.parts ?? []) {
       if (recordOutputs && part.text) state.responseTexts.push(part.text);
-      if (part.functionCall) {
-        state.toolCalls.push({
-          type: 'function',
-          id: part.functionCall.id,
-          name: part.functionCall.name,
-          arguments: part.functionCall.args,
-        });
-      }
     }
   }
 }
