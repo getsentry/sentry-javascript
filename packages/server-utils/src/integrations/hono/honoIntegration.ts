@@ -179,6 +179,15 @@ function instrumentInternalRequests(): void {
   );
 }
 
+/**
+ * Wires the per-request Hono hooks (Context constructor + internal `app.request`) to the diagnostics
+ * channel.
+ *
+ * Note:
+ * Because the Sentry request/response middleware is prepended into the matched-handler list (`matchResult[0]`),
+ * it also shows up in `c.req.matchedRoutes` — apps that inspect `matchedRoutes`
+ * will see an extra `ALL /*` entry (the Sentry middleware) that they did not register themselves.
+ */
 function instrumentHono(options: HonoIntegrationOptions): void {
   // `router.match` may hand back a cached handler array for a route, so track the lists we've already
   // prepended into and never inject the Sentry middleware twice.
