@@ -1,14 +1,12 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
 import type { EventProcessor, Scope } from '@sentry/core';
 import {
   _INTERNAL_getActiveClient,
   applySdkMetadata,
   debug,
   getGlobalScope,
-  getRootSpan,
   getVercelEnv,
   GLOBAL_OBJ,
 } from '@sentry/core';
@@ -17,20 +15,12 @@ import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sent
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils';
-import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
 import { isAsyncContextOwnedByCloudflare, isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
-import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
-import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
-import { backfillHttpServerStatus } from '../common/utils/backfillHttpServerStatus';
-import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
-import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
-import { handleOnSpanStart } from './handleOnSpanStart';
+import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
-import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
-import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
 export * from '@sentry/node';
 
@@ -159,22 +149,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ...cloudflareConfig,
   };
 
-  const nextjsIgnoreSpans: NonNullable<NodeOptions['ignoreSpans']> = [
-    // Static assets (matches `_next/static` anywhere in the name to handle custom basePath)
-    /^GET (\/.*)?\/_next\/static\//,
-    // Dev source-map fetch endpoints
-    /\/__nextjs_original-stack-frame/,
-    // Pages router /404
-    /^\/404$/,
-    // App router /404 and /_not-found segments (any HTTP method)
-    /^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/,
-    // Root transactions named "NextServer.getRequestHandler" containing useless tracing
-    /^NextServer\.getRequestHandler$/,
-    // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
-    // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
-    { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
-  ];
-  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
+  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS];
 
   if (DEBUG_BUILD && opts.debug) {
     debug.enable();
@@ -196,44 +171,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   const client = isOwnedByCloudflare ? undefined : nodeInit(opts);
 
-  client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
-    // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
-    // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
-    // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
-    // We need to drop these spans.
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      (typeof spanAttributes[HTTP_TARGET] === 'string' &&
-        // eslint-disable-next-line typescript/no-deprecated
-        spanAttributes[HTTP_TARGET].includes('sentry_key') &&
-        // eslint-disable-next-line typescript/no-deprecated
-        spanAttributes[HTTP_TARGET].includes('sentry_client')) ||
-      (typeof spanAttributes[URL_QUERY] === 'string' &&
-        spanAttributes[URL_QUERY].includes('sentry_key') &&
-        spanAttributes[URL_QUERY].includes('sentry_client'))
-    ) {
-      samplingDecision.decision = false;
-    }
-  });
-
-  client?.on('spanStart', span => handleOnSpanStart(span, client));
-
-  // Normalize name/op/source/status on the request root span at span end, before it is serialized into
-  // a transaction event (legacy) or streamed span JSON. Running on the live span means both lifecycles
-  // pick up the changes from one place, and the cron/queue hooks below see the finalized status.
-  client?.on('spanEnd', span => {
-    if (span !== getRootSpan(span)) {
-      return;
-    }
-
-    const mutableRootSpan = createLiveRootSpanAdapter(span);
-    enhanceHandleRequestRootSpan(mutableRootSpan);
-    enhanceMiddlewareRootSpan(mutableRootSpan);
-    backfillHttpServerStatus(span);
-  });
-
-  client?.on('spanEnd', maybeCompleteCronCheckIn);
-  client?.on('spanEnd', maybeCleanupQueueSpan);
+  if (client) {
+    addNextjsServerSpanHooks(client);
+  }
 
   // On the client, not the global scope, so a later `init()` after
   // `close()` does not stack another copy. In a request of `withSentry` on
@@ -288,10 +228,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
       { id: 'DropReactControlFlowErrors' },
     ),
   );
-
-  client?.on('preprocessEvent', event => {
-    setUrlProcessingMetadata(event);
-  });
 
   if (process.env.NODE_ENV === 'development') {
     eventProcessorTarget?.addEventProcessor(devErrorSymbolicationEventProcessor);
