@@ -257,7 +257,7 @@ function instrumentHandler(handler: unknown): void {
             if (span.isRecording()) {
               getCacheOrigins().set(originKeyPrefix + digest, span.spanContext());
             } else {
-              // The `cache.put` span was dropped (e.g. via `ignoreSpans`) and never reaches Sentry, so a link to it would be unnecessary.
+              // The `cache.put` span was dropped (e.g. via `ignoreSpans`) and never reaches Sentry, so a link to it would be broken.
               getCacheOrigins().remove(originKeyPrefix + digest);
             }
             return result;
