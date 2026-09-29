@@ -337,6 +337,9 @@ describe('patchRoute', () => {
 Node integration tests (`dev-packages/node-integration-tests/`) use `createEsmAndCjsTests` to
 run a real Node scenario file and assert on captured Sentry envelopes.
 
+Other runtimes run these suites too. A new suite must pass there or be excluded; see "Other
+Runtimes" in `dev-packages/node-integration-tests/README.md`.
+
 ### Minimize `test()` calls — each one spawns a separate Node process
 
 **This is the opposite of the Playwright rule.** In Playwright, each `test()` is cheap — use

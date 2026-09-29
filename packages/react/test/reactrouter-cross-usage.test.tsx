@@ -35,6 +35,23 @@ import {
   wrapUseRoutesV6,
 } from '../src/reactrouterv6';
 
+// jsdom provides its own AbortSignal, which the undici `Request` of Node >= 24 rejects
+// in `RequestInit`. React Router only reads the signal back off the request, so keep it
+// as an own property instead of handing it to undici.
+const NativeRequest = globalThis.Request;
+vi.stubGlobal(
+  'Request',
+  class extends NativeRequest {
+    public constructor(input: RequestInfo | URL, init: RequestInit = {}) {
+      const { signal, ...rest } = init;
+      super(input, rest);
+      if (signal) {
+        Object.defineProperty(this, 'signal', { value: signal, configurable: true });
+      }
+    }
+  },
+);
+
 const mockStartBrowserTracingPageLoadSpan = vi.fn();
 const mockStartBrowserTracingNavigationSpan = vi.fn();
 

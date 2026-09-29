@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
 import type { FirestoreReference } from './firestore-types';

@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { EXPECTED_SDK_NAME } from '../../../utils';
 
 describe('logger public API', () => {
   afterAll(() => {
@@ -21,7 +22,7 @@ describe('logger public API', () => {
                   },
                   'sentry.sdk.name': {
                     type: 'string',
-                    value: 'sentry.javascript.node',
+                    value: EXPECTED_SDK_NAME,
                   },
                   'sentry.sdk.version': {
                     type: 'string',
@@ -62,7 +63,7 @@ describe('logger public API', () => {
                   },
                   'sentry.sdk.name': {
                     type: 'string',
-                    value: 'sentry.javascript.node',
+                    value: EXPECTED_SDK_NAME,
                   },
                   'sentry.sdk.version': {
                     type: 'string',
@@ -103,7 +104,7 @@ describe('logger public API', () => {
                   },
                   'sentry.sdk.name': {
                     type: 'string',
-                    value: 'sentry.javascript.node',
+                    value: EXPECTED_SDK_NAME,
                   },
                   'sentry.sdk.version': {
                     type: 'string',

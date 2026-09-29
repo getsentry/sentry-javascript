@@ -60,7 +60,7 @@ export function getReportDialogEndpoint(dsnLike: DsnLike, dialogOptions: ReportD
       continue;
     }
 
-    if (key === 'onClose') {
+    if (key === 'onClose' || key === 'onError') {
       continue;
     }
 

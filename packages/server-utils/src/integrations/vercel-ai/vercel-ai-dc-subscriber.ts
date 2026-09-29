@@ -65,10 +65,14 @@ const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
 
 const ORIGIN = 'auto.vercelai.channel';
 
+// Not yet in `@sentry/conventions`.
+const GEN_AI_EVALUATE = 'gen_ai.evaluate';
+
 // `gen_ai.operation.name` values, keyed to the span op they map to.
 const GEN_AI_OPERATION_SPAN_OPS = {
   embeddings: GEN_AI_EMBEDDINGS,
   rerank: GEN_AI_RERANK,
+  evaluate: GEN_AI_EVALUATE,
   invoke_agent: GEN_AI_INVOKE_AGENT,
   execute_tool: GEN_AI_EXECUTE_TOOL,
   // The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
@@ -211,7 +215,8 @@ export type ChannelEventType =
   | 'executeTool'
   | 'embed'
   | 'embedMany'
-  | 'rerank';
+  | 'rerank'
+  | 'experimental_evaluate';
 
 /**
  * The context object the AI SDK passes through one tracing-channel call. It is the same object
@@ -444,6 +449,17 @@ export function createSpanFromMessage(
     }
     case 'rerank':
       return startGenAiSpan('rerank', modelId, baseAttributes);
+    case 'experimental_evaluate':
+      return startGenAiSpan('evaluate', modelId, {
+        ...baseAttributes,
+        ...(recordInputs
+          ? {
+              [GEN_AI_INPUT_MESSAGES]: stringify([
+                { type: 'evaluation', state: event.state, questions: event.questions },
+              ]),
+            }
+          : {}),
+      });
     default:
       // Unknown event type: opt out rather than open a span we can't shape correctly.
       return undefined;
@@ -608,17 +624,50 @@ export function enrichSpanOnEnd(
   span.setAttributes(providerAttributes);
 
   if (recordOutputs) {
-    // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
-    // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
-    const parts =
-      type === 'languageModelCall' && Array.isArray(result.content)
-        ? partsFromContent(result.content)
-        : partsFromTextAndToolCalls(result.text, result.toolCalls);
-    const outputMessages = buildOutputMessages(parts, finishReason);
+    const outputMessages = getOutputMessages(type, result, finishReason);
     if (outputMessages) {
       span.setAttribute(GEN_AI_OUTPUT_MESSAGES, outputMessages);
     }
   }
+}
+
+function getOutputMessages(
+  type: ChannelEventType,
+  result: Record<string, unknown>,
+  finishReason: string | undefined,
+): string | undefined {
+  if (type === 'experimental_evaluate') {
+    return stringify([{ type: 'evaluation', answers: withProviderConfidence(result) }]);
+  }
+  // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
+  // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
+  const parts =
+    type === 'languageModelCall' && Array.isArray(result.content)
+      ? partsFromContent(result.content)
+      : partsFromTextAndToolCalls(result.text, result.toolCalls);
+  return buildOutputMessages(parts, finishReason);
+}
+
+/**
+ * The AI SDK TypeSafe provider moves each answer's `confidence` out of the answers into
+ * `providerMetadata.typesafe.confidence` (keyed by question id). Put it back so evaluate answers keep it.
+ */
+function withProviderConfidence(result: Record<string, unknown>): unknown {
+  const { answers, providerMetadata } = result;
+  const typesafe = isObjectLike(providerMetadata) ? providerMetadata.typesafe : undefined;
+  const confidence = isObjectLike(typesafe) && isObjectLike(typesafe.confidence) ? typesafe.confidence : undefined;
+  if (!confidence || !isObjectLike(answers)) {
+    return answers;
+  }
+
+  return Object.fromEntries(
+    Object.entries(answers).map(([id, answer]) => [
+      id,
+      isObjectLike(answer) && typeof confidence[id] === 'number' && answer.confidence === undefined
+        ? { ...answer, confidence: confidence[id] }
+        : answer,
+    ]),
+  );
 }
 
 /** Maps a Vercel AI finish reason to the OTel `gen_ai.output.messages` form (`tool-calls` → `tool_call`). */
