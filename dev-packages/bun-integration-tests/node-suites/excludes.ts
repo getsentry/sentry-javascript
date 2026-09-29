@@ -101,7 +101,7 @@ const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/lru-memoizer/test.ts',
   'suites/tracing/mastra/test.ts',
   'suites/tracing/mcp-handler-exact-once/test.ts',
-  'suites/tracing/mcp-server-streamed/test.ts',
+  'suites/tracing/mcp-server/**',
   'suites/tracing/mistral/test.ts',
   'suites/tracing/mongodb-v4/test.ts',
   'suites/tracing/mongodb-v5/test.ts',
@@ -148,11 +148,6 @@ const NOT_TRIAGED = [
   'suites/system-error/test.ts',
   'suites/tracing/tracer-start-active-span-error/test.ts',
 ];
-
-// Bun garbage-collects a diagnostics channel that no code references, and its subscribers with it.
-// `graphql` 17 publishes its own tracing channels, so the integration only subscribes to them, and
-// no spans arrive. See https://github.com/oven-sh/bun/issues/43086
-const CHANNEL_GARBAGE_COLLECTED = ['suites/tracing/graphql-tracing-channel/**'];
 
 // The scenario configures `nativeNodeFetchIntegration`, which `@sentry/bun` does not export.
 const NO_NATIVE_NODE_FETCH_INTEGRATION = [
@@ -209,7 +204,6 @@ export const NODE_SUITES_EXCLUDE = [
   ...NO_OUTGOING_HTTP_INSTRUMENTATION,
   ...NO_AUTO_INSTRUMENTATION,
   ...NOT_TRIAGED,
-  ...CHANNEL_GARBAGE_COLLECTED,
 ];
 
 // Excluded only in the `node-suites` project, which runs the suites with `@sentry/node`.
