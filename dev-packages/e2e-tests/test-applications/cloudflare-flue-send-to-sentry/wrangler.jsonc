@@ -8,5 +8,5 @@
   "workers_dev": true,
   // Workers Logs keep the invocations of the last 7 days, so a failed CI run can still be inspected.
   "observability": { "enabled": true },
-  "secrets": { "required": ["E2E_TEST_DSN", "OPENROUTER_API_KEY"] },
+  "secrets": { "required": ["E2E_TEST_DSN", "OPENROUTER_API_KEY", "E2E_TEST_WORKER_TOKEN"] },
 }
