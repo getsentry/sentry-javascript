@@ -888,17 +888,11 @@ function prependOrchestrionRuntimeExternals(newConfig: WebpackConfigObjectWithMo
 }
 
 /**
- * Sets up the tree-shaking flags based on the user's configuration.
+ * Returns the tree-shaking flags to define, based on the user's configuration.
  * https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/tree-shaking/
  */
-function setupTreeshakingFromConfig(
-  userSentryOptions: SentryBuildOptions,
-  newConfig: WebpackConfigObjectWithModuleRules,
-  buildContext: BuildContext,
-): void {
+export function getTreeshakeDefines(userSentryOptions: SentryBuildOptions): Record<string, boolean> {
   const defines: Record<string, boolean> = {};
-
-  newConfig.plugins = newConfig.plugins || [];
 
   if (userSentryOptions.webpack?.treeshake?.removeDebugLogging) {
     defines.__SENTRY_DEBUG__ = false;
@@ -919,6 +913,21 @@ function setupTreeshakingFromConfig(
   if (userSentryOptions.webpack?.treeshake?.excludeReplayCompressionWorker) {
     defines.__SENTRY_EXCLUDE_REPLAY_WORKER__ = true;
   }
+
+  return defines;
+}
+
+/**
+ * Sets up the tree-shaking flags based on the user's configuration.
+ */
+function setupTreeshakingFromConfig(
+  userSentryOptions: SentryBuildOptions,
+  newConfig: WebpackConfigObjectWithModuleRules,
+  buildContext: BuildContext,
+): void {
+  const defines = getTreeshakeDefines(userSentryOptions);
+
+  newConfig.plugins = newConfig.plugins || [];
 
   // Only add DefinePlugin if there are actual defines to set
   if (Object.keys(defines).length > 0) {

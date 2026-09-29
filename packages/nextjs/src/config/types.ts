@@ -60,6 +60,7 @@ export type NextConfigObject = {
   serverExternalPackages?: string[]; // next >= v15.0.0
   turbopack?: TurbopackOptions;
   compiler?: {
+    define?: Record<string, string | boolean>;
     runAfterProductionCompile?: (context: { distDir: string; projectDir: string }) => Promise<void> | void;
   };
 };
