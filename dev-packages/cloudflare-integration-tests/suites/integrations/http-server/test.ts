@@ -43,7 +43,7 @@ it('Captures form-urlencoded request body', async ({ signal }) => {
             headers: expect.any(Object),
             method: 'POST',
             url: expect.stringContaining('/post-form'),
-            data: 'username=test&password=secret',
+            data: 'username=test&password=[Filtered]',
           },
         },
         // Raw URL span (source `url`), so the TwP DSC omits the span name.

@@ -217,6 +217,17 @@ describe('request utils', () => {
       });
     });
 
+    it('filters sensitive keys in a non-standard body', () => {
+      const actual = httpRequestToRequestData({
+        body: { colour: 'blue', password: 'hunter2' },
+      } as any);
+
+      expect(actual).toEqual({
+        headers: {},
+        data: { colour: 'blue', password: '[Filtered]' },
+      });
+    });
+
     describe('x-forwarded headers support', () => {
       it('should prioritize x-forwarded-proto header over explicit protocol parameter', () => {
         const actual = httpRequestToRequestData({
@@ -1146,6 +1157,18 @@ describe('request utils', () => {
       expect(scope.capturedData).toBe(jsonBody);
     });
 
+    it('filters sensitive keys in a JSON body', async () => {
+      const request = createMockRequest({
+        body: JSON.stringify({ colour: 'blue', api_token: 'abc' }),
+        contentType: 'application/json',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'medium');
+
+      expect(scope.capturedData).toBe('{"colour":"blue","api_token":"[Filtered]"}');
+    });
+
     it('captures form-urlencoded body', async () => {
       const request = createMockRequest({
         body: 'username=test&password=secret',
@@ -1155,10 +1178,10 @@ describe('request utils', () => {
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('username=test&password=secret');
+      expect(scope.capturedData).toBe('username=test&password=[Filtered]');
     });
 
-    it('captures text/plain body', async () => {
+    it('captures text/plain body, leaving scrubbing to the server side', async () => {
       const request = createMockRequest({
         body: 'Hello, World!',
         contentType: 'text/plain',
@@ -1272,10 +1295,10 @@ describe('request utils', () => {
     });
 
     it('truncates body when it exceeds small size limit (1000 bytes)', async () => {
-      const largeBody = 'x'.repeat(2000);
+      const largeBody = `{"note":"${'x'.repeat(2000)}"}`;
       const request = createMockRequest({
         body: largeBody,
-        contentType: 'text/plain',
+        contentType: 'application/json',
       });
       const scope = createMockScope();
 
@@ -1286,10 +1309,10 @@ describe('request utils', () => {
     });
 
     it('truncates body when it exceeds medium size limit (10000 bytes)', async () => {
-      const largeBody = 'x'.repeat(20000);
+      const largeBody = `{"note":"${'x'.repeat(20000)}"}`;
       const request = createMockRequest({
         body: largeBody,
-        contentType: 'text/plain',
+        contentType: 'application/json',
       });
       const scope = createMockScope();
 
@@ -1300,10 +1323,10 @@ describe('request utils', () => {
     });
 
     it('does not truncate body within small size limit', async () => {
-      const smallBody = 'x'.repeat(500);
+      const smallBody = `{"note":"${'x'.repeat(500)}"}`;
       const request = createMockRequest({
         body: smallBody,
-        contentType: 'text/plain',
+        contentType: 'application/json',
       });
       const scope = createMockScope();
 
@@ -1325,11 +1348,23 @@ describe('request utils', () => {
       expect(scope.capturedData).toBeUndefined();
     });
 
+    it('skips a body over the 1MB limit that arrives without a content-length header', async () => {
+      const request = createMockRequest({
+        body: 'x'.repeat(1_100_000),
+        contentType: 'text/plain',
+      });
+      const scope = createMockScope();
+
+      await captureBodyFromWinterCGRequest(request, scope, 'always');
+
+      expect(scope.capturedData).toBeUndefined();
+    });
+
     it('captures body with always size limit', async () => {
-      const largeBody = 'x'.repeat(50000);
+      const largeBody = `{"note":"${'x'.repeat(50000)}"}`;
       const request = createMockRequest({
         body: largeBody,
-        contentType: 'text/plain',
+        contentType: 'application/json',
       });
       const scope = createMockScope();
 

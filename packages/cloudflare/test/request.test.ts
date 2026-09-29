@@ -343,7 +343,7 @@ describe('withSentry', () => {
           request: new Request('https://example.com', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ key: 'value' }),
+            body: JSON.stringify({ colour: 'blue' }),
           }),
           context,
         },
@@ -353,7 +353,7 @@ describe('withSentry', () => {
         },
       );
 
-      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(JSON.stringify({ key: 'value' }));
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(JSON.stringify({ colour: 'blue' }));
     });
 
     test('does not capture cookies when dataCollection.cookies is disabled', async () => {
