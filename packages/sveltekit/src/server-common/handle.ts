@@ -97,7 +97,7 @@ export function addSentryCodeToPage(options: {
  */
 function isSvelteKitBuilding(): boolean {
   // `process` doesn't exist in every runtime (e.g. Cloudflare Workers without `nodejs_compat`)
-  const env = typeof process !== 'undefined' ? process.env : undefined;
+  const env = typeof process !== 'undefined' && typeof process.env === 'object' ? process.env : undefined;
   return !!env?._SENTRY_SVELTEKIT_BUILDING;
 }
 
