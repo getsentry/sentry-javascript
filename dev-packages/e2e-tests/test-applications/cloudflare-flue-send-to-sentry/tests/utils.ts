@@ -1,15 +1,20 @@
-import { randomBytes } from 'node:crypto';
 import { fetchFromWorker } from '@sentry-internal/test-utils/cloudflare';
 
+/** An agent instance id nothing has used yet, so a settled record cannot end the wait early. */
+export function newInstanceId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 /**
- * Runs one turn of the `Hello` agent in a new agent instance, waits for it to settle, and returns
- * the id of the conversation, which the SDK sets as `gen_ai.conversation.id` on the agent span.
+ * Run one agent turn and wait for it to settle. Returns the id of the conversation, which the SDK
+ * sets as `gen_ai.conversation.id` on the agent span. Flue runs the turn from a Durable Object alarm,
+ * and the SDK starts a new trace for every alarm, so the tests find the trace by this id.
  *
- * `POST /:id` only admits the work (it answers `202` and the turn runs after), so this reads the
+ * `POST /:id` only admits the work (it returns `202` and the turn runs after), so this reads the
  * conversation back until it reports a settlement.
  */
-export async function runAgentTurn(message: string): Promise<string> {
-  const url = `${process.env.E2E_TEST_WORKER_URL}/agents/hello/${randomBytes(8).toString('hex')}`;
+export async function runAgentTurn(workerUrl: string, instanceId: string, message: string): Promise<string> {
+  const url = `${workerUrl}/agents/hello/${instanceId}`;
 
   await fetchFromWorker(url, 202, {
     method: 'POST',
@@ -19,14 +24,15 @@ export async function runAgentTurn(message: string): Promise<string> {
 
   const deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
-    const conversation: { conversationId: string; settlements?: unknown[] } = JSON.parse(
-      await fetchFromWorker(url, 200),
-    );
+    const conversation = JSON.parse(await fetchFromWorker(url, 200)) as {
+      conversationId: string;
+      settlements?: unknown[];
+    };
     if (conversation.settlements?.length) {
       return conversation.conversationId;
     }
     await new Promise(resolve => setTimeout(resolve, 1_000));
   }
 
-  throw new Error(`The agent turn at ${url} did not settle within 90s.`);
+  throw new Error(`Flue turn for "${instanceId}" did not settle within 90s`);
 }

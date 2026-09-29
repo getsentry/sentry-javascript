@@ -14,6 +14,8 @@ export const EVENT_POLLING_OPTIONS = { timeout: 180_000, intervals: [5_000] };
 export interface TraceItem {
   /** On a span this is the span id. */
   event_id?: string;
+  /** On a span this is the span id of its parent span. */
+  parent_span_id?: string | null;
   event_type?: 'span' | 'error' | 'occurrence' | 'uptime_check';
   op?: string | null;
   /** On a span this is the span name. */
@@ -109,6 +111,32 @@ export function fetchSpanAttributes(traceId: string, spanId: string): Record<str
   }
 
   if (result.stdout.includes('"Not found."')) {
+    return undefined;
+  }
+
+  throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);
+}
+
+/** An error event in the shape the Sentry API returns it. The exception is the entry of type `exception`. */
+export interface ApiEvent {
+  entries: {
+    type: string;
+    data: { values?: { type?: string; value?: string; mechanism?: { type?: string; handled?: boolean } }[] };
+  }[];
+}
+
+/** Fetch an error event of the E2E test project. Returns `undefined` while the event is not stored yet. */
+export function fetchEvent(eventId: string): ApiEvent | undefined {
+  const path =
+    `/projects/${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/${process.env['E2E_TEST_SENTRY_PROJECT']}` +
+    `/events/${eventId}/`;
+  const result = runSentryCli(['api', path]);
+
+  if (result.status === 0) {
+    return JSON.parse(result.stdout) as ApiEvent;
+  }
+
+  if (result.stdout.includes('"Event not found"')) {
     return undefined;
   }
 
