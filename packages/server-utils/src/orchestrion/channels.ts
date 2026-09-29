@@ -17,6 +17,7 @@ import { langchainChannels } from './config/langchain';
 import { langgraphChannels } from './config/langgraph';
 import { lruMemoizerChannels } from './config/lru-memoizer';
 import { mastraChannels } from './config/mastra';
+import { mcpServerChannels } from './config/mcp-server';
 import { mistralChannels } from './config/mistral';
 import { mongodbChannels } from './config/mongodb';
 import { mongooseChannels } from './config/mongoose';
@@ -31,6 +32,7 @@ import { redisChannels } from './config/redis';
 import { remixChannels } from './config/remix';
 import { tediousChannels } from './config/tedious';
 import { togetherAiChannels } from './config/together-ai';
+import { typesafeChannels } from './config/typesafe';
 import { vercelAiChannels } from './config/vercel-ai';
 
 /**
@@ -69,6 +71,7 @@ export const CHANNELS = {
   ...langgraphChannels,
   ...lruMemoizerChannels,
   ...mastraChannels,
+  ...mcpServerChannels,
   ...mistralChannels,
   ...mongodbChannels,
   ...mongooseChannels,
@@ -83,6 +86,7 @@ export const CHANNELS = {
   ...remixChannels,
   ...tediousChannels,
   ...togetherAiChannels,
+  ...typesafeChannels,
   ...vercelAiChannels,
 } as const;
 

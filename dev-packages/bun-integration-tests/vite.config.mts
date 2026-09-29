@@ -1,18 +1,18 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
+import {
+  BUN_BUILD_EXCLUDE,
+  NO_AUTO_INSTRUMENTATION,
+  NODE_SUITES_EXCLUDE,
+  SENTRY_BUN_EXCLUDE,
+  SENTRY_NODE_EXCLUDE,
+} from './node-suites/excludes';
 
 const NODE_SUITES_ROOT = fileURLToPath(new URL('../node-integration-tests', import.meta.url));
 
-// Node suites that also run on Bun. The scenarios stay in `node-integration-tests`.
-const NODE_SUITES = [
-  'suites/public-api/**/test.ts',
-  'suites/client-reports/**/test.ts',
-  'suites/featureFlags/**/test.ts',
-];
-
-// Single tests that fail on Bun are skipped with `test.skipIf` on `RUNTIME` in the Node suite.
-const NODE_SUITES_EXCLUDE = ['**/node_modules/**'];
+// All Node suites also run on Bun. The scenarios stay in `node-integration-tests`.
+const NODE_SUITES = ['suites/**/test.ts'];
 
 const nodeSuitesTest = {
   root: NODE_SUITES_ROOT,
@@ -64,6 +64,7 @@ export default defineConfig({
         test: {
           ...nodeSuitesTest,
           name: 'node-suites',
+          exclude: [...NODE_SUITES_EXCLUDE, ...SENTRY_NODE_EXCLUDE],
           env: { RUNTIME: 'bun' },
         },
       },
@@ -74,12 +75,33 @@ export default defineConfig({
           name: 'node-suites-sentry-bun',
           exclude: [
             ...NODE_SUITES_EXCLUDE,
+            ...SENTRY_BUN_EXCLUDE,
             // The scenario creates a `NodeClient` itself, which sends `sentry.javascript.node`.
             'suites/public-api/logs/test.ts',
+            // `@sentry/bun` has `bunRuntimeMetricsIntegration` instead of `nodeRuntimeMetricsIntegration`.
+            'suites/node-runtime-metrics/test.ts',
           ],
           env: {
             RUNTIME: 'bun',
             RUNTIME_PRELOAD: fileURLToPath(new URL('./node-suites/alias-sentry-bun.ts', import.meta.url)),
+            EXPECTED_SDK_NAME: 'sentry.javascript.bun',
+          },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          ...nodeSuitesTest,
+          // The auto-instrumentation suites, with each scenario bundled by `@sentry/bun/plugin` before
+          // it starts, as Bun apps must be built to get these spans.
+          // See https://github.com/getsentry/sentry-javascript/issues/23882
+          name: 'node-suites-bun-build',
+          include: NO_AUTO_INSTRUMENTATION.map(glob => (glob.endsWith('/**') ? `${glob}/test.ts` : glob)),
+          exclude: BUN_BUILD_EXCLUDE,
+          env: {
+            RUNTIME: 'bun',
+            RUNTIME_PRELOAD: fileURLToPath(new URL('./node-suites/alias-sentry-bun.ts', import.meta.url)),
+            RUNTIME_BUILD_SCRIPT: fileURLToPath(new URL('./node-suites/bun-build.ts', import.meta.url)),
             EXPECTED_SDK_NAME: 'sentry.javascript.bun',
           },
         },

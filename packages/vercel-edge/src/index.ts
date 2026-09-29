@@ -105,6 +105,7 @@ export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
   instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,

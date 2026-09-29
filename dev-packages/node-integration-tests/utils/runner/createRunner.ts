@@ -14,11 +14,12 @@ import type {
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { inspect } from 'util';
+import { onTestFailed } from 'vitest';
 import type { DeepPartial } from './../assertions';
 import {
   assertEnvelopeHeader,
@@ -107,6 +108,10 @@ type StartResult = {
 const NODE_MAJOR = Number(process.versions.node.split('.')[0]);
 const COMPILE_CACHE_ENV: Record<string, string> =
   NODE_MAJOR >= 22 ? { NODE_COMPILE_CACHE: join(tmpdir(), 'sentry-node-it-compile-cache') } : {};
+
+// The Bun and Deno packages run these suites from their own folder. Scenarios read the working
+// directory (e.g. `modulesIntegration` reads its `package.json`), so it is always this package.
+const PACKAGE_ROOT = join(__dirname, '..', '..');
 
 /** Node flags that preload a module before the entry point. */
 const PRELOAD_FLAGS = ['--import', '--require', '-r'];
@@ -277,13 +282,25 @@ export function createRunner(...paths: string[]) {
       let envelopeCount = 0;
       let scenarioServerPort: number | undefined;
       let hasExited = false;
+      let exitStatus: string | undefined;
       let child: ReturnType<typeof spawn> | undefined;
+      let spawnedAt: number | undefined;
+      let lastOutputAt: number | undefined;
+      let logsDumped = false;
 
       // Resolved the moment `complete()` runs, so `completed()` can await the result directly
       // instead of polling — see the comment on `waitForEvent`.
       const completedDeferred = createDeferred();
       // Resolved once the scenario reports its server port, so `makeRequest` can await it directly.
       const portReady = createDeferred();
+
+      // Vitest stops a test at its own timeout before `completed()` gives up, so print the child
+      // output then too. `completed()` prints it for the failures it reports itself.
+      onTestFailed(() => {
+        if (!isComplete) {
+          dumpCapturedLogs();
+        }
+      });
 
       function complete(error?: Error): void {
         if (isComplete) {
@@ -322,12 +339,23 @@ export function createRunner(...paths: string[]) {
       function dumpCapturedLogs(): void {
         // Skip when the failure is expected (`test.fails` variants) — the output would just be noise.
         // In debug mode the same lines are already streamed live, so skip then too.
-        if (process.env.DEBUG || suppressErrorLogs) {
+        if (process.env.DEBUG || suppressErrorLogs || logsDumped) {
           return;
         }
 
+        logsDumped = true;
+        const now = Date.now();
+        const state = [
+          `runtime=${getRuntime()}`,
+          `pid=${child?.pid ?? 'none'}`,
+          hasExited ? `exited (${exitStatus})` : 'running',
+          `envelopes=${envelopeCount}/${expectedEnvelopeCount}`,
+          `ms since spawn=${spawnedAt ? now - spawnedAt : 'not spawned'}`,
+          `ms since last output=${lastOutputAt ? now - lastOutputAt : 'no output'}`,
+        ].join(', ');
+
         // eslint-disable-next-line no-console
-        console.log(`\n--- Captured child process output for ${testPath} ---`);
+        console.log(`\n--- Captured child process output for ${testPath} (${state}) ---`);
         if (logs.length === 0) {
           // eslint-disable-next-line no-console
           console.log('(no output captured)');
@@ -473,8 +501,10 @@ export function createRunner(...paths: string[]) {
             !ensureNoErrorOutput && (expectedEnvelopes.length > 0 || (expectedEnvelopeHeaders?.length ?? 0) > 0);
           const runtime = getRuntime();
           const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath, runtime), ...flags] : flags;
+          const entryPath = buildScenario(runtime, testPath);
 
-          child = spawn(runtime, buildRuntimeArgs(runtime, childFlags, testPath), { env });
+          child = spawn(runtime, buildRuntimeArgs(runtime, childFlags, entryPath), { env, cwd: PACKAGE_ROOT });
+          spawnedAt = Date.now();
 
           child.on('error', e => {
             // eslint-disable-next-line no-console
@@ -491,6 +521,7 @@ export function createRunner(...paths: string[]) {
           });
 
           child.stderr?.on('data', (data: Buffer) => {
+            lastOutputAt = Date.now();
             const output = data.toString();
             logs.push(output.trim());
 
@@ -504,6 +535,7 @@ export function createRunner(...paths: string[]) {
 
           child.on('close', (code, signal) => {
             hasExited = true;
+            exitStatus = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
 
             if (ensureNoErrorOutput) {
               complete();
@@ -562,6 +594,7 @@ export function createRunner(...paths: string[]) {
 
           let buffer = Buffer.alloc(0);
           child.stdout?.on('data', (data: Buffer) => {
+            lastOutputAt = Date.now();
             // This is horribly memory inefficient but it's only for tests
             buffer = Buffer.concat([buffer, data]);
 
@@ -762,6 +795,27 @@ function buildAutoFlushFlags(existingFlags: readonly string[], testPath: string,
  * `DENO_IMPORT_MAP`. Any other Node flag throws, so a suite that needs one fails with a clear
  * message instead of running with different behavior.
  */
+/**
+ * Returns the file the runtime runs for `testPath`. When `RUNTIME_BUILD_SCRIPT` is set, that
+ * script is run by the same runtime with `testPath`, builds the scenario, and prints
+ * `BUILD_OK <output path>`. The Bun package uses it to bundle scenarios with `@sentry/bun/plugin`.
+ * Scenarios are built right before they start, because `createEsmAndCjsTests` writes the CJS
+ * variant of a scenario only while the tests run.
+ */
+function buildScenario(runtime: Runtime, testPath: string): string {
+  const buildScript = process.env.RUNTIME_BUILD_SCRIPT;
+  if (!buildScript) {
+    return testPath;
+  }
+
+  const result = spawnSync(runtime, [buildScript, testPath], { cwd: PACKAGE_ROOT, encoding: 'utf8' });
+  const outputPath = result.stdout?.match(/^BUILD_OK (.+)$/m)?.[1];
+  if (!outputPath) {
+    throw new Error(`Building ${testPath} with ${buildScript} failed:\n${result.stderr}${result.stdout}`);
+  }
+  return outputPath;
+}
+
 function buildRuntimeArgs(runtime: Runtime, flags: readonly string[], testPath: string): string[] {
   if (runtime === 'node') {
     return [...flags, testPath];

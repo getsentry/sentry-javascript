@@ -36,15 +36,28 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
     eventId: options.eventId || lastEventId(),
   };
 
+  const { onLoad, onClose, onError } = mergedOptions;
+
+  // The endpoint rejects requests without an event ID, and a failed script load hides the reason
+  if (!mergedOptions.eventId) {
+    DEBUG_BUILD && debug.error('[showReportDialog] No event ID');
+    onError?.(new Error('No event ID to show the report dialog for'));
+    return;
+  }
+
   const script = WINDOW.document.createElement('script');
   script.async = true;
   script.crossOrigin = 'anonymous';
   script.src = getReportDialogEndpoint(dsn, mergedOptions);
 
-  const { onLoad, onClose } = mergedOptions;
-
   if (onLoad) {
     script.onload = onLoad;
+  }
+
+  if (onError) {
+    script.onerror = () => {
+      onError(new Error('Failed to load the report dialog script'));
+    };
   }
 
   if (onClose) {
@@ -58,6 +71,10 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
       }
     };
     WINDOW.addEventListener('message', reportDialogClosedMessageHandler);
+    // A dialog that never loads never closes, so the listener would stay forever
+    script.addEventListener('error', () => {
+      WINDOW.removeEventListener('message', reportDialogClosedMessageHandler);
+    });
   }
 
   injectionPoint.appendChild(script);
