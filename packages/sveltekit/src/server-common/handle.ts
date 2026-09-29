@@ -77,8 +77,6 @@ export function addSentryCodeToPage(options: {
   injectFetchProxyScript: boolean;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    // Pages rendered at build time (prerendering) would bake one trace id and sampling
-    // decision into the HTML for every visitor, so we skip the meta tags there.
     const metaTags = isSvelteKitBuilding() ? '' : getTraceMetaTags();
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
@@ -91,6 +89,8 @@ export function addSentryCodeToPage(options: {
 }
 
 /**
+ * Prerendered pages would bake one trace id and sampling decision into the HTML for every visitor.
+ *
  * `building` from `$app/environment` isn't available here (the SDK is loaded from node_modules at
  * runtime), so we rely on `_SENTRY_SVELTEKIT_BUILDING`, which our Vite plugin sets during `vite build`
  * and SvelteKit copies into the worker it prerenders in.

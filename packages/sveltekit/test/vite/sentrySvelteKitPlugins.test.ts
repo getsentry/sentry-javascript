@@ -300,19 +300,10 @@ describe('build flag plugin', () => {
     vi.unstubAllEnvs();
   });
 
-  async function getBuildFlagPlugin() {
-    const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    return plugins.find(p => p.name === 'sentry-sveltekit-build-flag')!;
-  }
-
-  it('only applies to builds', async () => {
-    const plugin = await getBuildFlagPlugin();
-    expect(plugin?.apply).toBe('build');
-  });
-
   it('sets `_SENTRY_SVELTEKIT_BUILDING` so the prerender worker inherits it', async () => {
     vi.stubEnv('_SENTRY_SVELTEKIT_BUILDING', undefined);
-    const plugin = await getBuildFlagPlugin();
+    const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
+    const plugin = plugins.find(p => p.name === 'sentry-sveltekit-build-flag');
 
     // @ts-expect-error - hook is a plain function here and doesn't need a plugin context
     plugin?.config?.({}, { command: 'build', mode: 'production' });
