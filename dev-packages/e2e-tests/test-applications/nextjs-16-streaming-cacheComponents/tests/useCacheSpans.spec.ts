@@ -3,7 +3,8 @@ import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { findCacheSpan } from './cacheOriginLinks-utils';
 
 test('uses low-cardinality names for `use cache` spans', async ({ request }) => {
-  // A fresh id makes the request a guaranteed cache miss, so the trace contains both a `cache.get` and a `cache.put` span.
+  // A fresh id makes the request a guaranteed cache miss (the id is part of the cache key), so the
+  // trace contains both a `cache.get` and a `cache.put` span.
   const id = crypto.randomUUID();
 
   const spansPromise = collectStreamedSpans('nextjs-16-streaming-cacheComponents', spansOfTrace => {
@@ -17,7 +18,8 @@ test('uses low-cardinality names for `use cache` spans', async ({ request }) => 
   await request.get(`/api/use-cache?id=${id}`);
   const spans = await spansPromise;
 
-  // With span streaming the span name is the low-cardinality op
+  // With span streaming the span name is the low-cardinality op; the key digest stays on
+  // `cache.key`, where Relay reads the span description from.
   const getSpan = findCacheSpan(spans, 'cache.get');
   expect(getSpan).toBeDefined();
   expect(getSpan!.name).toBe('cache.get');
