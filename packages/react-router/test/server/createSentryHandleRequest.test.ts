@@ -240,6 +240,25 @@ describe('createSentryHandleRequest', () => {
     );
   });
 
+  it('should pass the nonce from getNonce to ServerRouter and renderToPipeableStream', () => {
+    const getNonce = vi.fn().mockReturnValue('test-nonce');
+
+    const handleRequest = createSentryHandleRequest({
+      renderToPipeableStream: mockRenderToPipeableStream,
+      ServerRouter: mockServerRouter,
+      createReadableStreamFromReadable: mockCreateReadableStreamFromReadable,
+      getNonce,
+    });
+
+    handleRequest(mockRequest, 200, mockResponseHeaders, mockRouterContext, mockLoadContext);
+
+    expect(getNonce).toHaveBeenCalledWith({ request: mockRequest, loadContext: mockLoadContext });
+    expect(mockRenderToPipeableStream).toHaveBeenCalledWith(
+      expect.objectContaining({ props: expect.objectContaining({ nonce: 'test-nonce' }) }),
+      expect.objectContaining({ nonce: 'test-nonce' }),
+    );
+  });
+
   it('should set Content-Type header when shell is ready', async () => {
     const handleRequest = createSentryHandleRequest({
       renderToPipeableStream: mockRenderToPipeableStream,
