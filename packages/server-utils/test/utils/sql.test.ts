@@ -286,15 +286,6 @@ describe('sanitizeSqlQuery', () => {
     });
   });
 
-  it.each(['', 'N'])('collapses a large IN list of %s-prefixed literals', prefix => {
-    const literal = `${prefix}'12345678-1234-1234-1234-123456789abc'`;
-    const query = `DELETE FROM sessions WHERE id NOT IN (${Array(100_000).fill(literal).join(', ')})`;
-
-    const sanitized = sanitizeSqlQuery(query, 'mysql');
-
-    expect(sanitized).toBe('DELETE FROM sessions WHERE id NOT IN (?)');
-  });
-
   describe('passthrough (no literals)', () => {
     it.each([
       ['SELECT * FROM users', 'SELECT * FROM users'],

@@ -237,7 +237,6 @@ function findQuotedRunEnd(sql: string, start: number, delimiter: string, backsla
  */
 function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
   const isMysql = dialect === 'mysql';
-  // Inspecting a growing concatenated string for each prefix can repeatedly flatten it.
   const out: string[] = [];
   let i = 0;
 
