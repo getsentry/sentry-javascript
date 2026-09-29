@@ -41,7 +41,7 @@ function mockScope() {
 }
 
 beforeEach(() => {
-  vi.restoreAllMocks();
+  vi.clearAllMocks();
 });
 
 describe('BullMQTelemetry', () => {
@@ -78,7 +78,6 @@ describe('SentryBullMQTracer', () => {
           [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: expectedOrigin,
           'messaging.system': 'bullmq',
         },
-        forceTransaction: expectedOp === 'queue.task',
       });
     });
 
@@ -98,20 +97,20 @@ describe('SentryBullMQTracer', () => {
       );
     });
 
-    it('forces transaction for queue.task spans', () => {
+    it('starts queue.task spans as root spans', () => {
       const telemetry = new BullMQTelemetry();
 
       telemetry.tracer.startSpan('process notifications');
 
-      expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ forceTransaction: true }));
+      expect(SentryCore.withActiveSpan).toHaveBeenCalledWith(null, expect.any(Function));
     });
 
-    it('does not force transaction for queue.submit spans', () => {
+    it('starts queue.submit spans as children of the active span', () => {
       const telemetry = new BullMQTelemetry();
 
       telemetry.tracer.startSpan('add notifications');
 
-      expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ forceTransaction: false }));
+      expect(SentryCore.withActiveSpan).not.toHaveBeenCalled();
     });
 
     it('adds span link to producer when context has producerSpanContext', () => {

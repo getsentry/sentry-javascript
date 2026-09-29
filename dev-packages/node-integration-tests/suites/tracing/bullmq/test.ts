@@ -1,53 +1,58 @@
-import type { SerializedMetricContainer, TransactionEvent } from '@sentry/core';
-import { afterAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import type { SerializedMetricContainer } from '@sentry/core';
+import { afterAll, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
-describe('bullmq', () => {
+describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('traces producer and consumer operations with queue attributes', { timeout: 90_000 }, async () => {
-      const receivedTransactions: TransactionEvent[] = [];
-
       await createRunner()
-        .withDockerCompose({ workingDirectory: [__dirname] })
         .ignore('trace_metric')
-        .expectN(3, {
-          transaction: (transaction: TransactionEvent) => {
-            receivedTransactions.push(transaction);
-          },
-        })
         .expect({
-          transaction: (transaction: TransactionEvent) => {
-            receivedTransactions.push(transaction);
-
-            const producerTransaction = receivedTransactions.find(t => t.transaction === 'enqueue test-job');
-            const consumerTransaction = receivedTransactions.find(
-              t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.queue.bullmq.consumer',
+          span: container => {
+            const producerSegment = container.items.find(item => item.is_segment && item.name === 'enqueue test-job');
+            const producerSpan = container.items.find(
+              item => item.attributes['sentry.origin']?.value === 'auto.queue.bullmq.producer',
+            );
+            const consumerSpan = container.items.find(
+              item => item.attributes['sentry.origin']?.value === 'auto.queue.bullmq.consumer',
             );
 
-            expect(producerTransaction).toBeDefined();
-            const producerSpan = producerTransaction!.spans?.find(s => s.origin === 'auto.queue.bullmq.producer');
-            expect(producerSpan).toBeDefined();
-            expect(producerSpan!.op).toBe('queue.submit');
-            expect(producerSpan!.status).toBe('ok');
-            expect(producerSpan!.data?.['messaging.system']).toBe('bullmq');
-
-            expect(consumerTransaction).toBeDefined();
-            expect(consumerTransaction!.contexts?.trace).toEqual(
+            expect(producerSegment).toBeDefined();
+            expect(producerSpan).toEqual(
               expect.objectContaining({
-                op: 'queue.task',
+                parent_span_id: producerSegment!.span_id,
+                is_segment: false,
                 status: 'ok',
-                data: expect.objectContaining({
-                  'messaging.system': 'bullmq',
-                  'sentry.op': 'queue.task',
-                  'sentry.origin': 'auto.queue.bullmq.consumer',
-                  'sentry.previous_trace': expect.stringContaining(
-                    producerTransaction!.contexts!.trace!.trace_id as string,
-                  ),
+                attributes: expect.objectContaining({
+                  'sentry.op': { type: 'string', value: 'queue.submit' },
+                  'messaging.system': { type: 'string', value: 'bullmq' },
                 }),
+              }),
+            );
+
+            const { trace_id: producerTraceId, span_id: producerSpanId } = producerSpan!;
+
+            expect(consumerSpan).toEqual(
+              expect.objectContaining({
+                is_segment: true,
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  'sentry.op': { type: 'string', value: 'queue.task' },
+                  'messaging.system': { type: 'string', value: 'bullmq' },
+                  'sentry.previous_trace': { type: 'string', value: `${producerTraceId}-${producerSpanId}-1` },
+                }),
+                links: [
+                  {
+                    trace_id: producerTraceId,
+                    span_id: producerSpanId,
+                    sampled: true,
+                    attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
+                  },
+                ],
               }),
             );
           },
@@ -58,8 +63,7 @@ describe('bullmq', () => {
 
     test('emits completion counter and duration histogram for processed jobs', { timeout: 90_000 }, async () => {
       await createRunner()
-        .withDockerCompose({ workingDirectory: [__dirname] })
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           trace_metric: (metrics: SerializedMetricContainer) => {
             const items = metrics.items || [];

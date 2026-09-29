@@ -1,33 +1,33 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForMetric, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForMetric, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Creates a queue.submit span when adding a job', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('node-bullmq', transactionEvent => {
-    return transactionEvent.transaction === 'GET /enqueue/success';
+  const submitSpanPromise = waitForStreamedSpan('node-bullmq', span => {
+    return (
+      getSpanOp(span) === 'queue.submit' && span.attributes['sentry.segment.name']?.value === 'GET /enqueue/success'
+    );
   });
 
   await fetch(`${baseURL}/enqueue/success`);
 
-  const transaction = await transactionPromise;
+  const submitSpan = await submitSpanPromise;
 
-  const submitSpan = transaction.spans?.find(span => span.op === 'queue.submit');
-  expect(submitSpan).toBeDefined();
-  expect(submitSpan!.origin).toBe('auto.queue.bullmq.producer');
-  expect(submitSpan!.data?.['messaging.system']).toBe('bullmq');
+  expect(submitSpan.is_segment).toBe(false);
+  expect(submitSpan.attributes['sentry.origin']?.value).toBe('auto.queue.bullmq.producer');
+  expect(submitSpan.attributes['messaging.system']?.value).toBe('bullmq');
 });
 
-test('Creates a transaction for queue.task when processing a job', async ({ baseURL }) => {
-  const transactionPromise = waitForTransaction('node-bullmq', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'queue.task';
+test('Creates a segment span for queue.task when processing a job', async ({ baseURL }) => {
+  const taskSpanPromise = waitForStreamedSpan('node-bullmq', span => {
+    return span.is_segment && getSpanOp(span) === 'queue.task';
   });
 
   await fetch(`${baseURL}/enqueue/success`);
 
-  const transaction = await transactionPromise;
+  const taskSpan = await taskSpanPromise;
 
-  expect(transaction.contexts?.trace?.op).toBe('queue.task');
-  expect(transaction.contexts?.trace?.origin).toBe('auto.queue.bullmq.consumer');
-  expect(transaction.contexts?.trace?.data?.['messaging.system']).toBe('bullmq');
+  expect(taskSpan.attributes['sentry.origin']?.value).toBe('auto.queue.bullmq.consumer');
+  expect(taskSpan.attributes['messaging.system']?.value).toBe('bullmq');
 });
 
 test('Sends exception to Sentry on error in job processor', async ({ baseURL }) => {
@@ -51,48 +51,60 @@ test('Sends exception to Sentry on error in job processor', async ({ baseURL }) 
 });
 
 test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', async ({ baseURL }) => {
-  const processTransactionPromise = waitForTransaction('node-bullmq', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'queue.task';
+  const taskSpanPromise = waitForStreamedSpan('node-bullmq', span => {
+    return (
+      span.is_segment &&
+      getSpanOp(span) === 'queue.task' &&
+      span.attributes['bullmq.job.name']?.value === 'breadcrumb-job'
+    );
   });
 
   await fetch(`${baseURL}/enqueue/breadcrumb-test`);
 
-  await processTransactionPromise;
+  await taskSpanPromise;
 
-  const transactionPromise = waitForTransaction('node-bullmq', transactionEvent => {
-    return transactionEvent.transaction === 'GET /check-isolation';
+  const errorEventPromise = waitForError('node-bullmq', event => {
+    return event.exception?.values?.[0]?.value === 'Isolation check';
   });
 
   await fetch(`${baseURL}/check-isolation`);
 
-  const transaction = await transactionPromise;
+  const errorEvent = await errorEventPromise;
 
-  const leakedBreadcrumb = (transaction.breadcrumbs || []).find(
+  const leakedBreadcrumb = (errorEvent.breadcrumbs || []).find(
     (b: { message?: string }) => b.message === 'breadcrumb-from-bullmq-processor',
   );
   expect(leakedBreadcrumb).toBeUndefined();
 });
 
-test('Links consumer transaction to producer span via sentry.previous_trace', async ({ baseURL }) => {
-  const httpTransactionPromise = waitForTransaction('node-bullmq', transactionEvent => {
-    return transactionEvent.transaction === 'GET /enqueue/success';
+test('Links the queue.task segment span to its producer span via sentry.previous_trace', async ({ baseURL }) => {
+  const producerSpanPromise = waitForStreamedSpan('node-bullmq', span => {
+    return getSpanOp(span) === 'queue.submit' && span.attributes['bullmq.job.name']?.value === 'link-job';
   });
 
-  const consumerTransactionPromise = waitForTransaction('node-bullmq', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'queue.task';
+  const consumerSpanPromise = waitForStreamedSpan('node-bullmq', span => {
+    return (
+      span.is_segment && getSpanOp(span) === 'queue.task' && span.attributes['bullmq.job.name']?.value === 'link-job'
+    );
   });
 
-  await fetch(`${baseURL}/enqueue/success`);
+  await fetch(`${baseURL}/enqueue/link-test`);
 
-  const httpTransaction = await httpTransactionPromise;
-  const consumerTransaction = await consumerTransactionPromise;
+  const producerSpan = await producerSpanPromise;
+  const consumerSpan = await consumerSpanPromise;
 
-  const producerSpan = httpTransaction.spans?.find(span => span.op === 'queue.submit');
-  expect(producerSpan).toBeDefined();
-
-  const previousTrace = consumerTransaction.contexts?.trace?.data?.['sentry.previous_trace'];
-  expect(previousTrace).toBeDefined();
-  expect(previousTrace).toContain(httpTransaction.contexts?.trace?.trace_id);
+  expect(producerSpan.attributes['sentry.segment.name']?.value).toBe('GET /enqueue/link-test');
+  expect(consumerSpan.attributes['sentry.previous_trace']?.value).toBe(
+    `${producerSpan.trace_id}-${producerSpan.span_id}-1`,
+  );
+  expect(consumerSpan.links).toEqual([
+    {
+      trace_id: producerSpan.trace_id,
+      span_id: producerSpan.span_id,
+      sampled: true,
+      attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
+    },
+  ]);
 });
 
 test('Emits bullmq.jobs.completed counter metric on successful job', async ({ baseURL }) => {

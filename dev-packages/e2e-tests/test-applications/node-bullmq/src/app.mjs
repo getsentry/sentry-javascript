@@ -47,7 +47,13 @@ app.get('/enqueue/breadcrumb-test', async (req, res) => {
   res.send('Job enqueued');
 });
 
+app.get('/enqueue/link-test', async (req, res) => {
+  await testQueue.add('link-job', { data: 'test' });
+  res.send('Job enqueued');
+});
+
 app.get('/check-isolation', async (req, res) => {
+  Sentry.captureException(new Error('Isolation check'));
   res.send('Isolation check');
 });
 
