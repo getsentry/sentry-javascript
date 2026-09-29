@@ -806,12 +806,14 @@ describe('instrumentDurableObjectWithSentry', () => {
     const before = flush.mock.calls.length;
 
     const waitUntil = vi.fn();
-    const testClass = vi.fn(context => ({
-      fetch: () => {
-        context.waitUntil(new Promise(res => setTimeout(res)));
-        return new Response('test');
-      },
-    }));
+    const testClass = vi.fn(function (context) {
+      return {
+        fetch: () => {
+          context.waitUntil(new Promise(res => setTimeout(res)));
+          return new Response('test');
+        },
+      };
+    });
     const instrumented = instrumentDurableObjectWithSentry(vi.fn(), testClass as any);
     const context = {
       waitUntil,
