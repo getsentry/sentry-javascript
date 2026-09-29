@@ -1,4 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_CONVERSATION_ID,
@@ -1621,17 +1622,24 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(2);
 
-            // Both calls should produce spans with the same response ID
             for (const span of container.items) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
               expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
               expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
-              expect(span!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
-                type: 'string',
-                value: 'chatcmpl-withresponse',
-              });
             }
+
+            const parsedSpans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID] !== undefined);
+            expect(parsedSpans).toHaveLength(1);
+            expect(parsedSpans[0]!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
+              type: 'string',
+              value: 'chatcmpl-withresponse',
+            });
+
+            const rawSpans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
+            expect(rawSpans).toHaveLength(1);
+            expect(rawSpans[0]!.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+            expect(rawSpans[0]!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
           },
         })
         .start()
@@ -1641,11 +1649,14 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates openai related spans with span streaming enabled', async () => {
+      const spans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
         .unordered()
         .expect({
           span: container => {
-            const chatCompletionSpan = container.items.find(
+            spans.push(...container.items);
+            const chatCompletionSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
@@ -1672,7 +1683,7 @@ describe('OpenAI integration', () => {
             });
             expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
 
-            const parsedChatCompletionSpan = container.items.find(
+            const parsedChatCompletionSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
@@ -1705,7 +1716,7 @@ describe('OpenAI integration', () => {
               value: 'openai',
             });
 
-            const parsedResponsesSpan = container.items.find(
+            const parsedResponsesSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
