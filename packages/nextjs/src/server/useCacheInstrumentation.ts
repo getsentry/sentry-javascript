@@ -6,6 +6,7 @@ import {
   CACHE_OPERATION,
   CACHE_TAGS,
   CACHE_TTL,
+  CODE_FILE_PATH,
   SENTRY_LINK_TYPE,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
@@ -26,6 +27,7 @@ import {
   timestampInSeconds,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { getCacheFunctionSourceFile } from './useCacheSourceFile';
 
 // Next.js shares its `use cache` handlers across bundles via `globalThis`
 // (`next/src/server/use-cache/handlers.ts`). This module can load once per bundle, so all
@@ -268,24 +270,35 @@ function instrumentHandler(handler: unknown): void {
 
     fill(handler, 'set', (originalSet: UseCacheHandler['set']) => {
       return function (this: UseCacheHandler, cacheKey: string, pendingEntry: Promise<unknown>): Promise<void> {
+        const digest = keyDigest(cacheKey);
+
+        // A successful write replaces the entry, so a remembered origin from a previous fill is now wrong.
+        // An unsampled fill has no span to link to -> remember nothing instead.
         if (!shouldRecordCacheSpan()) {
-          return originalSet.call(this, cacheKey, pendingEntry);
+          return Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
+            getCacheOrigins().remove(originKeyPrefix + digest);
+            return result;
+          });
         }
 
-        const digest = keyDigest(cacheKey);
+        const sourceFile = getCacheFunctionSourceFile(cacheKey);
+
         // The handler drains `pendingEntry` (the still-streaming entry) before storing, so this
         // span covers producing and storing the entry, not just the write.
-        return startCacheSpan(CACHE_PUT, digest, span =>
+        return startCacheSpan(CACHE_PUT, digest, span => {
+          if (sourceFile) {
+            span.setAttribute(CODE_FILE_PATH, sourceFile);
+          }
           // Only a successful write becomes a fill origin: a failed write leaves no entry or the
           // previous one (whose origin still stands). A dropped span (`ignoreSpans`) never
           // reaches Sentry, so a link to it would be broken.
-          Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
+          return Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
             if (span.isRecording()) {
               rememberCacheOrigin(originKeyPrefix + digest, span, pendingEntry);
             }
             return result;
-          }),
-        );
+          });
+        });
       };
     });
   } catch (error) {

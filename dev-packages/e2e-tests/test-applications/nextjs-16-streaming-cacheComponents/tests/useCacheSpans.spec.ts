@@ -30,4 +30,33 @@ test('uses low-cardinality names for `use cache` spans', async ({ request }) => 
   expect(putSpan).toBeDefined();
   expect(putSpan!.name).toBe('cache.put');
   expect(putSpan!.attributes['cache.key']?.value).toEqual(cacheKeyDigest);
+
+  // Route handler cache functions have no server-reference manifest entry, so no source file.
+  expect(putSpan!.attributes['code.file.path']).toBeUndefined();
+});
+
+test('sets the source file of the cached component on `cache.put` spans', async ({ request }) => {
+  const id = crypto.randomUUID();
+
+  const spansPromise = collectStreamedSpans('nextjs-16-streaming-cacheComponents', spansOfTrace => {
+    return (
+      spansOfTrace.some(span => span.name === 'GET /cached-sibling-components' && span.is_segment) &&
+      spansOfTrace.filter(span => getSpanOp(span) === 'cache.put').length >= 2
+    );
+  });
+
+  await request.get(`/cached-sibling-components?id=${id}`);
+  const spans = await spansPromise;
+
+  // Both sibling entries come from the same page file.
+  const putSpans = spans.filter(span => getSpanOp(span) === 'cache.put');
+  expect(putSpans.length).toBeGreaterThanOrEqual(2);
+  for (const putSpan of putSpans) {
+    expect(putSpan.attributes['code.file.path']?.value).toBe('app/cached-sibling-components/page.tsx');
+  }
+
+  // The source file marks the producer of an entry. Reads do not carry it.
+  const getSpan = findCacheSpan(spans, 'cache.get');
+  expect(getSpan).toBeDefined();
+  expect(getSpan!.attributes['code.file.path']).toBeUndefined();
 });

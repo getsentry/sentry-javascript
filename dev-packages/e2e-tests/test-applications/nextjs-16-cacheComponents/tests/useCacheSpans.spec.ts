@@ -57,6 +57,9 @@ test('Should create cache spans around `use cache` functions', async ({ request 
     }),
   });
 
+  // Route handler cache functions have no server-reference manifest entry, so no source file.
+  expect(putSpan!.data).not.toHaveProperty('code.file.path');
+
   const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get');
   expect(hitGetSpan).toBeDefined();
   expect(hitGetSpan).toMatchObject({
@@ -97,7 +100,12 @@ test('Should create cache spans for `use cache` inside a rendered page', async (
   await request.get(`/use-cache-page?id=${id}`);
   const hitTx = await hitTxPromise;
 
-  expect(missTx.spans?.some(span => span.op === 'cache.put')).toBe(true);
+  // The source file on a fill span marks which cached function produced the entry.
+  const missPutSpans = missTx.spans?.filter(span => span.op === 'cache.put') ?? [];
+  expect(missPutSpans.length).toBeGreaterThan(0);
+  for (const putSpan of missPutSpans) {
+    expect(putSpan.data?.['code.file.path']).toBe('app/use-cache-page/page.tsx');
+  }
 
   // A render can read more than one cache entry, so look at every hit instead of the first `cache.get`.
   const hitGetSpans = hitTx.spans?.filter(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true) ?? [];

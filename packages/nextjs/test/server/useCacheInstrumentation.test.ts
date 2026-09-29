@@ -33,6 +33,7 @@ import { _instrumentUseCacheHandlers } from '../../src/server/useCacheInstrument
 
 const NEXT_CACHE_HANDLERS_MAP = Symbol.for('@next/cache-handlers-map');
 const NEXT_PRIVATE_CACHE_HANDLER = Symbol.for('@next/cache-handlers-private');
+const NEXT_MANIFESTS_SINGLETON = Symbol.for('next.server.manifests');
 const SENTRY_CACHE_INSTRUMENTED = Symbol.for('sentry.nextjs.cacheHandlersInstrumented');
 const SENTRY_WRAPPED_HANDLERS = Symbol.for('sentry.nextjs.wrappedCacheHandlers');
 const SENTRY_CACHE_ORIGINS = Symbol.for('sentry.nextjs.cacheOrigins');
@@ -64,6 +65,7 @@ describe('instrumentUseCacheHandlers', () => {
   beforeEach(() => {
     mocks.activeSpan = {};
     mocks.sampled = true;
+    mocks.state.spanCount = 0;
     mocks.client = undefined;
     mocks.state.spanCount = 0;
     mocks.state.recording = true;
@@ -77,6 +79,7 @@ describe('instrumentUseCacheHandlers', () => {
     for (const symbol of [
       NEXT_CACHE_HANDLERS_MAP,
       NEXT_PRIVATE_CACHE_HANDLER,
+      NEXT_MANIFESTS_SINGLETON,
       SENTRY_CACHE_INSTRUMENTED,
       SENTRY_WRAPPED_HANDLERS,
       SENTRY_CACHE_ORIGINS,
@@ -468,6 +471,35 @@ describe('instrumentUseCacheHandlers', () => {
       expect(mocks.addLink).not.toHaveBeenCalled();
     });
 
+    it('forgets a remembered origin when the entry is refilled without a sampled parent span', async () => {
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.set('cache-key', Promise.resolve({}));
+
+      mocks.activeSpan = undefined;
+      await handler.set('cache-key', Promise.resolve({}));
+      mocks.activeSpan = {};
+
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
+    it('forgets a remembered origin when the refill `cache.put` span is not recording', async () => {
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.set('cache-key', Promise.resolve({}));
+
+      // e.g. the `cache.put` op is filtered via `ignoreSpans`
+      mocks.state.recording = false;
+      await handler.set('cache-key', Promise.resolve({}));
+      mocks.state.recording = true;
+
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
     it('does not remember fills whose write failed', async () => {
       const entry = { timestamp: nowMs() };
       const handler = {
@@ -481,6 +513,48 @@ describe('instrumentUseCacheHandlers', () => {
       await handler.get('cache-key');
 
       expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('source file on `cache.put`', () => {
+    const functionId = 'c05120808bb68f6400d039e720226869fb1f079019';
+    const jsonCacheKey = JSON.stringify(['build-id', functionId, [['arg'], {}]]);
+
+    function setManifest(filename: unknown): void {
+      setGlobal(NEXT_MANIFESTS_SINGLETON, {
+        serverActionsManifest: { node: { [functionId]: { filename } } },
+      });
+    }
+
+    it('sets `code.file.path` when the key parses and the manifest knows the function', async () => {
+      setManifest('app/(cached-nesting)/mixed-lifetimes/[id]/layout.tsx');
+      const handler = installWithDefaultHandler();
+
+      await handler.set(jsonCacheKey, Promise.resolve({}));
+
+      expect(mocks.setAttribute).toHaveBeenCalledWith(
+        'code.file.path',
+        'app/(cached-nesting)/mixed-lifetimes/[id]/layout.tsx',
+      );
+    });
+
+    it('does not set `code.file.path` on `cache.get` spans', async () => {
+      setManifest('app/page.tsx');
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.get(jsonCacheKey);
+
+      expect(mocks.setAttribute).not.toHaveBeenCalledWith('code.file.path', expect.anything());
+    });
+
+    // Key parsing, manifest lookup, and path shortening are covered in `useCacheSourceFile.test.ts`.
+    it('still writes the entry and omits `code.file.path` when the key does not resolve', async () => {
+      setManifest('app/page.tsx');
+      const handler = installWithDefaultHandler();
+
+      await expect(handler.set('multipart-encoded-key', Promise.resolve({}))).resolves.toBeUndefined();
+
+      expect(mocks.setAttribute).not.toHaveBeenCalledWith('code.file.path', expect.anything());
     });
   });
 

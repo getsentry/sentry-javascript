@@ -35,6 +35,8 @@ test('links a cached layout hit to the trace that filled the layout entry', asyn
   const putSpans = (missTx.spans ?? []).filter(span => span.op === 'cache.put');
   expect(new Set(putSpans.map(span => span.description)).size).toBe(1);
 
+  expect(putSpans[0]!.data?.['code.file.path']).toBe('app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx');
+
   const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true);
   expect(hitGetSpan).toBeDefined();
   expect(hitGetSpan?.description).toBe(putSpans[0]!.description);
