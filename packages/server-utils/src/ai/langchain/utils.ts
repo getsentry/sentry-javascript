@@ -4,6 +4,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -460,6 +461,33 @@ export function getAgentNameFromMetadata(metadata?: Record<string, unknown>): Re
     attrs[GEN_AI_AGENT_NAME] = agentName;
   }
   return attrs;
+}
+
+/**
+ * Metadata keys under which LangChain apps carry a conversation id, in order of precedence.
+ * `thread_id` is the LangGraph checkpointer key and one of the two keys LangSmith groups threads by,
+ * `session_id` is the other, and `sessionId` is what `RunnableWithMessageHistory` requires in JS.
+ */
+const CONVERSATION_ID_METADATA_KEYS = ['thread_id', 'session_id', 'sessionId'] as const;
+
+/**
+ * Derive `gen_ai.conversation.id` from run metadata.
+ *
+ * LangChain copies every primitive `config.configurable` entry into run metadata (`ensureConfig`,
+ * `@langchain/core` >= 0.1.20) and child runs inherit their parent's metadata, so an id passed to
+ * `invoke()` reaches every chat, chain and tool run of that invocation without any extra plumbing.
+ *
+ * An id set on the scope via `Sentry.setConversationId()` still wins: `conversationIdIntegration`
+ * applies it on `spanStart`, after the attributes passed here.
+ */
+export function getConversationIdFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
+  for (const key of CONVERSATION_ID_METADATA_KEYS) {
+    const value = metadata?.[key];
+    if ((typeof value === 'string' && value) || typeof value === 'number') {
+      return { [GEN_AI_CONVERSATION_ID]: String(value) };
+    }
+  }
+  return {};
 }
 
 export function extractToolDefinitions(extraParams?: Record<string, unknown>): string | undefined {
