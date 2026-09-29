@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es2021",
+    "lib": ["es2021"],
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "types": ["@cloudflare/workers-types"],
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true
+  },
+  "include": ["src/**/*"]
+}

@@ -1,22 +1,20 @@
 {
-  "name": "cloudflare-flue",
+  "name": "cloudflare-flue-send-to-sentry",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "preview": "vite preview --port 4112",
-    "typecheck": "tsc --noEmit",
-    "clean": "npx rimraf node_modules dist .wrangler pnpm-lock.yaml",
-    "test:build": "pnpm install && OPENROUTER_API_KEY=$E2E_OPENROUTER_API_KEY pnpm build",
-    "test:assert": "pnpm test:prod",
-    "test:prod": "TEST_ENV=production OPENROUTER_API_KEY=$E2E_OPENROUTER_API_KEY playwright test"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist .wrangler",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
     "@flue/runtime": "2.0.5",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "agents": "0.20.1",
-    "dataloader": "~2.2.3",
     "hono": "^4.13.8",
     "valibot": "~1.5.0"
   },
@@ -27,9 +25,11 @@
     "@flue/vite": "2.0.5",
     "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^24.0.0",
+    "sentry": "~0.44.1",
     "typescript": "^5.5.2",
     "vite": "7.3.5",
-    "wrangler": "^4.86.0"
+    "wrangler": "^4.114.0"
   },
   "volta": {
     "node": "24.15.0",

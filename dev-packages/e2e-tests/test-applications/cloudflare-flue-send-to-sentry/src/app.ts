@@ -4,6 +4,8 @@ import { Hello } from './agents/hello.ts';
 
 const app = new Hono();
 
+// global-setup.ts waits for this route to answer before the tests start.
+app.get('/', c => c.text('Hello World!'));
 app.route('/agents/hello', createAgentRouter(Hello));
 
 export default app;

@@ -41,6 +41,9 @@ function runSentryCli(args: string[]): SpawnSyncReturns<string> {
       // over an env token, so force the env token for identical behaviour everywhere.
       SENTRY_AUTH_TOKEN: process.env['E2E_TEST_AUTH_TOKEN'],
       SENTRY_FORCE_ENV_TOKEN: '1',
+      // Every call polls for data that is still arriving. `sentry api` has no `--fresh` flag and would
+      // otherwise answer every poll from the cached response of the first one.
+      SENTRY_NO_CACHE: '1',
     },
   });
 
@@ -107,6 +110,31 @@ export function fetchSpanAttributes(traceId: string, spanId: string): Record<str
 
   if (result.stdout.includes('"Not found."')) {
     return undefined;
+  }
+
+  throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);
+}
+
+/**
+ * Search the spans of the E2E test project from the last hour, and return the trace id of a span that
+ * matches `query`. `query` uses the Sentry search syntax, for example `gen_ai.conversation.id:abc`.
+ * Returns `undefined` while no span matches.
+ *
+ * `sentry span list --json` cannot be used for this: it returns no trace id for a project search.
+ */
+export function findTraceIdOfSpan(query: string): string | undefined {
+  const params = new URLSearchParams({
+    dataset: 'spans',
+    field: 'trace',
+    query: `project:${process.env['E2E_TEST_SENTRY_PROJECT']} ${query}`,
+    statsPeriod: '1h',
+    per_page: '1',
+  });
+  const path = `/organizations/${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/events/?${params}`;
+  const result = runSentryCli(['api', path]);
+
+  if (result.status === 0) {
+    return (JSON.parse(result.stdout) as { data: { trace: string }[] }).data[0]?.trace;
   }
 
   throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);

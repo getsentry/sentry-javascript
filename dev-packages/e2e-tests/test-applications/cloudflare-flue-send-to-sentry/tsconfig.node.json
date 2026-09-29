@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023"],
+    "types": ["node"]
+  },
+  "include": ["tests/**/*", "global-setup.ts", "global-teardown.ts", "playwright.config.ts"]
+}
