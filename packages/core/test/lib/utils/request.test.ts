@@ -219,12 +219,12 @@ describe('request utils', () => {
 
     it('filters sensitive keys in a non-standard body', () => {
       const actual = httpRequestToRequestData({
-        body: { colour: 'blue', password: 'hunter2' },
+        body: { color: 'blue', password: 'hunter2' },
       } as any);
 
       expect(actual).toEqual({
         headers: {},
-        data: { colour: 'blue', password: '[Filtered]' },
+        data: { color: 'blue', password: '[Filtered]' },
       });
     });
 
@@ -1159,14 +1159,14 @@ describe('request utils', () => {
 
     it('filters sensitive keys in a JSON body', async () => {
       const request = createMockRequest({
-        body: JSON.stringify({ colour: 'blue', api_token: 'abc' }),
+        body: JSON.stringify({ color: 'blue', api_token: 'abc' }),
         contentType: 'application/json',
       });
       const scope = createMockScope();
 
       await captureBodyFromWinterCGRequest(request, scope, 'medium');
 
-      expect(scope.capturedData).toBe('{"colour":"blue","api_token":"[Filtered]"}');
+      expect(scope.capturedData).toBe('{"color":"blue","api_token":"[Filtered]"}');
     });
 
     it('captures form-urlencoded body', async () => {

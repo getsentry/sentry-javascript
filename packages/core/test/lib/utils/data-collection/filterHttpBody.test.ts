@@ -25,12 +25,12 @@ describe('filterCollectedHttpBody', () => {
 
   describe('JSON string bodies', () => {
     it('filters sensitive keys and keeps the string shape', () => {
-      expect(filterCollectedHttpBody('{"colour":"blue","token":"abc"}')).toBe('{"colour":"blue","token":"[Filtered]"}');
+      expect(filterCollectedHttpBody('{"color":"blue","token":"abc"}')).toBe('{"color":"blue","token":"[Filtered]"}');
     });
 
     it('filters sensitive keys inside arrays of objects', () => {
-      expect(filterCollectedHttpBody('[{"colour":"blue","token":"abc"}]')).toBe(
-        '[{"colour":"blue","token":"[Filtered]"}]',
+      expect(filterCollectedHttpBody('[{"color":"blue","token":"abc"}]')).toBe(
+        '[{"color":"blue","token":"[Filtered]"}]',
       );
     });
 
@@ -42,8 +42,8 @@ describe('filterCollectedHttpBody', () => {
 
   describe('form-encoded string bodies', () => {
     it('filters sensitive keys while preserving the original encoding', () => {
-      expect(filterCollectedHttpBody('colour=blue&user%5Bpassword%5D=supersecret123')).toBe(
-        'colour=blue&user%5Bpassword%5D=[Filtered]',
+      expect(filterCollectedHttpBody('color=blue&user%5Bpassword%5D=supersecret123')).toBe(
+        'color=blue&user%5Bpassword%5D=[Filtered]',
       );
     });
 
@@ -54,7 +54,7 @@ describe('filterCollectedHttpBody', () => {
     it('filters forms with a trailing ampersand, valueless keys, or empty segments', () => {
       expect(filterCollectedHttpBody('password=secret&')).toBe('password=[Filtered]&');
       expect(filterCollectedHttpBody('token=abc&flag')).toBe('token=[Filtered]&flag');
-      expect(filterCollectedHttpBody('colour=blue&&password=x')).toBe('colour=blue&&password=[Filtered]');
+      expect(filterCollectedHttpBody('color=blue&&password=x')).toBe('color=blue&&password=[Filtered]');
     });
   });
 

@@ -343,7 +343,7 @@ describe('withSentry', () => {
           request: new Request('https://example.com', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ colour: 'blue' }),
+            body: JSON.stringify({ key: 'value' }),
           }),
           context,
         },
@@ -353,7 +353,8 @@ describe('withSentry', () => {
         },
       );
 
-      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(JSON.stringify({ colour: 'blue' }));
+      // `key` matches the sensitive denylist, so its value arrives filtered.
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(JSON.stringify({ key: '[Filtered]' }));
     });
 
     test('does not capture cookies when dataCollection.cookies is disabled', async () => {

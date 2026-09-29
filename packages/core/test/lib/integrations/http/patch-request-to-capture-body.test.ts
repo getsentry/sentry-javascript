@@ -45,7 +45,7 @@ function expectCapturedBody(spy: ReturnType<typeof vi.fn>, data: unknown): void 
 
 describe('patchRequestToCaptureBody', () => {
   it('filters sensitive keys in a complete JSON body', () => {
-    expectCapturedBody(capture(['{"colour":"blue",', '"token":"abc"}']), '{"colour":"blue","token":"[Filtered]"}');
+    expectCapturedBody(capture(['{"color":"blue",', '"token":"abc"}']), '{"color":"blue","token":"[Filtered]"}');
   });
 
   it('keeps the filter-then-truncate order for a body that overshoots the limit in its final chunk', () => {

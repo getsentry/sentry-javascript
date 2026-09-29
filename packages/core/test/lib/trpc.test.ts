@@ -134,13 +134,13 @@ describe('trpcMiddleware', () => {
       path: 'test.procedure',
       type: 'mutation',
       next,
-      rawInput: { colour: 'blue', password: 'hunter2' },
+      rawInput: { color: 'blue', password: 'hunter2' },
     });
 
     expect(mockScope.setContext).toHaveBeenCalledWith('trpc', {
       procedure_path: 'test.procedure',
       procedure_type: 'mutation',
-      input: { colour: 'blue', password: '[Filtered]' },
+      input: { color: 'blue', password: '[Filtered]' },
     });
   });
 
