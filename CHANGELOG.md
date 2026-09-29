@@ -4,6 +4,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.47.2
+
+- fix(v9/nextjs): Align tunnel request matching in middleware with tunnel rewrite ([#24760](https://github.com/getsentry/sentry-javascript/pull/24760))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(v9/craft): Use version templating for aws layer ([#18676](https://github.com/getsentry/sentry-javascript/pull/18676))
+- test(v9/e2e): Fix stale e2e test apps and only test Next.js 15 ([#24793](https://github.com/getsentry/sentry-javascript/pull/24793))
+- test(v9/e2e): Look up events via the organization trace endpoint ([#24804](https://github.com/getsentry/sentry-javascript/pull/24804))
+- test(v9/e2e): Look up the symbolicated event via the eventids endpoint ([#24805](https://github.com/getsentry/sentry-javascript/pull/24805))
+
+</details>
+
 ## 9.47.1
 
 - fix(v9/core): Fix logs flush timeout starvation with continuous logging ([#18214](https://github.com/getsentry/sentry-javascript/pull/18214))
