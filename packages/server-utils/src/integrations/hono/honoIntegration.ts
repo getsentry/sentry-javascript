@@ -11,6 +11,7 @@ import { honoModuleNames } from '../../orchestrion/config/hono';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
 import { applyPatches } from './applyPatches';
+import { INTERNAL_REQUEST_ORIGIN } from './constants';
 import { createHonoRequestMiddleware } from './createHonoMiddleware';
 import { isMiddleware } from './isMiddleware';
 import { extractPathname, isInternalRequestSpanActive } from './patchAppRequest';
@@ -20,8 +21,6 @@ import type { SentryHonoMiddlewareOptions } from './types';
 // Matches the `@sentry/hono` SDK's integration name, so the SDK filters its own out of the
 // forwarded defaults and the two never stack.
 const INTEGRATION_NAME = 'Hono' as const;
-
-const INTERNAL_REQUEST_ORIGIN = 'auto.http.hono.internal_request';
 
 export interface HonoIntegrationOptions extends SentryHonoMiddlewareOptions {}
 
