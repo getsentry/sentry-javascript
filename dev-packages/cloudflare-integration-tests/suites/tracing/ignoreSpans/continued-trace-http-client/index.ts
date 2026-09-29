@@ -9,16 +9,12 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 0,
-    traceLifecycle: 'stream',
-    ignoreSpans: ['ignored-child'],
+    ignoreSpans: [{ attributes: { 'sentry.op': 'http.client' } }],
     tracePropagationTargets: [env.SERVER_URL],
   }),
   {
     async fetch(_request, env, _ctx) {
-      await Sentry.startSpan({ name: 'ignored-child' }, async () => {
-        await fetch(`${env.SERVER_URL}/outgoing`);
-      });
-
+      await fetch(`${env.SERVER_URL}/outgoing`);
       return Response.json({ status: 'ok' });
     },
   },
