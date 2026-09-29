@@ -34,9 +34,9 @@ sentryTest(
       ['sentry.idle_span_finish_reason']: 'reportPageLoaded',
     });
 
-    // We wait for 2.5 seconds before calling Sentry.reportPageLoaded()
-    // the margins are to account for timing weirdness in CI to avoid flakes
+    // We wait for 2.5 seconds before calling Sentry.reportPageLoaded(). The span starts at navigation start,
+    // but the timeout only starts once the bundle has executed, so allow generous upper headroom for slow CI.
     expect(spanDurationSeconds).toBeGreaterThan(2);
-    expect(spanDurationSeconds).toBeLessThan(3);
+    expect(spanDurationSeconds).toBeLessThan(4);
   },
 );
