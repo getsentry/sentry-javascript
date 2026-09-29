@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/node';
 import { Queue, Worker } from 'bullmq';
 
 const telemetry = new Sentry.BullMQTelemetry();
-const connection = { host: '127.0.0.1', port: 6380 };
+const connection = { host: '127.0.0.1', port: 6384 };
 
 async function run() {
   const queue = new Queue('test-queue', { connection, telemetry });
