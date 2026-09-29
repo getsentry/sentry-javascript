@@ -16,7 +16,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     strategy:
       matrix:
-        # Name prefix of every E2E app that deploys a real worker, see the app's global-setup.mjs
+        # Name prefix of every E2E app that deploys a real worker, see the app's global-setup.ts
         worker-prefix:
           - e2e-send-to-sentry
     steps:
