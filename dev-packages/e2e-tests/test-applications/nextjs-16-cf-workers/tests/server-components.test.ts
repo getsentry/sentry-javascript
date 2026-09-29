@@ -5,13 +5,14 @@ import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/te
 // them, so asserting `undefined` pins that they stay untouched.
 const nextjsSpan = { op: undefined, description: undefined, codeFunctionName: undefined };
 
-// TODO: Server component tests need SDK adjustments for Cloudflare Workers
-test.skip('Sends a span for a request to app router with URL', async ({ page }) => {
+// `withSentry` from `@sentry/nextjs/cloudflare` wraps the Worker entry, so the segment is its `http.server`
+// span, named after the route Next.js resolved.
+test('Sends a span for a request to app router with URL', async ({ page }) => {
   const spansPromise = collectStreamedSpansUntilSegment(
     'nextjs-16-cf-workers',
     span =>
       span.name === 'GET /parameterized/[one]/beep/[two]' &&
-      String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
+      span.attributes['url.path']?.value === '/parameterized/1337/beep/42',
   );
 
   await page.goto('/parameterized/1337/beep/42');
@@ -21,7 +22,7 @@ test.skip('Sends a span for a request to app router with URL', async ({ page }) 
     span =>
       span.name === 'GET /parameterized/[one]/beep/[two]' &&
       span.is_segment &&
-      String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
+      span.attributes['url.path']?.value === '/parameterized/1337/beep/42',
   )!;
 
   expect(segmentSpan.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
@@ -29,24 +30,22 @@ test.skip('Sends a span for a request to app router with URL', async ({ page }) 
   expect(segmentSpan.status).toBe('ok');
   expect(segmentSpan.attributes).toMatchObject({
     'sentry.op': { value: 'http.server', type: 'string' },
-    'sentry.origin': { value: 'auto', type: 'string' },
+    'sentry.origin': { value: 'auto.http.cloudflare', type: 'string' },
     'sentry.sample_rate': { value: 1, type: 'integer' },
     'sentry.segment.name.source': { value: 'route', type: 'string' },
-    'http.method': { value: 'GET', type: 'string' },
+    'http.request.method': { value: 'GET', type: 'string' },
     'http.response.status_code': { value: 200, type: 'integer' },
     'http.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
-    'http.status_code': { value: 200, type: 'integer' },
-    'http.target': { value: '/parameterized/1337/beep/42', type: 'string' },
-    'sentry.kind': { value: 'server', type: 'string' },
+    'url.path': { value: '/parameterized/1337/beep/42', type: 'string' },
     'next.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
   });
 
   // No child span should share the segment span's name
   expect(spans.filter(span => !span.is_segment && span.name === segmentSpan.name)).toHaveLength(0);
+  expect(spans.filter(span => getSpanOp(span) === 'http.server')).toEqual([segmentSpan]);
 });
 
-// TODO: Server component span tests need SDK adjustments for Cloudflare Workers
-test.skip('Will create spans for every server component and metadata generation functions when visiting a page', async ({
+test('Will create spans for every server component and metadata generation functions when visiting a page', async ({
   page,
 }) => {
   const spansPromise = collectStreamedSpansUntilSegment('nextjs-16-cf-workers', 'GET /nested-layout');
@@ -93,8 +92,7 @@ test.skip('Will create spans for every server component and metadata generation 
   expect(spans).toContainEqual({ ...nextjsSpan, name: 'start response' });
 });
 
-// TODO: Server component span tests need SDK adjustments for Cloudflare Workers
-test.skip('Will create spans for every server component and metadata generation functions when visiting a dynamic page', async ({
+test('Will create spans for every server component and metadata generation functions when visiting a dynamic page', async ({
   page,
 }) => {
   const spansPromise = collectStreamedSpansUntilSegment('nextjs-16-cf-workers', 'GET /nested-layout/[dynamic]');

@@ -25,6 +25,7 @@ describe('Server init()', () => {
 
     delete process.env.VERCEL;
     delete (process as { turbopack?: boolean }).turbopack;
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
   });
 
   it('inits the Node SDK', () => {
@@ -96,6 +97,46 @@ describe('Server init()', () => {
     withIsolationScope(() => init({}));
 
     expect(nodeInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets the release on the client of `@sentry/cloudflare` when it has none', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    const client = SentryNode.init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      enableOpenTelemetrySetup: false,
+    });
+    // `init` of `@sentry/node` takes a release from CI env vars like `GITHUB_SHA`.
+    client!.getOptions().release = undefined;
+
+    withIsolationScope(() => init({ release: '1.2.3' }));
+
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+    expect(client!.getOptions().release).toBe('1.2.3');
+    expect((GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease).toBe('1.2.3');
+    // With `cacheClient: false`, each request has a new client, so only the global scope reaches all of them.
+    expect(
+      getGlobalScope()
+        .getScopeData()
+        .eventProcessors.map(processor => processor.id),
+    ).toContain('DropReactControlFlowErrors');
+  });
+
+  it('leaves the control flow error processor to the client of `withSentry` from `@sentry/nextjs/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    SentryNode.init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      enableOpenTelemetrySetup: false,
+      integrations: [{ name: 'Nextjs' }],
+    });
+
+    withIsolationScope(() => init({}));
+
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+    expect(
+      getGlobalScope()
+        .getScopeData()
+        .eventProcessors.map(processor => processor.id),
+    ).not.toContain('DropReactControlFlowErrors');
   });
 
   // TODO: test `vercel` tag when running on Vercel

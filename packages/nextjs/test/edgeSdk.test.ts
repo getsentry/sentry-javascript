@@ -25,6 +25,8 @@ describe('Edge init()', () => {
     vi.unstubAllGlobals();
 
     getMainCarrier().__SENTRY__ = undefined;
+
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
   });
 
   it('inits the Vercel Edge SDK', () => {
@@ -56,13 +58,14 @@ describe('Edge init()', () => {
     );
   });
 
-  it('skips init on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+  it('skips init and stores the release on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
     vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
     setAsyncLocalStorageAsyncContextStrategy();
 
-    withIsolationScope(() => init({}));
+    withIsolationScope(() => init({ release: '1.2.3' }));
 
     expect(vercelEdgeInit).not.toHaveBeenCalled();
+    expect((GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease).toBe('1.2.3');
   });
 
   describe('integrations', () => {

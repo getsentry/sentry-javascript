@@ -35,6 +35,7 @@ import {
   flushSafelyWithTimeout,
   isAsyncContextOwnedByCloudflare,
   isCloudflareWaitUntilAvailable,
+  setCloudflareWorkerRelease,
   waitUntil,
 } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
@@ -113,9 +114,10 @@ export function init(options: VercelEdgeOptions = {}): void {
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
 
   if (isAsyncContextOwnedByCloudflare()) {
+    setCloudflareWorkerRelease(opts.release);
     DEBUG_BUILD &&
       debug.log(
-        'The client of `withSentry` handles this Worker, so `init` creates no client. Set the options in `withSentry`.',
+        'The client of `withSentry` handles this Worker, so `init` creates no client and only applies `release`. Set the other options in `withSentry`.',
       );
     return;
   }
