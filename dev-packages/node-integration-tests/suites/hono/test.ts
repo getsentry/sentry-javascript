@@ -121,6 +121,29 @@ describe('hono auto-instrumentation', () => {
       await runner.completed();
     });
 
+    test('creates a middleware span for .use() on a .basePath() clone', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const segment = container.items.find(
+              item => item.is_segment && item.name === 'GET /test-basepath-mw/hello',
+            );
+            if (!segment) {
+              throw new Error('segment for `GET /test-basepath-mw/hello` not in this container');
+            }
+            const middlewareSpan = container.items.find(
+              item => op(item) === 'middleware' && item.name === 'basepathMiddleware',
+            );
+            expect(middlewareSpan).toBeDefined();
+            expect(attr(middlewareSpan!, 'sentry.origin')).toBe('auto.middleware.hono');
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/test-basepath-mw/hello');
+      await runner.completed();
+    });
+
     test('does not create a middleware span for the Sentry middleware in a mounted sub-app', async () => {
       const runner = createRunner()
         .unordered()

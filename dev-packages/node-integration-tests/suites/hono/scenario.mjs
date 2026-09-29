@@ -86,6 +86,17 @@ app.use('/mw-throw/:code', async function throwingMiddleware(c, _next) {
 });
 app.get('/mw-throw/:code', c => c.text('never reached'));
 
+// Middleware registered via `.use()` on the clone returned by `.basePath()`. The clone shares the
+// root router, so the middleware still ends up in the matched-handler list at dispatch — the
+// per-request orchestrion hook must wrap it as a middleware span regardless of which instance
+// registered it.
+app
+  .basePath('/test-basepath-mw')
+  .use(async function basepathMiddleware(_c, next) {
+    await next();
+  })
+  .get('/hello', c => c.json({ greeting: 'world' }));
+
 serve({ fetch: app.fetch, port: 0 }, info => {
   sendPortToRunner(info.port);
 });
