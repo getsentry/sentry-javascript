@@ -63,6 +63,7 @@ export {
   knexIntegration,
   kafkaIntegration,
   honoIntegration,
+  honoMiddleware,
   koaIntegration,
   lastEventId,
   linkedErrorsIntegration,
