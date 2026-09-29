@@ -2,9 +2,8 @@ services:
   db:
     image: redis:latest
     restart: always
-    container_name: integration-tests-bullmq-redis
     ports:
-      - '6380:6379'
+      - '6384:6379'
     healthcheck:
       test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
       interval: 2s
