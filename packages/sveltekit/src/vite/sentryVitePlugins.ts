@@ -78,6 +78,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     sentryOrchestrionPlugin({
       buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation,
     }),
+    makeBuildFlagPlugin(),
   );
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
@@ -106,6 +107,65 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   }
 
   return sentryPlugins;
+}
+
+/**
+ * Flags `vite build` so `sentryHandle` can skip trace meta tags on pages SvelteKit renders at build time
+ * (prerendered and adapter fallback pages). Kit renders them in workers that inherit `process.env`, so the
+ * flag must stay set until the adapter ran. Afterwards we remove it again, so it doesn't leak into e.g. a
+ * server started in the same process after a programmatic build.
+ *
+ * When that point is reached depends on the Kit version:
+ * - Kit 2 renders from the SSR build's `writeBundle` and `closeBundle` hooks. In between, it runs a nested
+ *   client build, whose `closeBundle` fires before any page was rendered.
+ * - Kit 3 builds all environments via Vite's app builder and renders from `buildApp` hooks afterwards.
+ *   Every `closeBundle` fires before that.
+ */
+function makeBuildFlagPlugin(): Plugin {
+  let usesAppBuilder = false;
+  let isServerBuild = false;
+  let isWatchMode = false;
+
+  const clearFlag = (): void => {
+    delete process.env._SENTRY_SVELTEKIT_BUILDING;
+  };
+
+  // `buildApp` only exists as a plugin hook in Vite 7+
+  const plugin: Plugin & { buildApp?: { order: 'post'; handler: () => void } } = {
+    name: 'sentry-sveltekit-build-flag',
+    apply: 'build',
+    // Together with `order: 'post'`, this makes our hooks run after Kit's (including its adapter's)
+    enforce: 'post',
+    config() {
+      process.env._SENTRY_SVELTEKIT_BUILDING = 'true';
+    },
+    configResolved(config) {
+      usesAppBuilder = !!config.builder;
+      isServerBuild = !!config.build.ssr;
+      // Kit re-renders pages on every rebuild in watch mode
+      isWatchMode = !!config.build.watch;
+    },
+    closeBundle: {
+      order: 'post',
+      sequential: true,
+      handler() {
+        if (!usesAppBuilder && isServerBuild && !isWatchMode) {
+          clearFlag();
+        }
+      },
+    },
+    buildApp: {
+      order: 'post',
+      handler() {
+        // Without an app builder config, Vite 7+ calls `buildApp` hooks *before* the actual (legacy) build
+        if (usesAppBuilder && !isWatchMode) {
+          clearFlag();
+        }
+      },
+    },
+  };
+
+  return plugin;
 }
 
 // A bare subpath (not a relative import) so this plugin's `resolveId` can intercept it.
