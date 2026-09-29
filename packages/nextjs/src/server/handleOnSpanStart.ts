@@ -3,8 +3,10 @@ import {
   HTTP_METHOD,
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
+  HTTP_TARGET,
+  URL_QUERY,
 } from '@sentry/conventions/attributes';
-import type { Client, Span } from '@sentry/core';
+import type { Client, Options, Span } from '@sentry/core';
 import {
   getIsolationScope,
   getRootSpan,
@@ -13,14 +15,87 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
+import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
+import { backfillHttpServerStatus } from '../common/utils/backfillHttpServerStatus';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
+import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { maybeEnhanceServerComponentSpanName } from '../common/utils/tracingUtils';
-import { maybeStartCronCheckIn } from './vercelCronsMonitoring';
-import { maybeEnrichQueueConsumerSpan, maybeEnrichQueueProducerSpan } from './vercelQueuesMonitoring';
+import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
+import { maybeCompleteCronCheckIn, maybeStartCronCheckIn } from './vercelCronsMonitoring';
+import {
+  maybeCleanupQueueSpan,
+  maybeEnrichQueueConsumerSpan,
+  maybeEnrichQueueProducerSpan,
+} from './vercelQueuesMonitoring';
+
+export const NEXTJS_SERVER_IGNORE_SPANS: NonNullable<Options['ignoreSpans']> = [
+  // Static assets (matches `_next/static` anywhere in the name to handle custom basePath)
+  /^GET (\/.*)?\/_next\/static\//,
+  // Dev source-map fetch endpoints
+  /\/__nextjs_original-stack-frame/,
+  // Pages router /404
+  /^\/404$/,
+  // App router /404 and /_not-found segments (any HTTP method)
+  /^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/,
+  // Root transactions named "NextServer.getRequestHandler" containing useless tracing
+  /^NextServer\.getRequestHandler$/,
+  // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
+  // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
+  { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
+];
+
+/**
+ * Registers the hooks that name, enrich and filter the spans and events of the Next.js server on `client`.
+ */
+export function addNextjsServerSpanHooks(client: Client): void {
+  client.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
+    // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
+    // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
+    // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
+    // We need to drop these spans.
+    if (
+      // eslint-disable-next-line typescript/no-deprecated
+      (typeof spanAttributes[HTTP_TARGET] === 'string' &&
+        // eslint-disable-next-line typescript/no-deprecated
+        spanAttributes[HTTP_TARGET].includes('sentry_key') &&
+        // eslint-disable-next-line typescript/no-deprecated
+        spanAttributes[HTTP_TARGET].includes('sentry_client')) ||
+      (typeof spanAttributes[URL_QUERY] === 'string' &&
+        spanAttributes[URL_QUERY].includes('sentry_key') &&
+        spanAttributes[URL_QUERY].includes('sentry_client'))
+    ) {
+      samplingDecision.decision = false;
+    }
+  });
+
+  client.on('spanStart', span => handleOnSpanStart(span, client));
+
+  // Normalize name/op/source/status on the request root span at span end, before it is serialized into
+  // a transaction event (legacy) or streamed span JSON. Running on the live span means both lifecycles
+  // pick up the changes from one place, and the cron/queue hooks below see the finalized status.
+  client.on('spanEnd', span => {
+    if (span !== getRootSpan(span)) {
+      return;
+    }
+
+    const mutableRootSpan = createLiveRootSpanAdapter(span);
+    enhanceHandleRequestRootSpan(mutableRootSpan);
+    enhanceMiddlewareRootSpan(mutableRootSpan);
+    backfillHttpServerStatus(span);
+  });
+
+  client.on('spanEnd', maybeCompleteCronCheckIn);
+  client.on('spanEnd', maybeCleanupQueueSpan);
+
+  client.on('preprocessEvent', event => {
+    setUrlProcessingMetadata(event);
+  });
+}
 
 /**
  * Handles the on span start event for Next.js spans.
