@@ -9,7 +9,7 @@ import {
   flattenTrace,
   traceTarget,
 } from '@sentry-internal/test-utils/cli';
-import { fetchFromWorker } from '../deployed-worker';
+import { fetchFromWorker } from '@sentry-internal/test-utils/cloudflare';
 
 // Set by global-setup.ts once the worker for this run is deployed.
 const workerUrl = process.env.E2E_TEST_WORKER_URL;
