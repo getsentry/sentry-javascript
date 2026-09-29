@@ -1,5 +1,14 @@
-import type { Span } from '@sentry/core';
-import { debug, fill, flush, getAsyncContextStrategy, getMainCarrier, GLOBAL_OBJ, setHttpStatus } from '@sentry/core';
+import type { AsyncContextStrategy, Span } from '@sentry/core';
+import {
+  debug,
+  fill,
+  flush,
+  getAsyncContextStrategy,
+  getClient,
+  getMainCarrier,
+  GLOBAL_OBJ,
+  setHttpStatus,
+} from '@sentry/core';
 import { vercelWaitUntil } from '@sentry/core/server';
 import type { ServerResponse } from 'http';
 import { DEBUG_BUILD } from '../debug-build';
@@ -106,19 +115,44 @@ export function isCloudflareWaitUntilAvailable(): boolean {
   return typeof _getOpenNextCloudflareContext()?.waitUntil === 'function';
 }
 
+type MarkedAsyncContextStrategy = AsyncContextStrategy & { _sentryNextjsCloudflare?: boolean };
+
 /**
- * Whether a request of `withSentry` from `@sentry/cloudflare` runs. A client of `init` would then replace its async
- * context strategy while the request runs (#24603).
+ * Marks the async context strategy that `withSentry` of `@sentry/nextjs/cloudflare` installed. The mark is on the
+ * strategy in the global carrier, because the Worker entry and the server build of Next.js each bundle their own copy
+ * of `@sentry/nextjs`.
+ */
+export function markAsyncContextOwnedByCloudflare(): void {
+  (getAsyncContextStrategy(getMainCarrier()) as MarkedAsyncContextStrategy)._sentryNextjsCloudflare = true;
+}
+
+/**
+ * Whether `withSentry` of `@sentry/nextjs/cloudflare` set up the async context of this Worker, or a request of
+ * `withSentry` from `@sentry/cloudflare` runs. A client of `init` would then replace its async context strategy while
+ * a request runs (#24603).
  */
 export function isAsyncContextOwnedByCloudflare(): boolean {
-  const strategy = getAsyncContextStrategy(getMainCarrier());
+  const strategy: MarkedAsyncContextStrategy = getAsyncContextStrategy(getMainCarrier());
   // The AsyncLocalStorage strategy of `@sentry/cloudflare` has no `withActiveSpan`.
   const asyncLocalStorage = strategy.getTracingChannelBinding?.()?.asyncLocalStorage as
     | { getStore(): unknown }
     | undefined;
   return (
-    !strategy.withActiveSpan &&
-    asyncLocalStorage?.getStore() !== undefined &&
-    GLOBAL_OBJ.navigator?.userAgent === 'Cloudflare-Workers'
+    !!strategy._sentryNextjsCloudflare ||
+    (!strategy.withActiveSpan &&
+      asyncLocalStorage?.getStore() !== undefined &&
+      GLOBAL_OBJ.navigator?.userAgent === 'Cloudflare-Workers')
   );
+}
+
+/**
+ * Sets the build release of `withSentryConfig` on the current client if it has none, and stores it for the clients
+ * that `withSentry` of `@sentry/nextjs/cloudflare` creates later. Only code that Next.js compiles can read it.
+ */
+export function setCloudflareWorkerRelease(release: string | undefined): void {
+  (GLOBAL_OBJ as { _sentryRelease?: string })._sentryRelease ??= release;
+  const options = getClient()?.getOptions();
+  if (options && !options.release) {
+    options.release = release;
+  }
 }

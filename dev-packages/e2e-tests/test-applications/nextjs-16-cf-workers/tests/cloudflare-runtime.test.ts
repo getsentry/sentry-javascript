@@ -18,6 +18,7 @@ test.describe('Cloudflare Runtime', () => {
     expect(errorEvent.contexts?.runtime).toEqual({
       name: 'cloudflare',
     });
+    expect(errorEvent.tags?.turbopack).toBe(true);
 
     // The SDK info should include cloudflare in the packages
     expect(errorEvent.sdk?.packages).toEqual(
