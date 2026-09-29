@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import type { Plugin } from 'vite';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as autoInstrument from '../../src/vite/autoInstrument';
 import { generateVitePluginOptions, sentrySvelteKit } from '../../src/vite/sentryVitePlugins';
 import * as sourceMaps from '../../src/vite/sourceMaps';
@@ -296,17 +296,88 @@ describe('OpenTelemetry API resolver plugin', () => {
 });
 
 describe('build flag plugin', () => {
+  type HookHandler = (...args: unknown[]) => void;
+  type BuildFlagPlugin = {
+    enforce: string;
+    config: HookHandler;
+    configResolved: HookHandler;
+    closeBundle: { order: string; sequential: boolean; handler: HookHandler };
+    buildApp: { order: string; handler: HookHandler };
+  };
+
+  beforeEach(() => {
+    vi.stubEnv('_SENTRY_SVELTEKIT_BUILDING', undefined);
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it('sets `_SENTRY_SVELTEKIT_BUILDING` so the prerender worker inherits it', async () => {
-    vi.stubEnv('_SENTRY_SVELTEKIT_BUILDING', undefined);
+  async function startBuild(resolvedConfig: { builder?: object; build: { ssr?: boolean; watch?: object | null } }) {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    const plugin = plugins.find(p => p.name === 'sentry-sveltekit-build-flag');
+    const plugin = plugins.find(p => p.name === 'sentry-sveltekit-build-flag') as unknown as BuildFlagPlugin;
 
-    // @ts-expect-error - hook is a plain function here and doesn't need a plugin context
-    plugin?.config?.({}, { command: 'build', mode: 'production' });
+    plugin.config({}, { command: 'build', mode: 'production' });
+    plugin.configResolved(resolvedConfig);
+
+    return plugin;
+  }
+
+  it('sets `_SENTRY_SVELTEKIT_BUILDING` so the prerender worker inherits it', async () => {
+    await startBuild({ build: { ssr: true } });
+
+    expect(process.env._SENTRY_SVELTEKIT_BUILDING).toBe('true');
+  });
+
+  it("runs its hooks after SvelteKit's", async () => {
+    const plugin = await startBuild({ build: { ssr: true } });
+
+    expect(plugin.enforce).toBe('post');
+    expect(plugin.closeBundle).toMatchObject({ order: 'post', sequential: true });
+    expect(plugin.buildApp).toMatchObject({ order: 'post' });
+  });
+
+  describe('Kit 2 (no app builder)', () => {
+    it('removes the flag after the SSR build', async () => {
+      const plugin = await startBuild({ build: { ssr: true } });
+
+      // Vite 7+ calls `buildApp` hooks before the legacy build even starts
+      plugin.buildApp.handler();
+      expect(process.env._SENTRY_SVELTEKIT_BUILDING).toBe('true');
+
+      plugin.closeBundle.handler();
+      expect(process.env._SENTRY_SVELTEKIT_BUILDING).toBeUndefined();
+    });
+
+    it("keeps the flag after Kit's nested client build", async () => {
+      const plugin = await startBuild({ build: { ssr: false } });
+
+      plugin.closeBundle.handler();
+
+      expect(process.env._SENTRY_SVELTEKIT_BUILDING).toBe('true');
+    });
+  });
+
+  describe('Kit 3 (app builder)', () => {
+    it('removes the flag after all `buildApp` hooks ran', async () => {
+      const plugin = await startBuild({ builder: {}, build: { ssr: true } });
+
+      plugin.closeBundle.handler();
+      expect(process.env._SENTRY_SVELTEKIT_BUILDING).toBe('true');
+
+      plugin.buildApp.handler();
+      expect(process.env._SENTRY_SVELTEKIT_BUILDING).toBeUndefined();
+    });
+  });
+
+  it.each([
+    ['Kit 2', {}],
+    ['Kit 3', { builder: {} }],
+  ])('keeps the flag in watch mode (%s)', async (_, config) => {
+    const plugin = await startBuild({ ...config, build: { ssr: true, watch: {} } });
+
+    plugin.closeBundle.handler();
+    plugin.buildApp.handler();
 
     expect(process.env._SENTRY_SVELTEKIT_BUILDING).toBe('true');
   });
