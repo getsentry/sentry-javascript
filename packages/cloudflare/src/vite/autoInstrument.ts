@@ -15,17 +15,39 @@ function normalizePath(path: string): string {
 // `.html`, … — sharing the entry's basename must never be treated as the entry.
 const JS_EXTENSION_REGEX = /\.[cm]?[jt]sx?$/;
 
+// Re-exports everything the generated code uses, and adds the Next.js span handling and OpenTelemetry context.
+const NEXTJS_CLOUDFLARE_MODULE = '@sentry/nextjs/cloudflare';
+
+/**
+ * Whether `@sentry/nextjs/cloudflare` resolves from `importer`. Vite throws instead of returning `null` when
+ * `@sentry/nextjs` is installed in a version without that entry.
+ */
+async function resolvesNextjsCloudflare(resolver: ModuleResolver, importer: string): Promise<boolean> {
+  try {
+    return !!(await resolver.resolve?.(NEXTJS_CLOUDFLARE_MODULE, importer));
+  } catch {
+    return false;
+  }
+}
+
 export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPath?: string } = {}) {
   let wranglerConfig: WranglerConfig | undefined;
   let entryFilePath: string | undefined;
 
   let optionsFn = ENV_FALLBACK_OPTIONS_FN;
   let optionsImport: string | undefined;
+  let isVinext = false;
 
   return {
     name: 'sentry-cloudflare-auto-instrument',
 
-    configResolved(config: { root: string; logger?: { warn(msg: string): void } }): void {
+    configResolved(config: {
+      root: string;
+      plugins?: readonly { name?: string }[];
+      logger?: { warn(msg: string): void };
+    }): void {
+      isVinext = config.plugins?.some(plugin => plugin.name?.startsWith('vinext:')) ?? false;
+
       const result = resolveWranglerConfig(config.root, options.wranglerConfigPath);
       if (!result) {
         // An explicit path that fails is a misconfiguration worth naming;
@@ -119,6 +141,10 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
             })
           : undefined;
 
+      // A vinext app with `@sentry/nextjs` installed gets `withSentry` of `@sentry/nextjs/cloudflare`.
+      const sentryModule =
+        isVinext && (await resolvesNextjsCloudflare(this, normalizedId)) ? NEXTJS_CLOUDFLARE_MODULE : undefined;
+
       // No registration import is injected here: the orchestrion plugin's
       // subscribe-injection makes each bundled package self-register its channel
       // subscriber on the global marker, so wrapping the entry with `withSentry`
@@ -129,6 +155,7 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         optionsFn,
         optionsImport,
         sameWorkerBindings: wranglerConfig.sameWorkerBindings,
+        sentryModule,
       });
 
       const wrappedClasses = result?.wrappedClasses ?? new Set<string>();
