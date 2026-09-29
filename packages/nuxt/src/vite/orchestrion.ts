@@ -1,6 +1,10 @@
 import type { Nuxt } from '@nuxt/schema';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
-import { commonJSInteropOptions, sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
+import {
+  commonJSInteropOptions,
+  sentryCommonJSInteropPlugin,
+  sentryOrchestrionPlugin,
+} from '@sentry/server-utils/orchestrion/rollup';
 import type { NitroConfig } from 'nitropack';
 import { isCloudflarePreset } from './utils';
 
@@ -49,7 +53,7 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
       nitroConfig.rollupConfig.plugins = [nitroConfig.rollupConfig.plugins];
     }
 
-    nitroConfig.rollupConfig.plugins.push(sentryOrchestrionPlugin({}));
+    nitroConfig.rollupConfig.plugins.push(sentryOrchestrionPlugin({}), sentryCommonJSInteropPlugin());
 
     const externals = (nitroConfig.externals ||= {});
     const inline = externals.inline;

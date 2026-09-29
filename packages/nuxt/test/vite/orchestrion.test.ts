@@ -31,6 +31,7 @@ describe('setupOrchestrion', () => {
     }));
     vi.doMock('@sentry/server-utils/orchestrion/rollup', () => ({
       sentryOrchestrionPlugin: mockSentryOrchestrionPlugin,
+      sentryCommonJSInteropPlugin: () => ({ name: 'sentry-commonjs-interop' }),
       commonJSInteropOptions: () => mockCommonJSInteropOptions,
     }));
     // The module reaches `@sentry/core` and `@nuxt/kit` through `./utils`. Transforming those
@@ -61,7 +62,11 @@ describe('setupOrchestrion', () => {
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
     expect(mockSentryOrchestrionPlugin).toHaveBeenCalledOnce();
-    expect(nitroConfig.rollupConfig.plugins).toEqual([existingPlugin, { name: 'sentry-orchestrion-plugin' }]);
+    expect(nitroConfig.rollupConfig.plugins).toEqual([
+      existingPlugin,
+      { name: 'sentry-orchestrion-plugin' },
+      { name: 'sentry-commonjs-interop' },
+    ]);
     expect(nitroConfig.externals.inline).toEqual(['ioredis', 'custom-dependency', 'mysql', 'standard-as-callback']);
   });
 
@@ -108,7 +113,7 @@ describe('setupOrchestrion', () => {
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
     expect(nitroConfig).toEqual({
-      rollupConfig: { plugins: [{ name: 'sentry-orchestrion-plugin' }] },
+      rollupConfig: { plugins: [{ name: 'sentry-orchestrion-plugin' }, { name: 'sentry-commonjs-interop' }] },
       externals: { inline: ['mysql', 'ioredis', 'standard-as-callback'] },
       commonJS: mockCommonJSInteropOptions,
     });

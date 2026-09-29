@@ -23,6 +23,7 @@ const commonJSInteropOptionsMock = {
 };
 vi.mock('@sentry/server-utils/orchestrion/rollup', () => ({
   sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionRollupMock(options),
+  sentryCommonJSInteropPlugin: () => ({ name: 'sentry-commonjs-interop' }),
   commonJSInteropOptions: () => commonJSInteropOptionsMock,
 }));
 vi.mock('@sentry/server-utils/orchestrion/config', () => ({
@@ -197,7 +198,7 @@ describe('withSentry()', () => {
       const plugins: Array<{ name: string }> = [];
       await hookFn(nitroOptions, { plugins });
       expect(orchestrionRollupMock).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
-      expect(plugins.map(plugin => plugin.name)).toContain('sentry-orchestrion-plugin');
+      expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-orchestrion-plugin', 'sentry-commonjs-interop']);
     });
 
     it('force-inlines the instrumented modules into server.externals by default', () => {

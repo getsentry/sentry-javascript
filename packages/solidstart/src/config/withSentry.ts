@@ -1,6 +1,10 @@
 import { debug } from '@sentry/core';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
-import { commonJSInteropOptions, sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
+import {
+  commonJSInteropOptions,
+  sentryCommonJSInteropPlugin,
+  sentryOrchestrionPlugin,
+} from '@sentry/server-utils/orchestrion/rollup';
 import type { Nitro, NitroConfig } from 'nitropack';
 import { addSentryPluginToVite } from '../vite/sentrySolidStartVite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
@@ -60,6 +64,7 @@ export function withSentry(
       if (addBuildTimeInstrumentation) {
         sentryRollupConfig.plugins.push(
           sentryOrchestrionPlugin({ buildTimeInstrumentation: sentryPluginOptions.buildTimeInstrumentation }),
+          sentryCommonJSInteropPlugin(),
         );
       }
 
