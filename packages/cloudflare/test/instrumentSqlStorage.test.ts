@@ -1,13 +1,18 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
 import * as serverUtils from '@sentry/server-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentSqlStorage } from '../src/instrumentations/instrumentSqlStorage';
 import { initTestClient, resetSdk } from './testUtils';
 
 describe('instrumentSqlStorage', () => {
+  beforeEach(() => {
+    initTestClient({ tracesSampleRate: 1 });
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSdk();
   });
 
   it('instruments exec with summary as span name and sanitized query as db.query.text', () => {
@@ -262,30 +267,83 @@ describe('instrumentSqlStorage', () => {
     });
   });
 
-  describe('inside a parent span', () => {
-    afterEach(() => {
-      resetSdk();
-    });
+  it('starts a span without sanitizing the query when tracing is not configured', () => {
+    initTestClient();
+    const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+    const sanitizeSpy = vi.spyOn(serverUtils, 'sanitizeSqlQuery');
+    const mockSql = createMockSqlStorage();
+    const instrumented = instrumentSqlStorage(mockSql);
 
-    it.each([
-      [1, true],
-      [0, false],
-    ])('with tracesSampleRate %s, sanitizes the query and starts a span: %s', (tracesSampleRate, startsSpan) => {
-      initTestClient({ tracesSampleRate });
+    instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        name: 'exec',
+        attributes: {
+          'sentry.op': 'db.query',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          'db.system.name': 'cloudflare-durable-object-sql',
+          'db.operation.name': 'exec',
+        },
+      },
+      expect.any(Function),
+    );
+    expect(sanitizeSpy).not.toHaveBeenCalled();
+    expect(mockSql.exec).toHaveBeenCalledWith('SELECT * FROM users WHERE id = ?', 42);
+  });
+
+  describe('inside a parent span', () => {
+    it('with tracesSampleRate 1, sanitizes the query and names the span after it', () => {
       const sanitizeSpy = vi.spyOn(serverUtils, 'sanitizeSqlQuery');
-      const mockSql = createMockSqlStorage();
-      const instrumented = instrumentSqlStorage(mockSql);
+      const instrumented = instrumentSqlStorage(createMockSqlStorage());
 
       sentryCore.startSpan({ name: 'parent' }, () => {
         const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
 
         instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
 
-        expect(startSpanSpy).toHaveBeenCalledTimes(startsSpan ? 1 : 0);
+        expect(startSpanSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ name: 'SELECT users' }),
+          expect.any(Function),
+        );
       });
 
-      expect(sanitizeSpy).toHaveBeenCalledTimes(startsSpan ? 1 : 0);
+      expect(sanitizeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('with tracesSampleRate 0, records the dropped span without sanitizing the query', () => {
+      const client = initTestClient({ tracesSampleRate: 0 });
+      const sanitizeSpy = vi.spyOn(serverUtils, 'sanitizeSqlQuery');
+      const mockSql = createMockSqlStorage();
+      const instrumented = instrumentSqlStorage(mockSql);
+
+      sentryCore.startSpan({ name: 'parent' }, () => {
+        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+        const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+        instrumented.exec('SELECT * FROM users WHERE id = ?', 42);
+
+        expect(startSpanSpy).toHaveBeenCalledTimes(1);
+        expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'span');
+      });
+
+      expect(sanitizeSpy).not.toHaveBeenCalled();
       expect(mockSql.exec).toHaveBeenCalledWith('SELECT * FROM users WHERE id = ?', 42);
+    });
+
+    it('with tracesSampleRate 0, records no dropped span for Cloudflare-internal queries', () => {
+      const client = initTestClient({ tracesSampleRate: 0 });
+      const instrumented = instrumentSqlStorage(createMockSqlStorage());
+
+      sentryCore.startSpan({ name: 'parent' }, () => {
+        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
+        const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+        instrumented.exec('SELECT * FROM cf_agents_state WHERE id = ?', 'foo');
+
+        expect(startSpanSpy).not.toHaveBeenCalled();
+        expect(recordDroppedEventSpy).not.toHaveBeenCalled();
+      });
     });
   });
 });

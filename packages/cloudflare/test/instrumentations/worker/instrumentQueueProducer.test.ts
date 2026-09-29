@@ -1,8 +1,7 @@
 import type { Queue } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentQueueProducer } from '../../../src/instrumentations/worker/instrumentQueueProducer';
-import { initTestClient, resetSdk } from '../../testUtils';
 
 function createMockQueue(): Queue {
   return {
@@ -193,31 +192,5 @@ describe('instrumentQueueProducer', () => {
     const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE') as typeof queue;
 
     await expect(wrapped.metrics()).resolves.toEqual(metrics);
-  });
-
-  describe('inside a parent span', () => {
-    afterEach(() => {
-      resetSdk();
-    });
-
-    test.each([
-      [1, true],
-      [0, false],
-    ])('with tracesSampleRate %s, starts a span: %s', async (tracesSampleRate, startsSpan) => {
-      initTestClient({ tracesSampleRate });
-      const queue = createMockQueue();
-      const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE');
-
-      await SentryCore.startSpan({ name: 'parent' }, () => {
-        const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
-
-        const result = wrapped.send({ hello: 'world' });
-
-        expect(startSpanSpy).toHaveBeenCalledTimes(startsSpan ? 1 : 0);
-        return result;
-      });
-
-      expect(queue.send).toHaveBeenLastCalledWith({ hello: 'world' }, undefined);
-    });
   });
 });

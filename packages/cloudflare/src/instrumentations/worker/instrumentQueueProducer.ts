@@ -2,7 +2,6 @@ import type { MessageSendRequest, Queue, QueueSendBatchOptions, QueueSendOptions
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { QUEUE_PUBLISH } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
-import { isInUnsampledSpan } from '../../utils/isInUnsampledSpan';
 
 const ORIGIN = 'auto.faas.cloudflare.queue';
 
@@ -72,10 +71,6 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
         const original = Reflect.get(target, prop, receiver) as Queue['send'];
 
         return function (this: unknown, message: unknown, options?: QueueSendOptions): ReturnType<Queue['send']> {
-          if (isInUnsampledSpan()) {
-            return Reflect.apply(original, target, [message, options]);
-          }
-
           return startPublishSpan({ bindingName, bodySize: getBodySize(message) }, () =>
             Reflect.apply(original, target, [message, options]),
           );
@@ -89,10 +84,6 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
           messages: Iterable<MessageSendRequest>,
           options?: QueueSendBatchOptions,
         ): ReturnType<Queue['sendBatch']> {
-          if (isInUnsampledSpan()) {
-            return Reflect.apply(original, target, [messages, options]);
-          }
-
           const messageArray = Array.from(messages);
           const totalBodySize = messageArray.reduce<number | undefined>((acc, m) => {
             const size = getBodySize(m.body);

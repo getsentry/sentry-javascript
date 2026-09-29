@@ -37,6 +37,16 @@ export function targetsCloudflareInternalTable(
   return tables.some(table => isCloudflareInternalTable(table, allowlist));
 }
 
+/**
+ * Returns `false` when the raw `query` has no word that starts with `cf_`, so it cannot target a
+ * Cloudflare internal table. Needs no sanitizing, which makes it cheap enough to run on every query.
+ */
+export function mayTargetCloudflareInternalTable(query: string): boolean {
+  return CF_PREFIX_RE.test(query);
+}
+
+const CF_PREFIX_RE = /\bcf_/i;
+
 // `CREATE [UNIQUE] INDEX [IF NOT EXISTS] <name> ON <table>` — the IF EXISTS shape mirrors DDL_RE
 // in @sentry/core.
 const CREATE_INDEX_TABLE_RE =

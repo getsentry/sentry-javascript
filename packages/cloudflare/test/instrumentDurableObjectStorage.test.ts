@@ -16,6 +16,7 @@ vi.mock('../src/utils/traceLinks', async importOriginal => {
 describe('instrumentDurableObjectStorage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSdk();
   });
 
   describe('get', () => {
@@ -302,6 +303,7 @@ describe('instrumentDurableObjectStorage', () => {
   });
 
   it('instruments sql exec', () => {
+    initTestClient({ tracesSampleRate: 1 });
     const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
     const mockStorage = createMockStorage();
     const instrumented = instrumentDurableObjectStorage(mockStorage);
@@ -473,44 +475,6 @@ describe('instrumentDurableObjectStorage', () => {
       const instrumented = instrumentDurableObjectStorage(mockStorage);
 
       await expect(instrumented.get('myKey')).rejects.toThrow('Storage error');
-    });
-  });
-
-  describe('inside a parent span', () => {
-    afterEach(() => {
-      resetSdk();
-    });
-
-    it.each([
-      [1, true],
-      [0, false],
-    ])('with tracesSampleRate %s, starts a span for KV methods: %s', (tracesSampleRate, startsSpan) => {
-      initTestClient({ tracesSampleRate });
-      const mockStorage = createMockStorage();
-      const instrumented = instrumentDurableObjectStorage(mockStorage);
-
-      sentryCore.startSpan({ name: 'parent' }, () => {
-        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
-
-        void instrumented.get('myKey');
-
-        expect(startSpanSpy).toHaveBeenCalledTimes(startsSpan ? 1 : 0);
-      });
-
-      expect(mockStorage.get).toHaveBeenCalledWith('myKey');
-    });
-
-    it('with tracesSampleRate 0, still starts a span for setAlarm', () => {
-      initTestClient({ tracesSampleRate: 0 });
-      const instrumented = instrumentDurableObjectStorage(createMockStorage());
-
-      sentryCore.startSpan({ name: 'parent' }, () => {
-        const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
-
-        void instrumented.setAlarm(Date.now() + 1000);
-
-        expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      });
     });
   });
 });
