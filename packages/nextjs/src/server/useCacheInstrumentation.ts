@@ -168,9 +168,8 @@ function getCacheOrigins(): LRUMap<string, SpanContextData> {
 }
 
 /**
- * Links a cache hit to the fill that produced the entry. When the fill is unknown (process
- * restart, table eviction, or an entry filled by another instance of a shared cache), the hit
- * span carries no link — a wrong link is worse than no link.
+ * Links a cache hit to the fill that produced the entry.
+ * When the fill is unknown (process restart, table eviction, entry filled by another instance), the hit span carries no link
  */
 function linkCacheOrigin(span: Span, originKey: string): void {
   const origin = getCacheOrigins().get(originKey);
@@ -238,17 +237,29 @@ function instrumentHandler(handler: unknown): void {
 
     fill(handler, 'set', (originalSet: UseCacheHandler['set']) => {
       return function (this: UseCacheHandler, cacheKey: string, pendingEntry: Promise<unknown>): Promise<void> {
-        if (!shouldRecordCacheSpan()) {
-          return originalSet.call(this, cacheKey, pendingEntry);
-        }
         const digest = keyDigest(cacheKey);
+
+        // A successful write replaces the entry, so a remembered origin from a previous fill is now wrong.
+        // An unsampled fill has no span to link to -> remember nothing instead.
+        if (!shouldRecordCacheSpan()) {
+          return Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
+            getCacheOrigins().remove(originKeyPrefix + digest);
+            return result;
+          });
+        }
+
         // The handler drains `pendingEntry` (the still-streaming entry) before storing, so this
         // span covers producing and storing the entry, not just the write.
         return startCacheSpan(CACHE_PUT, digest, span =>
           // Only successful writes are remembered as fill origins: a failed write leaves either
           // no entry (the origin is never read) or the previous entry (whose origin still stands).
           Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
-            getCacheOrigins().set(originKeyPrefix + digest, span.spanContext());
+            if (span.isRecording()) {
+              getCacheOrigins().set(originKeyPrefix + digest, span.spanContext());
+            } else {
+              // The `cache.put` span was dropped (e.g. via `ignoreSpans`) and never reaches Sentry, so a link to it would be unnecessary.
+              getCacheOrigins().remove(originKeyPrefix + digest);
+            }
             return result;
           }),
         );
@@ -331,8 +342,8 @@ export function _instrumentUseCacheHandlers(): void {
 
 /**
  * Wraps Next.js' `use cache` handlers with `cache.get`/`cache.put` spans, so cached function
- * reads and fills show up in traces with hit/miss information. A hit additionally carries a
- * `cache_origin` span link to the `cache.put` span of the trace that filled the entry.
+ * reads and fills show up in traces with hit/miss information.
+ * A hit also adds a `cache_origin` span link to the `cache.put` span of the trace that filled the entry.
  */
 export const nextjsUseCacheIntegration = defineIntegration(() => {
   return {

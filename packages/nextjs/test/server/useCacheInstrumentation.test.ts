@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   const setAttribute = vi.fn();
   const addLink = vi.fn();
-  const state = { spanCount: 0 };
+  const state = { spanCount: 0, recording: true };
   return {
     setAttribute,
     addLink,
@@ -12,7 +12,8 @@ const mocks = vi.hoisted(() => {
     startSpan: vi.fn((_options: unknown, callback: (span: unknown) => unknown) => {
       const n = ++state.spanCount;
       const spanContext = { traceId: `trace-${n}`, spanId: `span-${n}`, traceFlags: 1 };
-      return callback({ setAttribute, addLink, spanContext: () => spanContext });
+      const recording = state.recording;
+      return callback({ setAttribute, addLink, spanContext: () => spanContext, isRecording: () => recording });
     }),
     activeSpan: undefined as object | undefined,
     sampled: true,
@@ -63,6 +64,7 @@ describe('instrumentUseCacheHandlers', () => {
     mocks.activeSpan = {};
     mocks.sampled = true;
     mocks.state.spanCount = 0;
+    mocks.state.recording = true;
   });
 
   afterEach(() => {
@@ -361,6 +363,35 @@ describe('instrumentUseCacheHandlers', () => {
       const handler = installWithDefaultHandler({ timestamp: nowMs() });
 
       await handler.set('other-key', Promise.resolve({}));
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
+    it('forgets a remembered origin when the entry is refilled without a sampled parent span', async () => {
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.set('cache-key', Promise.resolve({}));
+
+      mocks.activeSpan = undefined;
+      await handler.set('cache-key', Promise.resolve({}));
+      mocks.activeSpan = {};
+
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
+    it('forgets a remembered origin when the refill `cache.put` span is not recording', async () => {
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.set('cache-key', Promise.resolve({}));
+
+      // e.g. the `cache.put` op is filtered via `ignoreSpans`
+      mocks.state.recording = false;
+      await handler.set('cache-key', Promise.resolve({}));
+      mocks.state.recording = true;
+
       await handler.get('cache-key');
 
       expect(mocks.addLink).not.toHaveBeenCalled();
