@@ -5,6 +5,7 @@ import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
+  _INTERNAL_flushMetricsBuffer,
   _INTERNAL_setDeferSegmentSpanCapture,
   applySdkMetadata,
   debug,
@@ -38,6 +39,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;
   private _logOnExitFlushListener: (() => void) | undefined;
+  private _metricsOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
     const serverName =
@@ -63,6 +65,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       _INTERNAL_flushLogsBuffer(this);
     };
 
+    this._metricsOnExitFlushListener = () => {
+      _INTERNAL_flushMetricsBuffer(this);
+    };
+
     if (serverName) {
       this.on('beforeCaptureLog', log => {
         log.attributes = {
@@ -73,6 +79,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     }
 
     process.on('beforeExit', this._logOnExitFlushListener);
+    process.on('beforeExit', this._metricsOnExitFlushListener);
 
     // Enable deferred segment-span transaction capture here, in the constructor, rather than in
     // `initOtel`. Every client runs its constructor exactly once, whereas `initOtel` only runs on
@@ -156,6 +163,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     if (this._logOnExitFlushListener) {
       process.off('beforeExit', this._logOnExitFlushListener);
+    }
+
+    if (this._metricsOnExitFlushListener) {
+      process.off('beforeExit', this._metricsOnExitFlushListener);
     }
 
     const allEventsSent = await super.close(timeout);

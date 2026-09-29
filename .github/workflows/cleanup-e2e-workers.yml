@@ -31,6 +31,6 @@ jobs:
 
           if ! output=$(npx --yes wrangler@4 delete --name "$WORKER" --force 2>&1); then
             echo "$output"
-            # 10007 means the worker does not exist, i.e. the PR never ran the optional E2E job.
-            echo "$output" | grep -q 'code: 10007' || exit 1
+            # 10007 and 10090 mean the worker does not exist, e.g. the PR never ran the optional E2E job.
+            echo "$output" | grep -Eq 'code: (10007|10090)\]' || exit 1
           fi
