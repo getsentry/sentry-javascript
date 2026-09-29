@@ -115,9 +115,11 @@ async function fetchWithRetry(
   throw new Error('fetchWithRetry: unreachable');
 }
 
-function deferredPromise<T = void>(
-  done?: () => void,
-): { resolve: (val: T) => void; reject: (reason?: unknown) => void; promise: Promise<T> } {
+function deferredPromise<T = void>(): {
+  resolve: (val: T) => void;
+  reject: (reason?: unknown) => void;
+  promise: Promise<T>;
+} {
   let resolve;
   let reject;
   const promise = new Promise<T>((res, rej) => {
@@ -134,7 +136,7 @@ function deferredPromise<T = void>(
   return {
     resolve,
     reject,
-    promise: promise.finally(() => done?.()),
+    promise,
   };
 }
 
@@ -238,14 +240,14 @@ export function createRunner(...paths: string[]) {
     start: function (signal?: AbortSignal): StartResult {
       let child: ReturnType<typeof spawn> | undefined;
       let childSubWorker: ReturnType<typeof spawn> | undefined;
+      let closeMockServer: (() => void) | undefined;
+      // True after `cleanupThisRunner` ran. The async startup below checks it, so a mock server that
+      // comes up after the teardown is closed and no `wrangler dev` is spawned.
+      let disposed = false;
 
-      // Tears down this runner only. `cleanupChildProcesses` tears down every registered runner, so
-      // running it here would kill a worker another test has already started: a runner whose
-      // `isComplete` settles after its own test (a suite that asserts on streamed spans never calls
-      // `completed()`, so the abort signal settles it) would take the next test's worker with it.
-      // The mock server has to close here as well, otherwise one server per scenario stays listening
-      // for the whole run.
       function cleanupThisRunner(): void {
+        disposed = true;
+        CLEANUP_STEPS.delete(cleanupThisRunner);
         child?.kill();
         childSubWorker?.kill();
         closeMockServer?.();
@@ -257,10 +259,9 @@ export function createRunner(...paths: string[]) {
       // per file, a full run ends up with dozens of `wrangler dev` processes competing for the
       // machine, and the later suites time out. Tie the teardown to the test instead.
       onTestFinished(cleanupThisRunner);
+      CLEANUP_STEPS.add(cleanupThisRunner);
 
-      let closeMockServer: (() => void) | undefined;
-
-      const { resolve, reject, promise: isComplete } = deferredPromise(cleanupThisRunner);
+      const { resolve, reject, promise: isComplete } = deferredPromise();
 
       const spanWaiters: {
         onSpans: (spans: SerializedStreamedSpan[]) => boolean;
@@ -435,12 +436,12 @@ export function createRunner(...paths: string[]) {
 
       createBasicSentryServer(newEnvelope)
         .then(async ([mockServerPort, mockServerClose]) => {
-          if (mockServerClose) {
-            closeMockServer = mockServerClose;
-            CLEANUP_STEPS.add(() => {
-              mockServerClose();
-            });
+          // The test can end before the mock server is up, e.g. when it throws right after `start()`.
+          if (disposed) {
+            mockServerClose();
+            return;
           }
+          closeMockServer = mockServerClose;
 
           if (process.env.DEBUG) log('Starting scenario', testPath);
 
@@ -502,6 +503,10 @@ export function createRunner(...paths: string[]) {
             });
 
             await waitForReady(childSubWorker);
+
+            if (disposed) {
+              return;
+            }
           }
 
           child = spawn(
@@ -524,11 +529,6 @@ export function createRunner(...paths: string[]) {
             ],
             { stdio: ['ignore', 'pipe', 'inherit'], signal },
           );
-
-          CLEANUP_STEPS.add(() => {
-            child?.kill();
-            childSubWorker?.kill();
-          });
 
           childSubWorker?.on('error', onChildError);
           child.on('error', onChildError);
