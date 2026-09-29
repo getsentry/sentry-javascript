@@ -5,6 +5,7 @@ import {
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_USAGE_INPUT_TOKENS,
@@ -129,6 +130,52 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
     })
     .start(signal);
   await runner.makeRequest('get', '/stream');
+  await runner.completed();
+});
+
+it('traces a TypeSafe Jev evaluation like the TypeSafe integration', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .ignore('event')
+    .expect(envelope => {
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+
+      const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
+      expect(genAiSpans).toHaveLength(1);
+
+      expect(genAiSpans[0]).toEqual(
+        expect.objectContaining({
+          name: 'evaluate typesafe/jev',
+          status: 'ok',
+          is_segment: false,
+          attributes: {
+            'sentry.origin': { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
+            'sentry.op': { value: 'gen_ai.evaluate', type: 'string' },
+            [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
+            [GEN_AI_OPERATION_NAME]: { value: 'evaluate', type: 'string' },
+            [GEN_AI_REQUEST_MODEL]: { value: 'typesafe/jev', type: 'string' },
+            [GEN_AI_RESPONSE_MODEL]: { value: 'jev-1.13.0', type: 'string' },
+            [GEN_AI_USAGE_INPUT_TOKENS]: { value: 426, type: 'integer' },
+            [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 73, type: 'integer' },
+            [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 499, type: 'integer' },
+            // collect only output messages
+            [GEN_AI_OUTPUT_MESSAGES]: {
+              type: 'string',
+              value: '[{"type":"evaluation","answers":{"is_urgent":{"type":"noul","noul":0.97}}}]',
+            },
+            'sentry.is_localhost': { value: true, type: 'boolean' },
+            [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+            [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+            [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+            [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+            [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+            [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
+          },
+        }),
+      );
+    })
+    .start(signal);
+  await runner.makeRequest('get', '/evaluate');
   await runner.completed();
 });
 

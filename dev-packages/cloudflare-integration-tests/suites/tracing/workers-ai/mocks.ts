@@ -23,6 +23,14 @@ export class MockAi {
       throw error;
     }
 
+    if (model === 'typesafe/jev') {
+      return {
+        model: 'jev-1.13.0',
+        answers: { is_urgent: { type: 'noul', noul: 0.97 } },
+        usage: { input_tokens: 426, output_tokens: 73 },
+      };
+    }
+
     if (inputs?.stream === true) {
       return createSseStream([
         '{"response":"The capital "}',

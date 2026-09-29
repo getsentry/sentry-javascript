@@ -5,8 +5,12 @@ import {
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
+  GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -157,6 +161,42 @@ describe('instrumentWorkersAiClient', () => {
 
       expect(endedSpans).toHaveLength(1);
       expect(spanToStaticSpanJSON(endedSpans[0]!).data).toEqual(expected);
+    });
+  });
+
+  it('records TypeSafe models as evaluate spans, like the TypeSafe integration', async () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 }),
+    );
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+
+    const questions = { is_urgent: { type: 'noul', instructions: 'Does this convey urgency?' } };
+    const answers = { is_urgent: { type: 'noul', noul: 0.97 } };
+    const ai = {
+      run: vi.fn().mockResolvedValue({ model: 'jev-1.13.0', answers, usage: { input_tokens: 426, output_tokens: 73 } }),
+    };
+
+    await instrumentWorkersAiClient(ai).run('typesafe/jev', { state: 'Help!', questions });
+
+    const span = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(span.description).toBe('evaluate typesafe/jev');
+    expect(span.data).toEqual({
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.evaluate',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
+      [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
+      [GEN_AI_OPERATION_NAME]: 'evaluate',
+      [GEN_AI_REQUEST_MODEL]: 'typesafe/jev',
+      [GEN_AI_RESPONSE_MODEL]: 'jev-1.13.0',
+      [GEN_AI_USAGE_INPUT_TOKENS]: 426,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 73,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 499,
+      [GEN_AI_INPUT_MESSAGES]: JSON.stringify([{ type: 'evaluation', state: 'Help!', questions }]),
+      [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([{ type: 'evaluation', answers }]),
     });
   });
 

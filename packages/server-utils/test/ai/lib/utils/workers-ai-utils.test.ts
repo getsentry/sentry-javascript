@@ -59,6 +59,10 @@ describe('workers-ai utils', () => {
       expect(getOperationName({ text: 'embed me' })).toBe('embeddings');
     });
 
+    it('returns "evaluate" for TypeSafe state and questions inputs', () => {
+      expect(getOperationName({ state: 'Help!', questions: {} })).toBe('evaluate');
+    });
+
     it('prefers "chat" when both messages and text are present', () => {
       expect(getOperationName({ messages: [{ role: 'user', content: 'Hi' }], text: 'embed me' })).toBe('chat');
     });

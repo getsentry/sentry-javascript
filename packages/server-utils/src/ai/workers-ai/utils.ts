@@ -19,7 +19,13 @@ import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { extractSystemInstructions, setOutputMessagesAttribute, setTokenUsageAttributes } from '../core/utils';
+import {
+  extractSystemInstructions,
+  getGenAiSpanOp,
+  setOutputMessagesAttribute,
+  setTokenUsageAttributes,
+} from '../core/utils';
+import { addResponseAttributes as addEvaluateResponseAttributes, getEvaluationInputMessages } from '../typesafe';
 // Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
 export { setOutputMessagesAttribute };
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
@@ -29,15 +35,20 @@ import type { WorkersAiInput, WorkersAiOutput } from './types';
  * Determine the gen_ai operation name from the inputs passed to `AI.run`.
  * Workers AI exposes a single `run` method, so we infer the operation from the input shape.
  */
-export type WorkersAiOperationName = 'chat' | 'embeddings';
+export type WorkersAiOperationName = 'chat' | 'embeddings' | 'evaluate';
 
 export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, string> = {
   chat: GEN_AI_CHAT,
   embeddings: GEN_AI_EMBEDDINGS,
+  evaluate: getGenAiSpanOp('evaluate'),
 };
 
 export function getOperationName(inputs: unknown): WorkersAiOperationName {
   if (inputs && typeof inputs === 'object') {
+    // TypeSafe evaluation models (e.g. `typesafe/jev`)
+    if ('state' in inputs && 'questions' in inputs) {
+      return 'evaluate';
+    }
     if ('messages' in inputs || 'prompt' in inputs) {
       return 'chat';
     }
@@ -102,6 +113,11 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
   }
   const params = inputs as WorkersAiInput;
 
+  if (operationName === 'evaluate') {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES, getEvaluationInputMessages(inputs as Record<string, unknown>));
+    return;
+  }
+
   // Store embeddings input on a separate attribute
   if (operationName === 'embeddings') {
     const text = params.text;
@@ -132,7 +148,17 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
 /**
  * Record the response attributes (token usage, response text, tool calls) on the span.
  */
-export function addResponseAttributes(span: Span, result: unknown, recordOutputs: boolean): void {
+export function addResponseAttributes(
+  span: Span,
+  result: unknown,
+  recordOutputs: boolean,
+  operationName?: WorkersAiOperationName,
+): void {
+  if (operationName === 'evaluate') {
+    addEvaluateResponseAttributes(span, result, recordOutputs);
+    return;
+  }
+
   if (
     !result ||
     typeof result !== 'object' ||

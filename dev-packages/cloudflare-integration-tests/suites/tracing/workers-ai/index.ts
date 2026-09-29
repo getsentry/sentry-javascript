@@ -34,6 +34,14 @@ export default Sentry.withSentry(
         return new Response(JSON.stringify(result));
       }
 
+      if (url.pathname === '/evaluate') {
+        const result = await ai.run('typesafe/jev', {
+          state: 'Help! My payouts have been failing for 3 days.',
+          questions: { is_urgent: { type: 'noul', instructions: 'Does this convey urgency?' } },
+        });
+        return new Response(JSON.stringify(result));
+      }
+
       if (url.pathname === '/stream') {
         const stream = (await ai.run('@cf/meta/llama-3.1-8b-instruct', {
           messages: [{ role: 'user', content: 'What is the capital of France?' }],

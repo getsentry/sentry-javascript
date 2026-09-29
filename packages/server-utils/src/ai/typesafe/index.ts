@@ -49,17 +49,19 @@ function getRequestAttributes(
     [GEN_AI_OPERATION_NAME]: 'evaluate',
     [GEN_AI_PROVIDER_NAME]: TYPESAFE_PROVIDER_NAME,
     ...(model ? { [GEN_AI_REQUEST_MODEL]: model } : {}),
-    ...(recordInputs
-      ? {
-          [GEN_AI_INPUT_MESSAGES]: stringify([
-            { type: 'evaluation', state: request.state, questions: request.questions },
-          ]),
-        }
-      : {}),
+    ...(recordInputs ? { [GEN_AI_INPUT_MESSAGES]: getEvaluationInputMessages(request) } : {}),
   };
 }
 
-/** Add the response model, token usage and (optionally) the answers of a `systemOne` result. */
+/** Serialize the `state` and `questions` of an evaluation request. Also used for TypeSafe models on Workers AI. */
+export function getEvaluationInputMessages(request: Record<string, unknown>): string | undefined {
+  return stringify([{ type: 'evaluation', state: request.state, questions: request.questions }]);
+}
+
+/**
+ * Add the response model, token usage and (optionally) the answers of a `systemOne` result.
+ * Workers AI returns the same shape for TypeSafe models (e.g. `typesafe/jev`).
+ */
 export function addResponseAttributes(span: Span, result: unknown, recordOutputs: boolean): void {
   if (!isObjectLike(result)) {
     return;
