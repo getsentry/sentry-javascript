@@ -1,5 +1,5 @@
 // Builds `src/entry.bun.ts` with the orchestrion `bun build` plugin, emitting `dist/entry.bun.js`
-// for the server to run. The plugin injects the `orchestrion:hono:honoConstructor` diagnostics
+// for the server to run. The plugin injects the `orchestrion:hono:context` diagnostics
 // channel into the bundled `hono`, which the `honoIntegration` default subscribes to.
 
 // @ts-ignore -- subpath export resolved by Bun at runtime; the package tsconfig's node module

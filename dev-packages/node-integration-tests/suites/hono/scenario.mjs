@@ -3,7 +3,7 @@ import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import { Hono } from 'hono';
 
 // No `@sentry/hono` and no `sentry()` middleware: the app is instrumented automatically by the
-// `honoIntegration` default in `@sentry/node` (via orchestrion hooking the `Hono` constructor).
+// `honoIntegration` default in `@sentry/node` (via orchestrion hooking the `Context` constructor).
 const app = new Hono();
 
 app.get('/', c => {
