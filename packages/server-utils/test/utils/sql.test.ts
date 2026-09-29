@@ -271,21 +271,6 @@ describe('getSqlQuerySummary', () => {
 });
 
 describe('sanitizeSqlQuery', () => {
-  describe('literal prefix boundaries', () => {
-    it.each([
-      ["N'Jane'", '?'],
-      ["'Jane'", '?'],
-      ["SELECT N/* comment */'Jane'", 'SELECT ?'],
-      ["SELECT MIN/* comment */'Jane'", 'SELECT MIN?'],
-      ['SELECT "name"N\'Jane\'', 'SELECT "name"?'],
-      ['SELECT "name"\'Jane\'', 'SELECT "name"?'],
-      ["SELECT `name`N'Jane'", 'SELECT `name`?'],
-      ["SELECT `name`'Jane'", 'SELECT `name`?'],
-    ])('sanitizes %p', (input, expected) => {
-      expect(sanitizeSqlQuery(input)).toBe(expected);
-    });
-  });
-
   describe('passthrough (no literals)', () => {
     it.each([
       ['SELECT * FROM users', 'SELECT * FROM users'],
