@@ -3,7 +3,7 @@
 import { RPC } from '@sentry/conventions/op';
 import { getDefaultIsolationScope, getIsolationScope, isObjectLike, startNewTrace } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategyForWorker } from './utils/asyncContextStrategy';
 import type { CloudflareOptions } from './client';
 import { getInstrumented, markAsInstrumented } from './instrument';
 import { instrumentDurableObjectHandlers } from './instrumentations/instrumentDurableObjectHandlers';
@@ -53,7 +53,7 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
   context: InstrumentedDurableObjectContext;
   frameworkManagedMethods: ReadonlySet<string>;
 } {
-  setAsyncLocalStorageAsyncContextStrategy();
+  setAsyncLocalStorageAsyncContextStrategyForWorker();
   const options = getFinalOptions(optionsCallback(env), env);
   // See InstrumentedDurableObjectContext — `ctx` is widened to `any` so the concrete
   // `DurableObjectState` type never enters the checker's relation graph in this module.
