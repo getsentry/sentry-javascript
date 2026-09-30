@@ -1,0 +1,7 @@
+node_modules
+.output
+.nitro
+.wrangler
+dist
+test-results
+pnpm-lock.yaml
