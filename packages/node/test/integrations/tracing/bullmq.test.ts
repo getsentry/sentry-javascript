@@ -201,40 +201,32 @@ describe('SentryBullMQSpan', () => {
   });
 
   describe('recordException', () => {
-    it('records Error instances on the OTel span and captures via Sentry', () => {
+    it('records Error instances on the OTel span without capturing them', () => {
       const { span, otelSpan } = createSpan();
       const error = new Error('Redis connection refused');
 
       span.recordException(error);
 
       expect(otelSpan.recordException).toHaveBeenCalledWith(error);
-      expect(SentryCore.captureException).toHaveBeenCalledWith(error, {
-        mechanism: { handled: false, type: 'auto.queue.bullmq' },
-      });
+      expect(SentryCore.captureException).not.toHaveBeenCalled();
     });
 
-    it('wraps non-Error exception objects in an Error and captures via Sentry', () => {
+    it('wraps non-Error exception objects in an Error', () => {
       const { span, otelSpan } = createSpan();
 
       span.recordException({ code: 503, message: 'Service unavailable' });
 
-      const wrappedError = new Error('Service unavailable');
-      expect(otelSpan.recordException).toHaveBeenCalledWith(wrappedError);
-      expect(SentryCore.captureException).toHaveBeenCalledWith(wrappedError, {
-        mechanism: { handled: false, type: 'auto.queue.bullmq' },
-      });
+      expect(otelSpan.recordException).toHaveBeenCalledWith(new Error('Service unavailable'));
+      expect(SentryCore.captureException).not.toHaveBeenCalled();
     });
 
-    it('wraps string exceptions in an Error and captures via Sentry', () => {
+    it('wraps string exceptions in an Error', () => {
       const { span, otelSpan } = createSpan();
 
       (span as any).recordException('Connection timed out');
 
-      const wrappedError = new Error('Connection timed out');
-      expect(otelSpan.recordException).toHaveBeenCalledWith(wrappedError);
-      expect(SentryCore.captureException).toHaveBeenCalledWith(wrappedError, {
-        mechanism: { handled: false, type: 'auto.queue.bullmq' },
-      });
+      expect(otelSpan.recordException).toHaveBeenCalledWith(new Error('Connection timed out'));
+      expect(SentryCore.captureException).not.toHaveBeenCalled();
     });
 
     it('uses fallback message when non-Error exception has no message', () => {
@@ -242,11 +234,8 @@ describe('SentryBullMQSpan', () => {
 
       span.recordException({ code: 500 });
 
-      const wrappedError = new Error('Unknown error');
-      expect(otelSpan.recordException).toHaveBeenCalledWith(wrappedError);
-      expect(SentryCore.captureException).toHaveBeenCalledWith(wrappedError, {
-        mechanism: { handled: false, type: 'auto.queue.bullmq' },
-      });
+      expect(otelSpan.recordException).toHaveBeenCalledWith(new Error('Unknown error'));
+      expect(SentryCore.captureException).not.toHaveBeenCalled();
     });
   });
 
