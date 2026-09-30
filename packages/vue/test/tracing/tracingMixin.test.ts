@@ -1,4 +1,5 @@
 import { getActiveSpan, startInactiveSpan } from '@sentry/browser';
+import { timestampInSeconds } from '@sentry/core';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_HOOKS } from '../../src/constants';
@@ -146,6 +147,190 @@ describe('Vue Tracing Mixins', () => {
         expect(rootMockSpan.end).toHaveBeenCalled();
       },
     );
+  });
+
+  describe('Root Component Span Debounce', () => {
+    const TIMEOUT = 1000;
+
+    const createChildren = (count: number): any[] =>
+      Array.from({ length: count }, (_, index) => ({
+        $root: mockRootInstance,
+        componentName: `Child${index}`,
+        $_sentryComponentSpans: {},
+      }));
+
+    // Mirrors Vue's mount order: parents run `beforeMount` first, children run `mounted` first.
+    const mountChildren = (mixins: ReturnType<typeof createTracingMixins>, children: any[]): void => {
+      children.forEach(child => mixins.beforeMount.call(child));
+      children.forEach(child => mixins.mounted.call(child));
+    };
+
+    const getRootSpans = (): ReturnType<typeof mockSpanFactory>[] =>
+      (startInactiveSpan as Mock).mock.results
+        .map(({ value }) => value)
+        .filter(span => span.name === 'Application Render');
+
+    const getRootSpan = (): ReturnType<typeof mockSpanFactory> => getRootSpans()[0]!;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it.each([10, 100])('schedules one timer when %i untracked components mount', count => {
+      const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+      const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+      const mixins = createTracingMixins({ timeout: TIMEOUT });
+
+      mixins.beforeMount.call(mockRootInstance);
+      mountChildren(mixins, createChildren(count));
+      mixins.mounted.call(mockRootInstance);
+
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+      expect(clearTimeoutSpy).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(1);
+
+      vi.advanceTimersByTime(TIMEOUT);
+
+      expect(getRootSpan().end).toHaveBeenCalledTimes(1);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('schedules one timer when 100 tracked components mount', () => {
+      const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+      const mixins = createTracingMixins({ timeout: TIMEOUT, trackComponents: true });
+
+      mixins.beforeMount.call(mockRootInstance);
+      mountChildren(mixins, createChildren(100));
+      mixins.mounted.call(mockRootInstance);
+
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(TIMEOUT);
+
+      expect(getRootSpan().end).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('ends the root span when only the root runs a hook', () => {
+      const mixins = createTracingMixins({ timeout: TIMEOUT });
+
+      mixins.mounted.call(mockRootInstance);
+      vi.advanceTimersByTime(TIMEOUT);
+
+      expect(getRootSpan().end).toHaveBeenCalledTimes(1);
+    });
+
+    it('ends the root span once, `timeout` after the last activity, at the time of that activity', () => {
+      const mixins = createTracingMixins({ timeout: TIMEOUT });
+
+      mixins.beforeMount.call(mockRootInstance);
+      mixins.mounted.call(mockRootInstance);
+      const rootSpan = getRootSpan();
+
+      // Each batch mounts before the previous activity's timeout elapses.
+      for (let batch = 0; batch < 3; batch++) {
+        vi.advanceTimersByTime(TIMEOUT - 1);
+        mountChildren(mixins, createChildren(10));
+      }
+      const lastActivity = timestampInSeconds();
+
+      vi.advanceTimersByTime(TIMEOUT - 1);
+      expect(rootSpan.end).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(1);
+      expect(rootSpan.end).toHaveBeenCalledTimes(1);
+      expect(rootSpan.end).toHaveBeenCalledWith(lastActivity);
+
+      vi.advanceTimersByTime(TIMEOUT * 10);
+      expect(rootSpan.end).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('schedules no timer when components mount after the root span ended', () => {
+      const mixins = createTracingMixins({ timeout: TIMEOUT });
+
+      mixins.beforeMount.call(mockRootInstance);
+      mixins.mounted.call(mockRootInstance);
+      vi.advanceTimersByTime(TIMEOUT);
+      expect(getRootSpan().end).toHaveBeenCalledTimes(1);
+
+      const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+      mountChildren(mixins, createChildren(10));
+
+      expect(setTimeoutSpy).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('ends a root span that a root update recreates after the first one ended', () => {
+      const mixins = createTracingMixins({ timeout: TIMEOUT, hooks: ['update'] });
+
+      mixins.beforeMount.call(mockRootInstance);
+      mixins.mounted.call(mockRootInstance);
+      vi.advanceTimersByTime(TIMEOUT);
+
+      mixins.beforeUpdate.call(mockRootInstance);
+      mixins.updated.call(mockRootInstance);
+      vi.advanceTimersByTime(TIMEOUT);
+
+      const [firstRootSpan, secondRootSpan] = getRootSpans();
+      expect(firstRootSpan!.end).toHaveBeenCalledTimes(1);
+      expect(secondRootSpan!.end).toHaveBeenCalledTimes(1);
+    });
+
+    it('ends the root span if the Date clock stands still', () => {
+      vi.spyOn(Date, 'now').mockReturnValue(Date.now());
+      const mixins = createTracingMixins({ timeout: TIMEOUT });
+
+      mixins.beforeMount.call(mockRootInstance);
+      mountChildren(mixins, createChildren(10));
+      mixins.mounted.call(mockRootInstance);
+      vi.advanceTimersByTime(TIMEOUT * 2);
+
+      expect(getRootSpan().end).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('ends the root span if the Date clock jumps back', () => {
+      const mixins = createTracingMixins({ timeout: TIMEOUT });
+
+      mixins.beforeMount.call(mockRootInstance);
+      mountChildren(mixins, createChildren(10));
+      mixins.mounted.call(mockRootInstance);
+      vi.setSystemTime(Date.now() - 60_000);
+      vi.advanceTimersByTime(TIMEOUT * 2);
+
+      expect(getRootSpan().end).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('keeps a separate debounce for each app', () => {
+      const mixins = createTracingMixins({ timeout: TIMEOUT });
+      const otherRootInstance: any = { componentName: 'OtherRootComponent', $_sentryComponentSpans: {} };
+      otherRootInstance.$root = otherRootInstance;
+      const otherChild = { $root: otherRootInstance, componentName: 'OtherChild', $_sentryComponentSpans: {} };
+
+      mixins.beforeMount.call(mockRootInstance);
+      mixins.mounted.call(mockRootInstance);
+      const rootMountedAt = timestampInSeconds();
+      const rootSpan = getRootSpan();
+
+      vi.advanceTimersByTime(TIMEOUT / 2);
+      mixins.beforeMount.call(otherRootInstance);
+      mixins.mounted.call(otherRootInstance);
+      const otherRootSpan = getRootSpans()[1]!;
+
+      // Activity in the other app must not delay this app's root span.
+      vi.advanceTimersByTime(TIMEOUT / 2);
+      mixins.beforeMount.call(otherChild);
+      mixins.mounted.call(otherChild);
+      expect(rootSpan.end).toHaveBeenCalledTimes(1);
+      expect(rootSpan.end).toHaveBeenCalledWith(rootMountedAt);
+      expect(otherRootSpan.end).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(TIMEOUT);
+      expect(otherRootSpan.end).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Component Span Lifecycle', () => {

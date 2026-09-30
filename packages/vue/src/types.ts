@@ -67,7 +67,7 @@ export interface TracingOptions {
    */
   trackComponents: boolean | string[];
 
-  /** How long to wait until the tracked root activity is marked as finished and sent of to Sentry */
+  /** How long the root render span waits for further render activity before it ends, in milliseconds */
   timeout: number;
 
   /**

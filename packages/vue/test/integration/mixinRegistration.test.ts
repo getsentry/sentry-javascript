@@ -4,7 +4,7 @@
 
 import { spanToJSON } from '@sentry/core';
 import type { MockInstance } from 'vitest';
-import { afterEach, beforeEach, describe, expect, it as baseIt, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it as baseIt, onTestFinished, vi } from 'vitest';
 import type { App, Component, Ref } from 'vue';
 import { createApp, defineAsyncComponent, h, nextTick, ref } from 'vue';
 import * as Sentry from '../../src';
@@ -259,9 +259,9 @@ describe('tracing mixin span creation', () => {
     ]);
   });
 
-  // `maybeEndRootComponentSpan` arms one debounce timer per component, so a late child never
-  // clears the root's earlier timer, and the root's timer ends the span first. The twin test in
-  // the disabled describe below proves the `app.mount()` wrap matches.
+  // The deferred child is still loading when the timeout passes, so the span ends without it. The
+  // twin test in the disabled describe below proves the `app.mount()` wrap matches here, although
+  // unlike the mixin it would not extend the span for a child that mounts within the timeout.
   it('ends the root render span before a deferred child mounts', ({ uiSpans, initSentry }) => {
     const { app } = createAppWithDeferredChild();
     initSentry({ sdk: { app } });
@@ -272,6 +272,48 @@ describe('tracing mixin span creation', () => {
       { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
       { name: 'Application Render', op: UI_RENDER_SPAN_OP },
     ]);
+  });
+
+  it('schedules one root span timer however many components mount', ({ initSentry }) => {
+    const leaf = { name: 'Leaf', render: () => h('span', 'leaf') };
+    const app = createApp({
+      name: 'RootComponent',
+      render: () =>
+        h(
+          'div',
+          Array.from({ length: 100 }, () => h(leaf)),
+        ),
+    });
+    initSentry({ sdk: { app } });
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    onTestFinished(() => setTimeoutSpy.mockRestore());
+
+    mountUnderActiveSpan(app);
+
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the root render span open while components keep mounting', async ({ uiSpans, initSentry }) => {
+    const showChild = ref(false);
+    const child = { name: 'ChildComponent', render: () => h('p', 'child') };
+    const app = createApp({ name: 'RootComponent', render: () => h('div', showChild.value ? [h(child)] : []) });
+    initSentry({ sdk: { app } });
+
+    await Sentry.startSpan({ name: 'pageload' }, async () => {
+      app.mount(document.createElement('div'));
+      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS - 1);
+      showChild.value = true;
+      await nextTick();
+
+      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS - 1);
+      expect(uiSpans).toEqual([{ name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP }]);
+
+      vi.advanceTimersByTime(1);
+      expect(uiSpans).toEqual([
+        { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+        { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+      ]);
+    });
   });
 
   it('names UI spans after the component and preserves the original description when span streaming is enabled', ({
@@ -350,7 +392,7 @@ describe('tracing mixin span creation', () => {
       expect(rootInstance.$el).toBe(container.firstElementChild);
     });
 
-    // Matches the mixin-path twin above: the mixin never waited for late children either.
+    // Matches the mixin-path twin above.
     it('ends the root render span before a deferred child mounts', ({ uiSpans, initSentry }) => {
       const { app } = createAppWithDeferredChild();
       disableOptionsApi(app);

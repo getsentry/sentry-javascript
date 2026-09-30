@@ -1,6 +1,7 @@
 import { getActiveSpan, getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
+  dateTimestampInSeconds,
   debug,
   hasSpanStreamingEnabled,
   timestampInSeconds,
@@ -38,13 +39,23 @@ const VUE_OPERATION_TO_SPAN_NAME_FALLBACK: Record<Operation, string> = {
 
 export type Mixins = Parameters<Vue['mixin']>[0];
 
+// A plain object, so that recording activity does not go through Vue's instance proxy on every hook.
+interface RootComponentSpanDebounce {
+  // The last render activity, on the span's own clock for its end timestamp, and on the Date clock to time the
+  // debounce: `timestampInSeconds` keeps the `performance` object it first read, so it ignores fake timers installed
+  // after that (e.g. in an app's own tests).
+  endTimestamp: number;
+  lastActivity: number;
+  hasNewActivity: boolean;
+}
+
 export interface VueSentry extends ViewModel {
   readonly $root: VueSentry;
   $_sentryComponentSpans?: {
     [key: string]: Span | undefined;
   };
   $_sentryRootComponentSpan?: Span;
-  $_sentryRootComponentSpanTimer?: ReturnType<typeof setTimeout>;
+  $_sentryRootComponentSpanDebounce?: RootComponentSpanDebounce;
 }
 
 // Mappings from operation to corresponding lifecycle hook.
@@ -59,18 +70,51 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   update: ['beforeUpdate', 'updated'],
 };
 
-/** End the top-level component span and activity with a debounce configured using `timeout` option */
-function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
-  if (vm.$_sentryRootComponentSpanTimer) {
-    clearTimeout(vm.$_sentryRootComponentSpanTimer);
+/**
+ * End the top-level component span once no render activity was recorded for `timeout` ms, at the time of the last one.
+ *
+ * All components of an app share one timer on the root, which re-arms itself rather than being reset by every hook, so
+ * the number of timers does not grow with the number of components.
+ */
+function maybeEndRootComponentSpan(vm: VueSentry, timeout: number): void {
+  const root = vm.$root;
+  if (!root?.$_sentryRootComponentSpan) {
+    return;
   }
 
-  vm.$_sentryRootComponentSpanTimer = setTimeout(() => {
-    if (vm.$root?.$_sentryRootComponentSpan) {
-      vm.$root.$_sentryRootComponentSpan.end(timestamp);
-      vm.$root.$_sentryRootComponentSpan = undefined;
+  const endTimestamp = timestampInSeconds();
+  const lastActivity = dateTimestampInSeconds();
+  const debounce = root.$_sentryRootComponentSpanDebounce;
+  if (debounce) {
+    debounce.endTimestamp = endTimestamp;
+    debounce.lastActivity = lastActivity;
+    debounce.hasNewActivity = true;
+  } else {
+    scheduleRootComponentSpanEnd(root, { endTimestamp, lastActivity, hasNewActivity: false }, timeout);
+  }
+}
+
+function scheduleRootComponentSpanEnd(root: VueSentry, debounce: RootComponentSpanDebounce, timeout: number): void {
+  const endIfIdle = (): void => {
+    // Whether anything happened is tracked without a clock, so the span still ends if the Date clock stands still or
+    // jumps back (e.g. mocked dates); the clock only sizes the re-arm, and the cap bounds a backwards jump.
+    if (debounce.hasNewActivity) {
+      debounce.hasNewActivity = false;
+      const idle = (dateTimestampInSeconds() - debounce.lastActivity) * 1000;
+      const remaining = Math.min(Math.round(timeout - idle), timeout);
+      if (remaining > 0) {
+        setTimeout(endIfIdle, remaining);
+        return;
+      }
     }
-  }, timeout);
+
+    root.$_sentryRootComponentSpanDebounce = undefined;
+    root.$_sentryRootComponentSpan?.end(debounce.endTimestamp);
+    root.$_sentryRootComponentSpan = undefined;
+  };
+
+  root.$_sentryRootComponentSpanDebounce = debounce;
+  setTimeout(endIfIdle, timeout);
 }
 
 /** Find if the current component exists in the provided `TracingOptions.trackComponents` array option. */
@@ -105,6 +149,12 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
     for (const internalHook of internalHooks) {
       mixins[internalHook] = function (this: VueSentry) {
         const isRootComponent = this.$root === this;
+        // Untracked components only feed the root span's debounce, so they skip the naming work below.
+        if (!isRootComponent && !options.trackComponents) {
+          maybeEndRootComponentSpan(this, rootComponentSpanFinalTimeout);
+          return;
+        }
+
         const client = getClient();
         const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
         const componentName = formatComponentName(this, false);
@@ -129,7 +179,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
             });
 
           // call debounced end function once directly, just in case no child components call it
-          maybeEndRootComponentSpan(this, timestampInSeconds(), rootComponentSpanFinalTimeout);
+          maybeEndRootComponentSpan(this, rootComponentSpanFinalTimeout);
         }
 
         // 2. Component tracking filter
@@ -142,7 +192,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
         // We always want to track root component
         if (!shouldTrack) {
           // even if we don't track `this` component, we still want to end the root span eventually
-          maybeEndRootComponentSpan(this, timestampInSeconds(), rootComponentSpanFinalTimeout);
+          maybeEndRootComponentSpan(this, rootComponentSpanFinalTimeout);
           return;
         }
 
@@ -189,7 +239,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
           span.end();
 
           // For any "after" hook, also schedule the root component span to end
-          maybeEndRootComponentSpan(this, timestampInSeconds(), rootComponentSpanFinalTimeout);
+          maybeEndRootComponentSpan(this, rootComponentSpanFinalTimeout);
         }
       };
     }
