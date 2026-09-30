@@ -8,6 +8,7 @@ import {
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
+import { registerServerBuildGlobal } from './serverBuild';
 import { isInstrumentationApiUsed } from './serverGlobals';
 
 type OriginalHandleRequestWithoutMiddleware = (
@@ -53,6 +54,11 @@ export function wrapSentryHandleRequest(
 export function wrapSentryHandleRequest(
   originalHandle: OriginalHandleRequestWithoutMiddleware | OriginalHandleRequestWithMiddleware,
 ): OriginalHandleRequestWithoutMiddleware | OriginalHandleRequestWithMiddleware {
+  // `entry.server` is evaluated before the server build module, so the build's capture call at the
+  // end of that module finds this. Runtimes without the Node server integration (Cloudflare) only
+  // register it here.
+  registerServerBuildGlobal();
+
   return async function sentryInstrumentedHandleRequest(
     request: Request,
     responseStatusCode: number,
