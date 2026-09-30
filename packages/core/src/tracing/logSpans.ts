@@ -52,7 +52,7 @@ export function logSpanEnd(span: Span): void {
 
 function getSpanInfo(span: Span): { name: string; op: string; parentSpanId: string | undefined } {
   const {
-    name = '< unknown name >',
+    name,
     attributes: { [SENTRY_OP]: op = '< unknown op >' },
     parent_span_id: parentSpanId,
   } = spanToJSON(span);
