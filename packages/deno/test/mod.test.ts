@@ -1,3 +1,4 @@
+import process from 'node:process';
 import type { Envelope, Event, Log } from '@sentry/core';
 import { createStackParser, forEachEnvelopeItem } from '@sentry/core';
 import { nodeStackLineParser } from '@sentry/core/server';
@@ -69,7 +70,7 @@ function expectCaptureExceptionEvent(event: Event | undefined): void {
         filename: 'app:///test/mod.test.ts',
         function: '?',
         in_app: true,
-        lineno: 45,
+        lineno: 46,
       },
       {
         colno: 12,
@@ -77,7 +78,7 @@ function expectCaptureExceptionEvent(event: Event | undefined): void {
         filename: 'app:///test/mod.test.ts',
         function: 'something',
         in_app: true,
-        lineno: 42,
+        lineno: 43,
       },
     ],
   );
@@ -231,7 +232,8 @@ Deno.test('preserves existing log attributes when adding server.address', () => 
   assertEquals(log.attributes?.['server.address'], 'test-server');
 });
 
-Deno.test('close() removes unload listener', async () => {
+Deno.test('close() removes log and metric exit listeners', async () => {
+  const originalListeners = process.listeners('beforeExit');
   const removeEventListenerCalls: Array<string> = [];
   const originalRemoveEventListener = globalThis.removeEventListener;
   globalThis.removeEventListener = ((event: string, ...args: unknown[]) => {
@@ -248,9 +250,16 @@ Deno.test('close() removes unload listener', async () => {
       transport: makeTestTransport(() => {}),
     });
 
+    const addedListeners = process.listeners('beforeExit').filter(listener => !originalListeners.includes(listener));
+
     await client.close();
 
-    assertEquals(removeEventListenerCalls.includes('unload'), true);
+    assertEquals(addedListeners.length, 2);
+    assertEquals(process.listeners('beforeExit'), originalListeners);
+    assertEquals(
+      removeEventListenerCalls.filter(event => event === 'unload'),
+      ['unload', 'unload'],
+    );
   } finally {
     globalThis.removeEventListener = originalRemoveEventListener;
   }

@@ -1,5 +1,5 @@
 import type { Nuxt } from '@nuxt/schema';
-import type { Plugin, UserConfig } from 'vite';
+import type { ConfigEnv, Plugin, UserConfig } from 'vite';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupSourceMaps, type SourceMapSetting } from '../../src/vite/sourceMaps';
 
@@ -379,7 +379,10 @@ describe('setupSourceMaps hooks', () => {
 
       const plugin = getCapturedPlugin();
       if (plugin && typeof plugin.config === 'function') {
-        plugin.config({ build: { ssr: false }, plugins: [] } as UserConfig, { mode: 'production', command: 'build' });
+        (plugin.config as (config: UserConfig, env: ConfigEnv) => void)(
+          { build: { ssr: false }, plugins: [] } as UserConfig,
+          { mode: 'production', command: 'build' },
+        );
       }
 
       const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output: {} }, dev: false };
@@ -402,7 +405,10 @@ describe('setupSourceMaps hooks', () => {
 
       const plugin = getCapturedPlugin();
       if (plugin && typeof plugin.config === 'function') {
-        plugin.config({ build: {}, plugins: [] } as UserConfig, { mode: 'production', command: 'build' });
+        (plugin.config as (config: UserConfig, env: ConfigEnv) => void)({ build: {}, plugins: [] } as UserConfig, {
+          mode: 'production',
+          command: 'build',
+        });
       }
 
       await mockNuxt.triggerHook('nitro:config', { rollupConfig: { plugins: [] }, dev: false });
