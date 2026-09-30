@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @nabi-noor and @LuccaRebelloToledo. Thank you for your contributions!
+Work in this release was contributed by @nabi-noor, @LuccaRebelloToledo, @andasan, @breken-ai, and @EmileBrunelle. Thank you for your contributions!
 
 ## 11.1.0
 

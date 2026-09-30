@@ -33,6 +33,16 @@
         "types": "./build/types/cli.d.ts",
         "default": "./build/cjs/cli.js"
       }
+    },
+    "./cloudflare": {
+      "import": {
+        "types": "./build/types/cloudflare.d.ts",
+        "default": "./build/esm/cloudflare.js"
+      },
+      "require": {
+        "types": "./build/types/cloudflare.d.ts",
+        "default": "./build/cjs/cloudflare.js"
+      }
     }
   },
   "sideEffects": false,

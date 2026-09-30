@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import type * as SentryCore from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it as baseIt, vi } from 'vitest';
@@ -9,6 +10,13 @@ import type { App, Component, Ref } from 'vue';
 import { createApp, defineAsyncComponent, h, nextTick, ref } from 'vue';
 import * as Sentry from '../../src';
 import type { Options, TracingOptions } from '../../src/types';
+
+vi.mock('@sentry/core', async importOriginal => {
+  return {
+    ...(await importOriginal<typeof SentryCore>()),
+    timestampInSeconds: () => Date.now() / 1000,
+  };
+});
 
 const PUBLIC_DSN = 'https://username@domain/123';
 const ROOT_SPAN_TIMEOUT_MS = 100;
@@ -259,14 +267,43 @@ describe('tracing mixin span creation', () => {
     ]);
   });
 
-  // `maybeEndRootComponentSpan` arms one debounce timer per component, so a late child never
-  // clears the root's earlier timer, and the root's timer ends the span first. The twin test in
-  // the disabled describe below proves the `app.mount()` wrap matches.
+  // The debounce only waits for recorded render activity, so a child that never mounts records
+  // none and cannot keep the root render span open.
   it('ends the root render span before a deferred child mounts', ({ uiSpans, initSentry }) => {
     const { app } = createAppWithDeferredChild();
     initSentry({ sdk: { app } });
 
     mountUnderActiveSpan(app);
+
+    expect(uiSpans).toEqual([
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
+    ]);
+  });
+
+  it('extends the root render span while children keep mounting within the timeout', async ({
+    uiSpans,
+    initSentry,
+  }) => {
+    const showChild = ref(false);
+    const child = { name: 'ChildComponent', render: () => h('p', 'child') };
+    const app = createApp({ name: 'RootComponent', render: () => h('div', [showChild.value ? h(child) : null]) });
+    initSentry({ sdk: { app } });
+    const container = document.createElement('div');
+
+    await Sentry.startSpan({ name: 'pageload' }, async () => {
+      app.mount(container);
+
+      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS - 1);
+      showChild.value = true;
+      await nextTick();
+
+      // The original deadline passes, but the child's mount pushed it out.
+      vi.advanceTimersByTime(2);
+      expect(uiSpans.map(span => span.op)).not.toContain(UI_RENDER_SPAN_OP);
+
+      vi.advanceTimersByTime(ROOT_SPAN_TIMEOUT_MS + 1);
+    });
 
     expect(uiSpans).toEqual([
       { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
@@ -350,7 +387,8 @@ describe('tracing mixin span creation', () => {
       expect(rootInstance.$el).toBe(container.firstElementChild);
     });
 
-    // Matches the mixin-path twin above: the mixin never waited for late children either.
+    // Unlike the mixin path, the `app.mount()` wrap only observes the root, so a late child can
+    // never extend the root render span here.
     it('ends the root render span before a deferred child mounts', ({ uiSpans, initSentry }) => {
       const { app } = createAppWithDeferredChild();
       disableOptionsApi(app);
