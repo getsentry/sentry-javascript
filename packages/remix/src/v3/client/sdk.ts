@@ -3,6 +3,7 @@ import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as browse
 import { applySdkMetadata, type Client, type Integration } from '@sentry/core';
 
 import { browserTracingIntegration } from './browserTracingIntegration';
+import { instrumentClientRuntime } from './errors';
 
 /**
  * Default integrations for the Remix 3 client SDK.
@@ -24,5 +25,11 @@ export function init(options: BrowserOptions): Client | undefined {
 
   applySdkMetadata(opts, 'remix', ['remix', 'browser']);
 
-  return browserInit(opts);
+  const client = browserInit(opts);
+
+  // Subscribed before the app calls `run()`, so an app served through an instrumented asset server
+  // reports component errors without writing any Sentry code itself.
+  instrumentClientRuntime();
+
+  return client;
 }

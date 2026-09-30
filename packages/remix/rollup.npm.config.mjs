@@ -27,7 +27,10 @@ const v3NodeEntry = defineConfig({
  */
 const v3ClientBundle = defineConfig({
   input: 'build/esm/v3/index.client.js',
-  external: id => id === 'remix' || id.startsWith('@remix-run/'),
+  // The channel shim has to stay external. Orchestrion's browser transform imports that file by URL
+  // into every instrumented module, so an inlined copy would leave the page with two shims and two
+  // separate subscriber registries, and instrumentation would quietly do nothing.
+  external: id => /diagnosticsChannelShim/.test(id) || id === 'remix' || id.startsWith('@remix-run/'),
   treeshake: { moduleSideEffects: false, propertyReadSideEffects: false },
   plugins: [nodeResolve({ browser: true, exportConditions: ['browser', 'import', 'default'] })],
   // Emitted inside `build/esm/v3/`, not at `build/`: the one import it keeps is the relative path to
