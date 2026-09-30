@@ -42,6 +42,10 @@ export class SentryBullMQSpan implements TelemetrySpan {
     }
   }
 
+  /**
+   * Does not capture to Sentry. BullMQ calls this for Redis, lock and serialization errors that it
+   * retries itself, often several times for one fault. Job failures are captured in `addEvent`.
+   */
   public recordException(exception: Error | string | { code?: number; message?: string; name?: string }): void {
     const error =
       exception instanceof Error
@@ -49,13 +53,6 @@ export class SentryBullMQSpan implements TelemetrySpan {
         : new Error(typeof exception === 'string' ? exception : exception.message || 'Unknown error');
 
     this._span.recordException(error);
-
-    captureException(error, {
-      mechanism: {
-        handled: false,
-        type: 'auto.queue.bullmq',
-      },
-    });
   }
 
   public setSpanOnContext(context: unknown): unknown {
