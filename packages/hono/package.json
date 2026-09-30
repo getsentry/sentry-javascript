@@ -74,7 +74,8 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@sentry/core": "11.1.0",
-    "@sentry/conventions": "^0.24.0"
+    "@sentry/conventions": "^0.24.0",
+    "@sentry/server-utils": "11.1.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x || ^5.x",
