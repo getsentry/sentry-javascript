@@ -9,7 +9,7 @@ test(import.meta.url, ({ runBundler, createTempDir }) => {
   const files = readAllFiles(tempDir);
   expect(files).toMatchInlineSnapshot(`
     {
-      "b699d9c1-b033-4536-aa25-233c92609b54-0.js": "//#region src/basic.js
+      "79e26bd8-4927-4a42-b909-053245d3f7b3-0.js": "//#region src/basic.js
     (function() {
     	try {
     		var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
@@ -23,7 +23,7 @@ test(import.meta.url, ({ runBundler, createTempDir }) => {
 
     //# debugId=00000000-0000-0000-0000-000000000000
     //# sourceMappingURL=basic.js.map",
-      "b699d9c1-b033-4536-aa25-233c92609b54-0.js.map": "{"version":3,"file":"basic.js","names":[],"sources":["../../src/basic.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"hello world\\");\\n"],"mappings":";;;;;;;;;AACA,QAAQ,IAAI,cAAc","debugId":"b699d9c1-b033-4536-aa25-233c92609b54","debug_id":"b699d9c1-b033-4536-aa25-233c92609b54"}",
+      "79e26bd8-4927-4a42-b909-053245d3f7b3-0.js.map": "{"version":3,"file":"basic.js","names":[],"sources":["../../src/basic.js"],"sourcesContent":["// eslint-disable-next-line no-console\\nconsole.log(\\"hello world\\");\\n"],"mappings":";;;;;;;;;AACA,QAAQ,IAAI,cAAc","debugId":"79e26bd8-4927-4a42-b909-053245d3f7b3","debug_id":"79e26bd8-4927-4a42-b909-053245d3f7b3"}",
     }
   `);
 });

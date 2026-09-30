@@ -32,7 +32,9 @@ async function createBuild(includeUnrelatedEntry: boolean, observeBundle?: (code
       {
         name: 'integrity-observer',
         generateBundle(_outputOptions: unknown, bundle: Record<string, { type: string; code?: string }>) {
-          observeBundle?.(Object.values(bundle).flatMap(output => (output.type === 'chunk' ? [output.code ?? ''] : [])));
+          observeBundle?.(
+            Object.values(bundle).flatMap(output => (output.type === 'chunk' ? [output.code ?? ''] : [])),
+          );
         },
       },
       {
