@@ -12,7 +12,6 @@ import {
   createComponentNameAnnotateHooks,
   replaceBooleanFlagsInCode,
   CodeInjection,
-  stampDebugId,
   getCodeInjectionPosition,
 } from '../core';
 import type { ComponentAnnotationTransformMeta } from '../core/component-annotation-oxc';
@@ -20,18 +19,12 @@ import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
+import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
 // because `rollup` is an optional dependency.
 type TransformResult = { code: string; map?: SourceMap | string | { mappings: string } | null } | null | undefined;
-
-// The subset of Rollup's `OutputBundle` the stamping hook reads.
-type OutputBundle = Record<
-  string,
-  | { type: 'chunk'; fileName: string; code: string; sourcemapFileName?: string | null }
-  | { type: 'asset'; fileName: string; source: string | Uint8Array }
->;
 
 type ViteModule = {
   parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;
@@ -250,27 +243,7 @@ export function _rollupPluginInternal(
    * assets afterwards (e.g. subresource integrity) see the stamped content.
    */
   function generateBundle(_outputOptions: unknown, bundle: OutputBundle): void {
-    for (const output of Object.values(bundle)) {
-      if (output.type !== 'chunk' || !isJsFile(output.fileName)) {
-        continue;
-      }
-
-      const sourceMapAsset = bundle[output.sourcemapFileName ?? `${output.fileName}.map`];
-      const sourceMapSource =
-        sourceMapAsset?.type === 'asset' && typeof sourceMapAsset.source === 'string'
-          ? sourceMapAsset.source
-          : undefined;
-
-      const stamped = stampDebugId(output.code, sourceMapSource);
-      if (!stamped) {
-        continue;
-      }
-
-      output.code = stamped.bundleSource;
-      if (stamped.sourceMapSource !== undefined && sourceMapAsset?.type === 'asset') {
-        sourceMapAsset.source = stamped.sourceMapSource;
-      }
-    }
+    stampDebugIds(bundle, true);
   }
 
   async function writeBundle(
