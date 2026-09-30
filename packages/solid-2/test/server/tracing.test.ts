@@ -183,6 +183,41 @@ describe('solidServerTracingIntegration', () => {
     expect(issue!.extra).not.toHaveProperty('error');
   });
 
+  it("the render's route names the request span: method + pattern, http.route, source route", async () => {
+    const { client, captured } = clientWith();
+    const event = createRequestEvent(new Request('https://app.example/users/42'));
+    const render = (route: object | undefined) =>
+      startSpan({ name: 'GET /users/42', op: 'http.server', attributes: { 'url.path': '/users/42' } }, span => {
+        // What the runtime delivers as the stream is handed over, inside the request's async context.
+        OBSERVE!.records.emit(
+          'render',
+          { mode: 'stream', at: performance.now(), durationMs: 3, boundaries: 0, outcome: 'complete', ...route },
+          { trace: getTraceContext()!, event },
+        );
+        return spanToJSON(span);
+      });
+
+    const named = render({ route: { name: '/users/:id', to: '/users/42', params: { id: '42' } } });
+    expect(named.name).toBe('GET /users/:id');
+    expect(named.attributes).toMatchObject({
+      'http.route': '/users/:id',
+      'sentry.segment.name.source': 'route',
+      'url.path.parameter.id': '42',
+      'url.path': '/users/42',
+    });
+
+    // No pattern (no router, a route file the router could not match): the URL name stands.
+    const unnamed = render({ route: { to: '/users/42' } });
+    expect(unnamed.name).toBe('GET /users/42');
+    expect(unnamed.attributes['http.route']).toBeUndefined();
+    const noRoute = render(undefined);
+    expect(noRoute.name).toBe('GET /users/42');
+
+    await client.flush(100);
+    const segment = captured.spans.find(span => span.is_segment && span.name === 'GET /users/:id');
+    expect(segment).toBeDefined();
+  });
+
   it('a <Loading> boundary that waited during the render becomes a span', async () => {
     const { client, captured } = clientWith();
     let release!: (value: string) => void;

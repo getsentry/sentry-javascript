@@ -1,6 +1,28 @@
-import type { Span } from '@sentry/core';
-import { debug, defineIntegration, getActiveSpan, getTraceData, spanToJSON, startInactiveSpan } from '@sentry/core';
-import type { FrameEvent, FrameLive, InvocationEvent, InvocationLive, TraceContext } from '@solidjs/web';
+import { HTTP_ROUTE, URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
+import type { Span, SpanAttributes } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  getActiveSpan,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  getRootSpan,
+  getTraceData,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  spanToJSON,
+  startInactiveSpan,
+  updateSpanName,
+} from '@sentry/core';
+import type {
+  FrameEvent,
+  FrameLive,
+  InvocationEvent,
+  InvocationLive,
+  RenderEvent,
+  RenderLive,
+  TraceContext,
+} from '@solidjs/web';
 import type { BoundaryEvent, BoundaryLive } from 'solid-js';
 import { OBSERVE } from 'solid-js';
 import type { DiagnosticsOptions } from '../common/diagnostics';
@@ -26,7 +48,11 @@ export interface SolidServerTracingOptions {
  * responses that have no `<head>`), and one span per server-function
  * execution, per `<Loading>` boundary that waited, and per frame stream
  * produced — each delivered inside the request's async context, so they
- * parent on the active `http.server` span. Inert without `OBSERVE`.
+ * parent on the active `http.server` span. The `"render"` record names that
+ * span by the route the router matched (`GET /users/:id`, `http.route`,
+ * source `route`) — the name Sentry's Performance product groups requests
+ * by, from the runtime rather than from router code in the SDK. Inert
+ * without `OBSERVE`.
  */
 export const solidServerTracingIntegration = defineIntegration((options: SolidServerTracingOptions = {}) => {
   return {
@@ -46,6 +72,7 @@ export const solidServerTracingIntegration = defineIntegration((options: SolidSe
         OBSERVE.records.subscribe('frame', (event, live) => {
           if (event.side === 'server') frameSpan(event, live);
         }),
+        OBSERVE.records.subscribe('render', nameRequestByRoute),
       ];
       if (options.diagnostics !== false) {
         const diagnosticsOptions = options.diagnostics;
@@ -81,6 +108,39 @@ function traceProvider(): Partial<TraceContext> | undefined {
     sampled: context.traceFlags % 2 === 1,
     entries,
   };
+}
+
+/**
+ * The route the router matched for a document render names the request's
+ * `http.server` span — the rename every server framework integration makes
+ * from its router (`GET /users/:id`, `http.route`, source `route`), here from
+ * `RenderEvent.route`, which the router declared to the runtime and the
+ * runtime read at settle (a lazy subtree that resolved during the render
+ * names the exact route). The record settles as the stream is handed over,
+ * inside the request's async context and before the response finishes, so
+ * the active span's root is the request. Nothing without a pattern: the
+ * URL the span already has is the best name there is. A route the HTTP
+ * layer set (a host framework's catch-all for the SSR handler) is replaced —
+ * the document's own route is the more specific fact.
+ */
+function nameRequestByRoute(event: RenderEvent, live: RenderLive): void {
+  const name = event.route?.name;
+  if (name === undefined) return;
+  const active = getActiveSpan();
+  if (active === undefined) return;
+  const root = getRootSpan(active);
+  if (spanToJSON(root).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] !== 'http.server') return;
+  const method = live.event?.request.method ?? 'GET';
+  const transactionName = `${method} ${name}`;
+  updateSpanName(root, transactionName);
+  const attributes: SpanAttributes = { [HTTP_ROUTE]: name, [SENTRY_SEGMENT_NAME_SOURCE]: 'route' };
+  for (const [key, value] of Object.entries(event.route?.params ?? {})) {
+    if (value !== undefined) attributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = value;
+  }
+  root.setAttributes(attributes);
+  // The request's isolation scope carries the name onto its error events.
+  const isolation = getIsolationScope();
+  if (isolation !== getDefaultIsolationScope()) isolation.setTransactionName(transactionName);
 }
 
 function invocationSpan(event: InvocationEvent, _live: InvocationLive): Span {

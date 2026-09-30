@@ -1,4 +1,4 @@
-import type { Span, SpanContextData, SpanLink } from '@sentry/core';
+import type { Client, Span, SpanContextData, SpanLink } from '@sentry/core';
 import { debug, defineIntegration, hasSpansEnabled, startInactiveSpan } from '@sentry/core';
 import type { CallEvent, CallLive } from '@solidjs/web';
 import { OBSERVE } from 'solid-js';
@@ -15,10 +15,11 @@ import { captureDiagnostic } from '../common/diagnostics';
 import { describeOrigin, describeTarget } from '../common/target';
 import { epochSeconds, round } from '../common/time';
 import { DEBUG_BUILD } from '../debug-build';
+import { drivesNavigationSpans } from './browser-tracing';
+import { browserNavigationSpan, holdSpan, nameInitialRoute, navigationSpan, ORIGIN } from './navigation';
 import { callSpan, frameSpan } from './records';
 
 const INTEGRATION_NAME = 'SolidTracing';
-const ORIGIN = 'auto.ui.solid.attribution';
 
 let uninstall: (() => void) | undefined;
 
@@ -49,13 +50,25 @@ export interface SolidTracingOptions {
 
 /**
  * Traces from Solid 2's observe tier: one root span per user interaction
- * with its navigations, holds and server-function calls as children; a
- * navigation or hold no interaction claims as a root span of its own; the
- * runtime's diagnostics as issues. Records arrive settled, with an absolute
- * `at` and durations, so every span is built retroactively with explicit
- * start and end times. Inert on a build without `OBSERVE` (production
- * without the `observe` condition): errors still report through
- * `solidErrorsIntegration`.
+ * with its holds and server-function calls as children; the runtime's
+ * diagnostics as issues; and the router's navigation records as the route
+ * names of the browser SDK's `pageload` and `navigation` spans. Records
+ * arrive settled, with an absolute `at` and durations, so every span is
+ * built retroactively with explicit start and end times.
+ *
+ * Navigations: the record of the route the document arrived on
+ * (`NavigationEvent.initial`) renames the active `pageload` span to the
+ * route pattern (source `route`, params as attributes). Beside
+ * `solidBrowserTracingIntegration`, every later record starts the
+ * `navigation` span the browser SDK would otherwise have started on
+ * `pushState` — named by the route, from the write that requested it to the
+ * settle — with the navigation's holds as children; the interaction that
+ * performed it links to it rather than containing it. With the plain
+ * `browserTracingIntegration`, or none, a navigation record is a span of its
+ * own: a child of its interaction, or a root when no interaction claims it.
+ *
+ * Inert on a build without `OBSERVE` (production without the `observe`
+ * condition): errors still report through `solidErrorsIntegration`.
  */
 export const solidTracingIntegration = defineIntegration((options: SolidTracingOptions = {}) => {
   return {
@@ -74,7 +87,7 @@ export const solidTracingIntegration = defineIntegration((options: SolidTracingO
       // Solid's channels are process-wide, not per client: a second `init`
       // (tests, HMR) replaces the previous subscriptions rather than stacking.
       uninstall?.();
-      const tracer = new Tracer();
+      const tracer = new Tracer(client);
       // `enable()` is a hold on a shared engine, not a switch: Solid's own
       // Performance-panel tracks, a diagnostics capture and this SDK coexist,
       // options combine by the most demanding request per key (`log: false`
@@ -96,7 +109,11 @@ export const solidTracingIntegration = defineIntegration((options: SolidTracingO
         release,
         OBSERVE.records.subscribe('interaction', event => queueMicrotask(() => tracer.interaction(event))),
         OBSERVE.records.subscribe('navigation', event => {
-          if (event.interaction === undefined) queueMicrotask(() => tracer.orphanNavigation(event));
+          // The document's own arrival is nobody's interaction; a later
+          // record an interaction claims arrives again inside that
+          // interaction's record, and is handled there.
+          if (event.initial === true) queueMicrotask(() => tracer.initialNavigation(event));
+          else if (event.interaction === undefined) queueMicrotask(() => tracer.orphanNavigation(event));
         }),
         OBSERVE.records.subscribe('hold', event => {
           if (event.interaction === undefined && event.origin?.kind !== 'navigation') {
@@ -114,7 +131,9 @@ export const solidTracingIntegration = defineIntegration((options: SolidTracingO
         off.push(
           OBSERVE.records.subscribe('call', (event, live) => {
             if (tracer.claimCall(event, live)) return;
-            queueMicrotask(() => callSpan(event, live, null));
+            // No frame claims it: a child of the active span — the `pageload`
+            // while it runs, as the browser SDK parents a fetch — else a root.
+            queueMicrotask(() => callSpan(event, live, undefined));
           }),
           OBSERVE.records.subscribe('frame', (event, live) => {
             if (event.side === 'client') queueMicrotask(() => frameSpan(event, live));
@@ -129,58 +148,6 @@ export const solidTracingIntegration = defineIntegration((options: SolidTracingO
   };
 });
 
-function holdSpan(hold: HoldEvent, parent: Span | null): Span {
-  const span = startInactiveSpan({
-    name: `hold${hold.blockers.length ? ` waiting on ${hold.blockers.join(', ')}` : ''}`,
-    op: 'solid.hold',
-    parentSpan: parent,
-    startTime: epochSeconds(hold.at),
-    attributes: {
-      'solid.hold.ms': round(hold.holdMs),
-      'solid.hold.tailMs': round(hold.tailMs),
-      'solid.hold.flushes': hold.flushes,
-      'solid.hold.silent': hold.silent,
-      'solid.hold.long': hold.long,
-      'solid.hold.acknowledgedBy': hold.acknowledgements.map(a => `${a.kind}:${a.source}`),
-      'solid.hold.readers': hold.acknowledgements.flatMap(a => (a.reader ? [a.reader.join(' › ')] : [])),
-      'solid.hold.blockers': hold.blockers,
-      'solid.hold.heldWrites': hold.heldWrites.map(w => w.name),
-      'solid.hold.painted': hold.paintedDuringHold,
-      'solid.hold.action': hold.action,
-      'solid.hold.navigation': hold.origin ? describeOrigin(hold.origin) : undefined,
-      'sentry.origin': ORIGIN,
-    },
-  });
-  span.end(epochSeconds(hold.at + hold.holdMs));
-  return span;
-}
-
-function navigationSpan(nav: NavigationEvent, parent: Span | null, links?: SpanLink[]): Span {
-  const attributes: Record<string, string | number | boolean | string[] | undefined> = {
-    'solid.navigation.to': nav.to,
-    'solid.navigation.from': nav.from,
-    'solid.navigation.outcome': nav.outcome,
-    'solid.navigation.writes': nav.writes,
-    'solid.navigation.redirects': nav.redirects?.map(h => h.to ?? h.name ?? '?'),
-    'solid.navigation.silent': nav.hold?.silent ?? false,
-    'sentry.origin': ORIGIN,
-  };
-  for (const [key, value] of Object.entries(nav.params ?? {})) {
-    if (value !== undefined) attributes[`url.path.parameter.${key}`] = value;
-  }
-  const span = startInactiveSpan({
-    name: nav.name ?? nav.to ?? 'navigation',
-    op: 'navigation',
-    parentSpan: parent,
-    startTime: epochSeconds(nav.at),
-    attributes,
-    links,
-  });
-  if (nav.hold !== undefined) holdSpan(nav.hold, span);
-  span.end(epochSeconds(nav.at + (nav.settledMs ?? 0)));
-  return span;
-}
-
 interface RecentInteraction {
   at: number;
   until: number;
@@ -189,6 +156,7 @@ interface RecentInteraction {
 const RECENT_LIMIT = 50;
 
 class Tracer {
+  private readonly _client: Client;
   private readonly _settled: WeakSet<ChangeOrigin>;
   /** The root span each settled interaction became — the parent for work it caused after its window closed. */
   private readonly _spans: WeakMap<ChangeOrigin, Span>;
@@ -196,26 +164,97 @@ class Tracer {
   private readonly _calls: WeakMap<ChangeOrigin, Array<{ event: CallEvent; live: CallLive }>>;
   /** Settled interactions kept for the time join, newest last. */
   private readonly _recent: RecentInteraction[];
+  /** Navigations whose record arrived — with the span each became, when it became one. */
+  private readonly _navigationsSettled: WeakSet<ChangeOrigin>;
+  private readonly _navigationSpans: WeakMap<ChangeOrigin, Span>;
+  /** Server-function calls dispatched under a navigation still open, awaiting its span. */
+  private readonly _navigationCalls: WeakMap<ChangeOrigin, Array<{ event: CallEvent; live: CallLive }>>;
 
-  public constructor() {
+  public constructor(client: Client) {
+    this._client = client;
     this._settled = new WeakSet();
     this._spans = new WeakMap();
     this._calls = new WeakMap();
     this._recent = [];
+    this._navigationsSettled = new WeakSet();
+    this._navigationSpans = new WeakMap();
+    this._navigationCalls = new WeakMap();
   }
 
   /**
-   * A call whose `origin` is an interaction is the interaction's, joined by
-   * the engine's object identity rather than by time. Made while the
-   * interaction is still open, it is held for the interaction's span; made
-   * after the interaction settled — the usual shape of `onClick={async () =>
-   * set(await call())}`, where the handler's synchronous window closes long
-   * before the call lands — it becomes a child of that span at once, marked
-   * `after_settle`. Only a call with no interaction at all is a root span.
+   * A navigation record as the browser `navigation` span, when
+   * `solidBrowserTracingIntegration` handed those to the records and the
+   * span was started for this client; `undefined` otherwise.
+   */
+  private _browserNavigation(nav: NavigationEvent, links?: SpanLink[]): Span | undefined {
+    if (!drivesNavigationSpans(this._client)) return undefined;
+    const span = browserNavigationSpan(this._client, nav, links, s => this._paintNavigationCalls(nav, s));
+    if (span !== undefined) this._settleNavigation(nav, span);
+    return span;
+  }
+
+  /** A navigation record as a span of its own under `parent` — no browser span to be. */
+  private _ownNavigation(nav: NavigationEvent, parent: Span | null, links?: SpanLink[]): Span {
+    const span = navigationSpan(nav, parent, links, s => this._paintNavigationCalls(nav, s));
+    this._settleNavigation(nav, span);
+    return span;
+  }
+
+  /** `links` join a navigation to an interaction it cannot be a child of — the browser span starts a trace of its own. */
+  private _navigation(nav: NavigationEvent, parent: Span | null, links?: SpanLink[]): Span {
+    return this._browserNavigation(nav, links) ?? this._ownNavigation(nav, parent, links);
+  }
+
+  private _paintNavigationCalls(nav: NavigationEvent, span: Span): void {
+    const calls = this._navigationCalls.get(nav.origin);
+    if (calls === undefined) return;
+    this._navigationCalls.delete(nav.origin);
+    for (const call of calls) callSpan(call.event, call.live, span);
+  }
+
+  private _settleNavigation(nav: NavigationEvent, span: Span | undefined): void {
+    this._navigationsSettled.add(nav.origin);
+    if (span !== undefined) this._navigationSpans.set(nav.origin, span);
+  }
+
+  /** The route the document arrived on: names the `pageload`, is no navigation. */
+  public initialNavigation(nav: NavigationEvent): void {
+    this._settleNavigation(nav, undefined);
+    nameInitialRoute(nav);
+  }
+
+  /**
+   * A call is claimed by the frame its `origin` names, joined by the
+   * engine's object identity rather than by time. A call a navigation
+   * caused — a `createAsync` calling the server on the route's write — is
+   * the navigation's: held for its span while the navigation is open, a
+   * child of that span at once when it has settled. A call under an
+   * interaction is the interaction's the same way; made after the
+   * interaction settled — the shape of `onClick={() => { save().then(set) }}`,
+   * where the handler's synchronous window closes long before the call
+   * lands — it becomes a child of that span, marked `after_settle`. A call
+   * with no frame at all is left to the caller: a child of whatever span is
+   * active (the `pageload`, for the calls a load makes), else a root.
    */
   public claimCall(event: CallEvent, live: CallLive): boolean {
     const origin = event.origin;
-    const interaction = origin === undefined ? undefined : origin.kind === 'interaction' ? origin : origin.interaction;
+    if (origin === undefined) return false;
+    if (origin.kind === 'navigation') {
+      const navigation = this._navigationSpans.get(origin);
+      if (navigation !== undefined) {
+        queueMicrotask(() => callSpan(event, live, navigation, true));
+        return true;
+      }
+      if (!this._navigationsSettled.has(origin)) {
+        let calls = this._navigationCalls.get(origin);
+        if (calls === undefined) this._navigationCalls.set(origin, (calls = []));
+        calls.push({ event, live });
+        return true;
+      }
+      // A settled navigation that became no span — the document's arrival —
+      // leaves the call to its interaction, if any, else to the pageload.
+    }
+    const interaction = origin.kind === 'interaction' ? origin : origin.interaction;
     if (interaction === undefined) return false;
     if (this._settled.has(interaction)) {
       const parent = this._spans.get(interaction);
@@ -237,6 +276,19 @@ class Tracer {
     // counts first; the handler itself ran from `at + inputDelayMs`.
     const inputDelayMs = event.inputDelayMs ?? 0;
     const handlerEnd = event.at + inputDelayMs + event.handlerMs;
+    // The navigations first, when they are browser navigation spans: each
+    // starts a new trace, and the interaction's own span then opens in the
+    // trace of the navigation it performed rather than in one of its own.
+    // Nothing in `navigations` is the document's arrival (`initial`).
+    const browserNavigations: Span[] = [];
+    const ownNavigations: NavigationEvent[] = [];
+    const underNavigation = new Set<HoldEvent>();
+    for (const nav of event.navigations) {
+      if (nav.hold !== undefined) underNavigation.add(nav.hold);
+      const browserSpan = this._browserNavigation(nav);
+      if (browserSpan !== undefined) browserNavigations.push(browserSpan);
+      else ownNavigations.push(nav);
+    }
     const span = startInactiveSpan({
       name: describeOrigin(origin),
       op: `ui.interaction.${event.name}`,
@@ -257,11 +309,12 @@ class Tracer {
         'sentry.origin': ORIGIN,
       },
     });
-    const underNavigation = new Set<HoldEvent>();
-    for (const nav of event.navigations) {
-      if (nav.hold !== undefined) underNavigation.add(nav.hold);
-      navigationSpan(nav, span);
+    // A navigation that became the browser's span is a root of its own: the
+    // click links to it — the causal fact, kept without a guessed parent.
+    for (const browserSpan of browserNavigations) {
+      span.addLink({ context: browserSpan.spanContext(), attributes: { 'solid.link': 'navigation' } });
     }
+    for (const nav of ownNavigations) this._ownNavigation(nav, span);
     for (const hold of event.holds) if (!underNavigation.has(hold)) holdSpan(hold, span);
     const calls = this._calls.get(origin);
     if (calls !== undefined) {
@@ -289,6 +342,6 @@ class Tracer {
     const links: SpanLink[] | undefined = cause
       ? [{ context: cause.context, attributes: { 'solid.link': 'interaction-by-time' } }]
       : undefined;
-    navigationSpan(nav, null, links);
+    this._navigation(nav, null, links);
   }
 }

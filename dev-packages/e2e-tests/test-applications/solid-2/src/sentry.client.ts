@@ -12,6 +12,6 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   tunnel: 'http://localhost:3031/', // proxy server
   tracesSampleRate: 1.0,
-  integrations: [Sentry.browserTracingIntegration(), Sentry.solidTracingIntegration()],
+  integrations: [Sentry.solidBrowserTracingIntegration(), Sentry.solidTracingIntegration()],
   debug: !!import.meta.env.DEBUG,
 });

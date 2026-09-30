@@ -1,12 +1,20 @@
 /**
  * @vitest-environment jsdom
  */
-import type { Event, StreamedSpanJSON } from '@sentry/core';
-import { createTransport, getCurrentScope, setCurrentClient, spanStreamingIntegration } from '@sentry/core';
+import type { Event, Integration, StreamedSpanJSON } from '@sentry/core';
+import {
+  createTransport,
+  getActiveSpan,
+  getCurrentScope,
+  getRootSpan,
+  setCurrentClient,
+  spanStreamingIntegration,
+  spanToJSON,
+} from '@sentry/core';
 import { OBSERVE, createEffect, createRoot, createSignal, flush } from 'solid-js';
 import { attribution } from 'solid-js/attribution';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BrowserClient, solidTracingIntegration } from '../../src/client';
+import { BrowserClient, solidBrowserTracingIntegration, solidTracingIntegration } from '../../src/client';
 import type { SolidTracingOptions } from '../../src/client';
 
 interface Captured {
@@ -14,12 +22,15 @@ interface Captured {
   spans: StreamedSpanJSON[];
 }
 
-function clientWith(options?: SolidTracingOptions): { client: BrowserClient; captured: Captured } {
+function clientWith(
+  options?: SolidTracingOptions,
+  browserTracing: Integration[] = [],
+): { client: BrowserClient; captured: Captured } {
   const captured: Captured = { events: [], spans: [] };
   const client = new BrowserClient({
     dsn: 'https://public@dsn.ingest.sentry.io/1337',
     tracesSampleRate: 1,
-    integrations: [spanStreamingIntegration(), solidTracingIntegration(options)],
+    integrations: [spanStreamingIntegration(), ...browserTracing, solidTracingIntegration(options)],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
     stackParser: () => [],
     beforeSend: event => {
@@ -329,6 +340,170 @@ describe('solidTracingIntegration', () => {
       attributes: expect.objectContaining({ 'sentry.op': 'navigation' }),
     });
     app.dispose();
+  });
+
+  describe('route names, from the records', () => {
+    const routeRef = (initial: boolean) =>
+      ({
+        kind: 'navigation',
+        ...(initial ? { initial: true } : { from: '/' }),
+        name: '/users/:id',
+        to: '/users/42',
+        params: { id: '42' },
+      }) as const;
+
+    it('the route the document arrived on renames the pageload span, source route', async () => {
+      const { client, captured } = clientWith(undefined, [solidBrowserTracingIntegration()]);
+      const pageload = getRootSpan(getActiveSpan()!);
+      expect(spanToJSON(pageload).attributes['sentry.op']).toBe('pageload');
+
+      // What the router does as it builds its context: no write, settles at frame close.
+      OBSERVE!.attribution.withOrigin(routeRef(true), () => {});
+      await settle();
+
+      expect(spanToJSON(pageload).name).toBe('/users/:id');
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/users/:id');
+      pageload.end();
+      await client.flush(100);
+
+      const segment = captured.spans.find(span => span.is_segment && span.attributes['sentry.op'] === 'pageload')!;
+      expect(segment).toMatchObject({
+        name: '/users/:id',
+        attributes: expect.objectContaining({
+          'sentry.segment.name.source': 'route',
+          'url.template': '/users/:id',
+          'url.path.parameter.id': '42',
+          'params.id': '42',
+        }),
+      });
+      // The arrival is no navigation: nothing else was painted for it.
+      expect(captured.spans.filter(span => span.attributes['sentry.op'] === 'navigation')).toEqual([]);
+    });
+
+    it('an arrival without a route pattern leaves the pageload as the browser SDK named it', async () => {
+      const { client, captured } = clientWith(undefined, [solidBrowserTracingIntegration()]);
+      const pageload = getRootSpan(getActiveSpan()!);
+      OBSERVE!.attribution.withOrigin({ kind: 'navigation', initial: true, to: '/somewhere' }, () => {});
+      await settle();
+      pageload.end();
+      await client.flush(100);
+      const segment = captured.spans.find(span => span.is_segment && span.attributes['sentry.op'] === 'pageload')!;
+      expect(segment.name).not.toBe('/somewhere');
+      expect(segment.attributes['sentry.segment.name.source']).not.toBe('route');
+    });
+
+    it("beside solidBrowserTracingIntegration a click's navigation is the browser navigation span, and the click links to it", async () => {
+      const { client, captured } = clientWith(undefined, [solidBrowserTracingIntegration()]);
+      const app = readerApp();
+      const at = performance.now();
+      OBSERVE!.attribution.withInteraction({ type: 'click', target: 'a#user' }, () =>
+        OBSERVE!.attribution.withOrigin(routeRef(false), () => app.setCount(1)),
+      );
+      flush();
+      await settle();
+      await client.flush(100);
+
+      const nav = captured.spans.find(span => span.is_segment && span.attributes['sentry.op'] === 'navigation')!;
+      const click = captured.spans.find(
+        span => span.is_segment && span.attributes['sentry.op'] === 'ui.interaction.click',
+      )!;
+      expect(nav).toMatchObject({
+        name: '/users/:id',
+        attributes: expect.objectContaining({
+          'sentry.segment.name.source': 'route',
+          'url.template': '/users/:id',
+          'url.path': '/users/42',
+          'url.path.parameter.id': '42',
+          'solid.navigation.from': '/',
+          'solid.navigation.outcome': 'committed',
+          'sentry.origin': 'auto.navigation.solid',
+        }),
+      });
+      // Dated from the write that requested it, ended where the runtime settled it — not the idle timeout.
+      expect(nav.start_timestamp).toBeGreaterThanOrEqual((performance.timeOrigin + at) / 1000 - 0.001);
+      expect(nav.end_timestamp! - nav.start_timestamp).toBeLessThan(0.5);
+      // A root in the trace the navigation opened; the click joins that trace and links to it.
+      expect(nav.parent_span_id).toBeUndefined();
+      expect(click.trace_id).toBe(nav.trace_id);
+      expect(click.links).toEqual([
+        expect.objectContaining({
+          span_id: nav.span_id,
+          attributes: expect.objectContaining({ 'solid.link': 'navigation' }),
+        }),
+      ]);
+      // Not painted twice: the only navigation span is the browser's.
+      expect(captured.spans.filter(span => span.attributes['sentry.op'] === 'navigation')).toHaveLength(1);
+      app.dispose();
+    });
+
+    it('a navigation no interaction claims is the browser navigation span too; the earlier idle span ends', async () => {
+      const { client, captured } = clientWith(undefined, [solidBrowserTracingIntegration()]);
+      const app = readerApp();
+      OBSERVE!.attribution.withOrigin(routeRef(false), () => app.setCount(1));
+      flush();
+      await settle();
+      await client.flush(100);
+      const segments = captured.spans.filter(span => span.is_segment);
+      expect(segments.map(span => span.attributes['sentry.op']).sort()).toEqual(['navigation', 'pageload']);
+      expect(segments.find(span => span.attributes['sentry.op'] === 'navigation')!.name).toBe('/users/:id');
+      app.dispose();
+    });
+
+    it("a server-function call a navigation caused is the navigation span's child, joined by identity", async () => {
+      const { client, captured } = clientWith(undefined, [solidBrowserTracingIntegration()]);
+      const app = readerApp();
+      OBSERVE!.attribution.withOrigin(routeRef(false), () => {
+        app.setCount(1);
+        // What a `createAsync` calling the server on the route's write records: the navigation frame.
+        const origin = OBSERVE!.attribution.currentOrigin();
+        expect(origin?.kind).toBe('navigation');
+        OBSERVE!.records.emit(
+          'call',
+          { id: 'loadUser', method: 'POST', at: performance.now(), durationMs: 9, outcome: 'ok', status: 200, origin },
+          { args: [42], response: new Response(''), result: {} },
+        );
+      });
+      flush();
+      await settle();
+      await client.flush(100);
+      const nav = captured.spans.find(span => span.is_segment && span.attributes['sentry.op'] === 'navigation')!;
+      const call = captured.spans.find(span => span.attributes['sentry.op'] === 'function.solid.call')!;
+      expect(call.parent_span_id).toBe(nav.span_id);
+      expect(call.trace_id).toBe(nav.trace_id);
+      expect(call.attributes['solid.server_function.origin.kind']).toBe('navigation');
+      app.dispose();
+    });
+
+    it('a call no frame claims during the load is a child of the pageload span', async () => {
+      const { client, captured } = clientWith(undefined, [solidBrowserTracingIntegration()]);
+      const pageload = getRootSpan(getActiveSpan()!);
+      OBSERVE!.records.emit(
+        'call',
+        { id: 'loadFeed', method: 'GET', at: performance.now(), durationMs: 4, outcome: 'ok', status: 200 },
+        { args: [], response: new Response(''), result: [] },
+      );
+      await settle();
+      pageload.end();
+      await client.flush(100);
+      const call = captured.spans.find(span => span.attributes['sentry.op'] === 'function.solid.call')!;
+      expect(call.is_segment).toBe(false);
+      expect(call.parent_span_id).toBe(pageload.spanContext().spanId);
+    });
+
+    it('instrumentNavigation: false on the wrapper means no browser navigation span; the record is a span of its own', async () => {
+      const { client, captured } = clientWith(undefined, [
+        solidBrowserTracingIntegration({ instrumentNavigation: false }),
+      ]);
+      const app = readerApp();
+      OBSERVE!.attribution.withOrigin(routeRef(false), () => app.setCount(1));
+      flush();
+      await settle();
+      await client.flush(100);
+      const nav = captured.spans.find(span => span.attributes['sentry.op'] === 'navigation')!;
+      expect(nav.attributes['sentry.origin']).toBe('auto.ui.solid.attribution');
+      expect(nav.attributes['url.template']).toBeUndefined();
+      app.dispose();
+    });
   });
 
   it('reports the runtime diagnostics as issues fingerprinted by code and owner', async () => {

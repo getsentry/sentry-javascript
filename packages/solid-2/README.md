@@ -84,7 +84,7 @@ Tracing reads Solid's observe tier — the build the `observe` export condition 
 Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1,
-  integrations: [Sentry.browserTracingIntegration(), Sentry.solidTracingIntegration()],
+  integrations: [Sentry.solidBrowserTracingIntegration(), Sentry.solidTracingIntegration()],
 });
 
 // server
@@ -95,9 +95,17 @@ Sentry.init({
 });
 ```
 
-- **Client** — one root span per user interaction (`ui.interaction.click`), with the navigations, holds and
-  server-function calls it caused as children; a navigation or hold no interaction claims as its own root span; the
-  runtime's diagnostics (`SILENT_HOLD`, `HOT_SCOPE_RERUNS`, …) as issues fingerprinted by code and component path.
+`solidBrowserTracingIntegration` is `browserTracingIntegration` with its navigation instrumentation handed to
+Solid's records: a `navigation` span begins when the router writes the location and ends when the transition
+commits, named by the **route pattern** (`/users/:id`) the router declared, with the parameters as
+`url.path.parameter.*`. The `pageload` and the server's `http.server` span are renamed by the same declaration. It
+takes the same options as `browserTracingIntegration`.
+
+- **Client** — the `navigation` span is the browser transaction, a trace of its own; the server-function calls the
+  route's data made are its children. A user interaction is a root span (`ui.interaction.click`) in that trace,
+  linked to the navigation it performed (`solid.link: navigation`), with the holds and calls it caused as children. A
+  call no frame claims parents under the active span — the `pageload`, while it runs. The runtime's diagnostics
+  (`SILENT_HOLD`, `HOT_SCOPE_RERUNS`, …) become issues fingerprinted by code and component path.
 - **Server** — the runtime carries Sentry's trace to the browser on its own two carriers (`Server-Timing` on every
   response, the `<meta>` pair in an HTML shell), so a `pageload` parents under the server request with no middleware
   and no body rewriting; plus one span per server-function execution, per `<Loading>` boundary that waited, and per

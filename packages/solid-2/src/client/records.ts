@@ -15,8 +15,14 @@ const FRAME_ORIGIN = 'auto.ui.solid.frame';
  * the function rather than the URL. A failed call sets the span's status
  * only: the error itself reaches the caller, and whatever catches it there
  * (an `<Errored>`, the server error hook on the other side) reports it once.
+ * `parent` `null` makes a root; `undefined` leaves it to the active span.
  */
-export function callSpan(event: CallEvent, _live: CallLive, parent: Span | null, afterSettle = false): Span {
+export function callSpan(
+  event: CallEvent,
+  _live: CallLive,
+  parent: Span | null | undefined,
+  afterSettle = false,
+): Span {
   const origin = event.origin;
   const span = startInactiveSpan({
     name: event.id,

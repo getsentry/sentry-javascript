@@ -163,11 +163,26 @@ derives its parent from the latter; the provider is where Sentry's view wins.
   happens after the fact on records the engine produced anyway. `checks: false` in `attribution` options would fold
   the five cost checks' bookkeeping off for a records-only posture; the SDK leaves them on because it reports their
   findings as issues.
-- **Span topology.** A user interaction is a **root** span (`parentSpan: null`); its navigations, holds and calls are
-  children; a navigation or hold no interaction claims is a root of its own; an orphan navigation whose request time
-  falls inside a settled interaction's handler window gets a span **link** to it rather than a guessed parent. Whether
-  an interaction should instead parent under an active `pageload`/`navigation` idle span is an open product question
-  (`forceTransaction` is deprecated; span streaming makes "root or child" the only distinction).
+- **Span topology.** A `navigation` is the **browser transaction**: `solidBrowserTracingIntegration` is
+  `browserTracingIntegration` with `instrumentNavigation` handed to the records, so the SDK's own navigation span
+  (`startBrowserTracingNavigationSpan`, `sentry.origin: auto.navigation.solid`) starts at the router's write and
+  ends at the transition's commit, in a trace of its own, instead of at `history.pushState` — which the router only
+  performs on commit, after the work. A user interaction is a **root** span (`parentSpan: null`) in that trace,
+  **linked** to the navigation it performed (`solid.link: navigation`; it cannot be a parent across the trace
+  boundary), with its holds and calls as children; a navigation no interaction claims stands alone, an orphan hold
+  is a root of its own. Without the wrapper (or with `instrumentNavigation: false` on it) the record becomes a span of
+  the SDK's own, a child of the interaction. A server-function call whose `origin` is a navigation is that navigation
+  span's child, held until the navigation settles when needed; a call no frame claims parents under the **active**
+  span — the `pageload`, for the calls a load makes — as the browser SDK parents a fetch, and is a root only when
+  nothing is active.
+- **Route names.** `NavigationEvent.name` (the route pattern the router declared) names the `navigation` span and,
+  on the initial record, renames the `pageload` (`updateName`, source `route`, `url.template`,
+  `url.path.parameter.*`); the server's `"render"` record's `route` renames the `http.server` span to
+  `GET /users/:id` with `http.route`, and the isolation scope's transaction name so errors in the request carry it.
+  With no declaration, every name stays the URL, as the browser SDK left it.
+- **Anchor navigations are unattributed.** `@solidjs/router` handles `<a>` clicks in a `document`-level listener,
+  outside the web runtime's interaction frame, so the navigation records no `interaction` and no click span exists to
+  link; `navigate()` from a handler is attributed. A Solid-side follow-up, not the SDK's to guess.
 - **Calls after the interaction settled.** Since rc.10 an interaction whose handler returns a promise stays open
   until it settles (`InteractionEvent.continuationMs`; `UNTRACKED_ASYNC_HANDLER` when nothing acknowledged the
   wait), so `onClick={async () => set(await call())}` no longer settles early and its call arrives while the

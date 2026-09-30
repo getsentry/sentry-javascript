@@ -14,8 +14,9 @@
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@sentry/solid-2": "file:../../packed/sentry-solid-2-packed.tgz",
-    "@solidjs/web": "^2.0.0-rc.10",
-    "solid-js": "^2.0.0-rc.10"
+    "@solidjs/router": "^2.0.0-next.32",
+    "@solidjs/web": "^2.0.0-rc.13",
+    "solid-js": "^2.0.0-rc.13"
   },
   "devDependencies": {
     "@playwright/test": "~1.63.0",

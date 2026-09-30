@@ -52,16 +52,17 @@
   "dependencies": {
     "@sentry/browser": "10.67.0",
     "@sentry/core": "10.67.0",
-    "@sentry/node": "10.67.0"
+    "@sentry/node": "10.67.0",
+    "@sentry/conventions": "^0.23.0"
   },
   "peerDependencies": {
-    "@solidjs/web": "^2.0.0-rc.10",
-    "solid-js": "^2.0.0-rc.10"
+    "@solidjs/web": "^2.0.0-rc.13",
+    "solid-js": "^2.0.0-rc.13"
   },
   "devDependencies": {
-    "@solidjs/signals": "^2.0.0-rc.10",
-    "@solidjs/web": "^2.0.0-rc.10",
-    "solid-js": "^2.0.0-rc.10"
+    "@solidjs/signals": "^2.0.0-rc.13",
+    "@solidjs/web": "^2.0.0-rc.13",
+    "solid-js": "^2.0.0-rc.13"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

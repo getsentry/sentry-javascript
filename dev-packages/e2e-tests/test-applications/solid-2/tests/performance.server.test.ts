@@ -25,6 +25,14 @@ test('a waiting <Loading> boundary and the server function it awaited are spans 
   const boundary = spans.find(span => getSpanOp(span) === 'solid.boundary')!;
   const invocation = spans.find(span => getSpanOp(span) === 'function.solid.direct')!;
 
+  // The request is named by the route the router matched, from the render
+  // record — `GET /users/:id`, not one name per user.
+  expect(request.name).toBe('GET /users/:id');
+  expect(request.attributes).toMatchObject({
+    'http.route': { value: '/users/:id', type: 'string' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.path.parameter.id': { value: '6', type: 'string' },
+  });
   // Both parent on the request: the records are delivered inside its async context.
   expect(boundary.parent_span_id).toBe(request.span_id);
   expect(invocation.parent_span_id).toBe(request.span_id);
