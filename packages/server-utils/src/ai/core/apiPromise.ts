@@ -1,12 +1,12 @@
 import { isObjectLike } from '@sentry/core';
 
-interface AiPromise {
+interface ApiPromise {
   parseResponse: (...args: unknown[]) => unknown;
   asResponse: () => Promise<Response>;
-  _thenUnwrap?: (...args: unknown[]) => AiPromise;
+  _thenUnwrap?: (...args: unknown[]) => ApiPromise;
 }
 
-function isAiPromise(value: unknown): value is AiPromise {
+function isApiPromise(value: unknown): value is ApiPromise {
   return isObjectLike(value) && typeof value.parseResponse === 'function' && typeof value.asResponse === 'function';
 }
 
@@ -14,14 +14,14 @@ function isAiPromise(value: unknown): value is AiPromise {
 // This can lead to double parsing if our instrumentation triggers .then on this promise.
 // Instead, we need to avoid triggering .then on the APIPromise and instead observe the internal parsing process to get the response body.
 // APIPromise implementation: https://github.com/openai/openai-node/blob/main/src/core/api-promise.ts
-export function onAiResponse(
+export function onApiPromiseResponse(
   result: unknown,
   onResponse: (response: unknown) => void,
   onError: (error: unknown) => void,
 ): boolean {
   // e.g. embeddings.create() uses Auto in its orchestrion config so we get the resolved response, not its APIPromise
   // therefore it's fine to end the span immediately
-  if (!isAiPromise(result)) {
+  if (!isApiPromise(result)) {
     return false;
   }
 
@@ -47,7 +47,7 @@ export function onAiResponse(
 
   // asResponse() calls .then() on the native response promise, not on APIPromise so parseResponse never runs
   // therefore we need to handle this path separately
-  function wrapRawResponse(apiPromise: AiPromise): void {
+  function wrapRawResponse(apiPromise: ApiPromise): void {
     apiPromise.asResponse = new Proxy(apiPromise.asResponse, {
       apply(original, thisArg, args): Promise<Response> {
         return (Reflect.apply(original, thisArg, args) as Promise<Response>).then(response => {
@@ -67,7 +67,7 @@ export function onAiResponse(
     if (thenUnwrap) {
       // parse(...).asResponse()
       apiPromise._thenUnwrap = new Proxy(thenUnwrap, {
-        apply(original, thisArg, args): AiPromise {
+        apply(original, thisArg, args): ApiPromise {
           const derivedPromise = Reflect.apply(original, thisArg, args);
           wrapRawResponse(derivedPromise);
           return derivedPromise;

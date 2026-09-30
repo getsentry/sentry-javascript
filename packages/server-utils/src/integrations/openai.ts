@@ -10,7 +10,7 @@ import {
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
-import { onAiResponse } from '../ai/core/response';
+import { onApiPromiseResponse } from '../ai/core/apiPromise';
 import { instrumentStream } from '../ai/openai/streaming';
 import type { OpenAiOptions } from '../ai/openai/types';
 import { addResponseAttributes } from '../ai/openai/utils';
@@ -60,7 +60,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
           addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
         },
         deferSpanEnd: ({ span, data, end }) =>
-          onAiResponse(
+          onApiPromiseResponse(
             data.result,
             response => {
               data.result = response;
