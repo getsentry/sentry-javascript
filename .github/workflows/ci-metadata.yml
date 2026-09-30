@@ -10,6 +10,9 @@ on:
       commit_label:
         description: 'Short SHA + commit message for display'
         value: ${{ jobs.get_metadata.outputs.commit_label }}
+      base_commit:
+        description: 'Base parent of the tested PR merge commit, empty for non-PR runs'
+        value: ${{ jobs.get_metadata.outputs.base_commit }}
       is_base_branch:
         description: 'Whether the ref is develop, v9, or v8'
         value: ${{ jobs.get_metadata.outputs.is_base_branch }}
@@ -17,10 +20,10 @@ on:
         description: 'Whether the ref is a release branch'
         value: ${{ jobs.get_metadata.outputs.is_release }}
       changed_ci:
-        description: 'Whether .github/** files changed'
+        description: 'Whether build/test workflows or shared actions changed'
         value: ${{ jobs.get_metadata.outputs.changed_ci }}
       changed_any_code:
-        description: 'Whether any non-markdown files changed'
+        description: 'Whether SDK, tooling, or build/test CI files changed'
         value: ${{ jobs.get_metadata.outputs.changed_any_code }}
       changed_deps:
         description: 'Whether any package.json or yarn.lock changed'
@@ -62,28 +65,42 @@ jobs:
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
+      - name: Determine PR comparison base
+        id: comparison_base
+        if: github.event_name == 'pull_request'
+        # The event's base SHA can lag behind the base used to create the tested merge commit.
+        run: |
+          BASE_COMMIT=$(git rev-parse HEAD^1)
+          echo "base_commit=$BASE_COMMIT" >> "$GITHUB_OUTPUT"
+
       # Most changed packages are determined in job_build via Nx
       - name: Determine changed packages
         uses: dorny/paths-filter@v4.0.3
         id: changed
         with:
+          predicate-quantifier: some-with-excludes
           filters: |
             workflow:
-              - '.github/**'
+              - '.github/workflows/build.yml'
+              - '.github/workflows/ci-metadata.yml'
+              - '.github/actions/**'
             any_code:
+              - '**'
               - '!**/*.md'
+              - '!.github/**'
             deps:
               - '**/package.json'
               - 'yarn.lock'
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
+      base_commit: ${{ steps.comparison_base.outputs.base_commit }}
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_base_branch:
         ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8'}}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
-      changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
+      changed_any_code: ${{ steps.changed.outputs.any_code == 'true' || steps.changed.outputs.workflow == 'true' }}
       changed_deps: ${{ steps.changed.outputs.deps == 'true' }}
 
       # When merging into master, or from master

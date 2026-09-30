@@ -80,16 +80,11 @@ jobs:
       needs.job_get_metadata.outputs.is_release == 'true' ||
       (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false' && needs.job_get_metadata.outputs.changed_any_code == 'true')
     steps:
-      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v7
-        if: github.event_name == 'pull_request'
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+          fetch-depth: 2
 
       - name: Set up Node
         uses: actions/setup-node@v7
@@ -105,7 +100,7 @@ jobs:
         id: checkForAffected
         if: github.event_name == 'pull_request'
         with:
-          base: ${{ github.event.pull_request.base.sha }}
+          base: ${{ needs.job_get_metadata.outputs.base_commit }}
           head: ${{ env.HEAD_COMMIT }}
 
       - name: Build packages
@@ -142,15 +137,15 @@ jobs:
       - name: Determine which test applications should be run
         id: matrix
         run:
-          yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' &&
-          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+          yarn --silent ci:build-matrix --base="${{ needs.job_get_metadata.outputs.base_commit }}" --head="$HEAD_COMMIT"
+          >> "$GITHUB_OUTPUT"
         working-directory: dev-packages/e2e-tests
 
       - name: Determine which optional E2E test applications should be run
         id: matrix-optional
         run:
-          yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' &&
-          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+          yarn --silent ci:build-matrix-optional --base="${{ needs.job_get_metadata.outputs.base_commit }}"
+          --head="$HEAD_COMMIT" >> "$GITHUB_OUTPUT"
         working-directory: dev-packages/e2e-tests
 
     outputs:
@@ -474,16 +469,11 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
-      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v7
-        if: github.event_name == 'pull_request'
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+          fetch-depth: 2
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -494,7 +484,7 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
-        run: yarn test:pr:browser --base=${{ github.event.pull_request.base.sha }}
+        run: yarn test:pr:browser --base="${{ needs.job_get_metadata.outputs.base_commit }}" --head="$HEAD_COMMIT"
         if: github.event_name == 'pull_request'
 
       - name: Run all tests
@@ -567,15 +557,11 @@ jobs:
       matrix:
         node: [20.19, 22, 24, 26]
     steps:
-      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v7
-        if: github.event_name == 'pull_request'
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+          fetch-depth: 2
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -586,7 +572,7 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
-        run: yarn test:pr:node --base=${{ github.event.pull_request.base.sha }}
+        run: yarn test:pr:node --base="${{ needs.job_get_metadata.outputs.base_commit }}" --head="$HEAD_COMMIT"
         if: github.event_name == 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -1262,6 +1248,7 @@ jobs:
     name: All required jobs passed or were skipped
     needs:
       [
+        job_get_metadata,
         job_build,
         job_build_bundles,
         job_build_layer,
