@@ -11,7 +11,6 @@ import {
   createComponentNameAnnotateHooks,
   replaceBooleanFlagsInCode,
   CodeInjection,
-  stampDebugId,
   getCodeInjectionPosition,
 } from '../core';
 import type { ComponentAnnotationTransformMeta } from '../core/component-annotation-oxc';
@@ -24,19 +23,13 @@ import {
   hasExistingDebugID,
 } from './debug-id-injection';
 import { getRollupMajorVersion } from './rollup-version';
+import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 import { getViteParseAstAsync } from './vite-annotations';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
 // because `rollup` is an optional dependency.
 type TransformResult = { code: string; map?: SourceMap | string | { mappings: string } | null } | null | undefined;
-
-// The subset of Rollup's `OutputBundle` the stamping hook reads.
-type OutputBundle = Record<
-  string,
-  | { type: 'chunk'; fileName: string; code: string; sourcemapFileName?: string | null }
-  | { type: 'asset'; fileName: string; source: string | Uint8Array }
->;
 
 type RenderChunkPluginContext = {
   meta?: {
@@ -216,27 +209,7 @@ export function _rollupPluginInternal(
       return;
     }
 
-    for (const output of Object.values(bundle)) {
-      if (output.type !== 'chunk' || !isJsFile(output.fileName)) {
-        continue;
-      }
-
-      const sourceMapAsset = bundle[output.sourcemapFileName ?? `${output.fileName}.map`];
-      const sourceMapSource =
-        sourceMapAsset?.type === 'asset' && typeof sourceMapAsset.source === 'string'
-          ? sourceMapAsset.source
-          : undefined;
-
-      const stamped = stampDebugId(output.code, sourceMapSource);
-      if (!stamped) {
-        continue;
-      }
-
-      output.code = stamped.bundleSource;
-      if (stamped.sourceMapSource !== undefined && sourceMapAsset?.type === 'asset') {
-        sourceMapAsset.source = stamped.sourceMapSource;
-      }
-    }
+    stampDebugIds(bundle, true);
   }
 
   async function writeBundle(
@@ -282,17 +255,12 @@ export function _rollupPluginInternal(
           handler: transform,
         }
       : transform;
-  const generateBundleHook =
-    buildTool === 'vite' && buildToolMajorVersion === '8'
-      ? { order: 'post' as const, handler: generateBundle }
-      : generateBundle;
-
   return {
     name,
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     renderChunk,
-    generateBundle: generateBundleHook,
+    generateBundle: { order: 'pre' as const, handler: generateBundle },
     writeBundle,
   };
 }

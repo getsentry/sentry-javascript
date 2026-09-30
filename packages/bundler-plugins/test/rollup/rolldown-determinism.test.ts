@@ -22,13 +22,19 @@ const outputCases: [OutputFormat, SourceMapMode][] = [
   ['cjs', 'hidden'],
 ];
 
-async function createBuild(includeUnrelatedEntry: boolean) {
+async function createBuild(includeUnrelatedEntry: boolean, observeBundle?: (codes: string[]) => void) {
   const input: Record<string, string> = includeUnrelatedEntry
     ? { unrelated: 'virtual:unrelated', app: 'virtual:app' }
     : { app: 'virtual:app' };
   const options = {
     input,
     plugins: [
+      {
+        name: 'integrity-observer',
+        generateBundle(_outputOptions: unknown, bundle: Record<string, { type: string; code?: string }>) {
+          observeBundle?.(Object.values(bundle).flatMap(output => (output.type === 'chunk' ? [output.code ?? ''] : [])));
+        },
+      },
       {
         name: 'virtual-modules',
         resolveId(id: string) {
@@ -53,8 +59,9 @@ async function build(
   includeUnrelatedEntry: boolean,
   sourcemap: SourceMapMode = true,
   format: OutputFormat = 'esm',
+  observeBundle?: (codes: string[]) => void,
 ) {
-  const bundle = await createBuild(includeUnrelatedEntry);
+  const bundle = await createBuild(includeUnrelatedEntry, observeBundle);
 
   try {
     const { output } = await bundle.generate({
@@ -78,6 +85,21 @@ function expectFinalizedDebugId(code: string): void {
 }
 
 describe('Rolldown debug ID determinism', () => {
+  it('finalizes and stamps chunks before later bundle observers run', async () => {
+    let observedCodes: string[] = [];
+
+    const chunks = await build(false, true, 'esm', codes => {
+      observedCodes = codes;
+    });
+
+    expect(observedCodes).toHaveLength(chunks.length);
+    expect(observedCodes).toEqual(chunks.map(chunk => chunk.code));
+    for (const code of observedCodes) {
+      expect(code).toContain('//# debugId=');
+      expectFinalizedDebugId(code);
+    }
+  });
+
   it.each(outputCases)(
     'produces identical %s chunks in repeated builds with sourcemap=%s',
     async (format, sourcemap) => {
