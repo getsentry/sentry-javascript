@@ -4,6 +4,7 @@ import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
+  getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -54,7 +55,7 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
   for (const { channel, operation, stream } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
-      data => createGenAiSpan(data, operation, options),
+      data => createGenAiSpan(data, operation, options, stream),
       {
         beforeSpanEnd: (span, data) => {
           addResponseAttributes(
@@ -77,6 +78,7 @@ function createGenAiSpan(
   data: AnthropicChannelContext,
   operation: string,
   options: AnthropicAiOptions,
+  stream: StreamMode,
 ): Span | undefined {
   const args = data.arguments ?? [];
 
@@ -88,9 +90,11 @@ function createGenAiSpan(
 
   // `messages.stream()` internally calls the instrumented `messages.create({ stream: true })` tagged with
   // a `stream` helper-method header. The messages-stream channel already covers it, so skip the nested
-  // create to avoid a duplicate span.
+  // create to avoid a duplicate span. Only the non-beta helper is on that channel, though:
+  // `beta.messages.stream()` and the streaming tool runner send the same header with no span covering
+  // them, so the header alone is not enough. Skip only while a stream-helper span of ours is active.
   const requestOptions = args[1] as { headers?: unknown } | undefined;
-  if (isStreamHelperRequest(requestOptions?.headers)) {
+  if (isStreamHelperRequest(requestOptions?.headers) && isInsideStreamHelperSpan()) {
     return undefined;
   }
 
@@ -114,14 +118,31 @@ function createGenAiSpan(
     addPrivateRequestAttributes(span, params);
   }
 
+  if (stream === 'message-stream') {
+    streamHelperSpans.add(span);
+  }
+
   return span;
 }
 
 const STREAM_HELPER_METHOD_HEADER = 'x-stainless-helper-method';
 
+/** The spans opened for the messages-stream channel, i.e. for `messages.stream()` calls. */
+const streamHelperSpans = new WeakSet<Span>();
+
+/**
+ * Whether the active span is one this integration opened for `messages.stream()`. The helper's
+ * internal `create` runs inside that span, so this is what tells it apart from the beta helper and
+ * the tool runner, which send the same header but are not on the messages-stream channel.
+ */
+function isInsideStreamHelperSpan(): boolean {
+  const activeSpan = getActiveSpan();
+  return !!activeSpan && streamHelperSpans.has(activeSpan);
+}
+
 /**
  * Whether request options carry the header the SDK's `messages.stream()` helper puts on its internal
- * `create` call. The SDK sent it as `X-Stainless-Helper-Method` up to 0.100 and lowercase since 0.110, and
+ * `create` call. The SDK sent it as `X-Stainless-Helper-Method` up to 0.105 and lowercase since 0.106, and
  * HTTP header names are case-insensitive either way, so match without regard to case. The headers
  * arrive as a plain object; a `Headers` instance is handled for completeness.
  */
