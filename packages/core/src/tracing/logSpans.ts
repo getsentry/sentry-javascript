@@ -10,7 +10,7 @@ import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 export function logSpanStart(span: Span): void {
   if (!DEBUG_BUILD) return;
 
-  const { name, op, parentSpanId } = getSpanInfo(span);
+  const { name, op, parent_span_id } = getSpanInfo(span);
   const { spanId } = span.spanContext();
 
   const sampled = spanIsSampled(span);
@@ -21,8 +21,8 @@ export function logSpanStart(span: Span): void {
 
   const infoParts: string[] = [`op: ${op}`, `name: ${name}`, `ID: ${spanId}`];
 
-  if (parentSpanId) {
-    infoParts.push(`parent ID: ${parentSpanId}`);
+  if (parent_span_id) {
+    infoParts.push(`parent ID: ${parent_span_id}`);
   }
 
   if (!isRootSpan) {
@@ -50,11 +50,11 @@ export function logSpanEnd(span: Span): void {
   debug.log(msg);
 }
 
-function getSpanInfo(span: Span): { name: string; op: string; parentSpanId: string | undefined } {
+function getSpanInfo(span: Span): { name: string; op: string; parent_span_id: string | undefined } {
   const {
     name,
     attributes: { [SENTRY_OP]: op = '< unknown op >' },
-    parent_span_id: parentSpanId,
+    parent_span_id,
   } = spanToJSON(span);
-  return { name, op: op as string, parentSpanId };
+  return { name, op: op as string, parent_span_id };
 }
