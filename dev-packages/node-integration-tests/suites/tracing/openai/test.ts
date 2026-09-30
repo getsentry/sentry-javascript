@@ -1006,7 +1006,7 @@ describe('OpenAI integration', () => {
         })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
+            expect(container.items).toHaveLength(4);
             const singleEmbeddingSpan = container.items.find(
               span =>
                 span.name === 'embeddings text-embedding-3-small' &&
@@ -1131,6 +1131,34 @@ describe('OpenAI integration', () => {
               expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
               expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
             }
+
+            const rawEmbeddingSpan = container.items.find(span => span.name === 'embeddings text-embedding-3-large');
+            expect(rawEmbeddingSpan).toBeDefined();
+            expect(rawEmbeddingSpan!.name).toBe('embeddings text-embedding-3-large');
+            expect(rawEmbeddingSpan!.status).toBe('ok');
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'embeddings',
+            });
+            expect(rawEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.embeddings',
+            });
+            expect(rawEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'text-embedding-3-large',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
           },
         })
         .start()
@@ -1148,7 +1176,7 @@ describe('OpenAI integration', () => {
         })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
+            expect(container.items).toHaveLength(4);
             const singleEmbeddingSpan = container.items.find(
               span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
             );
@@ -1275,6 +1303,38 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 10,
             });
+
+            const rawEmbeddingSpan = container.items.find(span => span.name === 'embeddings text-embedding-3-large');
+            expect(rawEmbeddingSpan).toBeDefined();
+            expect(rawEmbeddingSpan!.name).toBe('embeddings text-embedding-3-large');
+            expect(rawEmbeddingSpan!.status).toBe('ok');
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'embeddings',
+            });
+            expect(rawEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.embeddings',
+            });
+            expect(rawEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'text-embedding-3-large',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
+              type: 'string',
+              value: 'Raw embedding test!',
+            });
           },
         })
         .start()
@@ -1377,7 +1437,7 @@ describe('OpenAI integration', () => {
         })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
+            expect(container.items).toHaveLength(5);
             const conversationCreateSpan = container.items.find(span => span.name === 'chat unknown');
             expect(conversationCreateSpan).toBeDefined();
             expect(conversationCreateSpan!.name).toBe('chat unknown');
@@ -1478,6 +1538,30 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'resp_mock_conv_123',
             });
+
+            const rawConversationSpan = container.items.find(
+              span => span.name === 'chat unknown' && span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
+            );
+            expect(rawConversationSpan).toBeDefined();
+            expect(rawConversationSpan!.name).toBe('chat unknown');
+            expect(rawConversationSpan!.status).toBe('ok');
+            expect(rawConversationSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(rawConversationSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(rawConversationSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(rawConversationSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(rawConversationSpan!.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
           },
         })
         .start()
