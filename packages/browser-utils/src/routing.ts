@@ -96,7 +96,11 @@ export function resolveRoute(url: string | URL, client: Client | undefined = get
     return undefined;
   }
 
-  return callProvider(() => provider.resolveRoute(urlObject));
+  return safeCallback(
+    DEBUG_BUILD ? 'Route provider threw while resolving a route:' : '',
+    () => provider.resolveRoute(urlObject) || undefined,
+    () => undefined,
+  );
 }
 
 /**
@@ -107,7 +111,14 @@ export function resolveRoute(url: string | URL, client: Client | undefined = get
 export function resolveCurrentRoute(client: Client | undefined = getClient()): string | undefined {
   const provider = getRouteProvider(client);
 
-  return provider && callProvider(() => provider.resolveCurrentRoute());
+  return (
+    provider &&
+    safeCallback(
+      DEBUG_BUILD ? 'Route provider threw while resolving a route:' : '',
+      () => provider.resolveCurrentRoute() || undefined,
+      () => undefined,
+    )
+  );
 }
 
 /**
@@ -161,16 +172,4 @@ export function createCachedRouteProvider(maxEntries: number = 50): CachedRouteP
 function parseLocation(url: string): RouteUrl | undefined {
   // Without a document `getLocationHref()` is empty, which would otherwise parse as `/`.
   return url ? parseStringToURLObject(url, getLocationHref() || undefined) : undefined;
-}
-
-/**
- * Route providers are framework code we don't control, so a throw must not take down whatever the SDK
- * was naming.
- */
-function callProvider(resolve: () => string | undefined): string | undefined {
-  return safeCallback(
-    DEBUG_BUILD ? 'Route provider threw while resolving a route:' : '',
-    () => resolve() || undefined,
-    () => undefined,
-  );
 }
