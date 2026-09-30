@@ -111,13 +111,10 @@ export function resolveRoute(url: string | URL, client: Client | undefined = get
 export function resolveCurrentRoute(client: Client | undefined = getClient()): string | undefined {
   const provider = getRouteProvider(client);
 
-  return (
-    provider &&
-    safeCallback(
-      DEBUG_BUILD ? 'Route provider threw while resolving a route:' : '',
-      () => provider.resolveCurrentRoute() || undefined,
-      () => undefined,
-    )
+  return safeCallback(
+    DEBUG_BUILD ? 'Route provider threw while resolving a route:' : '',
+    () => provider?.resolveCurrentRoute() || undefined,
+    () => undefined,
   );
 }
 
