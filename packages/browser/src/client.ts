@@ -9,6 +9,7 @@ import type {
 } from '@sentry/core';
 import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 import type { RouteProvider } from '@sentry/browser-utils';
+import { setRouteProvider } from '@sentry/browser-utils';
 import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
@@ -116,6 +117,10 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
     super(opts);
+
+    if (opts.routeProvider) {
+      setRouteProvider(opts.routeProvider, this);
+    }
 
     // Unhandled errors don't actually crash the browser, so we report `unhandled` rather than `crashed`.
     this._unhandledSessionStatus = 'unhandled';

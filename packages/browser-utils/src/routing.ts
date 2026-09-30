@@ -42,8 +42,8 @@ export interface RouteProvider {
 const CLIENT_ROUTE_PROVIDERS = new WeakMap<Client, RouteProvider>();
 
 /**
- * Registers the route provider for a client, replacing any previously registered one, including the one
- * passed as the `routeProvider` option.
+ * Registers the route provider for a client, replacing any previously registered one. `BrowserClient`
+ * calls this with its `routeProvider` option.
  *
  * Prefer the `routeProvider` option where the provider is known at `init`: the pageload span is named
  * while `browserTracingIntegration` sets up, so a provider registered after `init` can only rename it
@@ -68,14 +68,10 @@ export function setRouteProvider(provider: RouteProvider, client: Client | undef
 }
 
 /**
- * Returns the route provider registered for a client, falling back to its `routeProvider` option.
+ * Returns the route provider registered for a client.
  */
 export function getRouteProvider(client: Client | undefined = getClient()): RouteProvider | undefined {
-  if (!client) {
-    return undefined;
-  }
-
-  return CLIENT_ROUTE_PROVIDERS.get(client) ?? (client.getOptions() as { routeProvider?: RouteProvider }).routeProvider;
+  return client && CLIENT_ROUTE_PROVIDERS.get(client);
 }
 
 /**
