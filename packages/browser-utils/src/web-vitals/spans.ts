@@ -193,8 +193,8 @@ export function _sendLcpSpan(
 
   // A soft navigation's LCP is measured from the triggering interaction, not the document time
   // origin. Starting the span there too keeps it inside the navigation span it is parented to and
-  // keeps its duration equal to the value it reports. The span's end shares that origin for the
-  // same reason, even if the clock drift was corrected in between.
+  // keeps its duration equal to the reported value. The span's end uses the same origin, even if
+  // the time origin was reset in between.
   const performanceTimeOrigin = browserPerformanceTimeOrigin(navigationStartTime || 0) || 0;
   const startTime = msToSec(performanceTimeOrigin + (navigationStartTime || 0));
   // Without an entry there is no render time to end at, so the span lasts the value it reports,
@@ -300,8 +300,7 @@ export function _sendClsSpan(
   // measured on is already over - the next soft navigation, or pagehide - so the current time would
   // land it outside that navigation, on the route that follows it.
   const offset = entry?.startTime ?? navigationStartTime ?? 0;
-  // Layout shifts can happen at any point in the page's life, but are only reported on pagehide, so the entry is
-  // converted against the time origin that was in effect when the shift happened.
+  // CLS is only reported on pagehide, so we use the time origin from when the layout shift happened.
   const startTime = performanceTimeToSeconds(offset) ?? timestampInSeconds();
   const firstSourceNode = entry?.sources[0]?.node;
   const selector = entry ? htmlTreeAsString(firstSourceNode) : undefined;
@@ -409,8 +408,8 @@ export function _sendInpSpan(
   // A web vital span carries the metric, not a real interaction timing, so an INP without an entry
   // is still worth reporting. It just has no element or interaction type to describe, and is placed
   // at the start of the navigation it belongs to rather than at the interaction.
-  // INP reports on pagehide, potentially long after the interaction itself, so the entry is converted against the time
-  // origin that was in effect when it happened rather than the one in effect now.
+  // INP is reported on pagehide, often long after the interaction, so we use the time origin from when the
+  // interaction happened.
   const startTime = performanceTimeToSeconds(entry?.startTime ?? metric?.navigationStartTime ?? 0) as number;
   const duration = msToSec(inpValue);
   // An INP without an entry has no interaction type to report. It still has to land inside the

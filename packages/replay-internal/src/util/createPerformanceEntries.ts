@@ -87,10 +87,8 @@ function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEn
 }
 
 function getAbsoluteTime(time: number): number {
-  // Entries are buffered raw and only converted here, on flush, which for a long-running session can be minutes after
-  // they were observed and across a clock drift correction. `performanceTimeToSeconds` resolves each entry against the
-  // time origin that was in effect when it was recorded, so a later correction does not retroactively shift entries
-  // that were timed correctly.
+  // Entries are only converted on flush, which can be minutes after they were recorded. `performanceTimeToSeconds`
+  // uses the time origin from when the entry was recorded, so a later reset does not shift it.
   // It returns undefined if `performance` or `performance.now` doesn't exist, but this is already checked by this
   // integration.
   return performanceTimeToSeconds(time) ?? (WINDOW.performance.timeOrigin + time) / 1000;

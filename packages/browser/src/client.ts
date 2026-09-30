@@ -144,9 +144,8 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     // Client report outcomes don't listen to the `flush` hook, so we flush them separately.
     if (WINDOW.document) {
       WINDOW.document.addEventListener('visibilitychange', () => {
-        // Devices usually hide the page before they go to sleep and show it again when they wake up. Checking the
-        // clocks at both points pins a clock drift correction to the sleep itself, rather than to whenever the SDK
-        // happens to take its next timestamp, so performance entries on either side of it convert correctly.
+        // Devices usually hide the page before they sleep and show it again after they wake up. Checking for drift
+        // at both points makes the time origin reset happen at the sleep, not at the next random timestamp.
         timestampInSeconds();
 
         if (WINDOW.document.visibilityState === 'hidden') {

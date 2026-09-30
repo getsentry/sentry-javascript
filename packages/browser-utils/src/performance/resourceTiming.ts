@@ -28,7 +28,7 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
     timingSpanData['network.protocol.name'] = name;
   }
 
-  // All timings share the origin in effect when the request started, so the phases between them stay intact.
+  // Use the origin from the request start for all timings, so the durations between them stay correct.
   const timeOrigin = browserPerformanceTimeOrigin(resourceTiming.startTime) || getBrowserPerformanceAPI()?.timeOrigin;
   if (!timeOrigin) {
     return timingSpanData;
