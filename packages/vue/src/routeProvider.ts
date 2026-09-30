@@ -53,6 +53,21 @@ export function getRouterFromApp(app: Vue | Vue[] | undefined): InstalledRouter 
 }
 
 /**
+ * Vue 2 only exposes the router on instances, not on the constructor passed to `init`, so this picks it
+ * up from the root instance (`new Vue({ router })`) as it is created.
+ */
+export function captureRouterFromVue(Vue: Vue): () => InstalledRouter | undefined {
+  let router: InstalledRouter | undefined;
+  Vue.mixin({
+    beforeCreate(this: { $options: { router?: InstalledRouter } }) {
+      router = router || this.$options.router;
+    },
+  });
+
+  return () => router;
+}
+
+/**
  * `resolve` matches the router's own location rather than the browser's: the hash in hash mode, and
  * the path without the router's base otherwise. Mirrors vue-router's `createCurrentLocation`.
  */

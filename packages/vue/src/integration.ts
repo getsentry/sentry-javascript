@@ -4,7 +4,7 @@ import { DEFAULT_HOOKS, DEFAULT_ROOT_SPAN_TIMEOUT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { attachErrorHandler } from './errorhandler';
 import { instrumentAppMountWithoutMixin } from './rootInstrumentation';
-import { createVueRouteProvider, getRouterFromApp } from './routeProvider';
+import { captureRouterFromVue, createVueRouteProvider, getRouterFromApp } from './routeProvider';
 import { createTracingMixins } from './tracing';
 import type { Options, TracingOptions, Vue, VueOptions } from './types';
 
@@ -40,16 +40,14 @@ export const vueIntegration = defineIntegration((integrationOptions: Partial<Vue
         return;
       }
 
-      if (options.app) {
-        const { app } = options;
-        // Read per call because `app.use(router)` may run after `init`. A user's `routeProvider` wins.
-        if (!getRouteProvider(client)) {
-          setRouteProvider(
-            createVueRouteProvider(() => getRouterFromApp(app)),
-            client,
-          );
-        }
+      // The router is looked up lazily because it may be installed after `init`. A user's `routeProvider` wins.
+      if (!getRouteProvider(client)) {
+        const { app, Vue } = options;
+        const getRouter = app ? () => getRouterFromApp(app) : captureRouterFromVue(Vue!);
+        setRouteProvider(createVueRouteProvider(getRouter), client);
+      }
 
+      if (options.app) {
         const apps = Array.isArray(options.app) ? options.app : [options.app];
         apps.forEach(app => vueInit(app, options));
       } else if (options.Vue) {

@@ -7,12 +7,10 @@ import type { Vue } from '../src/types';
 
 const DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
+const router = { resolve: () => ({ matched: [{ path: '/users/:id' }] }) };
+
 const app = {
-  config: {
-    globalProperties: {
-      $router: { resolve: () => ({ matched: [{ path: '/users/:id' }] }) },
-    },
-  },
+  config: { globalProperties: { $router: router } },
   mixin: vi.fn(),
 } as unknown as Vue;
 
@@ -31,6 +29,22 @@ describe('route provider registration', () => {
   it('registers a route provider when the app is passed to `vueIntegration`', () => {
     const client = init({ dsn: DSN, defaultIntegrations: false, integrations: [vueIntegration({ app })] });
 
+    expect(resolveRoute('https://example.com/users/42', client)).toBe('/users/:id');
+  });
+
+  it('registers a route provider that picks the router up from the Vue 2 root instance', () => {
+    let beforeCreate: (this: unknown) => void = () => {};
+    const Vue2 = {
+      config: {},
+      mixin: (mixin: { beforeCreate: typeof beforeCreate }) => {
+        beforeCreate = mixin.beforeCreate;
+      },
+    } as unknown as Vue;
+    const client = init({ dsn: DSN, Vue: Vue2, defaultIntegrations: false, integrations: [vueIntegration()] });
+
+    expect(resolveRoute('https://example.com/users/42', client)).toBeUndefined();
+
+    beforeCreate.call({ $options: { router } });
     expect(resolveRoute('https://example.com/users/42', client)).toBe('/users/:id');
   });
 
