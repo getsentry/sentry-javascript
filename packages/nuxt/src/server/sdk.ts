@@ -9,7 +9,7 @@ import {
   getClient,
   getGlobalScope,
 } from '@sentry/core';
-import { init as initNode } from '@sentry/node';
+import { init as initNode, nitroIntegration } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import {
   isNuxtDevRuntime,
@@ -64,6 +64,10 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   if (client) {
     markNuxtServerInitialized();
+    // `nitroIntegration` is part of the Node tracing integrations, but add it explicitly so it is
+    // always present for the Nuxt server SDK. Added after init (rather than via `defaultIntegrations`)
+    // so `initNode` still resolves env-based tracing before selecting its defaults. Deduped by name.
+    client.addIntegration(nitroIntegration());
   }
 
   getGlobalScope().addEventProcessor(lowQualityTransactionsFilter(options));

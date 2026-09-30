@@ -100,6 +100,17 @@ export default defineNuxtModule<ModuleOptions>({
     // Cloudflare detection happens inside, keyed off the resolved Nitro preset.
     setupOrchestrion(nuxt, !!serverConfigFile, moduleOptions.buildTimeInstrumentation);
 
+    // Nitro's h3/srvx/unstorage tracing channels — which the shared `nitroIntegration` subscribes to —
+    // are opt-in. Enable them on Nitro 3 so `nitroIntegration` produces the HTTP and cache spans.
+    // (Nitro 2 has no such channels and keeps Nuxt's own instrumentation.)
+    if (isNitroV3) {
+      nuxt.hook('nitro:config', nitroConfig => {
+        // `tracingChannel` isn't declared on every Nitro version's `NitroConfig` type, but Nitro 3
+        // reads it to enable the srvx/h3/unstorage tracing channels.
+        (nitroConfig as { tracingChannel?: boolean }).tracingChannel = true;
+      });
+    }
+
     // The deprecated inject modes replace the default in-bundle initialization until their removal
     const usesDeprecatedInjectMode =
       moduleOptions.autoInjectServerSentry === 'top-level-import' ||
