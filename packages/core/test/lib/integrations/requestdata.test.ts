@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { USER_AGENT_ORIGINAL } from '@sentry/conventions/attributes';
 import type { Client } from '../../../src/client';
 import * as currentScopes from '../../../src/currentScopes';
 import { requestDataIntegration } from '../../../src/integrations/requestdata';
@@ -1453,5 +1454,59 @@ describe('requestDataIntegration processSpan', () => {
     integration.processSpan!(span, mockClient());
 
     expect(span.attributes).toMatchObject({ 'sentry.is_localhost': true });
+  });
+
+  it.each([true, false])('sets user_agent.original on spans with is_segment: %s', isSegment => {
+    const integration = requestDataIntegration();
+    const span = makeSpan({ is_segment: isSegment });
+
+    mockIsolationScope({ url: 'https://example.com/api', headers: { 'user-agent': 'Mozilla/5.0' } });
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ [USER_AGENT_ORIGINAL]: 'Mozilla/5.0' });
+  });
+
+  it('reads the user agent header case-insensitively', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({ url: 'https://example.com/api', headers: { 'User-Agent': 'Mozilla/5.0' } });
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ [USER_AGENT_ORIGINAL]: 'Mozilla/5.0' });
+  });
+
+  it('sets user_agent.original even if request headers are not collected', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope({ url: 'https://example.com/api', headers: { 'user-agent': 'Mozilla/5.0' } });
+    integration.processSpan!(span, mockClient({ httpHeaders: { request: false } }));
+
+    expect(span.attributes).toMatchObject({ [USER_AGENT_ORIGINAL]: 'Mozilla/5.0' });
+  });
+
+  it.each([
+    ['there is no request on the scope', undefined],
+    ['the request has no user agent header', { url: 'https://example.com/api', headers: { host: 'example.com' } }],
+    ['the user agent header is empty', { url: 'https://example.com/api', headers: { 'user-agent': '' } }],
+  ])('does not set user_agent.original when %s', (_, normalizedRequest) => {
+    const integration = requestDataIntegration();
+    const span = makeSpan();
+
+    mockIsolationScope(normalizedRequest);
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).not.toHaveProperty(USER_AGENT_ORIGINAL);
+  });
+
+  it('does not overwrite an existing user_agent.original attribute', () => {
+    const integration = requestDataIntegration();
+    const span = makeSpan({ attributes: { [USER_AGENT_ORIGINAL]: 'node' } });
+
+    mockIsolationScope({ url: 'https://example.com/api', headers: { 'user-agent': 'Mozilla/5.0' } });
+    integration.processSpan!(span, mockClient());
+
+    expect(span.attributes).toMatchObject({ [USER_AGENT_ORIGINAL]: 'node' });
   });
 });

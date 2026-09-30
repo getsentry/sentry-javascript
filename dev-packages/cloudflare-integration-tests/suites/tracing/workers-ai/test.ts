@@ -15,6 +15,7 @@ import {
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT } from '@sentry/core';
 import { expect, it } from 'vitest';
@@ -63,6 +64,7 @@ it('traces a basic Workers AI text generation request', async ({ signal }) => {
               value: 'The capital of France is Paris.',
             },
             'sentry.is_localhost': { value: true, type: 'boolean' },
+            [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
             [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
             [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
             [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
@@ -117,6 +119,7 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
               value: 'The capital of France is Paris.',
             },
             'sentry.is_localhost': { value: true, type: 'boolean' },
+            [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
             [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
             [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
             [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },

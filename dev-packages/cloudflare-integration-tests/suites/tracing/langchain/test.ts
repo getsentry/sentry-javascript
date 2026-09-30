@@ -16,6 +16,7 @@ import {
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT } from '@sentry/core';
 import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
@@ -62,6 +63,7 @@ it('traces a LangChain chat model invocation', async ({ signal }) => {
           [GEN_AI_RESPONSE_ID]: { value: 'chatcmpl-mock123', type: 'string' },
           [GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE]: { value: 'stop', type: 'string' },
           'sentry.is_localhost': { value: true, type: 'boolean' },
+          [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
           [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
           [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
           [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },

@@ -18,7 +18,7 @@ import { filterCookiePairs, httpHeadersToSpanAttributes } from '../utils/request
 import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress, ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
-import { SENTRY_IS_LOCALHOST, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import { SENTRY_IS_LOCALHOST, URL_FULL, URL_QUERY, USER_AGENT_ORIGINAL } from '@sentry/conventions/attributes';
 
 type RequestDataIncludeOptions = {
   cookies?: boolean;
@@ -101,6 +101,9 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       // Therefore, it's set on every span, not just the segment span.
       safeSetSpanJSONAttributes(span, {
         [SENTRY_IS_LOCALHOST]: isLocalhostSpan(sdkProcessingMetadata, user.ip_address),
+        // Used by the "Filter out events from legacy browsers and crawlers" feature on the Sentry backend,
+        // so like in the browser SDK, it's set on every span.
+        [USER_AGENT_ORIGINAL]: getUserAgent(sdkProcessingMetadata.normalizedRequest),
       });
     },
     processSegmentSpan(span, client) {
@@ -150,6 +153,19 @@ function isLocalhostSpan(sdkProcessingMetadata: SdkProcessingMetadata, scopeUser
   localhostByRequest.set(normalizedRequest, isLocalhost);
 
   return isLocalhost;
+}
+
+function getUserAgent(normalizedRequest: RequestEventData | undefined): string | undefined {
+  const headers = normalizedRequest?.headers;
+  if (!headers) {
+    return undefined;
+  }
+
+  // Node lowercases incoming header names, but other runtimes and frameworks don't always normalize them.
+  const userAgent =
+    headers['user-agent'] ?? Object.entries(headers).find(([key]) => key.toLowerCase() === 'user-agent')?.[1];
+
+  return userAgent || undefined;
 }
 
 /**

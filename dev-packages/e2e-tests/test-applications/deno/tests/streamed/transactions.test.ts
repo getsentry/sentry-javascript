@@ -177,6 +177,10 @@ const CHILD_SPAN_ATTRIBUTES = {
     type: 'boolean',
     value: true,
   },
+  'user_agent.original': {
+    type: 'string',
+    value: 'node',
+  },
   'sentry.environment': {
     type: 'string',
     value: 'qa',

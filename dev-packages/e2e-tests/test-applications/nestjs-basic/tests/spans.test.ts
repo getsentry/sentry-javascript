@@ -21,6 +21,7 @@ function commonAttributes(segmentSpan: SerializedStreamedSpan): Record<string, u
     // Every span of a trace shares its segment's verdict: `true` for requests (the app is served
     // over localhost), `false` for spans with no request, like the startup app_creation span.
     'sentry.is_localhost': segmentSpan.attributes['sentry.is_localhost'],
+    'user_agent.original': segmentSpan.attributes['user_agent.original'],
     'sentry.segment.name': { type: 'string', value: segmentSpan.name },
     'sentry.segment.id': { type: 'string', value: segmentSpan.span_id },
     'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },

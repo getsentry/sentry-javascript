@@ -17,6 +17,7 @@ import {
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT } from '@sentry/core';
 import { createRunner } from '../../../runner';
@@ -66,6 +67,7 @@ it('traces a basic message creation request with the anthropic SDK', async ({ si
           [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 15, type: 'integer' },
           [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 25, type: 'integer' },
           'sentry.is_localhost': { value: true, type: 'boolean' },
+          [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
           [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
           [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
           [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
