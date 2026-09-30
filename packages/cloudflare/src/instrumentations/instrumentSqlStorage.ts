@@ -44,8 +44,10 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
         const activeSpan = getActiveSpan();
         const spanIsNeverSent = !hasSpansEnabled() || (!!activeSpan && !spanIsSampled(activeSpan));
         if (spanIsNeverSent && !mayTargetCloudflareInternalTable(query)) {
-          // The query needs no sanitizing. `startSpan` still runs, so each query starts a span with and
-          // without spans enabled, and an unsampled span records its dropped span outcome.
+          // This span is never sent, so skip the costly sanitize and summary
+          // steps. We still start the span so it records its dropped span
+          // outcome. A query that may target a `cf_` table takes the full path,
+          // because an internal query must start no span.
           return startSpan({ name: 'exec', attributes: SPAN_ATTRIBUTES }, callOriginal);
         }
 
