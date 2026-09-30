@@ -123,7 +123,10 @@ export default defineNuxtModule<ModuleOptions>({
 
       if (isNitroV3) {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name.server'));
+        // On Nitro 3, the parametrized route name and `url.path.parameter.*` attributes are set by
+        // `@sentry/server-utils`' `nitroIntegration` (auto-injected via `@sentry/node` defaults) for
+        // API routes, and by `route-detector.server` for SSR page routes, so no Nuxt route-name
+        // plugin is needed. Legacy Nitro (v2) has no such channels and keeps its own.
       } else {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name-legacy.server'));
