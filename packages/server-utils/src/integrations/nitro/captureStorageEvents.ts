@@ -1,4 +1,3 @@
-import * as dc from 'node:diagnostics_channel';
 import { CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
@@ -9,12 +8,14 @@ import {
   isObjectLike,
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
+  _INTERNAL_safeDateNow as safeDateNow,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { bindTracingChannelToSpan } from '@sentry/server-utils';
-import type { TraceContext } from 'unstorage/tracing';
+import { bindTracingChannelToSpan } from '../../tracing-channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
+import type { UnstorageTraceContext } from './nitroTypes';
 
 const ORIGIN = 'auto.cache.nitro';
 
@@ -75,16 +76,16 @@ export function captureStorageEvents(): void {
 }
 
 function setupStorageTracingChannel(operation: TracedOperation): void {
-  const keys = (data: TraceContext): string[] => data.keys ?? [];
-  const mountBase = (data: TraceContext): string => (data.base ?? '').replace(/:$/, '');
+  const keys = (data: UnstorageTraceContext): string[] => data.keys ?? [];
+  const mountBase = (data: UnstorageTraceContext): string => (data.base ?? '').replace(/:$/, '');
 
   // Bail if this is not available
-  if (!dc.tracingChannel) {
+  if (!diagnosticsChannel.tracingChannel) {
     return;
   }
 
   bindTracingChannelToSpan(
-    dc.tracingChannel<TraceContext>(`unstorage.${operation}`),
+    diagnosticsChannel.tracingChannel<UnstorageTraceContext>(`unstorage.${operation}`),
     data => {
       const cacheKeys = keys(data);
       const cacheOperationName = CACHE_OPERATION_NAMES[OPERATION_SPAN_OPS[operation]];
@@ -173,7 +174,7 @@ function validateCacheEntry(
     return false;
   }
 
-  if (Date.now() > (entry.expires || 0)) {
+  if (safeDateNow() > (entry.expires || 0)) {
     return false;
   }
 
