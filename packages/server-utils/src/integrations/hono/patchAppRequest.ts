@@ -8,11 +8,11 @@ import {
   startSpan,
   type WrappedFunction,
 } from '@sentry/core';
+import { INTERNAL_REQUEST_ORIGIN } from './constants';
 import type { Env, Hono } from './honoTypes';
 import { DEBUG_BUILD } from '../../debug-build';
 
 const INTERNAL_REQUEST_OP = HTTP_SERVER;
-const INTERNAL_REQUEST_ORIGIN = 'auto.http.hono.internal_request';
 
 // Re-entrancy guard shared with the orchestrion channel subscriber
 // (`instrumentInternalRequests` in `honoIntegration`). Both wrap the same `app.request`: this Proxy
