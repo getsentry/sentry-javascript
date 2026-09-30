@@ -1,7 +1,8 @@
 import { expect } from '@playwright/test';
 import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 /*
   This is quite peculiar behavior but it's a result of the route-based trace lifetime.
@@ -12,78 +13,67 @@ import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest
 sentryTest(
   'only the first root spans in the trace link back to the previous trace',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const pageloadTraceContext = await sentryTest.step('Initial pageload', async () => {
-      const pageloadRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+    const pageloadSpan = await sentryTest.step('Initial pageload', async () => {
+      const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
       await page.goto(url);
+      const span = await pageloadSpanPromise;
 
-      const pageloadEvent = envelopeRequestParser(await pageloadRequestPromise);
-      const traceContext = pageloadEvent.contexts?.trace;
+      expect(span).toBeDefined();
+      expect(span.links).toBeUndefined();
 
-      expect(traceContext).toBeDefined();
-      expect(traceContext?.links).toBeUndefined();
-
-      return traceContext;
+      return span;
     });
 
     await sentryTest.step('Click Before navigation', async () => {
-      const interactionRequestPromise = waitForTransactionRequest(page, evt => {
-        return evt.contexts?.trace?.op === 'ui.action.click';
-      });
+      const interactionSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.action.click');
       await page.click('#btn');
-
-      const interactionEvent = envelopeRequestParser(await interactionRequestPromise);
-      const interactionTraceContext = interactionEvent.contexts?.trace;
+      const interactionSpan = await interactionSpanPromise;
 
       // sanity check: route-based trace lifetime means the trace_id should be the same
-      expect(interactionTraceContext?.trace_id).toBe(pageloadTraceContext?.trace_id);
+      expect(interactionSpan.trace_id).toBe(pageloadSpan.trace_id);
 
       // no links yet as previous root span belonged to same trace
-      expect(interactionTraceContext?.links).toBeUndefined();
+      expect(interactionSpan.links).toBeUndefined();
     });
 
-    const navigationTraceContext = await sentryTest.step('Navigation', async () => {
-      const navigationRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
+    const navigationSpan = await sentryTest.step('Navigation', async () => {
+      const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
       await page.goto(`${url}#foo`);
-      const navigationEvent = envelopeRequestParser(await navigationRequestPromise);
+      const span = await navigationSpanPromise;
 
-      const traceContext = navigationEvent.contexts?.trace;
-
-      expect(traceContext?.op).toBe('navigation');
-      expect(traceContext?.links).toEqual([
+      expect(getSpanOp(span)).toBe('navigation');
+      expect(span.links).toEqual([
         {
-          trace_id: pageloadTraceContext?.trace_id,
-          span_id: pageloadTraceContext?.span_id,
+          trace_id: pageloadSpan.trace_id,
+          span_id: pageloadSpan.span_id,
           sampled: true,
           attributes: {
-            [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+            [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+              type: 'string',
+              value: 'previous_trace',
+            },
           },
         },
       ]);
 
-      expect(traceContext?.trace_id).not.toEqual(traceContext?.links![0].trace_id);
-      return traceContext;
+      expect(span.trace_id).not.toEqual(span.links![0].trace_id);
+      return span;
     });
 
     await sentryTest.step('Click After navigation', async () => {
-      const interactionRequestPromise = waitForTransactionRequest(page, evt => {
-        return evt.contexts?.trace?.op === 'ui.action.click';
-      });
+      const interactionSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.action.click');
       await page.click('#btn');
-      const interactionEvent = envelopeRequestParser(await interactionRequestPromise);
-
-      const interactionTraceContext = interactionEvent.contexts?.trace;
+      const interactionSpan = await interactionSpanPromise;
 
       // sanity check: route-based trace lifetime means the trace_id should be the same
-      expect(interactionTraceContext?.trace_id).toBe(navigationTraceContext?.trace_id);
+      expect(interactionSpan.trace_id).toBe(navigationSpan.trace_id);
 
       // since this is the second root span in the trace, it doesn't link back to the previous trace
-      expect(interactionTraceContext?.links).toBeUndefined();
+      expect(interactionSpan.links).toBeUndefined();
     });
   },
 );

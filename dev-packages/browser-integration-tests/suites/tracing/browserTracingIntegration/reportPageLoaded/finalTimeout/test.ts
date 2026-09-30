@@ -6,32 +6,30 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/browser';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest(
   'final timeout cancels the pageload span even if `enableReportPageLoaded` is true',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
-
-    const pageloadEventPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+
     await page.goto(url);
 
-    const eventData = envelopeRequestParser(await pageloadEventPromise);
+    const pageloadSpan = await pageloadSpanPromise;
 
-    const traceContextData = eventData.contexts?.trace?.data;
-    const spanDurationSeconds = eventData.timestamp! - eventData.start_timestamp!;
+    const spanDurationSeconds = pageloadSpan.end_timestamp - pageloadSpan.start_timestamp;
 
-    expect(traceContextData).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-      ['sentry.idle_span_finish_reason']: 'finalTimeout',
+    expect(pageloadSpan.attributes).toMatchObject({
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.pageload.browser' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: expect.objectContaining({ value: 1 }),
+      [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'pageload' },
+      'sentry.idle_span_finish_reason': { type: 'string', value: 'finalTimeout' },
     });
 
     // We wait for 3 seconds before calling Sentry.reportPageLoaded()

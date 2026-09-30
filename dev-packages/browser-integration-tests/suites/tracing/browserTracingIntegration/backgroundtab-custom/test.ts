@@ -3,7 +3,7 @@ import type { StreamedSpanJSON } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should finish a custom transaction when the page goes background', async ({ getLocalTestUrl, page }) => {
+sentryTest('should finish a custom span when the page goes background', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }

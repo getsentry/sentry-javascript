@@ -6,68 +6,62 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest(
-  'should create a navigation transaction that aborts an ongoing pageload',
-  async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+sentryTest('should create a navigation span that aborts an ongoing pageload', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
-    const navigationRequestPromise = waitForTransactionRequest(
-      page,
-      event => event.contexts?.trace?.op === 'navigation',
-    );
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+  const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
 
-    await page.goto(url);
+  await page.goto(url);
 
-    const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
-    const navigationRequest = envelopeRequestParser(await navigationRequestPromise);
+  const pageloadSpan = await pageloadSpanPromise;
+  const navigationSpan = await navigationSpanPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-    expect(pageloadRequest.contexts?.trace?.op).toBe('pageload');
-    expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
+  expect(getSpanOp(pageloadSpan)).toBe('pageload');
+  expect(getSpanOp(navigationSpan)).toBe('navigation');
 
-    expect(navigationRequest.transaction_info?.source).toEqual('url');
+  expect(navigationSpan.attributes['sentry.segment.name.source']?.value).toEqual('url');
 
-    const pageloadTraceId = pageloadRequest.contexts?.trace?.trace_id;
-    const navigationTraceId = navigationRequest.contexts?.trace?.trace_id;
+  const pageloadTraceId = pageloadSpan.trace_id;
+  const navigationTraceId = navigationSpan.trace_id;
 
-    expect(pageloadTraceId).toBeDefined();
-    expect(navigationTraceId).toBeDefined();
-    expect(pageloadTraceId).not.toEqual(navigationTraceId);
+  expect(pageloadTraceId).toBeDefined();
+  expect(navigationTraceId).toBeDefined();
+  expect(pageloadTraceId).not.toEqual(navigationTraceId);
 
-    expect(pageloadRequest.transaction).toEqual('/index.html');
-    expect(navigationRequest.transaction).toEqual('/sub-page');
+  expect(pageloadSpan.name).toEqual('Pageload');
+  expect(pageloadSpan.attributes['url.path']?.value).toEqual('/index.html');
+  expect(navigationSpan.name).toEqual('Navigation');
+  expect(navigationSpan.attributes['url.path']?.value).toEqual('/sub-page');
 
-    expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-      ['sentry.idle_span_finish_reason']: 'cancelled',
-    });
-    expect(navigationRequest.contexts?.trace?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      ['sentry.idle_span_finish_reason']: 'idleTimeout',
-    });
-    expect(pageloadRequest.request).toEqual({
-      headers: {
-        'User-Agent': expect.any(String),
-      },
-      url: 'http://sentry-test.io/index.html',
-    });
-    expect(navigationRequest.request).toEqual({
-      headers: {
-        'User-Agent': expect.any(String),
-      },
-      url: 'http://sentry-test.io/sub-page',
-    });
-  },
-);
+  expect(pageloadSpan.attributes).toMatchObject({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.pageload.browser' },
+    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+    [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'pageload' },
+    ['sentry.idle_span_finish_reason']: { type: 'string', value: 'cancelled' },
+  });
+  expect(navigationSpan.attributes).toMatchObject({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.navigation.browser' },
+    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+    [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'navigation' },
+    ['sentry.idle_span_finish_reason']: { type: 'string', value: 'idleTimeout' },
+  });
+  expect(pageloadSpan.attributes).toMatchObject({
+    'user_agent.original': { type: 'string', value: expect.any(String) },
+    'url.full': { type: 'string', value: 'http://sentry-test.io/index.html' },
+  });
+  expect(navigationSpan.attributes).toMatchObject({
+    'user_agent.original': { type: 'string', value: expect.any(String) },
+    'url.full': { type: 'string', value: 'http://sentry-test.io/sub-page' },
+  });
+});

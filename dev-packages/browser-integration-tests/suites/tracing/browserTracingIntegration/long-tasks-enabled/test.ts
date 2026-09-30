@@ -1,34 +1,41 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest('should capture long task.', async ({ browserName, getLocalTestUrl, page }) => {
+sentryTest('captures long task.', async ({ browserName, getLocalTestUrl, page }) => {
   // Long tasks only work on chrome
-  if (shouldSkipTracingTest() || browserName !== 'chromium') {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
   await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));
+  const spans = collectStreamedSpans(page);
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 
-  expect(uiSpans?.length).toBeGreaterThan(0);
+  await page.goto(url);
 
-  const [firstUISpan] = uiSpans || [];
+  const pageloadSpan = await pageloadSpanPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
+
+  const uiSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui'));
+  expect(uiSpans.length).toBeGreaterThan(0);
+
+  const [firstUISpan] = uiSpans;
   expect(firstUISpan).toEqual(
     expect.objectContaining({
-      op: 'ui.long_task',
-      description: 'Main UI thread blocked',
-      parent_span_id: eventData.contexts?.trace?.span_id,
+      name: 'Main UI thread blocked',
+      parent_span_id: pageloadSpan.span_id,
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'ui.long_task' },
+      }),
     }),
   );
+
   const start = firstUISpan.start_timestamp ?? 0;
-  const end = firstUISpan.timestamp ?? 0;
+  const end = firstUISpan.end_timestamp ?? 0;
   const duration = end - start;
 
   expect(duration).toBeGreaterThanOrEqual(0.1);
