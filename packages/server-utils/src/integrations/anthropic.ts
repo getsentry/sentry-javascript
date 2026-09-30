@@ -10,6 +10,7 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { onAiResponse } from '../ai/core/response';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
@@ -63,7 +64,17 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
             resolveAIRecordingOptions(options).recordOutputs,
           );
         },
-        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, stream, options),
+        deferSpanEnd: ({ span, data, end }) =>
+          onAiResponse(
+            data.result,
+            response => {
+              data.result = response;
+              if (!wrapStreamResult(span, data, stream, options)) {
+                end();
+              }
+            },
+            end,
+          ) || wrapStreamResult(span, data, stream, options),
       },
     );
   }
