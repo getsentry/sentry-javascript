@@ -8,6 +8,6 @@ export { browserTracingIntegration } from './browserTracingIntegration';
 export { attachErrorHandler } from './errorhandler';
 export { createTracingMixins } from './tracing';
 export { vueIntegration } from './integration';
-export { createVueRouteProvider } from './routeProvider';
+export { createVueRouteProvider as _INTERNAL_createVueRouteProvider } from './routeProvider';
 export type { VueIntegrationOptions } from './integration';
 export { createSentryPiniaPlugin } from './pinia';

@@ -1,9 +1,9 @@
-import * as SentryBrowser from '@sentry/browser';
+import { getRouteProvider, resolveRoute } from '@sentry/browser';
 import { getMainCarrier } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { vueIntegration } from '../src/integration';
 import { init } from '../src/sdk';
-
-const browserInit = vi.spyOn(SentryBrowser, 'init');
+import type { Vue } from '../src/types';
 
 const DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
@@ -13,31 +13,37 @@ const app = {
       $router: { resolve: () => ({ matched: [{ path: '/users/:id' }] }) },
     },
   },
-};
+  mixin: vi.fn(),
+} as unknown as Vue;
 
-describe('init', () => {
+describe('route provider registration', () => {
   afterEach(() => {
     vi.clearAllMocks();
     getMainCarrier().__SENTRY__ = undefined;
   });
 
-  it('passes a route provider that reads the router off the app', () => {
-    init({ dsn: DSN, app: app as never, defaultIntegrations: false });
+  it('registers a route provider that reads the router off the app passed to `init`', () => {
+    const client = init({ dsn: DSN, app, defaultIntegrations: false, integrations: [vueIntegration()] });
 
-    const { routeProvider } = browserInit.mock.lastCall![0]!;
-    expect(routeProvider?.resolveRoute(new URL('https://example.com/users/42'))).toBe('/users/:id');
+    expect(resolveRoute('https://example.com/users/42', client)).toBe('/users/:id');
   });
 
-  it('does not pass a route provider without an app to read the router from', () => {
-    init({ dsn: DSN, defaultIntegrations: false });
+  it('registers a route provider when the app is passed to `vueIntegration`', () => {
+    const client = init({ dsn: DSN, defaultIntegrations: false, integrations: [vueIntegration({ app })] });
 
-    expect(browserInit).toHaveBeenLastCalledWith(expect.not.objectContaining({ routeProvider: expect.anything() }));
+    expect(resolveRoute('https://example.com/users/42', client)).toBe('/users/:id');
+  });
+
+  it('does not register a route provider without an app to read the router from', () => {
+    const client = init({ dsn: DSN, defaultIntegrations: false, integrations: [vueIntegration()] });
+
+    expect(getRouteProvider(client)).toBeUndefined();
   });
 
   it('keeps a route provider passed by the user', () => {
     const routeProvider = { resolveRoute: () => '/custom', resolveCurrentRoute: () => '/custom' };
-    init({ dsn: DSN, app: app as never, defaultIntegrations: false, routeProvider });
+    const client = init({ dsn: DSN, app, routeProvider, defaultIntegrations: false, integrations: [vueIntegration()] });
 
-    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining({ routeProvider }));
+    expect(getRouteProvider(client)).toBe(routeProvider);
   });
 });

@@ -1,18 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { createVueRouteProvider, getRouterFromApp } from '../src/routeProvider';
 import type { Route } from '../src/router';
+import type { Vue } from '../src/types';
 
 function makeRoute(overrides: Partial<Route> = {}): Route {
   return { path: '/users/42', query: {}, params: {}, matched: [{ path: '/users/:id' }], ...overrides };
 }
 
-/** Vue Router 4+ returns the route itself. */
-const v4Router = (route: Route | undefined) => ({ resolve: () => route as Route });
+/** Vue Router 4+ returns the route itself. Only `/users/42` matches, so a wrong location resolves to nothing. */
+const v4Router = (route: Route | undefined, base = '') => ({
+  options: { history: { base } },
+  resolve: (to: string) => (to.split('?')[0] === '/users/42' ? route : makeRoute({ matched: [] })) as Route,
+});
 /** Vue Router 3 wraps it in `{ route }`. */
-const v3Router = (route: Route) => ({ resolve: () => ({ route }) });
+const v3Router = (route: Route, mode = 'history', base = '') => ({
+  mode,
+  history: { base },
+  resolve: (to: string) => ({ route: to.split('?')[0] === '/users/42' ? route : makeRoute({ matched: [] }) }),
+});
 
 /** A Vue 3 app with `vue-router` installed, which sets `config.globalProperties.$router`. */
-const appWithRouter = (router: unknown) => ({ config: { globalProperties: { $router: router } } });
+const appWithRouter = (router: unknown) => ({ config: { globalProperties: { $router: router } } }) as unknown as Vue;
 
 describe('getRouterFromApp', () => {
   it('reads the router vue-router installed on the app', () => {
@@ -28,7 +36,7 @@ describe('getRouterFromApp', () => {
   });
 
   it('returns undefined when no router is installed yet', () => {
-    expect(getRouterFromApp({ config: { globalProperties: {} } })).toBeUndefined();
+    expect(getRouterFromApp(appWithRouter(undefined))).toBeUndefined();
     expect(getRouterFromApp(undefined)).toBeUndefined();
   });
 });
@@ -37,7 +45,7 @@ describe('createVueRouteProvider', () => {
   it('resolves the matched path for Vue Router 4+', () => {
     const provider = createVueRouteProvider(() => v4Router(makeRoute()));
 
-    expect(provider.resolveRoute(new URL('https://example.com/users/42'))).toBe('/users/:id');
+    expect(provider.resolveRoute(new URL('https://example.com/users/42?tab=1'))).toBe('/users/:id');
   });
 
   it('unwraps the `{ route }` shape Vue Router 3 resolves to', () => {
@@ -63,8 +71,43 @@ describe('createVueRouteProvider', () => {
   });
 
   it('returns undefined when nothing matched', () => {
-    const provider = createVueRouteProvider(() => v4Router(makeRoute({ matched: [] })));
+    const provider = createVueRouteProvider(() => v4Router(makeRoute()));
 
     expect(provider.resolveRoute(new URL('https://example.com/nope'))).toBeUndefined();
+  });
+
+  describe('Vue Router 4+ history base', () => {
+    it('strips a non-root base', () => {
+      const provider = createVueRouteProvider(() => v4Router(makeRoute(), '/app'));
+
+      expect(provider.resolveRoute(new URL('https://example.com/app/users/42'))).toBe('/users/:id');
+    });
+
+    it('resolves from the hash with hash history', () => {
+      const provider = createVueRouteProvider(() => v4Router(makeRoute(), '/#'));
+
+      expect(provider.resolveRoute(new URL('https://example.com/#/users/42?tab=1'))).toBe('/users/:id');
+      expect(provider.resolveRoute(new URL('https://example.com/'))).toBeUndefined();
+    });
+
+    it('resolves from the hash with hash history under a base', () => {
+      const provider = createVueRouteProvider(() => v4Router(makeRoute(), '/app/#'));
+
+      expect(provider.resolveRoute(new URL('https://example.com/app/#/users/42'))).toBe('/users/:id');
+    });
+  });
+
+  describe('Vue Router 3 mode', () => {
+    it('strips a non-root base in history mode', () => {
+      const provider = createVueRouteProvider(() => v3Router(makeRoute(), 'history', '/app'));
+
+      expect(provider.resolveRoute(new URL('https://example.com/app/users/42'))).toBe('/users/:id');
+    });
+
+    it('resolves from the hash in hash mode', () => {
+      const provider = createVueRouteProvider(() => v3Router(makeRoute(), 'hash'));
+
+      expect(provider.resolveRoute(new URL('https://example.com/#/users/42'))).toBe('/users/:id');
+    });
   });
 });
