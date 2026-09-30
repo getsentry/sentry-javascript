@@ -38,7 +38,18 @@ export function orchestrionModuleInjected(moduleName: string, integrationFn?: ()
   }
 
   if (integrationFn) {
-    (marker.integrations ??= new Map()).set(moduleName, integrationFn);
+    // A module can register several integrations (e.g. `h3` → span + Server-Timing). Keep a single
+    // factory for the common one-integration case (so an older reader that expects a plain factory
+    // stays compatible), and upgrade to a Set only once a second integration is added.
+    const integrations = (marker.integrations ??= new Map());
+    const existing = integrations.get(moduleName);
+    if (existing instanceof Set) {
+      existing.add(integrationFn);
+    } else if (existing) {
+      integrations.set(moduleName, new Set([existing, integrationFn]));
+    } else {
+      integrations.set(moduleName, integrationFn);
+    }
   }
 
   getClient()?.emit('orchestrion.module-injected', moduleName);
