@@ -4,8 +4,12 @@ const port = 3030;
 
 export default defineConfig({
   testDir: './tests',
-  /* Spans take ~2min to become queryable via the trace endpoint. */
-  timeout: 210_000,
+  /*
+   * Spans take ~2min to become queryable via the trace endpoint, and each poll has its own 180s
+   * budget. The first test polls twice in a row (the model span, then its parent), so the ceiling
+   * has to hold two polls back to back.
+   */
+  timeout: 400_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
