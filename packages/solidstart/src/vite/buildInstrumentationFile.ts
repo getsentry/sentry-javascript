@@ -16,11 +16,13 @@ export function makeBuildInstrumentationFilePlugin(options: SentrySolidStartPlug
     async config(config: UserConfig, { command }) {
       const instrumentationFilePath = options.instrumentation || './src/instrument.server.ts';
       const router = (config as UserConfig & { router: { target: string; name: string; root: string } }).router;
-      const build = config.build || {};
-      // SolidStart builds with vinxi's Vite, which predates `rolldownOptions`
+      // `rollupOptions` is a deprecated alias of `rolldownOptions` in Vite 8+, but the only option in older Vite.
+      // Returning both makes Vite 8 ignore `rollupOptions`, so only write back the one that is in use.
       // oxlint-disable-next-line typescript/no-deprecated
-      const rollupOptions = build.rollupOptions || {};
-      const input = [...((rollupOptions.input || []) as string[])];
+      const { rollupOptions, rolldownOptions, ...build } = config.build || {};
+      const bundlerOptionsKey = rolldownOptions ? 'rolldownOptions' : 'rollupOptions';
+      const bundlerOptions = rolldownOptions || rollupOptions || {};
+      const input = [...((bundlerOptions.input || []) as string[])];
 
       // plugin runs for client, server and sever-fns, we only want to run it for the server once.
       if (command !== 'build' || router.target !== 'server' || router.name === 'server-fns') {
@@ -46,9 +48,8 @@ export function makeBuildInstrumentationFilePlugin(options: SentrySolidStartPlug
         ...config,
         build: {
           ...build,
-          // oxlint-disable-next-line typescript/no-deprecated
-          rollupOptions: {
-            ...rollupOptions,
+          [bundlerOptionsKey]: {
+            ...bundlerOptions,
             input,
           },
         },
