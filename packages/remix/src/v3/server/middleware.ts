@@ -11,6 +11,7 @@ import {
 } from '@sentry/core';
 
 import type { MatcherLike, MiddlewareLike, NextFunctionLike, RequestContextLike } from '../types';
+import { captureRequestError } from './errorFilter';
 import { resolveRoutePattern } from './route';
 
 /**
@@ -28,7 +29,16 @@ export function sentryRemixMiddleware(matcher: MatcherLike): MiddlewareLike {
     // Applied before `next()` so anything captured while the handler runs already carries the route.
     applyRoute(isolationScope, matcher, context);
 
-    const response = await next();
+    let response;
+    try {
+      response = await next();
+    } catch (error) {
+      // Captured here as well as in `onError`, so the event carries the route this middleware just put
+      // on the scope.
+      captureRequestError(error, context.request, 'auto.http.remix_v3.middleware');
+      throw error;
+    }
+
     setResponseStatus(response);
 
     return response;

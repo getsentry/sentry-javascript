@@ -1,14 +1,28 @@
 import { channel } from 'node:diagnostics_channel';
+import type * as SentryCore from '@sentry/core';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { instrumentRemixV3 } from '../../src/v3/server/instrument';
+const captureException = vi.fn();
+
+// Only `captureException` is replaced; the middleware needs the rest for real.
+vi.mock('@sentry/core', async importOriginal => ({
+  ...(await importOriginal<typeof SentryCore>()),
+  captureException: (...args: unknown[]) => captureException(...args),
+}));
+
+const { instrumentRemixV3 } = await import('../../src/v3/server/instrument');
 
 const startChannel = channel(`tracing:${remixV3Channels.REMIX_V3_CREATE_ROUTER}:start`);
+const listenerStartChannel = channel(`tracing:${remixV3Channels.REMIX_V3_CREATE_REQUEST_LISTENER}:start`);
 
 /** What orchestrion's transform publishes: the call's arguments, collected into a real array. */
 function publishCreateRouter(args: unknown[]): void {
   startChannel.publish({ arguments: args });
+}
+
+function publishCreateRequestListener(args: unknown[]): void {
+  listenerStartChannel.publish({ arguments: args });
 }
 
 describe('instrumentRemixV3', () => {
@@ -66,5 +80,39 @@ describe('instrumentRemixV3', () => {
 
     expect(uncaught).toEqual([]);
     expect(options.middleware).toEqual([]);
+  });
+});
+
+describe('the createRequestListener error hook', () => {
+  beforeAll(() => {
+    instrumentRemixV3();
+  });
+
+  beforeEach(() => {
+    captureException.mockClear();
+  });
+
+  it("captures and then calls the app's own onError", async () => {
+    const appResponse = new Response('handled', { status: 500 });
+    const appOnError = vi.fn(() => appResponse);
+    const options: Record<string, unknown> = { onError: appOnError };
+
+    publishCreateRequestListener([() => new Response(), options]);
+    const error = new Error('boom');
+    const returned = await (options.onError as (e: unknown) => Promise<Response>)(error);
+
+    expect(captureException).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.http.remix_v3.on_error' },
+    });
+    expect(appOnError).toHaveBeenCalledWith(error);
+    expect(returned).toBe(appResponse);
+  });
+
+  it('installs a hook when the app passed no options at all', () => {
+    const args: unknown[] = [() => new Response()];
+
+    publishCreateRequestListener(args);
+
+    expect(args[1]).toEqual(expect.objectContaining({ onError: expect.any(Function) }));
   });
 });

@@ -37,3 +37,8 @@ export interface RouterOptionsLike {
   middleware?: MiddlewareLike[];
   matcher?: MatcherLike;
 }
+
+/** `createRequestListener`'s options, of which only the error hook is touched. */
+export interface RequestListenerOptionsLike {
+  onError?: (error: unknown) => void | Response | Promise<void | Response>;
+}
