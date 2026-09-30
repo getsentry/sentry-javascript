@@ -108,7 +108,7 @@ export function instrumentDOM(): void {
               originalAddEventListener.call(this, type, handler, handlerForType.capture);
             }
 
-            if (typeof options === 'object' && (options.once || options.signal)) {
+            if (typeof options === 'object' && (options?.once || options?.signal)) {
               // Not tracked to avoid retaining listeners the browser auto-removes.
               handlerForType.sticky = true;
             } else {

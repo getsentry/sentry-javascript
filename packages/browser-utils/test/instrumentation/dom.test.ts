@@ -95,6 +95,20 @@ describe('instrumentDOM', () => {
     expect(countDocumentClickListeners() - baseline).toBe(0);
   });
 
+  it('removes its handler when listeners are added and removed with `null` options', () => {
+    const countDocumentClickListeners = instrumentAndTrackDocumentClickListeners();
+    const baseline = countDocumentClickListeners();
+
+    const onClick = (): void => {};
+
+    // @ts-expect-error - `null` is valid at runtime and treated like default options
+    document.addEventListener('click', onClick, null);
+    // @ts-expect-error - see above
+    document.removeEventListener('click', onClick, null);
+
+    expect(countDocumentClickListeners() - baseline).toBe(0);
+  });
+
   it('does not retain listeners added with `once` or `signal`, which the browser removes on its own', () => {
     instrumentDOM();
 
