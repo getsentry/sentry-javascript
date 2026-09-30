@@ -150,4 +150,27 @@ test.describe('Cache Instrumentation', () => {
     // We should have at least one cache hit (second calls to getCachedUser and getCachedData)
     expect(cacheHitSpans.length).toBeGreaterThanOrEqual(1);
   });
+
+  // On Nitro 3, `@sentry/server-utils`' `nitroIntegration` is auto-injected (via `@sentry/node`'s
+  // default integrations) and instruments unstorage through its native tracing channels. The Nuxt
+  // storage plugin (`auto.cache.nuxt`) still exists for legacy Nitro 2, so this guards that it does
+  // not also fire on Nitro 3 — every cache operation must be instrumented exactly once.
+  test('instruments each cache operation exactly once (no Nuxt/nitro duplication)', async ({ request }) => {
+    const spans = await collectStreamedSpansUntilSegment(
+      'nuxt-5',
+      span => span.attributes['url.path']?.value === '/api/cache-test',
+    );
+    const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/cache-test');
+    const cacheSpans = spans.filter(
+      span =>
+        span.trace_id === rootSpan?.trace_id && String(span.attributes['sentry.op']?.value ?? '').startsWith('cache.'),
+    );
+
+    const byOrigin = (origin: string) => cacheSpans.filter(span => span.attributes['sentry.origin']?.value === origin);
+
+    // Cache is instrumented by the auto-injected nitroIntegration.
+    expect(byOrigin('auto.cache.nitro').length).toBeGreaterThan(0);
+    // The Nuxt storage plugin must not double-instrument the same operations.
+    expect(byOrigin('auto.cache.nuxt')).toHaveLength(0);
+  });
 });
