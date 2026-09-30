@@ -60,11 +60,15 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'kafkaIntegration', modules: ['kafkajs'] },
   { exportName: 'redisIntegration', modules: ['redis', '@redis/client', 'ioredis'] },
   { exportName: 'dataloaderIntegration', modules: ['dataloader'] },
+  // Both anchored on `h3` — the module every HTTP-serving Nitro app loads — so a single module can
+  // register more than one integration.
   { exportName: 'nitroIntegration', modules: ['h3'] },
-  { exportName: 'nitroServerTimingIntegration', modules: ['unstorage'] },
+  { exportName: 'nitroServerTimingIntegration', modules: ['h3'] },
 ] as const satisfies ReadonlyArray<{ exportName: string; modules: readonly string[] }>;
 
-/** Look up the subscriber export name for an instrumented package, if any. */
-export function subscriberExportForModule(moduleName: string): string | undefined {
-  return CHANNEL_INTEGRATION_DEFINITIONS.find(d => (d.modules as readonly string[]).includes(moduleName))?.exportName;
+/** Look up the subscriber export names for an instrumented package (a module may register several). */
+export function subscriberExportsForModule(moduleName: string): string[] {
+  return CHANNEL_INTEGRATION_DEFINITIONS.filter(d => (d.modules as readonly string[]).includes(moduleName)).map(
+    d => d.exportName,
+  );
 }

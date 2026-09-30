@@ -357,4 +357,18 @@ describe('getDefaultIntegrations', () => {
 
     expect(client?.getIntegrationByName('Mysql')).toBeDefined();
   });
+
+  test('installs all integrations a single module registers', async () => {
+    const { mysqlIntegration, lruMemoizerIntegration } = await import('@sentry/server-utils');
+    // One module registering more than one integration (like `h3` → span + Server-Timing).
+    globalThis.__SENTRY_ORCHESTRION__ = {
+      bundler: new Set(['some-module']),
+      integrations: new Map([['some-module', new Set([mysqlIntegration, lruMemoizerIntegration])]]),
+    };
+
+    const names = getDefaultIntegrations({}).map(i => i.name);
+
+    expect(names).toContain('Mysql');
+    expect(names).toContain('LruMemoizer');
+  });
 });
