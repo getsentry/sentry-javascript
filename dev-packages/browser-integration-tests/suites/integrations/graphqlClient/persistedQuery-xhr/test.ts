@@ -1,11 +1,11 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest('should update spans for GraphQL persisted query XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
-    return;
+    sentryTest.skip();
   }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -27,35 +27,38 @@ sentryTest('should update spans for GraphQL persisted query XHR requests', async
     });
   });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const requestSpans = eventData.spans?.filter(({ op }) => op === 'http.client');
+  const rootSpanPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+  const requestSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
+  await page.goto(url);
+  const [rootSpan, requestSpan] = await Promise.all([rootSpanPromise, requestSpanPromise]);
 
-  expect(requestSpans).toHaveLength(1);
-
-  expect(requestSpans![0]).toMatchObject({
-    description: 'POST http://sentry-test.io/graphql (persisted GetUser)',
-    parent_span_id: eventData.contexts?.trace?.span_id,
+  expect(requestSpan).toMatchObject({
+    name: 'POST sentry-test.io',
+    parent_span_id: rootSpan.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: eventData.contexts?.trace?.trace_id,
+    end_timestamp: expect.any(Number),
+    trace_id: rootSpan.trace_id,
     status: 'ok',
-    data: {
-      type: 'xhr',
-      'http.request.method': 'POST',
-      'url.full': 'http://sentry-test.io/graphql',
-      'server.address': 'sentry-test.io',
-      'sentry.op': 'http.client',
-      'sentry.origin': 'auto.http.browser',
-      'graphql.persisted_query.hash.sha256': 'ecf4edb46db40b5132295c0291d62fb65d6759a9eedfa4d5d612dd5ec54a6b38',
-      'graphql.persisted_query.version': 1,
-    },
+    attributes: expect.objectContaining({
+      type: { type: 'string', value: 'xhr' },
+      'http.request.method': { type: 'string', value: 'POST' },
+      'url.full': { type: 'string', value: 'http://sentry-test.io/graphql' },
+      'server.address': { type: 'string', value: 'sentry-test.io' },
+      'sentry.op': { type: 'string', value: 'http.client' },
+      'sentry.origin': { type: 'string', value: 'auto.http.browser' },
+      'graphql.persisted_query.hash.sha256': {
+        type: 'string',
+        value: 'ecf4edb46db40b5132295c0291d62fb65d6759a9eedfa4d5d612dd5ec54a6b38',
+      },
+      'graphql.persisted_query.version': { type: 'integer', value: 1 },
+    }),
   });
 });
 
 sentryTest('should update breadcrumbs for GraphQL persisted query XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
-    return;
+    sentryTest.skip();
   }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -77,7 +80,12 @@ sentryTest('should update breadcrumbs for GraphQL persisted query XHR requests',
     });
   });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const rootSpanPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+  await page.goto(url);
+  await rootSpanPromise;
+  const eventPromise = waitForErrorRequest(page, event => event.message === 'GraphQL request completed');
+  await page.evaluate(() => (window as any).Sentry.captureMessage('GraphQL request completed'));
+  const eventData = envelopeRequestParser(await eventPromise);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
 
