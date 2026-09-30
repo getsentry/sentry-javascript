@@ -20,7 +20,7 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.types.d.ts",
-      "workerd": {
+      "worker": {
         "import": "./build/esm/cloudflare/index.js",
         "require": "./build/cjs/cloudflare/index.js",
         "default": "./build/esm/cloudflare/index.js"
@@ -32,11 +32,6 @@
       "node": {
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
-      },
-      "worker": {
-        "import": "./build/esm/cloudflare/index.js",
-        "require": "./build/cjs/cloudflare/index.js",
-        "default": "./build/esm/cloudflare/index.js"
       }
     },
     "./cloudflare": {
