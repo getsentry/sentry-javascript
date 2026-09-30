@@ -442,5 +442,5 @@ function getParametrizedRoute(ctx: APIContext & { routePattern?: string }): stri
 }
 
 function injectMetaTagsInResponse(originalResponse: Response, metaTagsStr: string): Response {
-  return injectHtmlIntoHead(originalResponse, metaTagsStr, sendErrorToSentry);
+  return injectHtmlIntoHead(originalResponse, metaTagsStr, { onError: sendErrorToSentry });
 }

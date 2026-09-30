@@ -87,7 +87,10 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
             updateSpanWithRouteParametrization(method, url.pathname, __SENTRY_ROUTE_PATTERNS__);
           }
 
-          return injectHtmlIntoHead(await target.apply(thisArg, args), getTraceMetaTags(), reportStreamError);
+          return injectHtmlIntoHead(await target.apply(thisArg, args), getTraceMetaTags(), {
+            onError: reportStreamError,
+            skipIfHeadContains: '"sentry-trace"',
+          });
         } finally {
           await flushIfServerless();
         }

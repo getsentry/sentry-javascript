@@ -445,6 +445,27 @@ describe('sentryMiddleware', () => {
     expect(html).not.toContain('<meta name="baggage" content="');
   });
 
+  it('injects the routing <meta> tag when the head already has a sentry-trace <meta> tag', async () => {
+    const middleware = handleRequest();
+
+    const ctx = STATIC_REQUEST_CONTEXT;
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response('<head><meta name="sentry-trace" content="rendered-by-app"/></head>', {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+    const html = await resultFromNext?.text();
+
+    expect(html).toBe(
+      '<head><meta name="sentry-trace" content="rendered-by-app"/><meta name="sentry-route-name" content="%2Fusers"/></head>',
+    );
+  });
+
   it('injects routing <meta> tag into the HTML of a pageload response without Sentry being initialized', async () => {
     vi.spyOn(SentryNode, 'getClient').mockImplementation(() => undefined);
 

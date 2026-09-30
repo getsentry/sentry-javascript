@@ -1,9 +1,14 @@
 const HEAD_CLOSING_TAG = '</head>';
-const EXISTING_META_TAG = '"sentry-trace"';
 
-// Held back at the end of each chunk so that either token is still recognised when a chunk
-// boundary splits it.
-const CARRY_LENGTH = Math.max(HEAD_CLOSING_TAG.length, EXISTING_META_TAG.length) - 1;
+type InjectHtmlIntoHeadOptions = {
+  /** Called with the error when reading the original body fails. */
+  onError?: (error: unknown) => void;
+  /**
+   * Text that shows the head already contains the markup, e.g. `'"sentry-trace"'`. When the head
+   * contains it before the closing head tag, nothing is injected.
+   */
+  skipIfHeadContains?: string;
+};
 
 type HeadHtmlInjector = {
   /** Returns the text to emit in place of `htmlChunk`, which may be empty. */
@@ -18,14 +23,18 @@ type HeadHtmlInjector = {
  *
  * The scan carries its state from one chunk to the next, so the closing tag may be split
  * across any number of chunks. Anchoring on the closing tag means everything the head
- * contains has already been seen by the time the injection happens, so a page that already
- * carries trace meta tags is detected with certainty. The result depends only on the bytes of
- * the response, never on where they happen to be split.
+ * contains has already been seen by the time the injection happens, so `skipIfHeadContains`
+ * is detected with certainty. The result depends only on the bytes of the response, never on
+ * where they happen to be split.
  */
-function createHeadHtmlInjector(html: string): HeadHtmlInjector {
+function createHeadHtmlInjector(html: string, skipIfHeadContains: string | undefined): HeadHtmlInjector {
   if (!html) {
     return { transformChunk: htmlChunk => htmlChunk, flush: () => '' };
   }
+
+  // Held back at the end of each chunk so that either token is still recognised when a chunk
+  // boundary splits it.
+  const carryLength = Math.max(HEAD_CLOSING_TAG.length, skipIfHeadContains?.length ?? 0) - 1;
 
   let done = false;
   let carry = '';
@@ -38,9 +47,8 @@ function createHeadHtmlInjector(html: string): HeadHtmlInjector {
 
       const chunk = carry + htmlChunk;
       const closingIndex = chunk.indexOf(HEAD_CLOSING_TAG);
-      const existingIndex = chunk.indexOf(EXISTING_META_TAG);
+      const existingIndex = skipIfHeadContains ? chunk.indexOf(skipIfHeadContains) : -1;
 
-      // The head already carries trace meta tags, e.g. rendered by the app itself.
       if (existingIndex !== -1 && (closingIndex === -1 || existingIndex < closingIndex)) {
         done = true;
         carry = '';
@@ -53,7 +61,7 @@ function createHeadHtmlInjector(html: string): HeadHtmlInjector {
         return `${chunk.slice(0, closingIndex)}${html}${chunk.slice(closingIndex)}`;
       }
 
-      let keep = Math.min(CARRY_LENGTH, chunk.length);
+      let keep = Math.min(carryLength, chunk.length);
       // The two sides of the cut are encoded separately, and a lone surrogate encodes to
       // U+FFFD, so keep a surrogate pair together.
       const leadingCharCode = chunk.charCodeAt(chunk.length - keep - 1);
@@ -77,16 +85,15 @@ function createHeadHtmlInjector(html: string): HeadHtmlInjector {
  *
  * @param body - the HTML body stream to rewrite
  * @param html - the markup to inject, e.g. the output of `getTraceMetaTags()`
- * @param onError - called if reading the original body fails
  */
 export function injectHtmlIntoHeadStream(
   body: ReadableStream<Uint8Array | string>,
   html: string,
-  onError?: (error: unknown) => void,
+  { onError, skipIfHeadContains }: InjectHtmlIntoHeadOptions = {},
 ): ReadableStream<Uint8Array> {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
-  const injector = createHeadHtmlInjector(html);
+  const injector = createHeadHtmlInjector(html, skipIfHeadContains);
 
   // A TransformStream carries the consumer's backpressure through to the body it wraps.
   // Pumping the body into a ReadableStream instead would read it as fast as it can be
@@ -151,9 +158,8 @@ export function injectHtmlIntoHeadStream(
  *
  * @param response - the response to rewrite
  * @param html - the markup to inject, e.g. the output of `getTraceMetaTags()`
- * @param onError - called if reading the original body fails
  */
-export function injectHtmlIntoHead(response: Response, html: string, onError?: (error: unknown) => void): Response {
+export function injectHtmlIntoHead(response: Response, html: string, options?: InjectHtmlIntoHeadOptions): Response {
   const contentType = response.headers.get('content-type');
   if (!html || !contentType?.startsWith('text/html') || !response.body) {
     return response;
@@ -163,7 +169,7 @@ export function injectHtmlIntoHead(response: Response, html: string, onError?: (
   // The body grows by the injected markup, so a copied content-length would truncate it.
   headers.delete('content-length');
 
-  return new Response(injectHtmlIntoHeadStream(response.body, html, onError), {
+  return new Response(injectHtmlIntoHeadStream(response.body, html, options), {
     status: response.status,
     statusText: response.statusText,
     headers,

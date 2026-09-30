@@ -3,6 +3,7 @@ import { injectHtmlIntoHead, injectHtmlIntoHeadStream } from '../../src/utils/ht
 
 const META_TAGS =
   '<meta name="sentry-trace" content="abc123-def456-1"/><meta name="baggage" content="sentry-trace_id=abc123"/>';
+const SKIP_IF_TRACE_META_TAGS = { skipIfHeadContains: '"sentry-trace"' };
 
 function streamOf(chunks: (string | Uint8Array)[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
@@ -16,8 +17,12 @@ function streamOf(chunks: (string | Uint8Array)[]): ReadableStream<Uint8Array> {
   });
 }
 
-function inject(chunks: (string | Uint8Array)[], html: string = META_TAGS): Promise<string> {
-  return new Response(injectHtmlIntoHeadStream(streamOf(chunks), html)).text();
+function inject(
+  chunks: (string | Uint8Array)[],
+  html: string = META_TAGS,
+  options?: Parameters<typeof injectHtmlIntoHeadStream>[2],
+): Promise<string> {
+  return new Response(injectHtmlIntoHeadStream(streamOf(chunks), html, options)).text();
 }
 
 function countTraceMetaTags(html: string): number {
@@ -55,18 +60,32 @@ describe('injectHtmlIntoHeadStream', () => {
     expect(await inject([...document])).toBe(unsplit);
   });
 
-  it('does not inject when the head already carries trace meta tags', async () => {
+  it('does not inject when the head contains skipIfHeadContains', async () => {
     const document = '<html><head><meta name="sentry-trace" content="existing"/></head><body>b</body></html>';
 
-    expect(await inject([document])).toBe(document);
-    expect(await inject([...document])).toBe(document);
+    expect(await inject([document], META_TAGS, SKIP_IF_TRACE_META_TAGS)).toBe(document);
+    expect(await inject([...document], META_TAGS, SKIP_IF_TRACE_META_TAGS)).toBe(document);
   });
 
-  it('injects when sentry-trace appears in the body rather than the head', async () => {
-    const html = await inject(['<html><head><title>t</title></head><body>"sentry-trace"</body></html>']);
+  it('injects when skipIfHeadContains appears in the body rather than the head', async () => {
+    const html = await inject(
+      ['<html><head><title>t</title></head><body>"sentry-trace"</body></html>'],
+      META_TAGS,
+      SKIP_IF_TRACE_META_TAGS,
+    );
 
     expect(countTraceMetaTags(html)).toBe(1);
     expect(html).toContain(`${META_TAGS}</head>`);
+  });
+
+  it('injects regardless of the head content when skipIfHeadContains is not set', async () => {
+    const routeNameTag = '<meta name="sentry-route-name" content="%2Fusers"/>';
+    const html = await inject(
+      ['<html><head><meta name="sentry-trace" content="existing"/></head><body>b</body></html>'],
+      routeNameTag,
+    );
+
+    expect(html).toContain(`<meta name="sentry-trace" content="existing"/>${routeNameTag}</head>`);
   });
 
   it('keeps multi-byte characters intact when they straddle a chunk boundary', async () => {
@@ -124,7 +143,7 @@ describe('injectHtmlIntoHeadStream', () => {
       },
     });
 
-    await expect(new Response(injectHtmlIntoHeadStream(body, META_TAGS, onError)).text()).rejects.toThrow();
+    await expect(new Response(injectHtmlIntoHeadStream(body, META_TAGS, { onError })).text()).rejects.toThrow();
 
     expect(onError).toHaveBeenCalledWith(bodyError);
   });
@@ -143,7 +162,7 @@ describe('injectHtmlIntoHeadStream', () => {
       cancel: cancelled,
     });
 
-    const reader = injectHtmlIntoHeadStream(body, META_TAGS, onError).getReader();
+    const reader = injectHtmlIntoHeadStream(body, META_TAGS, { onError }).getReader();
     await reader.read();
     await reader.cancel('navigated away');
 
