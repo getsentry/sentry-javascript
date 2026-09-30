@@ -45,6 +45,7 @@ export interface VueSentry extends ViewModel {
   };
   $_sentryRootComponentSpan?: Span;
   $_sentryRootComponentSpanTimer?: ReturnType<typeof setTimeout>;
+  $_sentryRootComponentSpanActivity?: number;
 }
 
 // Mappings from operation to corresponding lifecycle hook.
@@ -59,18 +60,40 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   update: ['beforeUpdate', 'updated'],
 };
 
-/** End the top-level component span and activity with a debounce configured using `timeout` option */
+/**
+ * End the root component span once no render activity happened for `timeout` (a debounce).
+ *
+ * All debounce state lives on `$root`, so hooks from every component share one timer. Each component
+ * only writes a timestamp (no new timer is created). So mounting any number of components uses a single timer.
+ */
 function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
-  if (vm.$_sentryRootComponentSpanTimer) {
-    clearTimeout(vm.$_sentryRootComponentSpanTimer);
-  }
+  const root = vm.$root;
+  root.$_sentryRootComponentSpanActivity = timestamp;
 
-  vm.$_sentryRootComponentSpanTimer = setTimeout(() => {
-    if (vm.$root?.$_sentryRootComponentSpan) {
-      vm.$root.$_sentryRootComponentSpan.end(timestamp);
-      vm.$root.$_sentryRootComponentSpan = undefined;
+  if (!root.$_sentryRootComponentSpanTimer) {
+    armRootComponentSpanTimer(root, timestamp, timeout);
+  }
+}
+
+/**
+ * Fires `delayMs` after the activity that scheduled it. Activity recorded in the meantime pushes
+ * the deadline out by the recorded gap, so the span always ends at the last activity timestamp.
+ */
+function armRootComponentSpanTimer(root: VueSentry, armedFor: number, delayMs: number): void {
+  root.$_sentryRootComponentSpanTimer = setTimeout(() => {
+    root.$_sentryRootComponentSpanTimer = undefined;
+
+    const lastActivity = root.$_sentryRootComponentSpanActivity ?? armedFor;
+    if (lastActivity > armedFor) {
+      armRootComponentSpanTimer(root, lastActivity, (lastActivity - armedFor) * 1000);
+      return;
     }
-  }, timeout);
+
+    if (root.$_sentryRootComponentSpan) {
+      root.$_sentryRootComponentSpan.end(lastActivity);
+      root.$_sentryRootComponentSpan = undefined;
+    }
+  }, delayMs);
 }
 
 /** Find if the current component exists in the provided `TracingOptions.trackComponents` array option. */

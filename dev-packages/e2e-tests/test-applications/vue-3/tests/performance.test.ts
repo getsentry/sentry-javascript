@@ -172,10 +172,9 @@ test('sends a pageload span with a route name as span name if available', async 
   });
 });
 
-// True on both variants: the mixin arms one debounce timer per component (`tracing.ts`), so a
-// late child never clears the root's earlier timer and the span ends at the root's mount. The
-// `app.mount()` wrap only observes the root, so it matches.
-test('ends the application render span before a delayed async component mounts', async ({ page }) => {
+// Mixin: records render activity from every component, so the late child pushes the root render span's end out to its own mount.
+// `app.mount()` wrap: only observes the root, so without the Options API the span still ends before the child mounts.
+test('ends the application render span at the last observed render activity', async ({ page }) => {
   const spansPromise = collectStreamedSpans('vue-3', spans =>
     spans.some(
       span => span.is_segment && getSpanOp(span) === 'pageload' && span.attributes['url.path']?.value === '/delayed',
@@ -197,7 +196,11 @@ test('ends the application render span before a delayed async component mounts',
   expect(applicationRenderSpan?.end_timestamp).toEqual(expect.any(Number));
 
   const duration = (applicationRenderSpan?.end_timestamp ?? 0) - (applicationRenderSpan?.start_timestamp ?? 0);
-  expect(duration).toBeLessThan(ASYNC_CHILD_DELAY_S);
+  if (OPTIONS_API_DISABLED) {
+    expect(duration).toBeLessThan(ASYNC_CHILD_DELAY_S);
+  } else {
+    expect(duration).toBeGreaterThanOrEqual(ASYNC_CHILD_DELAY_S);
+  }
 });
 
 test('sends a lifecycle span for the root and for each tracked component only', async ({ page }) => {
