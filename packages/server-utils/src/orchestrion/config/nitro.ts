@@ -13,6 +13,12 @@ import { registrationOnly } from './registration-only';
  * Server-Timing trace-propagation headers. Both are core Nitro dependencies evaluated at startup, so
  * a real Nitro app triggers both. The anchor only triggers registration; each integration then
  * subscribes to all of its own channels, independent of which module loaded it.
+ *
+ * The `-0` in the version range is load-bearing: h3 and unstorage ship the versions Nitro 3 uses as
+ * prereleases (h3 `2.0.1-rc.*`, unstorage `2.0.0-alpha.*`). The orchestrion matcher is the vendored
+ * `semifies` (used by both the runtime loader and the bundler plugins), where a range carrying a
+ * prerelease tag enables prerelease matching across patch tuples — so `>=2.0.0-0` matches
+ * `2.0.1-rc.*`. (Plain node-semver would not: it drops prereleases of a higher patch tuple.)
  */
 export const nitroConfig = [
   registrationOnly({ name: 'h3', versionRange: '>=2.0.0-0', filePath: 'dist/h3.mjs' }),
