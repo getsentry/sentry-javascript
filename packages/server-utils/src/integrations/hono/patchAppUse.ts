@@ -1,6 +1,6 @@
 import { debug } from '@sentry/core';
-import type { Env, Hono, MiddlewareHandler } from 'hono';
-import { DEBUG_BUILD } from '../debug-build';
+import type { Env, Hono, MiddlewareHandler } from './honoTypes';
+import { DEBUG_BUILD } from '../../debug-build';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 
 // oxlint-disable-next-line typescript/no-explicit-any

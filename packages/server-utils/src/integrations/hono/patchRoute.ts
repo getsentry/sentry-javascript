@@ -1,17 +1,12 @@
 import { debug, getOriginalFunction } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/core';
-import type { Hono, MiddlewareHandler } from 'hono';
-import { Hono as HonoClass } from 'hono';
-import { DEBUG_BUILD } from '../debug-build';
-import { isMiddleware } from '../utils/isMiddleware';
+import { DEBUG_BUILD } from '../../debug-build';
+import type { Hono, HonoRoute } from './honoTypes';
+import { isMiddleware } from './isMiddleware';
 import { patchAppRequest } from './patchAppRequest';
 import { wrapMiddlewareWithSpan } from './wrapMiddlewareSpan';
 
-export type HonoRoute = {
-  method: string;
-  path: string;
-  handler: MiddlewareHandler;
-};
+export type { HonoRoute };
 
 // oxlint-disable-next-line typescript/no-explicit-any
 type HonoAny = Hono<any>;
@@ -60,14 +55,16 @@ function createRouteHook(): { handle: RouteHookHandle; onSubAppMounted: (subApp:
 /**
  * Installs a hook on `HonoBase.prototype.route` to intercept sub-app mounting.
  *
+ * `honoBaseProto` is `HonoBase.prototype`, where `route` is defined — one level above the concrete
+ * subclass. Callers derive it from a live app instance (`Object.getPrototypeOf(Object.getPrototypeOf(app))`)
+ * or from the `Hono` class (`Object.getPrototypeOf(Hono.prototype)`), so the instrumentation never
+ * imports `hono` itself.
+ *
  * Returns a handle with `activate()` and `getPendingSubApps()`.
  * Idempotent: subsequent calls return the same handle
  */
-export function installRouteHookOnPrototype(): RouteHookHandle {
+export function installRouteHookOnPrototype(honoBaseProto: HonoBaseProto): RouteHookHandle {
   const noopHandle: RouteHookHandle = { activate: () => {}, getPendingSubApps: () => new Set() };
-
-  // `route` is defined on HonoBase.prototype, one level above the concrete subclass
-  const honoBaseProto = Object.getPrototypeOf(HonoClass.prototype) as HonoBaseProto;
 
   if (!honoBaseProto || typeof honoBaseProto.route !== 'function') {
     DEBUG_BUILD && debug.warn('[hono] Could not find HonoBase.prototype.route — sub-app instrumentation disabled.');

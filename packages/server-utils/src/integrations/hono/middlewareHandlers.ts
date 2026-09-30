@@ -10,12 +10,11 @@ import {
   type Scope,
   winterCGRequestToRequestData,
 } from '@sentry/core';
-import type { Context } from 'hono';
-import { hasFetchEvent } from '../utils/hono-context';
+import type { Context, GetConnInfo } from './honoTypes';
+import { hasFetchEvent } from './hono-context';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
 import { resolveRouteName } from './resolveRouteName';
-import { type SentryHonoMiddlewareOptions } from '../shared/types';
-import { type GetConnInfo } from 'hono/conninfo';
+import { type SentryHonoMiddlewareOptions } from './types';
 import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 
 /**

@@ -1,11 +1,23 @@
-import type { Context } from 'hono';
-import { matchedRoutes, routePath } from 'hono/route';
-import { isMiddleware } from '../utils/isMiddleware';
+import type { Context, HonoRoute } from './honoTypes';
+import { isMiddleware } from './isMiddleware';
 
 // Arity alone is enough here (unlike `wrapSubAppMiddleware` in patchRoute.ts, which also needs position)
 // We only want the path, and inline middleware shares its handler's path.
 function isRouteHandler(handler: unknown): boolean {
   return typeof handler === 'function' && !isMiddleware(handler);
+}
+
+// Read the request's own matched routes rather than importing the `hono/route` helpers, so the
+// instrumentation needs no runtime import from `hono`. `c.req.matchedRoutes` and `c.req.routePath`
+// are the (deprecated but public) getters those helpers wrap; `routePath(c, index)` is reimplemented
+// here as `matchedRoutes(c).at(index)?.path` so an arbitrary index (e.g. -1) can be resolved.
+function matchedRoutes(context: Context): HonoRoute[] {
+  return context.req.matchedRoutes ?? [];
+}
+
+function routePath(context: Context, index?: number): string {
+  const routes = matchedRoutes(context);
+  return routes.at(index ?? context.req.routeIndex)?.path ?? '';
 }
 
 /**
