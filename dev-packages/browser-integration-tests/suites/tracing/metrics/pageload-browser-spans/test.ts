@@ -1,29 +1,29 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest('should add browser-related spans to pageload transaction', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
+sentryTest('adds browser performance spans to the pageload segment', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
+  const spans = collectStreamedSpans(page);
+  const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
   const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
+  const pageload = await pageloadPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const browserSpans = eventData.spans?.filter(({ op }) => op?.startsWith('browser'));
-
-  // Spans `dom_content_loaded_event`, `connect`, `cache` and `dns` are not
-  // always inside `pageload` transaction.
-  expect(browserSpans?.length).toBeGreaterThanOrEqual(4);
-
-  ['load_event', 'request', 'response'].forEach(eventDesc =>
-    expect(browserSpans).toContainEqual(
-      expect.objectContaining({
-        op: `browser.${eventDesc}`,
-        description: page.url(),
-        parent_span_id: eventData.contexts?.trace?.span_id,
-      }),
-    ),
-  );
+  const browserSpans = spans.filter(span => getSpanOp(span)?.startsWith('browser'));
+  expect(browserSpans.length).toBeGreaterThanOrEqual(4);
+  [
+    { op: 'browser.load_event', name: 'Load event' },
+    { op: 'browser.request', name: 'Request' },
+    { op: 'browser.response', name: 'Response' },
+  ].forEach(({ op, name }) => {
+    const matches = browserSpans.filter(span => getSpanOp(span) === op);
+    expect(matches).toHaveLength(1);
+    expect(matches[0].name).toBe(name);
+    expect(matches[0].attributes['url.full']).toEqual({ type: 'string', value: page.url() });
+    expect(matches[0].parent_span_id).toBe(pageload.span_id);
+    expect(matches[0].trace_id).toBe(pageload.trace_id);
+  });
 });

@@ -55,7 +55,7 @@ sentryTest(
 
     expect(itemHeader).toEqual({
       type: 'span',
-      item_count: 1,
+      item_count: getSpansFromEnvelope(spanEnvelope).length,
       content_type: 'application/vnd.sentry.items.span.v2+json',
     });
 
@@ -65,7 +65,7 @@ sentryTest(
     const pageloadSpanId = inpSpan.parent_span_id;
 
     expect(inpSpan).toEqual({
-      name: 'body > NormalButton',
+      name: 'NormalButton',
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
       trace_id: traceId,
       parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),

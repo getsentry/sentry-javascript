@@ -1,29 +1,27 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest('sanitizes data URLs in XHR span name and attributes', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
+sentryTest('sanitizes data URLs in xhr span name and attributes', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
+  const spans = collectStreamedSpans(page);
+  const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
   const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
+  const pageload = await pageloadPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const requestSpans = eventData.spans?.filter(({ op }) => op === 'http.client');
-
-  expect(requestSpans).toHaveLength(1);
-
-  const span = requestSpans?.[0];
-
-  const sanitizedUrl = 'data:text/plain,base64,SGVsbG8gV2... [truncated]';
-  expect(span?.description).toBe(`GET ${sanitizedUrl}`);
-
-  expect(span?.data).toMatchObject({
-    'http.request.method': 'GET',
-    type: 'xhr',
+  const requests = spans.filter(span => getSpanOp(span) === 'http.client');
+  expect(requests).toHaveLength(1);
+  const span = requests[0];
+  expect(span.name).toBe('GET');
+  expect(span.parent_span_id).toBe(pageload.span_id);
+  expect(span.trace_id).toBe(pageload.trace_id);
+  expect(span.attributes['http.request.method']).toEqual({ type: 'string', value: 'GET' });
+  expect(span.attributes.type).toEqual({ type: 'string', value: 'xhr' });
+  expect(span.attributes['url.full']).toEqual({
+    type: 'string',
+    value: 'data:text/plain,base64,SGVsbG8gV2... [truncated]',
   });
-
-  expect(span?.data?.['url.full']).toBe(sanitizedUrl);
 });

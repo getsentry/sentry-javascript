@@ -1,17 +1,19 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
-import { getSpanOp, waitForStreamedSpans } from '../../../../utils/spanUtils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest('captures non-ignored mark and measure spans', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const spansPromise = waitForStreamedSpans(page, spans => spans.some(span => getSpanOp(span) === 'pageload'));
+  const spans = collectStreamedSpans(page);
+  const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
 
   await page.goto(url);
 
-  const spans = await spansPromise;
+  await pageloadPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
   const userTimingSpans = spans
     .filter(span => ['mark', 'measure'].includes(getSpanOp(span) ?? ''))
     .map(span => ({

@@ -1,36 +1,47 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest('creates spans for XHR requests', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
 
   await page.route('http://sentry-test-site.example/*', route => route.fulfill({ body: 'ok' }));
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const requestSpans = eventData.spans?.filter(({ op }) => op === 'http.client');
+  const spans = collectStreamedSpans(page);
+  const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+
+  await page.goto(url);
+
+  const pageloadSpan = await pageloadPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const allSpans = spans;
+  const requestSpans = allSpans
+    .filter(s => getSpanOp(s) === 'http.client')
+    .sort((a, b) =>
+      (a.attributes!['url.full']!.value as string).localeCompare(b.attributes!['url.full']!.value as string),
+    );
 
   expect(requestSpans).toHaveLength(3);
 
-  requestSpans?.forEach((span, index) =>
+  requestSpans.forEach((span, index) =>
     expect(span).toMatchObject({
-      description: `GET http://sentry-test-site.example/${index}`,
-      parent_span_id: eventData.contexts?.trace?.span_id,
+      // Streamed span names drop the high-cardinality URL path.
+      name: 'GET sentry-test-site.example',
+      parent_span_id: pageloadSpan?.span_id,
       span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: eventData.contexts?.trace?.trace_id,
-      data: {
-        'http.request.method': 'GET',
-        'url.full': `http://sentry-test-site.example/${index}`,
-        'server.address': 'sentry-test-site.example',
-        type: 'xhr',
-      },
+      end_timestamp: expect.any(Number),
+      trace_id: pageloadSpan?.trace_id,
+      attributes: expect.objectContaining({
+        'http.request.method': { type: 'string', value: 'GET' },
+        'url.full': { type: 'string', value: `http://sentry-test-site.example/${index}` },
+        'url.domain': { type: 'string', value: 'sentry-test-site.example' },
+        'server.address': { type: 'string', value: 'sentry-test-site.example' },
+        type: { type: 'string', value: 'xhr' },
+      }),
     }),
   );
 });

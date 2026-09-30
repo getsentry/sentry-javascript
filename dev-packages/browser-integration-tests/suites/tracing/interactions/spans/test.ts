@@ -17,7 +17,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
-import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '../../../../utils/spanUtils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest('captures streamed interaction span tree. @firefox', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
@@ -25,8 +25,10 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   sentryTest.skip(shouldSkipTracingTest() || !supportedBrowsers.includes(browserName));
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const interactionSpansPromise = waitForStreamedSpans(page, spans =>
-    spans.some(span => getSpanOp(span) === 'ui.action.click'),
+  const spans = collectStreamedSpans(page);
+  const interactionPromise = waitForStreamedSpan(
+    page,
+    span => span.is_segment && getSpanOp(span) === 'ui.action.click',
   );
 
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
@@ -39,9 +41,13 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   await page.locator('[data-test-id=interaction-button]').click();
   await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
 
-  const interactionSpanTree = await interactionSpansPromise;
-
-  const interactionSegmentSpan = interactionSpanTree.find(span => !!span.is_segment);
+  const interactionSegmentSpan = await interactionPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const interactionSpanTree = spans.filter(
+    span =>
+      span.span_id === interactionSegmentSpan.span_id ||
+      span.attributes[SENTRY_SEGMENT_ID]?.value === interactionSegmentSpan.span_id,
+  );
 
   expect(interactionSegmentSpan).toEqual({
     attributes: {

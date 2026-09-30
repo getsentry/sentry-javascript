@@ -1,37 +1,20 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../../utils/spanUtils';
+import { NETWORK_CONNECTION_RTT } from '@sentry/conventions/attributes';
 
-sentryTest.beforeEach(({ browserName }) => {
-  if (shouldSkipTracingTest() || browserName !== 'chromium') {
-    sentryTest.skip();
-  }
-});
-
-// `connection.rtt` is recorded as a measurement, which is only flushed on the pageload
-// transaction. It must not leak onto navigation transactions.
 sentryTest(
-  'records `connection.rtt` as a measurement on pageload but not on navigation transactions',
-  async ({ getLocalTestUrl, page }) => {
-    const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
+  'records connection RTT on pageload and navigation spans',
+  async ({ getLocalTestUrl, page, browserName }) => {
+    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
     const url = await getLocalTestUrl({ testDir: __dirname });
-    await page.goto(url);
+    const [pageload] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
+    const [navigation] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, `${url}#foo`);
 
-    const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise) as Event;
-
-    const navigationRequestPromise = waitForTransactionRequest(
-      page,
-      event => event.contexts?.trace?.op === 'navigation',
-    );
-    await page.goto(`${url}#foo`);
-
-    const navigationRequest = envelopeRequestParser(await navigationRequestPromise) as Event;
-
-    expect(pageloadRequest.contexts?.trace?.op).toBe('pageload');
-    expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
-
-    expect(pageloadRequest.measurements?.['connection.rtt']?.value).toBeDefined();
-    expect(navigationRequest.measurements?.['connection.rtt']).toBeUndefined();
+    expect(pageload.attributes[NETWORK_CONNECTION_RTT]).toEqual({ type: 'integer', value: 0 });
+    expect(navigation.attributes[NETWORK_CONNECTION_RTT]).toEqual(pageload.attributes[NETWORK_CONNECTION_RTT]);
+    expect(navigation.attributes['browser.web_vital.fcp.value']).toBeUndefined();
+    expect(navigation.attributes['browser.web_vital.ttfb.value']).toBeUndefined();
   },
 );
