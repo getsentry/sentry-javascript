@@ -121,8 +121,7 @@ describe('instrumentDOM', () => {
     document.dispatchEvent(new MouseEvent('click'));
 
     const clickHandlers = (document as InstrumentedDocument).__sentry_instrumentation_handlers__?.click;
-    expect(clickHandlers.bubbleListeners.size).toBe(0);
-    expect(clickHandlers.captureListeners.size).toBe(0);
+    expect(clickHandlers.listenerCount).toBe(0);
     expect(clickHandlers.handler).toBeDefined();
   });
 

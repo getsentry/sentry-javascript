@@ -22,10 +22,13 @@ type InstrumentedElement = Element & {
       capture?: boolean;
       // listeners added with `capture: true`, meaning the listener is invoked before other
       // listeners inside the element's hierarchy.
-      captureListeners: Set<unknown>;
+      captureListeners: WeakSet<EventListenerOrEventListenerObject>;
       // listeners added with `capture: false` (default), meaning the listener is invoked
       // after other listeners inside the element's hierarchy (i.e. the event bubbles up)
-      bubbleListeners: Set<unknown>;
+      bubbleListeners: WeakSet<EventListenerOrEventListenerObject>;
+      // Total number of listeners in `captureListeners` and `bubbleListeners`. WeakSets have no `size`, but we use them
+      // so listeners removed without going through our `removeEventListener` patch aren't retained by us.
+      listenerCount: number;
       // Set once a `once` or `signal` listener was added. The browser removes those without going
       // through `removeEventListener`, so we can't tell when they're gone and must keep our handler attached.
       sticky?: boolean;
@@ -85,14 +88,16 @@ export function instrumentDOM(): void {
 
     fill(proto, 'addEventListener', function (originalAddEventListener: AddEventListener): AddEventListener {
       return function (this: InstrumentedElement, type, listener, options): AddEventListener {
-        if (type === 'click' || type == 'keypress') {
+        // The browser ignores `null` listeners, so there's nothing for our handler to accompany.
+        if ((type === 'click' || type == 'keypress') && listener) {
           try {
             const handlers = (this.__sentry_instrumentation_handlers__ =
               this.__sentry_instrumentation_handlers__ || {});
 
             const handlerForType = (handlers[type] = handlers[type] || {
-              captureListeners: new Set(),
-              bubbleListeners: new Set(),
+              captureListeners: new WeakSet(),
+              bubbleListeners: new WeakSet(),
+              listenerCount: 0,
             });
 
             const capture = getCapture(options);
@@ -112,7 +117,12 @@ export function instrumentDOM(): void {
               // Not tracked to avoid retaining listeners the browser auto-removes.
               handlerForType.sticky = true;
             } else {
-              handlerForType[capture ? 'captureListeners' : 'bubbleListeners'].add(listener);
+              const listeners = handlerForType[capture ? 'captureListeners' : 'bubbleListeners'];
+              // Adding the same listener twice in the same phase is a no-op in the browser.
+              if (!listeners.has(listener)) {
+                listeners.add(listener);
+                handlerForType.listenerCount++;
+              }
             }
           } catch {
             // Accessing dom properties is always fragile.
@@ -129,7 +139,7 @@ export function instrumentDOM(): void {
       'removeEventListener',
       function (originalRemoveEventListener: RemoveEventListener): RemoveEventListener {
         return function (this: InstrumentedElement, type, listener, options): () => void {
-          if (type === 'click' || type == 'keypress') {
+          if ((type === 'click' || type == 'keypress') && listener) {
             try {
               const handlers = this.__sentry_instrumentation_handlers__ || {};
               const handlerForType = handlers[type];
@@ -137,11 +147,7 @@ export function instrumentDOM(): void {
               // Removing a listener that was never added is a no-op in the browser, so it mustn't count for ours either.
               if (handlerForType?.[getCapture(options) ? 'captureListeners' : 'bubbleListeners'].delete(listener)) {
                 // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
-                if (
-                  !handlerForType.sticky &&
-                  !handlerForType.captureListeners.size &&
-                  !handlerForType.bubbleListeners.size
-                ) {
+                if (!--handlerForType.listenerCount && !handlerForType.sticky) {
                   originalRemoveEventListener.call(this, type, handlerForType.handler, handlerForType.capture);
                   handlerForType.handler = undefined;
                   delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
