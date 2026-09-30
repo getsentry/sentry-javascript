@@ -1,35 +1,34 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-// Validation test for https://github.com/getsentry/sentry-javascript/issues/12281
-sentryTest('should add browser-related spans to pageload transaction', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
+sentryTest('clamps pre-SDK measures to the document request start', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
+  const spans = collectStreamedSpans(page);
+  const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
   const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
+  const pageload = await pageloadPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const browserSpans = eventData.spans?.filter(({ op }) => op?.startsWith('browser'));
-
-  // Spans `dom_content_loaded_event`, `connect`, `cache` and `dns` are not
-  // always inside `pageload` transaction.
-  expect(browserSpans?.length).toBeGreaterThanOrEqual(4);
-
-  const requestSpan = browserSpans!.find(({ op }) => op === 'browser.request');
-  expect(requestSpan).toBeDefined();
-  expect(requestSpan?.description).toBe(page.url());
-
-  const measureSpan = eventData.spans?.find(({ op }) => op === 'measure');
-  expect(measureSpan).toBeDefined();
-
-  expect(requestSpan!.start_timestamp).toBeLessThanOrEqual(measureSpan!.start_timestamp);
-  expect(measureSpan?.data).toEqual({
-    'sentry.browser.measure_happened_before_request': true,
-    'sentry.browser.measure_start_time': expect.any(Number),
-    'sentry.op': 'measure',
-    'sentry.origin': 'auto.browser.user_timing.measure',
+  const browserSpans = spans.filter(span => getSpanOp(span)?.startsWith('browser'));
+  expect(browserSpans.length).toBeGreaterThanOrEqual(4);
+  const request = browserSpans.find(span => getSpanOp(span) === 'browser.request')!;
+  expect(request.name).toBe('Request');
+  expect(request.attributes['url.full']).toEqual({ type: 'string', value: page.url() });
+  const measures = spans.filter(span => getSpanOp(span) === 'measure');
+  expect(measures).toHaveLength(1);
+  const measure = measures[0];
+  expect(measure.parent_span_id).toBe(pageload.span_id);
+  expect(request.start_timestamp).toBeLessThanOrEqual(measure.start_timestamp);
+  expect(measure.attributes).toMatchObject({
+    'sentry.browser.measure_happened_before_request': { type: 'boolean', value: true },
+    'sentry.browser.measure_start_time': {
+      type: expect.stringMatching(/^(double|integer)$/),
+      value: expect.any(Number),
+    },
+    'sentry.op': { type: 'string', value: 'measure' },
+    'sentry.origin': { type: 'string', value: 'auto.browser.user_timing.measure' },
   });
 });

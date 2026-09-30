@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest('strips query params in fetch request spans', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -13,35 +14,34 @@ sentryTest('strips query params in fetch request spans', async ({ getLocalTestUr
 
   await page.goto(url);
 
-  const txnPromise = waitForTransactionRequest(page);
+  const rootPromise = waitForStreamedSpan(page, span => span.is_segment && span.name === 'rootSpan');
+  const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
   await page.locator('#btnQuery').click();
-  const transactionEvent = envelopeRequestParser(await txnPromise);
+  const [rootSpan, requestSpan] = await Promise.all([rootPromise, requestPromise]);
 
-  expect(transactionEvent.transaction).toEqual('rootSpan');
-
-  const requestSpan = transactionEvent.spans?.find(({ op }) => op === 'http.client');
+  expect(rootSpan.name).toBe('rootSpan');
 
   expect(requestSpan).toMatchObject({
-    description: 'GET http://sentry-test-site.example/0',
-    parent_span_id: transactionEvent.contexts?.trace?.span_id,
+    name: 'GET sentry-test-site.example',
+    parent_span_id: rootSpan.span_id,
     span_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: transactionEvent.contexts?.trace?.trace_id,
-    data: expect.objectContaining({
-      'http.request.method': 'GET',
-      'url.full': 'http://sentry-test-site.example/0?id=123;page=5',
-      'url.query': 'id=123;page=5',
-      'http.response.status_code': 200,
-      'http.response.body.size': 2,
-      'sentry.op': 'http.client',
-      'sentry.origin': 'auto.http.browser',
-      type: 'fetch',
-      'server.address': 'sentry-test-site.example',
+    end_timestamp: expect.any(Number),
+    trace_id: rootSpan.trace_id,
+    attributes: expect.objectContaining({
+      'http.request.method': { type: 'string', value: 'GET' },
+      'url.full': { type: 'string', value: 'http://sentry-test-site.example/0?id=123;page=5' },
+      'url.query': { type: 'string', value: 'id=123;page=5' },
+      'http.response.status_code': { type: 'integer', value: 200 },
+      'http.response.body.size': { type: 'integer', value: 2 },
+      'sentry.op': { type: 'string', value: 'http.client' },
+      'sentry.origin': { type: 'string', value: 'auto.http.browser' },
+      type: { type: 'string', value: 'fetch' },
+      'server.address': { type: 'string', value: 'sentry-test-site.example' },
     }),
   });
 
-  expect(requestSpan?.data).not.toHaveProperty('url.fragment');
+  expect(requestSpan?.attributes).not.toHaveProperty('url.fragment');
 });
 
 sentryTest('strips hash fragment in fetch request spans', async ({ getLocalTestUrl, page }) => {
@@ -55,35 +55,34 @@ sentryTest('strips hash fragment in fetch request spans', async ({ getLocalTestU
 
   await page.goto(url);
 
-  const txnPromise = waitForTransactionRequest(page);
+  const rootPromise = waitForStreamedSpan(page, span => span.is_segment && span.name === 'rootSpan');
+  const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
   await page.locator('#btnFragment').click();
-  const transactionEvent = envelopeRequestParser(await txnPromise);
+  const [rootSpan, requestSpan] = await Promise.all([rootPromise, requestPromise]);
 
-  expect(transactionEvent.transaction).toEqual('rootSpan');
-
-  const requestSpan = transactionEvent.spans?.find(({ op }) => op === 'http.client');
+  expect(rootSpan.name).toBe('rootSpan');
 
   expect(requestSpan).toMatchObject({
-    description: 'GET http://sentry-test-site.example/1',
-    parent_span_id: transactionEvent.contexts?.trace?.span_id,
+    name: 'GET sentry-test-site.example',
+    parent_span_id: rootSpan.span_id,
     span_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: transactionEvent.contexts?.trace?.trace_id,
-    data: expect.objectContaining({
-      'http.request.method': 'GET',
-      'url.full': 'http://sentry-test-site.example/1#fragment',
-      'url.fragment': 'fragment',
-      'http.response.status_code': 200,
-      'http.response.body.size': 2,
-      'sentry.op': 'http.client',
-      'sentry.origin': 'auto.http.browser',
-      type: 'fetch',
-      'server.address': 'sentry-test-site.example',
+    end_timestamp: expect.any(Number),
+    trace_id: rootSpan.trace_id,
+    attributes: expect.objectContaining({
+      'http.request.method': { type: 'string', value: 'GET' },
+      'url.full': { type: 'string', value: 'http://sentry-test-site.example/1#fragment' },
+      'url.fragment': { type: 'string', value: 'fragment' },
+      'http.response.status_code': { type: 'integer', value: 200 },
+      'http.response.body.size': { type: 'integer', value: 2 },
+      'sentry.op': { type: 'string', value: 'http.client' },
+      'sentry.origin': { type: 'string', value: 'auto.http.browser' },
+      type: { type: 'string', value: 'fetch' },
+      'server.address': { type: 'string', value: 'sentry-test-site.example' },
     }),
   });
 
-  expect(requestSpan?.data).not.toHaveProperty('url.query');
+  expect(requestSpan?.attributes).not.toHaveProperty('url.query');
 });
 
 sentryTest('strips hash fragment and query params in fetch request spans', async ({ getLocalTestUrl, page }) => {
@@ -97,32 +96,31 @@ sentryTest('strips hash fragment and query params in fetch request spans', async
 
   await page.goto(url);
 
-  const txnPromise = waitForTransactionRequest(page);
+  const rootPromise = waitForStreamedSpan(page, span => span.is_segment && span.name === 'rootSpan');
+  const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
   await page.locator('#btnQueryFragment').click();
-  const transactionEvent = envelopeRequestParser(await txnPromise);
+  const [rootSpan, requestSpan] = await Promise.all([rootPromise, requestPromise]);
 
-  expect(transactionEvent.transaction).toEqual('rootSpan');
-
-  const requestSpan = transactionEvent.spans?.find(({ op }) => op === 'http.client');
+  expect(rootSpan.name).toBe('rootSpan');
 
   expect(requestSpan).toMatchObject({
-    description: 'GET http://sentry-test-site.example/2',
-    parent_span_id: transactionEvent.contexts?.trace?.span_id,
+    name: 'GET sentry-test-site.example',
+    parent_span_id: rootSpan.span_id,
     span_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: transactionEvent.contexts?.trace?.trace_id,
-    data: expect.objectContaining({
-      'http.request.method': 'GET',
-      'url.full': 'http://sentry-test-site.example/2?id=1#fragment',
-      'url.query': 'id=1',
-      'url.fragment': 'fragment',
-      'http.response.status_code': 200,
-      'http.response.body.size': 2,
-      'sentry.op': 'http.client',
-      'sentry.origin': 'auto.http.browser',
-      type: 'fetch',
-      'server.address': 'sentry-test-site.example',
+    end_timestamp: expect.any(Number),
+    trace_id: rootSpan.trace_id,
+    attributes: expect.objectContaining({
+      'http.request.method': { type: 'string', value: 'GET' },
+      'url.full': { type: 'string', value: 'http://sentry-test-site.example/2?id=1#fragment' },
+      'url.query': { type: 'string', value: 'id=1' },
+      'url.fragment': { type: 'string', value: 'fragment' },
+      'http.response.status_code': { type: 'integer', value: 200 },
+      'http.response.body.size': { type: 'integer', value: 2 },
+      'sentry.op': { type: 'string', value: 'http.client' },
+      'sentry.origin': { type: 'string', value: 'auto.http.browser' },
+      type: { type: 'string', value: 'fetch' },
+      'server.address': { type: 'string', value: 'sentry-test-site.example' },
     }),
   });
 });
@@ -140,32 +138,31 @@ sentryTest(
 
     await page.goto(url);
 
-    const txnPromise = waitForTransactionRequest(page);
+    const rootPromise = waitForStreamedSpan(page, span => span.is_segment && span.name === 'rootSpan');
+    const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
     await page.locator('#btnQueryFragmentSameOrigin').click();
-    const transactionEvent = envelopeRequestParser(await txnPromise);
+    const [rootSpan, requestSpan] = await Promise.all([rootPromise, requestPromise]);
 
-    expect(transactionEvent.transaction).toEqual('rootSpan');
-
-    const requestSpan = transactionEvent.spans?.find(({ op }) => op === 'http.client');
+    expect(rootSpan.name).toBe('rootSpan');
 
     expect(requestSpan).toMatchObject({
-      description: 'GET /api/users',
-      parent_span_id: transactionEvent.contexts?.trace?.span_id,
+      name: 'GET sentry-test.io',
+      parent_span_id: rootSpan.span_id,
       span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
-      trace_id: transactionEvent.contexts?.trace?.trace_id,
-      data: expect.objectContaining({
-        'http.request.method': 'GET',
-        'url.full': 'http://sentry-test.io/api/users?id=1#fragment',
-        'url.query': 'id=1',
-        'url.fragment': 'fragment',
-        'http.response.status_code': 200,
-        'http.response.body.size': 2,
-        'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.browser',
-        type: 'fetch',
-        'server.address': 'sentry-test.io',
+      end_timestamp: expect.any(Number),
+      trace_id: rootSpan.trace_id,
+      attributes: expect.objectContaining({
+        'http.request.method': { type: 'string', value: 'GET' },
+        'url.full': { type: 'string', value: 'http://sentry-test.io/api/users?id=1#fragment' },
+        'url.query': { type: 'string', value: 'id=1' },
+        'url.fragment': { type: 'string', value: 'fragment' },
+        'http.response.status_code': { type: 'integer', value: 200 },
+        'http.response.body.size': { type: 'integer', value: 2 },
+        'sentry.op': { type: 'string', value: 'http.client' },
+        'sentry.origin': { type: 'string', value: 'auto.http.browser' },
+        type: { type: 'string', value: 'fetch' },
+        'server.address': { type: 'string', value: 'sentry-test.io' },
       }),
     });
   },

@@ -3,11 +3,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
 import { getSpanOp, getSpansFromEnvelope, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
-// This app does not enable span streaming (`traceLifecycle: 'static'`) and defines a plain, non-streamed
-// `beforeSendSpan` callback (operating on the v1 `SpanJSON`). INP is still emitted as a v2 span, so this
-// verifies the static callback runs for INP and its modifications are carried into the v2 span.
-
-sentryTest('runs a non-streamed `beforeSendSpan` for the INP span', async ({ browserName, getLocalTestUrl, page }) => {
+sentryTest('runs `beforeSendSpan` for the streamed INP span', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
