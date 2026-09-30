@@ -1,6 +1,6 @@
 import type { CustomTransform } from '../apmTypes';
 import { parse } from 'meriyah';
-import { subscriberExportForModule } from '../config/channel-integration-definitions';
+import { subscriberExportsForModule } from '../config/channel-integration-definitions';
 import { MODULE_REGISTRATION_TRANSFORM } from '../config/registration-only';
 
 // Tracks Program nodes we already injected into, so a package with several
@@ -67,24 +67,33 @@ export const ORCHESTRION_BUNDLER_MARKER_BANNER =
  */
 function moduleInjectedSnippet(
   moduleName: string,
-  exportName: string | undefined,
+  exportNames: string[],
   esm: boolean,
   importSpecifier: string,
 ): string {
-  const bindings = exportName ? `orchestrionModuleInjected, ${exportName}` : 'orchestrionModuleInjected';
+  const bindings = ['orchestrionModuleInjected', ...exportNames].join(', ');
   const importStmt = esm
     ? `import { ${bindings} } from ${JSON.stringify(importSpecifier)};`
     : `const { ${bindings} } = require(${JSON.stringify(importSpecifier)});`;
 
-  // `exportName` is itself an integration factory, invoked inside the arrow (`() => exportName()`), so
+  // A module can register several integrations (e.g. `h3` → `nitroIntegration` and
+  // `nitroServerTimingIntegration`), so emit one call per export. Each `exportName` is itself an
+  // integration factory, invoked inside the arrow (`() => exportName()`), so
   // `orchestrionModuleInjected`'s consumer still gets an Integration back from calling the stored
   // thunk. The point of the arrow is to defer the read of the `exportName` binding to when that thunk
   // runs (at `init()`), instead of reading it by reference the moment this snippet evaluates. A
   // provided-module integration (e.g. `flueIntegration`) is imported back into its own instrumented
   // package by `@sentry/*/vite`, so a direct reference here would close an import cycle and touch the
   // binding in its TDZ ("Cannot access '…' before initialization"); deferring the read breaks that.
-  const args = exportName ? `${JSON.stringify(moduleName)}, () => ${exportName}()` : JSON.stringify(moduleName);
-  return `${importStmt}\n${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
+  const calls = exportNames.length
+    ? exportNames
+        .map(
+          exportName =>
+            `${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${JSON.stringify(moduleName)}, () => ${exportName}());`,
+        )
+        .join('\n')
+    : `${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${JSON.stringify(moduleName)});`;
+  return `${importStmt}\n${calls}`;
 }
 
 /**
@@ -133,8 +142,8 @@ export function moduleInjectedTransforms(
 
     const specifier =
       (typeof importSpecifier === 'function' ? importSpecifier() : importSpecifier) ?? DEFAULT_IMPORT_SPECIFIER;
-    const exportName = subscriberExportForModule(moduleName);
-    const statements = parse(moduleInjectedSnippet(moduleName, exportName, moduleType === 'esm', specifier), {
+    const exportNames = subscriberExportsForModule(moduleName);
+    const statements = parse(moduleInjectedSnippet(moduleName, exportNames, moduleType === 'esm', specifier), {
       module: moduleType === 'esm',
       next: true,
     }).body as ProgramNode['body'];

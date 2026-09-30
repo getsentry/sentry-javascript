@@ -41,6 +41,17 @@ describe('orchestrionModuleInjected', () => {
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('mysql')).toBe(fn);
   });
 
+  it('upgrades to a Set of factories when a module registers more than one integration', () => {
+    const fn1 = factory('Nitro');
+    const fn2 = factory('NitroServerTiming');
+    orchestrionModuleInjected('h3', fn1);
+    // A single integration is stored as a plain factory (kept compatible with older readers).
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('h3')).toBe(fn1);
+    orchestrionModuleInjected('h3', fn2);
+    // A second integration for the same module upgrades the entry to a Set of both.
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('h3')).toEqual(new Set([fn1, fn2]));
+  });
+
   it('stores no factory when none is given', () => {
     orchestrionModuleInjected('mongodb');
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations).toBeUndefined();
