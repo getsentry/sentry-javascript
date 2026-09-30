@@ -1,14 +1,18 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import {
   eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
-  getMultipleSentryEnvelopeRequests,
   shouldSkipFeedbackTest,
   shouldSkipTracingTest,
+  waitForErrorRequest,
 } from '../../../../utils/helpers';
+import {
+  getSpanOp,
+  waitForStreamedSpanAndTraceHeader,
+  waitForStreamedSpanAndTraceHeaderOnUrl,
+} from '../../../../utils/spanUtils';
 
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
 const META_TAG_PARENT_SPAN_ID = '1234567890123456';
@@ -24,23 +28,16 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      url,
-      eventAndTraceHeaderRequestParser,
-    );
-    const [navigationEvent, navigationTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      `${url}#foo`,
-      eventAndTraceHeaderRequestParser,
-    );
+    const [pageloadEvent, pageloadTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
+    const [navigationEvent, navigationTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, `${url}#foo`);
 
-    const pageloadTraceContext = pageloadEvent.contexts?.trace;
-    const navigationTraceContext = navigationEvent.contexts?.trace;
+    const pageloadTraceContext = pageloadEvent;
+    const navigationTraceContext = navigationEvent;
 
-    expect(pageloadEvent.type).toEqual('transaction');
+    expect(pageloadEvent.is_segment).toBe(true);
     expect(pageloadTraceContext).toMatchObject({
-      op: 'pageload',
+      is_segment: true,
+      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -57,9 +54,10 @@ sentryTest(
       sample_rand: '0.42',
     });
 
-    expect(navigationEvent.type).toEqual('transaction');
+    expect(navigationEvent.is_segment).toBe(true);
     expect(navigationTraceContext).toMatchObject({
-      op: 'navigation',
+      is_segment: true,
+      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'navigation' } }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
@@ -87,14 +85,11 @@ sentryTest('error after <meta> tag pageload has pageload traceId', async ({ getL
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-    page,
-    url,
-    eventAndTraceHeaderRequestParser,
-  );
+  const [pageloadEvent, pageloadTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
 
-  expect(pageloadEvent.contexts?.trace).toMatchObject({
-    op: 'pageload',
+  expect(pageloadEvent).toMatchObject({
+    is_segment: true,
+    attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -111,11 +106,7 @@ sentryTest('error after <meta> tag pageload has pageload traceId', async ({ getL
     sample_rand: '0.42',
   });
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-    page,
-    undefined,
-    eventAndTraceHeaderRequestParser,
-  );
+  const errorEventPromise = waitForErrorRequest(page).then(eventAndTraceHeaderRequestParser);
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
@@ -145,24 +136,22 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const envelopeRequestsPromise = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
+  const pageloadPromise = waitForStreamedSpanAndTraceHeader(
     page,
-    2,
-    undefined,
-    eventAndTraceHeaderRequestParser,
+    span => span.is_segment && getSpanOp(span) === 'pageload',
   );
+  const errorPromise = waitForErrorRequest(page).then(eventAndTraceHeaderRequestParser);
   await page.goto(url);
   await page.locator('#errorBtn').click();
-  const envelopes = await envelopeRequestsPromise;
+  const [[pageloadEvent, pageloadTraceHeader], [errorEvent, errorTraceHeader]] = await Promise.all([
+    pageloadPromise,
+    errorPromise,
+  ]);
 
-  const [pageloadEvent, pageloadTraceHeader] = envelopes.find(
-    eventAndHeader => eventAndHeader[0].type === 'transaction',
-  )!;
-  const [errorEvent, errorTraceHeader] = envelopes.find(eventAndHeader => !eventAndHeader[0].type)!;
-
-  expect(pageloadEvent.type).toEqual('transaction');
-  expect(pageloadEvent?.contexts?.trace).toMatchObject({
-    op: 'pageload',
+  expect(pageloadEvent.is_segment).toBe(true);
+  expect(pageloadEvent).toMatchObject({
+    is_segment: true,
+    attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -215,19 +204,19 @@ sentryTest(
       });
     });
 
-    const pageloadEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    const pageloadEventPromise = waitForStreamedSpanAndTraceHeader(
       page,
-      undefined,
-      eventAndTraceHeaderRequestParser,
+      span => span.is_segment && getSpanOp(span) === 'pageload',
     );
     const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(url);
     await page.locator('#fetchBtn').click();
     const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
 
-    expect(pageloadEvent.type).toEqual('transaction');
-    expect(pageloadEvent?.contexts?.trace).toMatchObject({
-      op: 'pageload',
+    expect(pageloadEvent.is_segment).toBe(true);
+    expect(pageloadEvent).toMatchObject({
+      is_segment: true,
+      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -270,19 +259,19 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const pageloadEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    const pageloadEventPromise = waitForStreamedSpanAndTraceHeader(
       page,
-      undefined,
-      eventAndTraceHeaderRequestParser,
+      span => span.is_segment && getSpanOp(span) === 'pageload',
     );
     const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(url);
     await page.locator('#xhrBtn').click();
     const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
 
-    expect(pageloadEvent.type).toEqual('transaction');
-    expect(pageloadEvent?.contexts?.trace).toMatchObject({
-      op: 'pageload',
+    expect(pageloadEvent.is_segment).toBe(true);
+    expect(pageloadEvent).toMatchObject({
+      is_segment: true,
+      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -315,11 +304,12 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
 
   const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
-  const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const pageloadTraceContext = pageloadEvent.contexts?.trace;
+  const [pageloadEvent] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
+  const pageloadTraceContext = pageloadEvent;
 
   expect(pageloadTraceContext).toMatchObject({
-    op: 'pageload',
+    is_segment: true,
+    attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),

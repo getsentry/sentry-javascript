@@ -1,52 +1,295 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import { expect } from '@playwright/test';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
-import { sentryTest } from '../../../../utils/fixtures';
 import {
-  envelopeRequestParser,
-  shouldSkipTracingTest,
-  waitForTransactionRequestOnUrl,
-} from '../../../../utils/helpers';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
+} from '@sentry/conventions/attributes';
+import { expect } from '@playwright/test';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
+  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
+} from '@sentry/core';
+import { sentryTest } from '../../../../utils/fixtures';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
-sentryTest(
-  'sends a transaction in an envelope with manual origin and custom source',
-  async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+sentryTest('sends a streamed span envelope by default', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
-    const req = await waitForTransactionRequestOnUrl(page, url);
-    const transaction = envelopeRequestParser(req);
-
-    const attributes = transaction.contexts?.trace?.data;
-    expect(attributes).toEqual({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
-    });
-
-    expect(transaction.transaction_info?.source).toBe('custom');
-
-    expect(transaction.transaction).toBe('parent_span');
-    expect(transaction.spans).toBeDefined();
-  },
-);
-
-sentryTest('should report finished spans as children of the root transaction', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  const spanEnvelopePromise = waitForStreamedSpanEnvelope(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const req = await waitForTransactionRequestOnUrl(page, url);
-  const transaction = envelopeRequestParser(req);
+  await page.goto(url);
 
-  expect(transaction.spans).toHaveLength(1);
+  const spanEnvelope = await spanEnvelopePromise;
 
-  const span_1 = transaction.spans?.[0];
-  expect(span_1?.description).toBe('child_span');
-  expect(span_1?.parent_span_id).toEqual(transaction?.contexts?.trace?.span_id);
-  expect(span_1?.origin).toEqual('manual');
-  expect(span_1?.data?.['sentry.origin']).toEqual('manual');
+  const envelopeHeader = spanEnvelope[0];
+  const envelopeItem = spanEnvelope[1];
+  const spans = envelopeItem[0][1].items;
+
+  expect(envelopeHeader).toEqual({
+    sdk: {
+      name: 'sentry.javascript.browser',
+      version: SDK_VERSION,
+    },
+    sent_at: expect.any(String),
+    trace: {
+      environment: 'production',
+      public_key: 'public',
+      sample_rand: expect.any(String),
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      transaction: 'test-span',
+    },
+  });
+
+  const numericSampleRand = parseFloat(envelopeHeader.trace!.sample_rand!);
+  const traceId = envelopeHeader.trace!.trace_id;
+
+  expect(Number.isNaN(numericSampleRand)).toBe(false);
+
+  expect(envelopeItem).toEqual([
+    [
+      { content_type: 'application/vnd.sentry.items.span.v2+json', item_count: 4, type: 'span' },
+      {
+        version: 2,
+        ingest_settings: { infer_ip: 'auto', infer_user_agent: 'auto' },
+        items: expect.any(Array),
+      },
+    ],
+  ]);
+
+  const segmentSpanId = spans.find(s => !!s.is_segment)?.span_id;
+  expect(segmentSpanId).toBeDefined();
+
+  expect(spans).toEqual([
+    {
+      attributes: {
+        'sentry.is_localhost': { value: false, type: 'boolean' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+          type: 'string',
+          value: 'test-child',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          type: 'string',
+          value: 'manual',
+        },
+        [SENTRY_SDK_NAME]: {
+          type: 'string',
+          value: 'sentry.javascript.browser',
+        },
+        [SENTRY_SDK_VERSION]: {
+          type: 'string',
+          value: SDK_VERSION,
+        },
+        [SENTRY_SEGMENT_ID]: {
+          type: 'string',
+          value: segmentSpanId,
+        },
+        [SENTRY_SEGMENT_NAME]: {
+          type: 'string',
+          value: 'test-span',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          type: 'string',
+          value: 'production',
+        },
+        [SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
+        },
+        [USER_AGENT_ORIGINAL]: {
+          type: 'string',
+          value: expect.any(String),
+        },
+      },
+      end_timestamp: expect.any(Number),
+      is_segment: false,
+      name: 'test-child-span',
+      parent_span_id: segmentSpanId,
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      trace_id: traceId,
+    },
+    {
+      attributes: {
+        'sentry.is_localhost': { value: false, type: 'boolean' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          type: 'string',
+          value: 'manual',
+        },
+        [SENTRY_SDK_NAME]: {
+          type: 'string',
+          value: 'sentry.javascript.browser',
+        },
+        [SENTRY_SDK_VERSION]: {
+          type: 'string',
+          value: SDK_VERSION,
+        },
+        [SENTRY_SEGMENT_ID]: {
+          type: 'string',
+          value: segmentSpanId,
+        },
+        [SENTRY_SEGMENT_NAME]: {
+          type: 'string',
+          value: 'test-span',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          type: 'string',
+          value: 'production',
+        },
+        [SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
+        },
+        [USER_AGENT_ORIGINAL]: {
+          type: 'string',
+          value: expect.any(String),
+        },
+      },
+      end_timestamp: expect.any(Number),
+      is_segment: false,
+      name: 'test-inactive-span',
+      parent_span_id: segmentSpanId,
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      trace_id: traceId,
+    },
+    {
+      attributes: {
+        'sentry.is_localhost': { value: false, type: 'boolean' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          type: 'string',
+          value: 'manual',
+        },
+        [SENTRY_SDK_NAME]: {
+          type: 'string',
+          value: 'sentry.javascript.browser',
+        },
+        [SENTRY_SDK_VERSION]: {
+          type: 'string',
+          value: SDK_VERSION,
+        },
+        [SENTRY_SEGMENT_ID]: {
+          type: 'string',
+          value: segmentSpanId,
+        },
+        [SENTRY_SEGMENT_NAME]: {
+          type: 'string',
+          value: 'test-span',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          type: 'string',
+          value: 'production',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: {
+          type: 'string',
+          value: 'Connection Refused',
+        },
+        [SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
+        },
+        [USER_AGENT_ORIGINAL]: {
+          type: 'string',
+          value: expect.any(String),
+        },
+      },
+      end_timestamp: expect.any(Number),
+      is_segment: false,
+      name: 'test-manual-span',
+      parent_span_id: segmentSpanId,
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      start_timestamp: expect.any(Number),
+      status: 'error',
+      trace_id: traceId,
+    },
+    {
+      attributes: {
+        'sentry.is_localhost': { value: false, type: 'boolean' },
+        'culture.calendar': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'culture.locale': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'culture.timezone': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        [USER_AGENT_ORIGINAL]: {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'url.full': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+          type: 'string',
+          value: 'test',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          type: 'string',
+          value: 'manual',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: {
+          type: 'integer',
+          value: 1,
+        },
+        [SENTRY_SDK_NAME]: {
+          type: 'string',
+          value: 'sentry.javascript.browser',
+        },
+        [SENTRY_SDK_VERSION]: {
+          type: 'string',
+          value: SDK_VERSION,
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+          type: 'array',
+          value: expect.arrayContaining(['SpanStreaming']),
+        },
+        [SENTRY_SEGMENT_ID]: {
+          type: 'string',
+          value: segmentSpanId,
+        },
+        [SENTRY_SEGMENT_NAME]: {
+          type: 'string',
+          value: 'test-span',
+        },
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
+          type: 'string',
+          value: 'custom',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          type: 'string',
+          value: 'production',
+        },
+        [SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
+        },
+      },
+      end_timestamp: expect.any(Number),
+      is_segment: true,
+      name: 'test-span',
+      span_id: segmentSpanId,
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      trace_id: traceId,
+    },
+  ]);
 });

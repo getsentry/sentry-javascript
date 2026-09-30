@@ -8,6 +8,7 @@ import {
   getMultipleSentryEnvelopeRequests,
   shouldSkipTracingTest,
 } from '../../../utils/helpers';
+import { waitForStreamedSpanAndTraceHeader } from '../../../utils/spanUtils';
 
 sentryTest('updates the DSC when the txn name is updated and high-quality', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -38,7 +39,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
   8. Make request and check that baggage has updated HQ txn name
   9. Capture error and check that envelope trace header has updated HQ txn name
   10. End span and check that envelope trace header has updated HQ txn name
-  11. Make another request and check that there's no span information in baggage
+  11. Make another request and check that it starts its own segment in the same trace
   12. Capture an error and check that envelope trace header has no span information
   */
 
@@ -133,16 +134,9 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
   });
 
   // 10
-  const txnEventPromise = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
-    page,
-    1,
-    { envelopeType: 'transaction' },
-    eventAndTraceHeaderRequestParser,
-  );
-
+  const spanPromise = waitForStreamedSpanAndTraceHeader(page, span => span.name === 'updated-root-span-2');
   await page.locator('#btnEndSpan').click();
-
-  const [txnEvent, txnEnvelopeTraceHeader] = (await txnEventPromise)[0];
+  const [span, txnEnvelopeTraceHeader] = await spanPromise;
   expect(txnEnvelopeTraceHeader).toEqual({
     environment: 'production',
     public_key: 'public',
@@ -154,16 +148,28 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     sample_rand: expect.any(String),
   });
 
-  expect(txnEvent.transaction).toEqual('updated-root-span-2');
+  expect(span.name).toEqual('updated-root-span-2');
 
   // 11
+  const requestSpanPromise = waitForStreamedSpanAndTraceHeader(
+    page,
+    span => span.name === 'GET sentry-test-site.example',
+  );
   const baggageItemsAfterEnd = await makeRequestAndGetBaggageItems(page);
   expect(baggageItemsAfterEnd).toEqual([
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
+    expect.stringMatching(/sentry-sample_rand=0\.\d+/),
+    'sentry-sample_rate=1',
+    'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,
+    'sentry-transaction=GET%20sentry-test-site.example',
   ]);
+  const [requestSpan] = await requestSpanPromise;
+  expect(requestSpan.is_segment).toBe(true);
+  expect(requestSpan.trace_id).toBe(traceId);
+  expect(requestSpan).not.toHaveProperty('parent_span_id');
 
   // 12
   const errorEnvelopeTraceHeaderAfterEnd = await captureErrorAndGetEnvelopeTraceHeader(page);
