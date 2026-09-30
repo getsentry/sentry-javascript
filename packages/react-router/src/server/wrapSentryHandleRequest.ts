@@ -66,8 +66,11 @@ export function wrapSentryHandleRequest(
     routerContext: EntryContext,
     loadContext: AppLoadContext | RouterContextProvider,
   ) {
-    const parameterizedPath =
-      routerContext?.staticHandlerContext?.matches?.[routerContext.staticHandlerContext.matches.length - 1]?.route.path;
+    const matches = routerContext?.staticHandlerContext?.matches;
+    // An index route has no `path` of its own and renders at its nearest ancestor's path, or at `/`.
+    const parameterizedPath = matches?.length
+      ? ([...matches].reverse().find(match => match.route.path)?.route.path ?? '/')
+      : undefined;
 
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
