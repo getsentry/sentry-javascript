@@ -1,5 +1,5 @@
 import type { Client } from '@sentry/core';
-import { debug, getClient, LRUMap, parseStringToURLObject } from '@sentry/core';
+import { debug, getClient, LRUMap, parseStringToURLObject, safeCallback } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { getLocationHref } from './getLocationHref';
 
@@ -12,8 +12,6 @@ type RouteUrl = Pick<URL, 'pathname' | 'search' | 'hash'>;
  * Framework SDKs register one so that everything the SDK names after a route (span names, the scope's
  * transaction name, metric and span segment attributes) gets the parameterized route instead of the raw
  * URL, without each integration having to reach into the framework's router itself.
- *
- * A provider only answers "which route is this", never what the caller does with the answer.
  */
 export interface RouteProvider {
   /**
@@ -170,10 +168,9 @@ function parseLocation(url: string): RouteUrl | undefined {
  * was naming.
  */
 function callProvider(resolve: () => string | undefined): string | undefined {
-  try {
-    return resolve() || undefined;
-  } catch (error) {
-    DEBUG_BUILD && debug.warn('Route provider threw while resolving a route:', error);
-    return undefined;
-  }
+  return safeCallback(
+    DEBUG_BUILD ? 'Route provider threw while resolving a route:' : '',
+    () => resolve() || undefined,
+    () => undefined,
+  );
 }
