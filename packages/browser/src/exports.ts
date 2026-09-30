@@ -98,7 +98,8 @@ export {
 } from './stack-parsers';
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
-export { getDefaultIntegrations, forceLoad, init, onLoad } from './sdk';
+export { createStandaloneClient, getDefaultIntegrations, forceLoad, init, onLoad } from './sdk';
+export type { StandaloneClient } from './sdk';
 export { showReportDialog } from './report-dialog';
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';

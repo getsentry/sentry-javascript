@@ -9,7 +9,7 @@ import type { Log, SerializedLog } from '../types/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
 import { CALLBACK_ERROR, safeCallback } from '../utils/safeCallback';
-import { getCombinedScopeData } from '../utils/scopeData';
+import { getScopeDataForClient } from '../utils/scopeData';
 import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
@@ -96,7 +96,7 @@ export function _INTERNAL_captureLog(
   const {
     user: { id, email, username },
     attributes: scopeAttributes,
-  } = getCombinedScopeData(getIsolationScope(), currentScope);
+  } = getScopeDataForClient(client, getIsolationScope(), currentScope);
 
   setLogAttribute(processedLogAttributes, 'user.id', id, false);
   setLogAttribute(processedLogAttributes, 'user.email', email, false);

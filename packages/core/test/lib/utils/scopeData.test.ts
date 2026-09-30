@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ScopeData } from '../../../src';
+import type { Client, ScopeData } from '../../../src';
 import { Scope } from '../../../src';
 import * as currentScopes from '../../../src/currentScopes';
 import type { Attachment } from '../../../src/types/attachment';
@@ -9,6 +9,7 @@ import type { EventProcessor } from '../../../src/types/eventprocessor';
 import {
   applyScopeDataToEvent,
   getCombinedScopeData,
+  getScopeDataForClient,
   mergeAndOverwriteScopeData,
   mergeArray,
   mergeScopeData,
@@ -349,5 +350,43 @@ describe('getCombinedScopeData', () => {
       transactionName: undefined,
       user: {},
     });
+  });
+});
+
+describe('getScopeDataForClient', () => {
+  const globalScope = new Scope();
+  const isolationScope = new Scope();
+  const currentScope = new Scope();
+
+  globalScope.setTag('global', 'global');
+  isolationScope.setTag('isolation', 'isolation');
+  currentScope.setTag('current', 'current');
+
+  function clientWithOptions(options: { standalone?: boolean }): Client {
+    return { getOptions: () => options } as unknown as Client;
+  }
+
+  it('merges the global and isolation scope for a regular client', () => {
+    vi.spyOn(currentScopes, 'getGlobalScope').mockReturnValue(globalScope);
+
+    expect(getScopeDataForClient(clientWithOptions({}), isolationScope, currentScope).tags).toEqual({
+      global: 'global',
+      isolation: 'isolation',
+      current: 'current',
+    });
+  });
+
+  it('only uses the current scope for a standalone client', () => {
+    vi.spyOn(currentScopes, 'getGlobalScope').mockReturnValue(globalScope);
+
+    expect(getScopeDataForClient(clientWithOptions({ standalone: true }), isolationScope, currentScope).tags).toEqual({
+      current: 'current',
+    });
+  });
+
+  it('returns empty data for a standalone client without a current scope', () => {
+    vi.spyOn(currentScopes, 'getGlobalScope').mockReturnValue(globalScope);
+
+    expect(getScopeDataForClient(clientWithOptions({ standalone: true }), isolationScope, undefined).tags).toEqual({});
   });
 });

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Scope } from '../../../src';
+import { getGlobalScope, getIsolationScope, Scope } from '../../../src';
 import {
   _INTERNAL_captureMetric,
   _INTERNAL_flushMetricsBuffer,
@@ -11,6 +11,7 @@ import * as isBrowserModule from '../../../src/utils/isBrowser';
 import * as timeModule from '../../../src/utils/time';
 import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { resetGlobals } from '../../testutils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -195,6 +196,28 @@ describe('_INTERNAL_captureMetric', () => {
         type: 'integer',
       },
     });
+  });
+
+  it('does not apply the global and isolation scope for a standalone client', () => {
+    resetGlobals();
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, standalone: true });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+    scope.setAttribute('library', 'yes');
+
+    getGlobalScope().setAttribute('global', 'yes');
+    getIsolationScope().setUser({ id: 'host-user' });
+
+    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    expect(metricAttributes).toEqual({
+      ...SEQUENCE_ATTR,
+      library: { value: 'yes', type: 'string' },
+    });
+
+    resetGlobals();
   });
 
   it('prefers metric attributes over scope attributes', () => {

@@ -8,7 +8,7 @@ import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
 import { _INTERNAL_flushLogsBuffer } from './logs/internal';
 import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
-import type { Scope } from './scope';
+import { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
 import { isStaticBeforeSendSpanCallback } from './tracing/spans/beforeSendSpan';
@@ -1463,14 +1463,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   protected _captureEvent(
     event: Event,
     hint: EventHint = {},
-    currentScope = getCurrentScope(),
-    isolationScope = getIsolationScope(),
+    currentScope?: Scope,
+    isolationScope?: Scope,
   ): PromiseLike<string | undefined> {
     if (DEBUG_BUILD && isErrorEvent(event)) {
       debug.log(`Captured error event \`${getPossibleEventMessages(event)[0] || '<unknown>'}\``);
     }
 
-    return this._processEvent(event, hint, currentScope, isolationScope).then(
+    const [scope, finalIsolationScope] = this._options.standalone
+      ? [currentScope || new Scope(), new Scope()]
+      : [currentScope || getCurrentScope(), isolationScope || getIsolationScope()];
+
+    return this._processEvent(event, hint, scope, finalIsolationScope).then(
       finalEvent => {
         return finalEvent.event_id;
       },

@@ -5,12 +5,22 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Integration } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { createTransport, resolvedSyncPromise } from '@sentry/core';
+import {
+  createTransport,
+  getClient,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  getMainCarrier,
+  resolvedSyncPromise,
+} from '@sentry/core';
+import type { Event } from '@sentry/core';
+import { BrowserClient } from '../src/client';
 import type { Mock } from 'vitest';
-import { afterEach, describe, expect, it, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';
-import { init } from '../src/sdk';
+import { createStandaloneClient, init } from '../src/sdk';
 import * as browserUtils from '@sentry/browser-utils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -238,5 +248,95 @@ describe('init', () => {
   it('returns a client from init', () => {
     const client = init();
     expect(client).not.toBeUndefined();
+  });
+});
+
+describe('createStandaloneClient', () => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  function captureFromStandaloneClient(options: Partial<BrowserOptions> = {}): {
+    client: BrowserClient;
+    scope: SentryCore.Scope;
+    sentEvents: Event[];
+  } {
+    const sentEvents: Event[] = [];
+    const { client, scope } = createStandaloneClient(
+      getDefaultBrowserOptions({ dsn: PUBLIC_DSN, sendClientReports: false, ...options }),
+    );
+    client.on('beforeSendEvent', event => {
+      sentEvents.push(event);
+    });
+    return { client, scope, sentEvents };
+  }
+
+  it('returns a client bound to a fresh scope without making it the current client', () => {
+    const { client, scope } = captureFromStandaloneClient();
+
+    expect(client).toBeInstanceOf(BrowserClient);
+    expect(client.getOptions().standalone).toBe(true);
+    expect(scope.getClient()).toBe(client);
+    expect(getClient()).toBeUndefined();
+    expect(getCurrentScope()).not.toBe(scope);
+  });
+
+  it('does not replace the client of the host page', () => {
+    init(getDefaultBrowserOptions({ dsn: PUBLIC_DSN }));
+    const hostClient = getClient();
+
+    const { client } = captureFromStandaloneClient();
+
+    expect(getClient()).toBe(hostClient);
+    expect(client).not.toBe(hostClient);
+  });
+
+  it('installs the default integrations except those depending on global state', () => {
+    const { client } = captureFromStandaloneClient({ integrations: undefined });
+
+    expect(client.getIntegrationNames().sort()).toEqual(
+      ['CultureContext', 'Dedupe', 'EventFilters', 'HttpContext', 'LinkedErrors'].sort(),
+    );
+  });
+
+  it('keeps integrations passed by the user', () => {
+    const mockIntegration = new MockIntegration('GlobalHandlers');
+    const { client } = captureFromStandaloneClient({ integrations: [mockIntegration] });
+
+    expect(client.getIntegrationByName('GlobalHandlers')).toBe(mockIntegration);
+  });
+
+  it('installs no integrations if `defaultIntegrations: false`', () => {
+    const { client } = captureFromStandaloneClient({ defaultIntegrations: false, integrations: undefined });
+
+    expect(client.getIntegrationNames()).toEqual([]);
+  });
+
+  it('does not apply the scope data of the host page to its events', async () => {
+    init(getDefaultBrowserOptions({ dsn: PUBLIC_DSN }));
+    getIsolationScope().setUser({ id: 'host-user' });
+    getGlobalScope().setTag('host', 'yes');
+    getCurrentScope().addBreadcrumb({ message: 'host crumb' });
+
+    const { client, scope, sentEvents } = captureFromStandaloneClient();
+    scope.setTag('library', 'yes');
+
+    scope.captureException(new Error('standalone'));
+    await client.flush();
+
+    expect(sentEvents).toHaveLength(1);
+    expect(sentEvents[0]).toEqual(
+      expect.objectContaining({
+        tags: { library: 'yes' },
+        exception: { values: [expect.objectContaining({ value: 'standalone' })] },
+      }),
+    );
+    expect(sentEvents[0]?.user).toBeUndefined();
+    expect(sentEvents[0]?.breadcrumbs).toBeUndefined();
   });
 });

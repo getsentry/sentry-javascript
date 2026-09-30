@@ -11,7 +11,7 @@ import { getDataCategoryByType } from './envelope';
 import { applyEscapedErrorSpanToEvent } from './errorSpanAttribution';
 import { addExceptionMechanismToCapturedException, uuid4 } from './misc';
 import { normalize } from './normalize';
-import { applyScopeDataToEvent, applySpanToEvent, getCombinedScopeData } from './scopeData';
+import { applyScopeDataToEvent, applySpanToEvent, getScopeDataForClient } from './scopeData';
 import { getActiveSpan } from './spanUtils';
 import { truncate } from './string';
 import { resolvedSyncPromise } from './syncpromise';
@@ -83,7 +83,7 @@ export function prepareEvent(
   // This should be the last thing called, since we want that
   // {@link Scope.addEventProcessor} gets the finished prepared event.
   // Merge scope data together
-  const data = getCombinedScopeData(isolationScope, finalScope);
+  const data = getScopeDataForClient(client, isolationScope, finalScope);
 
   const attachments = [...(hint.attachments || []), ...data.attachments];
   if (attachments.length) {
