@@ -71,7 +71,7 @@ function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: nu
   root.$_sentryRootComponentSpanActivity = timestamp;
 
   if (!root.$_sentryRootComponentSpanTimer) {
-    armRootComponentSpanTimer(root, timestamp, timeout);
+    scheduleRootComponentSpanEnd(root, timestamp, timeout);
   }
 }
 
@@ -79,13 +79,14 @@ function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: nu
  * Fires `delayMs` after the activity that scheduled it. Activity recorded in the meantime pushes
  * the deadline out by the recorded gap, so the span always ends at the last activity timestamp.
  */
-function armRootComponentSpanTimer(root: VueSentry, armedFor: number, delayMs: number): void {
+function scheduleRootComponentSpanEnd(root: VueSentry, activityWhenScheduled: number, delayMs: number): void {
   root.$_sentryRootComponentSpanTimer = setTimeout(() => {
     root.$_sentryRootComponentSpanTimer = undefined;
 
-    const lastActivity = root.$_sentryRootComponentSpanActivity ?? armedFor;
-    if (lastActivity > armedFor) {
-      armRootComponentSpanTimer(root, lastActivity, (lastActivity - armedFor) * 1000);
+    const lastActivity = root.$_sentryRootComponentSpanActivity ?? activityWhenScheduled;
+    if (lastActivity > activityWhenScheduled) {
+      // activity happened after this timer was scheduled: push the deadline out
+      scheduleRootComponentSpanEnd(root, lastActivity, (lastActivity - activityWhenScheduled) * 1000);
       return;
     }
 
