@@ -242,7 +242,10 @@ function trackInteractionsAsSpans(client: Client): void {
     }
     for (const entry of entries) {
       if (entry.name === 'click') {
-        const startTime = performanceTimeToSeconds(entry.startTime) as number;
+        const startTime = performanceTimeToSeconds(entry.startTime);
+        if (!startTime) {
+          return;
+        }
         const duration = msToSec(entry.duration);
 
         const selector = htmlTreeAsString(entry.target);

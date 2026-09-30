@@ -75,8 +75,9 @@ function createUnixTimestampInSecondsFunc(): () => number {
 
   // performance.now() is a monotonic clock, which means it starts at 0 when the process begins. To get the current
   // wall clock time (actual UNIX timestamp), we need to add the starting time origin and the current time elapsed.
-  let timeOrigin = performance.timeOrigin;
-  _timeOriginSegments = [{ from: 0, origin: timeOrigin }];
+  // Due to device sleeps, the origin might need to be corrected to match the wall clock time over the SDK's lifetime.
+  let correctedTimeOrigin = performance.timeOrigin;
+  _timeOriginSegments = [{ from: 0, origin: correctedTimeOrigin }];
   let isFirstCall = true;
   let lastCheckedPerformanceNow = 0;
 
@@ -88,22 +89,24 @@ function createUnixTimestampInSecondsFunc(): () => number {
       // `performance.now()` stops while the device sleeps, and the wall clock can be changed by NTP or the user. In
       // both cases `timeOrigin + performance.now()` no longer matches `Date.now()`, so we reset the time origin.
       // We still use `performance.now()` for elapsed time to keep sub-millisecond precision.
-      // A span that starts before a reset and ends after it gets the drift added to its duration.
       // See: https://github.com/getsentry/sentry-javascript/issues/2590
       // See: https://github.com/mdn/content/issues/4713
       // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
-      if (Math.abs(timeOrigin + performanceNow - dateNow) > CLOCK_DRIFT_THRESHOLD_MS) {
-        timeOrigin = dateNow - performanceNow;
-        // On the first call, no timestamp was created yet, so we can just replace the wrong `performance.timeOrigin`.
-        // Later resets apply from the previous check on. We usually notice drift when a user interaction happens after
-        // a sleep, and that interaction's performance entry starts slightly before the check. Applying the new origin
-        // from the previous check makes sure the entry uses it. The downside is that entries recorded between the
-        // previous check and the sleep get shifted by the drift.
+      if (Math.abs(correctedTimeOrigin + performanceNow - dateNow) > CLOCK_DRIFT_THRESHOLD_MS) {
+        correctedTimeOrigin = dateNow - performanceNow;
+
+        // after correcting the timeOrigin, we add an entry to _timeOriginSegments so that we
+        // can track when we made the correction. This is relevant for telemetry collected from
+        // performance entries that hold uncorrected time values. Used in browserPerformanceTimeOrigin return
+        // a corrected time origin value.
         if (isFirstCall) {
-          _timeOriginSegments = [{ from: 0, origin: timeOrigin }];
+          // special case: We detect clock drift right away (basically at SDK init time), so we replace
+          // the initial _timeOriginSegments entry with the corrected value.
+          _timeOriginSegments = [{ from: 0, origin: correctedTimeOrigin }];
         } else {
-          _timeOriginSegments.push({ from: lastCheckedPerformanceNow, origin: timeOrigin });
+          _timeOriginSegments.push({ from: lastCheckedPerformanceNow, origin: correctedTimeOrigin });
           if (_timeOriginSegments.length > MAX_TIME_ORIGIN_SEGMENTS) {
+            // we keep the oldest entry (the page load origin) and drop the one after it.
             _timeOriginSegments.splice(1, 1);
           }
         }
@@ -111,7 +114,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
       isFirstCall = false;
       lastCheckedPerformanceNow = performanceNow;
 
-      return (timeOrigin + performanceNow) / ONE_SECOND_IN_MS;
+      return (correctedTimeOrigin + performanceNow) / ONE_SECOND_IN_MS;
     });
   };
 }
