@@ -11,35 +11,80 @@ import {
   createComponentNameAnnotateHooks,
   replaceBooleanFlagsInCode,
   CodeInjection,
+  stampDebugId,
   getCodeInjectionPosition,
 } from '../core';
 import type { ComponentAnnotationTransformMeta } from '../core/component-annotation-oxc';
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
-import {
-  finalizeRolldownDebugIds,
-  getDebugIdForChunk,
-  hasExistingDebugID,
-} from './debug-id-injection';
-import { getRollupMajorVersion } from './rollup-version';
-import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
-import { getViteParseAstAsync } from './vite-annotations';
+import { createRequire } from 'node:module';
+import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from './debug-id-injection';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
 // because `rollup` is an optional dependency.
 type TransformResult = { code: string; map?: SourceMap | string | { mappings: string } | null } | null | undefined;
 
-type RenderChunkPluginContext = {
-  meta?: {
-    rolldownVersion?: string;
-  };
+// The subset of Rollup's `OutputBundle` the stamping hook reads.
+type OutputBundle = Record<
+  string,
+  | { type: 'chunk'; fileName: string; code: string; sourcemapFileName?: string | null }
+  | { type: 'asset'; fileName: string; source: string | Uint8Array }
+>;
+
+type ViteModule = {
+  parseAstAsync?: (code: string, options: { lang: 'jsx' | 'tsx' }) => Promise<unknown>;
 };
 
-type GenerateBundlePluginContext = RenderChunkPluginContext;
+type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
+
+let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
+
+// Rolldown sets `meta.rolldownVersion` on the plugin context.
+type PluginContext = { meta?: { rolldownVersion?: string } };
 
 const JS_MODULE_ID_FILTER = /\.[cm]?[jt]sx?(?:[?#].*)?$/;
+
+function getRollupMajorVersion(): string | undefined {
+  try {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - Rollup already transpiles this for us
+    const req = createRequire(import.meta.url);
+    const rollup = req('rollup') as { VERSION?: string };
+    return rollup.VERSION?.split('.')[0];
+  } catch {
+    // do nothing, we'll just not report a version
+  }
+
+  return undefined;
+}
+
+function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
+  if (!viteParseAstAsyncPromise) {
+    viteParseAstAsyncPromise = Promise.resolve()
+      .then(async () => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - Vite is an optional runtime peer for this package
+        const viteModule = createRequire(import.meta.url)('vite') as ViteModule;
+
+        if (typeof viteModule.parseAstAsync !== 'function') {
+          return null;
+        }
+
+        try {
+          await viteModule.parseAstAsync('const x = <div />;', { lang: 'tsx' });
+        } catch {
+          return null;
+        }
+
+        return viteModule.parseAstAsync;
+      })
+      .catch(() => null);
+  }
+
+  return viteParseAstAsyncPromise;
+}
 
 /**
  * @ignore - this is the internal plugin factory function only used for the Vite plugin!
@@ -141,7 +186,7 @@ export function _rollupPluginInternal(
   }
 
   function renderChunk(
-    this: RenderChunkPluginContext | undefined,
+    this: PluginContext | undefined,
     code: string,
     chunk: { fileName: string; facadeModuleId?: string | null },
     _?: unknown,
@@ -189,18 +234,15 @@ export function _rollupPluginInternal(
   }
 
   /**
-   * Stamps debug IDs into the emitted chunks and source maps.
+   * Resolves Rolldown's placeholder debug IDs, then stamps debug IDs into the emitted chunks and
+   * source maps.
    *
    * `disable-upload` skips the upload routine (which stamps debug IDs into temp copies), so the emitted
    * artifacts get stamped here instead. Not in `renderChunk`: minifiers running after it would strip the
    * comment. Rollup computes `[hash]` file names before this hook, so only plugins that hash the final
    * assets afterwards (e.g. subresource integrity) see the stamped content.
    */
-  function generateBundle(
-    this: GenerateBundlePluginContext | undefined,
-    _outputOptions: unknown,
-    bundle: OutputBundle,
-  ): void {
+  function generateBundle(this: PluginContext | undefined, _outputOptions: unknown, bundle: OutputBundle): void {
     if (this?.meta?.rolldownVersion) {
       finalizeRolldownDebugIds(bundle);
     }
@@ -209,7 +251,27 @@ export function _rollupPluginInternal(
       return;
     }
 
-    stampDebugIds(bundle, true);
+    for (const output of Object.values(bundle)) {
+      if (output.type !== 'chunk' || !isJsFile(output.fileName)) {
+        continue;
+      }
+
+      const sourceMapAsset = bundle[output.sourcemapFileName ?? `${output.fileName}.map`];
+      const sourceMapSource =
+        sourceMapAsset?.type === 'asset' && typeof sourceMapAsset.source === 'string'
+          ? sourceMapAsset.source
+          : undefined;
+
+      const stamped = stampDebugId(output.code, sourceMapSource);
+      if (!stamped) {
+        continue;
+      }
+
+      output.code = stamped.bundleSource;
+      if (stamped.sourceMapSource !== undefined && sourceMapAsset?.type === 'asset') {
+        sourceMapAsset.source = stamped.sourceMapSource;
+      }
+    }
   }
 
   async function writeBundle(
@@ -230,9 +292,7 @@ export function _rollupPluginInternal(
             '/**/*.mjs.map',
             '/**/*.cjs.map',
           ].map(q => `${q}?(\\?*)?(#*)`); // We want to allow query and hash strings at the end of files
-          const buildArtifacts = await globFiles(JS_AND_MAP_PATTERNS, {
-            root: outputDir,
-          });
+          const buildArtifacts = await globFiles(JS_AND_MAP_PATTERNS, { root: outputDir });
           await upload(buildArtifacts);
         } else if (outputOptions.file) {
           await upload([outputOptions.file]);
@@ -255,6 +315,7 @@ export function _rollupPluginInternal(
           handler: transform,
         }
       : transform;
+
   return {
     name,
     buildStart,
