@@ -13,8 +13,8 @@ async function getFreshTimeModule(): Promise<{
   timestampInSeconds: () => number;
   performanceTimeToSeconds: (monotonicTimeInMs: number) => number | undefined;
 }> {
-  // A counter rather than `Date.now()`: these tests run under fake timers, which freeze the wall clock and would
-  // otherwise hand out a cached module.
+  // We use a counter instead of `Date.now()` because fake timers freeze `Date.now()`, which would return a cached
+  // module.
   return import(`../../../src/utils/time?update=${freshImportCounter++}`);
 }
 
@@ -22,7 +22,7 @@ async function getFreshTimestampInSeconds(): Promise<() => number> {
   return (await getFreshTimeModule()).timestampInSeconds;
 }
 
-const RELIABLE_THRESHOLD_MS = 15_000;
+const RELIABLE_THRESHOLD_MS = 1_000;
 
 describe('timestampInSeconds', () => {
   afterEach(() => {
@@ -60,8 +60,8 @@ describe('timestampInSeconds', () => {
 
   it('keeps using `performance.timeOrigin` while the clocks agree', async () => {
     const currentTimeMs = 1767778040866;
-    // Below the drift threshold, so the (inaccurate) time origin must be preserved.
-    const timeOriginSkewMs = RELIABLE_THRESHOLD_MS - 2_000;
+    // Below the drift threshold, so we keep the (wrong) time origin.
+    const timeOriginSkewMs = RELIABLE_THRESHOLD_MS - 200;
 
     let timeSincePageloadMs = 1_000;
 
@@ -82,11 +82,11 @@ describe('timestampInSeconds', () => {
     expect(timestampInSeconds()).toBe((currentTimeMs + 4_000 + timeOriginSkewMs) / 1000);
   });
 
-  it('re-derives the time origin once the monotonic clock drifts from the wall clock', async () => {
+  it('resets the time origin when `performance.now()` drifts from `Date.now()`', async () => {
     const currentTimeMs = 1767778040866;
     const timeSincePageloadMs = 1_000;
 
-    // The monotonic clock pauses during sleep, so the wall clock advances much further than it does.
+    // `performance.now()` stops during sleep, so `Date.now()` moves much further.
     const sleepDurationMs = RELIABLE_THRESHOLD_MS + 60_000;
 
     vi.useFakeTimers();
@@ -105,7 +105,7 @@ describe('timestampInSeconds', () => {
     expect(timestampInSeconds()).toBe((currentTimeMs + sleepDurationMs) / 1000);
   });
 
-  it('keeps deriving elapsed time from the monotonic clock after re-deriving the time origin', async () => {
+  it('still uses `performance.now()` for elapsed time after a time origin reset', async () => {
     const currentTimeMs = 1767778040866;
     const sleepDurationMs = RELIABLE_THRESHOLD_MS + 60_000;
 
@@ -124,13 +124,13 @@ describe('timestampInSeconds', () => {
     vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
     const afterCorrection = timestampInSeconds();
 
-    // `Date.now()` deliberately stays put while the monotonic clock advances sub-millisecond, proving the elapsed
-    // time comes from `performance.now()` rather than from the coarser wall clock.
+    // `Date.now()` stays the same while `performance.now()` moves by less than 1ms. This shows that elapsed time
+    // comes from `performance.now()`.
     timeSincePageloadMs += 0.25;
     expect(timestampInSeconds()).toBeCloseTo(afterCorrection + 0.25 / 1000, 10);
   });
 
-  it('does not re-derive the time origin repeatedly once the clocks agree again', async () => {
+  it('does not reset the time origin again once the clocks agree', async () => {
     const currentTimeMs = 1767778040866;
     const sleepDurationMs = RELIABLE_THRESHOLD_MS + 60_000;
 
@@ -149,8 +149,7 @@ describe('timestampInSeconds', () => {
     vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
     timestampInSeconds();
 
-    // Advance both clocks in lockstep: the re-derived time origin must stay valid, so timestamps track the wall clock
-    // exactly rather than oscillating between the two sources.
+    // Move both clocks by the same amount. The new time origin should stay in use.
     for (let i = 1; i <= 3; i++) {
       timeSincePageloadMs += 1_000;
       vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs + i * 1_000));
@@ -158,7 +157,7 @@ describe('timestampInSeconds', () => {
     }
   });
 
-  it('follows a backwards wall clock step and stays monotonic afterwards', async () => {
+  it('follows a backwards wall clock jump and keeps counting up afterwards', async () => {
     const currentTimeMs = 1767778040866;
 
     let timeSincePageloadMs = 1_000;
@@ -174,12 +173,12 @@ describe('timestampInSeconds', () => {
 
     const before = timestampInSeconds();
 
-    // A backwards wall clock step (NTP correction, user changing the clock) beyond the threshold.
+    // The wall clock jumps backwards by more than the threshold (e.g. NTP or the user changed it).
     vi.setSystemTime(new Date(currentTimeMs - RELIABLE_THRESHOLD_MS - 60_000));
     timeSincePageloadMs += 1_000;
     const afterStep = timestampInSeconds();
 
-    // The correction itself moves the timestamp backwards, but elapsed time afterwards is still monotonic.
+    // The reset moves the timestamp backwards once, but after that it counts up again.
     timeSincePageloadMs += 1_000;
     expect(timestampInSeconds()).toBeGreaterThan(afterStep);
     expect(before).toBeGreaterThan(afterStep);
@@ -208,12 +207,12 @@ describe('performanceTimeToSeconds', () => {
     expect(performanceTimeToSeconds(500)).toBe((timeOrigin + 500) / 1000);
   });
 
-  it('converts a time taken after a correction against the corrected origin', async () => {
+  it('converts a time after a reset with the new time origin', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(currentTimeMs));
     vi.stubGlobal('performance', {
       timeOrigin: currentTimeMs - timeSincePageloadMs,
-      // The monotonic clock pauses during sleep, so it barely advances while the wall clock jumps ahead.
+      // `performance.now()` stops during sleep, so it barely moves while `Date.now()` jumps ahead.
       now: () => timeSincePageloadMs,
     });
 
@@ -222,13 +221,13 @@ describe('performanceTimeToSeconds', () => {
     timestampInSeconds();
     vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
 
-    // Converting the current `performance.now()` must yield the same wall clock time that `timestampInSeconds`
-    // reports, otherwise perf entries and spans land on diverging timelines.
+    // Converting the current `performance.now()` must return the same time as `timestampInSeconds`. Otherwise,
+    // performance entries and spans would not line up.
     expect(performanceTimeToSeconds(timeSincePageloadMs)).toBe(timestampInSeconds());
     expect(performanceTimeToSeconds(timeSincePageloadMs)).toBe((currentTimeMs + sleepDurationMs) / 1000);
   });
 
-  it('keeps converting a time taken before a correction against the origin that was in effect then', async () => {
+  it('converts a time before a reset with the old time origin', async () => {
     let monotonicNowMs = timeSincePageloadMs;
 
     vi.useFakeTimers();
@@ -240,21 +239,21 @@ describe('performanceTimeToSeconds', () => {
 
     const { performanceTimeToSeconds, timestampInSeconds } = await getFreshTimeModule();
 
-    // An entry observed before the drift. Its wall clock time is known exactly at this point.
+    // An entry recorded before the drift.
     const entryStartTime = 500;
     const entryTimestampBefore = performanceTimeToSeconds(entryStartTime);
     expect(entryTimestampBefore).toBe((currentTimeMs - timeSincePageloadMs + entryStartTime) / 1000);
 
-    // The device sleeps, the drift is detected, and the origin is re-derived.
+    // The device sleeps, we detect the drift, and reset the time origin.
     vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
     monotonicNowMs += 10;
     timestampInSeconds();
 
-    // Converting the same entry now must not retroactively shift it by the drift.
+    // Converting the same entry now must not shift it by the drift.
     expect(performanceTimeToSeconds(entryStartTime)).toBe(entryTimestampBefore);
   });
 
-  it('converts times on either side of a correction against their respective origins', async () => {
+  it('converts times before and after a reset with their own time origin', async () => {
     let monotonicNowMs = timeSincePageloadMs;
 
     vi.useFakeTimers();
@@ -266,7 +265,7 @@ describe('performanceTimeToSeconds', () => {
 
     const { performanceTimeToSeconds, timestampInSeconds } = await getFreshTimeModule();
 
-    // The last check at which both clocks still agreed is where the corrected origin starts to apply.
+    // The new time origin applies from the last check where both clocks still matched.
     const lastAgreedCheckMs = monotonicNowMs;
     timestampInSeconds();
 
@@ -278,13 +277,12 @@ describe('performanceTimeToSeconds', () => {
     const beforeCorrection = performanceTimeToSeconds(lastAgreedCheckMs - 1) as number;
     const afterCorrection = performanceTimeToSeconds(lastAgreedCheckMs + 1) as number;
 
-    // The two are 2ms apart on the monotonic clock, but the origins they resolve to are a whole sleep apart: the wall
-    // clock advanced `sleepDurationMs` while the monotonic clock only advanced `monotonicAdvanceMs`.
+    // The two times are 2ms apart in `performance.now()`, but their time origins are a whole sleep apart.
     const driftMs = sleepDurationMs - monotonicAdvanceMs;
     expect(afterCorrection - beforeCorrection).toBeCloseTo((driftMs + 2) / 1000, 6);
   });
 
-  it('converts the interaction that wakes the SDK up after a sleep against the corrected origin', async () => {
+  it('converts the first interaction after a sleep with the new time origin', async () => {
     let monotonicNowMs = timeSincePageloadMs;
 
     vi.useFakeTimers();
@@ -298,8 +296,7 @@ describe('performanceTimeToSeconds', () => {
 
     timestampInSeconds();
 
-    // After waking up, the user clicks. The click's entry starts when the input arrives, the SDK only notices the
-    // drift a few milliseconds later, while handling that click.
+    // After waking up, the user clicks. The click's entry starts a few ms before we notice the drift.
     vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
     const clickStartTime = (monotonicNowMs += 10);
     monotonicNowMs += 5;
@@ -309,7 +306,7 @@ describe('performanceTimeToSeconds', () => {
     expect(performanceTimeToSeconds(clickStartTime)).toBeCloseTo(detectedAt - 0.005, 6);
   });
 
-  it('keeps the page load origin once the number of remembered corrections is exceeded', async () => {
+  it('keeps the page load origin when the max number of time origins is reached', async () => {
     let monotonicNowMs = timeSincePageloadMs;
     let wallNowMs = currentTimeMs;
     const timeOrigin = currentTimeMs - timeSincePageloadMs;
@@ -332,7 +329,7 @@ describe('performanceTimeToSeconds', () => {
     expect(browserPerformanceTimeOrigin(monotonicNowMs)).toBe(wallNowMs - monotonicNowMs);
   });
 
-  it('converts times preceding the oldest known origin against that origin', async () => {
+  it('converts times before the oldest time origin with that origin', async () => {
     const timeOrigin = currentTimeMs - timeSincePageloadMs;
 
     vi.useFakeTimers();
@@ -344,9 +341,9 @@ describe('performanceTimeToSeconds', () => {
     expect(performanceTimeToSeconds(0)).toBe(timeOrigin / 1000);
   });
 
-  it('never converts against a `performance.timeOrigin` that was already unreliable at startup', async () => {
-    // Some browsers report a bogus `performance.timeOrigin`. It never described a real point in time, so no monotonic
-    // time should ever be converted against it — not even one measured before the SDK first looked at the clock.
+  it('never uses a `performance.timeOrigin` that was already wrong at startup', async () => {
+    // Some browsers report a wrong `performance.timeOrigin`. We should never use it, not even for times from before
+    // our first check.
     const timeOriginSkewMs = RELIABLE_THRESHOLD_MS + 60_000;
 
     vi.useFakeTimers();
