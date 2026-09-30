@@ -173,6 +173,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   bunServerIntegration,
+  bunRuntimeMetricsIntegration,
+  type BunRuntimeMetricsOptions,
   makeFetchTransport,
 } from '@sentry/bun';
 
