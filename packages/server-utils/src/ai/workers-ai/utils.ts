@@ -155,8 +155,9 @@ export function addResponseAttributes(
   operationName?: WorkersAiOperationName,
 ): void {
   if (operationName === 'evaluate') {
-    // Workers AI wraps the TypeSafe response as `{ state, result }`.
-    addEvaluateResponseAttributes(span, isObjectLike(result) ? result.result : undefined, recordOutputs);
+    // The binding wraps the TypeSafe response as `{ state, result }`, but the docs show it unwrapped.
+    const body = isObjectLike(result) && isObjectLike(result.result) ? result.result : result;
+    addEvaluateResponseAttributes(span, body, recordOutputs);
     return;
   }
 
