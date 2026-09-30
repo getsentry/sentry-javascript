@@ -16,7 +16,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
+import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import {
@@ -155,7 +155,8 @@ export function addResponseAttributes(
   operationName?: WorkersAiOperationName,
 ): void {
   if (operationName === 'evaluate') {
-    addEvaluateResponseAttributes(span, result, recordOutputs);
+    // Workers AI wraps the TypeSafe response as `{ state, result }`.
+    addEvaluateResponseAttributes(span, isObjectLike(result) ? result.result : undefined, recordOutputs);
     return;
   }
 

@@ -60,7 +60,7 @@ export function getEvaluationInputMessages(request: Record<string, unknown>): st
 
 /**
  * Add the response model, token usage and (optionally) the answers of a `systemOne` result.
- * Workers AI returns the same shape for TypeSafe models (e.g. `typesafe/jev`).
+ * Also used for TypeSafe models on Workers AI.
  */
 export function addResponseAttributes(span: Span, result: unknown, recordOutputs: boolean): void {
   if (!isObjectLike(result)) {

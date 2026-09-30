@@ -176,7 +176,10 @@ describe('instrumentWorkersAiClient', () => {
     const questions = { is_urgent: { type: 'noul', instructions: 'Does this convey urgency?' } };
     const answers = { is_urgent: { type: 'noul', noul: 0.97 } };
     const ai = {
-      run: vi.fn().mockResolvedValue({ model: 'jev-1.13.0', answers, usage: { input_tokens: 426, output_tokens: 73 } }),
+      run: vi.fn().mockResolvedValue({
+        state: 'Completed',
+        result: { model: 'jev-1.13.0', answers, usage: { input_tokens: 426, output_tokens: 73 } },
+      }),
     };
 
     await instrumentWorkersAiClient(ai).run('typesafe/jev', { state: 'Help!', questions });
