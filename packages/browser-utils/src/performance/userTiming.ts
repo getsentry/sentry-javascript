@@ -47,7 +47,7 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
             continue;
           }
 
-          // Navigations can happen long after page load, and after a clock drift correction.
+          // Navigations can happen long after page load, after a time origin reset.
           const timeOriginInSeconds = msToSec(browserPerformanceTimeOrigin(entry.startTime) as number);
           const startTime = msToSec(entry.startTime);
           const absoluteStartTime = timeOriginInSeconds + startTime;

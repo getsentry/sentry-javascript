@@ -73,9 +73,9 @@ describe('Unit | util | createPerformanceEntries', () => {
     expect(createPerformanceEntries([data])).toEqual([]);
   });
 
-  it('converts a buffered entry against the origin it was observed with', () => {
-    // Entries are buffered raw and converted here on flush, which for a long session can happen after a clock drift
-    // correction. Only times past the drift point resolve to the corrected origin.
+  it('converts a buffered entry with the time origin from when it was recorded', () => {
+    // Entries are converted on flush, which can be after a time origin reset. Only times after the drift should use
+    // the new origin.
     const driftPointMs = 200_000;
     const sleepDurationMs = 3_600_000;
     vi.mocked(performanceTimeToSeconds).mockImplementation(time =>

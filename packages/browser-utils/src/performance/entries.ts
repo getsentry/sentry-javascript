@@ -223,8 +223,8 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
   performanceEntries.slice(_performanceCursor).forEach(entry => {
-    // Navigations can happen long after page load, and after a clock drift correction. All timings of an entry share
-    // the origin in effect when it started, so the entry keeps its duration.
+    // Navigations can happen long after page load, after a time origin reset. We use the origin from the entry's
+    // start for all its timings, so its duration stays correct.
     const timeOrigin = msToSec(browserPerformanceTimeOrigin(entry.startTime) as number);
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(

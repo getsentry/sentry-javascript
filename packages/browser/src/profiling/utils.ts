@@ -147,7 +147,7 @@ function convertToContinuousProfile(input: {
     stacks[i] = list;
   }
 
-  // Only used if the SDK cannot convert monotonic times at all, i.e. when the Performance API is unavailable.
+  // Only used if the Performance API is unavailable.
   const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : 0;
 
   const samples: ContinuousThreadCpuProfile['samples'] = [];
@@ -156,8 +156,7 @@ function convertToContinuousProfile(input: {
     if (!sample) {
       continue;
     }
-    // Sample timestamps are `performance.timeOrigin`-relative, so they are converted the same way as any other
-    // monotonic time to keep the profile on the span and event timeline.
+    // Sample timestamps are relative to `performance.timeOrigin`, so we convert them like performance entries.
     const timestampSeconds = performanceTimeToSeconds(sample.timestamp) ?? (origin + sample.timestamp) / 1000;
     samples[i] = {
       stack_id: sample.stackId ?? 0,
