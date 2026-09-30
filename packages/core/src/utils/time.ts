@@ -4,16 +4,13 @@ import { GLOBAL_OBJ } from './worldwide';
 const ONE_SECOND_IN_MS = 1000;
 
 /**
- * Maximum tolerated difference between the monotonic clock and the wall clock before we consider
- * the monotonic clock's time origin stale.
+ * If `performance.timeOrigin + performance.now()` and `Date.now()` differ by more than this, we reset the time origin.
  */
-const CLOCK_DRIFT_THRESHOLD_MS = 15_000; // 15 seconds in milliseconds
+const CLOCK_DRIFT_THRESHOLD_MS = 1_000;
 
 /**
- * Upper bound on the number of drift corrections {@link browserPerformanceTimeOrigin} remembers. A page has to survive
- * that many separate clock jumps to reach it, so the cap only keeps a pathological clock from growing the list without
- * bound. Once reached, the oldest corrections are merged away. The origin at page load is always kept, because the
- * pageload span and its children are anchored to it.
+ * Max number of time origins we store. When we hit it, we drop the oldest one, except the page load origin, which
+ * the pageload span uses.
  */
 const MAX_TIME_ORIGIN_SEGMENTS = 30;
 
@@ -40,12 +37,10 @@ export function dateTimestampInSeconds(): number {
 }
 
 /**
- * A stretch of the monotonic clock's timeline and the wall clock time its zero maps to.
+ * A time origin and the `performance.now()` value from which it applies.
  *
- * The monotonic→wall mapping is piecewise: a drift correction replaces the origin from that point on, but leaves the
- * mapping for everything that came before it intact. Keeping the superseded origins around lets a monotonic timestamp
- * be converted against the origin that was in effect when the timestamp was taken, rather than the one in effect when
- * the conversion happens to run.
+ * When we reset the time origin, we keep the old ones. This way, a `performance.now()` value can be converted with the
+ * origin that was valid when it was measured, not the one that is valid now.
  */
 interface TimeOriginSegment {
   /** The `performance.now()` value from which `origin` applies. */
@@ -55,8 +50,8 @@ interface TimeOriginSegment {
 }
 
 /**
- * Time origins in effect over the lifetime of the page, oldest first. Empty until the first `timestampInSeconds` call,
- * and whenever the Performance API is unavailable.
+ * All time origins of the page, oldest first. Empty until the first `timestampInSeconds` call, or if the Performance
+ * API is unavailable.
  */
 let _timeOriginSegments: TimeOriginSegment[] = [];
 
@@ -72,7 +67,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
   // using Date.now() to compute the starting time.
   if (!performance?.now || !performance.timeOrigin) {
     if (performance?.now) {
-      // Monotonic times can still be converted, just without drift correction.
+      // We can still convert `performance.now()` values, just without drift correction.
       _timeOriginSegments = [{ from: 0, origin: safeDateNow() - withRandomSafeContext(() => performance.now()) }];
     }
     return dateTimestampInSeconds;
@@ -90,26 +85,20 @@ function createUnixTimestampInSecondsFunc(): () => number {
       const performanceNow = performance.now();
       const dateNow = Date.now();
 
-      // `timeOrigin + performance.now()` only equals wall clock time for as long as both clocks advance in lockstep.
-      // performance.now() stops advancing while the device is asleep, so it under-counts elapsed wall time; conversely
-      // the wall clock itself can be stepped by Network Time Protocol (NTP) or the user. Either way the two drift apart
-      // by arbitrary amounts. Re-deriving the origin restores absolute accuracy while still taking elapsed time from
-      // the monotonic clock, so durations keep sub-millisecond precision.
-      // Timestamps taken before a correction are measured against a different origin than those taken after it, so a
-      // span that starts before one and ends after it absorbs the drift into its duration. If the wall clock was stepped
-      // backwards, that duration can even be negative. Spans that lie entirely on one side of a correction are
-      // unaffected.
+      // `performance.now()` stops while the device sleeps, and the wall clock can be changed by NTP or the user. In
+      // both cases `timeOrigin + performance.now()` no longer matches `Date.now()`, so we reset the time origin.
+      // We still use `performance.now()` for elapsed time to keep sub-millisecond precision.
+      // A span that starts before a reset and ends after it gets the drift added to its duration.
       // See: https://github.com/getsentry/sentry-javascript/issues/2590
       // See: https://github.com/mdn/content/issues/4713
       // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
       if (Math.abs(timeOrigin + performanceNow - dateNow) > CLOCK_DRIFT_THRESHOLD_MS) {
         timeOrigin = dateNow - performanceNow;
-        // The very first check runs before any timestamp has been handed out, so a `performance.timeOrigin` that was
-        // already unreliable at startup never applied to anything and is replaced outright.
-        // Later corrections apply from the previous check on, the last point the clocks were known to agree. Drift is
-        // usually only noticed when an interaction wakes the SDK up again, and the entry for that interaction starts
-        // slightly before the check that detects it, so it has to be on the corrected side. The cost is that entries
-        // recorded between that previous check and the device going to sleep are shifted by the drift.
+        // On the first call, no timestamp was created yet, so we can just replace the wrong `performance.timeOrigin`.
+        // Later resets apply from the previous check on. We usually notice drift when a user interaction happens after
+        // a sleep, and that interaction's performance entry starts slightly before the check. Applying the new origin
+        // from the previous check makes sure the entry uses it. The downside is that entries recorded between the
+        // previous check and the sleep get shifted by the drift.
         if (isFirstCall) {
           _timeOriginSegments = [{ from: 0, origin: timeOrigin }];
         } else {
@@ -127,14 +116,13 @@ function createUnixTimestampInSecondsFunc(): () => number {
   };
 }
 
-let _cachedTimestampInSeconds: (() => number) | undefined;
+let _cachedTimestampInSecondsFn: (() => number) | undefined;
 
 /**
- * Converts a monotonic time from the Performance API (a `PerformanceEntry`'s `startTime`, a profiler sample's
- * `timestamp`, or any other `performance.now()`-relative value in milliseconds) to a wall clock timestamp in seconds
- * since the UNIX epoch, on the same timeline as {@link timestampInSeconds}.
+ * Converts a `performance.now()` based time in milliseconds (e.g. a `PerformanceEntry`'s `startTime`) to a UNIX
+ * timestamp in seconds, matching {@link timestampInSeconds}.
  *
- * Returns `undefined` if the Performance API is unavailable, in which case monotonic times cannot be converted at all.
+ * Returns `undefined` if the Performance API is unavailable.
  */
 export function performanceTimeToSeconds(monotonicTimeInMs: number): number | undefined {
   const origin = browserPerformanceTimeOrigin(monotonicTimeInMs);
@@ -145,32 +133,27 @@ export function performanceTimeToSeconds(monotonicTimeInMs: number): number | un
  * Returns a timestamp in seconds since the UNIX epoch using either the Performance or Date APIs, depending on the
  * availability of the Performance API.
  *
- * Because the Performance API's clock and the wall clock can drift apart (the former stops while the computer is
- * asleep, the latter can be stepped by NTP or the user), the time origin they are combined against is re-derived from
- * `Date.now()` whenever the two disagree by more than {@link CLOCK_DRIFT_THRESHOLD_MS}. Two timestamps taken on either
- * side of such a correction are skewed relative to each other by the amount of drift, so a span that starts before a
- * correction and ends after it reports the wall clock time elapsed rather than the time the monotonic clock was
- * running. See https://github.com/getsentry/sentry-javascript/issues/2590.
+ * If the Performance API time and `Date.now()` differ by more than {@link CLOCK_DRIFT_THRESHOLD_MS} (e.g. after the
+ * device slept), the time origin is reset based on `Date.now()`.
+ * See https://github.com/getsentry/sentry-javascript/issues/2590.
  */
 export function timestampInSeconds(): number {
   // We store this in a closure so that we don't have to create a new function every time this is called.
-  const func = _cachedTimestampInSeconds ?? (_cachedTimestampInSeconds = createUnixTimestampInSecondsFunc());
+  const func = _cachedTimestampInSecondsFn ?? (_cachedTimestampInSecondsFn = createUnixTimestampInSecondsFunc());
   return func();
 }
 
 /**
- * Returns the time origin (milliseconds since the UNIX epoch that `performance.now() === 0` corresponds to) that was in
- * effect at the given monotonic time, which defaults to the page load.
+ * Returns the time origin in milliseconds that was valid at the given `performance.now()` time. Defaults to the page
+ * load origin.
  *
- * Because the SDK re-derives its time origin when the monotonic and wall clocks drift apart, a single origin is only
- * valid for part of the page's lifetime. Pass the monotonic time that is being converted, so that entries reported long
- * after the fact (INP on pagehide, replay entries buffered until flush) are not shifted by a drift that happened after
- * they were recorded. Use the same time for every timing of one entry, so its duration stays intact.
+ * Pass the time you want to convert, so entries that are reported late (e.g. INP on pagehide) are not shifted by a
+ * drift that happened after they were recorded. Use the same time for all timings of one entry to keep its duration.
  *
  * Returns `undefined` if the Performance API is unavailable.
  */
 export function browserPerformanceTimeOrigin(monotonicTimeInMs = 0): number | undefined {
-  // Segments are only populated once `timestampInSeconds` has resolved which clock source to use.
+  // Makes sure `_timeOriginSegments` is set up.
   timestampInSeconds();
 
   let segment: TimeOriginSegment | undefined;
