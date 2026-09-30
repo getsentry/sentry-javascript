@@ -41,7 +41,7 @@ import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
-import { timestampInSeconds } from '../utils/time';
+import { performanceNowInMs, timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
@@ -69,6 +69,8 @@ export class SentrySpan implements Span {
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
   protected _endTime?: number | undefined;
+  /** `performance.now()` in milliseconds when the span started. Only set if no start time was passed in. */
+  private _startPerformanceNow?: number | undefined;
   /** Internal keeper of the status */
   protected _status?: SpanStatus;
   /** The timed events added to this span. */
@@ -97,7 +99,12 @@ export class SentrySpan implements Span {
   public constructor(spanContext: SentrySpanArguments = {}) {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
-    this._startTime = spanContext.startTimestamp || timestampInSeconds();
+    if (spanContext.startTimestamp) {
+      this._startTime = spanContext.startTimestamp;
+    } else {
+      this._startTime = timestampInSeconds();
+      this._startPerformanceNow = performanceNowInMs();
+    }
     this._links = spanContext.links;
 
     this._attributes = {};
@@ -211,6 +218,7 @@ export class SentrySpan implements Span {
       return;
     }
     this._startTime = spanTimeInputToSeconds(timeInput);
+    this._startPerformanceNow = undefined;
   }
 
   /**
@@ -243,7 +251,7 @@ export class SentrySpan implements Span {
       return;
     }
 
-    this._endTime = spanTimeInputToSeconds(endTimestamp);
+    this._endTime = endTimestamp === undefined ? this._getEndTimeFromDuration() : spanTimeInputToSeconds(endTimestamp);
     logSpanEnd(this);
 
     this._onSpanEnded();
@@ -350,6 +358,20 @@ export class SentrySpan implements Span {
   }
 
   /** Emit `spanEnd` when the span is ended. */
+  /**
+   * Returns the start time plus the `performance.now()` time since the span started.
+   *
+   * This way, the duration is correct even if the time origin was reset while the span was running (e.g. after the
+   * device slept), and it can never be negative.
+   */
+  private _getEndTimeFromDuration(): number {
+    const performanceNow = this._startPerformanceNow === undefined ? undefined : performanceNowInMs();
+    if (performanceNow === undefined || this._startPerformanceNow === undefined) {
+      return timestampInSeconds();
+    }
+    return this._startTime + (performanceNow - this._startPerformanceNow) / 1000;
+  }
+
   private _onSpanEnded(): void {
     const client = getClient();
     client?.emit('spanEnd', this);

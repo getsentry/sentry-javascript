@@ -615,6 +615,52 @@ describe('SentrySpan', () => {
       expect(spanToStaticSpanJSON(span).timestamp).toEqual(seconds);
     });
 
+    it('uses the `performance.now()` duration if the wall clock jumps forward while the span runs', () => {
+      const performanceNow = performance.now();
+      const dateNow = Date.now();
+      const span = new SentrySpan();
+      const startTimestamp = spanToStaticSpanJSON(span).start_timestamp;
+
+      // The device sleeps for an hour: `Date.now()` moves on, `performance.now()` only moves by 500ms.
+      vi.spyOn(performance, 'now').mockReturnValue(performanceNow + 500);
+      vi.spyOn(Date, 'now').mockReturnValue(dateNow + 3_600_000);
+      span.end();
+      vi.restoreAllMocks();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(0.5, 1);
+    });
+
+    it('never has a negative duration if the wall clock jumps backwards while the span runs', () => {
+      const performanceNow = performance.now();
+      const dateNow = Date.now();
+      const span = new SentrySpan();
+      const startTimestamp = spanToStaticSpanJSON(span).start_timestamp;
+
+      vi.spyOn(performance, 'now').mockReturnValue(performanceNow + 500);
+      vi.spyOn(Date, 'now').mockReturnValue(dateNow - 60_000);
+      span.end();
+      vi.restoreAllMocks();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(0.5, 1);
+    });
+
+    it('uses the current time as end if the span was started with a start time', () => {
+      const startTimestamp = timestampInSeconds() - 10;
+      const span = new SentrySpan({ startTimestamp });
+      span.end();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
+    });
+
+    it('uses the current time as end if the start time was updated', () => {
+      const span = new SentrySpan();
+      const startTimestamp = timestampInSeconds() - 10;
+      span.updateStartTime(startTimestamp);
+      span.end();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
+    });
+
     it('skips if span is already ended', () => {
       const startTimestamp = timestampInSeconds() - 5;
       const endTimestamp = timestampInSeconds() - 1;
