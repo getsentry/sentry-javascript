@@ -1,35 +1,196 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
-import type { Event } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
+import {
+  BROWSER_NAVIGATION_TYPE,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_TRACE_LIFECYCLE,
+  URL_FULL,
+  URL_PATH,
+  USER_AGENT_ORIGINAL,
+  SENTRY_ENVIRONMENT,
+  SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import {
+  collectStreamedSpans,
+  getSpanOp,
+  getSpansFromEnvelope,
+  waitForStreamedSpanEnvelope,
+} from '../../../../utils/spanUtils';
 
-sentryTest('creates a pageload transaction with url as source', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest(
+  'creates a pageload streamed span envelope with url as pageload span name source',
+  async ({ browserName, getLocalTestUrl, page }) => {
+    sentryTest.skip(shouldSkipTracingTest());
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+    const collectedSpans = collectStreamedSpans(page);
+    const spanEnvelopePromise = waitForStreamedSpanEnvelope(
+      page,
+      env => !!getSpansFromEnvelope(env).find(s => getSpanOp(s) === 'pageload'),
+    );
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const timeOrigin = await page.evaluate<number>('window._testBaseTimestamp');
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    await page.goto(url);
 
-  const { start_timestamp: startTimestamp } = eventData;
+    const spanEnvelope = await spanEnvelopePromise;
+    const envelopeHeader = spanEnvelope[0];
+    const envelopeItem = spanEnvelope[1];
+    const spans = envelopeItem[0][1].items;
+    const pageloadSpan = spans.find(s => getSpanOp(s) === 'pageload');
 
-  const traceContextData = eventData.contexts?.trace?.data;
+    const timeOrigin = await page.evaluate<number>('window._testBaseTimestamp');
 
-  expect(startTimestamp).toBeCloseTo(timeOrigin, 1);
+    expect(envelopeHeader).toEqual({
+      sdk: {
+        name: 'sentry.javascript.browser',
+        version: SDK_VERSION,
+      },
+      sent_at: expect.any(String),
+      trace: {
+        environment: 'production',
+        public_key: 'public',
+        sample_rand: expect.any(String),
+        sample_rate: '1',
+        sampled: 'true',
+        trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      },
+    });
 
-  expect(traceContextData).toMatchObject({
-    [SENTRY_ORIGIN]: 'auto.pageload.browser',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'pageload',
-    ['sentry.idle_span_finish_reason']: 'idleTimeout',
-  });
+    const numericSampleRand = parseFloat(envelopeHeader.trace!.sample_rand!);
+    const traceId = envelopeHeader.trace!.trace_id;
 
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
-  expect(eventData.spans?.length).toBeGreaterThan(0);
-  expect(eventData.transaction_info?.source).toEqual('url');
-});
+    expect(Number.isNaN(numericSampleRand)).toBe(false);
+
+    expect(envelopeItem[0][0].item_count).toBe(spans.length);
+    await page.evaluate(() => (window as any).Sentry.flush());
+    expect(collectedSpans.filter(span => !span.is_segment)).not.toHaveLength(0);
+
+    expect(pageloadSpan?.start_timestamp).toBeCloseTo(timeOrigin, 1);
+
+    expect(pageloadSpan).toEqual({
+      attributes: {
+        'sentry.is_localhost': { value: false, type: 'boolean' },
+        'culture.calendar': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'culture.locale': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'culture.timezone': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        [USER_AGENT_ORIGINAL]: {
+          type: 'string',
+          value: expect.any(String),
+        },
+        [URL_FULL]: {
+          type: 'string',
+          value: 'http://sentry-test.io/index.html',
+        },
+        [URL_PATH]: {
+          type: 'string',
+          value: '/index.html',
+        },
+        'device.processor_count': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+        'browser.performance.navigation.activation_start': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+        'browser.performance.time_origin': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+        'browser.web_vital.ttfb.request_time': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+        ...(browserName !== 'webkit' && {
+          'network.connection.effective_type': {
+            type: 'string',
+            value: expect.any(String),
+          },
+          'network.connection.rtt': {
+            type: expect.stringMatching(/^(integer)|(double)$/),
+            value: expect.any(Number),
+          },
+          'browser.web_vital.ttfb.value': {
+            type: expect.stringMatching(/^(integer)|(double)$/),
+            value: expect.any(Number),
+          },
+          [BROWSER_NAVIGATION_TYPE]: {
+            type: 'string',
+            value: 'navigate',
+          },
+        }),
+        'sentry.idle_span_finish_reason': {
+          type: 'string',
+          value: 'idleTimeout',
+        },
+        [SENTRY_OP]: {
+          type: 'string',
+          value: 'pageload',
+        },
+        [SENTRY_ORIGIN]: {
+          type: 'string',
+          value: 'auto.pageload.browser',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: {
+          type: 'integer',
+          value: 1,
+        },
+        [SENTRY_SDK_NAME]: {
+          type: 'string',
+          value: 'sentry.javascript.browser',
+        },
+        [SENTRY_SDK_VERSION]: {
+          type: 'string',
+          value: SDK_VERSION,
+        },
+        [SENTRY_SDK_INTEGRATIONS]: {
+          type: 'array',
+          value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
+        },
+        [SENTRY_SEGMENT_ID]: {
+          type: 'string',
+          value: pageloadSpan?.span_id,
+        },
+        [SENTRY_SEGMENT_NAME]: {
+          type: 'string',
+          value: 'Pageload',
+        },
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
+          type: 'string',
+          value: 'url',
+        },
+        [SENTRY_ENVIRONMENT]: {
+          type: 'string',
+          value: 'production',
+        },
+        [SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
+        },
+      },
+      end_timestamp: expect.any(Number),
+      is_segment: true,
+      name: 'Pageload',
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      trace_id: traceId,
+    });
+  },
+);

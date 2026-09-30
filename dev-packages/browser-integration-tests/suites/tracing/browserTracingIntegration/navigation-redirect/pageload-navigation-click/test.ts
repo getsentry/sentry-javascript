@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest(
   "doesn't create a navigation.redirect span if a click happened before navigation",
@@ -9,25 +10,24 @@ sentryTest(
       sentryTest.skip();
     }
 
+    const allSpans = collectStreamedSpans(page);
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
-    const navigationRequestPromise = waitForTransactionRequest(
-      page,
-      event => event.contexts?.trace?.op === 'navigation',
-    );
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+    const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
 
     await page.goto(url);
 
-    const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
+    const pageloadSpan = await pageloadSpanPromise;
+    await page.evaluate(() => (window as any).Sentry.flush());
     // Ensure a navigation span is sent, too
-    await navigationRequestPromise;
+    await navigationSpanPromise;
 
-    const pageloadTxnSpans = pageloadRequest.spans || [];
+    const pageloadSpans = allSpans.filter(span => span.attributes['sentry.segment.id']?.value === pageloadSpan.span_id);
 
-    expect(pageloadTxnSpans).not.toContainEqual(
+    expect(pageloadSpans).not.toContainEqual(
       expect.objectContaining({
-        op: 'navigation.redirect',
+        attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'navigation.redirect' } }),
       }),
     );
   },

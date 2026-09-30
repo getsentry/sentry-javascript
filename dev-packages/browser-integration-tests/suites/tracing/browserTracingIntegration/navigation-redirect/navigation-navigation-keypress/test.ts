@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest(
   'creates a navigation root span if a keypress happened within the last 1.5s',
@@ -9,22 +10,23 @@ sentryTest(
       sentryTest.skip();
     }
 
+    const allSpans = collectStreamedSpans(page);
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
-    const navigationRequestPromise = waitForTransactionRequest(
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+    const navigationSpanPromise = waitForStreamedSpan(
       page,
-      event => event.contexts?.trace?.op === 'navigation' && event.transaction === '/sub-page',
+      span => getSpanOp(span) === 'navigation' && span.attributes['url.path']?.value === '/sub-page',
     );
 
-    const navigationRequest2Promise = waitForTransactionRequest(
+    const navigationSpan2Promise = waitForStreamedSpan(
       page,
-      event => event.contexts?.trace?.op === 'navigation' && event.transaction === '/sub-page-2',
+      span => getSpanOp(span) === 'navigation' && span.attributes['url.path']?.value === '/sub-page-2',
     );
 
     await page.goto(url);
 
-    await pageloadRequestPromise;
+    await pageloadSpanPromise;
 
     await page.focus('#btn1');
     await page.keyboard.press('Enter');
@@ -34,21 +36,29 @@ sentryTest(
     await page.focus('#btn2');
     await page.keyboard.press('Enter');
 
-    const navigationRequest = envelopeRequestParser(await navigationRequestPromise);
-    const navigationRequest2 = envelopeRequestParser(await navigationRequest2Promise);
+    const navigationSpan = await navigationSpanPromise;
+    const navigationSpan2 = await navigationSpan2Promise;
+    await page.evaluate(() => (window as any).Sentry.flush());
 
-    expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
-    expect(navigationRequest.transaction).toEqual('/sub-page');
+    expect(getSpanOp(navigationSpan)).toBe('navigation');
+    expect(navigationSpan.name).toEqual('Navigation');
+    expect(navigationSpan.attributes['url.path']?.value).toEqual('/sub-page');
 
-    const redirectSpans = navigationRequest.spans?.filter(span => span.op === 'navigation.redirect') || [];
+    const redirectSpans = allSpans
+      .filter(span => span.attributes['sentry.segment.id']?.value === navigationSpan.span_id)
+      .filter(span => getSpanOp(span) === 'navigation.redirect');
     expect(redirectSpans).toHaveLength(1);
 
-    expect(redirectSpans[0].description).toEqual('/sub-page-redirect');
+    expect(redirectSpans[0].name).toBe('Navigation');
+    expect(redirectSpans[0].attributes['url.path']?.value).toBe('/sub-page-redirect');
 
-    expect(navigationRequest2.contexts?.trace?.op).toBe('navigation');
-    expect(navigationRequest2.transaction).toEqual('/sub-page-2');
+    expect(getSpanOp(navigationSpan2)).toBe('navigation');
+    expect(navigationSpan2.name).toEqual('Navigation');
+    expect(navigationSpan2.attributes['url.path']?.value).toEqual('/sub-page-2');
 
-    const redirectSpans2 = navigationRequest2.spans?.filter(span => span.op === 'navigation.redirect') || [];
+    const redirectSpans2 = allSpans
+      .filter(span => span.attributes['sentry.segment.id']?.value === navigationSpan2.span_id)
+      .filter(span => getSpanOp(span) === 'navigation.redirect');
     expect(redirectSpans2).toHaveLength(0);
   },
 );

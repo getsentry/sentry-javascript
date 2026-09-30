@@ -1,20 +1,18 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest('should finish pageload transaction when the page goes background', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest('finishes streamed pageload span when the page goes background', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
   const url = await getLocalTestUrl({ testDir: __dirname });
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 
   await page.goto(url);
   await page.locator('#go-background').click();
+  const pageloadSpan = await pageloadSpanPromise;
 
-  const pageloadTransaction = await getFirstSentryEnvelopeRequest<Event>(page);
-
-  expect(pageloadTransaction.contexts?.trace?.op).toBe('pageload');
-  expect(pageloadTransaction.contexts?.trace?.status).toBe('cancelled');
-  expect(pageloadTransaction.contexts?.trace?.data?.['sentry.cancellation_reason']).toBe('document.hidden');
+  expect(getSpanOp(pageloadSpan)).toBe('pageload');
+  expect(pageloadSpan.status).toBe('ok');
+  expect(pageloadSpan.attributes['sentry.cancellation_reason']?.value).toBe('document.hidden');
 });

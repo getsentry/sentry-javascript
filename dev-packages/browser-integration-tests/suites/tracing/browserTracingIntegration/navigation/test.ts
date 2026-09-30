@@ -1,150 +1,297 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
-import { sentryTest } from '../../../../utils/fixtures';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
-  envelopeRequestParser,
-  getFirstSentryEnvelopeRequest,
-  shouldSkipTracingTest,
-  waitForTransactionRequest,
-} from '../../../../utils/helpers';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_TRACE_LIFECYCLE,
+  URL_FULL,
+  URL_PATH,
+  USER_AGENT_ORIGINAL,
+  SENTRY_ENVIRONMENT,
+  SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { sentryTest } from '../../../../utils/fixtures';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import {
+  collectStreamedSpans,
+  getSpanOp,
+  getSpansFromEnvelope,
+  waitForStreamedSpan,
+  waitForStreamedSpanEnvelope,
+} from '../../../../utils/spanUtils';
 
-sentryTest('should create a navigation transaction on page navigation', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest('starts a streamed navigation span on page navigation', async ({ browserName, getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
+
+  const collectedSpans = collectStreamedSpans(page);
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+  const navigationSpanEnvelopePromise = waitForStreamedSpanEnvelope(
+    page,
+    env => !!getSpansFromEnvelope(env).find(s => getSpanOp(s) === 'navigation'),
+  );
 
   const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
 
-  const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(pageloadRequest.contexts?.trace?.op).toBe('pageload');
-  expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
+  await page.goto(`${url}#foo`);
 
-  expect(navigationRequest.transaction_info?.source).toEqual('url');
+  const navigationSpanEnvelope = await navigationSpanEnvelopePromise;
 
-  const pageloadTraceId = pageloadRequest.contexts?.trace?.trace_id;
-  const navigationTraceId = navigationRequest.contexts?.trace?.trace_id;
+  const navigationSpanEnvelopeHeader = navigationSpanEnvelope[0];
+  const navigationSpanEnvelopeItem = navigationSpanEnvelope[1];
+  const navigationSpans = navigationSpanEnvelopeItem[0][1].items;
+  const navigationSpan = navigationSpans.find(s => getSpanOp(s) === 'navigation')!;
+
+  expect(navigationSpanEnvelopeHeader).toEqual({
+    sent_at: expect.any(String),
+    trace: {
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      environment: 'production',
+      public_key: 'public',
+      sample_rand: expect.any(String),
+      sample_rate: '1',
+      sampled: 'true',
+    },
+    sdk: {
+      name: 'sentry.javascript.browser',
+      version: SDK_VERSION,
+    },
+  });
+
+  const numericSampleRand = parseFloat(navigationSpanEnvelopeHeader.trace!.sample_rand!);
+  expect(Number.isNaN(numericSampleRand)).toBe(false);
+
+  const pageloadTraceId = pageloadSpan.trace_id;
+  const navigationTraceId = navigationSpan.trace_id;
 
   expect(pageloadTraceId).toBeDefined();
   expect(navigationTraceId).toBeDefined();
   expect(pageloadTraceId).not.toEqual(navigationTraceId);
 
-  expect(pageloadRequest.transaction).toEqual('/index.html');
-  // Fragment is not in transaction name
-  expect(navigationRequest.transaction).toEqual('/index.html');
+  expect(pageloadSpan.name).toEqual('Pageload');
+  expect(pageloadSpan.attributes).toMatchObject({
+    [URL_PATH]: { type: 'string', value: '/index.html' },
+    [URL_FULL]: { type: 'string', value: 'http://sentry-test.io/index.html' },
+    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.pageload.browser' },
+    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+    [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
+    'sentry.idle_span_finish_reason': { type: 'string', value: 'idleTimeout' },
+  });
+  expect(pageloadSpan.span_id).not.toBe(navigationSpan.span_id);
+  await page.evaluate(() => (window as any).Sentry.flush());
+  for (const root of [pageloadSpan, navigationSpan]) {
+    collectedSpans
+      .filter(span => !span.is_segment && span.attributes['sentry.segment.id']?.value === root.span_id)
+      .forEach(span => expect(span.parent_span_id).toBe(root.span_id));
+  }
 
-  expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
-    [SENTRY_ORIGIN]: 'auto.pageload.browser',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'pageload',
-    ['sentry.idle_span_finish_reason']: 'idleTimeout',
-  });
-  expect(navigationRequest.contexts?.trace?.data).toMatchObject({
-    [SENTRY_ORIGIN]: 'auto.navigation.browser',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'navigation',
-    ['sentry.idle_span_finish_reason']: 'idleTimeout',
-  });
-  expect(pageloadRequest.request).toEqual({
-    headers: {
-      'User-Agent': expect.any(String),
+  expect(navigationSpan).toEqual({
+    attributes: {
+      'sentry.is_localhost': { value: false, type: 'boolean' },
+      [SENTRY_TRACE_LIFECYCLE]: {
+        type: 'string',
+        value: 'stream',
+      },
+      'culture.calendar': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'culture.locale': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      'culture.timezone': {
+        type: 'string',
+        value: expect.any(String),
+      },
+      [USER_AGENT_ORIGINAL]: {
+        type: 'string',
+        value: expect.any(String),
+      },
+      [URL_FULL]: {
+        type: 'string',
+        value: 'http://sentry-test.io/index.html#foo',
+      },
+      [URL_PATH]: {
+        type: 'string',
+        value: '/index.html',
+      },
+      'device.processor_count': {
+        type: expect.stringMatching(/^(integer)|(double)$/),
+        value: expect.any(Number),
+      },
+      ...(browserName !== 'webkit' && {
+        'network.connection.effective_type': {
+          type: 'string',
+          value: expect.any(String),
+        },
+        'network.connection.rtt': {
+          type: expect.stringMatching(/^(integer)|(double)$/),
+          value: expect.any(Number),
+        },
+      }),
+      'sentry.idle_span_finish_reason': {
+        type: 'string',
+        value: 'idleTimeout',
+      },
+      [SENTRY_OP]: {
+        type: 'string',
+        value: 'navigation',
+      },
+      [SENTRY_ORIGIN]: {
+        type: 'string',
+        value: 'auto.navigation.browser',
+      },
+      'sentry.previous_trace': {
+        type: 'string',
+        value: `${pageloadTraceId}-${pageloadSpan.span_id}-1`,
+      },
+      'sentry.sample_rate': {
+        type: 'integer',
+        value: 1,
+      },
+      'sentry.sdk.name': {
+        type: 'string',
+        value: 'sentry.javascript.browser',
+      },
+      'sentry.sdk.version': {
+        type: 'string',
+        value: SDK_VERSION,
+      },
+      [SENTRY_SDK_INTEGRATIONS]: {
+        type: 'array',
+        value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
+      },
+      'sentry.segment.id': {
+        type: 'string',
+        value: navigationSpan.span_id,
+      },
+      'sentry.segment.name': {
+        type: 'string',
+        value: 'Navigation',
+      },
+      'sentry.segment.name.source': {
+        type: 'string',
+        value: 'url',
+      },
+      [SENTRY_ENVIRONMENT]: {
+        type: 'string',
+        value: 'production',
+      },
     },
-    url: 'http://sentry-test.io/index.html',
+    end_timestamp: expect.any(Number),
+    is_segment: true,
+    links: [
+      {
+        attributes: {
+          'sentry.link.type': {
+            type: 'string',
+            value: 'previous_trace',
+          },
+        },
+        sampled: true,
+        span_id: pageloadSpan.span_id,
+        trace_id: pageloadTraceId,
+      },
+    ],
+    name: 'Navigation',
+    span_id: navigationSpan.span_id,
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    trace_id: navigationTraceId,
   });
-  expect(navigationRequest.request).toEqual({
-    headers: {
-      'User-Agent': expect.any(String),
-    },
-    url: 'http://sentry-test.io/index.html#foo',
-  });
-
-  const pageloadSpans = pageloadRequest.spans;
-  const navigationSpans = navigationRequest.spans;
-
-  const pageloadSpanId = pageloadRequest.contexts?.trace?.span_id;
-  const navigationSpanId = navigationRequest.contexts?.trace?.span_id;
-
-  expect(pageloadSpanId).toBeDefined();
-  expect(navigationSpanId).toBeDefined();
-
-  pageloadSpans?.forEach(span =>
-    expect(span).toMatchObject({
-      parent_span_id: pageloadSpanId,
-    }),
-  );
-
-  navigationSpans?.forEach(span =>
-    expect(span).toMatchObject({
-      parent_span_id: navigationSpanId,
-    }),
-  );
-
-  expect(pageloadSpanId).not.toEqual(navigationSpanId);
 });
 
-//
-sentryTest('should handle pushState with full URL', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
-  const navigationRequestPromise = waitForTransactionRequest(
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+  const navigationSpan1Promise = waitForStreamedSpan(
     page,
-    event => event.contexts?.trace?.op === 'navigation' && event.transaction === '/sub-page',
+    span => getSpanOp(span) === 'navigation' && span.attributes?.[URL_PATH]?.value === '/sub-page',
   );
-  const navigationRequestPromise2 = waitForTransactionRequest(
+  const navigationSpan2Promise = waitForStreamedSpan(
     page,
-    event => event.contexts?.trace?.op === 'navigation' && event.transaction === '/sub-page-2',
+    span => getSpanOp(span) === 'navigation' && span.attributes?.[URL_PATH]?.value === '/sub-page-2',
   );
 
   await page.goto(url);
-  await pageloadRequestPromise;
+  await pageloadSpanPromise;
 
   await page.evaluate("window.history.pushState({}, '', `${window.location.origin}/sub-page`);");
 
-  const navigationRequest = envelopeRequestParser(await navigationRequestPromise);
+  const navigationSpan1 = await navigationSpan1Promise;
 
-  expect(navigationRequest.transaction).toEqual('/sub-page');
-
-  expect(navigationRequest.contexts?.trace?.data).toMatchObject({
-    [SENTRY_ORIGIN]: 'auto.navigation.browser',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'navigation',
-    ['sentry.idle_span_finish_reason']: 'idleTimeout',
+  expect(navigationSpan1.name).toEqual('Navigation');
+  expect(navigationSpan1.attributes).toMatchObject({
+    [URL_FULL]: { type: 'string', value: 'http://sentry-test.io/sub-page' },
+    [USER_AGENT_ORIGINAL]: { type: 'string', value: expect.any(String) },
+    'sentry.idle_span_finish_reason': { type: 'string', value: 'idleTimeout' },
   });
-  expect(navigationRequest.request).toEqual({
-    headers: {
-      'User-Agent': expect.any(String),
+
+  expect(navigationSpan1.attributes).toMatchObject({
+    [URL_PATH]: {
+      type: 'string',
+      value: '/sub-page',
     },
-    url: 'http://sentry-test.io/sub-page',
+    [SENTRY_ORIGIN]: {
+      type: 'string',
+      value: 'auto.navigation.browser',
+    },
+    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: {
+      type: 'integer',
+      value: 1,
+    },
+    [SENTRY_SEGMENT_NAME_SOURCE]: {
+      type: 'string',
+      value: 'url',
+    },
+    [SENTRY_OP]: {
+      type: 'string',
+      value: 'navigation',
+    },
   });
 
   await page.evaluate("window.history.pushState({}, '', `${window.location.origin}/sub-page-2`);");
 
-  const navigationRequest2 = envelopeRequestParser(await navigationRequestPromise2);
+  const navigationSpan2 = await navigationSpan2Promise;
 
-  expect(navigationRequest2.transaction).toEqual('/sub-page-2');
-
-  expect(navigationRequest2.contexts?.trace?.data).toMatchObject({
-    [SENTRY_ORIGIN]: 'auto.navigation.browser',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'navigation',
-    ['sentry.idle_span_finish_reason']: 'idleTimeout',
+  expect(navigationSpan2.name).toEqual('Navigation');
+  expect(navigationSpan2.attributes).toMatchObject({
+    [URL_FULL]: { type: 'string', value: 'http://sentry-test.io/sub-page-2' },
+    [USER_AGENT_ORIGINAL]: { type: 'string', value: expect.any(String) },
+    'sentry.idle_span_finish_reason': { type: 'string', value: 'idleTimeout' },
   });
-  expect(navigationRequest2.request).toEqual({
-    headers: {
-      'User-Agent': expect.any(String),
+
+  expect(navigationSpan2.attributes).toMatchObject({
+    [URL_PATH]: {
+      type: 'string',
+      value: '/sub-page-2',
     },
-    url: 'http://sentry-test.io/sub-page-2',
+    [SENTRY_ORIGIN]: {
+      type: 'string',
+      value: 'auto.navigation.browser',
+    },
+    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: {
+      type: 'integer',
+      value: 1,
+    },
+    [SENTRY_SEGMENT_NAME_SOURCE]: {
+      type: 'string',
+      value: 'url',
+    },
+    [SENTRY_OP]: {
+      type: 'string',
+      value: 'navigation',
+    },
+    ['sentry.idle_span_finish_reason']: {
+      type: 'string',
+      value: 'idleTimeout',
+    },
   });
 });

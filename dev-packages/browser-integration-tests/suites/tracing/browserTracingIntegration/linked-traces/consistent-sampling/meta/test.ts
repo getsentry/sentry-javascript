@@ -3,160 +3,155 @@ import {
   extractTraceparentData,
   parseBaggageHeader,
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
-import {
-  eventAndTraceHeaderRequestParser,
-  shouldSkipTracingTest,
-  waitForTracingHeadersOnUrl,
-  waitForTransactionRequest,
-} from '../../../../../../utils/helpers';
+import { shouldSkipTracingTest, waitForTracingHeadersOnUrl } from '../../../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/spanUtils';
 
 const metaTagSampleRand = 0.051121;
 const metaTagSampleRate = 0.2;
 
 sentryTest.describe('When `consistentTraceSampling` is `true` and page contains <meta> tags', () => {
   sentryTest('Continues sampling decision across all traces from meta tag', async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const pageloadTraceContext = await sentryTest.step('Initial pageload', async () => {
-      const pageloadRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+    const pageloadSpan = await sentryTest.step('Initial pageload', async () => {
+      const pageloadEnvelopePromise = waitForStreamedSpanEnvelope(
+        page,
+        env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'pageload'),
+      );
 
       await page.goto(url);
 
-      const [pageloadEvent, pageloadTraceHeader] = eventAndTraceHeaderRequestParser(await pageloadRequestPromise);
-      const pageloadTraceContext = pageloadEvent.contexts?.trace;
+      const envelope = await pageloadEnvelopePromise;
+      const span = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
 
-      expect(Number(pageloadTraceHeader?.sample_rand)).toBe(metaTagSampleRand);
-      expect(Number(pageloadTraceHeader?.sample_rate)).toBe(metaTagSampleRate);
+      expect(Number(envelope[0].trace?.sample_rand)).toBe(metaTagSampleRand);
+      expect(Number(envelope[0].trace?.sample_rate)).toBe(metaTagSampleRate);
 
       // since the local sample rate was not applied, the sample rate attribute shouldn't be set
-      expect(pageloadTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
-      expect(pageloadTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]).toBeUndefined();
+      expect(span.attributes['sentry.sample_rate']).toBeUndefined();
+      expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]).toBeUndefined();
 
-      return pageloadTraceContext;
+      return span;
     });
 
-    const customTraceContext = await sentryTest.step('Custom trace', async () => {
-      const customTrace1RequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'custom');
+    const customTraceSpan = await sentryTest.step('Custom trace', async () => {
+      const customEnvelopePromise = waitForStreamedSpanEnvelope(
+        page,
+        env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'custom'),
+      );
 
       await page.locator('#btn1').click();
 
-      const [customTrace1Event, customTraceTraceHeader] = eventAndTraceHeaderRequestParser(
-        await customTrace1RequestPromise,
-      );
+      const envelope = await customEnvelopePromise;
+      const span = envelope[1][0][1].items.find(s => getSpanOp(s) === 'custom')!;
 
-      const customTraceContext = customTrace1Event.contexts?.trace;
+      expect(span.trace_id).not.toEqual(pageloadSpan.trace_id);
+      expect(span.parent_span_id).toBeUndefined();
 
-      expect(customTraceContext?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
-      expect(customTraceContext?.parent_span_id).toBeUndefined();
-
-      expect(Number(customTraceTraceHeader?.sample_rand)).toBe(metaTagSampleRand);
-      expect(Number(customTraceTraceHeader?.sample_rate)).toBe(metaTagSampleRate);
-      expect(Boolean(customTraceTraceHeader?.sampled)).toBe(true);
+      expect(Number(envelope[0].trace?.sample_rand)).toBe(metaTagSampleRand);
+      expect(Number(envelope[0].trace?.sample_rate)).toBe(metaTagSampleRate);
+      expect(envelope[0].trace?.sampled).toBe('true');
 
       // since the local sample rate was not applied, the sample rate attribute shouldn't be set
-      expect(customTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
+      expect(span.attributes['sentry.sample_rate']).toBeUndefined();
 
       // but we need to set this attribute to still be able to correctly add the sample rate to the DSC (checked above in trace header)
-      expect(customTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]).toBe(metaTagSampleRate);
+      expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]?.value).toBe(metaTagSampleRate);
 
-      return customTraceContext;
+      return span;
     });
 
     await sentryTest.step('Navigation', async () => {
-      const navigation1RequestPromise = waitForTransactionRequest(
+      const navigationEnvelopePromise = waitForStreamedSpanEnvelope(
         page,
-        evt => evt.contexts?.trace?.op === 'navigation',
+        env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'navigation'),
       );
 
       await page.goto(`${url}#foo`);
 
-      const [navigationEvent, navigationTraceHeader] = eventAndTraceHeaderRequestParser(
-        await navigation1RequestPromise,
-      );
+      const envelope = await navigationEnvelopePromise;
+      const navSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'navigation')!;
 
-      const navigationTraceContext = navigationEvent.contexts?.trace;
+      expect(navSpan.trace_id).not.toEqual(pageloadSpan.trace_id);
+      expect(navSpan.trace_id).not.toEqual(customTraceSpan.trace_id);
 
-      expect(navigationTraceContext?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
-      expect(navigationTraceContext?.trace_id).not.toEqual(customTraceContext?.trace_id);
+      expect(navSpan.parent_span_id).toBeUndefined();
 
-      expect(navigationTraceContext?.parent_span_id).toBeUndefined();
-
-      expect(Number(navigationTraceHeader?.sample_rand)).toEqual(metaTagSampleRand);
-      expect(Number(navigationTraceHeader?.sample_rate)).toEqual(metaTagSampleRate);
-      expect(Boolean(navigationTraceHeader?.sampled)).toEqual(true);
+      expect(Number(envelope[0].trace?.sample_rand)).toEqual(metaTagSampleRand);
+      expect(Number(envelope[0].trace?.sample_rate)).toEqual(metaTagSampleRate);
+      expect(envelope[0].trace?.sampled).toEqual('true');
 
       // since the local sample rate was not applied, the sample rate attribute shouldn't be set
-      expect(navigationTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
+      expect(navSpan.attributes['sentry.sample_rate']).toBeUndefined();
 
       // but we need to set this attribute to still be able to correctly add the sample rate to the DSC (checked above in trace header)
-      expect(navigationTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]).toBe(
-        metaTagSampleRate,
-      );
+      expect(navSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]?.value).toBe(metaTagSampleRate);
     });
   });
 
   sentryTest(
     'Propagates continued <meta> tag sampling decision to outgoing requests',
     async ({ page, getLocalTestUrl }) => {
-      if (shouldSkipTracingTest()) {
-        sentryTest.skip();
-      }
+      sentryTest.skip(shouldSkipTracingTest());
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 
-      const pageloadTraceContext = await sentryTest.step('Initial pageload', async () => {
-        const pageloadRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+      const pageloadSpan = await sentryTest.step('Initial pageload', async () => {
+        const pageloadEnvelopePromise = waitForStreamedSpanEnvelope(
+          page,
+          env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'pageload'),
+        );
 
         await page.goto(url);
 
-        const [pageloadEvent, pageloadTraceHeader] = eventAndTraceHeaderRequestParser(await pageloadRequestPromise);
-        const pageloadTraceContext = pageloadEvent.contexts?.trace;
+        const envelope = await pageloadEnvelopePromise;
+        const span = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
 
-        expect(Number(pageloadTraceHeader?.sample_rand)).toBe(metaTagSampleRand);
-        expect(Number(pageloadTraceHeader?.sample_rate)).toBe(metaTagSampleRate);
+        expect(Number(envelope[0].trace?.sample_rand)).toBe(metaTagSampleRand);
+        expect(Number(envelope[0].trace?.sample_rate)).toBe(metaTagSampleRate);
 
         // since the local sample rate was not applied, the sample rate attribute shouldn't be set
-        expect(pageloadTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
-        expect(pageloadTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]).toBeUndefined();
+        expect(span.attributes['sentry.sample_rate']).toBeUndefined();
+        expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]).toBeUndefined();
 
-        return pageloadTraceContext;
+        return span;
       });
 
       await sentryTest.step('Make fetch request', async () => {
-        const fetchTracePromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'custom');
+        const fetchEnvelopePromise = waitForStreamedSpanEnvelope(
+          page,
+          env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'custom'),
+        );
         const tracingHeadersPromise = waitForTracingHeadersOnUrl(page, 'http://sentry-test-external.io');
 
         await page.locator('#btn2').click();
 
         const { baggage, sentryTrace } = await tracingHeadersPromise;
+        const fetchEnvelope = await fetchEnvelopePromise;
 
-        const [fetchTraceEvent, fetchTraceTraceHeader] = eventAndTraceHeaderRequestParser(await fetchTracePromise);
-
-        const fetchTraceSampleRand = Number(fetchTraceTraceHeader?.sample_rand);
-        const fetchTraceTraceContext = fetchTraceEvent.contexts?.trace;
-        const httpClientSpan = fetchTraceEvent.spans?.find(span => span.op === 'http.client');
+        const fetchTraceSampleRand = Number(fetchEnvelope[0].trace?.sample_rand);
+        const fetchTraceSpans = fetchEnvelope[1][0][1].items;
+        const fetchTraceSpan = fetchTraceSpans.find(s => getSpanOp(s) === 'custom')!;
+        const httpClientSpan = fetchTraceSpans.find(s => getSpanOp(s) === 'http.client');
 
         expect(fetchTraceSampleRand).toEqual(metaTagSampleRand);
 
-        expect(fetchTraceTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
-        expect(fetchTraceTraceContext?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]).toBe(
+        expect(fetchTraceSpan.attributes['sentry.sample_rate']).toBeUndefined();
+        expect(fetchTraceSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]?.value).toBe(
           metaTagSampleRate,
         );
 
-        expect(fetchTraceTraceContext?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
+        expect(fetchTraceSpan.trace_id).not.toEqual(pageloadSpan.trace_id);
 
         expect(sentryTrace).toBeDefined();
         expect(baggage).toBeDefined();
 
         expect(extractTraceparentData(sentryTrace)).toEqual({
-          traceId: fetchTraceTraceContext?.trace_id,
+          traceId: fetchTraceSpan.trace_id,
           parentSpanId: httpClientSpan?.span_id,
           parentSampled: true,
         });
@@ -167,7 +162,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
           'sentry-sample_rand': `${metaTagSampleRand}`,
           'sentry-sample_rate': `${metaTagSampleRate}`,
           'sentry-sampled': 'true',
-          'sentry-trace_id': fetchTraceTraceContext?.trace_id,
+          'sentry-trace_id': fetchTraceSpan.trace_id,
           'sentry-transaction': 'custom root span 2',
         });
       });
