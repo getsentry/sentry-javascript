@@ -1,7 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Span } from '../types/span';
 import { debug } from '../utils/debug-logger';
-import { getRootSpan, spanIsSampled, spanToStaticSpanJSON } from '../utils/spanUtils';
+import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
  * Print a log message for a started span.
@@ -9,11 +10,7 @@ import { getRootSpan, spanIsSampled, spanToStaticSpanJSON } from '../utils/spanU
 export function logSpanStart(span: Span): void {
   if (!DEBUG_BUILD) return;
 
-  const {
-    description = '< unknown name >',
-    op = '< unknown op >',
-    parent_span_id: parentSpanId,
-  } = spanToStaticSpanJSON(span);
+  const { name, op, parentSpanId } = getSpanInfo(span);
   const { spanId } = span.spanContext();
 
   const sampled = spanIsSampled(span);
@@ -22,21 +19,15 @@ export function logSpanStart(span: Span): void {
 
   const header = `[Tracing] Starting ${sampled ? 'sampled' : 'unsampled'} ${isRootSpan ? 'root ' : ''}span`;
 
-  const infoParts: string[] = [`op: ${op}`, `name: ${description}`, `ID: ${spanId}`];
+  const infoParts: string[] = [`op: ${op}`, `name: ${name}`, `ID: ${spanId}`];
 
   if (parentSpanId) {
     infoParts.push(`parent ID: ${parentSpanId}`);
   }
 
   if (!isRootSpan) {
-    const { op, description } = spanToStaticSpanJSON(rootSpan);
-    infoParts.push(`root ID: ${rootSpan.spanContext().spanId}`);
-    if (op) {
-      infoParts.push(`root op: ${op}`);
-    }
-    if (description) {
-      infoParts.push(`root description: ${description}`);
-    }
+    const { name: rootName, op: rootOp } = getSpanInfo(rootSpan);
+    infoParts.push(`root ID: ${rootSpan.spanContext().spanId}`, `root op: ${rootOp}`, `root name: ${rootName}`);
   }
 
   debug.log(`${header}
@@ -49,11 +40,21 @@ export function logSpanStart(span: Span): void {
 export function logSpanEnd(span: Span): void {
   if (!DEBUG_BUILD) return;
 
-  const { description = '< unknown name >', op = '< unknown op >' } = spanToStaticSpanJSON(span);
+  const { name, op } = getSpanInfo(span);
+
   const { spanId } = span.spanContext();
   const rootSpan = getRootSpan(span);
   const isRootSpan = rootSpan === span;
 
-  const msg = `[Tracing] Finishing "${op}" ${isRootSpan ? 'root ' : ''}span "${description}" with ID ${spanId}`;
+  const msg = `[Tracing] Finishing "${op}" ${isRootSpan ? 'root ' : ''}span "${name}" with ID ${spanId}`;
   debug.log(msg);
+}
+
+function getSpanInfo(span: Span): { name: string; op: string; parentSpanId: string | undefined } {
+  const {
+    name = '< unknown name >',
+    attributes: { [SENTRY_OP]: op = '< unknown op >' },
+    parent_span_id: parentSpanId,
+  } = spanToJSON(span);
+  return { name, op: op as string, parentSpanId };
 }
