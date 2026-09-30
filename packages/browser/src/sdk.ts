@@ -131,16 +131,20 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   return initAndBind(BrowserClient, clientOptions);
 }
 
-/** Default integrations that read from or write to the SDK's global state, so they only work for the current client. */
-const GLOBAL_STATE_INTEGRATIONS = [
-  'Breadcrumbs',
-  'BrowserApiErrors',
-  'BrowserSession',
-  'Console',
-  'ConversationId',
-  'FunctionToString',
-  'GlobalHandlers',
-];
+/**
+ * The default integrations of {@link init} that do not depend on the SDK's global state. The others (GlobalHandlers,
+ * Breadcrumbs, BrowserApiErrors, BrowserSession, Console, ConversationId, FunctionToString) only work for the
+ * current client, so referencing them here would only add bundle size.
+ */
+function getDefaultStandaloneIntegrations(): Integration[] {
+  return [
+    eventFiltersIntegration(),
+    linkedErrorsIntegration(),
+    dedupeIntegration(),
+    httpContextIntegration(),
+    cultureContextIntegration(),
+  ];
+}
 
 export interface StandaloneClient {
   client: BrowserClient;
@@ -156,7 +160,8 @@ export interface StandaloneClient {
  * global functions keep going to whatever the host page set up. Capture through the returned scope instead. Data
  * from the host's scopes (user, tags, breadcrumbs) is never applied to this client's events.
  *
- * Default integrations that depend on global state are left out, so errors are not captured automatically.
+ * Only the default integrations that do not depend on global state are installed, so errors are not captured
+ * automatically.
  *
  * @example
  * ```
@@ -176,19 +181,14 @@ export function createStandaloneClient(options: BrowserOptions = {}): Standalone
     debug.enable();
   }
 
-  const defaultIntegrations: Integration[] =
-    options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations || [];
+  const defaultIntegrations =
+    options.defaultIntegrations == null ? getDefaultStandaloneIntegrations() : options.defaultIntegrations;
 
   const clientOptions: BrowserClientOptions = {
     ...options,
     standalone: true,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
-    integrations: getIntegrationsToSetup({
-      integrations: options.integrations,
-      defaultIntegrations: defaultIntegrations.filter(
-        integration => !GLOBAL_STATE_INTEGRATIONS.includes(integration.name),
-      ),
-    }),
+    integrations: getIntegrationsToSetup({ integrations: options.integrations, defaultIntegrations }),
     transport: options.transport || makeFetchTransport,
   };
 
