@@ -101,6 +101,11 @@ describe('Nuxt Server SDK', () => {
       expect(nodeInit).toHaveBeenCalledWith(expect.not.objectContaining({ defaultIntegrations: expect.anything() }));
     });
 
+    it('adds the nitroIntegration', () => {
+      const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+      expect(client?.getIntegrationByName('Nitro')).toBeDefined();
+    });
+
     it('allows options.defaultIntegrations to override default integrations', () => {
       const customIntegrations = [{ name: 'CustomIntegration' }];
 
