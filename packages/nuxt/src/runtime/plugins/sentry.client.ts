@@ -1,7 +1,7 @@
 import { getClient, GLOBAL_OBJ } from '@sentry/core';
 import {
   browserTracingIntegration,
-  createVueRouteProvider,
+  _INTERNAL_createVueRouteProvider,
   getRouteProvider,
   setRouteProvider,
   vueIntegration,
@@ -34,7 +34,7 @@ interface VueRouter {
   beforeEach: (fn: (to: Route, from: Route, next?: () => void) => void) => void;
 }
 
-type VueRouteProviderRouter = ReturnType<Parameters<typeof createVueRouteProvider>[0]>;
+type VueRouteProviderRouter = ReturnType<Parameters<typeof _INTERNAL_createVueRouteProvider>[0]>;
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -51,7 +51,7 @@ export default defineNuxtPlugin({
     // A `routeProvider` passed to `Sentry.init` is the user's choice, so it is left in place.
     if (client && '$router' in nuxtApp && !getRouteProvider(client)) {
       setRouteProvider(
-        createVueRouteProvider(() => nuxtApp.$router as VueRouteProviderRouter),
+        _INTERNAL_createVueRouteProvider(() => nuxtApp.$router as VueRouteProviderRouter),
         client,
       );
     }
