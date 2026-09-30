@@ -1,10 +1,7 @@
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  envelopeRequestParser,
-  shouldSkipTracingTest,
-  waitForTransactionRequestOnUrl,
-} from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest('should create spans for fetch requests called directly after init', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -15,25 +12,28 @@ sentryTest('should create spans for fetch requests called directly after init', 
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const req = await waitForTransactionRequestOnUrl(page, url);
-  const tracingEvent = envelopeRequestParser(req);
+  const spans = collectStreamedSpans(page);
+  const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+  await page.goto(url);
+  const pageload = await pageloadPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-  const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
+  const requestSpans = spans.filter(span => getSpanOp(span) === 'http.client');
 
   expect(requestSpans).toHaveLength(1);
 
   expect(requestSpans![0]).toMatchObject({
-    description: 'GET http://sentry-test-site.example/0',
-    parent_span_id: tracingEvent.contexts?.trace?.span_id,
+    name: 'GET sentry-test-site.example',
+    parent_span_id: pageload.span_id,
     span_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: tracingEvent.contexts?.trace?.trace_id,
-    data: {
-      'http.request.method': 'GET',
-      'url.full': 'http://sentry-test-site.example/0',
-      'server.address': 'sentry-test-site.example',
-      type: 'fetch',
-    },
+    end_timestamp: expect.any(Number),
+    trace_id: pageload.trace_id,
+    attributes: expect.objectContaining({
+      'http.request.method': { type: 'string', value: 'GET' },
+      'url.full': { type: 'string', value: 'http://sentry-test-site.example/0' },
+      'server.address': { type: 'string', value: 'sentry-test-site.example' },
+      type: { type: 'string', value: 'fetch' },
+    }),
   });
 });

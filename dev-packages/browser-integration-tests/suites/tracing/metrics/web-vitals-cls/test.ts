@@ -1,7 +1,8 @@
+import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
@@ -11,43 +12,70 @@ sentryTest.beforeEach(async ({ browserName, page }) => {
   await page.setViewportSize({ width: 800, height: 1200 });
 });
 
-sentryTest('should capture a "GOOD" CLS vital with its source(s).', async ({ getLocalTestUrl, page }) => {
+function waitForLayoutShift(page: Page): Promise<void> {
+  return page.evaluate(() => {
+    return new Promise(resolve => {
+      window.addEventListener('cls-done', () => resolve());
+    });
+  });
+}
+
+sentryTest('captures CLS as a streamed span with source attributes', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.05`);
 
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.cls?.value).toBeDefined();
+  const clsSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.webvital.cls');
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 
-  // Flakey value dependent on timings -> we check for a range
-  expect(eventData.measurements?.cls?.value).toBeGreaterThan(0.03);
-  expect(eventData.measurements?.cls?.value).toBeLessThan(0.07);
+  await page.goto(`${url}#0.15`);
+  await waitForLayoutShift(page);
+  await hidePage(page);
 
-  expect(eventData.contexts?.trace?.data?.['cls.source.1']).toBe('body > div#content > p#partial');
+  const clsSpan = await clsSpanPromise;
+  const pageloadSpan = await pageloadSpanPromise;
+
+  expect(clsSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.cls' });
+  expect(clsSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.cls' });
+  expect(clsSpan.attributes['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
+  expect(clsSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
+
+  // Check the CLS span carries the segment name it belongs to
+  expect(clsSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: 'Pageload' });
+
+  // Check browser.web_vital.cls.source attributes
+  expect(clsSpan.attributes['browser.web_vital.cls.source.1']?.value).toEqual(
+    expect.stringContaining('body > div#content > p'),
+  );
+
+  // Check pageload span id is present
+  expect(clsSpan.attributes['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
+
+  // CLS is a point-in-time metric
+  expect(clsSpan.start_timestamp).toEqual(clsSpan.end_timestamp);
+
+  expect(clsSpan.span_id).toMatch(/^[\da-f]{16}$/);
+  expect(clsSpan.trace_id).toMatch(/^[\da-f]{32}$/);
+
+  expect(clsSpan.parent_span_id).toBe(pageloadSpan.span_id);
+  expect(clsSpan.trace_id).toBe(pageloadSpan.trace_id);
 });
 
-sentryTest('should capture a "MEH" CLS vital with its source(s).', async ({ getLocalTestUrl, page }) => {
-  const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.21`);
+[
+  { cls: 0.05, min: 0.03, max: 0.07, source: 'body > div#content > p#partial' },
+  { cls: 0.21, min: 0.18, max: 0.23, source: 'body > div#content > p' },
+  { cls: 0.35, min: 0.34, max: 0.36, source: 'body > div#content > p' },
+].forEach(({ cls, min, max, source }) => {
+  sentryTest(`captures CLS ${cls} with its source`, async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    const clsPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.webvital.cls');
+    await page.goto(`${url}#${cls}`);
+    await waitForLayoutShift(page);
+    await hidePage(page);
+    const span = await clsPromise;
 
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.cls?.value).toBeDefined();
-
-  // Flakey value dependent on timings -> we check for a range
-  expect(eventData.measurements?.cls?.value).toBeGreaterThan(0.18);
-  expect(eventData.measurements?.cls?.value).toBeLessThan(0.23);
-
-  expect(eventData.contexts?.trace?.data?.['cls.source.1']).toBe('body > div#content > p');
-});
-
-sentryTest('should capture a "POOR" CLS vital with its source(s).', async ({ getLocalTestUrl, page }) => {
-  const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.35`);
-
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.cls?.value).toBeDefined();
-
-  // Flakey value dependent on timings -> we check for a range
-  expect(eventData.measurements?.cls?.value).toBeGreaterThan(0.34);
-  expect(eventData.measurements?.cls?.value).toBeLessThan(0.36);
-  expect(eventData.contexts?.trace?.data?.['cls.source.1']).toBe('body > div#content > p');
+    expect(span.attributes['browser.web_vital.cls.value']?.type).toBe('double');
+    const value = span.attributes['browser.web_vital.cls.value']?.value;
+    expect(value).toBeGreaterThan(min);
+    expect(value).toBeLessThan(max);
+    expect(span.attributes['browser.web_vital.cls.source.1']).toEqual({ type: 'string', value: source });
+  });
 });
