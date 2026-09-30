@@ -1,13 +1,16 @@
 import { cacheLife } from 'next/cache';
+import { CachedBox } from '@/components/scenarioBox';
 
 async function CachedLeaf({ id }: { id: string }) {
   'use cache';
   cacheLife('hours');
   await new Promise(resolve => setTimeout(resolve, 100));
   return (
-    <p id="cached-leaf">
-      {id}:{Date.now()}
-    </p>
+    <CachedBox label="CachedLeaf · use cache · hours">
+      <p id="cached-leaf">
+        {id}:{Date.now()}
+      </p>
+    </CachedBox>
   );
 }
 
