@@ -107,19 +107,19 @@ export function instrumentDOM(): void {
               handlerForType.handler = handler;
               // Track the user-set `capture` option because it changes the identity of the registration of the
               // event listener callback function (addEL(fn, true) vs addEL(fn, false) are two different registrations).
-              // Our listener needs to have the same capture setting, so that subsequent calls or removaleEventListener
+              // Our listener needs to have the same capture setting, so that subsequent calls or removeEventListener
               // calls correspond to the correct handler function.
               handlerForType.capture = capture;
               originalAddEventListener.call(this, type, handler, handlerForType.capture);
             }
 
-            if (typeof options === 'object' && (options?.once || options?.signal)) {
-              // Not tracked to avoid retaining listeners the browser auto-removes.
-              handlerForType.sticky = true;
-            } else {
-              const listeners = handlerForType[capture ? 'captureListeners' : 'bubbleListeners'];
-              // Adding the same listener twice in the same phase is a no-op in the browser.
-              if (!listeners.has(listener)) {
+            const listeners = handlerForType[capture ? 'captureListeners' : 'bubbleListeners'];
+            // Adding the same listener twice in the same phase is a no-op in the browser.
+            if (!listeners.has(listener)) {
+              if (typeof options === 'object' && (options?.once || options?.signal)) {
+                // Not tracked to avoid retaining listeners the browser auto-removes.
+                handlerForType.sticky = true;
+              } else {
                 listeners.add(listener);
                 handlerForType.listenerCount++;
               }

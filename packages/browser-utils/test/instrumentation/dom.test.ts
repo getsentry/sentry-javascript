@@ -139,4 +139,31 @@ describe('instrumentDOM', () => {
     // `onceClick` plus the SDK's handler, which must still see the pending `once` listener's event
     expect(countDocumentClickListeners() - baseline).toBe(2);
   });
+
+  it('counts a listener added twice in the same phase only once', () => {
+    const countDocumentClickListeners = instrumentAndTrackDocumentClickListeners();
+    const baseline = countDocumentClickListeners();
+
+    const onClick = (): void => {};
+
+    document.addEventListener('click', onClick);
+    document.addEventListener('click', onClick);
+    document.removeEventListener('click', onClick);
+
+    expect(countDocumentClickListeners() - baseline).toBe(0);
+  });
+
+  it('removes its handler if a listener is re-added with `once` while already registered', () => {
+    const countDocumentClickListeners = instrumentAndTrackDocumentClickListeners();
+    const baseline = countDocumentClickListeners();
+
+    const onClick = (): void => {};
+
+    document.addEventListener('click', onClick);
+    // no-op in the browser, since `onClick` is already registered for the bubble phase
+    document.addEventListener('click', onClick, { once: true });
+    document.removeEventListener('click', onClick);
+
+    expect(countDocumentClickListeners() - baseline).toBe(0);
+  });
 });
