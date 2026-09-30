@@ -20,10 +20,6 @@ export const app = run({
   },
 });
 
-// The runtime sends a render error to the event target `run()` returns and does not rethrow, so
-// `window.onerror` never sees it. This listener is the only way the SDK learns about it.
-Sentry.captureRuntimeErrors(app);
-
 function Boom(): () => never {
   return () => {
     throw new Error('Component render failed');

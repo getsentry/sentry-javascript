@@ -63,6 +63,8 @@ export default [
         'src/vite/index.ts',
         'src/v3/index.server.ts',
         'src/v3/index.client.ts',
+        // An explicit entry keeps its default export, which only orchestrion's injected import uses.
+        'src/v3/client/diagnosticsChannelShim.ts',
       ],
       packageSpecificConfig: {
         external: ['react-router', 'react-router-dom', 'react', 'react/jsx-runtime'],
