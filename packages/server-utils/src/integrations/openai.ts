@@ -64,6 +64,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
             data.result,
             response => {
               data.result = response;
+              // stream responses should end only after iteration is completed
               if (!wrapStreamResult(span, data, options)) {
                 end();
               }
