@@ -84,7 +84,9 @@ function expectRecordedConversation(attributes: Attributes): void {
 
 /** `gen_ai.response.finish_reasons` is a JSON array, only recorded for streamed calls. */
 function finishReasons(attributes: Attributes): string[] {
-  return JSON.parse(attributes['gen_ai.response.finish_reasons'] as string);
+  const raw = attributes['gen_ai.response.finish_reasons'];
+  expect(typeof raw, 'gen_ai.response.finish_reasons').toBe('string');
+  return JSON.parse(raw as string);
 }
 
 test('Sends a message to Sentry as a gen_ai.chat span under the request span', async ({ baseURL }) => {
@@ -121,9 +123,15 @@ test('Sends a message made with the stream helper to Sentry', async ({ baseURL }
 
   const { span, attributes } = await waitForSpan(traceId, 'gen_ai.chat');
 
-  // `messages.stream()` is instrumented on its own channel and calls `create` underneath, which must
-  // not produce a second span.
-  expect(flattenTrace(await fetchTrace(traceId)).filter(item => item.op === 'gen_ai.chat')).toHaveLength(1);
+  // `messages.stream()` calls `create` underneath, which must not produce a second span. The parent
+  // lands last, so count after it; the short poll only rides out a dropped connection.
+  await expect.poll(() => isModelSpanUnderRequestSpan(traceId, span.event_id!), EVENT_POLLING_OPTIONS).toBe(true);
+  await expect
+    .poll(async () => flattenTrace(await fetchTrace(traceId)).filter(item => item.op === 'gen_ai.chat').length, {
+      timeout: 30_000,
+      intervals: [5_000],
+    })
+    .toBe(1);
   expectModelCallAttributes(span, attributes);
   expect(attributes['gen_ai.response.streaming']).toBe(true);
   expect(finishReasons(attributes)).toContain('end_turn');
