@@ -1,11 +1,7 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import type { EventAndTraceHeader } from '../../../../utils/helpers';
-import {
-  eventAndTraceHeaderRequestParser,
-  getFirstSentryEnvelopeRequest,
-  shouldSkipTracingTest,
-} from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../../utils/spanUtils';
 
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
 const META_TAG_PARENT_SPAN_ID = '1234567890123456';
@@ -28,23 +24,16 @@ sentryTest(
       },
     });
 
-    const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      url,
-      eventAndTraceHeaderRequestParser,
-    );
-    const [navigationEvent, navigationTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      `${url}#foo`,
-      eventAndTraceHeaderRequestParser,
-    );
+    const [pageloadEvent, pageloadTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
+    const [navigationEvent, navigationTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, `${url}#foo`);
 
-    const pageloadTraceContext = pageloadEvent.contexts?.trace;
-    const navigationTraceContext = navigationEvent.contexts?.trace;
+    const pageloadTraceContext = pageloadEvent;
+    const navigationTraceContext = navigationEvent;
 
-    expect(pageloadEvent.type).toEqual('transaction');
+    expect(pageloadEvent.is_segment).toBe(true);
     expect(pageloadTraceContext).toMatchObject({
-      op: 'pageload',
+      is_segment: true,
+      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -61,9 +50,10 @@ sentryTest(
       sample_rand: '0.42',
     });
 
-    expect(navigationEvent.type).toEqual('transaction');
+    expect(navigationEvent.is_segment).toBe(true);
     expect(navigationTraceContext).toMatchObject({
-      op: 'navigation',
+      is_segment: true,
+      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'navigation' } }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });

@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest('preserves extra methods on real jQuery jqXHR objects', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -8,7 +9,7 @@ sentryTest('preserves extra methods on real jQuery jqXHR objects', async ({ getL
   }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const transactionPromise = waitForTransactionRequest(page);
+  const spanPromise = waitForStreamedSpan(page, span => span.name === 'test-jqxhr');
 
   await page.goto(url);
 
@@ -27,9 +28,9 @@ sentryTest('preserves extra methods on real jQuery jqXHR objects', async ({ getL
   const testError = await page.evaluate(() => (window as any).jqXHRTestError);
   expect(testError).toBeNull();
 
-  const transaction = envelopeRequestParser(await transactionPromise);
-  expect(transaction.transaction).toBe('test-jqxhr');
-  expect(transaction.spans).toBeDefined();
+  const span = await spanPromise;
+  expect(span.name).toBe('test-jqxhr');
+  expect(span.is_segment).toBe(true);
 });
 
 sentryTest('aborted request rejects promise correctly', async ({ getLocalTestUrl, page }) => {
