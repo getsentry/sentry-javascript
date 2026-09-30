@@ -91,13 +91,20 @@ export function createHonoRequestMiddleware(options: CreateHonoRequestMiddleware
     }
     addNonEnumerableProperty(scope, HONO_REQUEST_HANDLED, true);
 
-    requestHandler(context, options.getConnInfo);
+    try {
+      requestHandler(context, options.getConnInfo);
 
-    await next(); // Handler runs in between Request above ⤴ and Response below ⤵
+      await next(); // Handler runs in between Request above ⤴ and Response below ⤵
 
-    const effectiveShouldHandleError =
-      (scope[HONO_SHOULD_HANDLE_ERROR] as SentryHonoMiddlewareOptions['shouldHandleError']) ?? shouldHandleError;
-    responseHandler(context, effectiveShouldHandleError);
+      const effectiveShouldHandleError =
+        (scope[HONO_SHOULD_HANDLE_ERROR] as SentryHonoMiddlewareOptions['shouldHandleError']) ?? shouldHandleError;
+      responseHandler(context, effectiveShouldHandleError);
+    } finally {
+      // An isolation scope that outlives the request (e.g. forked once around the whole server on a
+      // runtime without per-request isolation) must not dedupe the next request against this one.
+      addNonEnumerableProperty(scope, HONO_REQUEST_HANDLED, undefined);
+      addNonEnumerableProperty(scope, HONO_SHOULD_HANDLE_ERROR, undefined);
+    }
   };
 
   addNonEnumerableProperty(middleware, SENTRY_HONO_MIDDLEWARE, true);

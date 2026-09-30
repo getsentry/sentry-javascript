@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setAsyncContextStrategy, withIsolationScope } from '@sentry/core';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
 // Spy on the request/response handlers so we can assert exactly how many times they run.
 const requestHandler = vi.fn();
@@ -10,6 +11,8 @@ vi.mock('../../../src/integrations/hono/middlewareHandlers', () => ({
   captureContextError: (...args: unknown[]) => captureContextError(...args),
 }));
 
+// eslint-disable-next-line import/first
+import { setAsyncLocalStorageAsyncContextStrategy } from '../../../src/async-context';
 // eslint-disable-next-line import/first
 import { createHonoRequestMiddleware } from '../../../src/integrations/hono/createHonoMiddleware';
 
@@ -38,23 +41,39 @@ describe('createHonoRequestMiddleware — duplicate registration handling', () =
     expect(responseHandler).toHaveBeenCalledTimes(1);
   });
 
-  it('passes an already-handled context straight through to next()', async () => {
+  it('passes a deduplicated request straight through to next()', async () => {
     const context = fakeContext();
+    const handler = vi.fn();
 
-    // First middleware handles the request and marks the context.
-    await createHonoRequestMiddleware()(context, async () => {});
-    requestHandler.mockClear();
-    responseHandler.mockClear();
-
-    // A second (duplicate) middleware on the same context must not re-run the handlers.
-    let nextCalled = false;
     await createHonoRequestMiddleware()(context, async () => {
-      nextCalled = true;
+      await createHonoRequestMiddleware()(context, handler);
     });
 
-    expect(nextCalled).toBe(true);
-    expect(requestHandler).not.toHaveBeenCalled();
-    expect(responseHandler).not.toHaveBeenCalled();
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(requestHandler).toHaveBeenCalledTimes(1);
+    expect(responseHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles sequential requests sharing one isolation scope independently', async () => {
+    const userShouldHandleError = (): boolean => true;
+    const auto = createHonoRequestMiddleware();
+    const manual = createHonoRequestMiddleware({ shouldHandleError: userShouldHandleError });
+    setAsyncLocalStorageAsyncContextStrategy();
+    onTestFinished(() => setAsyncContextStrategy(undefined));
+
+    await withIsolationScope(async () => {
+      const firstContext = fakeContext();
+      await auto(firstContext, async () => {
+        await manual(firstContext, async () => {});
+      });
+
+      const secondContext = fakeContext();
+      await auto(secondContext, async () => {});
+
+      expect(requestHandler).toHaveBeenCalledTimes(2);
+      expect(responseHandler).toHaveBeenNthCalledWith(1, firstContext, userShouldHandleError);
+      expect(responseHandler).toHaveBeenNthCalledWith(2, secondContext, undefined);
+    });
   });
 
   it('handles independent requests independently (marker is per-context)', async () => {
