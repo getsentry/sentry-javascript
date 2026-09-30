@@ -354,7 +354,7 @@ export function getWebpackPatch({
 }
 
 /**
- * Applies the `webpack.treeshake` flags to Turbopack builds through `compiler.define`.
+ * Applies the `bundleSizeOptimizations` flags to Turbopack builds through `compiler.define`.
  *
  * Note: this mutates `incomingUserNextConfigObject`.
  */
@@ -372,11 +372,13 @@ export function maybeSetTurbopackTreeshakeDefines(
     return;
   }
 
-  incomingUserNextConfigObject.compiler ??= {};
-  incomingUserNextConfigObject.compiler.define = {
-    // Must stay booleans: Turbopack injects string values as string literals, so `'false'` would be truthy.
-    ...defines,
-    ...incomingUserNextConfigObject.compiler.define,
+  incomingUserNextConfigObject.compiler = {
+    ...incomingUserNextConfigObject.compiler,
+    define: {
+      // Must stay booleans: Turbopack injects string values as string literals, so `'false'` would be truthy.
+      ...defines,
+      ...incomingUserNextConfigObject.compiler?.define,
+    },
   };
 }
 

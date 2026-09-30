@@ -114,6 +114,8 @@ export type SentryBuildWebpackOptions = {
 
   /**
    * Tree-shaking options to help reduce the size of the Sentry SDK bundle.
+   *
+   * @deprecated Use the top-level `bundleSizeOptimizations` option instead, which works for both webpack and Turbopack builds.
    */
   treeshake?: {
     /**
@@ -150,7 +152,7 @@ export type SentryBuildWebpackOptions = {
      * This has no effect if you did not add `replayIntegration`.
      */
     excludeReplayCompressionWorker?: boolean;
-  };
+  }; // TODO(v12): remove this option
 
   /**
    * Options related to react component name annotations.

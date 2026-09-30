@@ -496,7 +496,7 @@ describe('withSentryConfig', () => {
       const finalConfig = materializeFinalNextConfig(
         { ...exportedNextConfig, compiler: { define: { __SENTRY_DEBUG__: true, USER_FLAG: 'x' } } },
         undefined,
-        { webpack: { treeshake: { removeTracing: true, removeDebugLogging: true } } },
+        { bundleSizeOptimizations: { excludeTracing: true, excludeDebugStatements: true } },
       );
 
       expect(finalConfig.compiler?.define).toEqual({
@@ -506,11 +506,34 @@ describe('withSentryConfig', () => {
       });
     });
 
+    it('supports the deprecated webpack.treeshake option', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+
+      const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig }, undefined, {
+        webpack: { treeshake: { removeTracing: true } },
+      });
+
+      expect(finalConfig.compiler?.define).toEqual({ __SENTRY_TRACING__: false });
+    });
+
+    it('prefers bundleSizeOptimizations over the deprecated webpack.treeshake option', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+
+      const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig }, undefined, {
+        bundleSizeOptimizations: { excludeTracing: false },
+        webpack: { treeshake: { removeTracing: true } },
+      });
+
+      expect(finalConfig.compiler?.define).toBeUndefined();
+    });
+
     it('does not set defines on webpack builds', () => {
       delete process.env.TURBOPACK;
 
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, {
-        webpack: { treeshake: { removeTracing: true } },
+      const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig }, undefined, {
+        bundleSizeOptimizations: { excludeTracing: true },
       });
 
       expect(finalConfig.compiler?.define).toBeUndefined();
