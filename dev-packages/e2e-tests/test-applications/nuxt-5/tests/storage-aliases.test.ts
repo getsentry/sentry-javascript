@@ -6,7 +6,7 @@ async function collectStorageSpans(route: string) {
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === route);
 
   return spans.filter(
-    span => span.trace_id === rootSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nuxt',
+    span => span.trace_id === rootSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nitro',
   );
 }
 
@@ -37,7 +37,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
     expect(setSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.put' },
       'cache.operation': { type: 'string', value: 'put' },
-      'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:user') },
       'db.operation.name': { type: 'string', value: 'setItem' },
       'db.collection.name': { type: 'string', value: 'test-storage' },
@@ -52,7 +52,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
     expect(getSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
       'cache.operation': { type: 'string', value: 'get' },
-      'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:user') },
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
       'db.operation.name': { type: 'string', value: 'getItem' },
@@ -68,7 +68,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
     expect(hasSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.get' },
       'cache.operation': { type: 'string', value: 'get' },
-      'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:user') },
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
       'db.operation.name': { type: 'string', value: 'hasItem' },
@@ -84,7 +84,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
     expect(delSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.remove' },
       'cache.operation': { type: 'string', value: 'remove' },
-      'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:temp1') },
       'db.operation.name': { type: 'string', value: 'removeItem' },
       'db.collection.name': { type: 'string', value: 'test-storage' },
@@ -97,7 +97,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
     expect(removeSpan?.attributes).toMatchObject({
       'sentry.op': { type: 'string', value: 'cache.remove' },
       'cache.operation': { type: 'string', value: 'remove' },
-      'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
+      'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: { type: 'string', value: prefixKey('alias:temp2') },
       'db.operation.name': { type: 'string', value: 'removeItem' },
       'db.collection.name': { type: 'string', value: 'test-storage' },

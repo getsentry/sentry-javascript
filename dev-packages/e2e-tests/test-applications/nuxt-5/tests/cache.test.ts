@@ -13,7 +13,7 @@ test.describe('Cache Instrumentation', () => {
     const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/cache-test');
 
     return spans.filter(
-      span => span.trace_id === rootSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nuxt',
+      span => span.trace_id === rootSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nitro',
     );
   }
 
@@ -49,7 +49,7 @@ test.describe('Cache Instrumentation', () => {
       expect(cacheMissSpan.attributes).toMatchObject({
         'sentry.op': { type: 'string', value: 'cache.get' },
         'cache.operation': { type: 'string', value: 'get' },
-        'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
+        'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: false },
         'db.operation.name': { type: 'string', value: 'getItem' },
         'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },
@@ -67,7 +67,7 @@ test.describe('Cache Instrumentation', () => {
       expect(cacheHitSpan.attributes).toMatchObject({
         'sentry.op': { type: 'string', value: 'cache.get' },
         'cache.operation': { type: 'string', value: 'get' },
-        'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
+        'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
         'db.operation.name': { type: 'string', value: 'getItem' },
         'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },
@@ -85,7 +85,7 @@ test.describe('Cache Instrumentation', () => {
       expect(cacheSetSpan.attributes).toMatchObject({
         'sentry.op': { type: 'string', value: 'cache.put' },
         'cache.operation': { type: 'string', value: 'put' },
-        'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
+        'sentry.origin': { type: 'string', value: 'auto.cache.nitro' },
         'db.operation.name': { type: 'string', value: 'setItem' },
         'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },
       });
