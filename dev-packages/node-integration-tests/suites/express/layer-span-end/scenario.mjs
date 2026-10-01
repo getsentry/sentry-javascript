@@ -17,7 +17,7 @@ for (let i = 0; i < MIDDLEWARE_COUNT; i++) {
 app.get('/test/express', (_req, res) => {
   const finishListeners = res.listenerCount('finish');
 
-  // Synchronous work that a middleware span still open around `next()` would absorb.
+  // Without the fix, this work is included in every preceding middleware's span.
   const until = Date.now() + 50;
   while (Date.now() < until) {
     // busy-wait
