@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@sentry-internal/node-integration-tests": "11.1.0",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11"
   },
   "volta": {
     "extends": "../../package.json"

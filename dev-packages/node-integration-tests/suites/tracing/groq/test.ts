@@ -74,6 +74,25 @@ describe('Groq integration', () => {
             expect(embeddingsSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(embeddingsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(8);
             expect(embeddingsSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
+
+            const rawSpans = container.items.filter(
+              s =>
+                s.attributes[GEN_AI_PROVIDER_NAME]?.value === PROVIDER &&
+                s.status === 'ok' &&
+                s.attributes[GEN_AI_RESPONSE_ID] === undefined,
+            );
+            expect(rawSpans).toHaveLength(3);
+            expect(rawSpans.map(s => s.name)).toEqual([
+              'chat llama-3.3-70b-versatile',
+              'chat llama-3.1-8b-instant',
+              'embeddings nomic-embed-text-v1_5',
+            ]);
+            for (const span of rawSpans) {
+              expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+              expect(span.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+              expect(span.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+              expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+            }
           },
         })
         .start()
@@ -100,6 +119,26 @@ describe('Groq integration', () => {
             );
             expect(embeddingsSpan).toBeDefined();
             expect(embeddingsSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value).toContain('Embedding test!');
+
+            const rawChatSpan = container.items.find(
+              s =>
+                s.attributes[GEN_AI_REQUEST_MODEL]?.value === 'llama-3.3-70b-versatile' &&
+                s.attributes[GEN_AI_RESPONSE_ID] === undefined,
+            );
+            expect(rawChatSpan).toBeDefined();
+            expect(rawChatSpan!.attributes[GEN_AI_INPUT_MESSAGES]?.value).toBe(
+              '[{"role":"user","content":"Raw response test!"}]',
+            );
+            expect(rawChatSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+
+            const rawEmbeddingsSpan = container.items.find(
+              s =>
+                s.attributes[GEN_AI_REQUEST_MODEL]?.value === 'nomic-embed-text-v1_5' &&
+                s.attributes[GEN_AI_RESPONSE_ID] === undefined,
+            );
+            expect(rawEmbeddingsSpan).toBeDefined();
+            expect(rawEmbeddingsSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value).toContain('Raw embedding test!');
+            expect(rawEmbeddingsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBeUndefined();
           },
         })
         .start()

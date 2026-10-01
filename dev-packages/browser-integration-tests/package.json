@@ -65,7 +65,7 @@
     "@sentry/opentelemetry": "11.1.0",
     "@sentry/conventions": "0.24.0",
     "@supabase/supabase-js": "2.109.0",
-    "axios": "1.18.0",
+    "axios": "1.20.0",
     "babel-loader": "^10.1.1",
     "fflate": "0.8.3",
     "html-webpack-plugin": "^5.5.0",

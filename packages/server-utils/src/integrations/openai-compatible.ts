@@ -9,6 +9,7 @@ import {
 } from '@sentry/core';
 import { GEN_AI_PROVIDER_NAME } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { onApiPromiseResponse } from '../ai/core/apiPromise';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
 import { instrumentStream } from '../ai/openai/streaming';
 import type { OpenAiOptions } from '../ai/openai/types';
@@ -35,8 +36,7 @@ export interface OpenAiCompatibleProvider {
 
 /**
  * The context orchestrion shares across the tracing-channel lifecycle hooks: `arguments` is the live args
- * array passed to `Completions.create(body, options)`, and Node's `tracingChannel` attaches `result` when
- * the returned promise settles.
+ * array passed to `Completions.create(body, options)`, and `result` holds its returned `APIPromise`.
  */
 interface OpenAiCompatibleChannelContext {
   arguments: unknown[];
@@ -67,8 +67,17 @@ export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProv
           beforeSpanEnd: (span, data) => {
             addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
           },
-          // Streaming: the result is a `Stream` consumed later, so instrument it and let it end the span.
-          deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
+          deferSpanEnd: ({ span, data, end }) =>
+            onApiPromiseResponse(
+              data.result,
+              response => {
+                data.result = response;
+                if (!wrapStreamResult(span, data, options)) {
+                  end();
+                }
+              },
+              end,
+            ) || wrapStreamResult(span, data, options),
         },
       );
     }
@@ -135,7 +144,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
 /**
  * For a streaming `create({ stream: true })` the result is a `Stream` the caller consumes later. We can't
  * swap what `create` returns, but the `Stream` in `data.result` is the same instance the caller holds and
- * `asyncEnd` fires before the caller iterates — so we patch its async iterator in place to run through
+ * we observe it before the caller iterates — so we patch its async iterator in place to run through
  * `instrumentStream`, which accumulates the streamed attributes and ends the span when iteration finishes.
  * Only a streaming call resolves to an async-iterable, so that check alone distinguishes it. Returns `true`
  * to hand span-ending ownership to `instrumentStream`; `false` for non-streaming/errored results, which end
