@@ -3,6 +3,7 @@ import * as sentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectStorage } from '../src/instrumentations/instrumentDurableObjectStorage';
 import * as traceLinks from '../src/utils/traceLinks';
+import { initTestClient, resetSdk } from './testUtils';
 
 vi.mock('../src/utils/traceLinks', async importOriginal => {
   const actual = await importOriginal<typeof traceLinks>();
@@ -15,6 +16,7 @@ vi.mock('../src/utils/traceLinks', async importOriginal => {
 describe('instrumentDurableObjectStorage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSdk();
   });
 
   describe('get', () => {
@@ -301,6 +303,7 @@ describe('instrumentDurableObjectStorage', () => {
   });
 
   it('instruments sql exec', () => {
+    initTestClient({ tracesSampleRate: 1 });
     const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
     const mockStorage = createMockStorage();
     const instrumented = instrumentDurableObjectStorage(mockStorage);
