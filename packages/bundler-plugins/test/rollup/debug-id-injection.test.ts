@@ -57,11 +57,11 @@ describe('debug ID injection', () => {
     expect(extractDebugId(firstBuild)).toBe(extractDebugId(secondBuild));
   });
 
-  it('changes the ID when code or the filename changes', () => {
+  it('changes the ID when the code changes and keeps it across file names', () => {
     const baseline = extractDebugId(finalize(provisionalCode('first')));
 
     expect(extractDebugId(finalize(provisionalCode('second')))).not.toBe(baseline);
-    expect(extractDebugId(finalize(provisionalCode('first'), 'other.js'))).not.toBe(baseline);
+    expect(extractDebugId(finalize(provisionalCode('first'), 'other.js'))).toBe(baseline);
   });
 
   it('does not replace placeholder-shaped user strings', () => {

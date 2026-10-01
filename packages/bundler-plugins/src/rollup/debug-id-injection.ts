@@ -55,9 +55,10 @@ export function finalizeRolldownDebugIds(bundle: GeneratedBundle): void {
       throw new Error(`Failed to locate the Sentry debug ID placeholder for chunk \`${fileName}\`.`);
     }
 
-    // Including the final filename disambiguates otherwise identical chunks. The fixed-width replacement deliberately
-    // happens after Rolldown computes [hash], so the emitted filename represents the placeholder-bearing chunk.
-    const debugId = stringToUUID(JSON.stringify([output.fileName, output.code]));
+    // The fixed-width replacement happens after Rolldown computes [hash], so the emitted file name
+    // still matches the placeholder-bearing chunk. Hashing only the code keeps byte-identical chunks
+    // on one ID, as Rollup builds do.
+    const debugId = stringToUUID(output.code);
     const codeWithIdentifier = replaceAt(
       output.code,
       identifierPlaceholderStart,
