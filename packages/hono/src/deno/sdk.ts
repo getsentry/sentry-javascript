@@ -13,13 +13,16 @@ import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../shared/lowQualityTransactio
  * When manually calling `init`, add the `honoIntegration` to the `integrations` array to set up the Hono integration.
  */
 export function init(options: HonoDenoOptions): Client | undefined {
-  if (getClient()) {
+  const existingClient = getClient();
+  if (existingClient) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
         '[Sentry] Sentry is already initialized. Sentry should only be initialized once, through the `sentry()` middleware. Remove the `Sentry.init()` call, if one exists.',
       );
     });
+    // Re-initializing would replace the client and drop anything buffered on it
+    return existingClient;
   }
 
   applySdkMetadata(options, 'hono', ['hono', 'deno']);
