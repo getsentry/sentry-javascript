@@ -73,7 +73,7 @@
     "graphql": "^16.11.0",
     "groq-sdk": "1.6.0",
     "graphql-tag": "^2.12.7",
-    "hono": "^4.13.5",
+    "hono": "^4.13.7",
     "http-terminator": "^3.2.0",
     "ioredis": "5.10.1",
     "ioredis-5": "npm:ioredis@^5.11.0",

@@ -16,7 +16,7 @@
   "dependencies": {
     "@sentry/bun": "11.1.0",
     "@sentry/hono": "11.1.0",
-    "hono": "^4.13.5",
+    "hono": "^4.13.7",
     "mysql": "^2.18.1",
     "pg": "8.16.0"
   },
