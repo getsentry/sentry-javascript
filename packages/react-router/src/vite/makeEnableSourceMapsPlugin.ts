@@ -11,7 +11,9 @@ export function makeEnableSourceMapsPlugin(options: SentryReactRouterBuildOption
     enforce: 'post',
     config(viteConfig) {
       return {
+        ...viteConfig,
         build: {
+          ...viteConfig.build,
           sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
         },
       };
