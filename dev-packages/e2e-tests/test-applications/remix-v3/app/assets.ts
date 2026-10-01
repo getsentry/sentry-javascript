@@ -7,6 +7,13 @@ export const assets = createAssetServer({
   allowPackages: ['remix', '@sentry/remix'],
   minify: true,
   watch: false,
+  scripts: {
+    // No bundler means no build time env inlining, so `define` is the only way to get configuration
+    // into a browser module. The asset server substitutes these when it compiles.
+    define: {
+      'process.env.E2E_TEST_DSN': JSON.stringify(process.env.E2E_TEST_DSN),
+    },
+  },
 });
 
 const entry = 'app/actions/public/entry.ts';
