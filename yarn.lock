@@ -15807,10 +15807,10 @@ fast-xml-parser@^4.4.1:
   dependencies:
     strnum "^1.0.5"
 
-fastify@^5.12.1:
-  version "5.12.1"
-  resolved "https://registry.yarnpkg.com/fastify/-/fastify-5.12.1.tgz#d3a736ed0d656d8ffeed909c7099809b24b9f008"
-  integrity sha512-FWi+tQvwxR/PeRX7Z2mhfEF5ozJ3jn9asiiclzKXNSzJRHAYcU924aIOKAdHFJ+YIKieh3cqr1IwCOvTr41B3Q==
+fastify@^5.12.5:
+  version "5.12.5"
+  resolved "https://registry.yarnpkg.com/fastify/-/fastify-5.12.5.tgz#e3a6937e154a51332889a30ff3b8f97db52d7355"
+  integrity sha512-OB2k1dlxs5/NAABqeKV2FUHkSD2BbENsCak8yULVcymn3fHIPDVa9TI3SDnJSWYSllZmSYuZXy2gTnsT+Sut1A==
   dependencies:
     "@fastify/ajv-compiler" "^4.0.5"
     "@fastify/error" "^4.0.0"
