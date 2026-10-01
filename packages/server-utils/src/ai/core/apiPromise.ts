@@ -13,8 +13,9 @@ function isApiPromise(value: unknown): value is ApiPromise {
 // OpenAI and Anthropic return an APIPromise that extends the native promise objects and redefines .then() in a way that internally triggers body parsing.
 // This can lead to double parsing if our instrumentation triggers .then on this promise.
 // Instead, we need to avoid triggering .then on the APIPromise and instead observe the internal parsing process to get the response body.
-// APIPromise implementation: https://github.com/openai/openai-node/blob/main/src/core/api-promise.ts
-export function onApiPromiseResponse(
+// OpenAI APIPromise: https://github.com/openai/openai-node/blob/71d24120c4cc4e5897a767f16d25f2804fa4ad7c/src/core/api-promise.ts
+// Anthropic APIPromise: https://github.com/anthropics/anthropic-sdk-typescript/blob/d49bdab458000bcdffe77bd84b03293f31824fb3/src/core/api-promise.ts
+export function wrapApiPromiseResponse(
   result: unknown,
   onResponse: (response: unknown) => void,
   onError: (error: unknown) => void,
