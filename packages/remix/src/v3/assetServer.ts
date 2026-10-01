@@ -179,8 +179,16 @@ function withDebugIdOptions(options: AssetServerOptions | undefined): AssetServe
  * the `//# debugId=` comment and the source map's `debugId` field, which is what `sentry-cli` reads,
  * are added to the served response instead.
  */
+/**
+ * The asset server's own `fetch`, before stamping. The emitter needs it because stamping hides source
+ * maps by default, and the upload must still get them.
+ * @internal
+ */
+export const UNSTAMPED_FETCH: unique symbol = Symbol.for('sentry.remix.unstampedFetch');
+
 function stampServedAssets(server: AssetServer, { hideSourceMaps }: { hideSourceMaps: boolean }): void {
   const fetchAsset = server.fetch;
+  (server as AssetServer & { [UNSTAMPED_FETCH]?: AssetServer['fetch'] })[UNSTAMPED_FETCH] = fetchAsset;
   // The asset server memoizes compiled modules and identifies each version by its ETag, so the
   // stamped body is memoized the same way. Without this every hit copied the module body again.
   const stamped = new Map<string, string>();

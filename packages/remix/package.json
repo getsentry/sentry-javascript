@@ -7,7 +7,8 @@
   "author": "Sentry",
   "license": "MIT",
   "bin": {
-    "sentry-upload-sourcemaps": "scripts/sentry-upload-sourcemaps.js"
+    "sentry-upload-sourcemaps": "scripts/sentry-upload-sourcemaps.js",
+    "sentry-remix-v3-upload-sourcemaps": "scripts/sentry-remix-v3-upload-sourcemaps.mjs"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
