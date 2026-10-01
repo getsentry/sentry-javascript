@@ -83,6 +83,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/pino/test.ts',
   'suites/tracing/amqplib/test.ts',
   'suites/tracing/anthropic/test.ts',
+  'suites/tracing/anthropic/v0.129/test.ts',
   'suites/tracing/apollo-graphql/**',
   'suites/tracing/dataloader/test.ts',
   'suites/tracing/fastify/test.ts',
