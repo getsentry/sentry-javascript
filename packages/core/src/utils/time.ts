@@ -4,7 +4,7 @@ import { GLOBAL_OBJ } from './worldwide';
 const ONE_SECOND_IN_MS = 1000;
 
 /**
- * If `performance.timeOrigin + performance.now()` and `Date.now()` differ by more than this, we reset the time origin.
+ * If `performance.timeOrigin + performance.now()` and `Date.now()` differ by more than this, we correct the time origin.
  */
 const CLOCK_DRIFT_THRESHOLD_MS = 1_000;
 
@@ -39,7 +39,7 @@ export function dateTimestampInSeconds(): number {
 /**
  * A time origin and the `performance.now()` value from which it applies.
  *
- * When we reset the time origin, we keep the old ones. This way, a `performance.now()` value can be converted with the
+ * When we correct the time origin, we keep the old ones. This way, a `performance.now()` value can be converted with the
  * origin that was valid when it was measured, not the one that is valid now.
  */
 interface TimeOriginSegment {
@@ -87,7 +87,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
       const dateNow = Date.now();
 
       // `performance.now()` stops while the device sleeps, and the wall clock can be changed by NTP or the user. In
-      // both cases `timeOrigin + performance.now()` no longer matches `Date.now()`, so we reset the time origin.
+      // both cases `timeOrigin + performance.now()` no longer matches `Date.now()`, so we correct the time origin.
       // We still use `performance.now()` for elapsed time to keep sub-millisecond precision.
       // See: https://github.com/getsentry/sentry-javascript/issues/2590
       // See: https://github.com/mdn/content/issues/4713
@@ -139,7 +139,7 @@ export function performanceTimeToSeconds(monotonicTimeInMs: number): number | un
  * availability of the Performance API.
  *
  * If the Performance API time and `Date.now()` differ by more than {@link CLOCK_DRIFT_THRESHOLD_MS} (e.g. after the
- * device slept), the time origin is reset based on `Date.now()`.
+ * device slept), the time origin is corrected based on `Date.now()`.
  * See https://github.com/getsentry/sentry-javascript/issues/2590.
  */
 export function timestampInSeconds(): number {

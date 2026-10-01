@@ -477,7 +477,7 @@ describe('_sendLcpSpan', () => {
   });
 
   it('uses the time origin from the start of a soft navigation for LCP', () => {
-    // The soft navigation happens after a time origin reset.
+    // The soft navigation happens after a time origin correction.
     const sleepDurationMs = 3_600_000;
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockImplementation((monotonicTimeInMs = 0) =>
       monotonicTimeInMs < 1500 ? 1000 : 1000 + sleepDurationMs,
@@ -690,7 +690,7 @@ describe('_sendInpSpan', () => {
   it('uses the time origin from when the interaction happened, not from when it was reported', () => {
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
 
-    // INP is reported on pagehide. If the device slept in between, the time origin was reset, but the interaction
+    // INP is reported on pagehide. If the device slept in between, the time origin was corrected, but the interaction
     // should still use the old one.
     const sleepDurationMs = 3_600_000;
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000 + sleepDurationMs);

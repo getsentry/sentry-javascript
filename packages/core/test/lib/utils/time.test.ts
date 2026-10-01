@@ -82,7 +82,7 @@ describe('timestampInSeconds', () => {
     expect(timestampInSeconds()).toBe((currentTimeMs + 4_000 + timeOriginSkewMs) / 1000);
   });
 
-  it('resets the time origin when `performance.now()` drifts from `Date.now()`', async () => {
+  it('corrects the time origin when `performance.now()` drifts from `Date.now()`', async () => {
     const currentTimeMs = 1767778040866;
     const timeSincePageloadMs = 1_000;
 
@@ -105,7 +105,7 @@ describe('timestampInSeconds', () => {
     expect(timestampInSeconds()).toBe((currentTimeMs + sleepDurationMs) / 1000);
   });
 
-  it('still uses `performance.now()` for elapsed time after a time origin reset', async () => {
+  it('still uses `performance.now()` for elapsed time after a time origin correction', async () => {
     const currentTimeMs = 1767778040866;
     const sleepDurationMs = RELIABLE_THRESHOLD_MS + 60_000;
 
@@ -130,7 +130,7 @@ describe('timestampInSeconds', () => {
     expect(timestampInSeconds()).toBeCloseTo(afterCorrection + 0.25 / 1000, 10);
   });
 
-  it('does not reset the time origin again once the clocks agree', async () => {
+  it('does not correct the time origin again once the clocks agree', async () => {
     const currentTimeMs = 1767778040866;
     const sleepDurationMs = RELIABLE_THRESHOLD_MS + 60_000;
 
@@ -178,7 +178,7 @@ describe('timestampInSeconds', () => {
     timeSincePageloadMs += 1_000;
     const afterStep = timestampInSeconds();
 
-    // The reset moves the timestamp backwards once, but after that it counts up again.
+    // The correction moves the timestamp backwards once, but after that it counts up again.
     timeSincePageloadMs += 1_000;
     expect(timestampInSeconds()).toBeGreaterThan(afterStep);
     expect(before).toBeGreaterThan(afterStep);
@@ -207,7 +207,7 @@ describe('performanceTimeToSeconds', () => {
     expect(performanceTimeToSeconds(500)).toBe((timeOrigin + 500) / 1000);
   });
 
-  it('converts a time after a reset with the new time origin', async () => {
+  it('converts a time after a correction with the new time origin', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(currentTimeMs));
     vi.stubGlobal('performance', {
@@ -227,7 +227,7 @@ describe('performanceTimeToSeconds', () => {
     expect(performanceTimeToSeconds(timeSincePageloadMs)).toBe((currentTimeMs + sleepDurationMs) / 1000);
   });
 
-  it('converts a time before a reset with the old time origin', async () => {
+  it('converts a time before a correction with the old time origin', async () => {
     let monotonicNowMs = timeSincePageloadMs;
 
     vi.useFakeTimers();
@@ -244,7 +244,7 @@ describe('performanceTimeToSeconds', () => {
     const entryTimestampBefore = performanceTimeToSeconds(entryStartTime);
     expect(entryTimestampBefore).toBe((currentTimeMs - timeSincePageloadMs + entryStartTime) / 1000);
 
-    // The device sleeps, we detect the drift, and reset the time origin.
+    // The device sleeps, we detect the drift, and correct the time origin.
     vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
     monotonicNowMs += 10;
     timestampInSeconds();
@@ -253,7 +253,7 @@ describe('performanceTimeToSeconds', () => {
     expect(performanceTimeToSeconds(entryStartTime)).toBe(entryTimestampBefore);
   });
 
-  it('converts times before and after a reset with their own time origin', async () => {
+  it('converts times before and after a correction with their own time origin', async () => {
     let monotonicNowMs = timeSincePageloadMs;
 
     vi.useFakeTimers();
