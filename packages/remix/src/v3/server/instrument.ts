@@ -92,8 +92,15 @@ function injectOnError(raw: Record<string, unknown> | undefined): void {
   options.onError = error => {
     captureRequestError(error, undefined, 'auto.http.remix_v3.on_error');
 
-    // Chained so the app keeps its own response.
-    return appOnError?.(error);
+    if (appOnError) {
+      // Chained so the app keeps its own response.
+      return appOnError(error);
+    }
+
+    // Setting `onError` replaced the listener's default handler, which logs the error.
+    // oxlint-disable-next-line no-console
+    console.error(error);
+    return undefined;
   };
 }
 

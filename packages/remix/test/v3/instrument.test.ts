@@ -108,6 +108,23 @@ describe('the createRequestListener error hook', () => {
     expect(returned).toBe(appResponse);
   });
 
+  it('keeps the default console logging when the app passed no onError', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const args: unknown[] = [() => new Response()];
+
+    publishCreateRequestListener(args);
+    const error = new Error('boom');
+    const returned = await (args[1] as { onError: (e: unknown) => unknown }).onError(error);
+
+    expect(captureException).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.http.remix_v3.on_error' },
+    });
+    // What the listener's own default handler does, which the hook replaced.
+    expect(consoleError).toHaveBeenCalledWith(error);
+    expect(returned).toBeUndefined();
+    consoleError.mockRestore();
+  });
+
   it('installs a hook when the app passed no options at all', () => {
     const args: unknown[] = [() => new Response()];
 
