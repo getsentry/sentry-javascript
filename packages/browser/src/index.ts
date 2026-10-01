@@ -40,6 +40,15 @@ export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPer
 export { webVitalsIntegration } from './integrations/webVitals';
 export { userTimingIntegration } from './integrations/usertiming';
 export { bfcacheMetricsIntegration } from './integrations/bfcacheMetrics';
+export {
+  createCachedRouteProvider,
+  createUrlRouteProvider,
+  getRouteProvider,
+  resolveCurrentRoute,
+  resolveRoute,
+  setRouteProvider,
+} from '@sentry/browser-utils';
+export type { CachedRouteProvider, RouteProvider } from '@sentry/browser-utils';
 export { interactionsIntegration } from './integrations/interactions';
 
 export type { RequestInstrumentationOptions } from './tracing/request';

@@ -1,7 +1,15 @@
 import { createHash } from 'node:crypto';
-import { CACHE_ITEM_AGE, CACHE_OPERATION, CACHE_TAGS, CACHE_TTL } from '@sentry/conventions/attributes';
+import {
+  CACHE_HIT,
+  CACHE_ITEM_AGE,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  CACHE_TAGS,
+  CACHE_TTL,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT } from '@sentry/conventions/op';
-import type { Span } from '@sentry/core';
+import type { Span, SpanContextData } from '@sentry/core';
 import {
   CACHE_OPERATION_NAMES,
   debug,
@@ -11,9 +19,8 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   hasSpansEnabled,
-  SEMANTIC_ATTRIBUTE_CACHE_HIT,
-  SEMANTIC_ATTRIBUTE_CACHE_KEY,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  LRUMap,
+  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   spanIsSampled,
   startSpan,
   timestampInSeconds,
@@ -27,9 +34,15 @@ const NEXT_CACHE_HANDLERS_MAP = Symbol.for('@next/cache-handlers-map');
 const NEXT_PRIVATE_CACHE_HANDLER = Symbol.for('@next/cache-handlers-private');
 const SENTRY_CACHE_INSTRUMENTED = Symbol.for('sentry.nextjs.cacheHandlersInstrumented');
 const SENTRY_WRAPPED_HANDLERS = Symbol.for('sentry.nextjs.wrappedCacheHandlers');
+const SENTRY_CACHE_ORIGINS = Symbol.for('sentry.nextjs.cacheOrigins');
 
 const INTEGRATION_NAME = 'NextjsUseCache';
 const CACHE_SPAN_ORIGIN = 'auto.cache.nextjs';
+const CACHE_ORIGIN_LINK_TYPE = 'cache_origin';
+
+// Hard memory bound for remembered fill origins: 2000 entries of a 12-char digest plus one span
+// context stay well under 1 MB.
+const CACHE_ORIGINS_MAX_SIZE = 2_000;
 
 // Next.js' `INFINITE_CACHE` sentinel. An `expire` at or above it means "never expires", which carries no signal as a TTL attribute.
 // https://github.com/vercel/next.js/blob/ed1aab5d386d07ee2f553107dd39995251a6e44e/packages/next/src/lib/constants.ts#L43-L46
@@ -62,7 +75,14 @@ type GlobalWithCacheHandlers = typeof globalThis & {
   [NEXT_PRIVATE_CACHE_HANDLER]?: UseCacheHandler;
   [SENTRY_CACHE_INSTRUMENTED]?: boolean;
   [SENTRY_WRAPPED_HANDLERS]?: WeakSet<object>;
+  [SENTRY_CACHE_ORIGINS]?: LRUMap<string, CacheOrigin>;
 };
+
+interface CacheOrigin {
+  context: SpanContextData;
+  /** The fill's `CacheEntry.timestamp`. Identifies the entry revision this origin wrote. */
+  entryTimestamp: number;
+}
 
 /**
  * Cache keys are long serialized payloads (function id + arguments), so spans carry a digest
@@ -82,9 +102,8 @@ function shouldRecordCacheSpan(): boolean {
   return !!activeSpan && spanIsSampled(activeSpan);
 }
 
-function startCacheSpan<T>(op: typeof CACHE_GET | typeof CACHE_PUT, cacheKey: string, callback: (span: Span) => T): T {
+function startCacheSpan<T>(op: typeof CACHE_GET | typeof CACHE_PUT, digest: string, callback: (span: Span) => T): T {
   const client = getClient();
-  const digest = keyDigest(cacheKey);
 
   return startSpan(
     {
@@ -92,8 +111,8 @@ function startCacheSpan<T>(op: typeof CACHE_GET | typeof CACHE_PUT, cacheKey: st
       name: client && hasSpanStreamingEnabled(client) ? op : digest,
       op,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: CACHE_SPAN_ORIGIN,
-        [SEMANTIC_ATTRIBUTE_CACHE_KEY]: [digest],
+        [SENTRY_ORIGIN]: CACHE_SPAN_ORIGIN,
+        [CACHE_KEY]: [digest],
         [CACHE_OPERATION]: CACHE_OPERATION_NAMES[op],
       },
     },
@@ -115,18 +134,19 @@ function isExpired(ageMs: number | undefined, expire: number | undefined): boole
 
 /**
  * A missing entry is a miss. Next.js' default handler also returns no entry for expired, evicted,
- * or tag-invalidated entries, so those count as misses too.
+ * or tag-invalidated entries, so those count as misses too. Returns whether the read was a hit.
  */
-function setEntryAttributes(span: Span, entry: unknown): void {
+function recordCacheEntry(span: Span, entry: unknown): boolean {
   if (entry === undefined) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, false);
-    return;
+    span.setAttribute(CACHE_HIT, false);
+    return false;
   }
 
   const { timestamp, expire, tags } = (entry ?? {}) as UseCacheEntry;
   const ageMs = typeof timestamp === 'number' ? timestampInSeconds() * 1000 - timestamp : undefined;
 
-  span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, !isExpired(ageMs, expire));
+  const hit = !isExpired(ageMs, expire);
+  span.setAttribute(CACHE_HIT, hit);
 
   if (ageMs !== undefined) {
     // Clamped: with a remote handler, the filling and the reading machine's clocks can drift.
@@ -140,6 +160,56 @@ function setEntryAttributes(span: Span, entry: unknown): void {
   if (stringTags.length > 0) {
     span.setAttribute(CACHE_TAGS, stringTags);
   }
+  return hit;
+}
+
+// Cache origins are scoped per-process (known limitation: no links across server instances — that would require storing metadata on `CacheEntry`).
+// Hits on entries filled by another instance get no link. Lives on `globalThis` like the rest of the instrumentation state.
+function getCacheOrigins(): LRUMap<string, CacheOrigin> {
+  const globalWithCacheHandlers = globalThis as GlobalWithCacheHandlers;
+  if (!globalWithCacheHandlers[SENTRY_CACHE_ORIGINS]) {
+    globalWithCacheHandlers[SENTRY_CACHE_ORIGINS] = new LRUMap(CACHE_ORIGINS_MAX_SIZE);
+  }
+  return globalWithCacheHandlers[SENTRY_CACHE_ORIGINS];
+}
+
+/**
+ * Links a cache hit to the fill that wrote this entry revision (matched by timestamp).
+ * A hit with no matching origin (unsampled or dropped refill, another instance, process restart)
+ * gets no link instead of a stale one.
+ */
+function linkCacheOrigin(span: Span, originKey: string, entry: unknown): void {
+  const origin = getCacheOrigins().get(originKey);
+  const { timestamp } = (entry ?? {}) as UseCacheEntry;
+  if (origin && origin.entryTimestamp === timestamp) {
+    span.addLink({
+      context: origin.context,
+      attributes: { [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: CACHE_ORIGIN_LINK_TYPE },
+    });
+  }
+}
+
+/**
+ * Remembers the `cache.put` span as the origin of the entry revision it wrote. The handler drains
+ * `pendingEntry` before the write resolves, so the read here resolves immediately.
+ * An entry without a numeric `timestamp` has no revision identity and is not remembered.
+ */
+function rememberCacheOrigin(originKey: string, span: Span, pendingEntry: Promise<unknown>): void {
+  Promise.resolve(pendingEntry).then(
+    entry => {
+      try {
+        const { timestamp } = (entry ?? {}) as UseCacheEntry;
+        if (typeof timestamp === 'number') {
+          getCacheOrigins().set(originKey, { context: span.spanContext(), entryTimestamp: timestamp });
+        }
+      } catch (error) {
+        DEBUG_BUILD && debug.warn('Failed to remember a Next.js cache fill origin', error);
+      }
+    },
+    () => {
+      // A rejected entry was never stored, so there is nothing to remember.
+    },
+  );
 }
 
 function isCacheHandler(value: unknown): value is UseCacheHandler {
@@ -160,6 +230,10 @@ function getWrappedHandlers(): WeakSet<object> {
   return globalWithCacheHandlers[SENTRY_WRAPPED_HANDLERS];
 }
 
+// One origin namespace per wrapped handler, so identical cache keys in different cache stores
+// (default, remote, private) can never link across stores.
+let wrappedHandlerCount = 0;
+
 function instrumentHandler(handler: unknown): void {
   // Runs inside Next.js' handler registration, which must never fail because of Sentry.
   try {
@@ -168,17 +242,21 @@ function instrumentHandler(handler: unknown): void {
       return;
     }
     wrappedHandlers.add(handler);
+    const originKeyPrefix = `${wrappedHandlerCount++}:`;
 
     fill(handler, 'get', (originalGet: UseCacheHandler['get']) => {
       return function (this: UseCacheHandler, cacheKey: string, softTags?: string[]): Promise<unknown> {
         if (!shouldRecordCacheSpan()) {
           return originalGet.call(this, cacheKey, softTags);
         }
-        return startCacheSpan(CACHE_GET, cacheKey, span =>
+        const digest = keyDigest(cacheKey);
+        return startCacheSpan(CACHE_GET, digest, span =>
           // `Promise.resolve` because custom handlers may return the entry synchronously.
           Promise.resolve(originalGet.call(this, cacheKey, softTags)).then(entry => {
             try {
-              setEntryAttributes(span, entry);
+              if (recordCacheEntry(span, entry)) {
+                linkCacheOrigin(span, originKeyPrefix + digest, entry);
+              }
             } catch (error) {
               DEBUG_BUILD && debug.warn('Failed to read Next.js cache entry metadata', error);
             }
@@ -193,9 +271,21 @@ function instrumentHandler(handler: unknown): void {
         if (!shouldRecordCacheSpan()) {
           return originalSet.call(this, cacheKey, pendingEntry);
         }
+
+        const digest = keyDigest(cacheKey);
         // The handler drains `pendingEntry` (the still-streaming entry) before storing, so this
         // span covers producing and storing the entry, not just the write.
-        return startCacheSpan(CACHE_PUT, cacheKey, () => originalSet.call(this, cacheKey, pendingEntry));
+        return startCacheSpan(CACHE_PUT, digest, span =>
+          // Only a successful write becomes a fill origin: a failed write leaves no entry or the
+          // previous one (whose origin still stands). A dropped span (`ignoreSpans`) never
+          // reaches Sentry, so a link to it would be broken.
+          Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
+            if (span.isRecording()) {
+              rememberCacheOrigin(originKeyPrefix + digest, span, pendingEntry);
+            }
+            return result;
+          }),
+        );
       };
     });
   } catch (error) {
@@ -276,6 +366,7 @@ export function _instrumentUseCacheHandlers(): void {
 /**
  * Wraps Next.js' `use cache` handlers with `cache.get`/`cache.put` spans, so cached function
  * reads and fills show up in traces with hit/miss information.
+ * A hit also adds a `cache_origin` span link to the `cache.put` span of the trace that filled the entry.
  */
 export const nextjsUseCacheIntegration = defineIntegration(() => {
   return {

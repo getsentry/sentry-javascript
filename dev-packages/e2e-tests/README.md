@@ -116,6 +116,24 @@ Make sure to add a `test:build` and `test:assert` command to the new app's `pack
 Sentry packages are automatically resolved to the local build via pnpm overrides injected at test time, so no manual
 registry configuration is needed.
 
+### Test apps that deploy a real Cloudflare Worker
+
+Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Worker and check what arrives in Sentry:
+
+- Use `createWorkerGlobalSetup` and `workerGlobalTeardown` from `@sentry-internal/test-utils/cloudflare` as the
+  Playwright global setup and teardown. Tests read the Worker URL from `E2E_TEST_WORKER_URL`, send requests with
+  `fetchFromWorker`, and poll Sentry with the helpers from `@sentry-internal/test-utils/cli` (the app needs `sentry` as
+  a dev dependency).
+- The Worker gets `E2E_TEST_DSN`, `E2E_TEST_WORKER_TOKEN` and the values of the `secrets` option as secrets.
+- CI keeps the Worker after the run, and anyone can reach its `workers.dev` URL. If the Worker can spend money (for
+  example, it holds an LLM API key), it must reject requests without `Authorization: Bearer <E2E_TEST_WORKER_TOKEN>`.
+  The token is new for every deploy, and `fetchFromWorker` sends it. See
+  `cloudflare-flue-send-to-sentry/src/auth.ts`.
+- Add the `workerPrefix` to `.github/workflows/cleanup-e2e-workers.yml`, which deletes the Worker of a PR when the PR
+  closes.
+- Set `"sentryTest": { "optional": true }` in `package.json`, because only the optional CI job has the Cloudflare
+  secrets.
+
 ## Troubleshooting
 
 ### Common Issues

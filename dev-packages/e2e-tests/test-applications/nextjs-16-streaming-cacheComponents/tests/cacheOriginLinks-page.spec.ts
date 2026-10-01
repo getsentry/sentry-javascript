@@ -5,15 +5,13 @@ import { CACHE_ORIGIN_LINK_ATTRIBUTES } from './cacheOriginLinks-utils';
 // Origin links for `use cache` inside rendered pages (cached components and nested cached
 // functions). Target behavior: a cache hit records a `cache.get` span carrying a
 // `sentry.link.type: 'cache_origin'` span link to the `cache.put` span of the trace that filled
-// the entry. Not implemented yet — every test is `test.fail()`.
+// the entry.
 
 // Two cached sibling components are two cache entries (props are part of the key), so one request
-// carries one `cache.get` hit span per section, each linking to its own fill. The components sit
-// in a dynamic hole: entries served from the prerendered shell (Resume Data Cache) never reach
-// the cache handlers and produce no spans until Next.js exposes RDC reads.
+// carries one `cache.get` hit span per section, each linking to its own fill. These runtime-filled entries are read
+// through the cache handlers; entries served from the prerendered shell (Resume Data Cache) would
+// produce no spans at all until Next.js exposes RDC reads.
 test('links each sibling component hit to the fill of its own entry', async ({ request }) => {
-  test.fail();
-
   const id = crypto.randomUUID();
 
   const missSpansPromise = collectStreamedSpans('nextjs-16-streaming-cacheComponents', spansOfTrace => {
@@ -70,7 +68,6 @@ test('links each sibling component hit to the fill of its own entry', async ({ r
 
 test("links a nested cache hit inside another entry's refill to the original fill trace", async ({ request }) => {
   test.skip(process.env.TEST_ENV !== 'production', 'Entries are only discarded at `expire` in production');
-  test.fail();
 
   const id = crypto.randomUUID();
 

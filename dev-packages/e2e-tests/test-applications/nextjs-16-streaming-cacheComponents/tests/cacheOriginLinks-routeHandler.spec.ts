@@ -2,14 +2,11 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { CACHE_ORIGIN_LINK_ATTRIBUTES, findCacheSpan } from './cacheOriginLinks-utils';
 
-// Origin links for `use cache` in route handlers. Target behavior: a cache hit records a
-// `cache.get` span carrying a `sentry.link.type: 'cache_origin'` span link to the `cache.put`
-// span of the trace that filled the entry; unknown origin means no link. Not implemented yet —
-// every test is `test.fail()`; shipping the feature should only require deleting those lines.
+// Origin links for `use cache` in route handlers: a cache hit records a `cache.get` span
+// carrying a `sentry.link.type: 'cache_origin'` span link to the `cache.put` span of the trace
+// that filled the entry; unknown origin means no link.
 
 test('links a route handler cache hit to the trace that filled the entry', async ({ request }) => {
-  test.fail();
-
   // A fresh id makes the first request a guaranteed cache miss (the id is part of the cache key)
   // even when the test is retried against the same server.
   const id = crypto.randomUUID();
@@ -56,7 +53,6 @@ test('links a route handler cache hit to the trace that filled the entry', async
 
 test('moves the origin link to the refill trace after the entry expires', async ({ request }) => {
   test.skip(process.env.TEST_ENV !== 'production', 'Entries are only discarded at `expire` in production');
-  test.fail();
 
   const id = crypto.randomUUID();
 

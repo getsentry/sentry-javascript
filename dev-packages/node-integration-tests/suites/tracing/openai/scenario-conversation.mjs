@@ -87,6 +87,9 @@ async function run() {
       input: 'Explain why that is funny',
       previous_response_id: firstResponse.id,
     });
+
+    const rawResponse = await client.conversations.create().asResponse();
+    await rawResponse.json();
   });
 
   server.close();

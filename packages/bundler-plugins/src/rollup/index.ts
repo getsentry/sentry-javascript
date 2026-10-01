@@ -6,7 +6,6 @@ import {
   isJsFile,
   shouldSkipCodeInjection,
   getDebugIdSnippet,
-  stringToUUID,
   createDebugIdUploadFunction,
   globFiles,
   createComponentNameAnnotateHooks,
@@ -19,6 +18,7 @@ import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
+import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from './debug-id-injection';
 import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
@@ -34,19 +34,10 @@ type ViteParseAstAsync = NonNullable<ViteModule['parseAstAsync']>;
 
 let viteParseAstAsyncPromise: Promise<ViteParseAstAsync | null> | undefined;
 
+// Rolldown sets `meta.rolldownVersion` on the plugin context.
+type PluginContext = { meta?: { rolldownVersion?: string } };
+
 const JS_MODULE_ID_FILTER = /\.[cm]?[jt]sx?(?:[?#].*)?$/;
-
-function hasExistingDebugID(code: string): boolean {
-  // Check if a debug ID has already been injected to avoid duplicate injection (e.g. by another plugin or Sentry CLI)
-  const chunkStartSnippet = code.slice(0, 6000);
-  const chunkEndSnippet = code.slice(-500);
-
-  if (chunkStartSnippet.includes('_sentryDebugIdIdentifier') || chunkEndSnippet.includes('//# debugId=')) {
-    return true; // Debug ID already present, skip injection
-  }
-
-  return false;
-}
 
 function getRollupMajorVersion(): string | undefined {
   try {
@@ -188,6 +179,7 @@ export function _rollupPluginInternal(
   }
 
   function renderChunk(
+    this: PluginContext | undefined,
     code: string,
     chunk: { fileName: string; facadeModuleId?: string | null },
     _?: unknown,
@@ -208,7 +200,7 @@ export function _rollupPluginInternal(
     const injectCode = staticInjectionCode.clone();
 
     if (sourcemapsEnabled && !hasExistingDebugID(code)) {
-      const debugId = stringToUUID(code); // generate a deterministic debug ID
+      const debugId = getDebugIdForChunk(code, !!this?.meta?.rolldownVersion);
       injectCode.append(getDebugIdSnippet(debugId));
     }
 
@@ -235,14 +227,23 @@ export function _rollupPluginInternal(
   }
 
   /**
-   * Stamps debug IDs into the emitted chunks and source maps.
+   * Resolves Rolldown's placeholder debug IDs, then stamps debug IDs into the emitted chunks and
+   * source maps.
    *
    * `disable-upload` skips the upload routine (which stamps debug IDs into temp copies), so the emitted
    * artifacts get stamped here instead. Not in `renderChunk`: minifiers running after it would strip the
    * comment. Rollup computes `[hash]` file names before this hook, so only plugins that hash the final
    * assets afterwards (e.g. subresource integrity) see the stamped content.
    */
-  function generateBundle(_outputOptions: unknown, bundle: OutputBundle): void {
+  function generateBundle(this: PluginContext | undefined, _outputOptions: unknown, bundle: OutputBundle): void {
+    if (this?.meta?.rolldownVersion) {
+      finalizeRolldownDebugIds(bundle);
+    }
+
+    if (options.sourcemaps?.disable !== 'disable-upload') {
+      return;
+    }
+
     stampDebugIds(bundle, true);
   }
 
@@ -293,9 +294,7 @@ export function _rollupPluginInternal(
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
     renderChunk,
-    ...(options.sourcemaps?.disable === 'disable-upload'
-      ? { generateBundle: { order: 'pre' as const, handler: generateBundle } }
-      : {}),
+    generateBundle: { order: 'pre' as const, handler: generateBundle },
     writeBundle,
   };
 }

@@ -265,7 +265,7 @@ const makeSentryTracerV4 = (startInactiveSpan: StartInactiveSpan): EffectTracer.
       );
     },
     context(primitive, fiber) {
-      const currentSpan = fiber.currentSpan;
+      const currentSpan = fiber.cache.span;
       if (currentSpan === undefined || !isSentrySpan(currentSpan)) {
         return primitive[EFFECT_EVALUATE](fiber);
       }
