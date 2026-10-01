@@ -21,6 +21,9 @@ function HomePage(handle: Handle<Record<string, never>>) {
         <a id="to-user" href="/users/12345">
           User
         </a>
+        <button type="button" id="component-error">
+          Component error
+        </button>
       </body>
     </html>
   );

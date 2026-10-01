@@ -74,3 +74,4 @@ export type { BrowserOptions } from '@sentry/browser';
 
 export { getDefaultIntegrations, init } from './client/sdk';
 export { browserTracingIntegration } from './client/browserTracingIntegration';
+export { captureRuntimeErrors, instrumentClientRuntime } from './client/errors';

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/remix/v3/client';
-import { run } from 'remix/ui';
+import { createElement, run } from 'remix/ui';
 
 // Not Node. The asset server substitutes this when it compiles the module, from the `define` map in
 // `app/assets.ts`.
@@ -16,4 +16,20 @@ export const app = run({
     const mod = await import(moduleUrl);
     return mod[exportName];
   },
+});
+
+// The runtime sends a render error to the event target `run()` returns and does not rethrow, so
+// `window.onerror` never sees it. This listener is the only way the SDK learns about it.
+Sentry.captureRuntimeErrors(app);
+
+function Boom(): () => never {
+  return () => {
+    throw new Error('Component render failed');
+  };
+}
+
+document.addEventListener('click', event => {
+  if ((event.target as HTMLElement | null)?.id === 'component-error') {
+    void app.frames.top.replace(createElement(Boom, {}));
+  }
 });
