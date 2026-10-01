@@ -76,23 +76,17 @@ function moduleInjectedSnippet(
     ? `import { ${bindings} } from ${JSON.stringify(importSpecifier)};`
     : `const { ${bindings} } = require(${JSON.stringify(importSpecifier)});`;
 
-  // A module can register several integrations (e.g. `h3` → `nitroIntegration` and
-  // `nitroServerTimingIntegration`), so emit one call per export. Each `exportName` is itself an
-  // integration factory, invoked inside the arrow (`() => exportName()`), so
-  // `orchestrionModuleInjected`'s consumer still gets an Integration back from calling the stored
+  // Each `exportName` is itself an integration factory, invoked inside an arrow (`() => exportName()`),
+  // so `orchestrionModuleInjected`'s consumer still gets an Integration back from calling the stored
   // thunk. The point of the arrow is to defer the read of the `exportName` binding to when that thunk
   // runs (at `init()`), instead of reading it by reference the moment this snippet evaluates. A
   // provided-module integration (e.g. `flueIntegration`) is imported back into its own instrumented
   // package by `@sentry/*/vite`, so a direct reference here would close an import cycle and touch the
   // binding in its TDZ ("Cannot access '…' before initialization"); deferring the read breaks that.
-  const calls = exportNames.length
-    ? exportNames
-        .map(
-          exportName =>
-            `${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${JSON.stringify(moduleName)}, () => ${exportName}());`,
-        )
-        .join('\n')
-    : `${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${JSON.stringify(moduleName)});`;
+  // A module with several integrations (e.g. `h3`) passes them all in one call, since the helper
+  // treats each call as the module's complete list.
+  const args = [JSON.stringify(moduleName), ...exportNames.map(exportName => `() => ${exportName}()`)].join(', ');
+  const calls = `${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
   return `${importStmt}\n${calls}`;
 }
 

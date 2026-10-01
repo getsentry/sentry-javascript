@@ -62,6 +62,7 @@ describe('module-injected transform', () => {
     makePackage(root, 'my-lib', '1.0.0', 'commonjs');
     makePackage(root, 'ioredis', '5.11.0', 'commonjs', 'built');
     makePackage(root, 'ai', '7.0.0', 'module', 'dist');
+    makePackage(root, 'h3', '2.0.1-rc.1', 'module', 'dist');
   });
 
   afterAll(() => {
@@ -178,6 +179,22 @@ describe('module-injected transform', () => {
     expect(result!.code).toContain('orchestrionModuleInjected("ai", () => vercelAIIntegration())');
     expect(result!.code).not.toContain('diagnostics_channel');
     expect(result!.code).not.toContain('tr_ch_apm');
+  });
+
+  it('registers every factory of a multi-integration module in a single call', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({}));
+    const result = t.transform('export function H3() {}\n', join(root, 'node_modules/h3/dist/h3.mjs'));
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toMatch(
+      /import\s*\{\s*orchestrionModuleInjected,\s*nitroIntegration,\s*nitroServerTimingIntegration\s*\}\s*from\s*["']@sentry\/server-utils["']/,
+    );
+    // One call with the module's complete list, so the module is announced once and the helper
+    // can replace its entry instead of accumulating thunks across files.
+    expect(result!.code).toContain(
+      'orchestrionModuleInjected("h3", () => nitroIntegration(), () => nitroServerTimingIntegration())',
+    );
+    expect(result!.code.match(/orchestrionModuleInjected\(/g)).toHaveLength(1);
   });
 
   it('honors a custom import specifier (Turbopack passes an absolute path)', () => {
