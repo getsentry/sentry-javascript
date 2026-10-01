@@ -1027,6 +1027,38 @@ describe('flushAndDispose', () => {
         flushSpy.mockRestore();
       },
     );
+
+    test('tears down at handler return when TransformStream ignores the transformer', async () => {
+      // workerd without `transformstream_enable_standard_constructor` returns an identity stream.
+      vi.stubGlobal(
+        'TransformStream',
+        class extends TransformStream {
+          constructor() {
+            super();
+          }
+        },
+      );
+      onTestFinished(() => {
+        vi.unstubAllGlobals();
+      });
+
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>shell</div>', { headers: { 'content-type': 'text/html;charset=utf-8' } });
+
+      const result = await wrapRequestHandler(
+        { options, request: new Request('https://example.com'), context },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
   });
 
   test('dispose is NOT called for protocol upgrade responses (status 101)', async () => {

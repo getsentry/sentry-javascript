@@ -186,6 +186,7 @@ export function wrapRequestHandlerWithInit(
           if (classification.isStreaming && res.body) {
             try {
               let ended = false;
+              let transformerUsed = false;
 
               const endSpanOnce = (): void => {
                 if (ended) return;
@@ -195,7 +196,13 @@ export function wrapRequestHandlerWithInit(
                 waitUntil?.(flushAndDispose(client));
               };
 
+              // Without the `transformstream_enable_standard_constructor` compatibility flag (default from
+              // 2022-11-30, but Hydrogen's mini-oxygen uses 2022-10-31), workerd ignores the transformer, so
+              // `flush` and `cancel` would never end the span. Only a used transformer runs `start`.
               const transform = new TransformStream({
+                start() {
+                  transformerUsed = true;
+                },
                 flush() {
                   // Source stream completed normally.
                   endSpanOnce();
@@ -208,14 +215,14 @@ export function wrapRequestHandlerWithInit(
                 },
               });
 
-              // Passing the original response as the init keeps `encodeBody: 'manual'`, which a
-              // Response does not expose as a property. Without it, workerd compresses a
-              // pre-compressed body a second time.
-              return new Response(res.body.pipeThrough(transform), res);
+              if (transformerUsed) {
+                // Passing the original response as the init keeps `encodeBody: 'manual'`, which a
+                // Response does not expose as a property. Without it, workerd compresses a
+                // pre-compressed body a second time.
+                return new Response(res.body.pipeThrough(transform), res);
+              }
             } catch {
-              span.end();
-              waitUntil?.(flushAndDispose(client));
-              return res;
+              // Falls back to ending the span at handler return.
             }
           }
 
