@@ -12,8 +12,8 @@ export interface WorkerGlobalSetupOptions {
    */
   workerPrefix: string;
   /**
-   * The secrets of the Worker besides `E2E_TEST_DSN`, as a map from the binding name to the name of the
-   * environment variable that holds the value.
+   * The secrets of the Worker besides `E2E_TEST_DSN` and `E2E_TEST_WORKER_TOKEN`, as a map from the
+   * binding name to the name of the environment variable that holds the value.
    */
   secrets?: Record<string, string>;
 }
@@ -138,6 +138,11 @@ function getAppDir(config: FullConfig): string {
 /**
  * Returns a Playwright global setup that deploys the built test app as a real Worker. The tests read
  * its URL from `E2E_TEST_WORKER_URL`, and {@link workerGlobalTeardown} deletes it again.
+ *
+ * The Worker also gets the secret `E2E_TEST_WORKER_TOKEN`, a random value that is new for every deploy
+ * and that {@link fetchFromWorker} sends as `Authorization: Bearer <token>`. CI keeps its Workers after
+ * the run, so a Worker that can spend money (for example with an LLM API key) must reject requests
+ * without this token.
  */
 export function createWorkerGlobalSetup(options: WorkerGlobalSetupOptions): (config: FullConfig) => Promise<void> {
   return async config => {
@@ -153,8 +158,14 @@ export function createWorkerGlobalSetup(options: WorkerGlobalSetupOptions): (con
       throw new Error('CLOUDFLARE_ACCOUNT_ID must be set to deploy the test worker.');
     }
 
+    process.env.E2E_TEST_WORKER_TOKEN = randomBytes(32).toString('hex');
+
     const secrets: Record<string, string> = {};
-    for (const [binding, envName] of Object.entries({ E2E_TEST_DSN: 'E2E_TEST_DSN', ...options.secrets })) {
+    for (const [binding, envName] of Object.entries({
+      E2E_TEST_DSN: 'E2E_TEST_DSN',
+      E2E_TEST_WORKER_TOKEN: 'E2E_TEST_WORKER_TOKEN',
+      ...options.secrets,
+    })) {
       const value = process.env[envName];
       if (!value) {
         throw new Error(`${envName} must be set to deploy the test worker.`);
@@ -218,14 +229,21 @@ export function workerGlobalTeardown(config: FullConfig): void {
  * Workers Logs had no invocation for it. `status` is the status the Worker answers with. A Worker
  * that threw answers with status 500 and Cloudflare error code 1101, which sets it apart from a 500
  * that did not come from the Worker.
+ *
+ * The request carries the `E2E_TEST_WORKER_TOKEN` of {@link createWorkerGlobalSetup}, unless `init`
+ * sets its own `Authorization` header.
  */
 export async function fetchFromWorker(url: string, status: number, init?: RequestInit): Promise<string> {
   const deadline = Date.now() + 60_000;
   let lastAnswer = 'no answer';
+  const headers = new Headers(init?.headers);
+  if (process.env.E2E_TEST_WORKER_TOKEN && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${process.env.E2E_TEST_WORKER_TOKEN}`);
+  }
 
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(url, init);
+      const response = await fetch(url, { ...init, headers });
       const body = await response.text();
       // Cloudflare sends its error page as HTML to some clients (Node's fetch among them) and as
       // `error code: <code>` plain text to others, so the code is read from either format.
