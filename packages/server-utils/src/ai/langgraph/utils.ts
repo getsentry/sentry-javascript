@@ -19,6 +19,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { setOutputMessagesAttribute } from '../core/utils';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
@@ -278,7 +279,11 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   if (!outputMessages || !Array.isArray(outputMessages)) {
     // Custom state annotations have no `messages` array, the whole state is recorded instead.
     if (result && typeof result === 'object') {
-      span.setAttribute(GEN_AI_RESPONSE_TEXT, stringify([{ role: 'assistant', content: stringify(result) }]));
+      const serializedState = stringify(result);
+      // `gen_ai.output.messages` is what the product reads first; `gen_ai.response.text` is kept for
+      // back-compat (Relay still migrates it).
+      setOutputMessagesAttribute(span, { responseText: serializedState });
+      span.setAttribute(GEN_AI_RESPONSE_TEXT, stringify([{ role: 'assistant', content: serializedState }]));
     }
     return;
   }

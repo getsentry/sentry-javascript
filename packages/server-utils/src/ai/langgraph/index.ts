@@ -155,8 +155,12 @@ export function instrumentCompiledGraphInvoke(
             }
 
             // Custom state annotations have no `messages` array, the whole state is recorded instead.
-            const inputState = args[0] as { messages?: LangChainMessage[] } | null | undefined;
+            const inputState = args[0] as { messages?: LangChainMessage[]; lg_name?: string } | null | undefined;
             const inputMessages = Array.isArray(inputState?.messages) ? inputState.messages : null;
+            // `new Command({ resume })` resumes an interrupted run and carries no user turn (LangGraph
+            // tags it `lg_name: 'Command'`), so skip it like a `null` resume rather than recording the
+            // control object as a message nobody wrote.
+            const isResumeCommand = inputState?.lg_name === 'Command';
 
             if (recordInputs) {
               if (inputMessages) {
@@ -170,7 +174,7 @@ export function instrumentCompiledGraphInvoke(
                 span.setAttributes({
                   [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
                 });
-              } else if (inputState && typeof inputState === 'object') {
+              } else if (inputState && typeof inputState === 'object' && !isResumeCommand) {
                 span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify([{ role: 'user', content: stringify(inputState) }]));
               }
             }

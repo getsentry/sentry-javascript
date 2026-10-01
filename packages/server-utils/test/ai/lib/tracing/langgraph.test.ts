@@ -1,4 +1,4 @@
-import { GEN_AI_INPUT_MESSAGES, GEN_AI_RESPONSE_TEXT } from '@sentry/conventions/attributes';
+import { GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES, GEN_AI_RESPONSE_TEXT } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getMainCarrier, setCurrentClient, spanToJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
@@ -120,5 +120,34 @@ describe('invoke_agent input/output recording', () => {
     );
 
     expect(attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+  });
+
+  it('does not record a Command resume as input (skips it like a null resume)', async () => {
+    const attributes = await getInvokeAttributes(
+      async (_input: { lg_name: string; resume: string; goto: unknown[] }) => ({
+        messages: [{ role: 'assistant', content: 'resumed' }],
+      }),
+      { lg_name: 'Command', resume: 'approved', goto: [] },
+    );
+
+    expect(attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+    expect(attributes[GEN_AI_RESPONSE_TEXT]).toContain('resumed');
+  });
+
+  it('records custom state output as gen_ai.output.messages alongside the deprecated response.text', async () => {
+    const attributes = await getInvokeAttributes(
+      async (input: Record<string, unknown>) => ({ ...input, summary: 'done' }),
+      { topic: 'weather' },
+    );
+
+    expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      {
+        role: 'assistant',
+        parts: [{ type: 'text', content: JSON.stringify({ topic: 'weather', summary: 'done' }) }],
+      },
+    ]);
+    expect(JSON.parse(attributes[GEN_AI_RESPONSE_TEXT] as string)).toEqual([
+      { role: 'assistant', content: JSON.stringify({ topic: 'weather', summary: 'done' }) },
+    ]);
   });
 });
