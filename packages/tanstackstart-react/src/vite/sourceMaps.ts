@@ -101,9 +101,7 @@ export function makeEnableSourceMapsVitePlugin(options: SentryTanstackStartOptio
       enforce: 'post',
       config(viteConfig) {
         return {
-          ...viteConfig,
           build: {
-            ...viteConfig.build,
             sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
           },
         };

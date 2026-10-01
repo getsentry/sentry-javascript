@@ -23,6 +23,7 @@
     "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
     "ioredis": "5.10.1",
+    "mongoose": "^9.10.2",
     "mysql": "^2.18.1",
     "nuxt": "^4.1.2"
   },
@@ -31,8 +32,7 @@
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
-    "extends": "../../package.json",
-    "node": "22.20.0"
+    "extends": "../../package.json"
   },
   "sentryTest": {
     "variants": [
