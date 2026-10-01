@@ -1,4 +1,4 @@
-import { type Integration } from '@sentry/core';
+import { getCurrentScope, type Integration } from '@sentry/core';
 import * as sentryServerUtils from '@sentry/server-utils';
 import type { Mock } from 'bun:test';
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
@@ -25,6 +25,7 @@ describe('init()', () => {
   let mockGetTracingIntegrations: Mock<() => Integration[]>;
 
   beforeEach(() => {
+    getCurrentScope().setClient(undefined);
     mockGetTracingIntegrations = spyOn(sentryServerUtils, 'getTracingIntegrations');
   });
 

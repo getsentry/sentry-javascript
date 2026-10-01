@@ -1,8 +1,18 @@
 import { assertNotEquals } from 'https://deno.land/std@0.202.0/assert/assert_not_equals.ts';
 import { assertArrayIncludes } from 'https://deno.land/std@0.212.0/assert/assert_array_includes.ts';
-import { getDefaultIntegrations, init, spanStreamingIntegration } from '../build/esm/index.js';
+import {
+  getCurrentScope,
+  getDefaultIntegrations,
+  init as initSdk,
+  spanStreamingIntegration,
+} from '../build/esm/index.js';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
+
+function init(options) {
+  getCurrentScope().setClient(undefined);
+  return initSdk(options);
+}
 
 Deno.test('init() should return client', () => {
   assertNotEquals(init({}), undefined);

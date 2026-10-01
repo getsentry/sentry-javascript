@@ -20,6 +20,7 @@ describe('Edge init()', () => {
   });
 
   afterEach(() => {
+    SentryVercelEdge.getCurrentScope().setClient(undefined);
     vi.clearAllMocks();
   });
 

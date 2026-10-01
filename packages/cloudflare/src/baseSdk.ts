@@ -16,7 +16,7 @@ import {
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { makeFlushLock } from './flush';
-import { cacheClient, getCachedClient } from './clientCache';
+import { _clearGlobalClientCache, cacheClient, getCachedClient } from './clientCache';
 import { DEBUG_BUILD } from './debug-build';
 import { fetchIntegration } from './integrations/fetch';
 import { httpServerIntegration } from './integrations/httpServer';
@@ -135,10 +135,22 @@ export function initWithDefaultIntegrations(
   }
   /*! rollup-include-development-only-end */
 
+  if (!cacheEnabled) {
+    // `cacheClient: false` asks for a new client on each call, so replacing
+    // the bound client is expected here and must not warn.
+    getCurrentScope().setClient(undefined);
+  }
+
   const client = initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
 
   if (cacheEnabled && client) {
     cacheClient(client);
+    // A closed client drops all data, so the next `init()` must not reuse it.
+    client.on('close', () => {
+      if (getCachedClient() === client) {
+        _clearGlobalClientCache();
+      }
+    });
   }
 
   // An instrumented module that first evaluates AFTER this init (e.g. a driver

@@ -1,6 +1,6 @@
 import type { Integration } from '@sentry/core';
 import { GLOBAL_OBJ, getMainCarrier } from '@sentry/core';
-import { getCurrentScope } from '@sentry/node';
+import { close, getCurrentScope, getGlobalScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
@@ -65,6 +65,30 @@ describe('Server init()', () => {
     expect(nodeInit).toHaveBeenCalledTimes(1);
     init({});
     expect(nodeInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('registers its event processors on the client', () => {
+    const client = init({});
+
+    expect(client?.getEventProcessors().map(processor => processor.id)).toContain('DropReactControlFlowErrors');
+  });
+
+  it('does not add event processors to the global scope after close()', async () => {
+    const globalProcessorCount = getGlobalScope().getScopeData().eventProcessors.length;
+
+    init({});
+    await close();
+    init({});
+
+    expect(getGlobalScope().getScopeData().eventProcessors.length).toBe(globalProcessorCount);
+  });
+
+  it('returns the existing client if already initialized', () => {
+    const first = init({});
+    const second = init({});
+
+    expect(first).toBeDefined();
+    expect(second).toBe(first);
   });
 
   // TODO: test `vercel` tag when running on Vercel
