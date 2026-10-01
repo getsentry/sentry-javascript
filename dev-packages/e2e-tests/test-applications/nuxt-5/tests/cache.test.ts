@@ -156,10 +156,14 @@ test.describe('Cache Instrumentation', () => {
   // storage plugin (`auto.cache.nuxt`) still exists for legacy Nitro 2, so this guards that it does
   // not also fire on Nitro 3 — every cache operation must be instrumented exactly once.
   test('instruments each cache operation exactly once (no Nuxt/nitro duplication)', async ({ request }) => {
-    const spans = await collectStreamedSpansUntilSegment(
+    const spansPromise = collectStreamedSpansUntilSegment(
       'nuxt-5',
       span => span.attributes['url.path']?.value === '/api/cache-test',
     );
+
+    await request.get(`/api/cache-test?user=dedupe-${Date.now()}`);
+
+    const spans = await spansPromise;
     const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/cache-test');
     const cacheSpans = spans.filter(
       span =>
