@@ -2,11 +2,17 @@ import { test as base, expect } from '@playwright/test';
 import { App } from 'aws-cdk-lib';
 import { LocalLambdaStack, SAM_PORT, getHostIp } from '../src/stack';
 import { writeFileSync } from 'node:fs';
-import { execSync, spawn } from 'node:child_process';
+import { type ChildProcess, execSync, spawn } from 'node:child_process';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 
 const DOCKER_NETWORK_NAME = 'lambda-test-network';
 const SAM_TEMPLATE_FILE = 'sam.template.yml';
+
+// A healthy SAM start takes about 20s on CI, but SAM occasionally hangs on its first start while a
+// fresh one comes up in seconds, so give up early and retry instead of waiting out one long timeout.
+const SAM_START_TIMEOUT_MS = 90_000;
+const SAM_START_ATTEMPTS = 2;
+const SAM_OUTPUT_MAX_CHARS = 20_000;
 
 /** Major Node for SAM `--invoke-image`; default matches root `package.json` `volta.node` and `pull-sam-image.sh`. */
 const DEFAULT_NODE_VERSION_MAJOR = '20';
@@ -55,34 +61,23 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
 
       console.log(`[testEnvironment fixture] Running SAM with args: ${args.join(' ')}`);
 
-      const samProcess = spawn('sam', args, {
-        stdio: process.env.DEBUG ? 'inherit' : 'ignore',
-        env: envForSamChild(),
-      });
+      let samProcess: ChildProcess | undefined;
 
       try {
-        await LocalLambdaStack.waitForStack();
+        samProcess = await startSam(args);
 
         await use(stack);
       } finally {
         console.log('[testEnvironment fixture] Tearing down AWS Lambda test infrastructure');
 
-        samProcess.kill('SIGTERM');
-        await new Promise(resolve => {
-          samProcess.once('exit', resolve);
-          setTimeout(() => {
-            if (!samProcess.killed) {
-              samProcess.kill('SIGKILL');
-            }
-            resolve(void 0);
-          }, 5000);
-        });
-
+        if (samProcess) {
+          await stopSam(samProcess);
+        }
         removeDockerNetwork();
       }
     },
     // Own timeout so slow SAM stack startup does not eat into the first test's budget.
-    { scope: 'worker', auto: true, timeout: 240_000 },
+    { scope: 'worker', auto: true, timeout: 300_000 },
   ],
   lambdaClient: async ({}, use) => {
     const lambdaClient = new LambdaClient({
@@ -97,6 +92,54 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
     await use(lambdaClient);
   },
 });
+
+async function startSam(args: string[]): Promise<ChildProcess> {
+  for (let attempt = 1; ; attempt++) {
+    let output = '';
+    const samProcess = spawn('sam', args, {
+      stdio: process.env.DEBUG ? 'inherit' : ['ignore', 'pipe', 'pipe'],
+      env: envForSamChild(),
+    });
+    const collectOutput = (chunk: Buffer): void => {
+      output = (output + chunk.toString()).slice(-SAM_OUTPUT_MAX_CHARS);
+    };
+    samProcess.stdout?.on('data', collectOutput);
+    samProcess.stderr?.on('data', collectOutput);
+
+    try {
+      await LocalLambdaStack.waitForStack(SAM_START_TIMEOUT_MS);
+      return samProcess;
+    } catch (error) {
+      console.warn(`[testEnvironment fixture] SAM output of failed start attempt ${attempt}:\n${output}`);
+      await stopSam(samProcess);
+
+      if (attempt >= SAM_START_ATTEMPTS) {
+        throw error;
+      }
+      console.warn(`[testEnvironment fixture] Restarting SAM (attempt ${attempt + 1}/${SAM_START_ATTEMPTS})`);
+    }
+  }
+}
+
+async function stopSam(samProcess: ChildProcess): Promise<void> {
+  if (samProcess.exitCode === null && samProcess.signalCode === null) {
+    samProcess.kill('SIGTERM');
+    await new Promise(resolve => {
+      const timer = setTimeout(() => {
+        samProcess.kill('SIGKILL');
+        resolve(void 0);
+      }, 5000);
+      samProcess.once('exit', () => {
+        clearTimeout(timer);
+        resolve(void 0);
+      });
+    });
+  }
+
+  // A SAM process killed mid-start leaves its runtime containers behind, which would keep the
+  // docker network in use and hold on to their ports.
+  removeNetworkContainers();
+}
 
 /** Avoid forcing linux/amd64 on Apple Silicon when `DOCKER_DEFAULT_PLATFORM` is set globally. */
 function envForSamChild(): NodeJS.ProcessEnv {
@@ -125,6 +168,15 @@ function createDockerNetwork() {
       return;
     }
     throw error;
+  }
+}
+
+function removeNetworkContainers() {
+  const containerIds = execSync(`docker ps -aq --filter network=${DOCKER_NETWORK_NAME}`, { encoding: 'utf-8' })
+    .split('\n')
+    .filter(Boolean);
+  if (containerIds.length) {
+    execSync(`docker rm -f ${containerIds.join(' ')}`, { stdio: 'ignore' });
   }
 }
 

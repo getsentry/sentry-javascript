@@ -76,7 +76,14 @@ function moduleInjectedSnippet(
     ? `import { ${bindings} } from ${JSON.stringify(importSpecifier)};`
     : `const { ${bindings} } = require(${JSON.stringify(importSpecifier)});`;
 
-  const args = exportName ? `${JSON.stringify(moduleName)}, ${exportName}` : JSON.stringify(moduleName);
+  // `exportName` is itself an integration factory, invoked inside the arrow (`() => exportName()`), so
+  // `orchestrionModuleInjected`'s consumer still gets an Integration back from calling the stored
+  // thunk. The point of the arrow is to defer the read of the `exportName` binding to when that thunk
+  // runs (at `init()`), instead of reading it by reference the moment this snippet evaluates. A
+  // provided-module integration (e.g. `flueIntegration`) is imported back into its own instrumented
+  // package by `@sentry/*/vite`, so a direct reference here would close an import cycle and touch the
+  // binding in its TDZ ("Cannot access '…' before initialization"); deferring the read breaks that.
+  const args = exportName ? `${JSON.stringify(moduleName)}, () => ${exportName}()` : JSON.stringify(moduleName);
   return `${importStmt}\n${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
 }
 
