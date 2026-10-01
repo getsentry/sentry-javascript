@@ -10,4 +10,9 @@ app.get('/test/success', (_req, res) => {
   res.send('Success!');
 });
 
+app.get('/test/error_handled', (_req, res) => {
+  Sentry.captureException(new Error('Request error'));
+  res.send('Handled!');
+});
+
 startExpressServerAndSendPortToRunner(app);

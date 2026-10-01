@@ -36,7 +36,7 @@ test('does not send a process session once requests are tracked as request sessi
   await runner.completed();
 });
 
-test('closes a process session that was already sent before the first request', async () => {
+test('counts an error before the first request in the process session, and later errors in the aggregate', async () => {
   const runner = createRunner(__dirname, 'server-with-startup-error.mjs')
     .withInstrument(join(__dirname, '..', 'instrument.mjs'))
     .ignore('transaction', 'event')
@@ -45,11 +45,12 @@ test('closes a process session that was already sent before the first request', 
     .expect({ session: { init: false, status: 'exited', errors: 1 } })
     .expect({
       sessions: agg => {
-        expect(sumAggregates(agg)).toEqual({ exited: 1, errored: 0, crashed: 0 });
+        expect(sumAggregates(agg)).toEqual({ exited: 1, errored: 1, crashed: 0 });
       },
     })
     .start();
 
-  runner.makeRequest('get', '/test/success');
+  await runner.makeRequest('get', '/test/success');
+  await runner.makeRequest('get', '/test/error_handled');
   await runner.completed();
 });
