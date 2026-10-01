@@ -36,6 +36,7 @@ import { postgresJsConfig } from './postgres';
 import { prismaConfig } from './prisma';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
+import { remixV3Config } from './remix-v3';
 import { tediousConfig } from './tedious';
 import { togetherAiConfig } from './together-ai';
 import { typesafeConfig } from './typesafe';
@@ -91,6 +92,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...prismaConfig,
   ...redisConfig,
   ...remixConfig,
+  ...remixV3Config,
   ...tediousConfig,
   ...togetherAiConfig,
   ...typesafeConfig,
@@ -193,3 +195,5 @@ export function withoutInstrumentedExternals(
 export { nestjsChannels } from './nestjs';
 // This is exported so that the remix package can use it to subscribe to the channels.
 export { remixChannels } from './remix';
+// This is exported so the remix package can subscribe to the Remix 3 channels.
+export { remixV3Channels } from './remix-v3';
