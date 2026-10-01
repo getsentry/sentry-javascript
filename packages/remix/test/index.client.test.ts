@@ -43,6 +43,17 @@ describe('Client init()', () => {
     );
   });
 
+  it('passes the Remix route provider unless the user passed one', () => {
+    init({});
+    expect(reactInit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ routeProvider: expect.objectContaining({ resolveRoute: expect.any(Function) }) }),
+    );
+
+    const routeProvider = { resolveRoute: () => '/custom', resolveCurrentRoute: () => '/custom' };
+    init({ routeProvider });
+    expect(reactInit).toHaveBeenLastCalledWith(expect.objectContaining({ routeProvider }));
+  });
+
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
   });
