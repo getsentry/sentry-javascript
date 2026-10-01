@@ -41,6 +41,30 @@ describe('orchestrionModuleInjected', () => {
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('mysql')).toBe(fn);
   });
 
+  it('stores a Set when a module registers several integrations in one call', () => {
+    const fn1 = factory('Nitro');
+    const fn2 = factory('NitroServerTiming');
+    orchestrionModuleInjected('h3', fn1, fn2);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('h3')).toEqual(new Set([fn1, fn2]));
+  });
+
+  it('keeps a single factory when several files of one package register the same integration', () => {
+    // Each instrumented file of a package injects its own thunk for the same integration.
+    const fromClient = factory('Postgres');
+    const fromPool = factory('Postgres');
+    orchestrionModuleInjected('pg', fromClient);
+    orchestrionModuleInjected('pg', fromPool);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('pg')).toBe(fromPool);
+  });
+
+  it('does not accumulate factories when several files register a multi-integration module', () => {
+    orchestrionModuleInjected('h3', factory('Nitro'), factory('NitroServerTiming'));
+    const fn1 = factory('Nitro');
+    const fn2 = factory('NitroServerTiming');
+    orchestrionModuleInjected('h3', fn1, fn2);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('h3')).toEqual(new Set([fn1, fn2]));
+  });
+
   it('stores no factory when none is given', () => {
     orchestrionModuleInjected('mongodb');
     expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations).toBeUndefined();

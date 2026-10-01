@@ -357,4 +357,37 @@ describe('getDefaultIntegrations', () => {
 
     expect(client?.getIntegrationByName('Mysql')).toBeDefined();
   });
+
+  test('installs all integrations for a module registered after init via the module-injected event', async () => {
+    const { mysqlIntegration, lruMemoizerIntegration } = await import('@sentry/server-utils');
+    // `cacheClient: false` so this gets its own client rather than one a previous `init()` cached.
+    const client = init({ cacheClient: false });
+    expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    expect(client?.getIntegrationByName('LruMemoizer')).toBeUndefined();
+
+    // A module registering more than one integration (like `h3` → span + Server-Timing) evaluates
+    // after init: store the Set of factories on the marker, then emit the event.
+    globalThis.__SENTRY_ORCHESTRION__ = {
+      bundler: new Set(['some-module']),
+      integrations: new Map([['some-module', new Set([mysqlIntegration, lruMemoizerIntegration])]]),
+    };
+    client?.emit('orchestrion.module-injected', 'some-module');
+
+    expect(client?.getIntegrationByName('Mysql')).toBeDefined();
+    expect(client?.getIntegrationByName('LruMemoizer')).toBeDefined();
+  });
+
+  test('installs all integrations a single module registers', async () => {
+    const { mysqlIntegration, lruMemoizerIntegration } = await import('@sentry/server-utils');
+    // One module registering more than one integration (like `h3` → span + Server-Timing).
+    globalThis.__SENTRY_ORCHESTRION__ = {
+      bundler: new Set(['some-module']),
+      integrations: new Map([['some-module', new Set([mysqlIntegration, lruMemoizerIntegration])]]),
+    };
+
+    const names = getDefaultIntegrations({}).map(i => i.name);
+
+    expect(names).toContain('Mysql');
+    expect(names).toContain('LruMemoizer');
+  });
 });

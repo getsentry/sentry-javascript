@@ -101,6 +101,11 @@ describe('Nuxt Server SDK', () => {
       expect(nodeInit).toHaveBeenCalledWith(expect.not.objectContaining({ defaultIntegrations: expect.anything() }));
     });
 
+    it('adds the nitroIntegration', () => {
+      const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+      expect(client?.getIntegrationByName('Nitro')).toBeDefined();
+    });
+
     it('allows options.defaultIntegrations to override default integrations', () => {
       const customIntegrations = [{ name: 'CustomIntegration' }];
 
@@ -243,6 +248,21 @@ describe('Nuxt Server SDK', () => {
             expect(filter(event, {})).toEqual(event);
           },
         );
+      });
+
+      describe('keeps cache transactions', () => {
+        // Cache transactions are named after the operation (e.g. `cache.get`), whose `.get` looks
+        // like a file extension. They must be exempted regardless of which instrumentation produced
+        // them: `auto.cache.nuxt` (Nuxt storage plugin, legacy Nitro 2) or `auto.cache.nitro`
+        // (server-utils nitroIntegration, Nitro 3).
+        it.each(['auto.cache.nuxt', 'auto.cache.nitro'])('does not filter cache transactions from %s', origin => {
+          const event = {
+            type: 'transaction' as const,
+            transaction: 'cache.get',
+            contexts: { trace: { origin } },
+          } as unknown as Event;
+          expect(filter(event, {})).toEqual(event);
+        });
       });
 
       it('does not filter non-transaction events', () => {

@@ -3,24 +3,23 @@ import { registrationOnly } from './registration-only';
 
 /**
  * Nitro's instrumentation consumes tracing channels that h3, srvx and unstorage publish natively, so
- * no channels are injected: transforming these entry files only registers the Nitro integrations at
+ * no channels are injected: transforming this entry file only registers the Nitro integrations at
  * evaluation time, which is what installs them on a bundler-only SDK like `@sentry/cloudflare`. On
  * `@sentry/node` (and deno/bun) the integrations are registered statically, so this is a no-op there.
  *
- * Two anchors because the registration snippet maps a single integration per module (see
- * `channel-integration-definitions.ts`): `h3` — which loads whenever the server runs — registers the
- * span instrumentation, and `unstorage` — a core Nitro storage dependency — registers the
- * Server-Timing trace-propagation headers. Both are core Nitro dependencies evaluated at startup, so
- * a real Nitro app triggers both. The anchor only triggers registration; each integration then
- * subscribes to all of its own channels, independent of which module loaded it.
+ * Anchored on `h3` — the module every HTTP-serving Nitro app loads — which registers BOTH
+ * `nitroIntegration` (spans) and `nitroServerTimingIntegration` (trace-propagation headers); see
+ * `channel-integration-definitions.ts`. Using the guaranteed HTTP module (rather than, say,
+ * `unstorage`) avoids a silent failure to register on a Nitro app that happens not to load that other
+ * module. The anchor only triggers registration; each integration then subscribes to all of its own
+ * channels, independent of which module loaded it.
  *
- * The `-0` in the version range matters: h3 and unstorage ship the versions Nitro 3 uses as
- * prereleases (h3 `2.0.1-rc.*`, unstorage `2.0.0-alpha.*`). The orchestrion matcher is the vendored
- * `semifies` (used by both the runtime loader and the bundler plugins), where a range carrying a
- * prerelease tag enables prerelease matching across patch tuples — so `>=2.0.0-0` matches
- * `2.0.1-rc.*`. (Plain node-semver would not: it drops prereleases of a higher patch tuple.)
+ * The `-0` in the version range matters: h3 ships the version Nitro 3 uses as a prerelease
+ * (`2.0.1-rc.*`). The orchestrion matcher is the vendored `semifies` (used by both the runtime loader
+ * and the bundler plugins), where a range carrying a prerelease tag enables prerelease matching
+ * across patch tuples — so `>=2.0.0-0` matches `2.0.1-rc.*`. (Plain node-semver would not: it drops
+ * prereleases of a higher patch tuple.)
  */
 export const nitroConfig = [
   registrationOnly({ name: 'h3', versionRange: '>=2.0.0-0', filePath: 'dist/h3.mjs' }),
-  registrationOnly({ name: 'unstorage', versionRange: '>=2.0.0-0', filePath: 'dist/index.mjs' }),
 ] satisfies InstrumentationConfig[];

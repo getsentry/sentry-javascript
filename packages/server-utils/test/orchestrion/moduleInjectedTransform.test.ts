@@ -7,7 +7,7 @@ import * as barrel from '../../src/index';
 import { SENTRY_INSTRUMENTATIONS } from '../../src/orchestrion/config';
 import {
   CHANNEL_INTEGRATION_DEFINITIONS,
-  subscriberExportForModule,
+  subscriberExportsForModule,
 } from '../../src/orchestrion/config/channel-integration-definitions';
 import { moduleInjectedTransforms } from '../../src/orchestrion/bundler/moduleInjectedTransform';
 import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
@@ -21,13 +21,15 @@ function makePackage(root: string, name: string, version: string, type?: 'module
 }
 
 describe('channel integration definitions', () => {
-  it('maps every module to a defined subscriber export', () => {
-    expect(subscriberExportForModule('mysql')).toBe('mysqlIntegration');
-    expect(subscriberExportForModule('pg')).toBe('postgresIntegration');
-    expect(subscriberExportForModule('pg-pool')).toBe('postgresIntegration');
-    expect(subscriberExportForModule('@redis/client')).toBe('redisIntegration');
-    expect(subscriberExportForModule('ioredis')).toBe('redisIntegration');
-    expect(subscriberExportForModule('not-a-package')).toBeUndefined();
+  it('maps every module to its defined subscriber exports', () => {
+    expect(subscriberExportsForModule('mysql')).toEqual(['mysqlIntegration']);
+    expect(subscriberExportsForModule('pg')).toEqual(['postgresIntegration']);
+    expect(subscriberExportsForModule('pg-pool')).toEqual(['postgresIntegration']);
+    expect(subscriberExportsForModule('@redis/client')).toEqual(['redisIntegration']);
+    expect(subscriberExportsForModule('ioredis')).toEqual(['redisIntegration']);
+    // A single module can map to several integrations.
+    expect(subscriberExportsForModule('h3')).toEqual(['nitroIntegration', 'nitroServerTimingIntegration']);
+    expect(subscriberExportsForModule('not-a-package')).toEqual([]);
   });
 
   it('references only real named exports of @sentry/server-utils', () => {
@@ -60,6 +62,7 @@ describe('module-injected transform', () => {
     makePackage(root, 'my-lib', '1.0.0', 'commonjs');
     makePackage(root, 'ioredis', '5.11.0', 'commonjs', 'built');
     makePackage(root, 'ai', '7.0.0', 'module', 'dist');
+    makePackage(root, 'h3', '2.0.1-rc.1', 'module', 'dist');
   });
 
   afterAll(() => {
@@ -176,6 +179,22 @@ describe('module-injected transform', () => {
     expect(result!.code).toContain('orchestrionModuleInjected("ai", () => vercelAIIntegration())');
     expect(result!.code).not.toContain('diagnostics_channel');
     expect(result!.code).not.toContain('tr_ch_apm');
+  });
+
+  it('registers every factory of a multi-integration module in a single call', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({}));
+    const result = t.transform('export function H3() {}\n', join(root, 'node_modules/h3/dist/h3.mjs'));
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toMatch(
+      /import\s*\{\s*orchestrionModuleInjected,\s*nitroIntegration,\s*nitroServerTimingIntegration\s*\}\s*from\s*["']@sentry\/server-utils["']/,
+    );
+    // One call with the module's complete list, so the module is announced once and the helper
+    // can replace its entry instead of accumulating thunks across files.
+    expect(result!.code).toContain(
+      'orchestrionModuleInjected("h3", () => nitroIntegration(), () => nitroServerTimingIntegration())',
+    );
+    expect(result!.code.match(/orchestrionModuleInjected\(/g)).toHaveLength(1);
   });
 
   it('honors a custom import specifier (Turbopack passes an absolute path)', () => {

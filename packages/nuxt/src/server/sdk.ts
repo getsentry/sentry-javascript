@@ -9,7 +9,7 @@ import {
   getClient,
   getGlobalScope,
 } from '@sentry/core';
-import { init as initNode } from '@sentry/node';
+import { init as initNode, nitroIntegration } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import {
   isNuxtDevRuntime,
@@ -64,6 +64,10 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   if (client) {
     markNuxtServerInitialized();
+    // `nitroIntegration` is part of the Node tracing integrations, but add it explicitly so it is
+    // always present for the Nuxt server SDK. Added after init (rather than via `defaultIntegrations`)
+    // so `initNode` still resolves env-based tracing before selecting its defaults. Deduped by name.
+    client.addIntegration(nitroIntegration());
   }
 
   getGlobalScope().addEventProcessor(lowQualityTransactionsFilter(options));
@@ -127,7 +131,13 @@ export function clientSourceMapErrorFilter(options: SentryNuxtServerOptions): Ev
 
 /**
  * Checks if the event is a cache event.
+ *
+ * Cache transactions are named after the operation (e.g. `cache.get`), which the file-extension
+ * check below would otherwise drop as a file request. `auto.cache.nuxt` is Nuxt's own storage
+ * instrumentation (legacy Nitro 2); `auto.cache.nitro` is `@sentry/server-utils`' `nitroIntegration`,
+ * which instruments unstorage on Nitro 3.
  */
 function isCacheEvent(e: Event): boolean {
-  return e.contexts?.trace?.origin === 'auto.cache.nuxt';
+  const origin = e.contexts?.trace?.origin;
+  return origin === 'auto.cache.nuxt' || origin === 'auto.cache.nitro';
 }

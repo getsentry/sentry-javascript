@@ -100,6 +100,17 @@ export default defineNuxtModule<ModuleOptions>({
     // Cloudflare detection happens inside, keyed off the resolved Nitro preset.
     setupOrchestrion(nuxt, !!serverConfigFile, moduleOptions.buildTimeInstrumentation);
 
+    // Nitro's h3/srvx/unstorage tracing channels — which the shared `nitroIntegration` subscribes to —
+    // are opt-in. Enable them on Nitro 3 so `nitroIntegration` produces the HTTP and cache spans.
+    // (Nitro 2 has no such channels and keeps Nuxt's own instrumentation.)
+    if (isNitroV3) {
+      nuxt.hook('nitro:config', nitroConfig => {
+        // `tracingChannel` isn't declared on every Nitro version's `NitroConfig` type, but Nitro 3
+        // reads it to enable the srvx/h3/unstorage tracing channels.
+        (nitroConfig as { tracingChannel?: boolean }).tracingChannel = true;
+      });
+    }
+
     // The deprecated inject modes replace the default in-bundle initialization until their removal
     const usesDeprecatedInjectMode =
       moduleOptions.autoInjectServerSentry === 'top-level-import' ||
@@ -112,7 +123,10 @@ export default defineNuxtModule<ModuleOptions>({
 
       if (isNitroV3) {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name.server'));
+        // On Nitro 3, the parametrized route name and `url.path.parameter.*` attributes are set by
+        // `@sentry/server-utils`' `nitroIntegration` (auto-injected via `@sentry/node` defaults) for
+        // API routes, and by `route-detector.server` for SSR page routes, so no Nuxt route-name
+        // plugin is needed. Legacy Nitro (v2) has no such channels and keeps its own.
       } else {
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
         addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name-legacy.server'));

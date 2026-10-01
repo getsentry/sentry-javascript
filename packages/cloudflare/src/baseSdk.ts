@@ -37,7 +37,10 @@ import { defaultStackParser } from './vendor/stacktrace';
 function getRegisteredChannelIntegrations(): Integration[] {
   const registered = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations;
 
-  return registered ? [...registered.values()].map(factory => factory()) : [];
+  // A module holds a single factory, or a Set of them (once it registers more than one integration).
+  return registered
+    ? [...registered.values()].flatMap(entry => (entry instanceof Set ? [...entry] : [entry])).map(factory => factory())
+    : [];
 }
 
 /**
@@ -148,10 +151,9 @@ export function initWithDefaultIntegrations(
   // integration on the live client here. `addIntegration` dedupes by
   // integration name, so already-installed integrations are no-ops.
   client.on('orchestrion.module-injected', moduleName => {
-    const factory = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get(moduleName);
-    if (factory) {
-      client.addIntegration(factory());
-    }
+    const entry = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get(moduleName);
+    const factories = entry instanceof Set ? entry : entry ? [entry] : [];
+    factories.forEach(factory => client.addIntegration(factory()));
   });
 
   return client;

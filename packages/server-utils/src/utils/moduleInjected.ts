@@ -14,7 +14,7 @@ import { getClient, GLOBAL_OBJ } from '@sentry/core';
  * imports it from the same entry as the subscriber factories.
  *
  * It records the module name on the global orchestrion marker, stores the
- * module's channel-subscriber integration factory (when the module has one)
+ * module's channel-subscriber integration factories (when the module has any)
  * keyed by module name, and emits the `orchestrion.module-injected` client
  * event. Recording happens BEFORE the emit so listeners triggered by the event
  * can read the marker.
@@ -28,7 +28,7 @@ import { getClient, GLOBAL_OBJ } from '@sentry/core';
  * that evaluate later (e.g. a lazily-required driver after a per-request
  * `init()` already snapshotted the marker).
  */
-export function orchestrionModuleInjected(moduleName: string, integrationFn?: () => Integration): void {
+export function orchestrionModuleInjected(moduleName: string, ...integrationFns: Array<() => Integration>): void {
   const marker = (GLOBAL_OBJ.__SENTRY_ORCHESTRION__ ??= {});
 
   // Runtime guard, not just type narrowing: a banner from another SDK copy or
@@ -37,8 +37,13 @@ export function orchestrionModuleInjected(moduleName: string, integrationFn?: ()
     (marker.bundler ??= new Set()).add(moduleName);
   }
 
-  if (integrationFn) {
-    (marker.integrations ??= new Map()).set(moduleName, integrationFn);
+  // Each call carries the module's complete factory list, so it replaces rather than merges: every
+  // instrumented file of a package (e.g. pg, amqplib) passes fresh thunks for the same integrations,
+  // which identity can't dedupe. A single factory keeps the plain shape older readers expect; only a
+  // module with several integrations (e.g. `h3` → span + Server-Timing) is stored as a Set.
+  const [first, ...rest] = integrationFns;
+  if (first) {
+    (marker.integrations ??= new Map()).set(moduleName, rest.length ? new Set(integrationFns) : first);
   }
 
   getClient()?.emit('orchestrion.module-injected', moduleName);
