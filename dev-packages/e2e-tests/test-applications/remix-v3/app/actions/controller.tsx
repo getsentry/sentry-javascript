@@ -30,5 +30,11 @@ export default createController(routes, {
     home(context) {
       return context.render(<HomePage />);
     },
+    user(context) {
+      return Response.json({ id: context.params.id });
+    },
+    teapot() {
+      return new Response("I'm a teapot", { status: 418 });
+    },
   },
 });

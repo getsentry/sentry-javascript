@@ -26,6 +26,11 @@ export const mastra = new Mastra({
     port: 4111,
     apiRoutes: [manualRoute],
   },
+  // No `bundler.externals` override: `mastra build` defaults to externalizing all non-workspace deps,
+  // so Hono (and the other instrumented modules) stay unbundled and the `--import` orchestrion hook
+  // can transform them in prod. In `mastra dev` the bundler inlines its own Hono-based server
+  // framework into the entry regardless of any `externals` config, so Hono is not
+  // orchestrion-instrumented in dev — the tests assert the un-routed span name there.
 });
 
 /**

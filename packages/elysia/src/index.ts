@@ -108,6 +108,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
   firebaseIntegration,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
@@ -171,6 +173,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   bunServerIntegration,
+  bunRuntimeMetricsIntegration,
+  type BunRuntimeMetricsOptions,
   makeFetchTransport,
 } from '@sentry/bun';
 

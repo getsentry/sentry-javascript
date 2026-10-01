@@ -237,7 +237,7 @@ function findQuotedRunEnd(sql: string, start: number, delimiter: string, backsla
  */
 function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
   const isMysql = dialect === 'mysql';
-  let out = '';
+  const out: string[] = [];
   let i = 0;
 
   while (i < sql.length) {
@@ -265,7 +265,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       if (tag) {
         const bodyEnd = sql.indexOf(tag, i + tag.length);
         i = bodyEnd === -1 ? sql.length : bodyEnd + tag.length;
-        out += '?';
+        out.push('?');
         continue;
       }
     }
@@ -275,7 +275,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       const runEnd = findQuotedRunEnd(sql, i, identifierCloser, false);
       // A run that never closes is not an identifier, so it collapses instead of being copied out.
       // Copying would carry every literal in the rest of the statement through unlexed.
-      out += runEnd === -1 ? '?' : sql.slice(i, runEnd);
+      out.push(runEnd === -1 ? '?' : sql.slice(i, runEnd));
       i = runEnd === -1 ? sql.length : runEnd;
       continue;
     }
@@ -284,18 +284,20 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect): string {
       // A prefix like `X'1A'`, `B'01'`, `N'…'` or PostgreSQL's `E'a\nb'` is part of the literal, so it has
       // to collapse into the same `?` instead of being left behind as a bare identifier.
       const prefix = char === "'" ? getLiteralPrefix(out, dialect) : undefined;
-      out = prefix ? out.slice(0, -1) : out;
+      if (prefix) {
+        out.pop();
+      }
       const runEnd = findQuotedRunEnd(sql, i, char, isMysql || prefix === 'E');
       i = runEnd === -1 ? sql.length : runEnd;
-      out += '?';
+      out.push('?');
       continue;
     }
 
-    out += char;
+    out.push(char);
     i++;
   }
 
-  return out;
+  return out.join('');
 }
 
 /**
@@ -329,13 +331,14 @@ function matchDollarQuoteTag(sql: string, start: number): string | undefined {
  * hex/binary literals, `N` for a national-character literal (SQL Server, MySQL), or `E` for a
  * PostgreSQL escape string (which honors backslash escapes).
  */
-function getLiteralPrefix(out: string, dialect: SqlDialect): 'X' | 'B' | 'N' | 'E' | undefined {
+function getLiteralPrefix(out: string[], dialect: SqlDialect): 'X' | 'B' | 'N' | 'E' | undefined {
+  const last = out[out.length - 1];
   // A prefix only counts when it stands alone — the `X` in `MAX'...'` belongs to the identifier
-  if (isIdentifierChar(out.slice(-2, -1))) {
+  if (last?.length !== 1 || isIdentifierChar(out[out.length - 2]?.slice(-1))) {
     return undefined;
   }
 
-  const prefix = out.slice(-1).toUpperCase();
+  const prefix = last.toUpperCase();
   if (prefix === 'X' || prefix === 'B' || prefix === 'N') {
     return prefix;
   }

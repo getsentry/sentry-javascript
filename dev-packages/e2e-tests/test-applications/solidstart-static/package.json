@@ -33,7 +33,6 @@
     "vite-plugin-solid": "^2.11.6"
   },
   "volta": {
-    "node": "20.19.5",
     "extends": "../../package.json"
   }
 }

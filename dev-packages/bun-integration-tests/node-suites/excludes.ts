@@ -78,6 +78,7 @@ const NO_OUTGOING_HTTP_INSTRUMENTATION = [
 export const NO_AUTO_INSTRUMENTATION = [
   'suites/express/**',
   'suites/fs-instrumentation/test.ts',
+  'suites/hono/test.ts',
   'suites/hono-sdk/test.ts',
   'suites/pino/test.ts',
   'suites/tracing/amqplib/test.ts',

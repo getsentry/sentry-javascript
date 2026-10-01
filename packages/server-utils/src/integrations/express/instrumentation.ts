@@ -94,17 +94,21 @@ export function instrumentExpress(
       },
     });
 
-    // Pop the layer path when the layer hands off via `next`. `asyncStart` fires
-    // when `next` is called and *before* the downstream layer runs, so the
-    // per-request path chain reflects only the current chain when each layer
-    // reconstructs its route. The `error` event captures throws at the layer
-    // level (see `captureLayerError`), before any user error-handling middleware.
+    // Pop the layer path and end the layer span when the layer hands off via
+    // `next`. `asyncStart` fires when `next` is called and *before* the
+    // downstream layer runs, so the per-request path chain reflects only the
+    // current chain when each layer reconstructs its route, and each span covers
+    // only its own layer. The `error` event captures throws at the layer level
+    // (see `captureLayerError`), before any user error-handling middleware.
     channel.subscribe({
       start: NOOP,
       asyncEnd: NOOP,
       end: NOOP,
       error: data => captureLayerError(data, options.shouldHandleError),
-      asyncStart: popLayerPathForLayer,
+      asyncStart: data => {
+        popLayerPathForLayer(data);
+        endLayerSpanOnNext(data);
+      },
     });
   }
 }
@@ -200,6 +204,25 @@ function popLayerPathForLayer(data: HandleChannelContext): void {
   if (req) {
     popLayerPath(req);
   }
+}
+
+/**
+ * End a layer's span once it hands control onward via `next`.
+ *
+ * The tracing-channel helper would otherwise end it on `asyncEnd`, which only
+ * fires once `next` *returns*. Express runs the rest of the chain synchronously
+ * inside `next`, so that would keep every layer on the synchronous chain open
+ * (each holding a response `finish` listener) until the whole chain unwinds,
+ * and inflate each span with the downstream layers' synchronous work. The
+ * helper's later `asyncEnd` is then a no-op, since `span.end()` is idempotent.
+ */
+function endLayerSpanOnNext(data: HandleChannelContext): void {
+  const span = data._sentrySpan;
+  if (!span) {
+    return;
+  }
+  data._sentryCleanup?.();
+  span.end();
 }
 
 /**
@@ -326,9 +349,9 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   });
 
   // A layer that sends the response (route handlers, typically) never calls
-  // `next`, so the channel's `asyncEnd` never fires. End on the response's
-  // `finish` in that case. When `next` *is* called, the helper ends the span
-  // (via `asyncEnd`) and `beforeSpanEnd` removes this now-redundant listener.
+  // `next`, so the channel's `asyncStart` never fires. End on the response's
+  // `finish` in that case. When `next` *is* called, `endLayerSpanOnNext` ends
+  // the span and removes this now-redundant listener.
   if (res && typeof res.once === 'function') {
     const onFinish = (): void => {
       span.end();
