@@ -165,8 +165,11 @@ reference setup.
   `withSentry` and reads the init options from `instrument.server.ts` next to the entry. The start command runs
   `wrangler dev` on the build output. Code at module scope must not do I/O (for example open a database connection),
   because workerd does not allow it. `nextjs-16` has no Vite build: its Cloudflare variant builds with
-  `opennextjs-cloudflare build` and wraps the generated Worker in `worker.ts` with `withSentry` from
-  `@sentry/nextjs/cloudflare`.
+  `opennextjs-cloudflare build --config wrangler.opennext.jsonc` and wraps the generated Worker in `worker.ts` with
+  `withSentry` from `@sentry/nextjs/cloudflare`.
+- **Build flavors**: a variant can also build the same app with another tool, for example `nextjs-16 (vinext)` builds
+  `nextjs-16` with vinext. Such a variant is not a runtime: its assert script sets its own env var (`VINEXT=1`, read by
+  `tests/isVinext.ts`) next to `RUNTIME`.
 - **Runtime-specific files**: a file that has the runtime as a part of its name replaces the existing file without that
   part, for example `app/entry.server.cloudflare.tsx` replaces `app/entry.server.tsx` and `vite.cloudflare.config.ts`
   replaces `vite.config.ts`. For a variant whose label ends with `(<runtime>)`, the runner copies these files over the

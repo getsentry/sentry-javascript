@@ -7,6 +7,7 @@ import {
   waitForStreamedSpan,
 } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
+import { isVinext } from './isVinext';
 
 test('Should create a span for middleware', async ({ request }) => {
   test.skip(getRuntime() === 'cloudflare', 'On Workers the middleware span is a child of the request span');
@@ -120,6 +121,10 @@ test('Faulty middlewares inside the request segment of the Worker', async ({ req
 
 test('Should trace outgoing fetch requests inside middleware', async ({ request }) => {
   test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
+  test.skip(
+    isVinext && getRuntime() === 'bun',
+    'vinext replaces `globalThis.fetch` with a wrapper of the `fetch` from before `Sentry.init`, so `@sentry/bun` creates no fetch spans',
+  );
 
   // In some builds (especially webpack) the fetch span is not a child of the middleware segment but a
   // segment of its own, so this waits for either. `http.client` span names are low cardinality under

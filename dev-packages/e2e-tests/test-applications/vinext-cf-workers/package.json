@@ -1,0 +1,38 @@
+{
+  "name": "vinext-cf-workers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vinext build",
+    "preview": "wrangler dev --config dist/server/wrangler.json --port 3030 --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --log-level=$(test $CI && echo 'none' || echo 'log')",
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "next": "16.2.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.56.0",
+    "@playwright/test": "~1.63.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-rsc": "^0.5.35",
+    "react-server-dom-webpack": "^19.3.0",
+    "typescript": "~6.0.3",
+    "vinext": "1.0.0-beta.13",
+    "vite": "^8.3.0",
+    "wrangler": "^4.135.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
