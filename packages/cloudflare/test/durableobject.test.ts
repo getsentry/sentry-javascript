@@ -272,6 +272,54 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(events[1]?.user).toBeUndefined();
   });
 
+  // The only scope that all later invocations share is the default isolation scope of the isolate, so
+  // data set in the constructor stays in the constructor's own scope.
+  it('does not apply scope data set in the constructor to later invocations', async () => {
+    const events: Event[] = [];
+    const waits: Promise<unknown>[] = [];
+    const mockContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waits.push(promise);
+      }),
+    } as any;
+
+    const testClass = class {
+      constructor() {
+        SentryCore.setTag('constructor_tag', 'from-constructor');
+        SentryCore.setUser({ id: 'user-from-constructor' });
+      }
+
+      alarm() {
+        SentryCore.captureMessage('alarm');
+      }
+
+      rpcMethod() {
+        SentryCore.captureMessage('rpc');
+      }
+    };
+    const obj = Reflect.construct(
+      instrumentDurableObjectWithSentry(
+        () => ({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          beforeSend(event: Event) {
+            events.push(event);
+            return null;
+          },
+        }),
+        testClass as any,
+      ),
+      [mockContext, {} as any],
+    );
+
+    await obj.alarm();
+    obj.rpcMethod();
+    await Promise.all(waits);
+
+    expect(events.map(event => event.message)).toEqual(['alarm', 'rpc']);
+    expect(events.map(event => event.tags?.constructor_tag)).toEqual([undefined, undefined]);
+    expect(events.map(event => event.user)).toEqual([undefined, undefined]);
+  });
+
   it('Built-in durable object methods are always instrumented', () => {
     const testClass = class {
       fetch() {}
