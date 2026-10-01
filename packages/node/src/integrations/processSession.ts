@@ -7,6 +7,7 @@ const INTEGRATION_NAME = 'ProcessSession' as const;
  *
  * Once the process starts serving requests that are tracked as request sessions, release health is
  * reported through session aggregates instead, and the process session is discarded.
+ * This integration exists so that we capture some form of session health data even when the process is not serving requests.
  */
 export const processSessionIntegration = defineIntegration(() => {
   return {
