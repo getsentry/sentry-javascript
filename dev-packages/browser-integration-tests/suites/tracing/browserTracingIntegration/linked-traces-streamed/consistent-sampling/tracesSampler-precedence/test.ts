@@ -2,7 +2,6 @@ import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
 import type { ClientReport } from '@sentry/core';
-
 import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   envelopeRequestParser,
