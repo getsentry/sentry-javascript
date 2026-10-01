@@ -34,7 +34,7 @@ const INSTRUMENTED_CHANNELS = [
 /**
  * The context object orchestrion shares across the tracing-channel lifecycle hooks: `arguments` is the
  * live args array passed to `Completions.create(body, options)`. `result` holds the returned
- * `APIPromise` for sync instrumentation, or the resolved response for promise instrumentation.
+ * `APIPromise` for sync instrumentation.
  */
 interface OpenAiChatChannelContext {
   arguments: unknown[];

@@ -19,13 +19,13 @@ export const openaiConfig = [
   ...['resources/embeddings.js', 'resources/embeddings.mjs'].map(filePath => ({
     channelName: 'embeddings',
     module: { name: 'openai', versionRange: '>=4.0.0 <8', filePath },
-    functionQuery: { className: 'Embeddings', methodName: 'create', kind: 'Auto' as const },
+    functionQuery: { className: 'Embeddings', methodName: 'create', kind: 'Sync' as const },
   })),
   // OpenAI conversations API — same `create(body, options)` shape as chat completions.
   ...['resources/conversations/conversations.js', 'resources/conversations/conversations.mjs'].map(filePath => ({
     channelName: 'chat',
     module: { name: 'openai', versionRange: '>=4.0.0 <8', filePath },
-    functionQuery: { className: 'Conversations', methodName: 'create', kind: 'Auto' as const },
+    functionQuery: { className: 'Conversations', methodName: 'create', kind: 'Sync' as const },
   })),
 ] satisfies InstrumentationConfig[];
 

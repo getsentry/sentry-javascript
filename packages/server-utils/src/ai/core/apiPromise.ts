@@ -19,8 +19,7 @@ export function onApiPromiseResponse(
   onResponse: (response: unknown) => void,
   onError: (error: unknown) => void,
 ): boolean {
-  // e.g. embeddings.create() uses Auto in its orchestrion config so we get the resolved response, not its APIPromise
-  // therefore it's fine to end the span immediately
+  // e.g. Anthropic's messages.stream() returns an emitter instead of an APIPromise
   if (!isApiPromise(result)) {
     return false;
   }
