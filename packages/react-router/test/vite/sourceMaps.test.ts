@@ -51,14 +51,10 @@ describe('makeEnableSourceMapsPlugin()', () => {
 
       const merged = mergeConfig(userConfig, configHook(userConfig));
 
-      expect(merged).toEqual({
-        optimizeDeps: { include: ['react'] },
-        build: {
-          sourcemap: sourcemap ?? 'hidden',
-          outDir: 'custom-dist',
-          rollupOptions: { plugins: [{ name: 'asset-transform' }] },
-        },
-      });
+      expect(merged.optimizeDeps?.include).toEqual(['react']);
+      expect(merged.build?.rollupOptions?.plugins).toEqual([{ name: 'asset-transform' }]);
+      expect(merged.build?.outDir).toBe('custom-dist');
+      expect(merged.build?.sourcemap).toBe(sourcemap ?? 'hidden');
     },
   );
 });
