@@ -225,6 +225,19 @@ module.exports = [
     limit: '35 KB',
     disablePlugins: ['@size-limit/esbuild'],
   },
+  // Remix 3 browser SDK (ESM)
+  {
+    // Every export, not a named import: Remix 3 has no bundler, so an app ships every byte of this
+    // file. The budget is what keeps `src/v3/index.client.ts` a named list. One added
+    // `export * from '@sentry/browser'` measures 134 KB here, and more on the wire, because a real app
+    // has no bundler to shake it.
+    name: '@sentry/remix (Remix 3 client bundle)',
+    path: 'packages/remix/build/esm/v3/client-bundle.js',
+    import: '*',
+    gzip: true,
+    limit: '56 KB',
+    disablePlugins: ['@size-limit/esbuild'],
+  },
   // Browser CDN bundles
   {
     name: 'CDN Bundle',
