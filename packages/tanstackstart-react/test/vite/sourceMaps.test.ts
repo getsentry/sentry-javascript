@@ -1,5 +1,7 @@
+// @vitest-environment node
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { UserConfig } from 'vite';
+import { mergeConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getUpdatedSourceMapSettings,
@@ -34,6 +36,33 @@ describe('makeEnableSourceMapsVitePlugin()', () => {
 
     expect(sourceMapsConfigPlugins).toHaveLength(1);
   });
+
+  it.each([undefined, false, true, 'hidden', 'inline'] as const)(
+    'preserves user config without duplicating arrays when sourcemap is %s',
+    sourcemap => {
+      const plugin = makeEnableSourceMapsVitePlugin({})[0]!;
+      const configHook = plugin.config as (config: UserConfig) => UserConfig;
+      const userConfig: UserConfig = {
+        optimizeDeps: { include: ['react'] },
+        build: {
+          sourcemap,
+          outDir: 'custom-dist',
+          rollupOptions: { plugins: [{ name: 'asset-transform' }] },
+        },
+      };
+
+      const merged = mergeConfig(userConfig, configHook(userConfig));
+
+      expect(merged).toEqual({
+        optimizeDeps: { include: ['react'] },
+        build: {
+          sourcemap: sourcemap ?? 'hidden',
+          outDir: 'custom-dist',
+          rollupOptions: { plugins: [{ name: 'asset-transform' }] },
+        },
+      });
+    },
+  );
 });
 
 describe('makeAddSentryVitePlugin()', () => {
