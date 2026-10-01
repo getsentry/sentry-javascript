@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Sends an error event to Sentry', async ({ request }) => {
   const errorEventPromise = waitForError('nitro-3', event => {
@@ -31,15 +31,28 @@ test('Sends an error event to Sentry', async ({ request }) => {
 });
 
 test('Does not send an explicitly thrown 400 error to Sentry', async ({ request }) => {
-  const errorEventPromise = waitForError('nitro-3', event => {
-    return !!event.exception?.values?.some(v => v.value === 'Explicit 400 test error');
+  let errorReceived = false;
+
+  void waitForError('nitro-3', event => {
+    if (event.exception?.values?.some(v => v.value === 'Explicit 400 test error')) {
+      errorReceived = true;
+      return true;
+    }
+    return false;
+  });
+
+  const flushSpanPromise = waitForStreamedSpan('nitro-3', span => {
+    return span.is_segment && span.name === 'GET /api/flush';
   });
 
   const response = await request.get('/api/test-error-400');
-
   expect(response.status()).toBe(400);
-  const errorEvent = await Promise.race([errorEventPromise, new Promise<void>(resolve => setTimeout(resolve, 3000))]);
-  expect(errorEvent).toBeUndefined();
+
+  const flushResponse = await request.get('/api/flush');
+  expect(flushResponse.status()).toBe(200);
+  await flushSpanPromise;
+
+  expect(errorReceived).toBe(false);
 });
 
 test('Does not send 404 errors to Sentry', async ({ request }) => {
