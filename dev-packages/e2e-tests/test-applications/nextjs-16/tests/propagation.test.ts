@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getRuntime, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { isVinext } from './isVinext';
 
 test('Propagates trace for outgoing fetch requests', async ({ baseURL, request }) => {
+  test.skip(
+    isVinext && getRuntime() === 'bun',
+    'vinext replaces `globalThis.fetch` with a wrapper of the `fetch` from before `Sentry.init`, so `@sentry/bun` creates no fetch spans',
+  );
+
   // Inbound span, outbound span and the http.client span in between all share one trace, and
   // `collectStreamedSpans` evaluates a single trace at a time, so requiring all three together
   // keeps them paired.
@@ -47,6 +53,11 @@ test('Does not propagate outgoing fetch requests not covered by tracePropagation
   baseURL,
   request,
 }) => {
+  test.skip(
+    isVinext && getRuntime() === 'bun',
+    'vinext replaces `globalThis.fetch` with a wrapper of the `fetch` from before `Sentry.init`, so nothing propagates and the test would check nothing',
+  );
+
   // These two spans are deliberately in different traces, so they are matched by their unique names.
   const inboundSpanPromise = waitForStreamedSpan('nextjs-16', span => {
     return span.name === 'GET /propagation/test-outgoing-fetch-external-disallowed/check' && span.is_segment;

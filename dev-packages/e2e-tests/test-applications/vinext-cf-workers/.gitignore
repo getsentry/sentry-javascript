@@ -1,0 +1,4 @@
+dist
+.wrangler
+test-results
+pnpm-lock.yaml
