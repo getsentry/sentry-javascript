@@ -33,7 +33,9 @@ export function stripTrailingSlash(pathname: string): string {
 export function stripBasePath(pathname: string): string {
   const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
 
-  return basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || '/' : pathname;
+  return basePath && (pathname === basePath || pathname.startsWith(`${basePath}/`))
+    ? pathname.slice(basePath.length) || '/'
+    : pathname;
 }
 
 // Specificity ranks for a single route segment, from most to least specific. `END` is the rank of
