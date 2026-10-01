@@ -26,7 +26,7 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
     name: INTEGRATION_NAME,
     setup(client) {
       const performance = getBrowserPerformanceAPI();
-      if (!performance?.getEntries || !browserPerformanceTimeOrigin()) {
+      if (!performance?.getEntries) {
         return;
       }
       let performanceCursor = 0;

@@ -1,6 +1,6 @@
 import type { SpanAttributes } from '@sentry/core';
 import { browserPerformanceTimeOrigin } from '@sentry/core';
-import { extractNetworkProtocol, getBrowserPerformanceAPI, msToSec } from './utils';
+import { extractNetworkProtocol, msToSec } from './utils';
 
 /**
  * Converts a PerformanceResourceTiming entry to span data for the resource span. Most importantly,
@@ -23,7 +23,7 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
   }
 
   // Use the origin from the request start for all timings, so the durations between them stay correct.
-  const timeOrigin = browserPerformanceTimeOrigin(resourceTiming.startTime) || getBrowserPerformanceAPI()?.timeOrigin;
+  const timeOrigin = browserPerformanceTimeOrigin(resourceTiming.startTime);
   if (!timeOrigin) {
     return timingSpanData;
   }

@@ -147,9 +147,6 @@ function convertToContinuousProfile(input: {
     stacks[i] = list;
   }
 
-  // Only used if the Performance API is unavailable.
-  const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : 0;
-
   const samples: ContinuousThreadCpuProfile['samples'] = [];
   for (let i = 0; i < input.samples.length; i++) {
     const sample = input.samples[i];
@@ -157,7 +154,8 @@ function convertToContinuousProfile(input: {
       continue;
     }
     // Sample timestamps are relative to `performance.timeOrigin`, so we convert them like performance entries.
-    const timestampSeconds = performanceTimeToSeconds(sample.timestamp) ?? (origin + sample.timestamp) / 1000;
+    // The cast is safe: the JS Self-Profiling API only exists if the Performance API does.
+    const timestampSeconds = performanceTimeToSeconds(sample.timestamp) as number;
     samples[i] = {
       stack_id: sample.stackId ?? 0,
       thread_id: PROFILER_THREAD_ID_STRING,

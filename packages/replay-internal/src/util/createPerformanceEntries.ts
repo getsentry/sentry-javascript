@@ -1,6 +1,5 @@
 import { performanceTimeToSeconds } from '@sentry/core';
 import { record } from '@sentry/rrweb';
-import { WINDOW } from '../constants';
 import type {
   AllPerformanceEntry,
   AllPerformanceEntryData,
@@ -89,9 +88,8 @@ function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEn
 function getAbsoluteTime(time: number): number {
   // Entries are only converted on flush, which can be minutes after they were recorded. `performanceTimeToSeconds`
   // uses the time origin from when the entry was recorded, so a later correction does not shift it.
-  // It returns undefined if `performance` or `performance.now` doesn't exist, but this is already checked by this
-  // integration.
-  return performanceTimeToSeconds(time) ?? (WINDOW.performance.timeOrigin + time) / 1000;
+  // The cast is safe: this integration only runs if the Performance API exists.
+  return performanceTimeToSeconds(time) as number;
 }
 
 function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {

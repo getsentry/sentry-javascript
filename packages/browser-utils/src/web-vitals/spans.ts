@@ -195,8 +195,9 @@ export function _sendLcpSpan(
   // origin. Starting the span there too keeps it inside the navigation span it is parented to and
   // keeps its duration equal to the reported value. The span's end uses the same origin, even if
   // the time origin was corrected in between.
-  const performanceTimeOrigin = browserPerformanceTimeOrigin(navigationStartTime || 0) || 0;
-  const startTime = msToSec(performanceTimeOrigin + (navigationStartTime || 0));
+  const navigationStart = navigationStartTime || 0;
+  const performanceTimeOrigin = browserPerformanceTimeOrigin(navigationStart) || 0;
+  const startTime = msToSec(performanceTimeOrigin + navigationStart);
   // Without an entry there is no render time to end at, so the span lasts the value it reports,
   // like an entry-less INP does. Ending at the time origin instead would invert the span.
   const endTime = entry ? msToSec(performanceTimeOrigin + entry.startTime) : startTime + msToSec(lcpValue);

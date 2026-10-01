@@ -244,7 +244,7 @@ function trackInteractionsAsSpans(client: Client): void {
       if (entry.name === 'click') {
         const startTime = performanceTimeToSeconds(entry.startTime);
         if (!startTime) {
-          return;
+          continue;
         }
         const duration = msToSec(entry.duration);
 
