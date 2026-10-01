@@ -78,7 +78,6 @@ function createUnixTimestampInSecondsFunc(): () => number {
   // Due to device sleeps, the origin might need to be corrected to match the wall clock time over the SDK's lifetime.
   let correctedTimeOrigin = performance.timeOrigin;
   _timeOriginSegments = [{ from: 0, origin: correctedTimeOrigin }];
-  let isFirstCall = true;
   let lastCheckedPerformanceNow = 0;
 
   return () => {
@@ -95,23 +94,15 @@ function createUnixTimestampInSecondsFunc(): () => number {
       if (Math.abs(correctedTimeOrigin + performanceNow - dateNow) > CLOCK_DRIFT_THRESHOLD_MS) {
         correctedTimeOrigin = dateNow - performanceNow;
 
-        // after correcting the timeOrigin, we add an entry to _timeOriginSegments so that we
-        // can track when we made the correction. This is relevant for telemetry collected from
-        // performance entries that hold uncorrected time values. Used in browserPerformanceTimeOrigin return
-        // a corrected time origin value.
-        if (isFirstCall) {
-          // special case: We detect clock drift right away (basically at SDK init time), so we replace
-          // the initial _timeOriginSegments entry with the corrected value.
-          _timeOriginSegments = [{ from: 0, origin: correctedTimeOrigin }];
-        } else {
-          _timeOriginSegments.push({ from: lastCheckedPerformanceNow, origin: correctedTimeOrigin });
-          if (_timeOriginSegments.length > MAX_TIME_ORIGIN_SEGMENTS) {
-            // we keep the oldest entry (the page load origin) and drop the one after it.
-            _timeOriginSegments.splice(1, 1);
-          }
+        // We keep the old origins, so performance entries recorded before the correction still use their origin.
+        // On the first call, the new segment also starts at 0, so it replaces the uncorrected page load origin in all
+        // lookups (`browserPerformanceTimeOrigin` takes the last segment that starts at or before a given time).
+        _timeOriginSegments.push({ from: lastCheckedPerformanceNow, origin: correctedTimeOrigin });
+        if (_timeOriginSegments.length > MAX_TIME_ORIGIN_SEGMENTS) {
+          // we keep the oldest entry (the page load origin) and drop the one after it.
+          _timeOriginSegments.splice(1, 1);
         }
       }
-      isFirstCall = false;
       lastCheckedPerformanceNow = performanceNow;
 
       return (correctedTimeOrigin + performanceNow) / ONE_SECOND_IN_MS;
