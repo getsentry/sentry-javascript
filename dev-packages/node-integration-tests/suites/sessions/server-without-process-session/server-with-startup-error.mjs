@@ -3,6 +3,8 @@ import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-int
 import express from 'express';
 
 Sentry.captureException(new Error('Startup error'));
+// Event processing is async; make sure the error has updated the process session before the first request.
+await Sentry.flush();
 
 const app = express();
 
