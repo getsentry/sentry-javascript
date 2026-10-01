@@ -182,7 +182,7 @@ export function createStandaloneClient(options: BrowserOptions = {}): Standalone
   }
 
   const defaultIntegrations =
-    options.defaultIntegrations == null ? getDefaultStandaloneIntegrations() : options.defaultIntegrations;
+    options.defaultIntegrations ?? getDefaultStandaloneIntegrations();
 
   const clientOptions: BrowserClientOptions = {
     ...options,
