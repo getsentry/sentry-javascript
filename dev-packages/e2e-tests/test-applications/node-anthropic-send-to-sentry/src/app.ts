@@ -121,7 +121,6 @@ app.get('/tools', async (_req, res, next) => {
   }
 });
 
-Sentry.setupExpressErrorHandler(app);
 
 app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   res.status(500).send({ message: error.message });
