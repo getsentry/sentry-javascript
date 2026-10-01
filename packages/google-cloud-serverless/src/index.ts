@@ -154,6 +154,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  BullMQTelemetry,
   anthropicAIIntegration,
   googleGenAIIntegration,
   childProcessIntegration,
