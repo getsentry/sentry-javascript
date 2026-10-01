@@ -26,6 +26,10 @@ app.get('/test-exception/:id', async request => {
   throw new Error(`This is an exception with id ${request.params.id}`);
 });
 
+app.post('/test-body', async () => {
+  return {};
+});
+
 app.get('/test-inbound-headers/:id', async request => {
   return { headers: request.headers, id: request.params.id };
 });
