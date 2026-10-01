@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @Shubham-Padkonde. Thank you for your contribution!
+
 - **fix(cloudflare)**: Durable Object constructors now run in their own isolation scope. When work that the constructor starts, for example a `blockConcurrencyWhile` callback, calls a method of the instance, that call is no longer treated as an incoming RPC call, so an error the instance catches itself is no longer reported as unhandled. As a result, `Sentry.setTag()`, `setUser()` and `setContext()` in a constructor now apply only to that constructor work. They no longer reach later `fetch`, RPC or `alarm` invocations, because the scope they used to write to is shared by every Durable Object and handler in the isolate. Use `initialScope` for static data, and set per-instance data in each handler.
 
 ## 11.2.0
