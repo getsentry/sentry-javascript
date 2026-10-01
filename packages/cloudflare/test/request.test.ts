@@ -1051,6 +1051,7 @@ describe('Durable Object (DO) context', () => {
 
     // Teardown is registered via waitUntil on error too
     expect(waitUntilSpy).toHaveBeenCalled();
+    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     // And flush runs as part of that teardown
     expect(flushSpy).toHaveBeenCalled();
 
@@ -1072,6 +1073,7 @@ describe('Durable Object (DO) context', () => {
     );
 
     expect(waitUntilSpy).toHaveBeenCalled();
+    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     expect(flushSpy).toHaveBeenCalled();
 
     flushSpy.mockRestore();
@@ -1092,6 +1094,7 @@ describe('Durable Object (DO) context', () => {
     );
 
     expect(waitUntilSpy).toHaveBeenCalled();
+    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     expect(flushSpy).toHaveBeenCalled();
 
     flushSpy.mockRestore();
@@ -1169,6 +1172,7 @@ describe('Durable Object (DO) context', () => {
 
 describe('cached client (cacheClient)', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     _clearGlobalClientCache();
   });
 

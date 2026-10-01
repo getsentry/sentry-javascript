@@ -696,6 +696,16 @@ describe('request utils', () => {
         });
       });
 
+      it('trims whitespace around cookie names and values', () => {
+        const headers = { Cookie: 'theme = dark; user_session = abc123' };
+
+        const result = httpHeadersToSpanAttributes(headers, resolveDataCollectionOptions({}));
+
+        expect(result).toEqual({
+          'http.request.header.cookie': ['theme=dark', 'user_session=[Filtered]'],
+        });
+      });
+
       it('filters common framework and provider session-style cookie names', () => {
         const headers = {
           Cookie:

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bundler-plugins",
-  "version": "10.67.0",
+  "version": "11.2.0",
   "description": "Sentry Bundler Plugins",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/main/packages/bundler-plugins",
@@ -43,6 +43,11 @@
       "types": "./build/types/core/index.d.ts",
       "import": "./build/esm/core/index.js",
       "require": "./build/cjs/core/index.js"
+    },
+    "./loader-utils": {
+      "types": "./build/types/loader-utils/index.d.ts",
+      "import": "./build/esm/loader-utils/index.js",
+      "require": "./build/cjs/loader-utils/index.js"
     },
     "./babel-plugin": {
       "types": "./build/types/babel-plugin/index.d.ts",
@@ -105,20 +110,23 @@
     }
   },
   "dependencies": {
-    "@babel/core": "^7.18.5",
-    "@sentry/core": "10.67.0",
+    "@sentry/core": "11.2.0",
     "dotenv": "^17.4.2",
     "glob": "^13.0.6",
-    "magic-string": "~0.30.8",
-    "oxc-parser": "^0.143.0",
-    "sentry": "^0.44.0",
+    "magic-string": "~0.30.8 || ^1.0.0",
+    "oxc-parser": "^0.152.0",
+    "sentry": "^0.45.0",
     "supports-color": "^8.1.1"
   },
   "peerDependencies": {
+    "@babel/core": "^7.18.5",
     "rollup": ">=3.2.0",
     "webpack": ">=5.1.0"
   },
   "peerDependenciesMeta": {
+    "@babel/core": {
+      "optional": true
+    },
     "rollup": {
       "optional": true
     },
@@ -127,12 +135,13 @@
     }
   },
   "devDependencies": {
+    "@babel/core": "^7.18.5",
     "@babel/preset-react": "^7.23.3",
     "@types/babel__core": "^7.20.5",
-    "@types/node": "^18.6.3",
+    "@types/node": "^20.19.0",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
-    "vitest": "^3.2.7",
+    "vitest": "^4.1.11",
     "webpack": "5.104.1"
   },
   "volta": {

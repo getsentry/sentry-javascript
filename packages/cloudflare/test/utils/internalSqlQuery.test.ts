@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { targetsCloudflareInternalTable } from '../../src/utils/internalSqlQuery';
+import { mayTargetCloudflareInternalTable, targetsCloudflareInternalTable } from '../../src/utils/internalSqlQuery';
 
 // Behavioural coverage of the filter lives in `instrumentSqlStorage.test.ts`, which drives real
 // queries through the instrumented `exec`. What remains here are the signature-level contracts that
@@ -21,5 +21,25 @@ describe('targetsCloudflareInternalTable', () => {
   // clause is invisible and the query is instrumented — the caller must pass queryText to filter it.
   it('cannot resolve a CREATE INDEX target from the summary alone', () => {
     expect(targetsCloudflareInternalTable('CREATE INDEX idx_agents_state_id')).toBe(false);
+  });
+});
+
+describe('mayTargetCloudflareInternalTable', () => {
+  it.each([
+    ['a cf_ table', 'SELECT * FROM cf_agents_state WHERE id = ?'],
+    ['an uppercase CF_ table', 'select * from CF_AGENTS_STATE'],
+    ['a quoted cf_ table', 'SELECT * FROM "cf_agents_state"'],
+    ['a schema-qualified cf_ table', 'SELECT * FROM main.cf_agents_state'],
+    ['a cf_ table in a CREATE INDEX ON clause', 'CREATE INDEX idx_agents_state_id ON cf_agents_state (id)'],
+  ])('returns true for %s', (_label, query) => {
+    expect(mayTargetCloudflareInternalTable(query)).toBe(true);
+  });
+
+  it.each([
+    ['a user table', 'SELECT * FROM users WHERE id = ?'],
+    ['a table with cf in the middle', 'SELECT * FROM my_cf_table'],
+    ['a table starting with cfg', 'SELECT * FROM cfg_settings'],
+  ])('returns false for %s', (_label, query) => {
+    expect(mayTargetCloudflareInternalTable(query)).toBe(false);
   });
 });

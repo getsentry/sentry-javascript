@@ -2,16 +2,15 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
-import { init, startSpan } from '@sentry/deno';
+import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('firebase instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
   const client = init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
   }) as DenoClient;
@@ -21,12 +20,11 @@ Deno.test('firebase instrumentation: included in default integrations (Deno 2.8.
 
 Deno.test('firebase instrumentation: orchestrion @firebase/firestore:add-doc channel produces a nested db span', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const channel = tracingChannel('orchestrion:@firebase/firestore:add-doc');
@@ -52,19 +50,25 @@ Deno.test('firebase instrumentation: orchestrion @firebase/firestore:add-doc cha
     channel.asyncEnd.publish(ctx);
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const fsSpan = parent.spans?.find(s => s.op === 'db.query');
-  assertExists(fsSpan, `expected a db.query child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(fsSpan!.description, 'addDoc users');
-  assertEquals(fsSpan!.data?.['db.operation.name'], 'addDoc');
-  assertEquals(fsSpan!.data?.['db.collection.name'], 'users');
-  assertEquals(fsSpan!.data?.['db.namespace'], '[DEFAULT]');
-  assertEquals(fsSpan!.data?.['db.system.name'], 'firebase.firestore');
-  assertEquals(fsSpan!.data?.['firebase.firestore.options.projectId'], 'demo-project');
-  assertEquals(fsSpan!.data?.['sentry.origin'], 'auto.firebase.firestore');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const fsSpan = children.find(s => getSpanOp(s) === 'db.query');
+  assertExists(fsSpan, `expected a db.query child span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`);
+  assertEquals(fsSpan.name, 'addDoc users');
+  assertEquals(fsSpan.attributes['db.operation.name']?.value, 'addDoc');
+  assertEquals(fsSpan.attributes['db.collection.name']?.value, 'users');
+  assertEquals(fsSpan.attributes['db.namespace']?.value, '[DEFAULT]');
+  assertEquals(fsSpan.attributes['db.system.name']?.value, 'firebase.firestore');
+  assertEquals(fsSpan.attributes['firebase.firestore.options.projectId']?.value, 'demo-project');
+  assertEquals(fsSpan.attributes['sentry.origin']?.value, 'auto.firebase.firestore');
 });

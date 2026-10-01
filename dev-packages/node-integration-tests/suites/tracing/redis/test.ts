@@ -1,6 +1,7 @@
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, type SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -76,6 +77,7 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
     // statement is reported through `db.query.text` alone and the name becomes
     // `{db.operation.name} {server.address}:{server.port}`.
     const COMMON_ATTRIBUTES = {
+      'sentry.is_localhost': { type: 'boolean', value: false },
       'db.system.name': { type: 'string', value: 'redis' },
       'server.address': { type: 'string', value: 'localhost' },
       'server.port': { type: 'integer', value: 6380 },
@@ -84,7 +86,7 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
       'sentry.op': { type: 'string', value: redisSpanOp },
       'sentry.origin': { type: 'string', value: origin },
       'sentry.release': { type: 'string', value: '1.0' },
-      'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.node' },
+      'sentry.sdk.name': { type: 'string', value: EXPECTED_SDK_NAME },
       'sentry.sdk.version': { type: 'string', value: expect.any(String) },
       'sentry.segment.id': { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
       'sentry.segment.name': { type: 'string', value: 'Test Span' },

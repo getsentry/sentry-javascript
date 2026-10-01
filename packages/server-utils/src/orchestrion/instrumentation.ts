@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { Client } from '@sentry/core';
 import { addNonEnumerableProperty, debug, waitForTracingChannelBinding } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';

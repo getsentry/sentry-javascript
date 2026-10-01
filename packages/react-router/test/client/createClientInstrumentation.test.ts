@@ -45,6 +45,7 @@ vi.mock('@sentry/browser', () => ({
 
 // Span streaming is the default trace lifecycle, and it's what makes span names low cardinality.
 const mockStreamingClient = { getOptions: () => ({ traceLifecycle: 'stream' }) };
+const mockStaticClient = { getOptions: () => ({ traceLifecycle: 'static' }) };
 
 describe('createSentryClientInstrumentation', () => {
   beforeEach(() => {
@@ -206,6 +207,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockInstrument = vi.fn();
 
     (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.router?.({ instrument: mockInstrument });
@@ -221,10 +223,11 @@ describe('createSentryClientInstrumentation', () => {
 
     expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'Fetcher fetcher-1',
+        name: 'fetcher',
         attributes: expect.objectContaining({
           'sentry.op': 'function',
           'code.function.name': 'fetcher',
+          'sentry.description': 'Fetcher fetcher-1',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -233,11 +236,35 @@ describe('createSentryClientInstrumentation', () => {
     expect(mockCallFetch).toHaveBeenCalled();
   });
 
+  it('keeps the fetcher key in the span name without span streaming', async () => {
+    const mockCallFetch = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStaticClient);
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.router?.({ instrument: mockInstrument });
+
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.fetch(mockCallFetch, { href: '/api/data', currentUrl: '/home', fetcherKey: 'fetcher-1' });
+
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Fetcher fetcher-1',
+        attributes: expect.not.objectContaining({ 'sentry.description': expect.anything() }),
+      }),
+      expect.any(Function),
+    );
+  });
+
   it('should instrument route loader with spans', async () => {
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
     (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
 
     const instrumentation = createSentryClientInstrumentation();
     // Route has id, index, path as required properties
@@ -261,10 +288,11 @@ describe('createSentryClientInstrumentation', () => {
 
     expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '/users/:id',
+        name: 'clientLoader',
         attributes: expect.objectContaining({
           'sentry.op': 'function',
           'code.function.name': 'clientLoader',
+          'sentry.description': '/users/:id',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -278,6 +306,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockInstrument = vi.fn();
 
     (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -299,10 +328,11 @@ describe('createSentryClientInstrumentation', () => {
 
     expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: '/users/:id',
+        name: 'clientAction',
         attributes: expect.objectContaining({
           'sentry.op': 'function',
           'code.function.name': 'clientAction',
+          'sentry.description': '/users/:id',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -593,6 +623,7 @@ describe('createSentryClientInstrumentation', () => {
     const mockInstrument = vi.fn();
 
     (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStaticClient);
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -615,6 +646,39 @@ describe('createSentryClientInstrumentation', () => {
     expect(coreBrowser.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '/users/123',
+      }),
+      expect.any(Function),
+    );
+  });
+
+  it('keeps the raw pathname out of the span name with span streaming', async () => {
+    const mockCallLoader = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+    const mockInstrument = vi.fn();
+
+    (coreBrowser.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getClient as any).mockReturnValue(mockStreamingClient);
+
+    const instrumentation = createSentryClientInstrumentation();
+    instrumentation.route?.({
+      id: 'test-route',
+      index: false,
+      path: '/test',
+      instrument: mockInstrument,
+    });
+
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.loader(mockCallLoader, {
+      request: { method: 'GET', url: 'http://example.com/users/123', headers: { get: () => null } },
+      params: { id: '123' },
+      unstable_pattern: undefined,
+      context: undefined,
+    });
+
+    expect(coreBrowser.startSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'clientLoader',
+        attributes: expect.objectContaining({ 'sentry.description': '/users/123' }),
       }),
       expect.any(Function),
     );

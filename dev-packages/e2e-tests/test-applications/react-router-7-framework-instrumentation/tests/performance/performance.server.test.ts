@@ -86,7 +86,7 @@ test.describe('server - instrumentation API performance', () => {
     expect(loaderSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
-      name: '/performance/server-loader',
+      name: 'loader',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       end_timestamp: expect.any(Number),
@@ -97,6 +97,7 @@ test.describe('server - instrumentation API performance', () => {
       'sentry.origin': { value: 'auto.function.react_router.instrumentation_api', type: 'string' },
       'sentry.op': { value: 'function', type: 'string' },
       'code.function.name': { value: 'loader', type: 'string' },
+      'sentry.description': { value: '/performance/server-loader', type: 'string' },
     });
   });
 
@@ -113,7 +114,7 @@ test.describe('server - instrumentation API performance', () => {
     expect(actionSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
-      name: '/performance/server-action',
+      name: 'action',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       end_timestamp: expect.any(Number),
@@ -124,6 +125,7 @@ test.describe('server - instrumentation API performance', () => {
       'sentry.origin': { value: 'auto.function.react_router.instrumentation_api', type: 'string' },
       'sentry.op': { value: 'function', type: 'string' },
       'code.function.name': { value: 'action', type: 'string' },
+      'sentry.description': { value: '/performance/server-action', type: 'string' },
     });
   });
 

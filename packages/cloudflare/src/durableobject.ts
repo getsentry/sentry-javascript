@@ -10,6 +10,7 @@ import { instrumentDurableObjectHandlers } from './instrumentations/instrumentDu
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
 import { instrumentContext } from './utils/instrumentContext';
+import { withConstructionIsolationScope } from './utils/invocationScope';
 import { hasRpcMeta } from './utils/rpcMeta';
 import { instrumentCloudflareAgent } from './instrumentations/agents';
 import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
@@ -67,7 +68,9 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
   // Pass `newTarget` so that subclasses of the instrumented class (e.g. the wrapper classes
   // created by wrangler's local dev tooling or `@cloudflare/vitest-pool-workers`) keep their
   // own prototype — otherwise subclass methods disappear and `instanceof` checks break.
-  const obj = Reflect.construct(target, [context, instrumentedEnv], newTarget) as T;
+  const obj = withConstructionIsolationScope(
+    () => Reflect.construct(target, [context, instrumentedEnv], newTarget) as T,
+  );
 
   const frameworkManagedMethods = resolveFrameworkManagedMethods(
     prototype,
@@ -298,9 +301,10 @@ function createRpcPrototypeWrapper(methodName: string, originalMethod: Unchecked
   const wrapper = function (this: unknown, ...args: unknown[]): unknown {
     const traced = hasRpcMeta(args);
 
-    // workerd dispatches an incoming RPC call outside any async context, so a call made while an
-    // invocation is already in flight comes from the instance itself (`this.helper()` inside
-    // `fetch`, `alarm` or another RPC method). Check that before touching per-instance state.
+    // workerd dispatches an incoming RPC call outside any async context, so a call made on any other
+    // isolation scope comes from the instance itself (`this.helper()` inside `fetch`, `alarm`,
+    // another RPC method or async work the constructor started). Check that before touching
+    // per-instance state.
     if (!traced && getIsolationScope() !== getDefaultIsolationScope()) {
       return Reflect.apply(originalMethod, this, args);
     }

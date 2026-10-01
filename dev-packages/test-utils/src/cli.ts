@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import type { SpawnSyncReturns } from 'node:child_process';
 
 /**
  * Spans only become queryable once they have made it through to EAP, which takes
@@ -13,8 +14,12 @@ export const EVENT_POLLING_OPTIONS = { timeout: 180_000, intervals: [5_000] };
 export interface TraceItem {
   /** On a span this is the span id. */
   event_id?: string;
+  /** On a span this is the span id of its parent span. */
+  parent_span_id?: string | null;
   event_type?: 'span' | 'error' | 'occurrence' | 'uptime_check';
   op?: string | null;
+  /** On a span this is the span name. */
+  description?: string | null;
   children?: TraceItem[] | null;
   errors?: TraceItem[] | null;
   occurrences?: TraceItem[] | null;
@@ -28,13 +33,8 @@ export function traceTarget(traceId: string): string {
   return `${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/${process.env['E2E_TEST_SENTRY_PROJECT']}/${traceId}`;
 }
 
-/**
- * Fetch a trace of the E2E test project through the `sentry` CLI, which the calling test app has to
- * list as a dev dependency. Returns an empty list while the trace has not landed yet.
- */
-export function fetchTrace(traceId: string): TraceItem[] {
-  const target = traceTarget(traceId);
-  const result = spawnSync('pnpm', ['exec', 'sentry', 'trace', 'view', target, '--json', '--fresh'], {
+function runSentryCli(args: string[]): SpawnSyncReturns<string> {
+  const result = spawnSync('pnpm', ['exec', 'sentry', ...args], {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     env: {
@@ -43,15 +43,29 @@ export function fetchTrace(traceId: string): TraceItem[] {
       // over an env token, so force the env token for identical behaviour everywhere.
       SENTRY_AUTH_TOKEN: process.env['E2E_TEST_AUTH_TOKEN'],
       SENTRY_FORCE_ENV_TOKEN: '1',
+      // Every call polls for data that is still arriving. `sentry api` has no `--fresh` flag and would
+      // otherwise answer every poll from the cached response of the first one.
+      SENTRY_NO_CACHE: '1',
     },
   });
 
   if (result.error) {
     throw new Error(
-      `Could not run \`pnpm exec sentry trace view\`: ${result.error.message}. ` +
+      `Could not run \`pnpm exec sentry ${args[0]}\`: ${result.error.message}. ` +
         'The test app needs `sentry` as a dev dependency.',
     );
   }
+
+  return result;
+}
+
+/**
+ * Fetch a trace of the E2E test project through the `sentry` CLI, which the calling test app has to
+ * list as a dev dependency. Returns an empty list while the trace has not landed yet.
+ */
+export function fetchTrace(traceId: string): TraceItem[] {
+  const target = traceTarget(traceId);
+  const result = runSentryCli(['trace', 'view', target, '--json', '--fresh']);
 
   if (result.status === 0) {
     return (JSON.parse(result.stdout) as { spans?: TraceItem[] }).spans ?? [];
@@ -76,6 +90,82 @@ export function fetchTrace(traceId: string): TraceItem[] {
   }
 
   throw new Error(`sentry trace view ${target} exited with ${result.status}: ${result.stderr}`);
+}
+
+/**
+ * Fetch all attributes of a span in the E2E test project, keyed by attribute name. Returns
+ * `undefined` while the span is not queryable yet.
+ *
+ * `sentry trace view --json` cannot be used for this: the trace-items endpoint sends `int` attribute
+ * values as strings, the CLI's schema rejects that, and the CLI then drops all attributes of the span.
+ */
+export function fetchSpanAttributes(traceId: string, spanId: string): Record<string, unknown> | undefined {
+  const path =
+    `/projects/${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/${process.env['E2E_TEST_SENTRY_PROJECT']}` +
+    `/trace-items/${spanId}/?trace_id=${traceId}&item_type=spans`;
+  const result = runSentryCli(['api', path]);
+
+  if (result.status === 0) {
+    const { attributes } = JSON.parse(result.stdout) as { attributes: { name: string; value: unknown }[] };
+    return Object.fromEntries(attributes.map(({ name, value }) => [name, value]));
+  }
+
+  if (result.stdout.includes('"Not found."')) {
+    return undefined;
+  }
+
+  throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);
+}
+
+/** An error event in the shape the Sentry API returns it. The exception is the entry of type `exception`. */
+export interface ApiEvent {
+  entries: {
+    type: string;
+    data: { values?: { type?: string; value?: string; mechanism?: { type?: string; handled?: boolean } }[] };
+  }[];
+}
+
+/** Fetch an error event of the E2E test project. Returns `undefined` while the event is not stored yet. */
+export function fetchEvent(eventId: string): ApiEvent | undefined {
+  const path =
+    `/projects/${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/${process.env['E2E_TEST_SENTRY_PROJECT']}` +
+    `/events/${eventId}/`;
+  const result = runSentryCli(['api', path]);
+
+  if (result.status === 0) {
+    return JSON.parse(result.stdout) as ApiEvent;
+  }
+
+  if (result.stdout.includes('"Event not found"')) {
+    return undefined;
+  }
+
+  throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);
+}
+
+/**
+ * Search the spans of the E2E test project from the last hour, and return the trace id of a span that
+ * matches `query`. `query` uses the Sentry search syntax, for example `gen_ai.conversation.id:abc`.
+ * Returns `undefined` while no span matches.
+ *
+ * `sentry span list --json` cannot be used for this: it returns no trace id for a project search.
+ */
+export function findTraceIdOfSpan(query: string): string | undefined {
+  const params = new URLSearchParams({
+    dataset: 'spans',
+    field: 'trace',
+    query: `project:${process.env['E2E_TEST_SENTRY_PROJECT']} ${query}`,
+    statsPeriod: '1h',
+    per_page: '1',
+  });
+  const path = `/organizations/${process.env['E2E_TEST_SENTRY_ORG_SLUG']}/events/?${params}`;
+  const result = runSentryCli(['api', path]);
+
+  if (result.status === 0) {
+    return (JSON.parse(result.stdout) as { data: { trace: string }[] }).data[0]?.trace;
+  }
+
+  throw new Error(`sentry api ${path} exited with ${result.status}: ${result.stdout}${result.stderr}`);
 }
 
 /**

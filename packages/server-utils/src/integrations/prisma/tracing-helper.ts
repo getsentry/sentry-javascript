@@ -398,6 +398,7 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
   return value != null && typeof (value as Record<string, unknown>)['then'] === 'function';
 }
 
-function shouldIgnoreSpan(spanName: string, ignoreSpanTypes: (string | RegExp)[]): boolean {
+/** Whether `spanName` matches one of the configured `ignoreSpanTypes` patterns. */
+export function shouldIgnoreSpan(spanName: string, ignoreSpanTypes: (string | RegExp)[]): boolean {
   return ignoreSpanTypes.some(pattern => (typeof pattern === 'string' ? pattern === spanName : pattern.test(spanName)));
 }

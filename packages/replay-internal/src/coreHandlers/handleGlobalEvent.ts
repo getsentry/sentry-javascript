@@ -57,10 +57,18 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       }
 
       if (isFeedbackEvent(event)) {
+        // The feedback widget links the replay from when it was opened. If the session
+        // refreshed since then, don't flush or add a breadcrumb to the unlinked new session
+        const sessionId = replay.getSessionId();
+        const feedbackReplayId = event.contexts.feedback.replay_id;
+        if (feedbackReplayId && feedbackReplayId !== sessionId) {
+          return event;
+        }
+
         // This should never reject
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         replay.flush();
-        event.contexts.feedback.replay_id = replay.getSessionId();
+        event.contexts.feedback.replay_id = sessionId;
         // Add a replay breadcrumb for this piece of feedback
         addFeedbackBreadcrumb(replay, event);
         return event;

@@ -6,5 +6,17 @@
 
 # Sentry Integration Shims
 
-This internal package exports shims for Integrations, which are used in order to guarantee a consistent CDN bundle
-output.
+Internal shims that provide consistent APIs across Sentry’s CDN bundles.
+
+> [!NOTE]
+> This is a private package used internally by Sentry’s JavaScript SDKs. It is not part of the public API contract
+> and may change at any time.
+
+## Documentation
+
+- [JavaScript SDK documentation](https://docs.sentry.io/platforms/javascript/)
+
+## Support
+
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

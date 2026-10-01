@@ -1,10 +1,10 @@
-import { subscribe } from 'node:diagnostics_channel';
 import type { RequestOptions } from 'node:http';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
 import type { Integration, IntegrationFn } from '@sentry/core';
 import { addNonEnumerableProperty, debug, getClient } from '@sentry/core';
 import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
 import { getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST, recordRequestSession } from '@sentry/core/server';
+import { subscribeDiagnosticsChannel } from '@sentry/server-utils';
 import type { RequestEventData } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 
@@ -143,7 +143,7 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
     name: INTEGRATION_NAME,
     setupOnce() {
       const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequestStart } = getHttpServerSubscriptions(_options);
-      subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequestStart);
+      subscribeDiagnosticsChannel(HTTP_ON_SERVER_REQUEST, onHttpServerRequestStart);
     },
     afterAllSetup(client) {
       if (DEBUG_BUILD && client.getIntegrationByName('Http')) {

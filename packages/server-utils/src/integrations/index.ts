@@ -16,6 +16,7 @@ import { lruMemoizerIntegration } from './lru-memoizer';
 import { langChainIntegration } from './langchain';
 import { langGraphIntegration } from './langgraph';
 import { mastraIntegration } from './mastra';
+import { mcpServerIntegration } from './mcp-server';
 import { vercelAIIntegration } from './vercel-ai';
 import { openAIIntegration } from './openai';
 import { anthropicAIIntegration } from './anthropic';
@@ -23,11 +24,13 @@ import { googleGenAIIntegration } from './google-genai';
 import { mistralAIIntegration } from './mistral';
 import { groqIntegration } from './groq';
 import { togetherAIIntegration } from './together-ai';
+import { typesafeIntegration } from './typesafe';
 import { postgresJsIntegration } from './postgres-js';
 import { firebaseIntegration } from './firebase';
 import { expressIntegration } from './express';
 import { fastifyIntegration } from './fastify';
 import { hapiIntegration } from './hapi';
+import { honoIntegration } from './hono';
 import { koaIntegration } from './koa';
 import type { Integration } from '@sentry/core';
 import { awsIntegration } from './aws-sdk';
@@ -63,12 +66,14 @@ export function getTracingIntegrations(): Integration[] {
     mistralAIIntegration(),
     groqIntegration(),
     togetherAIIntegration(),
+    typesafeIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
+    mcpServerIntegration(),
   ];
 }
 
 /** These are integrations that cover error capture, in addition to tracing. */
 export function getErrorIntegrations(): Integration[] {
-  return [expressIntegration(), fastifyIntegration(), hapiIntegration(), koaIntegration()];
+  return [expressIntegration(), fastifyIntegration(), hapiIntegration(), honoIntegration(), koaIntegration()];
 }

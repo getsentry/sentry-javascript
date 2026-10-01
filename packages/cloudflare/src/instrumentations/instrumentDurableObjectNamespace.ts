@@ -65,6 +65,10 @@ function instrumentDurableObjectStub(stub: DurableObjectStub, propagateRpcTrace:
         return instrumentFetcher((...args) => Reflect.apply(value, target, args));
       }
 
+      if (prop === 'connect' && typeof value === 'function') {
+        return (...args: unknown[]) => Reflect.apply(value, target, args);
+      }
+
       if (
         propagateRpcTrace &&
         typeof value === 'function' &&

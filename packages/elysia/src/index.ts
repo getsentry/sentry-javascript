@@ -64,10 +64,12 @@ export {
   openAIIntegration,
   groqIntegration,
   togetherAIIntegration,
+  typesafeIntegration,
   langChainIntegration,
   langGraphIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  mcpServerIntegration,
   SentryMastraExporter,
   modulesIntegration,
   contextLinesIntegration,
@@ -106,6 +108,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
   firebaseIntegration,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
@@ -138,6 +142,7 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -168,6 +173,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   bunServerIntegration,
+  bunRuntimeMetricsIntegration,
+  type BunRuntimeMetricsOptions,
   makeFetchTransport,
 } from '@sentry/bun';
 

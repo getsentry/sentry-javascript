@@ -1,9 +1,18 @@
-import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
+import { getActiveSpan, getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { debug, timestampInSeconds, uniq } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  debug,
+  hasSpanStreamingEnabled,
+  timestampInSeconds,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
+  UI_RENDER_SPAN_NAME_FALLBACK,
+  UI_UNMOUNT_SPAN_NAME_FALLBACK,
+  UI_UPDATE_SPAN_NAME_FALLBACK,
+  uniq,
+} from '@sentry/core';
+import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
 import { UI_MOUNT, UI_RENDER, UI_UNMOUNT, UI_UPDATE } from '@sentry/conventions/op';
-import { DEFAULT_HOOKS } from './constants';
+import { DEFAULT_HOOKS, DEFAULT_ROOT_SPAN_TIMEOUT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 import { formatComponentName } from './vendor/components';
@@ -18,15 +27,25 @@ const VUE_OPERATION_TO_SPAN_OP: Record<Operation, string> = {
   destroy: UI_UNMOUNT,
 };
 
-type Mixins = Parameters<Vue['mixin']>[0];
+const VUE_OPERATION_TO_SPAN_NAME_FALLBACK: Record<Operation, string> = {
+  activate: UI_MOUNT_SPAN_NAME_FALLBACK,
+  create: UI_MOUNT_SPAN_NAME_FALLBACK,
+  mount: UI_MOUNT_SPAN_NAME_FALLBACK,
+  update: UI_UPDATE_SPAN_NAME_FALLBACK,
+  unmount: UI_UNMOUNT_SPAN_NAME_FALLBACK,
+  destroy: UI_UNMOUNT_SPAN_NAME_FALLBACK,
+};
 
-interface VueSentry extends ViewModel {
+export type Mixins = Parameters<Vue['mixin']>[0];
+
+export interface VueSentry extends ViewModel {
   readonly $root: VueSentry;
   $_sentryComponentSpans?: {
     [key: string]: Span | undefined;
   };
   $_sentryRootComponentSpan?: Span;
   $_sentryRootComponentSpanTimer?: ReturnType<typeof setTimeout>;
+  $_sentryRootComponentSpanActivity?: number;
 }
 
 // Mappings from operation to corresponding lifecycle hook.
@@ -41,18 +60,41 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   update: ['beforeUpdate', 'updated'],
 };
 
-/** End the top-level component span and activity with a debounce configured using `timeout` option */
+/**
+ * End the root component span once no render activity happened for `timeout` (a debounce).
+ *
+ * All debounce state lives on `$root`, so hooks from every component share one timer. Each component
+ * only writes a timestamp (no new timer is created). So mounting any number of components uses a single timer.
+ */
 function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: number): void {
-  if (vm.$_sentryRootComponentSpanTimer) {
-    clearTimeout(vm.$_sentryRootComponentSpanTimer);
-  }
+  const root = vm.$root;
+  root.$_sentryRootComponentSpanActivity = timestamp;
 
-  vm.$_sentryRootComponentSpanTimer = setTimeout(() => {
-    if (vm.$root?.$_sentryRootComponentSpan) {
-      vm.$root.$_sentryRootComponentSpan.end(timestamp);
-      vm.$root.$_sentryRootComponentSpan = undefined;
+  if (!root.$_sentryRootComponentSpanTimer) {
+    scheduleRootComponentSpanEnd(root, timestamp, timeout);
+  }
+}
+
+/**
+ * Fires `delayMs` after the activity that scheduled it. Activity recorded in the meantime pushes
+ * the deadline out by the recorded gap, so the span always ends at the last activity timestamp.
+ */
+function scheduleRootComponentSpanEnd(root: VueSentry, activityWhenScheduled: number, delayMs: number): void {
+  root.$_sentryRootComponentSpanTimer = setTimeout(() => {
+    root.$_sentryRootComponentSpanTimer = undefined;
+
+    const lastActivity = root.$_sentryRootComponentSpanActivity ?? activityWhenScheduled;
+    if (lastActivity > activityWhenScheduled) {
+      // activity happened after this timer was scheduled: push the deadline out
+      scheduleRootComponentSpanEnd(root, lastActivity, (lastActivity - activityWhenScheduled) * 1000);
+      return;
     }
-  }, timeout);
+
+    if (root.$_sentryRootComponentSpan) {
+      root.$_sentryRootComponentSpan.end(lastActivity);
+      root.$_sentryRootComponentSpan = undefined;
+    }
+  }, delayMs);
 }
 
 /** Find if the current component exists in the provided `TracingOptions.trackComponents` array option. */
@@ -73,7 +115,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
 
   const mixins: Mixins = {};
 
-  const rootComponentSpanFinalTimeout = options.timeout || 2000;
+  const rootComponentSpanFinalTimeout = options.timeout || DEFAULT_ROOT_SPAN_TIMEOUT;
 
   for (const operation of hooks) {
     // Retrieve corresponding hooks from Vue lifecycle.
@@ -87,16 +129,25 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
     for (const internalHook of internalHooks) {
       mixins[internalHook] = function (this: VueSentry) {
         const isRootComponent = this.$root === this;
+        const client = getClient();
+        const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+        const componentName = formatComponentName(this, false);
+        const match = componentName.match(/^<([^\s]*)>(?: at [^\s]*)?$/);
+        const innerName = match?.[1] ?? componentName;
+        const conventionComponentName = innerName === 'Anonymous' ? undefined : innerName;
 
         // 1. Root Component span creation
         if (isRootComponent) {
+          const description = 'Application Render';
           this.$_sentryRootComponentSpan =
             this.$_sentryRootComponentSpan ||
             startInactiveSpan({
-              name: 'Application Render',
+              name: hasSpanStreaming ? conventionComponentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
               attributes: {
                 [SENTRY_OP]: UI_RENDER,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+                ...(conventionComponentName && { [UI_COMPONENT_NAME]: conventionComponentName }),
+                ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },
               onlyIfParent: true,
             });
@@ -106,8 +157,6 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
         }
 
         // 2. Component tracking filter
-        const componentName = formatComponentName(this, false);
-
         const shouldTrack =
           isRootComponent || // We always want to track the root component
           (Array.isArray(options.trackComponents)
@@ -139,11 +188,17 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
               oldSpan.end();
             }
 
+            const description = `Vue ${componentName}`;
+
             this.$_sentryComponentSpans[operation] = startInactiveSpan({
-              name: `Vue ${componentName}`,
+              name: hasSpanStreaming
+                ? conventionComponentName || VUE_OPERATION_TO_SPAN_NAME_FALLBACK[operation]
+                : description,
               attributes: {
                 [SENTRY_OP]: VUE_OPERATION_TO_SPAN_OP[operation],
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+                ...(conventionComponentName && { [UI_COMPONENT_NAME]: conventionComponentName }),
+                ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },
               // UI spans should only be created if there is an active root span (transaction)
               onlyIfParent: true,

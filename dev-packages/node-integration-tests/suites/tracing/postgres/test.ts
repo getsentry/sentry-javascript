@@ -276,7 +276,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
     });
   });
 
-  conditionalTest({ max: 25 })('pg-native', () => {
+  // Deno: with a module load hook installed, Deno compiles a native addon (`libpq`) as JavaScript.
+  // Bun: the `libpq` addon needs the Node symbol `node::EmitAsyncInit`, which Bun does not provide.
+  conditionalTest({ max: 25, skipRuntimes: ['bun', 'deno'] })('pg-native', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([

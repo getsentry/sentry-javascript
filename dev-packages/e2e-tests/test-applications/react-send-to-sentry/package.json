@@ -45,6 +45,7 @@
     "serve": "14.0.1"
   },
   "volta": {
+    "node": "20.19.5",
     "extends": "../../package.json"
   },
   "sentryTest": {

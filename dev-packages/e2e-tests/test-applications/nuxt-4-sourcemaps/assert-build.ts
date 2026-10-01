@@ -20,6 +20,8 @@ const keepClientSourceMaps = process.env.E2E_KEEP_CLIENT_SOURCEMAPS === 'true';
 const isStaticBuild = process.env.NUXT_COMMAND === 'generate';
 
 const CLIENT_OUTPUT = path.join('.output', 'public');
+/** Vite's own output directory. Nitro copies it to `CLIENT_OUTPUT`, and Sentry deletes no maps here. */
+const CLIENT_BUILD_OUTPUT = path.join('.nuxt', 'dist', 'client');
 const SERVER_OUTPUT = path.join('.output', 'server');
 
 /** Both markers sit in comments, so bundlers strip them from the code but keep them in `sourcesContent`. */
@@ -34,6 +36,26 @@ function filesContaining(dir: string, needle: string): string[] {
     .filter(entry => entry.isFile())
     .map(entry => path.join(entry.parentPath, entry.name))
     .filter(file => fs.readFileSync(file, 'utf8').includes(needle));
+}
+
+/**
+ * Rolldown emits no source map for a chunk without mappable source, such as Vue's export helper.
+ * Such a chunk still gets a debug ID, but there is no map to upload for it.
+ */
+function debugIdsOfChunksWithoutSourceMap(dir: string): Set<string> {
+  const debugIds = new Set<string>();
+
+  for (const file of filesContaining(dir, 'sentry-dbid-')) {
+    if (file.endsWith('.map') || fs.existsSync(`${file}.map`)) {
+      continue;
+    }
+
+    for (const match of fs.readFileSync(file, 'utf8').matchAll(/sentry-dbid-([\da-f-]{36})/gi)) {
+      debugIds.add((match[1] as string).toLowerCase());
+    }
+  }
+
+  return debugIds;
 }
 
 console.log(
@@ -139,11 +161,15 @@ assert.deepEqual(malformedDebugIds, [], 'Expected every uploaded debug ID to be 
 
 // An uploaded map is only reachable at runtime if the shipped bundle claims the same ID. Inspecting
 // the upload alone cannot show this.
+const debugIdsWithoutSourceMap = debugIdsOfChunksWithoutSourceMap(CLIENT_BUILD_OUTPUT);
+
 for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   const injectedDebugIds = findInjectedDebugIds({ outputDir });
   assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
 
-  const unuploaded = injectedDebugIds.filter(debugId => !uploadedDebugIds.has(debugId));
+  const unuploaded = injectedDebugIds.filter(
+    debugId => !uploadedDebugIds.has(debugId) && !debugIdsWithoutSourceMap.has(debugId),
+  );
   assert.deepEqual(unuploaded, [], `Expected every debug ID in ${outputDir} to have an uploaded sourcemap`);
 
   console.log(`  ${outputDir}: ${injectedDebugIds.length} injected debug ID(s), all uploaded`);

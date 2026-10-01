@@ -63,9 +63,11 @@ export {
   openAIIntegration,
   groqIntegration,
   togetherAIIntegration,
+  typesafeIntegration,
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
+  mcpServerIntegration,
   SentryMastraExporter,
   createFlueInstrumentation,
   modulesIntegration,
@@ -102,6 +104,8 @@ export {
   expressErrorHandler,
   // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
@@ -144,6 +148,7 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,

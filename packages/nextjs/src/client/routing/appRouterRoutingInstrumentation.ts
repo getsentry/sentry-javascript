@@ -13,8 +13,10 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
   getAbsoluteUrl,
+  resolveCurrentRoute,
+  resolveRoute,
 } from '@sentry/react';
-import { maybeParameterizeRoute } from './parameterization';
+import { stripTrailingSlash } from './parameterization';
 import {
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -23,14 +25,6 @@ import {
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
-
-/**
- * Strips trailing slash from a pathname, unless it's the root path.
- * This normalizes paths like '/about/' to '/about' to handle Next.js `trailingSlash: true` config.
- */
-function stripTrailingSlash(pathname: string): string {
-  return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-}
 
 function setNavigationSpanUrlAttributes(span: Span, urlPath: string, urlOrPath: string): void {
   span.setAttributes({
@@ -103,7 +97,7 @@ const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: und
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
   const pathname = stripTrailingSlash(WINDOW.location.pathname);
-  const parameterizedPathname = maybeParameterizeRoute(pathname);
+  const parameterizedPathname = resolveCurrentRoute(client);
   startBrowserTracingPageLoadSpan(client, {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     name: parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : pathname),
@@ -156,9 +150,9 @@ const globalWithInjectedBasePath = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 export function appRouterInstrumentNavigation(client: Client): void {
   routerTransitionHandler = (href, navigationType) => {
     const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
-    const normalizedHref = basePath && !href.startsWith(basePath) ? `${basePath}${href}` : href;
+    const normalizedHref = basePath && href.startsWith('/') && !href.startsWith(basePath) ? `${basePath}${href}` : href;
     const unparameterizedPathname = stripTrailingSlash(new URL(normalizedHref, WINDOW.location.href).pathname);
-    const parameterizedPathname = maybeParameterizeRoute(unparameterizedPathname);
+    const parameterizedPathname = resolveRoute(normalizedHref, client);
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     const spanName =
       parameterizedPathname ??
@@ -198,7 +192,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
 
   WINDOW.addEventListener('popstate', () => {
     const pathname = stripTrailingSlash(WINDOW.location.pathname);
-    const parameterizedPathname = maybeParameterizeRoute(pathname);
+    const parameterizedPathname = resolveCurrentRoute(client);
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     const spanName =
       parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname);
@@ -304,9 +298,11 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
           const href = argArray[0];
           const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
           const normalizedHref =
-            basePath && typeof href === 'string' && !href.startsWith(basePath) ? `${basePath}${href}` : href;
+            basePath && typeof href === 'string' && href.startsWith('/') && !href.startsWith(basePath)
+              ? `${basePath}${href}`
+              : href;
           const transactionName = stripTrailingSlash(transactionNameifyRouterArgument(normalizedHref));
-          const parameterizedPathname = maybeParameterizeRoute(transactionName);
+          const parameterizedPathname = resolveRoute(transactionName, client);
 
           currentNavigationSpanRef.current = startBrowserTracingNavigationSpan(
             client,

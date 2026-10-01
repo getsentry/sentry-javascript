@@ -1,4 +1,5 @@
 import { afterAll, expect } from 'vitest';
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -90,6 +91,46 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
         .start()
         .completed();
     });
+  });
+
+  // tedious 20 requires Node >= 22.
+  conditionalTest({ min: 22 })('tedious v20', () => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument-span-streaming.mjs',
+      (createTestRunner, test) => {
+        test('should auto-instrument `tedious` package', async () => {
+          await createTestRunner()
+            .expect({
+              span: container => {
+                const dbSpans = container.items.filter(item => item.attributes['sentry.origin']?.value === ORIGIN);
+
+                expect(dbSpans.map(span => span.name)).toEqual(
+                  expect.arrayContaining([
+                    'SELECT',
+                    'callProcedure [dbo].[test_proced]',
+                    'INSERT [dbo].[test_prepared]',
+                    'execBulkLoad test_bulk',
+                    'SELECT [dbo].[test_bulk]',
+                  ]),
+                );
+                expect(dbSpans.find(span => span.name === 'select')?.status).toBe('error');
+                expect(dbSpans[0]?.attributes).toMatchObject({
+                  'db.system.name': { value: 'mssql' },
+                  'db.namespace': { value: 'master' },
+                  'db.user': { value: 'sa' },
+                  'server.address': { value: '127.0.0.1' },
+                  'server.port': { value: 1433 },
+                });
+              },
+            })
+            .start()
+            .completed();
+        });
+      },
+      { additionalDependencies: { tedious: '^20' } },
+    );
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createTestRunner, test) => {

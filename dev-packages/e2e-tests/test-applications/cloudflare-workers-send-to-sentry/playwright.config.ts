@@ -1,16 +1,16 @@
-import { defineConfig } from '@playwright/test';
+import { getPlaywrightConfig } from '@sentry-internal/test-utils';
 
-export default defineConfig({
-  testDir: './tests',
+const config = getPlaywrightConfig(undefined, {
+  // The tests read what arrived in Sentry through the sentry CLI, so there is no event proxy to start.
+  webServer: undefined,
   // The worker is deployed once for the whole run and deleted again afterwards.
-  globalSetup: './global-setup.mjs',
-  globalTeardown: './global-teardown.mjs',
+  globalSetup: './global-setup.ts',
+  globalTeardown: './global-teardown.ts',
   /* Spans take ~2min to become queryable via the trace endpoint. */
   timeout: 210_000,
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: 0,
   // Every test spends most of its time polling Sentry, so run them all at once.
+  fullyParallel: true,
   workers: '100%',
-  reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
 });
+
+export default config;

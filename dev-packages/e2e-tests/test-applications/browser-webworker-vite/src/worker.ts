@@ -12,4 +12,9 @@ self.addEventListener('message', event => {
     // This will throw an uncaught error in the worker
     throw new Error(`Uncaught error in worker`);
   }
+
+  if (event.data.msg === 'TRIGGER_PRIMITIVE_ERROR') {
+    // A thrown primitive has no stack, so only the ErrorEvent knows where it came from
+    throw 'Primitive thrown in worker';
+  }
 });
