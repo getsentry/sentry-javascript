@@ -91,6 +91,12 @@
 
 Work in this release was contributed by @nabi-noor, @LuccaRebelloToledo, @andasan, @breken-ai, @EmileBrunelle, and @diobriggs. Thank you for your contributions!
 
+### Important Changes
+
+- **feat(nextjs): Add `cache_origin` span links to `use cache` hit spans ([#24821](https://github.com/getsentry/sentry-javascript/pull/24821))**
+
+  A `cache.get` span for a `"use cache"` hit now carries a span link (`sentry.link.type: 'cache_origin'`) to the `cache.put` span of the request that filled the cache entry, connecting the trace that reads a cached value to the trace that produced it.
+
 ## 11.1.0
 
 ### Important Changes
