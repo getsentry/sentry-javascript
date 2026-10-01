@@ -12,6 +12,7 @@ describe('express layer span end', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('ends each middleware span when it calls `next`, before the route handler runs', async () => {
       const runner = createRunner()
+        .unordered()
         .expect({
           span: container => {
             const middlewareSpans = container.items.filter(
