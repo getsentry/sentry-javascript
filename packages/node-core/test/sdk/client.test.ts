@@ -1,4 +1,3 @@
-import { LightNodeClient } from '../../src/light/client';
 import { ProxyTracer } from '@opentelemetry/api';
 import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
@@ -8,6 +7,7 @@ import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemet
 import * as os from 'os';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { NodeClient } from '../../src';
+import { LightNodeClient } from '../../src/light/client';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
