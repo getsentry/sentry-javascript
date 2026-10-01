@@ -961,6 +961,74 @@ describe('flushAndDispose', () => {
     });
   });
 
+  describe('streaming response classification', () => {
+    const options: CloudflareOptions = { dsn: MOCK_OPTIONS.dsn, cacheClient: false };
+
+    test.each(['text/x-component;charset=utf-8', 'text/html;charset=utf-8'])(
+      'defers teardown until a %s body without Content-Length is consumed',
+      async contentType => {
+        const waits: Promise<unknown>[] = [];
+        const waitUntil = vi.fn((promise: Promise<unknown>) => waits.push(promise));
+        const context = { waitUntil } as unknown as ExecutionContext;
+
+        const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+        let releaseLastChunk!: () => void;
+        const lastChunkGate = new Promise<void>(resolve => {
+          releaseLastChunk = resolve;
+        });
+
+        const stream = new ReadableStream({
+          async start(controller) {
+            controller.enqueue(new TextEncoder().encode('<div>shell</div>'));
+            await lastChunkGate;
+            controller.enqueue(new TextEncoder().encode('<div>suspended</div>'));
+            controller.close();
+          },
+        });
+
+        const result = await wrapRequestHandler(
+          { options, request: new Request('https://example.com'), context },
+          () => new Response(stream, { headers: { 'content-type': contentType } }),
+        );
+
+        expect(waitUntil).not.toHaveBeenCalled();
+
+        releaseLastChunk();
+        expect(await result.text()).toBe('<div>shell</div><div>suspended</div>');
+
+        await Promise.all(waits);
+        expect(waitUntil).toHaveBeenCalledTimes(1);
+
+        flushSpy.mockRestore();
+      },
+    );
+
+    test.each(['text/x-component;charset=utf-8', 'text/html;charset=utf-8'])(
+      'tears down at handler return for a %s body with a Content-Length',
+      async contentType => {
+        const waitUntil = vi.fn();
+        const context = { waitUntil } as unknown as ExecutionContext;
+
+        const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+        const response = new Response('<div>prerendered</div>', {
+          headers: { 'content-type': contentType, 'content-length': '22' },
+        });
+
+        const result = await wrapRequestHandler(
+          { options, request: new Request('https://example.com'), context },
+          () => response,
+        );
+
+        expect(result).toBe(response);
+        expect(waitUntil).toHaveBeenCalledTimes(1);
+
+        flushSpy.mockRestore();
+      },
+    );
+  });
+
   test('dispose is NOT called for protocol upgrade responses (status 101)', async () => {
     const context = createMockExecutionContext();
     const waits: Promise<unknown>[] = [];

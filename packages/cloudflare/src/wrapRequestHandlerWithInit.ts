@@ -208,11 +208,10 @@ export function wrapRequestHandlerWithInit(
                 },
               });
 
-              return new Response(res.body.pipeThrough(transform), {
-                status: res.status,
-                statusText: res.statusText,
-                headers: res.headers,
-              });
+              // Passing the original response as the init keeps `encodeBody: 'manual'`, which a
+              // Response does not expose as a property. Without it, workerd compresses a
+              // pre-compressed body a second time.
+              return new Response(res.body.pipeThrough(transform), res);
             } catch {
               span.end();
               waitUntil?.(flushAndDispose(client));
