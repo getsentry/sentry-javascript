@@ -6,6 +6,8 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   transport: loggingTransport,
+  // Each request captures the same error, which Dedupe would drop after the first request.
+  integrations: integrations => integrations.filter(integration => integration.name !== 'Dedupe'),
 });
 
 import express from 'express';

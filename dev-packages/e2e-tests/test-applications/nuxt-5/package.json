@@ -19,9 +19,6 @@
   },
   "//": [
     "Currently, we need to install the latest version of Nitro and the Nuxt nightlies as those contain Nuxt v5",
-    "@nuxt/cli is pinned. The CLI nightlies register nitro runtime plugins that live inside the CLI package: https://github.com/nuxt/cli/pull/1570",
-    "Nuxt's impound guard blocks imports from that package in the dev server runtime, so every SSR request fails in dev mode.",
-    "TODO: remove the @nuxt/cli override when impound allows the CLI runtime plugins",
     "TODO: remove nitro from dependencies",
     "Nuxt generates `fetch.server.mjs` as a virtual module that imports `ofetch`, and since a virtual id is neither absolute nor on disk, Vite resolves from its `root` (the srcDir) instead of the importer's folder.",
     "This fails because `ofetch` is a dependency of `nuxt` rather than the app, so pnpm leaves it in `.pnpm/`",
@@ -30,6 +27,7 @@
   "dependencies": {
     "@pinia/nuxt": "^0.11.3",
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
+    "mongoose": "^9.10.2",
     "ofetch": "^2.0.0-alpha.3",
     "nitro": "latest",
     "nuxt": "npm:nuxt-nightly@5x",
@@ -39,17 +37,11 @@
     "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
-  "pnpm": {
-    "overrides": {
-      "@nuxt/cli": "npm:@nuxt/cli-nightly@4.0.0-20260927-110353-6eaa0eb"
-    }
-  },
   "sentryTest": {
     "optional": true
   },
   "volta": {
     "extends": "../../package.json",
-    "node": "22.20.0",
     "pnpm": "11.10.0"
   }
 }

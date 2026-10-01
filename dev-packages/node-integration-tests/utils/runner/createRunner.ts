@@ -14,7 +14,7 @@ import type {
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -501,8 +501,9 @@ export function createRunner(...paths: string[]) {
             !ensureNoErrorOutput && (expectedEnvelopes.length > 0 || (expectedEnvelopeHeaders?.length ?? 0) > 0);
           const runtime = getRuntime();
           const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath, runtime), ...flags] : flags;
+          const entryPath = buildScenario(runtime, testPath);
 
-          child = spawn(runtime, buildRuntimeArgs(runtime, childFlags, testPath), { env, cwd: PACKAGE_ROOT });
+          child = spawn(runtime, buildRuntimeArgs(runtime, childFlags, entryPath), { env, cwd: PACKAGE_ROOT });
           spawnedAt = Date.now();
 
           child.on('error', e => {
@@ -794,6 +795,27 @@ function buildAutoFlushFlags(existingFlags: readonly string[], testPath: string,
  * `DENO_IMPORT_MAP`. Any other Node flag throws, so a suite that needs one fails with a clear
  * message instead of running with different behavior.
  */
+/**
+ * Returns the file the runtime runs for `testPath`. When `RUNTIME_BUILD_SCRIPT` is set, that
+ * script is run by the same runtime with `testPath`, builds the scenario, and prints
+ * `BUILD_OK <output path>`. The Bun package uses it to bundle scenarios with `@sentry/bun/plugin`.
+ * Scenarios are built right before they start, because `createEsmAndCjsTests` writes the CJS
+ * variant of a scenario only while the tests run.
+ */
+function buildScenario(runtime: Runtime, testPath: string): string {
+  const buildScript = process.env.RUNTIME_BUILD_SCRIPT;
+  if (!buildScript) {
+    return testPath;
+  }
+
+  const result = spawnSync(runtime, [buildScript, testPath], { cwd: PACKAGE_ROOT, encoding: 'utf8' });
+  const outputPath = result.stdout?.match(/^BUILD_OK (.+)$/m)?.[1];
+  if (!outputPath) {
+    throw new Error(`Building ${testPath} with ${buildScript} failed:\n${result.stderr}${result.stdout}`);
+  }
+  return outputPath;
+}
+
 function buildRuntimeArgs(runtime: Runtime, flags: readonly string[], testPath: string): string[] {
   if (runtime === 'node') {
     return [...flags, testPath];

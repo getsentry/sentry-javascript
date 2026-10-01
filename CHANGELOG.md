@@ -4,6 +4,93 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 11.2.0
+
+### Important Changes
+
+- **feat(hono): add orchestrion-based auto-instrumentation ([#24497](https://github.com/getsentry/sentry-javascript/pull/24497))**
+
+  Hono is now instrumented automatically. Request spans are named after the matched Hono route, each middleware gets its own span, and errors thrown in handlers are captured.
+
+- **feat(node/bun): Enable dedupeIntegration by default ([#24794](https://github.com/getsentry/sentry-javascript/pull/24794))**
+
+  `@sentry/node` and `@sentry/bun` now include `dedupeIntegration` in their default integrations, like the browser, Deno, Vercel Edge and Cloudflare SDKs. When the same error is captured two times in a row, only the first event is sent. To keep the previous behavior, remove the integration: `integrations: defaults => defaults.filter(integration => integration.name !== 'Dedupe')`.
+
+- **feat(remix): Instrument Remix 3 server requests via fetch-router ([#24801](https://github.com/getsentry/sentry-javascript/pull/24801))**
+
+  On Remix 3, the SDK now adds the matched route as `http.route`, the response status and a low-cardinality name to the `http.server` span of each `fetch-router` request. Start the app with `--import @sentry/remix/v3/node` in place of `--import remix/node-tsx`.
+
+### Other Changes
+
+- chore(bundler-plugins): Allow magic-string 1.x ([#24768](https://github.com/getsentry/sentry-javascript/pull/24768))
+- feat(deps): Bump oxc-parser to 0.152.0 and sentry to 0.45.0 ([#24823](https://github.com/getsentry/sentry-javascript/pull/24823))
+- feat(elysia): Export `bunRuntimeMetricsIntegration` ([#24892](https://github.com/getsentry/sentry-javascript/pull/24892))
+- feat(react-router): Support request-scoped CSP nonces in createSentryHandleRequest ([#24826](https://github.com/getsentry/sentry-javascript/pull/24826))
+- fix(aws-serverless): Keep Lambda extension polling past 300s ([#24811](https://github.com/getsentry/sentry-javascript/pull/24811))
+- fix(browser-utils): Stop leaking DOM instrumentation listeners on mismatched removals ([#24727](https://github.com/getsentry/sentry-javascript/pull/24727))
+- fix(core): Resolve escape sequences in `fmt` / `parameterize` messages ([#24770](https://github.com/getsentry/sentry-javascript/pull/24770))
+- fix(deno): Flush buffered metrics and logs before process exit ([#24807](https://github.com/getsentry/sentry-javascript/pull/24807))
+- fix(node): End Express layer spans when `next` is called ([#24854](https://github.com/getsentry/sentry-javascript/pull/24854))
+- fix(node): Flush buffered metrics on process exit ([#24806](https://github.com/getsentry/sentry-javascript/pull/24806))
+- fix(nuxt): Fix CommonJS interop for force-inlined instrumented packages ([#24799](https://github.com/getsentry/sentry-javascript/pull/24799))
+- fix(server-utils): Preserve raw Anthropic response bodies ([#24902](https://github.com/getsentry/sentry-javascript/pull/24902))
+- fix(server-utils): Preserve raw Groq and Together response bodies ([#24906](https://github.com/getsentry/sentry-javascript/pull/24906))
+- fix(server-utils): Preserve raw OpenAI embeddings and conversation responses ([#24908](https://github.com/getsentry/sentry-javascript/pull/24908))
+- fix(server-utils): Preserve response bodies for OpenAI parse helpers ([#24783](https://github.com/getsentry/sentry-javascript/pull/24783))
+- fix(solidstart): Support `rolldownOptions` in instrumentation file plugin ([#24863](https://github.com/getsentry/sentry-javascript/pull/24863))
+- fix(sveltekit): Skip trace meta tags when prerendering ([#24777](https://github.com/getsentry/sentry-javascript/pull/24777))
+- fix(vue): Share one root render span debounce timer across components ([#24868](https://github.com/getsentry/sentry-javascript/pull/24868))
+- perf(server-utils): Avoid quadratic SQL sanitizer output handling ([#24834](https://github.com/getsentry/sentry-javascript/pull/24834))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#24822](https://github.com/getsentry/sentry-javascript/pull/24822))
+- chore: Add external contributor to CHANGELOG.md ([#24827](https://github.com/getsentry/sentry-javascript/pull/24827))
+- chore: Add external contributor to CHANGELOG.md ([#24835](https://github.com/getsentry/sentry-javascript/pull/24835))
+- chore: Add external contributor to CHANGELOG.md ([#24850](https://github.com/getsentry/sentry-javascript/pull/24850))
+- chore: Add external contributor to CHANGELOG.md ([#24851](https://github.com/getsentry/sentry-javascript/pull/24851))
+- chore: Add external contributor to CHANGELOG.md ([#24914](https://github.com/getsentry/sentry-javascript/pull/24914))
+- chore(deps): Update to Vitest 4 and Vite 8 ([#24746](https://github.com/getsentry/sentry-javascript/pull/24746))
+- chore(github): Add `external` label on PRs of external contributors ([#24825](https://github.com/getsentry/sentry-javascript/pull/24825))
+- chore(solidstart): Remove unused Vitest setup from e2e apps ([#24789](https://github.com/getsentry/sentry-javascript/pull/24789))
+- ci: shard Bun integration tests ([#24771](https://github.com/getsentry/sentry-javascript/pull/24771))
+- ci: shard Deno shared integration tests ([#24772](https://github.com/getsentry/sentry-javascript/pull/24772))
+- docs(core): Clarify error object dedupe and `dedupeIntegration` ([#24893](https://github.com/getsentry/sentry-javascript/pull/24893))
+- feat(deps): bump axios from 1.18.0 to 1.20.0 ([#24918](https://github.com/getsentry/sentry-javascript/pull/24918))
+- feat(deps): bump fast-uri from 3.1.7 to 3.1.8 ([#24889](https://github.com/getsentry/sentry-javascript/pull/24889))
+- feat(deps): bump fastify from 5.12.1 to 5.12.5 ([#24917](https://github.com/getsentry/sentry-javascript/pull/24917))
+- feat(deps): bump hono from 4.13.5 to 4.13.7 ([#24916](https://github.com/getsentry/sentry-javascript/pull/24916))
+- feat(deps): bump ip-address from 10.4.0 to 10.7.2 ([#24810](https://github.com/getsentry/sentry-javascript/pull/24810))
+- feat(deps): bump moment from 2.30.1 to 2.31.0 ([#24890](https://github.com/getsentry/sentry-javascript/pull/24890))
+- fix(deps): runtime dependency security fixes ([#24911](https://github.com/getsentry/sentry-javascript/pull/24911))
+- ref(hono): move shared Hono instrumentation into @sentry/server-utils ([#24496](https://github.com/getsentry/sentry-javascript/pull/24496))
+- test(browser): Fix flaky reportPageLoaded duration assertion ([#24814](https://github.com/getsentry/sentry-javascript/pull/24814))
+- test(bun): Run the auto-instrumentation suites with bundled scenarios ([#24612](https://github.com/getsentry/sentry-javascript/pull/24612))
+- test(cloudflare): Add shared streamed-span helpers to the integration test runner ([#24176](https://github.com/getsentry/sentry-javascript/pull/24176))
+- test(cloudflare): Assert Workers AI gen_ai spans in the send-to-sentry E2E test ([#24515](https://github.com/getsentry/sentry-javascript/pull/24515))
+- test(cloudflare): Port the binding suites to span streaming ([#24190](https://github.com/getsentry/sentry-javascript/pull/24190))
+- test(cloudflare): Port the http-server integration suites to span streaming ([#24195](https://github.com/getsentry/sentry-javascript/pull/24195))
+- test(cloudflare): Port the request handler suites to span streaming ([#24196](https://github.com/getsentry/sentry-javascript/pull/24196))
+- test(cloudflare): Port the tracing propagation suites to span streaming ([#24185](https://github.com/getsentry/sentry-javascript/pull/24185))
+- test(cloudflare): Port the tracing suites to span streaming ([#24179](https://github.com/getsentry/sentry-javascript/pull/24179))
+- test(cloudflare): Port the vite-autoinstrument suites to span streaming ([#24189](https://github.com/getsentry/sentry-javascript/pull/24189))
+- test(e2e): Add Bun Express test app ([#24306](https://github.com/getsentry/sentry-javascript/pull/24306))
+- test(e2e): Add trace test for background use cache revalidation ([#24740](https://github.com/getsentry/sentry-javascript/pull/24740))
+- test(e2e): Mark supabase-nextjs as optional ([#24898](https://github.com/getsentry/sentry-javascript/pull/24898))
+- test(e2e): Retry a hung SAM start in aws-serverless tests ([#24879](https://github.com/getsentry/sentry-javascript/pull/24879))
+- test(nextjs): Add tests for low-cardinality span names for cache spans ([#24819](https://github.com/getsentry/sentry-javascript/pull/24819))
+- test(nextjs): Add UI components for cached/dynamic content ([#24874](https://github.com/getsentry/sentry-javascript/pull/24874))
+- test(nuxt): Remove version pin for @nuxt/cli in Nuxt 5 E2E ([#24798](https://github.com/getsentry/sentry-javascript/pull/24798))
+- test(replay): De-flake mutationLimit large-mutations test ([#24784](https://github.com/getsentry/sentry-javascript/pull/24784))
+- test(sveltekit): Add missing prerender e2e test ([#24921](https://github.com/getsentry/sentry-javascript/pull/24921))
+- test(test-utils): Add fetchSpanAttributes to read span attributes via the sentry CLI ([#24514](https://github.com/getsentry/sentry-javascript/pull/24514))
+- test(test-utils): Extract Cloudflare Worker deploys into `test-utils/cloudflare` ([#24815](https://github.com/getsentry/sentry-javascript/pull/24815))
+
+</details>
+
+Work in this release was contributed by @nabi-noor, @LuccaRebelloToledo, @andasan, @breken-ai, @EmileBrunelle, and @diobriggs. Thank you for your contributions!
+
 ## 11.1.0
 
 ### Important Changes

@@ -223,6 +223,9 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
  * function helps us ensure that even if we encounter the same error more than once, we only record it the first time we
  * see it.
  *
+ * The client runs this check for every captured exception, also when `dedupeIntegration` is not active.
+ * `dedupeIntegration` drops equal events that come from different error objects.
+ *
  * Note: It will ignore primitives (always return `false` and not mark them as seen), as properties can't be set on
  * them. {@link: Object.objectify} can be used on exceptions to convert any that are primitives into their equivalent
  * object wrapper forms so that this check will always work. However, because we need to flag the exact object which
