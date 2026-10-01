@@ -16,7 +16,7 @@ vi.mock('@sentry/core', async () => {
 
 const pageloadOriginMs = 1_000_000;
 const sleepDurationMs = 3_600_000;
-// The `performance.now()` time from which the reset time origin applies.
+// The `performance.now()` time from which the corrected time origin applies.
 const correctionFromMs = 10_000;
 
 describe('addPerformanceEntries', () => {
@@ -36,7 +36,7 @@ describe('addPerformanceEntries', () => {
     vi.unstubAllGlobals();
   });
 
-  it('keeps the resource spans of a navigation that happens after a time origin reset', () => {
+  it('keeps the resource spans of a navigation that happens after a time origin correction', () => {
     const resourceStartTime = 12_000;
     vi.stubGlobal('addEventListener', vi.fn());
     vi.stubGlobal('location', { origin: 'https://example.com' });

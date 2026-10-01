@@ -47,7 +47,6 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
             continue;
           }
 
-          // Navigations can happen long after page load, after a time origin reset.
           const timeOriginInMs = browserPerformanceTimeOrigin(entry.startTime);
           if (!timeOriginInMs) {
             continue;

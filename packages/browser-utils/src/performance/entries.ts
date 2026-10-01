@@ -224,7 +224,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
   performanceEntries.slice(_performanceCursor).forEach(entry => {
-    // Navigations can happen long after page load, after a time origin potentially drifted.
+    // Navigations can happen long after page load, after the time origin was corrected for drift.
     // We use the origin from the entry's start for all its timings, so its duration stays correct.
     const timeOriginInMs = browserPerformanceTimeOrigin(entry.startTime);
     if (!timeOriginInMs) {

@@ -145,7 +145,7 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     if (WINDOW.document) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         // Devices usually hide the page before they sleep and show it again after they wake up. Checking for drift
-        // at both points makes the time origin reset happen at the sleep, not at the next random timestamp.
+        // at both points makes the time origin correction happen at the sleep, rather than at the next regular timestamp call.
         timestampInSeconds();
 
         if (WINDOW.document.visibilityState === 'hidden') {

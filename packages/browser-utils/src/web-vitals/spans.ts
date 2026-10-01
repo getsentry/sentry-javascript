@@ -194,7 +194,7 @@ export function _sendLcpSpan(
   // A soft navigation's LCP is measured from the triggering interaction, not the document time
   // origin. Starting the span there too keeps it inside the navigation span it is parented to and
   // keeps its duration equal to the reported value. The span's end uses the same origin, even if
-  // the time origin was reset in between.
+  // the time origin was corrected in between.
   const performanceTimeOrigin = browserPerformanceTimeOrigin(navigationStartTime || 0) || 0;
   const startTime = msToSec(performanceTimeOrigin + (navigationStartTime || 0));
   // Without an entry there is no render time to end at, so the span lasts the value it reports,
