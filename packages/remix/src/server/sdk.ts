@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
-import { applySdkMetadata, debug } from '@sentry/core';
+import { applySdkMetadata, debug, getClient } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit, isInitialized } from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import type { RemixOptions } from '../utils/remixOptions';
 import { instrumentServer } from './instrumentServer';
@@ -25,10 +25,11 @@ export function getRemixDefaultIntegrations(options: RemixOptions): Integration[
 export function init(options: RemixOptions): NodeClient | undefined {
   applySdkMetadata(options, 'remix', ['remix', 'node']);
 
-  if (isInitialized()) {
+  const existingClient = getClient<NodeClient>();
+  if (existingClient) {
     DEBUG_BUILD && debug.log('SDK already initialized');
 
-    return;
+    return existingClient;
   }
 
   options.defaultIntegrations = getRemixDefaultIntegrations(options);

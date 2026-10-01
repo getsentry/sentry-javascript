@@ -48,6 +48,14 @@ describe('Server init()', () => {
     expect(nodeInit).toHaveBeenCalledTimes(1);
   });
 
+  it('returns the existing client if already initialized', () => {
+    const first = init({});
+    const second = init({});
+
+    expect(first).toBeDefined();
+    expect(second).toBe(first);
+  });
+
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
   });

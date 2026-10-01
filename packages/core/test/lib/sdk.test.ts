@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, it, type Mock, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, test, vi } from 'vitest';
 import type { Client } from '../../src/client';
-import { getCurrentScope } from '../../src/currentScopes';
+import { getClient, getCurrentScope } from '../../src/currentScopes';
+import { close } from '../../src/exports';
 import { captureCheckIn } from '../../src/monitor';
 import { installedIntegrations } from '../../src/integration';
+import { originalConsoleMethods } from '../../src/utils/debug-logger';
 import { initAndBind, setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types/integration';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
@@ -90,6 +92,78 @@ describe('SDK', () => {
       const client = initAndBind(TestClient, options);
       expect(client).not.toBeUndefined();
     });
+
+    describe('when called again', () => {
+      // `consoleSandbox` calls the method stored in `originalConsoleMethods`, so a
+      // spy on `console.warn` misses the warning once the console is instrumented.
+      const originalWarn = originalConsoleMethods.warn;
+      let warnSpy: Mock;
+
+      beforeEach(() => {
+        warnSpy = vi.fn();
+        originalConsoleMethods.warn = warnSpy;
+      });
+
+      afterEach(() => {
+        if (originalWarn) {
+          originalConsoleMethods.warn = originalWarn;
+        } else {
+          delete originalConsoleMethods.warn;
+        }
+      });
+
+      test('does not warn on the first call', () => {
+        initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+        expect(warnSpy).not.toHaveBeenCalled();
+      });
+
+      test('warns and replaces the active client', () => {
+        const first = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+        const second = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('`Sentry.init()` was called more than once'));
+        expect(second).not.toBe(first);
+        expect(getClient()).toBe(second);
+      });
+
+      test('does not warn after close()', async () => {
+        const first = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+        await close();
+        const second = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+
+        expect(warnSpy).not.toHaveBeenCalled();
+        expect(second).not.toBe(first);
+        expect(getClient()).toBe(second);
+      });
+    });
+  });
+});
+
+describe('close', () => {
+  beforeEach(() => {
+    global.__SENTRY__ = {};
+  });
+
+  test('unbinds the closed client', async () => {
+    const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+    await close();
+
+    expect(client.getOptions().enabled).toBe(false);
+    expect(getClient()).toBeUndefined();
+  });
+
+  test('does not unbind a client that was bound while closing', async () => {
+    const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+    const other = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+    vi.spyOn(client, 'close').mockImplementation(async () => {
+      setCurrentClient(other);
+      return true;
+    });
+
+    await close();
+
+    expect(getClient()).toBe(other);
   });
 });
 

@@ -1,7 +1,7 @@
-import type { Event, EventProcessor } from '@sentry/core';
+import type { Event } from '@sentry/core';
 import { originalConsoleMethods } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
+import { getGlobalScope, SDK_VERSION } from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NUXT_DEV_MODE_FLAG, NUXT_PRERENDER_FLAG, NUXT_SERVER_INITIALIZED_FLAG } from '../../src/common/devMode';
 import { init } from '../../src/server';
@@ -16,6 +16,7 @@ describe('Nuxt Server SDK', () => {
       // Each test needs a fresh init; the double-init guard would otherwise skip every later call.
       delete (globalThis as { __SENTRY_NUXT_SERVER_INITIALIZED__?: boolean }).__SENTRY_NUXT_SERVER_INITIALIZED__;
       delete (globalThis as { __SENTRY_NUXT_PRERENDER__?: boolean }).__SENTRY_NUXT_PRERENDER__;
+      SentryNode.getCurrentScope().setClient(undefined);
     });
 
     it('Adds Nuxt metadata to the SDK options', () => {
@@ -80,6 +81,16 @@ describe('Nuxt Server SDK', () => {
         } finally {
           originalConsoleMethods.log = originalLog;
         }
+      });
+
+      it('initializes again after close()', async () => {
+        const firstClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+        await SentryNode.close();
+        const secondClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        expect(nodeInit).toHaveBeenCalledTimes(2);
+        expect(secondClient).toBeDefined();
+        expect(secondClient).not.toBe(firstClient);
       });
 
       it('marks a successful initialization for the double-init guard', () => {
@@ -256,22 +267,24 @@ describe('Nuxt Server SDK', () => {
       });
     });
 
-    it('registers an event processor', async () => {
-      let passedEventProcessors: EventProcessor[] = [];
-      const addEventProcessor = vi
-        .spyOn(getGlobalScope(), 'addEventProcessor')
-        .mockImplementation((eventProcessor: EventProcessor) => {
-          passedEventProcessors = [...passedEventProcessors, eventProcessor];
-          return new Scope();
-        });
-
-      init({
+    it('registers its event processors on the client', () => {
+      const client = init({
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
       });
 
-      expect(addEventProcessor).toHaveBeenCalledTimes(2);
-      expect(passedEventProcessors[0]?.id).toEqual('NuxtLowQualityTransactionsFilter');
-      expect(passedEventProcessors[1]?.id).toEqual('NuxtClientSourceMapErrorFilter');
+      const ids = client?.getEventProcessors().map(processor => processor.id);
+      expect(ids).toContain('NuxtLowQualityTransactionsFilter');
+      expect(ids).toContain('NuxtClientSourceMapErrorFilter');
+    });
+
+    it('does not add event processors to the global scope after close()', async () => {
+      const globalProcessorCount = getGlobalScope().getScopeData().eventProcessors.length;
+
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+      await SentryNode.close();
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(getGlobalScope().getScopeData().eventProcessors.length).toBe(globalProcessorCount);
     });
   });
 
