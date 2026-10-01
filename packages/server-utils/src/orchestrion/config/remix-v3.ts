@@ -19,8 +19,16 @@ export const remixV3Config: InstrumentationConfig[] = [
     },
     functionQuery: { functionName: 'createRouter', kind: 'Sync' },
   },
+  // The subscriber rewrites the options before the asset server reads them and wraps the server it
+  // returns, so browser modules carry debug IDs without any config from the app.
+  {
+    channelName: 'createAssetServer',
+    module: { name: '@remix-run/assets', versionRange: '>=0.6.0 <1', filePath: 'dist/lib/asset-server.js' },
+    functionQuery: { functionName: 'createAssetServer', kind: 'Sync' },
+  },
 ];
 
 export const remixV3Channels = {
   REMIX_V3_CREATE_ROUTER: 'orchestrion:@remix-run/fetch-router:createRouter',
+  REMIX_V3_CREATE_ASSET_SERVER: 'orchestrion:@remix-run/assets:createAssetServer',
 } as const;
