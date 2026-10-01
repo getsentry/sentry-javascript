@@ -2,7 +2,7 @@ import type { Transport } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import { CpuProfilerBindings } from '@sentry/node-cpu-profiler';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _nodeProfilingIntegration } from '../src/integration';
 import { NODE_VERSION } from '../src/nodeVersion';
 
@@ -31,6 +31,10 @@ function makeSpanProfilingClient(options: Partial<NodeClientOptions> = {}): [Sen
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('ProfilingIntegration', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('manual continuous profiling', () => {
     it('start and stops a profile session', () => {
       const [client] = makeSpanProfilingClient({

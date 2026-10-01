@@ -77,7 +77,7 @@ export function addSentryCodeToPage(options: {
   injectFetchProxyScript: boolean;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    const metaTags = getTraceMetaTags();
+    const metaTags = isSvelteKitBuilding() ? '' : getTraceMetaTags();
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
     const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
@@ -86,6 +86,19 @@ export function addSentryCodeToPage(options: {
 
     return html.replace('<head>', modifiedHead);
   };
+}
+
+/**
+ * Prerendered pages would bake one trace id and sampling decision into the HTML for every visitor.
+ *
+ * `building` from `$app/environment` isn't available here (the SDK is loaded from node_modules at
+ * runtime), so we rely on `_SENTRY_SVELTEKIT_BUILDING`, which our Vite plugin sets during `vite build`
+ * and SvelteKit copies into the worker it prerenders in.
+ */
+function isSvelteKitBuilding(): boolean {
+  // `process` doesn't exist in every runtime (e.g. Cloudflare Workers without `nodejs_compat`)
+  const env = typeof process !== 'undefined' && typeof process.env === 'object' ? process.env : undefined;
+  return !!env?._SENTRY_SVELTEKIT_BUILDING;
 }
 
 /**

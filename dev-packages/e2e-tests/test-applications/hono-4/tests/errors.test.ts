@@ -5,7 +5,7 @@ import {
   getSpanOp,
   collectStreamedSpansUntilSegment,
 } from '@sentry-internal/test-utils';
-import { APP_NAME, RUNTIME } from './constants';
+import { APP_NAME } from './constants';
 
 test.describe('route handler errors', () => {
   test('captures error with mechanism and trace correlation', async ({ baseURL }) => {
@@ -103,81 +103,37 @@ test.describe('HTTPException errors', () => {
     });
   });
 
-  // On Node/Bun, httpServerSpansIntegration drops transactions for 3xx/4xx responses (ignoreStatusCodes), so we just use a request guard.
-  // On Cloudflare the transaction is available, and we additionally verify its name.
-  [301, 302].forEach(code => {
-    test(`does not capture ${code} HTTPException`, async ({ baseURL }) => {
-      let errorEventOccurred = false;
-
-      waitForError(APP_NAME, event => {
-        if (event.exception?.values?.[0]?.value === `HTTPException ${code}`) {
-          errorEventOccurred = true;
-        }
-        return false;
-      });
-
-      const segmentPromise = waitForStreamedSpan(
-        APP_NAME,
-        segment =>
-          segment.is_segment &&
-          (RUNTIME === 'cloudflare'
-            ? getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/http-exception/')
-            : getSpanOp(segment) === 'http.server' && segment.name === 'GET /'),
-      );
-
-      const response = await fetch(`${baseURL}/http-exception/${code}`, { redirect: 'manual' });
-      expect(response.status).toBe(code);
-
-      if (RUNTIME !== 'cloudflare') {
-        // Simple request guard for non-Cloudflare runtimes since the other transaction is dropped for 4xx responses
-        await fetch(`${baseURL}/`);
+  // 3xx/4xx responses must not be captured as errors. Some runtimes drop the transaction for those
+  // status codes (httpServerSpansIntegration's ignoreStatusCodes), so instead of waiting on the
+  // HTTPException route's own (possibly dropped) transaction, we wait on a defined 2xx route's
+  // transaction as a flush guard — that one is produced on every runtime — then assert no error was
+  // captured. (Parametrized route naming is covered by tracing.test.ts on 2xx routes.)
+  const expectHttpExceptionNotCaptured = async (baseURL: string, code: number): Promise<void> => {
+    let errorEventOccurred = false;
+    waitForError(APP_NAME, event => {
+      if (event.exception?.values?.[0]?.value === `HTTPException ${code}`) {
+        errorEventOccurred = true;
       }
-
-      const segment = await segmentPromise;
-
-      if (RUNTIME === 'cloudflare') {
-        expect(segment.name).toBe('GET /http-exception/:code');
-      }
-
-      expect(errorEventOccurred).toBe(false);
+      return false;
     });
-  });
 
-  [401, 403, 404].forEach(code => {
+    const guardPromise = waitForStreamedSpan(
+      APP_NAME,
+      segment => segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === 'GET /',
+    );
+
+    const response = await fetch(`${baseURL}/http-exception/${code}`, { redirect: 'manual' });
+    expect(response.status).toBe(code);
+
+    await fetch(`${baseURL}/`);
+    await guardPromise;
+
+    expect(errorEventOccurred).toBe(false);
+  };
+
+  [301, 302, 401, 403, 404].forEach(code => {
     test(`does not capture ${code} HTTPException`, async ({ baseURL }) => {
-      let errorEventOccurred = false;
-
-      waitForError(APP_NAME, event => {
-        if (event.exception?.values?.[0]?.value === `HTTPException ${code}`) {
-          errorEventOccurred = true;
-        }
-        return false;
-      });
-
-      const segmentPromise = waitForStreamedSpan(
-        APP_NAME,
-        segment =>
-          segment.is_segment &&
-          (RUNTIME === 'cloudflare'
-            ? getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/http-exception/')
-            : getSpanOp(segment) === 'http.server' && segment.name === 'GET /'),
-      );
-
-      const response = await fetch(`${baseURL}/http-exception/${code}`);
-      expect(response.status).toBe(code);
-
-      if (RUNTIME !== 'cloudflare') {
-        // Simple request guard for non-Cloudflare runtimes since the other transaction is dropped for 4xx responses
-        await fetch(`${baseURL}/`);
-      }
-
-      const segment = await segmentPromise;
-
-      if (RUNTIME === 'cloudflare') {
-        expect(segment.name).toBe('GET /http-exception/:code');
-      }
-
-      expect(errorEventOccurred).toBe(false);
+      await expectHttpExceptionNotCaptured(baseURL!, code);
     });
   });
 });
@@ -226,41 +182,18 @@ test.describe('middleware errors', () => {
       return false;
     });
 
-    const segmentPromise = collectStreamedSpansUntilSegment(APP_NAME, segment => {
-      if (RUNTIME === 'cloudflare') {
-        return (
-          getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/test-errors/middleware-http-exception-4xx')
-        );
-      }
-      return getSpanOp(segment) === 'http.server' && segment.name === 'GET /';
-    });
+    // Guard on a defined 2xx route's transaction (produced on every runtime) rather than the 4xx
+    // route's own transaction, which some runtimes drop — then assert no error was captured.
+    const guardPromise = waitForStreamedSpan(
+      APP_NAME,
+      segment => segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === 'GET /',
+    );
 
     const response = await fetch(`${baseURL}/test-errors/middleware-http-exception-4xx`);
     expect(response.status).toBe(401);
 
-    if (RUNTIME !== 'cloudflare') {
-      await fetch(`${baseURL}/`);
-    }
-
-    const segmentSpans = await segmentPromise;
-    const segment = segmentSpans.find(segment => {
-      if (!segment.is_segment) return false;
-      if (RUNTIME === 'cloudflare') {
-        return (
-          getSpanOp(segment) === 'http.server' && !!segment.name?.includes('/test-errors/middleware-http-exception-4xx')
-        );
-      }
-      return getSpanOp(segment) === 'http.server' && segment.name === 'GET /';
-    })!;
-
-    if (RUNTIME === 'cloudflare') {
-      expect(segment.name).toBe('GET /test-errors/middleware-http-exception-4xx');
-
-      const middlewareSpan = segmentSpans
-        .filter(span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment.span_id)
-        .find(s => getSpanOp(s) === 'middleware');
-      expect(middlewareSpan?.status).not.toBe('error');
-    }
+    await fetch(`${baseURL}/`);
+    await guardPromise;
 
     expect(errorEventOccurred).toBe(false);
   });

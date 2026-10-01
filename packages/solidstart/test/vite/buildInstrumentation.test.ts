@@ -63,6 +63,28 @@ describe('makeBuildInstrumentationFilePlugin()', () => {
     expect(config.build.rollupOptions.input).toContain('/some/project/path/src/myapp/instrument.server.ts');
   });
 
+  it('adds the instrumentation file to `rolldownOptions` if the config uses them', async () => {
+    const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - this is always defined and always a function
+    const config = await buildInstrumentationFilePlugin.config(
+      {
+        ...viteConfig,
+        build: {
+          rolldownOptions: {
+            input: ['/path/to/entry1.js'],
+          },
+        },
+      },
+      { command: 'build' },
+    );
+    expect(config.build.rolldownOptions.input).toEqual([
+      '/path/to/entry1.js',
+      '/some/project/path/src/instrument.server.ts',
+    ]);
+    expect(config.build).not.toHaveProperty('rollupOptions');
+  });
+
   it("doesn't add the instrumentation file for server function builds", async () => {
     const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin();
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

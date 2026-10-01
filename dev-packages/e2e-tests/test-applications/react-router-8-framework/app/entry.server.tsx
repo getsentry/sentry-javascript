@@ -1,5 +1,6 @@
 import { createReadableStreamFromReadable } from '@react-router/node';
 import * as Sentry from '@sentry/react-router';
+import { randomBytes } from 'node:crypto';
 import { renderToPipeableStream } from 'react-dom/server';
 import { ServerRouter } from 'react-router';
 import { type HandleErrorFunction } from 'react-router';
@@ -11,6 +12,7 @@ const handleRequest = Sentry.createSentryHandleRequest({
   ServerRouter,
   renderToPipeableStream,
   createReadableStreamFromReadable,
+  getNonce: () => randomBytes(16).toString('base64'),
 });
 
 export default handleRequest;

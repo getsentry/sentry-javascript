@@ -903,11 +903,15 @@ jobs:
         run: yarn test
 
   job_bun_integration_tests:
-    name: Bun Integration Tests
+    name: Bun Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -928,14 +932,18 @@ jobs:
 
       - name: Run integration tests
         working-directory: dev-packages/bun-integration-tests
-        run: yarn test
+        run: yarn test --shard=${{ matrix.shard }}/2
 
   job_deno_integration_tests:
-    name: Deno Integration Tests
+    name: Deno Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -956,9 +964,16 @@ jobs:
       - name: Build @sentry/deno
         working-directory: packages/deno
         run: yarn build
-      - name: Run integration tests
+      - name: Run native Deno integration tests
+        if: matrix.shard == 1
         working-directory: dev-packages/deno-integration-tests
-        run: yarn test
+        run: |
+          yarn install:deno
+          yarn deno-types
+          yarn test:unit
+      - name: Run shared Node integration tests
+        working-directory: dev-packages/deno-integration-tests
+        run: yarn test:node-suites --shard=${{ matrix.shard }}/2
 
   job_build_tarballs:
     name: Build tarballs
@@ -1040,8 +1055,8 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Bun
         if:
-          contains(fromJSON('["node-exports-test-app","nextjs-16-bun", "elysia-bun", "elysia-bun-static", "hono-4",
-          "bun-bytecode", "bun-mysql"]'), matrix.test-application)
+          matrix.test-application == 'node-exports-test-app' || contains(matrix.test-application, 'bun') ||
+          contains(matrix.label, 'bun')
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.14'
@@ -1052,7 +1067,7 @@ jobs:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Deno
-        if: matrix.test-application == 'deno' || matrix.test-application == 'hono-4'
+        if: contains(matrix.test-application, 'deno') || contains(matrix.label, 'deno')
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}

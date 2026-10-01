@@ -27,6 +27,10 @@ export default {
       }
       case '/test-unhandled-error':
         throw new Error('E2E test unhandled error');
+      case '/test-workers-ai': {
+        await env.AI.run('@cf/meta/llama-3.2-1b-instruct', { prompt: 'Say hi', max_tokens: 5 });
+        return Response.json({ traceId: spanContext?.traceId });
+      }
       case '/test-span':
         return Response.json({ spanId: spanContext?.spanId, traceId: spanContext?.traceId });
       case '/test-workflow-sleep': {
