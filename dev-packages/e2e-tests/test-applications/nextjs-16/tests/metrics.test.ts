@@ -1,7 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { waitForMetric } from '@sentry-internal/test-utils';
+import { getRuntime, waitForMetric } from '@sentry-internal/test-utils';
 
 test('Should emit metrics from server and client', async ({ request, page }) => {
+  // The client of `@sentry/cloudflare` has no `serverName`, so its metrics have no `server.address`.
+  const serverAddress =
+    getRuntime() === 'cloudflare' ? {} : { 'server.address': { value: expect.any(String), type: 'string' } };
+
   const clientCountPromise = waitForMetric('nextjs-16', async metric => {
     return metric.name === 'test.page.count';
   });
@@ -90,7 +94,7 @@ test('Should emit metrics from server and client', async ({ request, page }) => 
     type: 'counter',
     value: 1,
     attributes: {
-      'server.address': { value: expect.any(String), type: 'string' },
+      ...serverAddress,
       'random.attribute': { value: 'Potatoes', type: 'string' },
       endpoint: { value: '/metrics/route-handler', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
@@ -106,7 +110,7 @@ test('Should emit metrics from server and client', async ({ request, page }) => 
     type: 'distribution',
     value: 100,
     attributes: {
-      'server.address': { value: expect.any(String), type: 'string' },
+      ...serverAddress,
       'random.attribute': { value: 'Patatas', type: 'string' },
       endpoint: { value: '/metrics/route-handler', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
@@ -122,7 +126,7 @@ test('Should emit metrics from server and client', async ({ request, page }) => 
     type: 'gauge',
     value: 200,
     attributes: {
-      'server.address': { value: expect.any(String), type: 'string' },
+      ...serverAddress,
       'random.attribute': { value: 'Patate', type: 'string' },
       endpoint: { value: '/metrics/route-handler', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },

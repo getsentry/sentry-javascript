@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getRuntime } from '@sentry-internal/test-utils';
 
 test('Instruments DB calls made during server-side rendering of a page', async ({ page }) => {
   // The db spans are children of the segment span, which ends last.
@@ -12,19 +12,22 @@ test('Instruments DB calls made during server-side rendering of a page', async (
   const spans = await spansPromise;
 
   // One page render produces spans from both injection paths: pg (externalized → runtime module
-  // hook) and ioredis (bundle-safe allowlisted → build-time loader).
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      name: 'SELECT',
-      status: 'ok',
-      attributes: expect.objectContaining({
-        'sentry.op': { value: 'db', type: 'string' },
-        'sentry.origin': { value: 'auto.db.postgres', type: 'string' },
-        'db.system.name': { value: 'postgresql', type: 'string' },
-        'db.query.text': { value: 'SELECT ? + ? AS answer', type: 'string' },
+  // hook) and ioredis (bundle-safe allowlisted → build-time loader). Bun and Workers have no runtime module
+  // hook, so pg creates no spans there.
+  if (getRuntime() !== 'bun' && getRuntime() !== 'cloudflare') {
+    expect(spans).toContainEqual(
+      expect.objectContaining({
+        name: 'SELECT',
+        status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'db', type: 'string' },
+          'sentry.origin': { value: 'auto.db.postgres', type: 'string' },
+          'db.system.name': { value: 'postgresql', type: 'string' },
+          'db.query.text': { value: 'SELECT ? + ? AS answer', type: 'string' },
+        }),
       }),
-    }),
-  );
+    );
+  }
   expect(spans).toContainEqual(
     expect.objectContaining({
       name: 'set localhost:6379',
