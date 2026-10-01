@@ -1,6 +1,12 @@
 import * as os from 'node:os';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { _INTERNAL_flushLogsBuffer, applySdkMetadata, debug, ServerRuntimeClient } from '@sentry/core';
+import {
+  _INTERNAL_flushLogsBuffer,
+  _INTERNAL_flushMetricsBuffer,
+  applySdkMetadata,
+  debug,
+  ServerRuntimeClient,
+} from '@sentry/core';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -12,6 +18,7 @@ export class LightNodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;
   private _logOnExitFlushListener: (() => void) | undefined;
+  private _metricsOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
     const serverName =
@@ -48,6 +55,11 @@ export class LightNodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
       process.on('beforeExit', this._logOnExitFlushListener);
     }
+
+    this._metricsOnExitFlushListener = () => {
+      _INTERNAL_flushMetricsBuffer(this);
+    };
+    process.on('beforeExit', this._metricsOnExitFlushListener);
   }
 
   /** @inheritDoc */
@@ -73,6 +85,10 @@ export class LightNodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     if (this._logOnExitFlushListener) {
       process.off('beforeExit', this._logOnExitFlushListener);
+    }
+
+    if (this._metricsOnExitFlushListener) {
+      process.off('beforeExit', this._metricsOnExitFlushListener);
     }
 
     return super.close(timeout);
