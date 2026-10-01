@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
@@ -26,7 +26,7 @@ sentryTest('includes a span link to a previously negatively sampled span', async
         span_id: expect.stringMatching(/[a-f\d]{16}/),
         sampled: false,
         attributes: {
-          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+          [SENTRY_LINK_TYPE]: {
             type: 'string',
             value: 'previous_trace',
           },

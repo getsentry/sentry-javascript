@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@sentry/browser": "11.2.0",
-    "@sentry/conventions": "^0.24.0",
+    "@sentry/conventions": "^0.25.0",
     "@sentry/core": "11.2.0",
     "magic-string": "~0.30.0"
   },

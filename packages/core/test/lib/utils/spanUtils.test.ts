@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import {
   convertSpanLinksForEnvelope,
@@ -6,7 +7,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
-  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
@@ -498,7 +498,7 @@ describe('spanToStaticSpanJSON', () => {
               trace_id: 'trace1',
               sampled: true,
               attributes: {
-                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+                [SENTRY_LINK_TYPE]: 'previous_trace',
               },
             },
           ],
@@ -598,7 +598,7 @@ describe('spanToStaticSpanJSON', () => {
                 traceFlags: TRACE_FLAG_SAMPLED,
               },
               attributes: {
-                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+                [SENTRY_LINK_TYPE]: 'previous_trace',
               },
             },
           ],
@@ -627,7 +627,7 @@ describe('spanToStaticSpanJSON', () => {
               trace_id: 'trace1',
               sampled: true,
               attributes: {
-                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+                [SENTRY_LINK_TYPE]: 'previous_trace',
               },
             },
           ],
@@ -693,7 +693,7 @@ describe('spanToStaticSpanJSON', () => {
             trace_id: 'trace1',
             sampled: true,
             attributes: {
-              [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+              [SENTRY_LINK_TYPE]: 'previous_trace',
             },
           },
         ],
@@ -722,7 +722,7 @@ describe('spanToStaticSpanJSON', () => {
             trace_id: 'trace1',
             sampled: true,
             attributes: {
-              [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
+              [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
             },
           },
         ],

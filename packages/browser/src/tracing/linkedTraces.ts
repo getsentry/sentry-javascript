@@ -5,12 +5,11 @@ import {
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   spanToJSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../exports';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_LINK_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 export interface PreviousTraceInfo {
   /**
@@ -188,7 +187,7 @@ export function addPreviousTraceSpanLink(
     span.addLink({
       context: previousTraceSpanCtx,
       attributes: {
-        [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+        [SENTRY_LINK_TYPE]: 'previous_trace',
       },
     });
 
