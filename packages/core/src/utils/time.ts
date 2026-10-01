@@ -78,6 +78,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
   // Due to device sleeps, the origin might need to be corrected to match the wall clock time over the SDK's lifetime.
   let correctedTimeOrigin = performance.timeOrigin;
   _timeOriginSegments = [{ from: 0, origin: correctedTimeOrigin }];
+  let isFirstCall = true;
   let lastCheckedPerformanceNow = 0;
 
   return () => {
@@ -94,15 +95,20 @@ function createUnixTimestampInSecondsFunc(): () => number {
       if (Math.abs(correctedTimeOrigin + performanceNow - dateNow) > CLOCK_DRIFT_THRESHOLD_MS) {
         correctedTimeOrigin = dateNow - performanceNow;
 
-        // We keep the old origins, so performance entries recorded before the correction still use their origin.
-        // On the first call, the new segment also starts at 0, so it replaces the uncorrected page load origin in all
-        // lookups (`browserPerformanceTimeOrigin` takes the last segment that starts at or before a given time).
-        _timeOriginSegments.push({ from: lastCheckedPerformanceNow, origin: correctedTimeOrigin });
-        if (_timeOriginSegments.length > MAX_TIME_ORIGIN_SEGMENTS) {
-          // we keep the oldest entry (the page load origin) and drop the one after it.
-          _timeOriginSegments.splice(1, 1);
+        if (isFirstCall) {
+          // `performance.timeOrigin` was already wrong at startup, so we replace it. If we pushed a second segment
+          // instead, the segment cap below could later drop the corrected one and keep the wrong one.
+          _timeOriginSegments = [{ from: 0, origin: correctedTimeOrigin }];
+        } else {
+          // We keep the old origins, so performance entries recorded before the correction still use their origin.
+          _timeOriginSegments.push({ from: lastCheckedPerformanceNow, origin: correctedTimeOrigin });
+          if (_timeOriginSegments.length > MAX_TIME_ORIGIN_SEGMENTS) {
+            // we keep the oldest entry (the page load origin) and drop the one after it.
+            _timeOriginSegments.splice(1, 1);
+          }
         }
       }
+      isFirstCall = false;
       lastCheckedPerformanceNow = performanceNow;
 
       return (correctedTimeOrigin + performanceNow) / ONE_SECOND_IN_MS;
