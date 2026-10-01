@@ -226,19 +226,26 @@ const isEffectV4 = (() => {
 
 const EXTERNAL_SPAN_KEY = '@sentry/effect/ExternalSpan';
 
-interface EffectV3Context {
+interface ContextExports {
+  Reference: typeof Context.Reference;
+  /** Only Effect v3 exports it. */
   GenericTag<Identifier, Service>(key: string): Context.Key<Identifier, Service>;
 }
 
+// Effect v4 has no `Context.GenericTag` and Effect v3 before 3.11 has no `Context.Reference`. Both are read
+// through a separate binding because bundlers fail the build on a namespace member the installed version lacks.
+const contextExports = Context as unknown as ContextExports;
+
 /**
  * Whether the tracer continues the trace of a `Tracer.externalSpan` parent. Effect v4 has no `FiberRef`
- * and v3 has no `Context.Reference`, so the flag is a plain service in both. The cast is safe: the tracer
- * reads it with `getRef` only on a v4 fiber, where it is a reference, and with `Context.getOption` on v3.
+ * and v3 before 3.11 has no `Context.Reference`, so the flag is a plain service in both. The cast is safe:
+ * the tracer reads it with `getRef` only on a v4 fiber, where it is a reference, and with
+ * `Context.getOption` on v3.
  */
 const ExternalSpanFlag = (
   isEffectV4
-    ? Context.Reference<boolean>(EXTERNAL_SPAN_KEY, { defaultValue: () => false })
-    : (Context as unknown as EffectV3Context).GenericTag<never, boolean>(EXTERNAL_SPAN_KEY)
+    ? contextExports.Reference<boolean>(EXTERNAL_SPAN_KEY, { defaultValue: () => false })
+    : contextExports.GenericTag<never, boolean>(EXTERNAL_SPAN_KEY)
 ) as Context.Reference<boolean>;
 
 /**
