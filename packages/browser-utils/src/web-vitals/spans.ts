@@ -410,7 +410,10 @@ export function _sendInpSpan(
   // at the start of the navigation it belongs to rather than at the interaction.
   // INP is reported on pagehide, often long after the interaction, so we use the time origin from when the
   // interaction happened.
-  const startTime = performanceTimeToSeconds(entry?.startTime ?? metric?.navigationStartTime ?? 0) as number;
+  const startTime = performanceTimeToSeconds(entry?.startTime ?? metric?.navigationStartTime ?? 0);
+  if (!startTime) {
+    return;
+  }
   const duration = msToSec(inpValue);
   // An INP without an entry has no interaction type to report. It still has to land inside the
   // `ui.interaction.*` family, because falling outside it would hide exactly the fast navigations

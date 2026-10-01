@@ -125,7 +125,7 @@ let _cachedTimestampInSecondsFn: (() => number) | undefined;
  * Converts a `performance.now()` based, relative time in milliseconds (e.g. a `PerformanceEntry`'s `startTime`)
  * to a UNIX timestamp in seconds, matching {@link timestampInSeconds}.
  *
- * This also corrects for clock drift via browserPerformanceTimeOrigin().
+ * Corrects for clock drift via browserPerformanceTimeOrigin().
  *
  * Returns `undefined` if the Performance API is unavailable.
  */
