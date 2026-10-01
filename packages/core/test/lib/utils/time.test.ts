@@ -358,6 +358,31 @@ describe('performanceTimeToSeconds', () => {
     expect(performanceTimeToSeconds(0)).toBe((currentTimeMs - timeSincePageloadMs) / 1000);
   });
 
+  it('keeps the corrected startup origin when the max number of time origins is reached', async () => {
+    let monotonicNowMs = timeSincePageloadMs;
+    let wallNowMs = currentTimeMs;
+    const correctedStartupOrigin = currentTimeMs - timeSincePageloadMs;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(wallNowMs));
+    vi.stubGlobal('performance', {
+      timeOrigin: correctedStartupOrigin + RELIABLE_THRESHOLD_MS + 60_000,
+      now: () => monotonicNowMs,
+    });
+
+    const { performanceTimeToSeconds, timestampInSeconds } = await getFreshTimeModule();
+
+    timestampInSeconds();
+    for (let i = 0; i < 40; i++) {
+      monotonicNowMs += 1_000;
+      wallNowMs += 1_000 + sleepDurationMs;
+      vi.setSystemTime(new Date(wallNowMs));
+      timestampInSeconds();
+    }
+
+    expect(performanceTimeToSeconds(0)).toBe(correctedStartupOrigin / 1000);
+  });
+
   it('converts against `Date.now() - performance.now()` if `performance.timeOrigin` is not available', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(currentTimeMs));
