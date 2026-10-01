@@ -59,7 +59,7 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
     // This way, TTFB always measures the "first page load" experience.
     // see: https://web.dev/articles/ttfb#measure-resource-requests
     'http.request.time_to_first_byte':
-      resourceTiming.responseStart != null ? resourceTiming.responseStart / 1000 : undefined,
+      resourceTiming.responseStart != null ? msToSec(resourceTiming.responseStart) : undefined,
   });
 }
 

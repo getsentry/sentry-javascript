@@ -122,8 +122,10 @@ function createUnixTimestampInSecondsFunc(): () => number {
 let _cachedTimestampInSecondsFn: (() => number) | undefined;
 
 /**
- * Converts a `performance.now()` based time in milliseconds (e.g. a `PerformanceEntry`'s `startTime`) to a UNIX
- * timestamp in seconds, matching {@link timestampInSeconds}.
+ * Converts a `performance.now()` based, relative time in milliseconds (e.g. a `PerformanceEntry`'s `startTime`)
+ * to a UNIX timestamp in seconds, matching {@link timestampInSeconds}.
+ *
+ * This also corrects for clock drift via browserPerformanceTimeOrigin().
  *
  * Returns `undefined` if the Performance API is unavailable.
  */
