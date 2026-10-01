@@ -129,6 +129,9 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
       },
       () => {
         return startSpanManual({ name, attributes }, async span => {
+          // Deno creates `completed` on first access and settles it on the next close of the request, which can
+          // happen inside the handler (e.g. on a WebSocket upgrade). It rejects when the response could not be sent.
+          const responseSent = info?.completed?.then(null, () => undefined);
           let res: Response;
 
           try {
@@ -152,7 +155,13 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
             throw e;
           }
 
-          return streamResponse(span, res);
+          // Runtimes without `completed` only expose the end of the response through the body stream.
+          if (!responseSent) {
+            return streamResponse(span, res);
+          }
+
+          void responseSent.then(() => span.end());
+          return res;
         });
       },
     );

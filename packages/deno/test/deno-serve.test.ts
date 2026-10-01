@@ -1,10 +1,20 @@
 // <reference lib="deno.ns" />
 
-import type { ErrorEvent, TransactionEvent } from '@sentry/core';
+import type { ErrorEvent, StreamedSpanJSON, TransactionEvent } from '@sentry/core';
 import { getMainCarrier } from '@sentry/core';
-import { assertEquals, assertExists, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+import { assert, assertEquals, assertExists, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import type { DenoClient } from '../build/esm/index.js';
-import { captureException, captureMessage, init, denoServeIntegration, setTag, setUser } from '../build/esm/index.js';
+import {
+  captureException,
+  captureMessage,
+  init,
+  denoServeIntegration,
+  setTag,
+  setUser,
+  spanToJSON,
+  startSpan,
+} from '../build/esm/index.js';
+import { makeTestTransport } from './transport.ts';
 
 function resetGlobals(): void {
   getMainCarrier().__SENTRY__ = undefined;
@@ -809,4 +819,195 @@ Deno.test('Deno.serve should work when manually capturing exceptions within hand
   // Manually captured exceptions should have handled mechanism
   // (unless explicitly set otherwise)
   assertEquals(errorEvent?.exception?.values?.[0]?.mechanism?.handled, true);
+});
+
+Deno.test('Deno.serve should end the http.server span after a streamed response was sent', async () => {
+  resetGlobals();
+
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    transport: makeTestTransport(() => {}),
+  }) as DenoClient;
+
+  const endedSpans: StreamedSpanJSON[] = [];
+  const serverSpanEnded = new Promise<StreamedSpanJSON>(resolve => {
+    client.on('spanEnd', span => {
+      const spanJson = spanToJSON(span);
+      endedSpans.push(spanJson);
+      if (spanJson.attributes['sentry.op'] === 'http.server') {
+        resolve(spanJson);
+      }
+    });
+  });
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        controller.enqueue(encoder.encode('<div>shell</div>'));
+        // Waits for a later task, so the suspended part renders after the handler has returned.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        startSpan({ name: 'render' }, () => {
+          controller.enqueue(encoder.encode('<div>suspended</div>'));
+        });
+        controller.close();
+      },
+    });
+
+    return new Response(body, { headers: { 'content-type': 'text/html;charset=utf-8' } });
+  });
+  await p;
+
+  const response = await fetch(`http://localhost:${server.addr.port}/`);
+  assertEquals(await response.text(), '<div>shell</div><div>suspended</div>');
+
+  const serverSpan = await serverSpanEnded;
+  const renderSpan = endedSpans.find(span => span.name === 'render');
+
+  abortController.abort();
+  await server.finished;
+  await client.flush(2_000);
+
+  assertEquals(renderSpan?.parent_span_id, serverSpan.span_id);
+  assert(serverSpan.end_timestamp! >= renderSpan!.end_timestamp!);
+});
+
+Deno.test('Deno.serve should send the response of the handler unchanged', async () => {
+  resetGlobals();
+
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    transport: makeTestTransport(() => {}),
+  }) as DenoClient;
+
+  const serverSpanEnded = new Promise<StreamedSpanJSON>(resolve => {
+    client.on('spanEnd', span => {
+      if (spanToJSON(span).attributes['sentry.op'] === 'http.server') {
+        resolve(spanToJSON(span));
+      }
+    });
+  });
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    return new Response('Hello World');
+  });
+  await p;
+
+  const response = await fetch(`http://localhost:${server.addr.port}/`);
+  assertEquals(response.headers.get('content-length'), '11');
+  assertEquals(await response.text(), 'Hello World');
+
+  const serverSpan = await serverSpanEnded;
+
+  abortController.abort();
+  await server.finished;
+  await client.flush(2_000);
+
+  assertEquals(serverSpan.attributes['http.response.status_code'], 200);
+});
+
+Deno.test('Deno.serve should end the http.server span of a WebSocket upgrade before the socket closes', async () => {
+  resetGlobals();
+
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    transport: makeTestTransport(() => {}),
+  }) as DenoClient;
+
+  const events: string[] = [];
+  client.on('spanEnd', span => {
+    if (spanToJSON(span).attributes['sentry.op'] === 'http.server') {
+      events.push('span ended');
+    }
+  });
+
+  let resolveServerSocketClosed!: () => void;
+  const serverSocketClosed = new Promise<void>(resolve => (resolveServerSocketClosed = resolve));
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, request => {
+    const { socket, response } = Deno.upgradeWebSocket(request);
+    socket.onclose = () => {
+      events.push('socket closed');
+      resolveServerSocketClosed();
+    };
+    return response;
+  });
+  await p;
+
+  const webSocket = new WebSocket(`ws://localhost:${server.addr.port}/`);
+  await new Promise(resolve => (webSocket.onopen = resolve));
+  const clientSocketClosed = new Promise(resolve => (webSocket.onclose = resolve));
+  webSocket.close();
+  await Promise.all([serverSocketClosed, clientSocketClosed]);
+
+  abortController.abort();
+  await server.finished;
+  await client.flush(2_000);
+
+  assertEquals(events, ['span ended', 'socket closed']);
+});
+
+Deno.test('Deno.serve should end the http.server span when the client disconnects during a streamed response', async () => {
+  resetGlobals();
+
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    transport: makeTestTransport(() => {}),
+  }) as DenoClient;
+
+  const serverSpanEnded = new Promise<StreamedSpanJSON>(resolve => {
+    client.on('spanEnd', span => {
+      if (spanToJSON(span).attributes['sentry.op'] === 'http.server') {
+        resolve(spanToJSON(span));
+      }
+    });
+  });
+
+  let resolveSourceCancelled!: () => void;
+  const sourceCancelled = new Promise<void>(resolve => (resolveSourceCancelled = resolve));
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.enqueue(encoder.encode('chunk\n'));
+      },
+      cancel() {
+        resolveSourceCancelled();
+      },
+    });
+
+    return new Response(body, { headers: { 'content-type': 'text/html;charset=utf-8' } });
+  });
+  await p;
+
+  const response = await fetch(`http://localhost:${server.addr.port}/`);
+  const reader = response.body!.getReader();
+  await reader.read();
+  await reader.cancel();
+
+  await sourceCancelled;
+  const serverSpan = await serverSpanEnded;
+
+  abortController.abort();
+  await server.finished;
+  await client.flush(2_000);
+
+  assertEquals(serverSpan.attributes['http.response.status_code'], 200);
 });
