@@ -41,9 +41,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
 
         const [query, ...bindings] = args as [string, ...unknown[]];
 
-        const activeSpan = getActiveSpan();
-        const spanIsNeverSent = !hasSpansEnabled() || (!!activeSpan && !spanIsSampled(activeSpan));
-        if (spanIsNeverSent && !mayTargetCloudflareInternalTable(query)) {
+        if (childSpanWillNotBeRecorded() && !mayTargetCloudflareInternalTable(query)) {
           // This span is never sent, so skip the costly sanitize and summary
           // steps. We still start the span so it records its dropped span
           // outcome. A query that may target a `cf_` table takes the full path,
@@ -77,4 +75,17 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
       };
     },
   });
+}
+
+/**
+ * Returns `true` when `startSpan` creates a non-recording span: spans are disabled, or the active span
+ * is not sampled. Must agree with `createChildOrRootSpan` and `_startChildSpan` in `@sentry/core`.
+ */
+function childSpanWillNotBeRecorded(): boolean {
+  if (!hasSpansEnabled()) {
+    return true;
+  }
+
+  const activeSpan = getActiveSpan();
+  return !!activeSpan && !spanIsSampled(activeSpan);
 }
