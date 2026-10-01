@@ -331,9 +331,10 @@ describe('instrumentUseCacheHandlers', () => {
 
   describe('origin links', () => {
     it('links a cache hit to the `cache.put` span of the fill', async () => {
-      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+      const entry = { timestamp: nowMs() };
+      const handler = installWithDefaultHandler(entry);
 
-      await handler.set('cache-key', Promise.resolve({}));
+      await handler.set('cache-key', Promise.resolve(entry));
       await handler.get('cache-key');
 
       expect(mocks.addLink).toHaveBeenCalledTimes(1);
@@ -344,10 +345,11 @@ describe('instrumentUseCacheHandlers', () => {
     });
 
     it('links to the most recent fill', async () => {
-      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+      const entry = { timestamp: nowMs() };
+      const handler = installWithDefaultHandler(entry);
 
-      await handler.set('cache-key', Promise.resolve({}));
-      await handler.set('cache-key', Promise.resolve({}));
+      await handler.set('cache-key', Promise.resolve({ timestamp: entry.timestamp - 1_000 }));
+      await handler.set('cache-key', Promise.resolve(entry));
       await handler.get('cache-key');
 
       expect(mocks.addLink).toHaveBeenCalledWith(
@@ -358,7 +360,7 @@ describe('instrumentUseCacheHandlers', () => {
     it('does not link a miss', async () => {
       const handler = installWithDefaultHandler(undefined);
 
-      await handler.set('cache-key', Promise.resolve({}));
+      await handler.set('cache-key', Promise.resolve({ timestamp: nowMs() }));
       await handler.get('cache-key');
 
       expect(mocks.addLink).not.toHaveBeenCalled();
@@ -385,7 +387,7 @@ describe('instrumentUseCacheHandlers', () => {
       );
       _instrumentUseCacheHandlers();
 
-      await defaultHandler.set('cache-key', Promise.resolve({}));
+      await defaultHandler.set('cache-key', Promise.resolve(entry));
       await remoteHandler.get('cache-key');
 
       expect(mocks.addLink).not.toHaveBeenCalled();
@@ -396,21 +398,23 @@ describe('instrumentUseCacheHandlers', () => {
     });
 
     it('does not link a hit that was filled under a different cache key', async () => {
-      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+      const entry = { timestamp: nowMs() };
+      const handler = installWithDefaultHandler(entry);
 
-      await handler.set('other-key', Promise.resolve({}));
+      await handler.set('other-key', Promise.resolve(entry));
       await handler.get('cache-key');
 
       expect(mocks.addLink).not.toHaveBeenCalled();
     });
 
-    it('forgets a remembered origin when the entry is refilled without a sampled parent span', async () => {
-      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+    it('does not link a hit on an entry refilled without a sampled parent span', async () => {
+      const refill = { timestamp: nowMs() };
+      const handler = installWithDefaultHandler(refill);
 
-      await handler.set('cache-key', Promise.resolve({}));
+      await handler.set('cache-key', Promise.resolve({ timestamp: refill.timestamp - 1_000 }));
 
       mocks.activeSpan = undefined;
-      await handler.set('cache-key', Promise.resolve({}));
+      await handler.set('cache-key', Promise.resolve(refill));
       mocks.activeSpan = {};
 
       await handler.get('cache-key');
@@ -418,14 +422,15 @@ describe('instrumentUseCacheHandlers', () => {
       expect(mocks.addLink).not.toHaveBeenCalled();
     });
 
-    it('forgets a remembered origin when the refill `cache.put` span is not recording', async () => {
-      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+    it('does not link a hit on an entry whose refill `cache.put` span is not recording', async () => {
+      const refill = { timestamp: nowMs() };
+      const handler = installWithDefaultHandler(refill);
 
-      await handler.set('cache-key', Promise.resolve({}));
+      await handler.set('cache-key', Promise.resolve({ timestamp: refill.timestamp - 1_000 }));
 
       // e.g. the `cache.put` op is filtered via `ignoreSpans`
       mocks.state.recording = false;
-      await handler.set('cache-key', Promise.resolve({}));
+      await handler.set('cache-key', Promise.resolve(refill));
       mocks.state.recording = true;
 
       await handler.get('cache-key');
@@ -433,15 +438,46 @@ describe('instrumentUseCacheHandlers', () => {
       expect(mocks.addLink).not.toHaveBeenCalled();
     });
 
+    it('does not link a hit on an entry refilled by another server instance', async () => {
+      const entryFromOtherInstance = { timestamp: nowMs() };
+      const handler = installWithDefaultHandler(entryFromOtherInstance);
+
+      await handler.set('cache-key', Promise.resolve({ timestamp: entryFromOtherInstance.timestamp - 1_000 }));
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
+    it('does not link hits on entries that carry no fill timestamp', async () => {
+      const entry = { expire: 3_600 };
+      const handler = installWithDefaultHandler(entry);
+
+      await handler.set('cache-key', Promise.resolve(entry));
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
+    it('does not remember fills whose entry rejected even though the write resolved', async () => {
+      // Custom handlers can swallow a failed entry and resolve the write anyway.
+      const handler = installWithDefaultHandler({ timestamp: nowMs() });
+
+      await handler.set('cache-key', Promise.reject(new Error('entry failed')));
+      await handler.get('cache-key');
+
+      expect(mocks.addLink).not.toHaveBeenCalled();
+    });
+
     it('does not remember fills whose write failed', async () => {
+      const entry = { timestamp: nowMs() };
       const handler = {
-        get: vi.fn(() => Promise.resolve({ timestamp: nowMs() })),
+        get: vi.fn(() => Promise.resolve(entry)),
         set: vi.fn(() => Promise.reject(new Error('write failed'))),
       };
       setGlobal(NEXT_CACHE_HANDLERS_MAP, new Map([['default', handler]]));
       _instrumentUseCacheHandlers();
 
-      await expect(handler.set('cache-key', Promise.resolve({}))).rejects.toThrow('write failed');
+      await expect(handler.set('cache-key', Promise.resolve(entry))).rejects.toThrow('write failed');
       await handler.get('cache-key');
 
       expect(mocks.addLink).not.toHaveBeenCalled();

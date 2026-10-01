@@ -75,8 +75,14 @@ type GlobalWithCacheHandlers = typeof globalThis & {
   [NEXT_PRIVATE_CACHE_HANDLER]?: UseCacheHandler;
   [SENTRY_CACHE_INSTRUMENTED]?: boolean;
   [SENTRY_WRAPPED_HANDLERS]?: WeakSet<object>;
-  [SENTRY_CACHE_ORIGINS]?: LRUMap<string, SpanContextData>;
+  [SENTRY_CACHE_ORIGINS]?: LRUMap<string, CacheOrigin>;
 };
+
+interface CacheOrigin {
+  context: SpanContextData;
+  /** The fill's `CacheEntry.timestamp`. Identifies the entry revision this origin wrote. */
+  entryTimestamp: number;
+}
 
 /**
  * Cache keys are long serialized payloads (function id + arguments), so spans carry a digest
@@ -159,7 +165,7 @@ function recordCacheEntry(span: Span, entry: unknown): boolean {
 
 // Cache origins are scoped per-process (known limitation: no links across server instances — that would require storing metadata on `CacheEntry`).
 // Hits on entries filled by another instance get no link. Lives on `globalThis` like the rest of the instrumentation state.
-function getCacheOrigins(): LRUMap<string, SpanContextData> {
+function getCacheOrigins(): LRUMap<string, CacheOrigin> {
   const globalWithCacheHandlers = globalThis as GlobalWithCacheHandlers;
   if (!globalWithCacheHandlers[SENTRY_CACHE_ORIGINS]) {
     globalWithCacheHandlers[SENTRY_CACHE_ORIGINS] = new LRUMap(CACHE_ORIGINS_MAX_SIZE);
@@ -168,17 +174,42 @@ function getCacheOrigins(): LRUMap<string, SpanContextData> {
 }
 
 /**
- * Links a cache hit to the fill that produced the entry.
- * When the fill is unknown (process restart, table eviction, entry filled by another instance), the hit span carries no link
+ * Links a cache hit to the fill that wrote this entry revision (matched by timestamp).
+ * A hit with no matching origin (unsampled or dropped refill, another instance, process restart)
+ * gets no link instead of a stale one.
  */
-function linkCacheOrigin(span: Span, originKey: string): void {
+function linkCacheOrigin(span: Span, originKey: string, entry: unknown): void {
   const origin = getCacheOrigins().get(originKey);
-  if (origin) {
+  const { timestamp } = (entry ?? {}) as UseCacheEntry;
+  if (origin && origin.entryTimestamp === timestamp) {
     span.addLink({
-      context: origin,
+      context: origin.context,
       attributes: { [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: CACHE_ORIGIN_LINK_TYPE },
     });
   }
+}
+
+/**
+ * Remembers the `cache.put` span as the origin of the entry revision it wrote. The handler drains
+ * `pendingEntry` before the write resolves, so the read here resolves immediately.
+ * An entry without a numeric `timestamp` has no revision identity and is not remembered.
+ */
+function rememberCacheOrigin(originKey: string, span: Span, pendingEntry: Promise<unknown>): void {
+  Promise.resolve(pendingEntry).then(
+    entry => {
+      try {
+        const { timestamp } = (entry ?? {}) as UseCacheEntry;
+        if (typeof timestamp === 'number') {
+          getCacheOrigins().set(originKey, { context: span.spanContext(), entryTimestamp: timestamp });
+        }
+      } catch (error) {
+        DEBUG_BUILD && debug.warn('Failed to remember a Next.js cache fill origin', error);
+      }
+    },
+    () => {
+      // A rejected entry was never stored, so there is nothing to remember.
+    },
+  );
 }
 
 function isCacheHandler(value: unknown): value is UseCacheHandler {
@@ -224,7 +255,7 @@ function instrumentHandler(handler: unknown): void {
           Promise.resolve(originalGet.call(this, cacheKey, softTags)).then(entry => {
             try {
               if (recordCacheEntry(span, entry)) {
-                linkCacheOrigin(span, originKeyPrefix + digest);
+                linkCacheOrigin(span, originKeyPrefix + digest, entry);
               }
             } catch (error) {
               DEBUG_BUILD && debug.warn('Failed to read Next.js cache entry metadata', error);
@@ -237,28 +268,20 @@ function instrumentHandler(handler: unknown): void {
 
     fill(handler, 'set', (originalSet: UseCacheHandler['set']) => {
       return function (this: UseCacheHandler, cacheKey: string, pendingEntry: Promise<unknown>): Promise<void> {
-        const digest = keyDigest(cacheKey);
-
-        // A successful write replaces the entry, so a remembered origin from a previous fill is now wrong.
-        // An unsampled fill has no span to link to -> remember nothing instead.
         if (!shouldRecordCacheSpan()) {
-          return Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
-            getCacheOrigins().remove(originKeyPrefix + digest);
-            return result;
-          });
+          return originalSet.call(this, cacheKey, pendingEntry);
         }
 
+        const digest = keyDigest(cacheKey);
         // The handler drains `pendingEntry` (the still-streaming entry) before storing, so this
         // span covers producing and storing the entry, not just the write.
         return startCacheSpan(CACHE_PUT, digest, span =>
-          // Only successful writes are remembered as fill origins: a failed write leaves either
-          // no entry (the origin is never read) or the previous entry (whose origin still stands).
+          // Only a successful write becomes a fill origin: a failed write leaves no entry or the
+          // previous one (whose origin still stands). A dropped span (`ignoreSpans`) never
+          // reaches Sentry, so a link to it would be broken.
           Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
             if (span.isRecording()) {
-              getCacheOrigins().set(originKeyPrefix + digest, span.spanContext());
-            } else {
-              // The `cache.put` span was dropped (e.g. via `ignoreSpans`) and never reaches Sentry, so a link to it would be broken.
-              getCacheOrigins().remove(originKeyPrefix + digest);
+              rememberCacheOrigin(originKeyPrefix + digest, span, pendingEntry);
             }
             return result;
           }),
