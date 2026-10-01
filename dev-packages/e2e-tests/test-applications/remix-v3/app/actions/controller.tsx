@@ -46,6 +46,8 @@ function UserPage(handle: Handle<{ id?: string }>) {
   );
 }
 
+let slowStarted = false;
+
 export default createController(routes, {
   actions: {
     async assets(context) {
@@ -59,6 +61,19 @@ export default createController(routes, {
     },
     teapot() {
       return new Response("I'm a teapot", { status: 418 });
+    },
+    boom() {
+      throw new Error('Route handler failed');
+    },
+    // Long enough for a test to disconnect mid request. `/slow-started` tells the test when the handler
+    // is running, so the disconnect lands inside it rather than before it.
+    async slow() {
+      slowStarted = true;
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      return new Response('slow');
+    },
+    slowStarted() {
+      return new Response(slowStarted ? '1' : '0');
     },
   },
 });

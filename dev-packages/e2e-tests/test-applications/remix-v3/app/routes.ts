@@ -5,4 +5,7 @@ export const routes = route({
   home: '/',
   user: get('/users/:id'),
   teapot: get('/teapot'),
+  boom: get('/boom'),
+  slow: get('/slow'),
+  slowStarted: get('/slow-started'),
 });
