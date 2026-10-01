@@ -1,4 +1,3 @@
-import type { Scope } from '@sentry/core';
 import { closeSession, defineIntegration, endSession, getIsolationScope, startSession } from '@sentry/core';
 
 const INTEGRATION_NAME = 'ProcessSession' as const;
@@ -10,13 +9,11 @@ const INTEGRATION_NAME = 'ProcessSession' as const;
  * reported through session aggregates instead, and the process session is discarded.
  */
 export const processSessionIntegration = defineIntegration(() => {
-  let processIsolationScope: Scope | undefined;
-
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
+    setup(client) {
       startSession();
-      processIsolationScope = getIsolationScope();
+      const processIsolationScope = getIsolationScope();
 
       // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
       // The 'beforeExit' event is not emitted for conditions causing explicit termination,
@@ -33,14 +30,12 @@ export const processSessionIntegration = defineIntegration(() => {
           endSession();
         }
       });
-    },
-    setup(client) {
+
       const unsubscribe = client.on('startRequestSession', () => {
         unsubscribe();
 
-        const scope = processIsolationScope;
-        const session = scope?.getSession();
-        if (!scope || !session) {
+        const session = processIsolationScope.getSession();
+        if (!session) {
           return;
         }
 
@@ -49,7 +44,7 @@ export const processSessionIntegration = defineIntegration(() => {
           closeSession(session);
           client.captureSession(session);
         }
-        scope.setSession();
+        processIsolationScope.setSession();
       });
     },
   };

@@ -24,9 +24,7 @@ describe('processSessionIntegration', () => {
       return process;
     }) as never);
 
-    const integration = processSessionIntegration();
-    integration.setupOnce!();
-    integration.setup!(client);
+    processSessionIntegration().setup!(client);
     processOn.mockRestore();
   });
 
