@@ -767,7 +767,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     'scenario-provider-metadata.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('derives provider-metadata token breakdown, conversation id and system instructions', async () => {
+      test('derives provider-metadata token breakdown and system instructions', async () => {
         await createRunner()
           .expect({ transaction: { transaction: 'main' } })
           .expect({
@@ -781,12 +781,13 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               )!;
               expect(generateContent).toBeDefined();
 
-              // Cache/reasoning token breakdown and conversation id are derived from the model's
-              // `providerMetadata` — by the OTel processor on v6 and by the channel subscriber on v7,
-              // both via the shared `getProviderMetadataAttributes` helper, so the shape is identical.
+              // Cache/reasoning token breakdown is derived from the model's `providerMetadata` — by the
+              // OTel processor on v6 and by the channel subscriber on v7, both via the shared
+              // `getProviderMetadataAttributes` helper, so the shape is identical.
               expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(5);
               expect(generateContent.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value).toBe(7);
-              expect(generateContent.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe('resp_abc123');
+              // The per-response `responseId` is not a conversation id and must not be recorded as one.
+              expect(generateContent.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
 
               const invokeAgent = container.items.find(
                 span => span.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
@@ -800,6 +801,66 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
                 expect(invokeAgent.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value).toBe(expected);
                 expect(generateContent.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value).toBe(expected);
               }
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-openai-conversation.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('derives gen_ai.conversation.id from the OpenAI `conversation` provider option', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              const genAiSpans = container.items.filter(s =>
+                String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'),
+              );
+              const conversationIdOf = (span: (typeof genAiSpans)[number]) =>
+                span.attributes[GEN_AI_CONVERSATION_ID]?.value;
+              const invokeAgentSpans = genAiSpans.filter(
+                s => s.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
+              );
+              expect(invokeAgentSpans).toHaveLength(4);
+              const [firstTurn, secondTurn, chainedTurn, apiTurn] = invokeAgentSpans.sort(
+                (a, b) => a.start_timestamp - b.start_timestamp,
+              );
+
+              // `providerOptions.openai.conversation` is the Conversations API id: the same on every turn.
+              expect(conversationIdOf(firstTurn!)).toBe('conv_abc123');
+              // The Azure Responses API uses the `azure` key for the same option.
+              expect(conversationIdOf(secondTurn!)).toBe('conv_azure');
+              // `previousResponseId` names a response rather than a thread, and the response's own
+              // `responseId` is recorded as `gen_ai.response.id` only.
+              expect(conversationIdOf(chainedTurn!)).toBeUndefined();
+              // `Sentry.setConversationId()` beats the provider option.
+              expect(conversationIdOf(apiTurn!)).toBe('conv-from-api');
+
+              // Model-call and tool spans carry their operation's id, even though their start events
+              // do not carry `providerOptions`.
+              const modelCallSpans = genAiSpans.filter(
+                s => s.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+              );
+              expect(modelCallSpans.map(conversationIdOf).sort()).toEqual([
+                'conv-from-api',
+                'conv_abc123',
+                'conv_azure',
+                undefined,
+              ]);
+              const toolSpan = genAiSpans.find(s => s.attributes['sentry.op']?.value === 'gen_ai.execute_tool')!;
+              expect(toolSpan).toBeDefined();
+              expect(conversationIdOf(toolSpan)).toBe('conv_azure');
             },
           })
           .start()

@@ -669,6 +669,9 @@ function buildTextMessage(type: 'generateText' | 'streamText' | 'generateObject'
       // Normalize to the message-array shape the shared core (and v7's channel) expects: a bare string
       // `prompt` becomes a single user message, matching the SDK's own normalization.
       messages: normalizePromptMessages(options),
+      // v7's native start event carries `providerOptions`; the shared core reads the OpenAI
+      // Conversations API id from it.
+      providerOptions: options.providerOptions,
       ...recording(telemetry),
     },
   });
