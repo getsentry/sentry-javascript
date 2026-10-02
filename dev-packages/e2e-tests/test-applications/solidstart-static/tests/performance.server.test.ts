@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/solidstart';
@@ -16,7 +17,7 @@ test('sends a server action transaction on pageload', async ({ page }) => {
       expect.objectContaining({
         description: 'getPrefecture',
         data: {
-          ['sentry.op']: 'function',
+          [SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
           'code.function.name': 'getPrefecture',
         },
@@ -41,7 +42,7 @@ test('sends a server action transaction on client navigation', async ({ page }) 
       expect.objectContaining({
         description: 'getPrefecture',
         data: {
-          ['sentry.op']: 'function',
+          [SENTRY_OP]: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
           'code.function.name': 'getPrefecture',
         },
