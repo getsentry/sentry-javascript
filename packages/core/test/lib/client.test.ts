@@ -2123,9 +2123,27 @@ describe('Client', () => {
       const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       const spans = [
-        { span_id: 'aaaaaaaaaaaaaaaa', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
-        { span_id: 'bbbbbbbbbbbbbbbb', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
-        { span_id: 'cccccccccccccccc', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
       ];
 
       const scope = new Scope();
@@ -2143,9 +2161,27 @@ describe('Client', () => {
       const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       const spans = [
-        { span_id: 'aaaaaaaaaaaaaaaa', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
-        { span_id: 'bbbbbbbbbbbbbbbb', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
-        { span_id: 'cccccccccccccccc', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
       ];
 
       const scope = new Scope();
@@ -2168,9 +2204,27 @@ describe('Client', () => {
       const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       const spans = [
-        { span_id: 'aaaaaaaaaaaaaaaa', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
-        { span_id: 'bbbbbbbbbbbbbbbb', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
-        { span_id: 'cccccccccccccccc', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
       ];
 
       const scope = new Scope();
@@ -2183,6 +2237,159 @@ describe('Client', () => {
       expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
       expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 1);
+    });
+
+    test('spans removed by event processors are not counted again when `beforeSendTransaction` drops the transaction', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction: () => null }),
+      );
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => ({ ...event, spans: event.spans?.slice(0, 1) }));
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(3);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
+    });
+
+    test('spans removed by event processors are not counted again when `ignoreSpans` drops the root span', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, ignoreSpans: ['/dogs/are/great'] }));
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => ({ ...event, spans: event.spans?.slice(0, 1) }));
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(3);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
+    });
+
+    test('child spans dropped by `ignoreSpans` are not counted again when `beforeSendTransaction` drops the transaction', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          ignoreSpans: ['ignored-child'],
+          beforeSendTransaction: () => null,
+        }),
+      );
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          description: 'ignored-child',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans });
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 3);
+    });
+
+    test('child spans dropped by `ignoreSpans` and removed by `beforeSendTransaction` are counted once', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          ignoreSpans: ['ignored-child'],
+          beforeSendTransaction: event => ({ ...event, spans: [] }),
+        }),
+      );
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          description: 'ignored-child',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans });
+
+      expect(TestClient.instance!.event?.spans).toEqual([]);
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
     });
 
     test('mutating transaction name with event processors sets transaction-name-change metadata', () => {
