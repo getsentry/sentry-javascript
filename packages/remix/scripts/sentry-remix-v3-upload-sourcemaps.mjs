@@ -52,6 +52,12 @@ try {
       'no debug IDs were emitted. Run this command with `node --import @sentry/remix/v3/node` so the asset server is instrumented.',
     );
   }
+  if (debugIds < emitted.length || maps < emitted.length) {
+    // A warning, not a failure: `sourceMaps: false` yields no maps on purpose.
+    console.warn(
+      `[sentry] ${emitted.length - debugIds} modules without a debug ID and ${emitted.length - maps} without a source map; those will not symbolicate.`,
+    );
+  }
 
   if (values['dry-run']) {
     console.log('[sentry] --dry-run, skipping upload');
