@@ -3,7 +3,8 @@ import * as sentryCore from '@sentry/core';
 import * as sentryCoreBrowser from '@sentry/core/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { ServerRuntimeClient } from '@sentry/core/server';
-import { Effect } from 'effect';
+import { Effect, Exit } from 'effect';
+import { TestClock } from 'effect/testing';
 import * as Tracer from 'effect/Tracer';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { SentryEffectTracer as clientTracer } from '../src/client/tracer';
@@ -197,6 +198,40 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
 
   // A name we cannot map belongs to user code or a third-party library. Leaving op and origin unset
   // keeps the core defaults (no op, `manual` origin) rather than claiming we instrumented the span.
+  it.effect("starts spans on Sentry's clock and keeps Effect's duration for an explicit end time", () =>
+    Effect.gen(function* () {
+      const end = vi.fn();
+      const addEvent = vi.fn();
+      let sentryStartTime: number | undefined;
+      vi.spyOn(spanApi, 'startInactiveSpan').mockImplementation(options => {
+        sentryStartTime = options.startTime as number;
+        return mockSpan({ end, addEvent });
+      });
+
+      // `it.effect` runs on Effect's `TestClock`, which is far from the wall clock.
+      yield* TestClock.adjust('1 hour');
+      const span = yield* Effect.makeSpan('manual-span');
+      span.event('my-event', span.status.startTime + BigInt(1_000_000_000));
+      span.end(span.status.startTime + BigInt(2_500_000_000), Exit.void);
+
+      expect(sentryStartTime).toBeCloseTo(Date.now() / 1000, 0);
+      expect(addEvent).toHaveBeenCalledWith('my-event', undefined, sentryStartTime! + 1);
+      expect(end).toHaveBeenCalledWith(sentryStartTime! + 2.5);
+    }).pipe(withSentryTracer),
+  );
+
+  it.effect("uses Sentry's clock for the end time if Effect's tracer timing is disabled", () =>
+    Effect.gen(function* () {
+      const end = vi.fn();
+      vi.spyOn(spanApi, 'startInactiveSpan').mockImplementation(() => mockSpan({ end }));
+
+      yield* TestClock.adjust('1 hour');
+      yield* Effect.withSpan('untimed-span')(Effect.succeed('ok')).pipe(Effect.withTracerTiming(false));
+
+      expect(end).toHaveBeenCalledWith(undefined);
+    }).pipe(withSentryTracer),
+  );
+
   it.effect('leaves origin and op unset for spans it cannot map', () =>
     Effect.gen(function* () {
       const attributes = yield* attributesFor('my-operation');
