@@ -6,6 +6,7 @@ import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { copyToTemp } from './lib/copyToTemp';
+import { applyRuntimeFiles, getRuntimeFromLabel } from './lib/runtimeFiles';
 import { syncPackedTarballSymlinks } from './lib/syncPackedTarballSymlinks';
 import { addPnpmOverrides } from './lib/pnpmOverrides';
 
@@ -247,6 +248,11 @@ async function run(): Promise<void> {
     // Print which variant we're using if found
     if (matchedVariantLabel) {
       console.log(`\n\nUsing variant: "${matchedVariantLabel}"\n\n`);
+    }
+
+    const runtime = getRuntimeFromLabel(matchedVariantLabel);
+    if (runtime) {
+      applyRuntimeFiles(tmpDirPath, runtime);
     }
 
     console.log(`Building ${testLabel} in ${tmpDirPath}...`);
