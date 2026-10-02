@@ -10,7 +10,7 @@ import { instrumentClientRuntime } from './errors';
  *
  * Browser tracing is added here rather than left to the app, because the Navigation API variant is the
  * only one that reports anything in Remix 3. Everything else is plain `@sentry/browser`. Nothing from
- * `@sentry/react` applies: `remix/ui` is its own runtime, with no React and no reconciler to hook.
+ * `@sentry/react` applies: `remix/component` is its own runtime, with no React and no reconciler to hook.
  */
 export function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   return [...getBrowserDefaultIntegrations(options), browserTracingIntegration()];

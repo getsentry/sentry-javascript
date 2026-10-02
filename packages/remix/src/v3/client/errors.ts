@@ -1,18 +1,18 @@
 import { captureException } from '@sentry/browser';
 import { tracingChannel } from './diagnosticsChannelShim';
 
-/** The `AppRuntime` returned by `run()` from `remix/ui`, an EventTarget emitting `error`. */
+/** The `AppRuntime` returned by `run()` from `remix/component`, an EventTarget emitting `error`. */
 export interface AppRuntimeLike {
   addEventListener(type: 'error', listener: (event: Event) => void): void;
 }
 
 const MECHANISM_TYPE = 'auto.ui.remix_v3';
 
-// The channel orchestrion will inject into `@remix-run/ui`'s `run()` once the asset server transforms
-// browser modules. Nothing publishes to it yet, so the subscription below is dormant. The name is
-// written out because the channel names live in `@sentry/server-utils`, which must not reach the
-// browser.
-const UI_RUN_CHANNEL = 'orchestrion:@remix-run/ui:run';
+// The channels orchestrion injects into `run()` once the asset server transforms browser modules.
+// `@remix-run/ui` is the release candidate name, `@remix-run/component` the stable one; an app loads
+// only one. The names are written out because the channel names live in `@sentry/server-utils`, which
+// must not reach the browser.
+const RUN_CHANNELS = ['orchestrion:@remix-run/ui:run', 'orchestrion:@remix-run/component:run'];
 
 const attached = new WeakSet<object>();
 
@@ -53,14 +53,16 @@ export function instrumentClientRuntime(): void {
   }
   subscribed = true;
 
-  tracingChannel(UI_RUN_CHANNEL).subscribe({
-    end(context) {
-      const app = (context as { result?: unknown }).result;
-      if (isAppRuntime(app)) {
-        captureRuntimeErrors(app);
-      }
-    },
-  });
+  for (const name of RUN_CHANNELS) {
+    tracingChannel(name).subscribe({
+      end(context) {
+        const app = (context as { result?: unknown }).result;
+        if (isAppRuntime(app)) {
+          captureRuntimeErrors(app);
+        }
+      },
+    });
+  }
 }
 
 function isAppRuntime(value: unknown): value is AppRuntimeLike {

@@ -8,12 +8,19 @@ import { createLoadHookTransform } from '../../src/orchestrion/bundler/load-hook
 // The transform reads the package name and version from disk, so the fixture is a real, minimal
 // install layout in a temp directory.
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'load-hook-'));
-const pkgDir = path.join(root, 'node_modules', '@remix-run', 'ui');
-fs.mkdirSync(path.join(pkgDir, 'dist', 'runtime'), { recursive: true });
-fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({ name: '@remix-run/ui', version: '0.11.0' }));
-const runFile = path.join(pkgDir, 'dist', 'runtime', 'run.js');
 const source = 'export function run(init) {\n  return init;\n}\n';
-fs.writeFileSync(runFile, source);
+
+function installRunModule(name: string, version: string): string {
+  const pkgDir = path.join(root, 'node_modules', ...name.split('/'));
+  fs.mkdirSync(path.join(pkgDir, 'dist', 'runtime'), { recursive: true });
+  fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({ name, version }));
+  const file = path.join(pkgDir, 'dist', 'runtime', 'run.js');
+  fs.writeFileSync(file, source);
+  return file;
+}
+
+const runFile = installRunModule('@remix-run/ui', '0.11.0');
+const componentRunFile = installRunModule('@remix-run/component', '1.0.0');
 
 afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
 
@@ -27,6 +34,12 @@ describe('createLoadHookTransform', () => {
     expect(code).toContain('orchestrion:@remix-run/ui:run');
     // Emitted as an ES module, which is the only thing the asset server can serve.
     expect(code).not.toMatch(/\brequire\(/);
+  });
+
+  it('instruments the renamed @remix-run/component 1.x package', () => {
+    const code = transform(componentRunFile, source);
+
+    expect(code).toContain('orchestrion:@remix-run/component:run');
   });
 
   it('leaves a file that is not in an instrumented package alone', () => {

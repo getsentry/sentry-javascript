@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/remix/v3/client';
-import { createElement, run } from 'remix/ui';
+import { createElement, run } from 'remix/component';
 
 import { throwError } from './throw-error.ts';
 
