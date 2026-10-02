@@ -233,7 +233,8 @@ export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntr
   // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast exposes the entry's `target` field; tsc errors without it
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
   const node = lastEntry?.target ? [lastEntry.target] : undefined;
-  return getWebVital(metric, 'interaction-to-next-paint', node);
+  // The INP value is a duration, not a time, so we place the event at the interaction.
+  return getWebVital(metric, 'interaction-to-next-paint', node, undefined, lastEntry?.startTime ?? 0);
 }
 
 /**
