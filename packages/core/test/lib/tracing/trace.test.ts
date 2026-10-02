@@ -2799,6 +2799,22 @@ describe('ignoreSpans (core path, streaming)', () => {
     expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(5, 'sample_rate', 'span');
   });
 
+  it('records a single sample_rate/span outcome for an unsampled standalone root span on static path', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 0,
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    // oxlint-disable-next-line typescript/no-deprecated
+    startInactiveSpan({ name: 'inp', experimental: { standalone: true } }).end();
+
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'span');
+  });
+
   it('records only one ignored outcome for directly ignored child span', () => {
     const options = getDefaultTestClientOptions({
       tracesSampleRate: 1,
