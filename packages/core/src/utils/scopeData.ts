@@ -1,5 +1,7 @@
+import type { Client } from '../client';
 import { getGlobalScope } from '../currentScopes';
-import type { Scope, ScopeData } from '../scope';
+import type { ScopeData } from '../scope';
+import { Scope } from '../scope';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
 import type { Breadcrumb } from '../types/breadcrumb';
 import type { Event } from '../types/event';
@@ -108,9 +110,28 @@ export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
  * @returns The scope data.
  */
 export function getCombinedScopeData(isolationScope: Scope | undefined, currentScope: Scope | undefined): ScopeData {
-  const scopeData = getGlobalScope().getScopeData();
-  isolationScope && mergeScopeData(scopeData, isolationScope.getScopeData());
-  currentScope && mergeScopeData(scopeData, currentScope.getScopeData());
+  return mergeScopes(getGlobalScope(), isolationScope, currentScope);
+}
+
+/**
+ * Get the scope data a client applies to what it sends.
+ *
+ * A standalone client only uses the scope it was explicitly given; any other client also merges in the global
+ * scope and the isolation scope.
+ */
+export function getScopeDataForClient(
+  client: Client | undefined,
+  isolationScope: Scope | undefined,
+  currentScope: Scope | undefined,
+): ScopeData {
+  return client?.getOptions().standalone
+    ? mergeScopes(new Scope(), currentScope)
+    : getCombinedScopeData(isolationScope, currentScope);
+}
+
+function mergeScopes(baseScope: Scope, ...scopes: Array<Scope | undefined>): ScopeData {
+  const scopeData = baseScope.getScopeData();
+  scopes.forEach(scope => scope && mergeScopeData(scopeData, scope.getScopeData()));
   return scopeData;
 }
 

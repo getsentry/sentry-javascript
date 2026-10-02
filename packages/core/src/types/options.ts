@@ -165,6 +165,17 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   enabled?: boolean;
 
   /**
+   * Detaches this client from the SDK's global state. A standalone client never applies the global scope or the
+   * isolation scope to what it sends, and only applies a current scope that is passed to the capture method
+   * explicitly. Use this for a client that runs next to another Sentry SDK on the same page, for example in a
+   * library, a widget or a browser extension, so that the host's user, tags and breadcrumbs do not end up in this
+   * client's events, logs, metrics and spans.
+   *
+   * @default false
+   */
+  standalone?: boolean;
+
+  /**
    * Stack traces are automatically attached to events that don't otherwise have one. This applies
    * to events captured with `Sentry.captureMessage` and to non-Error values passed to
    * `Sentry.captureException`. Set this to `false` to disable attaching these stack traces.

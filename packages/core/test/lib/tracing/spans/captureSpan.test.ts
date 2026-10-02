@@ -3,6 +3,8 @@ import type { Contexts, Span, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
   debug,
+  getGlobalScope,
+  getIsolationScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -26,6 +28,7 @@ import {
 import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/scopeContextAttributes';
 import type { TestClientOptions } from '../../../mocks/client';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
+import { resetGlobals } from '../../../testutils';
 import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
@@ -128,6 +131,34 @@ describe('captureSpan', () => {
       },
       _segmentSpan: span,
     });
+  });
+
+  it('does not apply the global and isolation scope for a standalone client', () => {
+    resetGlobals();
+    const client = new TestClient(
+      getDefaultTestClientOptions({ dsn: 'https://dsn@ingest.f00.f00/1', tracesSampleRate: 1, standalone: true }),
+    );
+
+    getGlobalScope().setAttribute('global', 'yes');
+    getIsolationScope().setUser({ id: 'host-user' });
+
+    const span = withScope(scope => {
+      scope.setClient(client);
+      scope.setAttribute('library', 'yes');
+
+      const span = startInactiveSpan({ name: 'my-span' });
+      span.end();
+
+      return span;
+    });
+
+    const { attributes } = captureSpan(span, client);
+
+    expect(attributes).toMatchObject({ library: { value: 'yes', type: 'string' } });
+    expect(attributes).not.toHaveProperty('global');
+    expect(attributes).not.toHaveProperty(SEMANTIC_ATTRIBUTE_USER_ID);
+
+    resetGlobals();
   });
 
   it('captures sdk name and version if available', () => {

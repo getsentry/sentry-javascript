@@ -9,7 +9,7 @@ import type { Metric, SerializedMetric } from '../types/metric';
 import type { User } from '../types/user';
 import { debug } from '../utils/debug-logger';
 import { CALLBACK_ERROR, safeCallback } from '../utils/safeCallback';
-import { getCombinedScopeData } from '../utils/scopeData';
+import { getScopeDataForClient } from '../utils/scopeData';
 import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
@@ -177,7 +177,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   const { beforeSendMetric } = client.getOptions();
 
   // Enrich metric with contextual attributes
-  const { user, attributes: scopeAttributes } = getCombinedScopeData(getIsolationScope(), currentScope);
+  const { user, attributes: scopeAttributes } = getScopeDataForClient(client, getIsolationScope(), currentScope);
   const enrichedMetric = _enrichMetricAttributes(beforeMetric, client, user);
 
   client.emit('processMetric', enrichedMetric);

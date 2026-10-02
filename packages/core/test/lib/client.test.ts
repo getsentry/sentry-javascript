@@ -4,6 +4,7 @@ import {
   addBreadcrumb,
   dsnToString,
   getCurrentScope,
+  getGlobalScope,
   getIsolationScope,
   lastEventId,
   linkedErrorsIntegration,
@@ -52,6 +53,66 @@ describe('Client', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('standalone', () => {
+    function captureWithHostState(scope?: Scope): Event | undefined {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, standalone: true });
+      const client = new TestClient(options);
+      const hostProcessor = vi.fn((event: Event) => event);
+
+      getGlobalScope().setTag('global', 'yes');
+      getGlobalScope().addEventProcessor(hostProcessor);
+      getIsolationScope().setUser({ id: 'host-user' });
+      getIsolationScope().addBreadcrumb({ message: 'host crumb' });
+      getCurrentScope().setExtra('current', 'yes');
+
+      client.captureEvent({ message: 'standalone' }, undefined, scope);
+
+      expect(hostProcessor).not.toHaveBeenCalled();
+      return TestClient.instance!.event;
+    }
+
+    test('does not apply the global, isolation or current scope', () => {
+      const event = captureWithHostState();
+
+      expect(event).toEqual(expect.objectContaining({ message: 'standalone' }));
+      expect(event?.tags).toBeUndefined();
+      expect(event?.user).toBeUndefined();
+      expect(event?.extra).toBeUndefined();
+      expect(event?.breadcrumbs).toBeUndefined();
+    });
+
+    test('applies a scope passed to the capture method', () => {
+      const scope = new Scope();
+      scope.setUser({ id: 'library-user' });
+      scope.addBreadcrumb({ message: 'library crumb' });
+
+      const event = captureWithHostState(scope);
+
+      expect(event).toEqual(
+        expect.objectContaining({
+          message: 'standalone',
+          user: { id: 'library-user' },
+          breadcrumbs: [expect.objectContaining({ message: 'library crumb' })],
+        }),
+      );
+      expect(event?.tags).toBeUndefined();
+      expect(event?.extra).toBeUndefined();
+    });
+
+    test('does not touch the host session', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, standalone: true });
+      const client = new TestClient(options);
+      const session = makeSession();
+      getIsolationScope().setSession(session);
+
+      client.captureException(new Error('standalone'), undefined, new Scope());
+
+      expect(session.errors).toBe(0);
+      expect(session.status).toBe('ok');
+      expect(getIsolationScope().lastEventId()).toBeUndefined();
+    });
   });
 
   describe('constructor() / getDsn()', () => {

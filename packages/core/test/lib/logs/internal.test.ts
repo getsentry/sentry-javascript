@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fmt, Scope } from '../../../src';
+import { fmt, getGlobalScope, getIsolationScope, Scope } from '../../../src';
 import {
   _INTERNAL_captureLog,
   _INTERNAL_flushLogsBuffer,
@@ -11,6 +11,7 @@ import * as loggerModule from '../../../src/utils/debug-logger';
 import * as timeModule from '../../../src/utils/time';
 import { _INTERNAL_resetSequenceNumber } from '../../../src/utils/timestampSequence';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { resetGlobals } from '../../testutils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -41,6 +42,27 @@ describe('_INTERNAL_captureLog', () => {
         },
       }),
     );
+  });
+
+  it('does not apply the global and isolation scope for a standalone client', () => {
+    resetGlobals();
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, standalone: true });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+    scope.setAttribute('library', 'yes');
+
+    getGlobalScope().setAttribute('global', 'yes');
+    getIsolationScope().setUser({ id: 'host-user' });
+
+    _INTERNAL_captureLog({ level: 'info', message: 'standalone log' }, scope);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toMatchObject({ library: { value: 'yes', type: 'string' } });
+    expect(logAttributes).not.toHaveProperty('global');
+    expect(logAttributes).not.toHaveProperty('user.id');
+
+    resetGlobals();
   });
 
   it('includes trace context when available', () => {

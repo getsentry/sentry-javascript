@@ -11,7 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
-import { getCombinedScopeData } from '../../utils/scopeData';
+import { getScopeDataForClient } from '../../utils/scopeData';
 import {
   INTERNAL_getSegmentSpan,
   spanToStaticSpanJSON,
@@ -53,7 +53,7 @@ export function captureSpan(span: Span, client: Client): SerializedStreamedSpanW
 
   const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
 
-  const finalScopeData = getCombinedScopeData(spanIsolationScope, spanScope);
+  const finalScopeData = getScopeDataForClient(client, spanIsolationScope, spanScope);
 
   applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData);
 
@@ -176,7 +176,7 @@ export function captureStandaloneSpanWithStaticCallback(
   const serializedSegmentSpan = spanToJSON(segmentSpan);
 
   const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
-  const finalScopeData = getCombinedScopeData(spanIsolationScope, spanScope);
+  const finalScopeData = getScopeDataForClient(client, spanIsolationScope, spanScope);
 
   // Skip scope attributes: their `{ unit, value }` shape is unexpected for a static callback, and like
   // transactions, standalone spans don't get them.

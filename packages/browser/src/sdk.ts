@@ -2,14 +2,17 @@ import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
+  debug,
   dedupeIntegration,
   eventFiltersIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
   initAndBind,
+  Scope,
   setNormalizeStringifier,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import { DEBUG_BUILD } from './debug-build';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
@@ -126,6 +129,77 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   setNormalizeStringifier(normalizeStringifyValue);
 
   return initAndBind(BrowserClient, clientOptions);
+}
+
+/**
+ * The default integrations of {@link init} that do not depend on the SDK's global state. The others (GlobalHandlers,
+ * Breadcrumbs, BrowserApiErrors, BrowserSession, Console, ConversationId, FunctionToString) only work for the
+ * current client, so referencing them here would only add bundle size.
+ */
+function getDefaultStandaloneIntegrations(): Integration[] {
+  return [
+    eventFiltersIntegration(),
+    linkedErrorsIntegration(),
+    dedupeIntegration(),
+    httpContextIntegration(),
+    cultureContextIntegration(),
+  ];
+}
+
+export interface StandaloneClient {
+  client: BrowserClient;
+  /** A scope bound to the client. Capture through it, or pass it to the APIs that accept a scope. */
+  scope: Scope;
+}
+
+/**
+ * Creates a client that is detached from the SDK's global state, for code that runs next to another Sentry SDK on
+ * the same page: libraries, widgets, plugins and browser extensions.
+ *
+ * Unlike {@link init}, this does not make the client the current client, so `Sentry.captureException` and the other
+ * global functions keep going to whatever the host page set up. Capture through the returned scope instead. Data
+ * from the host's scopes (user, tags, breadcrumbs) is never applied to this client's events.
+ *
+ * Only the default integrations that do not depend on global state are installed, so errors are not captured
+ * automatically.
+ *
+ * @example
+ * ```
+ * import { createStandaloneClient } from '@sentry/browser';
+ *
+ * const { scope } = createStandaloneClient({ dsn: '__DSN__' });
+ *
+ * try {
+ *   doSomething();
+ * } catch (error) {
+ *   scope.captureException(error);
+ * }
+ * ```
+ */
+export function createStandaloneClient(options: BrowserOptions = {}): StandaloneClient {
+  if (DEBUG_BUILD && options.debug) {
+    debug.enable();
+  }
+
+  const defaultIntegrations =
+    options.defaultIntegrations ?? getDefaultStandaloneIntegrations();
+
+  const clientOptions: BrowserClientOptions = {
+    ...options,
+    standalone: true,
+    stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
+    integrations: getIntegrationsToSetup({ integrations: options.integrations, defaultIntegrations }),
+    transport: options.transport || makeFetchTransport,
+  };
+
+  setNormalizeStringifier(normalizeStringifyValue);
+
+  const client = new BrowserClient(clientOptions);
+  const scope = new Scope();
+  scope.setClient(client);
+  client.init();
+
+  return { client, scope };
 }
 
 /**
