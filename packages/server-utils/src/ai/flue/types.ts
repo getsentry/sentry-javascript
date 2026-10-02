@@ -6,21 +6,7 @@
  * `FlueExecutionContext` as of `@flue/runtime` 2.x.
  */
 
-/** Token counts and Flue-computed costs on a settled turn. */
-export interface FlueUsage {
-  input?: number;
-  output?: number;
-  cacheRead?: number;
-  cacheWrite?: number;
-  totalTokens?: number;
-  cost?: {
-    input?: number;
-    output?: number;
-    cacheRead?: number;
-    cacheWrite?: number;
-    total?: number;
-  };
-}
+import type { PiAiUsage } from '../pi-ai/usage';
 
 /** Mirrors `ModelRequestInfo`. */
 export interface FlueModelRequestInfo {
@@ -51,7 +37,8 @@ export interface FlueModelResponse {
   responseId?: string;
   responseModel?: string;
   output?: unknown;
-  usage?: FlueUsage;
+  /** pi-ai's usage, which Flue passes through with its own cost figures. */
+  usage?: PiAiUsage;
   finishReason?: string;
 }
 
@@ -88,6 +75,8 @@ export interface FlueObservation {
   request?: FlueModelRequest;
   args?: unknown;
   result?: unknown;
+  /** The tool result as the model sees it, on successful `tool` events. */
+  effectiveResult?: unknown;
   response?: FlueModelResponse;
 }
 
