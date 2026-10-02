@@ -87,7 +87,7 @@
     "@sentry/server-utils": "11.2.0",
     "@sentry/solid": "11.2.0",
     "@sentry/bundler-plugins": "11.2.0",
-    "@sentry/conventions": "0.24.0"
+    "@sentry/conventions": "0.25.0"
   },
   "devDependencies": {
     "@solidjs/router": "^1.0.0",

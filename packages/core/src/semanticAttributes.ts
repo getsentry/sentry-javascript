@@ -116,6 +116,7 @@ export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
  * - `next_trace`: The span links to the frontend root span of the next trace. (Not set by the SDK)
  *
  * Other values may be set as appropriate.
+ * @deprecated Use `SENTRY_LINK_TYPE` from `@sentry/conventions/attributes` instead.
  * @see https://develop.sentry.dev/sdk/telemetry/traces/span-links/#link-types
  */
 export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';

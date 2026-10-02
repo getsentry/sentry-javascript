@@ -6,6 +6,7 @@ import {
   CACHE_OPERATION,
   CACHE_TAGS,
   CACHE_TTL,
+  SENTRY_LINK_TYPE,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT } from '@sentry/conventions/op';
@@ -20,7 +21,6 @@ import {
   hasSpanStreamingEnabled,
   hasSpansEnabled,
   LRUMap,
-  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   spanIsSampled,
   startSpan,
   timestampInSeconds,
@@ -184,7 +184,7 @@ function linkCacheOrigin(span: Span, originKey: string, entry: unknown): void {
   if (origin && origin.entryTimestamp === timestamp) {
     span.addLink({
       context: origin.context,
-      attributes: { [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: CACHE_ORIGIN_LINK_TYPE },
+      attributes: { [SENTRY_LINK_TYPE]: CACHE_ORIGIN_LINK_TYPE },
     });
   }
 }
