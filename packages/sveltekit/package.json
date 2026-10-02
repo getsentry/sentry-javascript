@@ -61,7 +61,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "2.x || ^3.0.0-0",
+    "@sveltejs/kit": "2.x || 3.x",
     "vite": "*"
   },
   "peerDependenciesMeta": {
