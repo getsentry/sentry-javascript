@@ -145,48 +145,28 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
 }) satisfies IntegrationFn;
 
 /**
- * Sends cron check-ins to Sentry for every Cron Trigger run of the `scheduled` handler.
+ * Sends cron check-ins for every Cron Trigger run of the `scheduled` handler, with the trigger's
+ * schedule, so Sentry creates the monitor on the first run.
  *
- * Each check-in carries the trigger's cron expression as the monitor schedule, so Sentry creates
- * the monitor on the first run and keeps its schedule in sync. Cloudflare numbers weekdays from
- * 1 = Sunday, so the weekday field is converted to names before it is sent (`1-5` becomes
- * `SUN-THU`). If it can't be converted, check-ins are sent without a schedule. Monitors are billed,
- * which is why this integration is not enabled by default.
- *
- * By default, the monitor slug is `cron-` followed by the cron expression, lowercased, with fields
- * joined by `-` and `*`, `,`, `-` and `/` written as `x`, `_`, `to` and `by`. For example,
- * `30 9 * * 1-5` becomes `cron-30-9-x-x-1to5`. If the expression has other characters or the slug
- * would be longer than 50 characters, it is shortened and a hash of the expression is appended.
- * Workers that report to the same project and share a cron expression therefore share a monitor.
- * Pass `slug` to choose the slug, and optionally other monitor settings, per cron expression.
- *
- * Runs without a cron expression, such as some manual `--test-scheduled` runs, send no check-ins.
- * The Workers clock only advances on I/O, so the duration of a job that only uses the CPU may be
- * reported as about 0.
+ * Cron Triggers have no names, so map each cron expression to a slug. Without `slug`, the slug is
+ * derived from the expression (`30 9 * * 1-5` becomes `cron-30-9-x-x-1to5`) and changes with it.
  *
  * @example
  * ```ts
- * export default Sentry.withSentry(
- *   (env) => ({
- *     dsn: env.SENTRY_DSN,
- *     integrations: [Sentry.cronTriggersIntegration()],
- *   }),
- *   handler,
- * );
- * ```
+ * const jobs = {
+ *   '30 9 * * 1-5': { slug: 'daily-report', run: dailyReport },
+ * };
  *
- * @example
- * ```ts
  * export default Sentry.withSentry(
  *   (env) => ({
  *     dsn: env.SENTRY_DSN,
- *     integrations: [
- *       Sentry.cronTriggersIntegration({
- *         slug: (cron) => (cron === '0 0 * * *' ? { slug: 'nightly-cleanup', maxRuntime: 30 } : undefined),
- *       }),
- *     ],
+ *     integrations: [Sentry.cronTriggersIntegration({ slug: (cron) => jobs[cron]?.slug })],
  *   }),
- *   handler,
+ *   {
+ *     async scheduled(controller, env) {
+ *       await jobs[controller.cron]?.run(env);
+ *     },
+ *   },
  * );
  * ```
  */
