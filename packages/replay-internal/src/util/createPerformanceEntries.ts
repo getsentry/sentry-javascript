@@ -220,7 +220,10 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
     }
   }
 
-  return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts);
+  // The CLS value is a score, not a time, so we place the event at the last layout shift. A CLS of 0 has no layout
+  // shift, so it goes at the time origin.
+  const lastEntry = metric.entries[metric.entries.length - 1];
+  return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts, lastEntry?.startTime ?? 0);
 }
 
 /**
@@ -241,11 +244,12 @@ function getWebVital(
   name: string,
   nodes: Node[] | undefined,
   attributions?: WebVitalData['attributions'],
+  time = metric.value,
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
-  const end = getAbsoluteTime(value);
+  const end = getAbsoluteTime(time);
 
   return {
     type: 'web-vital',
