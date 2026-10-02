@@ -3,13 +3,13 @@ import {
   getClient,
   getCurrentScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core/browser';
 import {
+  SENTRY_EXCLUSIVE_TIME,
   BROWSER_NAVIGATION_ID,
   BROWSER_NAVIGATION_TYPE,
   SENTRY_REPLAY_ID,
@@ -93,7 +93,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
+    [SENTRY_EXCLUSIVE_TIME]: 0,
     [`browser.web_vital.${metricName}.value`]: value,
     // oxlint-disable-next-line typescript-eslint/no-deprecated
     [SENTRY_TRANSACTION]: segmentName,
