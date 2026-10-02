@@ -30,6 +30,11 @@ app.post('/test-body', async () => {
   return {};
 });
 
+app.get('/flush', async () => {
+  await Sentry.flush();
+  return {};
+});
+
 app.get('/test-inbound-headers/:id', async request => {
   return { headers: request.headers, id: request.params.id };
 });

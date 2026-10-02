@@ -203,6 +203,8 @@ describe('fastify v5 auto-instrumentation', () => {
         headers: { 'content-type': 'application/json' },
         expectError: true,
       });
+      // Flush so an event for the 400 would be sent before the exception below, and fail the test.
+      await runner.makeRequest('get', '/flush');
       await runner.makeRequest('get', '/test-exception/789', { expectError: true });
       await runner.completed();
     });
