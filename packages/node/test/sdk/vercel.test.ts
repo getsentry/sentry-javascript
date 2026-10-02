@@ -127,6 +127,19 @@ describe('setupVercelKeepAlive', () => {
     expect(client.flush).toHaveBeenCalledTimes(1);
   });
 
+  it('flushes after 2 seconds when the response does not close', async () => {
+    const client = createClient();
+    setupVercelKeepAlive(client as unknown as Client);
+
+    finishResponse();
+
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(client.flush).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(client.flush).toHaveBeenCalledTimes(1);
+  });
+
   it('does nothing without a request context', () => {
     (globalThis as any)[REQUEST_CONTEXT] = undefined;
     setupVercelKeepAlive(createClient() as unknown as Client);
