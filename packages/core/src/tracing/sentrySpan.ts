@@ -251,7 +251,7 @@ export class SentrySpan implements Span {
       return;
     }
 
-    this._endTime = endTimestamp === undefined ? this._getEndTimeFromDuration() : spanTimeInputToSeconds(endTimestamp);
+    this._endTime = endTimestamp == null ? this._getEndTimeFromDuration() : spanTimeInputToSeconds(endTimestamp);
     logSpanEnd(this);
 
     this._onSpanEnded();
@@ -357,7 +357,6 @@ export class SentrySpan implements Span {
     return !!this._isStandaloneSpan;
   }
 
-  /** Emit `spanEnd` when the span is ended. */
   /**
    * Returns the start time plus the `performance.now()` time since the span started.
    *
@@ -365,13 +364,14 @@ export class SentrySpan implements Span {
    * device slept), and it can never be negative.
    */
   private _getEndTimeFromDuration(): number {
-    const performanceNow = this._startPerformanceNow === undefined ? undefined : safePerformanceNow();
-    if (performanceNow === undefined || this._startPerformanceNow === undefined) {
+    const performanceNow = this._startPerformanceNow == null ? undefined : safePerformanceNow();
+    if (performanceNow == null || this._startPerformanceNow == null) {
       return timestampInSeconds();
     }
     return this._startTime + (performanceNow - this._startPerformanceNow) / 1000;
   }
 
+  /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
     const client = getClient();
     client?.emit('spanEnd', this);
