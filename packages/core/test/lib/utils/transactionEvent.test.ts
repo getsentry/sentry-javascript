@@ -1,5 +1,6 @@
+import { SENTRY_EXCLUSIVE_TIME } from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
-import { SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME, SEMANTIC_ATTRIBUTE_PROFILE_ID } from '../../../src/semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_PROFILE_ID } from '../../../src/semanticAttributes';
 import type { TransactionEvent } from '../../../src/types/event';
 import type { SpanJSON } from '../../../src/types/span';
 import {
@@ -45,7 +46,7 @@ describe('convertTransactionEventToSpanJson', () => {
           op: 'http',
           data: {
             [SEMANTIC_ATTRIBUTE_PROFILE_ID]: 'profile123',
-            [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 123.45,
+            [SENTRY_EXCLUSIVE_TIME]: 123.45,
             other: 'value',
           },
         },
@@ -60,7 +61,7 @@ describe('convertTransactionEventToSpanJson', () => {
     expect(convertTransactionEventToSpanJson(event)).toEqual({
       data: {
         [SEMANTIC_ATTRIBUTE_PROFILE_ID]: 'profile123',
-        [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 123.45,
+        [SENTRY_EXCLUSIVE_TIME]: 123.45,
         other: 'value',
       },
       description: 'Test Transaction',
@@ -163,7 +164,7 @@ describe('convertSpanJsonToTransactionEvent', () => {
           data: {
             other: 'value',
             [SEMANTIC_ATTRIBUTE_PROFILE_ID]: 'profile123',
-            [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 123.45,
+            [SENTRY_EXCLUSIVE_TIME]: 123.45,
           },
         },
       },

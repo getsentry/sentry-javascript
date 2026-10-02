@@ -97,6 +97,9 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME = 'sentry.custom_span_na
  */
 export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'sentry.profile_id';
 
+/**
+ * @deprecated Use `SENTRY_EXCLUSIVE_TIME` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME = 'sentry.exclusive_time';
 
 export const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';

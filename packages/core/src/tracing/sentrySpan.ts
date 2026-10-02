@@ -1,9 +1,8 @@
 /* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_EXCLUSIVE_TIME, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import {
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_PROFILE_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -281,7 +280,7 @@ export class SentrySpan implements Span {
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
-      exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
+      exclusive_time: this._attributes[SENTRY_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
       links: convertSpanLinksForEnvelope(this._links),
     };

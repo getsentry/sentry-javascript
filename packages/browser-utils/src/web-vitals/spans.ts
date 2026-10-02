@@ -7,7 +7,6 @@ import {
   getClient,
   getRootSpan,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   timestampInSeconds,
@@ -31,6 +30,7 @@ import {
 } from '../instrumentation/performanceObserver';
 import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
 import {
+  SENTRY_EXCLUSIVE_TIME,
   BROWSER_NAVIGATION_TYPE,
   BROWSER_WEB_VITAL_INP_INTERACTION_TYPE,
   BROWSER_WEB_VITAL_INP_TARGET,
@@ -435,7 +435,7 @@ export function _sendInpSpan(
   const name = hasSpanStreaming ? componentName || fallbackName : (selector ?? 'Interaction to next paint');
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
+    [SENTRY_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
   };
 
   // The span's name and op always have a value, even for an INP without an entry, so they can't
