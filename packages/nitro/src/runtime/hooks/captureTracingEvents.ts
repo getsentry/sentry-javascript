@@ -131,12 +131,6 @@ function setupH3TracingChannels(): void {
       return span;
     },
     {
-      captureError: () => ({
-        mechanism: {
-          handled: false,
-          type: 'auto.http.nitro.onTraceError',
-        },
-      }),
       beforeSpanEnd(span, data) {
         applyResponseStatus(span, data);
 
