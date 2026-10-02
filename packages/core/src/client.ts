@@ -1522,6 +1522,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
     const dataCategory = getDataCategoryByType(event.type);
+    // Spans that event processors removed are already recorded in `prepareEvent`, so all later
+    // span outcomes are relative to the span count of the prepared event.
+    let preparedSpanCount = 0;
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
@@ -1529,12 +1532,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
+        preparedSpanCount = prepared.spans?.length || 0;
+
         const isInternalException = (hint.data as { __sentry__: boolean })?.__sentry__ === true;
         if (isInternalException) {
           return prepared;
         }
 
-        const result = processBeforeSend(this, options, prepared, hint, () => {
+        const result = processBeforeSend(options, prepared, hint, () => {
           beforeSendDropReason = 'callback_error';
         });
         return _validateBeforeSendResult(result, beforeSendLabel);
@@ -1543,9 +1548,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         if (processedEvent === null) {
           this.recordDroppedEvent(beforeSendDropReason, dataCategory);
           if (isTransaction) {
-            const spans = event.spans || [];
             // the transaction itself counts as one span, plus all the child spans that are added
-            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + spans.length);
+            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + preparedSpanCount);
           }
           const dropMessage = beforeSendDropReason === 'callback_error' ? 'threw an error' : 'returned `null`';
           throw _makeDoNotSendEventError(`${beforeSendLabel} ${dropMessage}, will not send event.`);
@@ -1564,10 +1568,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         }
 
         if (isTransaction) {
-          const spanCountBefore = processedEvent.sdkProcessingMetadata?.spanCountBeforeProcessing || 0;
-          const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
-
-          const droppedSpanCount = spanCountBefore - spanCountAfter;
+          // Covers child spans dropped by `ignoreSpans` as well as spans removed by `beforeSendTransaction`
+          const droppedSpanCount = preparedSpanCount - (processedEvent.spans?.length || 0);
           if (droppedSpanCount > 0) {
             this.recordDroppedEvent('before_send', 'span', droppedSpanCount);
           }
@@ -1721,7 +1723,6 @@ function _validateBeforeSendResult(
  * Process the matching `beforeSendXXX` callback.
  */
 function processBeforeSend(
-  client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
@@ -1798,25 +1799,11 @@ function processBeforeSend(
           }
         }
 
-        const droppedSpans = processedEvent.spans.length - processedSpans.length;
-        if (droppedSpans) {
-          client.recordDroppedEvent('before_send', 'span', droppedSpans);
-        }
-
         processedEvent.spans = processedSpans;
       }
     }
 
     if (beforeSendTransaction) {
-      if (processedEvent.spans) {
-        // We store the # of spans before processing in SDK metadata,
-        // so we can compare it afterwards to determine how many spans were dropped
-        const spanCountBefore = processedEvent.spans.length;
-        processedEvent.sdkProcessingMetadata = {
-          ...event.sdkProcessingMetadata,
-          spanCountBeforeProcessing: spanCountBefore,
-        };
-      }
       return safeCallback(
         DEBUG_BUILD ? 'The `beforeSendTransaction` callback threw an error, dropping the event:' : '',
         () => beforeSendTransaction(processedEvent as TransactionEvent, hint),
