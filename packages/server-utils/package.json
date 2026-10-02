@@ -1,6 +1,6 @@
 {
   "name": "@sentry/server-utils",
-  "version": "11.3.0",
+  "version": "11.4.0",
   "description": "Server Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/server-utils",
@@ -98,7 +98,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@sentry/conventions": "^0.25.0",
-    "@sentry/core": "11.3.0"
+    "@sentry/core": "11.4.0"
   },
   "devDependencies": {
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.4",
