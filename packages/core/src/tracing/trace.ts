@@ -524,7 +524,9 @@ function _startRootSpan(
   if (!sampled && client && !_isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     const outcomeReason = dropReason || 'sample_rate';
-    if (!hasSpanStreamingEnabled(client)) {
+    // A standalone span is sent on its own and never becomes a transaction.
+    // TODO(standalone): drop the `isStandalone` check once the static trace lifecycle is gone.
+    if (!hasSpanStreamingEnabled(client) && !spanArguments.isStandalone) {
       client.recordDroppedEvent(outcomeReason, 'transaction');
     }
     // Child spans of this root record their own `span` outcome in `_startChildSpan`.
