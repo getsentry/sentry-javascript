@@ -270,17 +270,11 @@ function instrumentHandler(handler: unknown): void {
 
     fill(handler, 'set', (originalSet: UseCacheHandler['set']) => {
       return function (this: UseCacheHandler, cacheKey: string, pendingEntry: Promise<unknown>): Promise<void> {
-        const digest = keyDigest(cacheKey);
-
-        // A successful write replaces the entry, so a remembered origin from a previous fill is now wrong.
-        // An unsampled fill has no span to link to -> remember nothing instead.
         if (!shouldRecordCacheSpan()) {
-          return Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
-            getCacheOrigins().remove(originKeyPrefix + digest);
-            return result;
-          });
+          return originalSet.call(this, cacheKey, pendingEntry);
         }
 
+        const digest = keyDigest(cacheKey);
         const sourceFile = getCacheFunctionSourceFile(cacheKey);
 
         // The handler drains `pendingEntry` (the still-streaming entry) before storing, so this

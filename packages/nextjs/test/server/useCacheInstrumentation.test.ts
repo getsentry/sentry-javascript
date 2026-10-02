@@ -65,7 +65,6 @@ describe('instrumentUseCacheHandlers', () => {
   beforeEach(() => {
     mocks.activeSpan = {};
     mocks.sampled = true;
-    mocks.state.spanCount = 0;
     mocks.client = undefined;
     mocks.state.spanCount = 0;
     mocks.state.recording = true;
@@ -466,35 +465,6 @@ describe('instrumentUseCacheHandlers', () => {
       const handler = installWithDefaultHandler({ timestamp: nowMs() });
 
       await handler.set('cache-key', Promise.reject(new Error('entry failed')));
-      await handler.get('cache-key');
-
-      expect(mocks.addLink).not.toHaveBeenCalled();
-    });
-
-    it('forgets a remembered origin when the entry is refilled without a sampled parent span', async () => {
-      const handler = installWithDefaultHandler({ timestamp: nowMs() });
-
-      await handler.set('cache-key', Promise.resolve({}));
-
-      mocks.activeSpan = undefined;
-      await handler.set('cache-key', Promise.resolve({}));
-      mocks.activeSpan = {};
-
-      await handler.get('cache-key');
-
-      expect(mocks.addLink).not.toHaveBeenCalled();
-    });
-
-    it('forgets a remembered origin when the refill `cache.put` span is not recording', async () => {
-      const handler = installWithDefaultHandler({ timestamp: nowMs() });
-
-      await handler.set('cache-key', Promise.resolve({}));
-
-      // e.g. the `cache.put` op is filtered via `ignoreSpans`
-      mocks.state.recording = false;
-      await handler.set('cache-key', Promise.resolve({}));
-      mocks.state.recording = true;
-
       await handler.get('cache-key');
 
       expect(mocks.addLink).not.toHaveBeenCalled();
