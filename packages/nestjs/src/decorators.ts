@@ -8,27 +8,40 @@ import type { ReflectWithMetadata } from './integrations/helpers';
 import { copyReflectMetadata } from './integrations/helpers';
 
 /**
+ * Monitor settings for `@SentryCron` that take the schedule and time zone from the `@Cron()`
+ * decorator of `@nestjs/schedule` on the same method.
+ */
+export type SentryCronFromCronDecoratorConfig = Omit<MonitorConfig, 'schedule' | 'timezone'> & {
+  fromCronDecorator: true;
+};
+
+/**
  * A decorator wrapping the native nest Cron decorator, sending check-ins to Sentry.
  *
- * Without a `monitorConfig`, the schedule and time zone are taken from the `@Cron()` decorator of
- * `@nestjs/schedule` on the same method, so Sentry can create the monitor on the first check-in.
+ * Pass `{ fromCronDecorator: true }` instead of a monitor config to send the schedule and time
+ * zone of the method's `@Cron()` decorator, so Sentry can create the monitor on the first check-in.
  */
-export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): MethodDecorator => {
+export const SentryCron = (
+  monitorSlug: string,
+  monitorConfig?: MonitorConfig | SentryCronFromCronDecoratorConfig,
+): MethodDecorator => {
   return (target: unknown, propertyKey, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
 
-    let resolvedMonitorConfig: MonitorConfig | undefined = monitorConfig;
-    let resolved = monitorConfig !== undefined;
+    let resolvedMonitorConfig: MonitorConfig | undefined;
+    let resolved = false;
 
     const wrappedMethod = function (this: unknown, ...args: unknown[]): unknown {
-      // `@Cron()` sets its metadata on whatever function is `descriptor.value` when it runs, which is
-      // this function if it is applied after `@SentryCron()`, so it is only readable at call time.
       if (!resolved) {
         resolved = true;
-        resolvedMonitorConfig = getMonitorConfigFromNestCron(
-          wrappedMethod,
-          (target as Record<PropertyKey, unknown> | undefined)?.[propertyKey],
-        );
+        resolvedMonitorConfig = isFromCronDecoratorConfig(monitorConfig)
+          ? // `@Cron()` sets its metadata on whatever function is `descriptor.value` when it runs, which is
+            // this function if it is applied after `@SentryCron()`, so it is only readable at call time.
+            getMonitorConfigFromNestCron(monitorConfig, [
+              wrappedMethod,
+              (target as Record<PropertyKey, unknown> | undefined)?.[propertyKey],
+            ])
+          : monitorConfig;
       }
 
       return Sentry.withMonitor(
@@ -48,6 +61,12 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
   };
 };
 
+function isFromCronDecoratorConfig(
+  monitorConfig: MonitorConfig | SentryCronFromCronDecoratorConfig | undefined,
+): monitorConfig is SentryCronFromCronDecoratorConfig {
+  return !!monitorConfig && 'fromCronDecorator' in monitorConfig && monitorConfig.fromCronDecorator === true;
+}
+
 const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
 
 interface NestCronOptions {
@@ -56,7 +75,10 @@ interface NestCronOptions {
   utcOffset?: unknown;
 }
 
-function getMonitorConfigFromNestCron(...candidates: unknown[]): MonitorConfig | undefined {
+function getMonitorConfigFromNestCron(
+  { fromCronDecorator: _, ...monitorSettings }: SentryCronFromCronDecoratorConfig,
+  candidates: unknown[],
+): MonitorConfig | undefined {
   const R = Reflect as ReflectWithMetadata;
   if (typeof R.getMetadata !== 'function') {
     return undefined;
@@ -68,7 +90,8 @@ function getMonitorConfigFromNestCron(...candidates: unknown[]): MonitorConfig |
     }
     const cronOptions = R.getMetadata(SCHEDULE_CRON_OPTIONS, candidate);
     if (cronOptions && typeof cronOptions === 'object') {
-      return nestCronOptionsToMonitorConfig(cronOptions);
+      const cronConfig = nestCronOptionsToMonitorConfig(cronOptions);
+      return cronConfig && { ...monitorSettings, ...cronConfig };
     }
   }
 
