@@ -119,7 +119,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
 /**
  * Returns `performance.now()` in milliseconds, or `undefined` if the Performance API is unavailable.
  */
-export function performanceNowInMs(): number | undefined {
+export function safePerformanceNow(): number | undefined {
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & { performance?: Performance };
   return performance?.now ? withRandomSafeContext(() => performance.now()) : undefined;
 }
