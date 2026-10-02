@@ -1,4 +1,4 @@
-import type { ClientOptions, MonitorConfig, Options, TracePropagationTargets } from '@sentry/core';
+import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -313,11 +313,6 @@ export class CloudflareClient extends ServerRuntimeClient {
   }
 }
 
-/**
- * The monitor slug and settings for a Cron Trigger, see `monitorCronTriggers`.
- */
-export type CronTriggerMonitorSettings = { slug: string } & Omit<MonitorConfig, 'schedule' | 'timezone'>;
-
 interface BaseCloudflareOptions {
   /**
    * @ignore Used internally to disable the deDupeIntegration for workflows.
@@ -423,44 +418,6 @@ interface BaseCloudflareOptions {
    * ```
    */
   durableObjectStorageSpanAllowlist?: Array<string | RegExp>;
-
-  /**
-   * Send cron check-ins to Sentry for every Cron Trigger run of the `scheduled` handler.
-   *
-   * Each check-in carries the trigger's cron expression as the monitor schedule, so Sentry
-   * creates the monitor on the first run and keeps its schedule in sync. Cloudflare numbers
-   * weekdays from 1 = Sunday, so the weekday field is converted to names before it is sent
-   * (`1-5` becomes `SUN-THU`). If it can't be converted, check-ins are sent without a schedule.
-   * Monitors are billed, which is why this is off by default.
-   *
-   * With `true`, the monitor slug is `cron-` followed by the cron expression, lowercased, with
-   * fields joined by `-` and `*`, `,`, `-` and `/` written as `x`, `_`, `to` and `by`. For example,
-   * `30 9 * * 1-5` becomes `cron-30-9-x-x-1to5`. If the expression has other characters or the slug
-   * would be longer than 50 characters, it is shortened and a hash of the expression is appended.
-   * Workers that report to the same project and share a cron expression therefore share a monitor.
-   *
-   * Pass a function to choose the slug per cron expression instead. It can also return an object
-   * with the `slug` and other monitor settings, such as `checkinMargin` or `maxRuntime`. Returning
-   * `undefined` sends no check-ins for that trigger, and so does a function that throws. Runs
-   * without a cron expression, such as some manual `--test-scheduled` runs, send no check-ins.
-   *
-   * The Workers clock only advances on I/O, so the duration of a job that only uses the CPU
-   * may be reported as about 0.
-   *
-   * @default false
-   * @example
-   * ```ts
-   * export default Sentry.withSentry(
-   *   (env) => ({
-   *     dsn: env.SENTRY_DSN,
-   *     monitorCronTriggers: (cron) =>
-   *       cron === '0 0 * * *' ? { slug: 'nightly-cleanup', maxRuntime: 30 } : undefined,
-   *   }),
-   *   handler,
-   * );
-   * ```
-   */
-  monitorCronTriggers?: boolean | ((cron: string) => string | CronTriggerMonitorSettings | undefined);
 
   /**
    * Sets an optional server name (device name).
