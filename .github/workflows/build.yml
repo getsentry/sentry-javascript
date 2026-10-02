@@ -1038,6 +1038,7 @@ jobs:
       REACT_APP_E2E_TEST_DSN: 'https://username@domain/123'
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
+      SENTRY_CLI_NO_TELEMETRY: '1'
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix) }}
@@ -1173,6 +1174,7 @@ jobs:
       REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
+      SENTRY_CLI_NO_TELEMETRY: '1'
       E2E_OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY }}
       # Used by test apps that deploy a real Cloudflare Worker, e.g. cloudflare-workers-send-to-sentry
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

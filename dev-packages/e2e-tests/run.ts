@@ -191,6 +191,7 @@ async function run(): Promise<void> {
   const env = {
     ...process.env,
     ...envVarsToInject,
+    SENTRY_CLI_NO_TELEMETRY: '1',
     // Volta applies a project's node pin only to commands it manages, and it
     // manages pnpm only when this is set. Without it, the `volta run pnpm`
     // calls below build each app on whatever node is already on PATH rather

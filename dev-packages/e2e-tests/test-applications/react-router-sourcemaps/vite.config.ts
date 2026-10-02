@@ -12,6 +12,7 @@ export const sentryConfig: SentryReactRouterBuildOptions = {
   sentryUrl: 'http://localhost:3032',
   release: {
     name: 'test-release',
+    setCommits: false,
   },
   sourcemaps: {
     // The maps have to survive until `sentryOnBuildEnd` uploads them, so this asserts the option is

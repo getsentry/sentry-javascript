@@ -24,7 +24,7 @@ export default defineNuxtConfig({
     authToken: 'fake-auth-token',
     org: 'test-org',
     project: 'test-project',
-    release: { name: 'test-release' },
+    release: { name: 'test-release', setCommits: false },
     // Dropping `filesToDeleteAfterUpload` is the whole point of the "kept" variant: Sentry should
     // upload the maps and leave the emitted files alone.
     sourcemaps: keepClientSourceMaps ? {} : { filesToDeleteAfterUpload: ['.output/public/**/*.map'] },

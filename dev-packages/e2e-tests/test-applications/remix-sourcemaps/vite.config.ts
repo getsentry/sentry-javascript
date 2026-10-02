@@ -14,6 +14,7 @@ export default defineConfig({
       sentryUrl: 'http://localhost:3033',
       release: {
         name: 'test-release',
+        setCommits: false,
       },
       debug: true,
     }),

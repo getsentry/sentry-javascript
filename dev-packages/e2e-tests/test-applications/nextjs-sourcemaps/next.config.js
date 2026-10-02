@@ -10,6 +10,7 @@ module.exports = withSentryConfig(nextConfig, {
   project: 'test-project',
   release: {
     name: 'test-release',
+    setCommits: false,
   },
   sourcemaps: {
     deleteSourcemapsAfterUpload: false,
