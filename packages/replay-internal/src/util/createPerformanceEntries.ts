@@ -220,7 +220,10 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
     }
   }
 
-  return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts);
+  // The CLS value is a score, not a time, so we place the event at the last layout shift. A CLS of 0 has no layout
+  // shift, so it goes at the time origin.
+  const lastEntry = metric.entries[metric.entries.length - 1];
+  return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts, lastEntry?.startTime ?? 0);
 }
 
 /**
@@ -230,7 +233,8 @@ export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntr
   // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast exposes the entry's `target` field; tsc errors without it
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
   const node = lastEntry?.target ? [lastEntry.target] : undefined;
-  return getWebVital(metric, 'interaction-to-next-paint', node);
+  // The INP value is a duration, not a time, so we place the event at the interaction.
+  return getWebVital(metric, 'interaction-to-next-paint', node, undefined, lastEntry?.startTime ?? 0);
 }
 
 /**
@@ -241,11 +245,12 @@ function getWebVital(
   name: string,
   nodes: Node[] | undefined,
   attributions?: WebVitalData['attributions'],
+  time = metric.value,
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
-  const end = getAbsoluteTime(value);
+  const end = getAbsoluteTime(time);
 
   return {
     type: 'web-vital',
