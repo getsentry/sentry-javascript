@@ -31,7 +31,6 @@ import {
   parseUrl,
   safeCallback,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stripDataUrlContent,
@@ -59,6 +58,7 @@ import {
   URL_QUERY,
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -220,7 +220,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
     [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(requestUrl.search)),
     [URL_FRAGMENT]: getUrlFragment(requestUrl.hash),
     [URL_SCHEME]: urlScheme,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node_fetch',
+    [SENTRY_ORIGIN]: 'auto.http.node_fetch',
   };
 
   // Sanitize data URLs to prevent long base64 strings in span attributes

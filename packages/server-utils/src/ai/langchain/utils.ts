@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 /* eslint-disable typescript-eslint/no-deprecated */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
+import { stringify } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -24,6 +24,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { extractSystemInstructions } from '../core/utils';
@@ -227,7 +228,7 @@ function baseRequestAttributes(
     [GEN_AI_PROVIDER_NAME]: stringify(system ?? 'langchain', String),
     [GEN_AI_OPERATION_NAME]: 'chat',
     [GEN_AI_REQUEST_MODEL]: stringify(modelName, String),
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
+    [SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
   };
 }

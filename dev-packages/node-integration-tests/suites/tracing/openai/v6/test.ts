@@ -1,4 +1,3 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -16,6 +15,8 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
@@ -50,11 +51,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -105,11 +106,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(responsesSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(responsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -155,11 +156,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(nonStreamingErrorSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(nonStreamingErrorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -182,11 +183,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(streamingChatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(streamingChatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -245,11 +246,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(streamingResponsesSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(streamingResponsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -317,11 +318,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'openai',
               });
-              expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(streamingErrorSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(streamingErrorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -359,11 +360,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -426,11 +427,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(responsesSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(responsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -484,11 +485,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(nonStreamingErrorSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(nonStreamingErrorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -515,11 +516,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(streamingChatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(streamingChatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -590,11 +591,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'chat',
               });
-              expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(streamingResponsesSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(streamingResponsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -674,11 +675,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'openai',
               });
-              expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(streamingErrorSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(streamingErrorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -784,11 +785,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'embeddings',
               });
-              expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.embeddings',
               });
-              expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -829,11 +830,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'embeddings',
               });
-              expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(errorEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.embeddings',
               });
-              expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(errorEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -858,11 +859,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'embeddings',
               });
-              expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(multiEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.embeddings',
               });
-              expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(multiEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -924,11 +925,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'embeddings',
               });
-              expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.embeddings',
               });
-              expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -975,11 +976,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'embeddings',
               });
-              expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(errorEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.embeddings',
               });
-              expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(errorEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -1008,11 +1009,11 @@ describe('OpenAI integration (V6)', () => {
                 type: 'string',
                 value: 'embeddings',
               });
-              expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(multiEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.embeddings',
               });
-              expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(multiEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -1075,8 +1076,8 @@ describe('OpenAI integration (V6)', () => {
                   trace_id: expect.any(String),
                   data: {
                     [GEN_AI_OPERATION_NAME]: 'chat',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
+                    [SENTRY_OP]: 'gen_ai.chat',
+                    [SENTRY_ORIGIN]: 'auto.ai.openai',
                     [GEN_AI_PROVIDER_NAME]: 'openai',
                     [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
                     [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
@@ -1128,8 +1129,8 @@ describe('OpenAI integration (V6)', () => {
                   trace_id: expect.any(String),
                   data: {
                     [GEN_AI_OPERATION_NAME]: 'chat',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
+                    [SENTRY_OP]: 'gen_ai.chat',
+                    [SENTRY_ORIGIN]: 'auto.ai.openai',
                     [GEN_AI_PROVIDER_NAME]: 'openai',
                     [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
                     [GEN_AI_REQUEST_TEMPERATURE]: 0.7,

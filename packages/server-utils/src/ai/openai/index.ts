@@ -3,7 +3,6 @@ import { DEBUG_BUILD } from '../../debug-build';
 import {
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
   startSpanManual,
@@ -19,6 +18,7 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
@@ -67,7 +67,7 @@ export function extractRequestAttributes(
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'openai',
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
+    [SENTRY_ORIGIN]: 'auto.ai.openai',
   };
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {

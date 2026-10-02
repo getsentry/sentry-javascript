@@ -6,6 +6,7 @@ import {
   SENTRY_OP,
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { NAVIGATION } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
@@ -17,7 +18,6 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 
@@ -134,7 +134,7 @@ export function instrumentVueRouter(
       // This will override the origin, and add params & query attributes
       activePageLoadSpan.setAttributes({
         ...attributes,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
+        [SENTRY_ORIGIN]: 'auto.pageload.vue',
       });
 
       hasHandledFirstPageLoad = true;
@@ -153,7 +153,7 @@ export function instrumentVueRouter(
           attributes: {
             ...attributes,
             [SENTRY_OP]: NAVIGATION,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
+            [SENTRY_ORIGIN]: 'auto.navigation.vue',
             [SENTRY_SEGMENT_NAME_SOURCE]: transactionSource,
           },
         },

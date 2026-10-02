@@ -1,13 +1,13 @@
 /* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SENTRY_EXCLUSIVE_TIME, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import {
-  SEMANTIC_ATTRIBUTE_PROFILE_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '../semanticAttributes';
+  SENTRY_EXCLUSIVE_TIME,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_PROFILE_ID, SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '../semanticAttributes';
 import type { Client } from '../client';
 import type { TransactionEvent } from '../types/event';
 import type { SpanLink } from '../types/link';
@@ -103,8 +103,8 @@ export class SentrySpan implements Span {
 
     this._attributes = {};
     this.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op,
+      [SENTRY_ORIGIN]: 'manual',
+      [SENTRY_OP]: spanContext.op,
       ...spanContext.attributes,
     });
 
@@ -271,14 +271,14 @@ export class SentrySpan implements Span {
     return {
       data: this._attributes,
       description: this._name,
-      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+      op: this._attributes[SENTRY_OP],
       parent_span_id: this._parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,
       status: getStatusMessage(this._status),
       timestamp: this._endTime,
       trace_id: this._traceId,
-      origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      origin: this._attributes[SENTRY_ORIGIN] as SpanOrigin | undefined,
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SENTRY_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),

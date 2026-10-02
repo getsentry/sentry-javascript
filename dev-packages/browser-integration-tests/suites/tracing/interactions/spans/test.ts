@@ -2,8 +2,6 @@ import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/core';
 import {
@@ -16,6 +14,8 @@ import {
   SENTRY_TRACE_LIFECYCLE,
   USER_AGENT_ORIGINAL,
   URL_PATH,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -80,11 +80,11 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'idleTimeout',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+      [SENTRY_OP]: {
         type: 'string',
         value: 'ui.action.click',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+      [SENTRY_ORIGIN]: {
         type: 'string',
         value: 'auto.browser.interactions',
       },
@@ -137,7 +137,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'stream',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+      [SENTRY_OP]: {
         type: 'string',
         value: 'ui.interaction.click',
       },
@@ -145,7 +145,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: expect.any(String),
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+      [SENTRY_ORIGIN]: {
         type: 'string',
         value: 'auto.browser.interactions',
       },

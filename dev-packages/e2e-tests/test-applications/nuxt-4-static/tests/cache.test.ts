@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/nuxt';
 
 test.describe('Cache Instrumentation', () => {
   const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
@@ -24,9 +23,7 @@ test.describe('Cache Instrumentation', () => {
     };
 
     // Test that we have cache operations from cachedFunction and cachedEventHandler
-    const allCacheSpans = transaction.spans?.filter(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.cache.nuxt',
-    );
+    const allCacheSpans = transaction.spans?.filter(span => span.data?.['sentry.origin'] === 'auto.cache.nuxt');
     expect(allCacheSpans?.length).toBeGreaterThan(0);
 
     // Test getItem spans for cachedFunction - should have both cache miss and cache hit
@@ -42,8 +39,8 @@ test.describe('Cache Instrumentation', () => {
     );
     if (cacheMissSpan) {
       expect(cacheMissSpan.data).toMatchObject({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
+        ['sentry.op']: 'cache.get',
+        ['sentry.origin']: 'auto.cache.nuxt',
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: false,
         'db.operation.name': 'getItem',
         'db.collection.name': expect.stringMatching(/^(cache)?$/),
@@ -59,8 +56,8 @@ test.describe('Cache Instrumentation', () => {
     );
     if (cacheHitSpan) {
       expect(cacheHitSpan.data).toMatchObject({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
+        ['sentry.op']: 'cache.get',
+        ['sentry.origin']: 'auto.cache.nuxt',
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
         'db.operation.name': 'getItem',
         'db.collection.name': expect.stringMatching(/^(cache)?$/),
@@ -78,8 +75,8 @@ test.describe('Cache Instrumentation', () => {
     );
     if (cacheSetSpan) {
       expect(cacheSetSpan.data).toMatchObject({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
+        ['sentry.op']: 'cache.put',
+        ['sentry.origin']: 'auto.cache.nuxt',
         'db.operation.name': 'setItem',
         'db.collection.name': expect.stringMatching(/^(cache)?$/),
       });
@@ -125,18 +122,16 @@ test.describe('Cache Instrumentation', () => {
     const transaction1 = await transactionPromise;
 
     // Get all cache-related spans
-    const allCacheSpans = transaction1.spans?.filter(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.cache.nuxt',
-    );
+    const allCacheSpans = transaction1.spans?.filter(span => span.data?.['sentry.origin'] === 'auto.cache.nuxt');
 
     // We should have cache operations
     expect(allCacheSpans?.length).toBeGreaterThan(0);
 
     // Get all getItem operations
-    const allGetItemSpans = allCacheSpans?.filter(span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'cache.get');
+    const allGetItemSpans = allCacheSpans?.filter(span => span.data?.['sentry.op'] === 'cache.get');
 
     // Get all setItem operations
-    const allSetItemSpans = allCacheSpans?.filter(span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'cache.put');
+    const allSetItemSpans = allCacheSpans?.filter(span => span.data?.['sentry.op'] === 'cache.put');
 
     // We should have both get and set operations
     expect(allGetItemSpans?.length).toBeGreaterThan(0);

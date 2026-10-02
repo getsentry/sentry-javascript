@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as sentryCore from '@sentry/core';
 import * as serverUtils from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,7 +27,7 @@ describe('instrumentSqlStorage', () => {
         name: 'SELECT users',
         attributes: {
           'sentry.op': 'db.query',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'SELECT * FROM users WHERE id = ?',
@@ -51,7 +51,7 @@ describe('instrumentSqlStorage', () => {
         name: 'SELECT users',
         attributes: {
           'sentry.op': 'db.query',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'SELECT * FROM users WHERE name = ? AND age > ?',
@@ -84,7 +84,7 @@ describe('instrumentSqlStorage', () => {
         name: 'INSERT users',
         attributes: {
           'sentry.op': 'db.query',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'INSERT INTO users (name, email) VALUES (?, ?)',
@@ -281,7 +281,7 @@ describe('instrumentSqlStorage', () => {
         name: 'exec',
         attributes: {
           'sentry.op': 'db.query',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
         },

@@ -2,8 +2,6 @@ import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/core';
@@ -19,6 +17,8 @@ import {
   SENTRY_TRACE_LIFECYCLE,
   USER_AGENT_ORIGINAL,
   SENTRY_STATUS_MESSAGE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 
 sentryTest(
@@ -77,11 +77,11 @@ sentryTest(
       {
         attributes: {
           'sentry.is_localhost': { value: false, type: 'boolean' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+          [SENTRY_OP]: {
             type: 'string',
             value: 'test-child',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -126,7 +126,7 @@ sentryTest(
       {
         attributes: {
           'sentry.is_localhost': { value: false, type: 'boolean' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -171,7 +171,7 @@ sentryTest(
       {
         attributes: {
           'sentry.is_localhost': { value: false, type: 'boolean' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -240,11 +240,11 @@ sentryTest(
             type: 'string',
             value: expect.any(String),
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+          [SENTRY_OP]: {
             type: 'string',
             value: 'test',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },

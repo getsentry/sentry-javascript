@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import {
   GEN_AI_PROVIDER_NAME,
@@ -21,6 +20,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from '../../../../src/ai/workers-ai/constants';
@@ -80,7 +80,7 @@ describe('workers-ai utils', () => {
       expect(extractRequestAttributes(MODEL, { prompt: 'Hello' }, 'chat')).toEqual({
         [GEN_AI_PROVIDER_NAME]: WORKERS_AI_PROVIDER_NAME,
         [GEN_AI_OPERATION_NAME]: 'chat',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
+        [SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
         [GEN_AI_REQUEST_MODEL]: MODEL,
       });
     });
@@ -104,7 +104,7 @@ describe('workers-ai utils', () => {
       ).toEqual({
         [GEN_AI_PROVIDER_NAME]: WORKERS_AI_PROVIDER_NAME,
         [GEN_AI_OPERATION_NAME]: 'chat',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
+        [SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
         [GEN_AI_REQUEST_MODEL]: MODEL,
         [GEN_AI_REQUEST_TEMPERATURE]: 0.5,
         [GEN_AI_REQUEST_MAX_TOKENS]: 100,

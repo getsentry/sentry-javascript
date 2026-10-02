@@ -4,8 +4,6 @@ import {
   captureSpan,
   debug,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
@@ -33,6 +31,8 @@ import {
   USER_ID,
   USER_IP_ADDRESS,
   USER_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
@@ -77,11 +77,11 @@ describe('captureSpan', () => {
           type: 'string',
           value: 'stream',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -173,11 +173,11 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -269,11 +269,11 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -350,8 +350,8 @@ describe('captureSpan', () => {
       is_segment: true,
       attributes: {
         [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.client' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+        [SENTRY_OP]: { type: 'string', value: 'http.client' },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
         [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
         [SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },

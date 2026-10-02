@@ -8,10 +8,11 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { getClient, hasSpanStreamingEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startInactiveSpan } from '@sentry/core';
 
 const DB_SYSTEM_NAME_VALUE_MONGODB = 'mongodb';
 
@@ -59,7 +60,7 @@ export function startMongooseLegacySpan({
     [SERVER_PORT]: collection?.conn?.port,
     [DB_OPERATION_NAME]: operation,
     [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MONGODB,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+    [SENTRY_ORIGIN]: origin,
   };
 
   const client = getClient();

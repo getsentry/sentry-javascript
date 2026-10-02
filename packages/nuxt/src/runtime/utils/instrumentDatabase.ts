@@ -1,4 +1,4 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN as SENTRY_ORIGIN_ATTRIBUTE } from '@sentry/conventions/attributes';
 import { DB_QUERY } from '@sentry/conventions/op';
 import {
   addBreadcrumb,
@@ -7,7 +7,6 @@ import {
   debug,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   type Span,
   SPAN_STATUS_ERROR,
   startSpan,
@@ -275,7 +274,7 @@ function createStartSpanOptions(
     attributes: {
       [DB_QUERY_TEXT]: queryText,
       [DB_QUERY_SUMMARY]: querySummary,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+      [SENTRY_ORIGIN_ATTRIBUTE]: SENTRY_ORIGIN,
       [SENTRY_OP]: DB_QUERY,
       ...data,
     },
