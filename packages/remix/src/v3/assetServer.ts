@@ -2,6 +2,7 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { consoleSandbox } from '@sentry/core';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 import { addDebugIdToSourceMap, findDebugId, getDebugId, injectDebugIdSnippet } from './debugId';
+import { getShimUrl, isOrchestrionLoader, orchestrionLoader, resolveShimPath } from './orchestrionLoader';
 
 // The subset of `@remix-run/assets` types used here. `remix` is an optional peer dependency, so
 // they are restated rather than imported.
@@ -23,10 +24,14 @@ type ModuleLoader = (
 ) => ModuleLoadResult;
 
 interface AssetServerOptions {
+  allowPackages?: readonly string[];
+  basePath?: string;
+  rootDir?: string;
+  mounts?: Readonly<Record<string, string>>;
   // `false` is not in Remix's type, but is how an app tells Sentry it wants no source maps at all,
   // since leaving the option out now means hidden source maps.
   sourceMaps?: 'inline' | 'external' | false;
-  scripts?: { loaders?: readonly ModuleLoader[]; [key: string]: unknown };
+  scripts?: { loaders?: readonly ModuleLoader[]; external?: readonly string[]; [key: string]: unknown };
   [key: string]: unknown;
 }
 
@@ -44,6 +49,7 @@ interface CreateAssetServerContext {
 const SOURCE_MAPPING_URL_REGEX = /\n\/\/# sourceMappingURL=\S+\s*$/;
 
 const MAX_STAMPED_BODIES = 2000;
+const SDK_PACKAGE = '@sentry/remix';
 
 let instrumented = false;
 
@@ -127,16 +133,43 @@ function withDebugIdOptions(options: AssetServerOptions | undefined): AssetServe
     });
   }
 
-  const loaders = options.scripts?.loaders ?? [];
+  // No allowed packages means no `node_modules` module is served, so nothing to transform. Otherwise
+  // the shim must be allowed too, or its injected import 404s and takes the client runtime down.
+  const servesPackages = (options.allowPackages?.length ?? 0) > 0;
+  const allowPackages =
+    servesPackages && !options.allowPackages?.includes(SDK_PACKAGE)
+      ? [...(options.allowPackages ?? []), SDK_PACKAGE]
+      : options.allowPackages;
+
+  const shimUrl = servesPackages
+    ? getShimUrl(options.basePath ?? '/', options.rootDir ?? process.cwd(), options.mounts, resolveShimPath())
+    : undefined;
+  if (servesPackages && shimUrl === undefined) {
+    consoleSandbox(() => {
+      // oxlint-disable-next-line no-console
+      console.warn(
+        "[Sentry] The browser channel shim is outside the asset server's node_modules mount, so browser modules are served without instrumentation. Component render errors need `captureRuntimeErrors(app)`.",
+      );
+    });
+  }
+  const loaders = (options.scripts?.loaders ?? []).filter(
+    loader => loader !== debugIdLoader && !isOrchestrionLoader(loader),
+  );
+  const external = (options.scripts?.external ?? []).filter(entry => entry !== shimUrl);
 
   return {
     ...options,
+    ...(allowPackages !== options.allowPackages && { allowPackages }),
     // Hidden unless the app chose otherwise, see `stampServedAssets`.
     sourceMaps: options.sourceMaps ?? 'external',
     scripts: {
       ...options.scripts,
-      // Last, so the ID also covers whatever the app's own loaders changed.
-      loaders: loaders.includes(debugIdLoader) ? loaders : [...loaders, debugIdLoader],
+      // The transform first, the debug ID last, so the ID covers the transformed module.
+      loaders:
+        shimUrl === undefined ? [...loaders, debugIdLoader] : [...loaders, orchestrionLoader(shimUrl), debugIdLoader],
+      // Kept as a URL by the compiler. A bare specifier would not resolve from inside an instrumented
+      // package under pnpm.
+      external: shimUrl === undefined ? external : [shimUrl, ...external],
     },
   };
 }

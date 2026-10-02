@@ -1,7 +1,27 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import * as path from 'node:path';
 import { debugIdLoader, instrumentAssetServer } from '../../src/v3/assetServer';
+import type * as OrchestrionLoader from '../../src/v3/orchestrionLoader';
+
+// In the repo the shim sits in `src/`, which no asset server mount could serve. Place it where an
+// installed copy would be, so the URL logic runs the way it does in an app.
+vi.mock('../../src/v3/orchestrionLoader', async importOriginal => ({
+  ...(await importOriginal<typeof OrchestrionLoader>()),
+  resolveShimPath: () =>
+    path.join(
+      process.cwd(),
+      'node_modules',
+      '@sentry',
+      'remix',
+      'build',
+      'esm',
+      'v3',
+      'client',
+      'diagnosticsChannelShim.js',
+    ),
+}));
 import { getDebugId, getDebugIdSnippet } from '../../src/v3/debugId';
 
 type Options = Record<string, any>;
@@ -55,11 +75,31 @@ describe('instrumentAssetServer', () => {
       warn.mockRestore();
     });
 
-    it('adds the debug ID loader after the app loaders', () => {
+    it('adds the transform and then the debug ID loader after the app loaders', () => {
       const appLoader = vi.fn();
-      const { receivedOptions } = createAssetServer({ scripts: { loaders: [appLoader], define: { a: 'b' } } });
+      const { receivedOptions } = createAssetServer({
+        allowPackages: ['remix'],
+        scripts: { loaders: [appLoader], define: { a: 'b' } },
+      });
 
-      expect(receivedOptions.scripts).toEqual({ loaders: [appLoader, debugIdLoader], define: { a: 'b' } });
+      expect(receivedOptions.scripts).toEqual({
+        loaders: [appLoader, expect.any(Function), debugIdLoader],
+        define: { a: 'b' },
+        external: [expect.stringContaining('/client/diagnosticsChannelShim.js')],
+      });
+    });
+
+    it('points the transform at the shim by an encoded public URL under the node_modules mount', () => {
+      const { receivedOptions } = createAssetServer({
+        allowPackages: ['remix'],
+        basePath: '/assets',
+        mounts: { app: 'app', deps: 'node_modules' },
+      });
+
+      const [shimUrl] = receivedOptions.scripts.external;
+      expect(shimUrl).toMatch(/^\/assets\/deps\//);
+      // `@` must arrive as `%40`: the browser treats the two spellings as different modules.
+      expect(shimUrl).not.toContain('@');
     });
 
     it('does not mutate the options the app passed', () => {
@@ -69,11 +109,41 @@ describe('instrumentAssetServer', () => {
       expect(options).toEqual({ basePath: '/assets' });
     });
 
-    it('adds the loader once when the same options are reused', () => {
-      const first = createAssetServer({}).receivedOptions;
-      const { receivedOptions } = createAssetServer(first);
+    it('serves modules uninstrumented, with a warning, when the shim is outside the node_modules mount', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      // A rootDir the shim cannot be under, as with a `link:` install.
+      const { receivedOptions } = createAssetServer({
+        allowPackages: ['remix'],
+        basePath: '/assets',
+        rootDir: '/nowhere/near',
+      });
 
       expect(receivedOptions.scripts.loaders).toEqual([debugIdLoader]);
+      expect(receivedOptions.scripts.external).toEqual([]);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('outside the asset server'));
+      warn.mockRestore();
+    });
+
+    it('allows the SDK package, so the injected shim import can be served', () => {
+      const { receivedOptions } = createAssetServer({ allowPackages: ['remix'] });
+
+      expect(receivedOptions.allowPackages).toEqual(['remix', '@sentry/remix']);
+    });
+
+    it('injects nothing when the app serves no packages, since no module could import the shim', () => {
+      const { receivedOptions } = createAssetServer({ basePath: '/assets' });
+
+      expect(receivedOptions.allowPackages).toBeUndefined();
+      expect(receivedOptions.scripts.loaders).toEqual([debugIdLoader]);
+      expect(receivedOptions.scripts.external).toEqual([]);
+    });
+
+    it('adds each loader once when the same options are reused', () => {
+      const first = createAssetServer({ allowPackages: ['remix'] }).receivedOptions;
+      const { receivedOptions } = createAssetServer(first);
+
+      expect(receivedOptions.scripts.loaders).toEqual([expect.any(Function), debugIdLoader]);
+      expect(receivedOptions.scripts.external).toHaveLength(1);
     });
   });
 

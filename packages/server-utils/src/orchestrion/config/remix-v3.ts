@@ -36,10 +36,18 @@ export const remixV3Config: InstrumentationConfig[] = [
     },
     functionQuery: { functionName: 'createRequestListener', kind: 'Sync' },
   },
+  // Browser side, applied by the asset server's loader chain. The only way to see component render
+  // errors without application code.
+  {
+    channelName: 'run',
+    module: { name: '@remix-run/ui', versionRange: '>=0.8.0 <1', filePath: 'dist/runtime/run.js' },
+    functionQuery: { functionName: 'run', kind: 'Sync' },
+  },
 ];
 
 export const remixV3Channels = {
   REMIX_V3_CREATE_ROUTER: 'orchestrion:@remix-run/fetch-router:createRouter',
   REMIX_V3_CREATE_ASSET_SERVER: 'orchestrion:@remix-run/assets:createAssetServer',
   REMIX_V3_CREATE_REQUEST_LISTENER: 'orchestrion:@remix-run/node-fetch-server:createRequestListener',
+  REMIX_V3_UI_RUN: 'orchestrion:@remix-run/ui:run',
 } as const;
