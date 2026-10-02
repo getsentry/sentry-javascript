@@ -1,7 +1,5 @@
 import type { Span } from '@sentry/core';
 import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  _INTERNAL_skipAiProviderWrapping,
   continueTrace,
   getActiveSpan,
   LRUMap,
@@ -10,11 +8,9 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import { GEN_AI_AGENT_NAME, GEN_AI_CONVERSATION_ID, GEN_AI_OPERATION_NAME } from '@sentry/conventions/attributes';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from '../anthropic-ai/constants';
 import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
-import { GOOGLE_GENAI_INTEGRATION_NAME } from '../google-genai/constants';
-import { OPENAI_INTEGRATION_NAME } from '../openai/constants';
+import { skipPiAiProviderIntegrations } from '../pi-ai/providers';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
 import {
@@ -28,8 +24,6 @@ import {
 import type { FlueInstrumentation } from './types';
 
 export type FlueOptions = GenAiOptions;
-
-const SKIPPED_PROVIDERS = [OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION_NAME, GOOGLE_GENAI_INTEGRATION_NAME];
 
 /**
  * Build the object to hand to `instrument()` from `@flue/runtime`.
@@ -45,20 +39,13 @@ const SKIPPED_PROVIDERS = [OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION_NAM
  * which fall back to the current client's `dataCollection.genAI` settings and are read per event.
  */
 export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstrumentation {
-  // Flue drives the providers through `@earendil-works/pi-ai`, which bundles the `openai`,
-  // `@anthropic-ai/sdk` and `@google/genai` clients. Left alone they instrument the same call this
-  // reports as a turn, emitting a second `gen_ai.chat` beside ours.
-  //
-  // Applied on first use rather than here, for two reasons. Constructing the object proves nothing
-  // — if `instrument()` rejects it, suppressing the provider integrations would leave the app with
-  // no `gen_ai.chat` spans at all. And the registry is reset per client (`_setupIntegrations`
-  // clears it, and Cloudflare calls `init()` per request), so a one-shot call at module scope is
-  // wiped by the next `init()` and every later request double-reports.
-  const skipProviders = (): void => {
-    if (!SKIPPED_PROVIDERS.every(provider => _INTERNAL_shouldSkipAiProviderWrapping(provider))) {
-      _INTERNAL_skipAiProviderWrapping(SKIPPED_PROVIDERS);
-    }
-  };
+  // Flue drives the providers through `@earendil-works/pi-ai`. The provider integrations are skipped
+  // on first use rather than here, for two reasons. Constructing the object proves nothing: if
+  // `instrument()` rejects it, suppressing the provider integrations would leave the app with no
+  // `gen_ai.chat` spans at all. And the registry is reset per client (`_setupIntegrations` clears it,
+  // and Cloudflare calls `init()` per request), so a one-shot call at module scope is wiped by the
+  // next `init()` and every later request double-reports.
+  const skipProviders = skipPiAiProviderIntegrations;
 
   // Keyed by the agent operation's own id, which is what the observations carry. That keeps
   // concurrent runs apart and gives a delegated subagent its own span: Flue nests a second `agent`
