@@ -25,7 +25,12 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
     release = argv.release;
   }
 
-  await sentry.release.create({ orgVersion: release });
+  // The release API requires a project, and the one given to the SDK does not reach this call.
+  const project = argv.project ?? process.env.SENTRY_PROJECT;
+  if (!project) {
+    throw new Error('[sentry] A project is required to create a release. Pass `--project` or set `SENTRY_PROJECT`.');
+  }
+  await sentry.release.create({ orgVersion: release, project });
 
   try {
     await sentry.sourcemap.upload({

@@ -21,6 +21,11 @@ let keepOutput = false;
 try {
   const values = parseOptions();
   keepOutput = Boolean(values['keep-output'] || values['out-dir']);
+  const org = values.org ?? process.env.SENTRY_ORG;
+  const project = values.project ?? process.env.SENTRY_PROJECT;
+  if (!values['dry-run'] && !project) {
+    fail('a project is required for the upload. Pass `--project` or set `SENTRY_PROJECT`.');
+  }
 
   const { emitAssets } = await import('@sentry/remix/v3');
 
@@ -63,11 +68,11 @@ try {
     console.log('[sentry] --dry-run, skipping upload');
   } else {
     const { createSentrySDK } = await import('sentry');
-    const sentry = createSentrySDK({ url: values.url, org: values.org, project: values.project });
+    const sentry = createSentrySDK({ url: values.url, org, project });
     const release = values.release ?? (await sentry.release['propose-version']()).version;
     try {
       // The project has to be named here; the SDK default does not reach release creation.
-      await sentry.release.create({ orgVersion: release, project: values.project });
+      await sentry.release.create({ orgVersion: release, project });
       // Modules keep their served names (`.ts`, `.tsx`), which the upload skips by default. Only module
       // extensions go here: the upload pairs each module with the `.map` sibling `emitAssets` wrote.
       const ext = [...new Set(emitted.map(asset => path.extname(asset.file)))].join(',');
