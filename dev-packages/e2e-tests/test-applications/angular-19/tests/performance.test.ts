@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-// Cannot use @sentry/angular here due to build stuff
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 // The `angular-19 (streamed)` variant builds the app with `traceLifecycle: 'stream'`, which emits
 // spans instead of transactions. See `streamed-performance.test.ts` for that variant.
@@ -265,7 +264,7 @@ test.describe('TraceDirective', () => {
       expect.arrayContaining([
         expect.objectContaining({
           data: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
+            ['sentry.op']: 'ui.mount',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
             'ui.component_name': 'sample-component',
           },
@@ -277,7 +276,7 @@ test.describe('TraceDirective', () => {
         }),
         expect.objectContaining({
           data: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
+            ['sentry.op']: 'ui.mount',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
             'ui.component_name': 'app-sample-component',
           },
@@ -311,7 +310,7 @@ test.describe('TraceClass Decorator', () => {
     expect(classDecoratorSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
+          ['sentry.op']: 'ui.mount',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
           'ui.component_name': 'ComponentTrackingComponent',
         },
@@ -344,7 +343,7 @@ test.describe('TraceMethod Decorator', () => {
     expect(ngInitSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+          ['sentry.op']: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
           'code.function.name': 'ngOnInit',
         },
@@ -375,7 +374,7 @@ test.describe('TraceMethod Decorator', () => {
     expect(ngAfterViewInitSpan).toEqual(
       expect.objectContaining({
         data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+          ['sentry.op']: 'function',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
           'code.function.name': 'ngAfterViewInit',
         },

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/nuxt';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/nuxt';
 
 test.describe('Cache Instrumentation', () => {
   const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
@@ -42,7 +42,7 @@ test.describe('Cache Instrumentation', () => {
     );
     if (cacheMissSpan) {
       expect(cacheMissSpan.data).toMatchObject({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
+        ['sentry.op']: 'cache.get',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: false,
         'db.operation.name': 'getItem',
@@ -59,7 +59,7 @@ test.describe('Cache Instrumentation', () => {
     );
     if (cacheHitSpan) {
       expect(cacheHitSpan.data).toMatchObject({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
+        ['sentry.op']: 'cache.get',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
         'db.operation.name': 'getItem',
@@ -78,7 +78,7 @@ test.describe('Cache Instrumentation', () => {
     );
     if (cacheSetSpan) {
       expect(cacheSetSpan.data).toMatchObject({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
+        ['sentry.op']: 'cache.put',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
         'db.operation.name': 'setItem',
         'db.collection.name': expect.stringMatching(/^(cache)?$/),
@@ -133,10 +133,10 @@ test.describe('Cache Instrumentation', () => {
     expect(allCacheSpans?.length).toBeGreaterThan(0);
 
     // Get all getItem operations
-    const allGetItemSpans = allCacheSpans?.filter(span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'cache.get');
+    const allGetItemSpans = allCacheSpans?.filter(span => span.data?.['sentry.op'] === 'cache.get');
 
     // Get all setItem operations
-    const allSetItemSpans = allCacheSpans?.filter(span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'cache.put');
+    const allSetItemSpans = allCacheSpans?.filter(span => span.data?.['sentry.op'] === 'cache.put');
 
     // We should have both get and set operations
     expect(allGetItemSpans?.length).toBeGreaterThan(0);

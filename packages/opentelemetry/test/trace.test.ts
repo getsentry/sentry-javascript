@@ -1,7 +1,7 @@
 /* eslint-disable typescript/no-deprecated */
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
 import {
   getCapturedScopesOnSpan,
@@ -10,7 +10,6 @@ import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   spanToJSON,
@@ -232,7 +231,7 @@ describe('trace', () => {
           expect(getSpanAttributes(span)).toEqual({
             [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
+            [SENTRY_OP]: 'my-op',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
         },
@@ -627,7 +626,7 @@ describe('trace', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
+        [SENTRY_OP]: 'my-op',
       });
     });
 

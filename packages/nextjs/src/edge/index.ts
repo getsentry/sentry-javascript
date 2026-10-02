@@ -10,7 +10,6 @@ import {
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
   registerSpanErrorInstrumentation,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
@@ -165,7 +164,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
     // Make sure middleware spans get the right op
     if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'Middleware.execute') {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, MIDDLEWARE);
+      span.setAttribute(SENTRY_OP, MIDDLEWARE);
       span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'url');
     }
 

@@ -6,13 +6,13 @@
  * call runs). Resolver spans use the same origin/op/field attributes as the native subscriber.
  */
 
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { GRAPHQL } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -183,7 +183,7 @@ function createFieldIfNotExists(
 function createResolverSpan(info: GraphQLResolveInfo, path: string[], parentSpan?: Span): Span {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+    [SENTRY_OP]: GRAPHQL,
     [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_RESOLVE,
     [GRAPHQL_FIELD_NAME]: info.fieldName,
     [GRAPHQL_FIELD_PATH]: path.join('.'),

@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
-import { httpContextIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../src/exports';
+import { httpContextIntegration } from '../../src/exports';
 import type { Event, StreamedSpanJSON } from '@sentry/core';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 import { BrowserClient } from '../../src/client';
@@ -29,7 +30,7 @@ describe('httpContextIntegration', () => {
     const span: Partial<StreamedSpanJSON> = {
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+        [SENTRY_OP]: 'http.client',
       },
     };
 
@@ -39,7 +40,7 @@ describe('httpContextIntegration', () => {
 
     expect(span.attributes).not.toHaveProperty('url.full');
     expect(span.attributes).toEqual({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+      [SENTRY_OP]: 'http.client',
       'http.request.header.referer': ['https://example.com'],
       'user_agent.original': USER_AGENT,
       'sentry.is_localhost': false,
@@ -52,7 +53,7 @@ describe('httpContextIntegration', () => {
     const span: Partial<StreamedSpanJSON> = {
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
       },
     };
 
@@ -61,7 +62,7 @@ describe('httpContextIntegration', () => {
     integration.processSpan!(span as StreamedSpanJSON, browserClient);
 
     expect(span.attributes).toEqual({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+      [SENTRY_OP]: 'pageload',
       'http.request.header.referer': ['https://example.com'],
       'user_agent.original': USER_AGENT,
       'sentry.is_localhost': false,
@@ -74,14 +75,14 @@ describe('httpContextIntegration', () => {
 
     const span: Partial<StreamedSpanJSON> = {
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
+        [SENTRY_OP]: 'ui.click',
       },
     };
 
     integration.processSpan!(span as StreamedSpanJSON, new BrowserClient(getDefaultBrowserClientOptions()));
 
     expect(span.attributes).toEqual({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
+      [SENTRY_OP]: 'ui.click',
       'user_agent.original': USER_AGENT,
       'sentry.is_localhost': false,
     });
@@ -161,13 +162,13 @@ describe('httpContextIntegration', () => {
       );
       const span: Partial<StreamedSpanJSON> = {
         is_segment: true,
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload' },
+        attributes: { [SENTRY_OP]: 'pageload' },
       };
 
       httpContextIntegration().processSpan!(span as StreamedSpanJSON, client);
 
       expect(span.attributes).toEqual({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         'sentry.is_localhost': false,
         'url.full': 'https://example.com',
       });
@@ -179,13 +180,13 @@ describe('httpContextIntegration', () => {
       );
       const span: Partial<StreamedSpanJSON> = {
         is_segment: true,
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload' },
+        attributes: { [SENTRY_OP]: 'pageload' },
       };
 
       httpContextIntegration().processSpan!(span as StreamedSpanJSON, client);
 
       expect(span.attributes).toEqual({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         'url.full': 'https://example.com',
         'http.request.header.referer': ['[Filtered]'],
         'user_agent.original': USER_AGENT,

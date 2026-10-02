@@ -18,7 +18,6 @@ import {
   getTraceData,
   hasSpanStreamingEnabled,
   REQUEST_HANDLER_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   startInactiveSpan,
@@ -154,7 +153,7 @@ function instrumentLifecyclePhase(
       name: isStreamedRequestHandlerSpan ? context.route || REQUEST_HANDLER_SPAN_NAME_FALLBACK : phaseName,
       parentSpan: rootSpan,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+        [SENTRY_OP]: op,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
         ...routeAttribute,
       },
@@ -169,7 +168,7 @@ function instrumentLifecyclePhase(
           name: isStreamedRequestHandlerSpan ? context.route || REQUEST_HANDLER_SPAN_NAME_FALLBACK : handlerName,
           parentSpan: phaseSpan,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+            [SENTRY_OP]: op,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
             ...routeAttribute,
             // Streamed request handler spans are named after the route, so the
