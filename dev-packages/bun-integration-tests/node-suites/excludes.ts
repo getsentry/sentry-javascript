@@ -259,10 +259,8 @@ const BUN_BUILD_NOT_TRIAGED = [
   'suites/tracing/mongoose-v9/test.ts',
   'suites/tracing/mongoose/test.ts',
   'suites/tracing/mysql/test.ts',
-  'suites/tracing/openai/test.ts',
   'suites/tracing/prisma-orm-v8/test.ts',
   'suites/tracing/together-ai/test.ts',
-  'suites/tracing/vercelai/test.ts',
   'suites/tracing/vercelai/v6_v7/test.ts',
 ];
 
