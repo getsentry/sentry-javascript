@@ -1,5 +1,5 @@
 import * as dc from 'node:diagnostics_channel';
-import { CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CACHE_HIT, CACHE_KEY, CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
   CACHE_OPERATION_NAMES,
@@ -7,8 +7,6 @@ import {
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_CACHE_HIT,
-  SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
@@ -98,7 +96,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
           [SENTRY_OP]: OPERATION_SPAN_OPS[operation],
           [CACHE_OPERATION]: cacheOperationName,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_CACHE_KEY]: cacheKeys.length > 1 ? cacheKeys : cacheKeys[0],
+          [CACHE_KEY]: cacheKeys.length > 1 ? cacheKeys : cacheKeys[0],
           'db.operation.name': operation,
           'db.collection.name': mountBase(data),
           'db.system.name': data.driver?.name ?? 'unknown',
@@ -112,7 +110,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
         if (!('error' in data)) {
           const result = (data as { result?: unknown }).result;
           if (CACHE_HIT_OPERATIONS.has(operation)) {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, resolveCacheHit(operation, data.keys?.[0], result));
+            span.setAttribute(CACHE_HIT, resolveCacheHit(operation, data.keys?.[0], result));
           }
         }
 

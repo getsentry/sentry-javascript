@@ -102,10 +102,19 @@ export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'sentry.profile_id';
  */
 export const SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME = 'sentry.exclusive_time';
 
+/**
+ * @deprecated Use `CACHE_HIT` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
 
+/**
+ * @deprecated Use `CACHE_KEY` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
 
+/**
+ * @deprecated Use `CACHE_ITEM_SIZE` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';
 
 /** TODO: Remove these once we update to latest semantic conventions */
