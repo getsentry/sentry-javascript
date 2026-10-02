@@ -1,57 +1,49 @@
 import { expect } from '@playwright/test';
-import type { TransactionEvent } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  envelopeRequestParser,
-  shouldSkipCdnBundleTest,
-  shouldSkipTracingTest,
-  waitForTransactionRequest,
-} from '../../../../utils/helpers';
+import { shouldSkipCdnBundleTest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest(
-  'filters ui.interaction.click spans for spotlight elements via ignoreSpans',
-  async ({ getLocalTestUrl, page }) => {
-    // spotlightBrowserIntegration is not available in CDN bundles
-    if (shouldSkipTracingTest() || shouldSkipCdnBundleTest()) {
-      sentryTest.skip();
-    }
+// The click handler adds the class before the event timing entry records the target.
+const SPOTLIGHT_BUTTON = 'body > div#sentry-spotlight > button.clicked';
+const REGULAR_BUTTON = 'body > button.clicked';
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
-    await page.goto(url);
+sentryTest('filters spotlight interaction spans via ignoreSpans', async ({ getLocalTestUrl, page }) => {
+  // spotlightBrowserIntegration is not available in CDN bundles.
+  sentryTest.skip(shouldSkipTracingTest() || shouldSkipCdnBundleTest());
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const spans = collectStreamedSpans(page);
+  const pageloadPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+  await page.goto(url);
+  await pageloadPromise;
 
-    // Wait for the pageload transaction to complete
-    await waitForTransactionRequest(page);
+  const spotlightPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'ui.action.click');
+  await page.locator('[data-test-id=spotlight-button]').click();
+  await expect(page.locator('.clicked[data-test-id=spotlight-button]')).toBeVisible();
+  const spotlight = await spotlightPromise;
+  expect(getSpanOp(spotlight)).toBe('ui.action.click');
 
-    // Click on the spotlight element — interaction span should be filtered
-    const spotlightTxnPromise = waitForTransactionRequest(page, txn => txn.contexts?.trace?.op === 'ui.action.click');
-    await page.locator('[data-test-id=spotlight-button]').click();
-    await page.locator('.clicked[data-test-id=spotlight-button]').isVisible();
-    const spotlightTransaction = envelopeRequestParser<TransactionEvent>(await spotlightTxnPromise);
+  const regularPromise = waitForStreamedSpan(
+    page,
+    span => span.is_segment && getSpanOp(span) === 'ui.action.click' && span.span_id !== spotlight.span_id,
+  );
+  const regularInteractionPromise = waitForStreamedSpan(
+    page,
+    span => span.attributes['browser.web_vital.inp.target']?.value === REGULAR_BUTTON,
+  );
+  await page.locator('[data-test-id=regular-button]').click();
+  await expect(page.locator('.clicked[data-test-id=regular-button]')).toBeVisible();
+  const [regular, interaction] = await Promise.all([regularPromise, regularInteractionPromise]);
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-    expect(spotlightTransaction.contexts?.trace?.op).toBe('ui.action.click');
-
-    const spotlightInteractionSpans = spotlightTransaction.spans?.filter(span => span.op === 'ui.interaction.click');
-    expect(spotlightInteractionSpans).toHaveLength(0);
-
-    // Let the first idle span fully settle before clicking again
-    await page.waitForTimeout(1000);
-
-    // Click on the regular button — wait specifically for a transaction that contains
-    // a ui.interaction.click child span, since the PerformanceObserver may deliver
-    // the event entry asynchronously
-    const regularTxnPromise = waitForTransactionRequest(
-      page,
-      txn =>
-        txn.contexts?.trace?.op === 'ui.action.click' &&
-        (txn.spans?.some(span => span.op === 'ui.interaction.click') ?? false),
-    );
-    await page.locator('[data-test-id=regular-button]').click();
-    await page.locator('.clicked[data-test-id=regular-button]').isVisible();
-    const regularTransaction = envelopeRequestParser<TransactionEvent>(await regularTxnPromise);
-
-    const regularInteractionSpans = regularTransaction.spans?.filter(span => span.op === 'ui.interaction.click');
-    expect(regularInteractionSpans?.length).toBeGreaterThanOrEqual(1);
-    expect(regularInteractionSpans![0]!.description).toContain('button');
-    expect(regularInteractionSpans![0]!.description).not.toContain('#sentry-spotlight');
-  },
-);
+  expect(getSpanOp(interaction)).toBe('ui.interaction.click');
+  expect(interaction.parent_span_id).toBe(regular.span_id);
+  expect(interaction.trace_id).toBe(regular.trace_id);
+  expect(interaction.attributes['browser.web_vital.inp.target']?.value).not.toContain('#sentry-spotlight');
+  expect(
+    spans.filter(
+      span =>
+        getSpanOp(span) === 'ui.interaction.click' &&
+        span.attributes['browser.web_vital.inp.target']?.value === SPOTLIGHT_BUTTON,
+    ),
+  ).toHaveLength(0);
+});

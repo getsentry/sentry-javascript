@@ -1,39 +1,42 @@
 import { expect } from '@playwright/test';
 import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest('adds link between hard page reloads when opting into sessionStorage', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const pageload1TraceContext = await sentryTest.step('First pageload', async () => {
-    const pageloadRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+  const pageload1Span = await sentryTest.step('First pageload', async () => {
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
     await page.goto(url);
-    const pageload1Event = envelopeRequestParser(await pageloadRequestPromise);
-    const pageload1TraceContext = pageload1Event.contexts?.trace;
-    expect(pageload1TraceContext).toBeDefined();
-    expect(pageload1TraceContext?.links).toBeUndefined();
-    return pageload1TraceContext;
+    const span = await pageloadSpanPromise;
+    expect(span).toBeDefined();
+    expect(span.links).toBeUndefined();
+    return span;
   });
 
-  const pageload2Event = await sentryTest.step('Hard page reload', async () => {
-    const pageload2RequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+  const pageload2Span = await sentryTest.step('Hard page reload', async () => {
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
     await page.reload();
-    return envelopeRequestParser(await pageload2RequestPromise);
+    return pageloadSpanPromise;
   });
 
-  expect(pageload2Event.contexts?.trace?.links).toEqual([
+  expect(pageload2Span.links).toEqual([
     {
-      trace_id: pageload1TraceContext?.trace_id,
-      span_id: pageload1TraceContext?.span_id,
+      trace_id: pageload1Span.trace_id,
+      span_id: pageload1Span.span_id,
       sampled: true,
-      attributes: { [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace' },
+      attributes: {
+        [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+          type: 'string',
+          value: 'previous_trace',
+        },
+      },
     },
   ]);
 
-  expect(pageload1TraceContext?.trace_id).not.toEqual(pageload2Event.contexts?.trace?.trace_id);
+  expect(pageload1Span.trace_id).not.toEqual(pageload2Span.trace_id);
 });

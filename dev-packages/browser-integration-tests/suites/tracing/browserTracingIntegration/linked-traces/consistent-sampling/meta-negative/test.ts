@@ -1,15 +1,15 @@
 import { expect } from '@playwright/test';
-import type { ClientReport } from '@sentry/core';
+import type { ClientReport, SerializedStreamedSpan } from '@sentry/core';
 import { extractTraceparentData, parseBaggageHeader } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   envelopeRequestParser,
-  getMultipleSentryEnvelopeRequests,
   hidePage,
   shouldSkipTracingTest,
   waitForClientReportRequest,
   waitForTracingHeadersOnUrl,
 } from '../../../../../../utils/helpers';
+import { observeStreamedSpan } from '../../../../../../utils/spanUtils';
 
 const metaTagSampleRand = 0.9;
 const metaTagSampleRate = 0.2;
@@ -19,34 +19,31 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
   sentryTest(
     'Continues negative sampling decision from meta tag across all traces and downstream propagations',
     async ({ getLocalTestUrl, page }) => {
-      if (shouldSkipTracingTest()) {
-        sentryTest.skip();
-      }
+      sentryTest.skip(shouldSkipTracingTest());
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 
-      let txnsReceived = 0;
-      // @ts-expect-error - no need to return something valid here
-      getMultipleSentryEnvelopeRequests<Event>(page, 1, { envelopeType: 'transaction' }, () => {
-        ++txnsReceived;
-        return {};
+      const spansReceived: SerializedStreamedSpan[] = [];
+      observeStreamedSpan(page, span => {
+        spansReceived.push(span);
+        return false;
       });
 
       const clientReportPromise = waitForClientReportRequest(page);
 
       await sentryTest.step('Initial pageload', async () => {
         await page.goto(url);
-        expect(txnsReceived).toEqual(0);
+        expect(spansReceived).toHaveLength(0);
       });
 
       await sentryTest.step('Custom instrumented button click', async () => {
         await page.locator('#btn1').click();
-        expect(txnsReceived).toEqual(0);
+        expect(spansReceived).toHaveLength(0);
       });
 
       await sentryTest.step('Navigation', async () => {
         await page.goto(`${url}#foo`);
-        expect(txnsReceived).toEqual(0);
+        expect(spansReceived).toHaveLength(0);
       });
 
       await sentryTest.step('Make fetch request', async () => {
@@ -73,6 +70,8 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
           'sentry-trace_id': expect.not.stringContaining(metaTagTraceId),
           'sentry-transaction': 'custom root span 2',
         });
+
+        expect(spansReceived).toHaveLength(0);
       });
 
       await sentryTest.step('Client report', async () => {
@@ -82,19 +81,17 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
           timestamp: expect.any(Number),
           discarded_events: [
             {
-              category: 'transaction',
-              quantity: 4,
+              category: 'span',
+              quantity: expect.any(Number),
               reason: 'sample_rate',
             },
           ],
         });
+        // exact number depends on performance observer emissions
+        expect(clientReport.discarded_events[0].quantity).toBeGreaterThanOrEqual(10);
       });
 
-      await sentryTest.step('Wait for transactions to be discarded', async () => {
-        // give it a little longer just in case a txn is pending to be sent
-        await page.waitForTimeout(1000);
-        expect(txnsReceived).toEqual(0);
-      });
+      expect(spansReceived).toHaveLength(0);
     },
   );
 });

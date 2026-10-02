@@ -1,60 +1,61 @@
 import { expect } from '@playwright/test';
 import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest('manually started custom traces are linked correctly in the chain', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const pageloadTraceContext = await sentryTest.step('Initial pageload', async () => {
-    const pageloadRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+  const pageloadSpan = await sentryTest.step('Initial pageload', async () => {
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
     await page.goto(url);
-    const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
-    return pageloadRequest.contexts?.trace;
+    return pageloadSpanPromise;
   });
 
-  const customTrace1Context = await sentryTest.step('Custom trace', async () => {
-    const customTrace1RequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'custom');
+  const customTraceSpan = await sentryTest.step('Custom trace', async () => {
+    const customSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'custom');
     await page.locator('#btn1').click();
-    const customTrace1Event = envelopeRequestParser(await customTrace1RequestPromise);
+    const span = await customSpanPromise;
 
-    const customTraceCtx = customTrace1Event.contexts?.trace;
-
-    expect(customTraceCtx?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
-    expect(customTraceCtx?.links).toEqual([
+    expect(span.trace_id).not.toEqual(pageloadSpan.trace_id);
+    expect(span.links).toEqual([
       {
-        trace_id: pageloadTraceContext?.trace_id,
-        span_id: pageloadTraceContext?.span_id,
+        trace_id: pageloadSpan.trace_id,
+        span_id: pageloadSpan.span_id,
         sampled: true,
         attributes: {
-          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+            type: 'string',
+            value: 'previous_trace',
+          },
         },
       },
     ]);
 
-    return customTraceCtx;
+    return span;
   });
 
   await sentryTest.step('Navigation', async () => {
-    const navigation1RequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
+    const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
     await page.goto(`${url}#foo`);
-    const navigationEvent = envelopeRequestParser(await navigation1RequestPromise);
-    const navTraceContext = navigationEvent.contexts?.trace;
+    const navSpan = await navigationSpanPromise;
 
-    expect(navTraceContext?.trace_id).not.toEqual(customTrace1Context?.trace_id);
-    expect(navTraceContext?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
+    expect(navSpan.trace_id).not.toEqual(customTraceSpan.trace_id);
+    expect(navSpan.trace_id).not.toEqual(pageloadSpan.trace_id);
 
-    expect(navTraceContext?.links).toEqual([
+    expect(navSpan.links).toEqual([
       {
-        trace_id: customTrace1Context?.trace_id,
-        span_id: customTrace1Context?.span_id,
+        trace_id: customTraceSpan.trace_id,
+        span_id: customTraceSpan.span_id,
         sampled: true,
         attributes: {
-          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+            type: 'string',
+            value: 'previous_trace',
+          },
         },
       },
     ]);
