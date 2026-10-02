@@ -7,7 +7,6 @@ import {
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getTraceData,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
@@ -22,7 +21,11 @@ import type { Event } from '../../../src/types/event';
 import type { Span } from '../../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { resetGlobals } from '../../testutils';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_STATUS_MESSAGE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_STATUS_MESSAGE,
+} from '@sentry/conventions/attributes';
 
 const dsn = 'https://123@sentry.io/42';
 
@@ -517,9 +520,7 @@ describe('startIdleSpan', () => {
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'externalFinish',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('externalFinish');
   });
 
   it('sets finish reason when span ends', () => {
@@ -538,9 +539,7 @@ describe('startIdleSpan', () => {
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'idleTimeout',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('idleTimeout');
   });
 
   it('sets finish reason when span ends via expired heartbeat timeout', () => {
@@ -559,9 +558,7 @@ describe('startIdleSpan', () => {
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'heartbeatFailed',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('heartbeatFailed');
   });
 
   it('sets finish reason when span ends via final timeout', () => {
@@ -589,9 +586,7 @@ describe('startIdleSpan', () => {
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'finalTimeout',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('finalTimeout');
   });
 
   it('uses finish reason set outside when span ends', () => {
@@ -606,14 +601,12 @@ describe('startIdleSpan', () => {
     client.init();
 
     const span = startIdleSpan({ name: 'foo' });
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'custom reason');
+    span.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'custom reason');
     startSpan({ name: 'inner' }, () => {});
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'custom reason',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('custom reason');
   });
 
   describe('idleTimeout', () => {
