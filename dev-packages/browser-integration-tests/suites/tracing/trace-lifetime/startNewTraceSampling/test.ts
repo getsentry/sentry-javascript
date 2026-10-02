@@ -1,12 +1,7 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import type { EventAndTraceHeader } from '../../../../utils/helpers';
-import {
-  eventAndTraceHeaderRequestParser,
-  getFirstSentryEnvelopeRequest,
-  shouldSkipTracingTest,
-  waitForTransactionRequest,
-} from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpanAndTraceHeader, waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../../utils/spanUtils';
 
 sentryTest(
   'new trace started with `startNewTrace` is sampled according to the `tracesSampler`',
@@ -25,23 +20,20 @@ sentryTest(
       });
     });
 
-    const [pageloadEvent, pageloadTraceHeaders] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      url,
-      eventAndTraceHeaderRequestParser,
-    );
+    const [pageloadEvent, pageloadTraceHeaders] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
 
-    const pageloadTraceContext = pageloadEvent.contexts?.trace;
+    const pageloadTraceContext = pageloadEvent;
 
-    expect(pageloadEvent.type).toEqual('transaction');
+    expect(pageloadEvent.is_segment).toBe(true);
 
     expect(pageloadTraceContext).toMatchObject({
-      op: 'pageload',
+      is_segment: true,
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'pageload' },
+        'sentry.sample_rate': { type: 'double', value: 0.5 },
+      }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
-      data: {
-        'sentry.sample_rate': 0.5,
-      },
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -54,36 +46,33 @@ sentryTest(
       sample_rand: '0.45',
     });
 
-    const transactionPromise = waitForTransactionRequest(page, event => {
-      return event.transaction === 'new-trace';
-    });
+    const spanPromise = waitForStreamedSpanAndTraceHeader(page, span => span.name === 'new-trace');
 
     await page.locator('#newTrace').click();
 
-    const [newTraceTransactionEvent, newTraceTransactionTraceHeaders] = eventAndTraceHeaderRequestParser(
-      await transactionPromise,
-    );
+    const [newTraceSpan, newTraceHeaders] = await spanPromise;
 
-    const newTraceTransactionTraceContext = newTraceTransactionEvent.contexts?.trace;
-    expect(newTraceTransactionTraceContext).toMatchObject({
-      op: 'ui.interaction.click',
+    const newTraceSpanContext = newTraceSpan;
+    expect(newTraceSpanContext).toMatchObject({
+      is_segment: true,
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'ui.interaction.click' },
+        'sentry.sample_rate': { type: 'double', value: 0.9 },
+      }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
-      data: {
-        'sentry.sample_rate': 0.9,
-      },
     });
 
-    expect(newTraceTransactionTraceHeaders).toEqual({
+    expect(newTraceHeaders).toEqual({
       environment: 'production',
       public_key: 'public',
       sample_rate: '0.9',
       sampled: 'true',
-      trace_id: newTraceTransactionTraceContext?.trace_id,
+      trace_id: newTraceSpanContext?.trace_id,
       transaction: 'new-trace',
       sample_rand: '0.85',
     });
 
-    expect(newTraceTransactionTraceContext?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
+    expect(newTraceSpanContext?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
   },
 );

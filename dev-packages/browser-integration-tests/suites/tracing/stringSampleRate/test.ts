@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequestOnUrl } from '../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../utils/helpers';
+import { waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../utils/spanUtils';
 
 sentryTest('parses a string sample rate', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -9,8 +10,7 @@ sentryTest('parses a string sample rate', async ({ getLocalTestUrl, page }) => {
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const req = await waitForTransactionRequestOnUrl(page, url);
-  const eventData = envelopeRequestParser(req);
+  const [span] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
 
-  expect(eventData.contexts?.trace?.data?.['sentry.sample_rate']).toStrictEqual(1);
+  expect(span.attributes['sentry.sample_rate']).toEqual({ type: 'integer', value: 1 });
 });

@@ -1,11 +1,7 @@
 import { expect } from '@playwright/test';
-import type { EventEnvelopeHeaders } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import {
-  envelopeHeaderRequestParser,
-  getFirstSentryEnvelopeRequest,
-  shouldSkipTracingTest,
-} from '../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../utils/helpers';
+import { waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../utils/spanUtils';
 
 sentryTest(
   'should only include transaction name if source is better than an unparameterized URL',
@@ -16,13 +12,13 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
+    const [, traceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
 
-    expect(envHeader.trace).toBeDefined();
-    expect(envHeader.trace).toEqual({
+    expect(traceHeader).toBeDefined();
+    expect(traceHeader).toEqual({
       environment: 'production',
       sample_rate: '1',
-      transaction: expect.stringContaining('/index.html'),
+      transaction: 'Pageload',
       trace_id: expect.stringMatching(/[a-f\d]{32}/),
       public_key: 'public',
       sampled: 'true',
