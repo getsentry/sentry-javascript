@@ -35,7 +35,10 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE = 'sentry.status.message';
 
-/** The reason why an idle span finished. */
+/**
+ * The reason why an idle span finished.
+ * @deprecated Use `SENTRY_IDLE_SPAN_FINISH_REASON` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON = 'sentry.idle_span_finish_reason';
 
 /** The unit of a measurement, which may be stored as a TimedEvent. */

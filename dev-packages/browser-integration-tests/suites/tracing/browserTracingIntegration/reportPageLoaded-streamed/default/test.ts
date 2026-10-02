@@ -1,11 +1,10 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_IDLE_SPAN_FINISH_REASON, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
@@ -30,7 +29,7 @@ sentryTest(
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: expect.objectContaining({ value: 1 }),
       [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'pageload' },
-      [SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'reportPageLoaded' },
+      [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'reportPageLoaded' },
     });
 
     // We wait for 2.5 seconds before calling Sentry.reportPageLoaded(). The span starts at navigation start,
