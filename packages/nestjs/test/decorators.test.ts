@@ -298,7 +298,7 @@ describe('SentryCron decorator with @Cron', () => {
 
   it('derives the monitor config when @SentryCron is above @Cron', async () => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
-    const service = decorate(SentryCron('my-job'), Cron('0 * * * *'));
+    const service = decorate(SentryCron('my-job', { fromCronDecorator: true }), Cron('0 * * * *'));
 
     expect(await service.job()).toBe('done');
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
@@ -308,7 +308,7 @@ describe('SentryCron decorator with @Cron', () => {
 
   it('derives the monitor config when @Cron is above @SentryCron', async () => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
-    const service = decorate(Cron('0 * * * *'), SentryCron('my-job'));
+    const service = decorate(Cron('0 * * * *'), SentryCron('my-job', { fromCronDecorator: true }));
 
     await service.job();
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
@@ -318,7 +318,7 @@ describe('SentryCron decorator with @Cron', () => {
 
   it('derives the monitor config when @Cron replaces the method', async () => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
-    const service = decorate(WrappingCron('0 * * * *'), SentryCron('my-job'));
+    const service = decorate(WrappingCron('0 * * * *'), SentryCron('my-job', { fromCronDecorator: true }));
 
     await service.job();
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
@@ -328,7 +328,10 @@ describe('SentryCron decorator with @Cron', () => {
 
   it('drops a fixed seconds field and passes the time zone', async () => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
-    const service = decorate(SentryCron('my-job'), Cron('0 30 9 * * 1-5', { timeZone: 'Europe/Vienna' }));
+    const service = decorate(
+      SentryCron('my-job', { fromCronDecorator: true }),
+      Cron('0 30 9 * * 1-5', { timeZone: 'Europe/Vienna' }),
+    );
 
     await service.job();
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
@@ -344,13 +347,36 @@ describe('SentryCron decorator with @Cron', () => {
     ['a utc offset', Cron('0 * * * *', { utcOffset: 120 })],
   ])('sends no monitor config for %s', async (_, cronDecorator) => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
-    const service = decorate(SentryCron('my-job'), cronDecorator);
+    const service = decorate(SentryCron('my-job', { fromCronDecorator: true }), cronDecorator);
 
     await service.job();
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), undefined);
   });
 
-  it('prefers an explicit monitor config', async () => {
+  it('sends no monitor config without fromCronDecorator', async () => {
+    const withMonitorSpy = vi.spyOn(core, 'withMonitor');
+    const service = decorate(SentryCron('my-job'), Cron('0 * * * *'));
+
+    await service.job();
+    expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), undefined);
+  });
+
+  it('keeps the other monitor settings', async () => {
+    const withMonitorSpy = vi.spyOn(core, 'withMonitor');
+    const service = decorate(
+      SentryCron('my-job', { fromCronDecorator: true, checkinMargin: 2, maxRuntime: 10 }),
+      Cron('0 * * * *'),
+    );
+
+    await service.job();
+    expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
+      schedule: { type: 'crontab', value: '0 * * * *' },
+      checkinMargin: 2,
+      maxRuntime: 10,
+    });
+  });
+
+  it('uses an explicit monitor config as is', async () => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
     const monitorConfig: core.MonitorConfig = { schedule: { type: 'interval', value: 1, unit: 'hour' } };
     const service = decorate(SentryCron('my-job', monitorConfig), Cron('0 * * * *'));
