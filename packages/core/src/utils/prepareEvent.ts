@@ -110,6 +110,10 @@ export function prepareEvent(
   // Skip event processors for internal exceptions to prevent recursion
   // oxlint-disable-next-line typescript/prefer-optional-chain
   const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
+  const isTransaction = event.type === 'transaction';
+  // Snapshot the count rather than reading `event.spans` later: processors get a shallow copy of the
+  // event, so one that mutates `spans` in place also mutates the original array.
+  const spanCountBeforeProcessing = event.spans?.length || 0;
   const result: PromiseLike<Event | null> = isInternalException
     ? resolvedSyncPromise(prepared)
     : notifyEventProcessors(eventProcessors, prepared, hint, 0, reason => {
@@ -118,14 +122,21 @@ export function prepareEvent(
         }
 
         client.recordDroppedEvent(reason, getDataCategoryByType(event.type));
-        if (event.type === 'transaction') {
-          client.recordDroppedEvent(reason, 'span', 1 + (event.spans || []).length);
+        if (isTransaction) {
+          client.recordDroppedEvent(reason, 'span', 1 + spanCountBeforeProcessing);
         }
       });
 
   return result.then(evt => {
     if (!evt) {
       return null;
+    }
+
+    if (isTransaction && client) {
+      const droppedSpanCount = spanCountBeforeProcessing - (evt.spans?.length || 0);
+      if (droppedSpanCount > 0) {
+        client.recordDroppedEvent('event_processor', 'span', droppedSpanCount);
+      }
     }
 
     // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified

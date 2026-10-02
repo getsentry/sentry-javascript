@@ -2161,6 +2161,73 @@ describe('Client', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
     });
 
+    test('event processor records spans it removes from a sent transaction', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        { span_id: 'aaaaaaaaaaaaaaaa', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+        { span_id: 'bbbbbbbbbbbbbbbb', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+        { span_id: 'cccccccccccccccc', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => ({ ...event, spans: event.spans?.slice(0, 1) }));
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(TestClient.instance!.event?.spans).toHaveLength(1);
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
+    });
+
+    test('event processor counts spans removed in place before a later processor drops the transaction', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        { span_id: 'aaaaaaaaaaaaaaaa', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+        { span_id: 'bbbbbbbbbbbbbbbb', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+        { span_id: 'cccccccccccccccc', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => {
+        event.spans?.splice(0, 2);
+        return event;
+      });
+      scope.addEventProcessor(() => null);
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 4);
+    });
+
+    test('spans removed by event processors and `beforeSendTransaction` are each counted once', () => {
+      const beforeSendTransaction = vi.fn(event => ({ ...event, spans: [] }));
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction }));
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        { span_id: 'aaaaaaaaaaaaaaaa', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+        { span_id: 'bbbbbbbbbbbbbbbb', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+        { span_id: 'cccccccccccccccc', start_timestamp: 1, trace_id: '86f39e84263a4de99c326acab3bfe3bd', data: {} },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => ({ ...event, spans: event.spans?.slice(0, 1) }));
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(TestClient.instance!.event?.type).toBe('transaction');
+      expect(TestClient.instance!.event?.spans).toEqual([]);
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 1);
+    });
+
     test('mutating transaction name with event processors sets transaction-name-change metadata', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableSend: true });
       const client = new TestClient(options);
