@@ -28,7 +28,11 @@ import {
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Event, Integration, IntegrationFn, Span, SpanAttributes, SpanStatus } from '@sentry/core';
 import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
-import { DEFAULT_IGNORE_STATUS_CODES, processHttpServerTransactionEvent } from '@sentry/core/server';
+import {
+  DEFAULT_IGNORE_STATUS_CODES,
+  getClientIPAddress,
+  processHttpServerTransactionEvent,
+} from '@sentry/core/server';
 import {
   debug,
   getSpanStatusFromHttpCode,
@@ -320,14 +324,6 @@ function shouldIgnoreSpansForIncomingRequest(
   return false;
 }
 
-/**
- * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
- * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
- */
-function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
-  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
-}
-
 function getIncomingRequestAttributesOnResponse(
   request: HttpIncomingMessage,
   response: HttpServerResponse,
@@ -343,11 +339,12 @@ function getIncomingRequestAttributesOnResponse(
     'http.response.status_text': statusMessage?.toUpperCase(),
   };
 
+  // `client.address` is the originating client, so a forwarding header wins over the socket, which
+  // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+  // stays unset then. `network.peer.*` below keeps the socket values.
+  const forwardedAddress = getClientIPAddress(request.headers);
   if (collectClientAddress) {
-    // `client.address` is the originating client, so a forwarding header wins over the socket, which
-    // behind a proxy holds the proxy's address. `network.peer.address` below keeps the socket value.
-    newAttributes[CLIENT_ADDRESS] =
-      getForwardedClientAddress(request.headers['x-forwarded-for']) ?? socket?.remoteAddress;
+    newAttributes[CLIENT_ADDRESS] = forwardedAddress || socket?.remoteAddress;
   }
 
   if (socket) {
@@ -355,7 +352,7 @@ function getIncomingRequestAttributesOnResponse(
     newAttributes[SERVER_PORT] = localPort;
     newAttributes[NETWORK_LOCAL_ADDRESS] = localAddress;
     newAttributes[NETWORK_LOCAL_PORT] = localPort;
-    newAttributes[CLIENT_PORT] = remotePort;
+    newAttributes[CLIENT_PORT] = forwardedAddress ? undefined : remotePort;
     newAttributes[NETWORK_PEER_ADDRESS] = collectClientAddress ? remoteAddress : undefined;
     newAttributes[NETWORK_PEER_PORT] = remotePort;
   }

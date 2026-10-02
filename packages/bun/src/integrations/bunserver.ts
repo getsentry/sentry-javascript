@@ -21,6 +21,7 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
+import { getClientIPAddress } from '@sentry/core/server';
 import type { Server, ServeOptions } from 'bun';
 import {
   CLIENT_ADDRESS,
@@ -245,30 +246,35 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     const client = getClient();
     const dataCollection = client?.getDataCollectionOptions();
 
-    if (dataCollection?.userInfo) {
-      // `client.address` is the originating client, so a forwarding header wins over the socket, which
-      // behind a proxy holds the proxy's address.
-      const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+    let socketAddress: { address: string; port: number } | undefined;
+    if (dataCollection) {
+      const headers = request.headers.toJSON();
       // Bun passes the `Server` as the second argument to both `fetch` and route handlers, except
       // when the handler runs through `server.fetch()`.
-      const socketAddress = getRequestIP(args[1], request);
-      if (forwardedFor || socketAddress?.address) {
-        attributes[CLIENT_ADDRESS] = forwardedFor || socketAddress?.address;
+      socketAddress = getRequestIP(args[1], request);
+
+      if (dataCollection.userInfo) {
+        // `client.address` is the originating client, so a forwarding header wins over the socket, which
+        // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+        // stays unset then.
+        const forwardedAddress = getClientIPAddress(headers);
+        if (forwardedAddress) {
+          attributes[CLIENT_ADDRESS] = forwardedAddress;
+        } else if (socketAddress) {
+          attributes[CLIENT_ADDRESS] = socketAddress.address;
+          attributes[CLIENT_PORT] = socketAddress.port;
+        }
       }
-      if (socketAddress?.port) {
-        attributes[CLIENT_PORT] = socketAddress.port;
-      }
+
+      Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
     }
 
     // describes the OSI application-layer protocol (http), not the scheme (might be https)
     attributes[NETWORK_PROTOCOL_NAME] = 'http';
 
-    if (dataCollection) {
-      Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), dataCollection));
-    }
-
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
+      ipAddress: socketAddress?.address,
     });
 
     if (client && dataCollection) {
@@ -329,12 +335,15 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
   });
 }
 
-function getRequestIP(server: unknown, request: Request): { address: string; port: number } | undefined {
-  if (typeof (server as Partial<Server> | undefined)?.requestIP !== 'function') {
+function getRequestIP(
+  server: Partial<Pick<Server, 'requestIP'>> | undefined,
+  request: Request,
+): { address: string; port: number } | undefined {
+  if (typeof server?.requestIP !== 'function') {
     return undefined;
   }
   try {
-    return (server as Server).requestIP(request) ?? undefined;
+    return server.requestIP(request) ?? undefined;
   } catch {
     // Defensive: never let a failed lookup break the user's handler.
     return undefined;

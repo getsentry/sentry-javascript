@@ -69,6 +69,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
+import { getClientIPAddress } from '../../utils/clientIPAddress';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -306,7 +307,6 @@ function buildServerSpanWrap(
         : `${method} ${httpTargetWithoutQueryFragment}`;
       const headers = request.headers;
       const userAgent = headers['user-agent'];
-      const ips = headers['x-forwarded-for'];
       const httpVersion = request.httpVersion;
       const host = headers.host as undefined | string;
       const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
@@ -315,8 +315,10 @@ function buildServerSpanWrap(
       const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
       const collectClientAddress = client.getDataCollectionOptions().userInfo;
       // `client.address` is the originating client, so a forwarding header wins over the socket, which
-      // behind a proxy holds the proxy's address. `network.peer.address` keeps the socket value.
-      const clientAddress = getForwardedClientAddress(ips) ?? remoteAddress;
+      // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+      // stays unset then. `network.peer.*` keeps the socket values.
+      const forwardedAddress = getClientIPAddress(headers);
+      const clientAddress = forwardedAddress || remoteAddress;
 
       return startSpanManual(
         {
@@ -333,7 +335,7 @@ function buildServerSpanWrap(
             [NETWORK_LOCAL_ADDRESS]: localAddress,
             [NETWORK_LOCAL_PORT]: localPort,
             [CLIENT_ADDRESS]: collectClientAddress ? clientAddress : undefined,
-            [CLIENT_PORT]: remotePort,
+            [CLIENT_PORT]: forwardedAddress ? undefined : remotePort,
             [NETWORK_PEER_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
             [NETWORK_PEER_PORT]: remotePort,
             [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
@@ -390,14 +392,6 @@ function buildServerSpanWrap(
       );
     }
   };
-}
-
-/**
- * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
- * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
- */
-function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
-  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
 }
 
 function shouldIgnoreSpansForIncomingRequest(
