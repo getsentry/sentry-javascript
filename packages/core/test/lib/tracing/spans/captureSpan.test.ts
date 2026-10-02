@@ -3,12 +3,9 @@ import type { Contexts, Span, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
   debug,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
   spanStreamingIntegration,
   startInactiveSpan,
   startSpan,
@@ -33,6 +30,9 @@ import {
   USER_ID,
   USER_IP_ADDRESS,
   USER_NAME,
+  SENTRY_ENVIRONMENT,
+  SENTRY_RELEASE,
+  SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
@@ -101,11 +101,11 @@ describe('captureSpan', () => {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
+        [SENTRY_RELEASE]: {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        [SENTRY_ENVIRONMENT]: {
           value: 'staging',
           type: 'string',
         },
@@ -197,11 +197,11 @@ describe('captureSpan', () => {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
+        [SENTRY_RELEASE]: {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        [SENTRY_ENVIRONMENT]: {
           value: 'staging',
           type: 'string',
         },
@@ -293,11 +293,11 @@ describe('captureSpan', () => {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
+        [SENTRY_RELEASE]: {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        [SENTRY_ENVIRONMENT]: {
           value: 'production',
           type: 'string',
         },
@@ -356,11 +356,11 @@ describe('captureSpan', () => {
         [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
         [SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
         [SENTRY_SEGMENT_NAME_SOURCE]: { value: 'custom', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
+        [SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
+        [SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
         [SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },
         [SENTRY_SDK_VERSION]: { value: '9.0.0', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+        [SENTRY_SDK_INTEGRATIONS]: {
           type: 'array',
           value: ['EventFilters', 'BrowserTracing'],
         },
@@ -389,7 +389,7 @@ describe('captureSpan', () => {
     });
 
     expect(serializedChild.is_segment).toBe(false);
-    expect(serializedChild.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
+    expect(serializedChild.attributes[SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
   });
 
   describe('client hooks', () => {

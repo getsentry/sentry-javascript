@@ -1,11 +1,9 @@
 import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -19,6 +17,8 @@ import {
   SENTRY_TRACE_LIFECYCLE,
   USER_AGENT_ORIGINAL,
   SENTRY_STATUS_MESSAGE,
+  SENTRY_ENVIRONMENT,
+  SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/conventions/attributes';
 
 sentryTest(
@@ -101,7 +101,7 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          [SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
           },
@@ -146,7 +146,7 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          [SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
           },
@@ -191,7 +191,7 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          [SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
           },
@@ -260,7 +260,7 @@ sentryTest(
             type: 'string',
             value: SDK_VERSION,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+          [SENTRY_SDK_INTEGRATIONS]: {
             type: 'array',
             value: expect.arrayContaining(['SpanStreaming']),
           },
@@ -276,7 +276,7 @@ sentryTest(
             type: 'string',
             value: 'custom',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          [SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
           },

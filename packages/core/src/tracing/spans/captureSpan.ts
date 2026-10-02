@@ -1,11 +1,6 @@
 import type { RawAttributes } from '../../attributes';
 import type { Client } from '../../client';
 import type { ScopeData } from '../../scope';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-} from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
@@ -29,6 +24,9 @@ import {
   USER_ID,
   USER_IP_ADDRESS,
   USER_NAME,
+  SENTRY_ENVIRONMENT,
+  SENTRY_RELEASE,
+  SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/conventions/attributes';
 
 export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
@@ -115,7 +113,7 @@ function applySdkMetadataToSegmentSpan(segmentSpanJSON: StreamedSpanJSON, client
   if (!integrationNames.length) return;
 
   safeSetSpanJSONAttributes(segmentSpanJSON, {
-    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: integrationNames,
+    [SENTRY_SDK_INTEGRATIONS]: integrationNames,
   });
 }
 
@@ -136,8 +134,8 @@ function commonSpanAttributes(
     [SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
     [SENTRY_SDK_NAME]: sdk?.sdk?.name,
     [SENTRY_SDK_VERSION]: sdk?.sdk?.version,
-    [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment || DEFAULT_ENVIRONMENT,
+    [SENTRY_RELEASE]: release,
+    [SENTRY_ENVIRONMENT]: environment || DEFAULT_ENVIRONMENT,
     [USER_ID]: scopeData.user?.id,
     [USER_EMAIL]: scopeData.user?.email,
     [USER_IP_ADDRESS]: scopeData.user?.ip_address,
