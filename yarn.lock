@@ -9986,10 +9986,10 @@
     hookable "^6.0.1"
     unhead "2.1.17"
 
-"@vercel/nft@^1.3.0", "@vercel/nft@^1.5.0":
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/@vercel/nft/-/nft-1.5.0.tgz#37dbededa3023d9e44d1292b594786ab1653536f"
-  integrity sha512-IWTDeIoWhQ7ZtRO/JRKH+jhmeQvZYhtGPmzw/QGDY+wDCQqfm25P9yIdoAFagu4fWsK4IwZXDFIjrmp5rRm/sA==
+"@vercel/nft@^1.11.0", "@vercel/nft@^1.5.0":
+  version "1.11.0"
+  resolved "https://registry.yarnpkg.com/@vercel/nft/-/nft-1.11.0.tgz#ed2db36a90f54087f36c2d8aff9e91e289cdb3c0"
+  integrity sha512-m1QFg+U+3yPOnP1xSYJ73UIRxLOXdts1JOhiOiyPYqEsALgrXFFINvgUaD6R6iNvaBFAjHllBCbkfx4FuOdpaA==
   dependencies:
     "@mapbox/node-pre-gyp" "^2.0.0"
     "@rollup/pluginutils" "^5.1.3"
@@ -10001,7 +10001,7 @@
     glob "^13.0.0"
     graceful-fs "^4.2.9"
     node-gyp-build "^4.2.2"
-    picomatch "^4.0.2"
+    picomatch "^4.0.4"
     resolve-from "^5.0.0"
 
 "@vercel/oidc@3.2.0":
