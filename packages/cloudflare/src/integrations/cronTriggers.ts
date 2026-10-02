@@ -64,8 +64,9 @@ function convertWeekdayItem(item: string): string | undefined {
     return undefined;
   }
 
+  // `*` and `*/n` give the same days in both numberings, and keep their `*` meaning for Sentry.
   if (from === '*') {
-    return to ? undefined : step ? `SUN-SAT/${step}` : '*';
+    return to ? undefined : item;
   }
 
   const start = weekdayIndex(from as string);
@@ -89,7 +90,8 @@ function convertWeekdayItem(item: string): string | undefined {
  */
 function cloudflareCronToCrontab(cron: string): string | undefined {
   const fields = cron.trim().split(/\s+/);
-  if (fields.length !== 5) {
+  // Sentry rejects `W` and `?` in the day of month.
+  if (fields.length !== 5 || /[w?]/i.test(fields[2] as string)) {
     return undefined;
   }
 

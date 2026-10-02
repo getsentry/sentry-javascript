@@ -97,7 +97,7 @@ describe('cronTriggersIntegration', () => {
     ['2/3', 'MON-SAT/3'],
     ['7/1', 'SAT'],
     ['3-3/2', 'TUE'],
-    ['*/2', 'SUN-SAT/2'],
+    ['*/2', '*/2'],
     ['*', '*'],
     ['mon-fri', 'MON-FRI'],
     ['SAT,1', 'SAT,SUN'],
@@ -118,6 +118,12 @@ describe('cronTriggersIntegration', () => {
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Can't convert"));
     },
   );
+
+  test.each([['15W'], ['LW'], ['?']])('sends check-ins without a schedule for the day of month %s', dayOfMonth => {
+    const [, monitorConfig] = getInProgressCheckIn(`0 9 ${dayOfMonth} * *`) as unknown[];
+
+    expect(monitorConfig).toBeUndefined();
+  });
 
   test('sends check-ins without a schedule for an expression without five fields', () => {
     const [, monitorConfig] = getInProgressCheckIn('0 0 9 * * *') as unknown[];
