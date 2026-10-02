@@ -21,6 +21,7 @@ import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
 import * as traceModule from '../../src/tracing/trace';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from '../../src/transports/base';
 import type { Envelope } from '../../src/types/envelope';
+import type { Outcome } from '../../src/types/clientreport';
 import type { ErrorEvent, Event, TransactionEvent } from '../../src/types/event';
 import type { SpanJSON } from '../../src/types/span';
 import * as debugLoggerModule from '../../src/utils/debug-logger';
@@ -2433,6 +2434,94 @@ describe('Client', () => {
       expect(TestClient.instance!.event?.spans).toEqual([]);
       expect(recordLostEventSpy).toHaveBeenCalledTimes(1);
       expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
+    });
+
+    describe('span outcomes when all span drop mechanisms apply to the same transaction', () => {
+      const childSpanDescriptions = [
+        'removed-by-event-processor-1',
+        'removed-by-event-processor-2',
+        'ignored-child',
+        'removed-by-before-send-transaction',
+        'kept-1',
+        'kept-2',
+      ];
+
+      function captureTransaction(
+        beforeSendTransaction: (event: TransactionEvent) => TransactionEvent | null,
+      ): TestClient {
+        const client = new TestClient(
+          getDefaultTestClientOptions({
+            dsn: PUBLIC_DSN,
+            ignoreSpans: ['ignored-child'],
+            beforeSendSpan: withStaticSpan(span => ({ ...span, data: { ...span.data, scrubbed: true } })),
+            beforeSendTransaction,
+          }),
+        );
+
+        const scope = new Scope();
+        scope.addEventProcessor(event => ({
+          ...event,
+          spans: event.spans?.filter(span => !span.description?.startsWith('removed-by-event-processor')),
+        }));
+
+        client.captureEvent(
+          {
+            transaction: '/dogs/are/great',
+            type: 'transaction',
+            spans: childSpanDescriptions.map((description, i) => ({
+              description,
+              span_id: `${i}`.padStart(16, '0'),
+              start_timestamp: 1,
+              trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+              data: {},
+              status: 'ok',
+            })),
+          },
+          {},
+          scope,
+        );
+
+        return client;
+      }
+
+      function getOutcomes(client: TestClient): { outcomes: Outcome[]; spanOutcomeTotal: number } {
+        const outcomes = client._clearOutcomes();
+        const spanOutcomeTotal = outcomes.filter(o => o.category === 'span').reduce((sum, o) => sum + o.quantity, 0);
+        return { outcomes, spanOutcomeTotal };
+      }
+
+      test('counts each dropped span exactly once when the transaction is sent', () => {
+        const client = captureTransaction(event => ({
+          ...event,
+          spans: event.spans?.filter(span => span.description !== 'removed-by-before-send-transaction'),
+        }));
+
+        const sentSpans = TestClient.instance!.event!.spans!;
+        expect(sentSpans.map(span => span.description)).toEqual(['kept-1', 'kept-2']);
+
+        const { outcomes, spanOutcomeTotal } = getOutcomes(client);
+        expect(outcomes).toEqual([
+          { reason: 'event_processor', category: 'span', quantity: 2 },
+          { reason: 'before_send', category: 'span', quantity: 2 },
+        ]);
+        // every child span is either sent or counted once; the root span is sent as the transaction
+        expect(spanOutcomeTotal + sentSpans.length).toBe(childSpanDescriptions.length);
+      });
+
+      test('counts each span exactly once when `beforeSendTransaction` drops the transaction', () => {
+        const client = captureTransaction(() => null);
+
+        expect(TestClient.instance!.event).toBeUndefined();
+
+        const { outcomes, spanOutcomeTotal } = getOutcomes(client);
+        expect(outcomes).toEqual([
+          { reason: 'event_processor', category: 'span', quantity: 2 },
+          { reason: 'before_send', category: 'transaction', quantity: 1 },
+          { reason: 'before_send', category: 'span', quantity: 5 },
+        ]);
+        // all child spans plus the root span are counted once
+        expect(spanOutcomeTotal).toBe(childSpanDescriptions.length + 1);
+      });
     });
 
     test('mutating transaction name with event processors sets transaction-name-change metadata', () => {
