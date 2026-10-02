@@ -1,5 +1,5 @@
 import '../../utils/mock-internal-setTimeout';
-import { performanceTimeToSeconds } from '@sentry/core';
+import { browserPerformanceTimeOrigin } from '@sentry/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WINDOW } from '../../../src/constants';
 import {
@@ -14,8 +14,7 @@ const TIME_ORIGIN = new Date('2023-01-01').getTime();
 
 vi.mock('@sentry/core', async () => ({
   ...(await vi.importActual('@sentry/core')),
-  browserPerformanceTimeOrigin: () => new Date('2023-01-01').getTime(),
-  performanceTimeToSeconds: vi.fn((time: number) => (new Date('2023-01-01').getTime() + time) / 1000),
+  browserPerformanceTimeOrigin: vi.fn(() => new Date('2023-01-01').getTime()),
 }));
 
 describe('Unit | util | createPerformanceEntries', () => {
@@ -25,7 +24,7 @@ describe('Unit | util | createPerformanceEntries', () => {
   });
 
   beforeEach(function () {
-    vi.mocked(performanceTimeToSeconds).mockImplementation(time => (TIME_ORIGIN + time) / 1000);
+    vi.mocked(browserPerformanceTimeOrigin).mockReturnValue(TIME_ORIGIN);
 
     if (!WINDOW.performance.getEntriesByType) {
       WINDOW.performance.getEntriesByType = vi.fn((type: string) => {
@@ -78,8 +77,8 @@ describe('Unit | util | createPerformanceEntries', () => {
     // the new origin.
     const driftPointMs = 200_000;
     const sleepDurationMs = 3_600_000;
-    vi.mocked(performanceTimeToSeconds).mockImplementation(time =>
-      time < driftPointMs ? (TIME_ORIGIN + time) / 1000 : (TIME_ORIGIN + sleepDurationMs + time) / 1000,
+    vi.mocked(browserPerformanceTimeOrigin).mockImplementation((time = 0) =>
+      time < driftPointMs ? TIME_ORIGIN : TIME_ORIGIN + sleepDurationMs,
     );
 
     const entries = createPerformanceEntries([
@@ -92,6 +91,33 @@ describe('Unit | util | createPerformanceEntries', () => {
       expect.objectContaining({
         name: 'first-contentful-paint',
         start: (TIME_ORIGIN + sleepDurationMs + driftPointMs + 1000) / 1000,
+      }),
+    ]);
+  });
+
+  it('converts all timings of a resource entry with the time origin from its start', () => {
+    // The resource was still loading when the time origin was corrected. Its end must not include the drift.
+    const driftPointMs = 200_000;
+    const sleepDurationMs = 3_600_000;
+    vi.mocked(browserPerformanceTimeOrigin).mockImplementation((time = 0) =>
+      time < driftPointMs ? TIME_ORIGIN : TIME_ORIGIN + sleepDurationMs,
+    );
+
+    const entries = createPerformanceEntries([
+      {
+        name: 'https://example.com/app.js',
+        entryType: 'resource',
+        initiatorType: 'script',
+        startTime: driftPointMs - 100,
+        responseEnd: driftPointMs + 200,
+        duration: 300,
+      },
+    ] as PerformanceResourceTiming[]);
+
+    expect(entries).toEqual([
+      expect.objectContaining({
+        start: (TIME_ORIGIN + driftPointMs - 100) / 1000,
+        end: (TIME_ORIGIN + driftPointMs + 200) / 1000,
       }),
     ]);
   });

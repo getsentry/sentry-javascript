@@ -28,7 +28,6 @@ type MockRunFlush = MockedFunction<ReplayContainer['_runFlush']>;
 
 const prevLocation = WINDOW.location;
 const prevBrowserPerformanceTimeOrigin = SentryUtils.browserPerformanceTimeOrigin;
-const prevPerformanceTimeToSeconds = SentryUtils.performanceTimeToSeconds;
 
 describe('Integration | flush', () => {
   let domHandler: DomHandler;
@@ -93,10 +92,6 @@ describe('Integration | flush', () => {
       value: () => BASE_TIMESTAMP,
       writable: true,
     });
-    Object.defineProperty(SentryUtils, 'performanceTimeToSeconds', {
-      value: (time: number) => (BASE_TIMESTAMP + time) / 1000,
-      writable: true,
-    });
   });
 
   afterEach(async () => {
@@ -109,10 +104,6 @@ describe('Integration | flush', () => {
     });
     Object.defineProperty(SentryUtils, 'browserPerformanceTimeOrigin', {
       value: () => prevBrowserPerformanceTimeOrigin,
-      writable: true,
-    });
-    Object.defineProperty(SentryUtils, 'performanceTimeToSeconds', {
-      value: prevPerformanceTimeToSeconds,
       writable: true,
     });
   });
