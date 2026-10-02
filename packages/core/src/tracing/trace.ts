@@ -523,7 +523,12 @@ function _startRootSpan(
 
   if (!sampled && client && !_isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-    client.recordDroppedEvent(dropReason || 'sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
+    const outcomeReason = dropReason || 'sample_rate';
+    if (!hasSpanStreamingEnabled(client)) {
+      client.recordDroppedEvent(outcomeReason, 'transaction');
+    }
+    // Child spans of this root record their own `span` outcome in `_startChildSpan`.
+    client.recordDroppedEvent(outcomeReason, 'span');
   }
 
   setCapturedScopesOnSpan(rootSpan, scope, isolationScope);
@@ -568,7 +573,7 @@ function _startChildSpan(
     return childSpan;
   }
 
-  if (hasSpanStreamingEnabled(client) && spanIsNonRecordingSpan(childSpan)) {
+  if (spanIsNonRecordingSpan(childSpan)) {
     if (spanIsNonRecordingSpan(parentSpan) && parentSpan.dropReason) {
       // We land here if the parent span was a segment span that was ignored (`ignoreSpans`).
       // In this case, the child was also ignored (see `sampled` above) but we need to

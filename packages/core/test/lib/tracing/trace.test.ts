@@ -2773,7 +2773,7 @@ describe('ignoreSpans (core path, streaming)', () => {
     expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'sample_rate', 'span');
   });
 
-  it('records sample_rate/transaction for unsampled root span on static path', () => {
+  it('records sample_rate outcomes for the transaction and all of its spans on static path', () => {
     const options = getDefaultTestClientOptions({
       tracesSampleRate: 0,
     });
@@ -2783,11 +2783,18 @@ describe('ignoreSpans (core path, streaming)', () => {
     const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
 
     startSpan({ name: 'GET /foo' }, () => {
-      startSpan({ name: 'db.query' }, () => {});
+      startSpan({ name: 'db.query' }, () => {
+        startSpan({ name: 'cache.lookup' }, () => {});
+      });
+      startInactiveSpan({ name: 'http.client' }).end();
     });
 
-    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
-    expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'transaction');
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(5);
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(1, 'sample_rate', 'transaction');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'sample_rate', 'span');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(3, 'sample_rate', 'span');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(4, 'sample_rate', 'span');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(5, 'sample_rate', 'span');
   });
 
   it('records only one ignored outcome for directly ignored child span', () => {
