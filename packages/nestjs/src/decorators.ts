@@ -1,8 +1,9 @@
 import type { MonitorConfig } from '@sentry/core';
 import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { captureException } from '@sentry/core';
+import { captureException, debug } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
+import { DEBUG_BUILD } from './debug-build';
 import { isExpectedError } from './helpers';
 import type { ReflectWithMetadata } from './integrations/helpers';
 import { copyReflectMetadata } from './integrations/helpers';
@@ -12,6 +13,8 @@ import { copyReflectMetadata } from './integrations/helpers';
  * of `@nestjs/schedule` on the same method. Set `fromCronDecorator: false` to not send them.
  */
 export type SentryCronMonitorSettings = Omit<MonitorConfig, 'schedule' | 'timezone'> & {
+  schedule?: never;
+  timezone?: never;
   fromCronDecorator?: boolean;
 };
 
@@ -23,7 +26,7 @@ export type SentryCronMonitorSettings = Omit<MonitorConfig, 'schedule' | 'timezo
  */
 export const SentryCron = (
   monitorSlug: string,
-  monitorConfig?: MonitorConfig | SentryCronMonitorSettings,
+  monitorConfig?: (MonitorConfig & { fromCronDecorator?: never }) | SentryCronMonitorSettings,
 ): MethodDecorator => {
   return (target: unknown, propertyKey, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
@@ -36,7 +39,7 @@ export const SentryCron = (
         resolved = true;
         // `@Cron()` sets its metadata on whatever function is `descriptor.value` when it runs, which is
         // this function if it is applied after `@SentryCron()`, so it is only readable at call time.
-        resolvedMonitorConfig = resolveMonitorConfig(monitorConfig, [
+        resolvedMonitorConfig = resolveMonitorConfig(monitorSlug, monitorConfig, [
           wrappedMethod,
           (target as Record<PropertyKey, unknown> | undefined)?.[propertyKey],
         ]);
@@ -60,23 +63,45 @@ export const SentryCron = (
 };
 
 function resolveMonitorConfig(
+  monitorSlug: string,
   monitorConfig: MonitorConfig | SentryCronMonitorSettings | undefined,
   candidates: unknown[],
 ): MonitorConfig | undefined {
-  if (monitorConfig && 'schedule' in monitorConfig) {
+  if (monitorConfig?.schedule) {
     return monitorConfig;
   }
 
   const { fromCronDecorator = true, ...monitorSettings } = monitorConfig || {};
-  if (!fromCronDecorator) {
+  const cronConfig = fromCronDecorator ? getMonitorConfigFromNestCron(candidates) : undefined;
+
+  if (!cronConfig) {
+    if (DEBUG_BUILD && Object.keys(monitorSettings).length) {
+      debug.warn(
+        `[SentryCron] No schedule for monitor "${monitorSlug}" could be taken from @Cron(), so no monitor config (including the passed monitor settings) is sent.`,
+      );
+    }
     return undefined;
   }
 
-  const cronConfig = getMonitorConfigFromNestCron(candidates);
-  return cronConfig && { ...monitorSettings, ...cronConfig };
+  return { ...monitorSettings, ...cronConfig };
 }
 
 const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
+
+// Presets of the `cron` package (which also lowercases them), as sent to Sentry. Sentry accepts
+// `@yearly`/`@annually`/`@monthly`/`@weekly`/`@daily`/`@hourly`; the others are sent as crontabs.
+const CRON_PRESETS: Record<string, string | undefined> = {
+  '@yearly': '@yearly',
+  '@annually': '@annually',
+  '@monthly': '@monthly',
+  '@weekly': '@weekly',
+  '@daily': '@daily',
+  '@hourly': '@hourly',
+  '@midnight': '0 0 * * *',
+  '@minutely': '* * * * *',
+  '@weekdays': '0 0 * * 1-5',
+  '@weekends': '0 0 * * 0,6',
+};
 
 interface NestCronOptions {
   cronTime?: unknown;
@@ -117,7 +142,9 @@ function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): MonitorCo
 
   const fields = cronTime.trim().split(/\s+/);
   let crontab: string | undefined;
-  if (fields.length === 5) {
+  if (fields.length === 1) {
+    crontab = CRON_PRESETS[(fields[0] as string).toLowerCase()];
+  } else if (fields.length === 5) {
     crontab = fields.join(' ');
   } else if (fields.length === 6 && /^\d+$/.test(fields[0] as string)) {
     // Sentry schedules have minute granularity, so only a fixed second can be dropped.

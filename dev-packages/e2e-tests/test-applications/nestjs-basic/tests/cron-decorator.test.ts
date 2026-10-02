@@ -62,6 +62,35 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
   await fetch(`${baseURL}/kill-test-cron/test-cron-job`);
 });
 
+test('Sends the schedule and time zone of @Cron with the check-in', async ({ baseURL }) => {
+  const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs-basic', envelope => {
+    return (
+      envelope[0].type === 'check_in' &&
+      envelope[1]['monitor_slug'] === 'test-derived-cron-slug' &&
+      envelope[1]['status'] === 'in_progress'
+    );
+  });
+
+  await fetch(`${baseURL}/test-derived-cron`);
+
+  const inProgressEnvelope = await inProgressEnvelopePromise;
+
+  expect(inProgressEnvelope[1]).toEqual(
+    expect.objectContaining({
+      monitor_slug: 'test-derived-cron-slug',
+      status: 'in_progress',
+      monitor_config: {
+        schedule: {
+          type: 'crontab',
+          value: '30 9 * * 1-5',
+        },
+        timezone: 'Europe/Vienna',
+        checkin_margin: 2,
+      },
+    }),
+  );
+});
+
 test('Sends exceptions to Sentry on error in async cron job', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-basic', event => {
     return (
