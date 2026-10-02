@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
-import { APP_NAME } from '../constants';
+import { APP_NAME, RUNTIME } from '../constants';
 
 test.describe('Trace propagation', () => {
   test('should inject metatags in ssr pageload', async ({ page }) => {
@@ -51,7 +51,12 @@ test.describe('Trace propagation', () => {
 
     const requestHandlerSpan = streamedSpans.find(span => span.span_id === handlerSpanId);
     expect(requestHandlerSpan).toBeDefined();
-    expect(getSpanOp(requestHandlerSpan!)).toBe('handler');
+    // On Node and Deno the Express request handler span is active while the page renders. Without an Express
+    // layer (Cloudflare, and Bun, where Express is not instrumented under `bun run`) the tag names the
+    // http.server segment itself.
+    expect(getSpanOp(requestHandlerSpan!)).toBe(
+      RUNTIME === 'cloudflare' || RUNTIME === 'bun' ? 'http.server' : 'handler',
+    );
     expect(requestHandlerSpan!.trace_id).toBe(traceId);
   });
 

@@ -134,6 +134,58 @@ Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Wor
 - Set `"sentryTest": { "optional": true }` in `package.json`, because only the optional CI job has the Cloudflare
   secrets.
 
+## Runtime variants (Bun, Deno, Cloudflare)
+
+To test a framework on a runtime other than Node.js, add an `optionalVariants` entry to the existing test app instead of
+creating a new app. `react-router-8-framework` is the reference setup.
+
+- **`RUNTIME` env var**: `node` (default), `bun`, `deno` or `cloudflare`. Read it with `getRuntime()` from
+  `@sentry-internal/test-utils`, which throws on any other value. Tests branch on it where the runtimes are expected to
+  differ (for example `platform` or `sdk.name`).
+- **SDK per runtime**: each runtime inits its own SDK, the way a user of that runtime would: Node the framework SDK
+  (`instrument.mjs`), Bun `@sentry/bun` (`instrument.bun.mjs`), Deno `@sentry/deno` (`instrument.deno.mjs`) and
+  Cloudflare `@sentry/cloudflare`. The framework SDK only provides the framework wrappers on the other runtimes, so
+  values that come from its `init()` (`sdk.name`, default integrations) are Node-only.
+- **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
+  as Node and only change the start command, for example
+  `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
+  `deno run -A --preload=@sentry/deno/import --preload=./instrument.deno.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js`.
+  The app's `deno.json` maps `@sentry/deno/import` to `node_modules`, because the e2e dependencies are `file:` tarballs
+  that `npm:@sentry/deno/import` does not resolve.
+- **Cloudflare**: the app has the Cloudflare dependencies installed all the time. The Cloudflare build has its own
+  `vite.cloudflare.config.ts` with `@cloudflare/vite-plugin` and `sentryCloudflareVitePlugin` from
+  `@sentry/cloudflare/vite`, which the runner uses in place of `vite.config.ts` (see runtime-specific files). List the
+  Sentry plugins after all other plugins: they set no `enforce`, so their position decides when their hooks run, and a
+  sourcemap upload has to see the final output. Node, Bun and Deno share `vite.config.ts`. The Worker entry lives in a
+  separate file (for example `workers/app.ts`) and exports a plain handler: the Sentry plugin wraps it with
+  `withSentry` and reads the init options from `instrument.server.ts` next to the entry. The start command runs
+  `wrangler dev` on the build output. Code at module scope must not do I/O (for example open a database connection),
+  because workerd does not allow it.
+- **Runtime-specific files**: a file that has the runtime as a part of its name replaces the existing file without that
+  part, for example `app/entry.server.cloudflare.tsx` replaces `app/entry.server.tsx` and `vite.cloudflare.config.ts`
+  replaces `vite.config.ts`. For a variant whose label ends with `(<runtime>)`, the runner copies these files over the
+  others in the temporary copy of the app, before the build. This needs no framework or bundler config. A build in the
+  app folder itself does not get these files, so run a variant with `yarn test:run <app> --variant <runtime>`.
+- **Scripts**: put `RUNTIME` in a named script (`"test:assert:bun": "RUNTIME=bun pnpm test:assert"`), not in the
+  `assert-command`. `yarn test:run` prefixes the command with `volta run`, which cannot run a leading env assignment.
+- **Variant label**: end the label with the runtime, for example `react-router-8-framework (bun)`. CI installs Bun or
+  Deno for a job whose `label` contains `bun` or `deno`, and the runner uses the runtime-specific files for a label
+  that ends with `(bun)`, `(deno)` or `(cloudflare)`, so a new variant needs no change to
+  `.github/workflows/build.yml`. A variant can also pin the Deno version, for example `"deno-version": "v2.9.0"`.
+- **Bun**: under `bun run` the SDK cannot inject diagnostics channels into packages that stay outside the build (for
+  example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
+  on `RUNTIME` and say why in a comment.
+
+```json
+"sentryTest": {
+  "optionalVariants": [
+    { "assert-command": "pnpm test:assert:bun", "label": "my-app (bun)" },
+    { "assert-command": "pnpm test:assert:deno", "label": "my-app (deno)" },
+    { "assert-command": "pnpm test:assert:cloudflare", "label": "my-app (cloudflare)" }
+  ]
+}
+```
+
 ## Troubleshooting
 
 ### Common Issues

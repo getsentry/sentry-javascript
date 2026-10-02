@@ -1098,8 +1098,12 @@ jobs:
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        run:
+          yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+          "$VARIANT_LABEL"
         working-directory: dev-packages/e2e-tests
+        env:
+          VARIANT_LABEL: ${{ matrix.label }}
 
       - name: Add pnpm overrides
         run:
@@ -1193,8 +1197,15 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
+      - name: Set up Bun
+        if:
+          matrix.test-application == 'node-exports-test-app' || contains(matrix.test-application, 'bun') ||
+          contains(matrix.label, 'bun')
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
       - name: Set up Deno
-        if: matrix.test-application == 'deno'
+        if: contains(matrix.test-application, 'deno') || contains(matrix.label, 'deno')
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
@@ -1218,8 +1229,12 @@ jobs:
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        run:
+          yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+          "$VARIANT_LABEL"
         working-directory: dev-packages/e2e-tests
+        env:
+          VARIANT_LABEL: ${{ matrix.label }}
 
       - name: Add pnpm overrides
         run:
