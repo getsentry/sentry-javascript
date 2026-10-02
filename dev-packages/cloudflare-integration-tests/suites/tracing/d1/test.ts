@@ -12,6 +12,7 @@ import {
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { createRunner } from '../../../runner';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
@@ -75,6 +76,7 @@ it('names D1 query spans after their query summary', async ({ signal }) => {
           name: 'CREATE TABLE users',
           attributes: {
             'sentry.is_localhost': { value: true, type: 'boolean' },
+            [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
             ...commonAttributes(segmentSpan),
             'db.operation.name': { type: 'string', value: 'exec' },
             'db.query.text': {
@@ -89,6 +91,7 @@ it('names D1 query spans after their query summary', async ({ signal }) => {
           name: 'INSERT users',
           attributes: {
             'sentry.is_localhost': { value: true, type: 'boolean' },
+            [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
             ...commonAttributes(segmentSpan),
             'db.operation.name': { type: 'string', value: 'run' },
             'db.query.text': { type: 'string', value: 'INSERT INTO users (name) VALUES (?)' },
@@ -111,6 +114,7 @@ it('names D1 query spans after their query summary', async ({ signal }) => {
           name: 'SELECT users',
           attributes: {
             'sentry.is_localhost': { value: true, type: 'boolean' },
+            [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
             ...commonAttributes(segmentSpan),
             'db.operation.name': { type: 'string', value: 'first' },
             'db.query.text': { type: 'string', value: 'SELECT * FROM users WHERE name = ?' },

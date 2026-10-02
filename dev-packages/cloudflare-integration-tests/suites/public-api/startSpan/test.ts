@@ -14,6 +14,7 @@ import {
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
@@ -79,6 +80,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
   expect(childSpan).toEqual({
     attributes: {
       'sentry.is_localhost': { value: true, type: 'boolean' },
+      [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
       [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
         type: 'string',
@@ -107,6 +109,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
   expect(inactiveSpan).toEqual({
     attributes: {
       'sentry.is_localhost': { value: true, type: 'boolean' },
+      [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
       [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
       [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
@@ -144,6 +147,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
   expect(manualSpan).toEqual({
     attributes: {
       'sentry.is_localhost': { value: true, type: 'boolean' },
+      [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
       [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
       [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
@@ -166,6 +170,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
   expect(parentTestSpan).toEqual({
     attributes: {
       'sentry.is_localhost': { value: true, type: 'boolean' },
+      [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
       [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
       [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
@@ -224,7 +229,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
         type: 'string',
         value: 'http:',
       },
-      'user_agent.original': {
+      [USER_AGENT_ORIGINAL]: {
         type: 'string',
         value: 'node',
       },

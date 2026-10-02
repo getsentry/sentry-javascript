@@ -20,6 +20,7 @@ function tracedSpan(segmentSpan: SerializedStreamedSpan, name: string, op: strin
     attributes: {
       'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
       'sentry.is_localhost': segmentSpan.attributes['sentry.is_localhost'],
+      'user_agent.original': segmentSpan.attributes['user_agent.original'],
       'sentry.segment.name': { type: 'string', value: segmentSpan.name },
       'sentry.segment.id': { type: 'string', value: segmentSpan.span_id },
       'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },

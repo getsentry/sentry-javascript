@@ -24,6 +24,7 @@ import {
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT } from '@sentry/core';
 import { createRunner } from '../../../runner';
@@ -93,6 +94,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 12, type: 'integer' },
           [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 20, type: 'integer' },
           'sentry.is_localhost': { value: true, type: 'boolean' },
+          [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
           [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
           [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
           [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
@@ -133,6 +135,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 20, type: 'integer' },
           [GEN_AI_RESPONSE_TEXT]: { value: 'Hello from Google GenAI!', type: 'string' },
           'sentry.is_localhost': { value: true, type: 'boolean' },
+          [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
           [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
           [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
           [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
@@ -159,6 +162,7 @@ it('traces Google GenAI chat, generateContent, and embedContent calls', async ({
           [GEN_AI_REQUEST_MODEL]: { value: 'text-embedding-004', type: 'string' },
           [GEN_AI_EMBEDDINGS_INPUT]: { value: 'Hello world', type: 'string' },
           'sentry.is_localhost': { value: true, type: 'boolean' },
+          [USER_AGENT_ORIGINAL]: { value: 'node', type: 'string' },
           [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
           [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
           [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
