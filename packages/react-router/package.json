@@ -20,6 +20,11 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "workerd": {
+        "import": "./build/esm/cloudflare/index.js",
+        "require": "./build/cjs/cloudflare/index.js",
+        "default": "./build/esm/cloudflare/index.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
