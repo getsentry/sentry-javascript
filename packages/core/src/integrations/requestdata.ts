@@ -1,7 +1,6 @@
 import type { Client } from '../client';
 import { getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS } from '../semanticAttributes';
 import type { SdkProcessingMetadata } from '../scope';
 import type { CollectBehavior, ResolvedDataCollection } from '../types/datacollection';
 import type { Event } from '../types/event';
@@ -19,7 +18,7 @@ import { getUrlQuery } from '../utils/url';
 import { getClientIPAddress } from '../utils/clientIPAddress';
 import { ipHeaderNames } from '../vendor/getIpAddress';
 import { safeSetSpanJSONAttributes } from '../tracing/spans/captureSpan';
-import { SENTRY_IS_LOCALHOST, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import { SENTRY_IS_LOCALHOST, URL_FULL, URL_QUERY, USER_IP_ADDRESS } from '@sentry/conventions/attributes';
 
 type RequestDataIncludeOptions = {
   cookies?: boolean;
@@ -262,7 +261,7 @@ function addNormalizedRequestDataToSpan(
   if (include.ip) {
     const ip = (normalizedRequest.headers && getClientIPAddress(normalizedRequest.headers)) || ipAddress || undefined;
     if (ip) {
-      safeSetSpanJSONAttributes(span, { [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: ip });
+      safeSetSpanJSONAttributes(span, { [USER_IP_ADDRESS]: ip });
     }
   }
 }

@@ -9,10 +9,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_USER_EMAIL,
-  SEMANTIC_ATTRIBUTE_USER_ID,
-  SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
-  SEMANTIC_ATTRIBUTE_USER_USERNAME,
   spanStreamingIntegration,
   startInactiveSpan,
   startSpan,
@@ -33,6 +29,10 @@ import {
   SENTRY_SEGMENT_NAME,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_TRACE_LIFECYCLE,
+  USER_EMAIL,
+  USER_ID,
+  USER_IP_ADDRESS,
+  USER_NAME,
 } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
@@ -109,19 +109,19 @@ describe('captureSpan', () => {
           value: 'staging',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_ID]: {
+        [USER_ID]: {
           value: '123',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_EMAIL]: {
+        [USER_EMAIL]: {
           value: 'user@example.com',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_USERNAME]: {
+        [USER_NAME]: {
           value: 'testuser',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: {
+        [USER_IP_ADDRESS]: {
           value: '127.0.0.1',
           type: 'string',
         },
@@ -217,19 +217,19 @@ describe('captureSpan', () => {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_ID]: {
+        [USER_ID]: {
           value: '123',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_EMAIL]: {
+        [USER_EMAIL]: {
           value: 'user@example.com',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_USERNAME]: {
+        [USER_NAME]: {
           value: 'testuser',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: {
+        [USER_IP_ADDRESS]: {
           value: '127.0.0.1',
           type: 'string',
         },

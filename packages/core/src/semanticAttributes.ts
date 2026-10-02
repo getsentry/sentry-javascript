@@ -74,13 +74,25 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
 /** The list of integrations enabled in the Sentry SDK (e.g., ["EventFilters", "BrowserTracing"]) */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
 
-/** The user ID */
+/**
+ * The user ID
+ * @deprecated Use `USER_ID` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
-/** The user email */
+/**
+ * The user email
+ * @deprecated Use `USER_EMAIL` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
-/** The user IP address */
+/**
+ * The user IP address
+ * @deprecated Use `USER_IP_ADDRESS` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
-/** The user username */
+/**
+ * The user username
+ * @deprecated Use `USER_NAME` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
 
 /**
