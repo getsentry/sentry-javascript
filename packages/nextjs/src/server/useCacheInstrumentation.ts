@@ -104,7 +104,12 @@ function shouldRecordCacheSpan(): boolean {
   return !!activeSpan && spanIsSampled(activeSpan);
 }
 
-function startCacheSpan<T>(op: typeof CACHE_GET | typeof CACHE_PUT, digest: string, callback: (span: Span) => T): T {
+function startCacheSpan<T>(
+  op: typeof CACHE_GET | typeof CACHE_PUT,
+  digest: string,
+  extraAttributes: Record<string, string>,
+  callback: (span: Span) => T,
+): T {
   const client = getClient();
 
   return startSpan(
@@ -116,6 +121,7 @@ function startCacheSpan<T>(op: typeof CACHE_GET | typeof CACHE_PUT, digest: stri
         [SENTRY_ORIGIN]: CACHE_SPAN_ORIGIN,
         [CACHE_KEY]: [digest],
         [CACHE_OPERATION]: CACHE_OPERATION_NAMES[op],
+        ...extraAttributes,
       },
     },
     callback,
@@ -252,7 +258,7 @@ function instrumentHandler(handler: unknown): void {
           return originalGet.call(this, cacheKey, softTags);
         }
         const digest = keyDigest(cacheKey);
-        return startCacheSpan(CACHE_GET, digest, span =>
+        return startCacheSpan(CACHE_GET, digest, {}, span =>
           // `Promise.resolve` because custom handlers may return the entry synchronously.
           Promise.resolve(originalGet.call(this, cacheKey, softTags)).then(entry => {
             try {
@@ -279,20 +285,17 @@ function instrumentHandler(handler: unknown): void {
 
         // The handler drains `pendingEntry` (the still-streaming entry) before storing, so this
         // span covers producing and storing the entry, not just the write.
-        return startCacheSpan(CACHE_PUT, digest, span => {
-          if (sourceFile) {
-            span.setAttribute(CODE_FILE_PATH, sourceFile);
-          }
+        return startCacheSpan(CACHE_PUT, digest, sourceFile ? { [CODE_FILE_PATH]: sourceFile } : {}, span =>
           // Only a successful write becomes a fill origin: a failed write leaves no entry or the
           // previous one (whose origin still stands). A dropped span (`ignoreSpans`) never
           // reaches Sentry, so a link to it would be broken.
-          return Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
+          Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
             if (span.isRecording()) {
               rememberCacheOrigin(originKeyPrefix + digest, span, pendingEntry);
             }
             return result;
-          });
-        });
+          }),
+        );
       };
     });
   } catch (error) {

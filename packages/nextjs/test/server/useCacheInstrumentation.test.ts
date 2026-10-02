@@ -496,24 +496,34 @@ describe('instrumentUseCacheHandlers', () => {
       });
     }
 
-    it('sets `code.file.path` when the key parses and the manifest knows the function', async () => {
+    it('starts the `cache.put` span with `code.file.path` when the key parses and the manifest knows the function', async () => {
       setManifest('app/(cached-nesting)/mixed-lifetimes/[id]/layout.tsx');
       const handler = installWithDefaultHandler();
 
       await handler.set(jsonCacheKey, Promise.resolve({}));
 
-      expect(mocks.setAttribute).toHaveBeenCalledWith(
-        'code.file.path',
-        'app/(cached-nesting)/mixed-lifetimes/[id]/layout.tsx',
+      // In the start options (not set afterwards), so samplers and span processors see it.
+      expect(mocks.startSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          op: 'cache.put',
+          attributes: expect.objectContaining({
+            'code.file.path': 'app/(cached-nesting)/mixed-lifetimes/[id]/layout.tsx',
+          }),
+        }),
+        expect.any(Function),
       );
     });
 
-    it('does not set `code.file.path` on `cache.get` spans', async () => {
+    it('does not put `code.file.path` on `cache.get` spans', async () => {
       setManifest('app/page.tsx');
       const handler = installWithDefaultHandler({ timestamp: nowMs() });
 
       await handler.get(jsonCacheKey);
 
+      expect(mocks.startSpan).not.toHaveBeenCalledWith(
+        expect.objectContaining({ attributes: expect.objectContaining({ 'code.file.path': expect.anything() }) }),
+        expect.any(Function),
+      );
       expect(mocks.setAttribute).not.toHaveBeenCalledWith('code.file.path', expect.anything());
     });
 
@@ -524,6 +534,10 @@ describe('instrumentUseCacheHandlers', () => {
 
       await expect(handler.set('multipart-encoded-key', Promise.resolve({}))).resolves.toBeUndefined();
 
+      expect(mocks.startSpan).not.toHaveBeenCalledWith(
+        expect.objectContaining({ attributes: expect.objectContaining({ 'code.file.path': expect.anything() }) }),
+        expect.any(Function),
+      );
       expect(mocks.setAttribute).not.toHaveBeenCalledWith('code.file.path', expect.anything());
     });
   });

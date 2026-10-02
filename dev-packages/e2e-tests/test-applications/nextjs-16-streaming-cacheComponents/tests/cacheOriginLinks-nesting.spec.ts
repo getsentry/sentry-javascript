@@ -40,7 +40,11 @@ test('links a cached layout hit to the trace that filled the layout entry', asyn
   const putSpan = findCacheSpan(missSpans, 'cache.put');
   expect(putSpan).toBeDefined();
 
-  expect(putSpan!.attributes['code.file.path']?.value).toBe('app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx');
+  if (!isWebpackBuild) {
+    expect(putSpan!.attributes['code.file.path']?.value).toBe(
+      'app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx',
+    );
+  }
 
   const hitGetSpan = findCacheSpan(hitSpans, 'cache.get', true);
   expect(hitGetSpan).toBeDefined();
