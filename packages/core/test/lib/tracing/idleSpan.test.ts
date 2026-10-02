@@ -501,7 +501,9 @@ describe('startIdleSpan', () => {
 
     idleSpan.end();
 
+    expect(recordDroppedEventSpy).toHaveBeenCalledTimes(2);
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'transaction');
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'span');
   });
 
   it('sets finish reason when span is ended manually', () => {

@@ -7,7 +7,7 @@ describe('negative sampling (static)', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('records sample_rate outcome for root span/transaction', async () => {
+    test('records sample_rate outcomes for the transaction and all of its spans', async () => {
       const runner = createRunner()
         .unignore('client_report')
         // The `GET /ok` transaction is sent as soon as its span ends, while the negatively-sampled
@@ -26,6 +26,11 @@ describe('negative sampling (static)', () => {
               {
                 category: 'transaction',
                 quantity: 1,
+                reason: 'sample_rate',
+              },
+              {
+                category: 'span',
+                quantity: 5, // 1 root span + 4 child spans
                 reason: 'sample_rate',
               },
             ],
