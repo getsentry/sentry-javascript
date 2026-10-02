@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME,
@@ -11,6 +11,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { conditionalTest } from '../../../../utils/index';
@@ -48,7 +49,7 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -96,7 +97,7 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
 
               const errorSpan = container.items.find(span => span.name === 'chat error-model' && span.status !== 'ok');
               expect(errorSpan).toBeDefined();
-              expect(errorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(errorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -139,7 +140,7 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
                 type: 'string',
                 value: 'gen_ai.embeddings',
               });
-              expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });
@@ -188,7 +189,7 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
                 type: 'string',
                 value: 'gen_ai.chat',
               });
-              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+              expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
               });

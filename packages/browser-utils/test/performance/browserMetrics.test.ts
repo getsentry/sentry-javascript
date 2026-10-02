@@ -1,9 +1,9 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
   getMainCarrier,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentrySpan,
   setCurrentClient,
   spanToJSON,
@@ -247,7 +247,7 @@ describe('_addResourceSpans', () => {
         end_timestamp: timeOrigin + startTime + duration,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.response.body.decoded_size']: entry.decodedBodySize,
           ['http.response.body.size']: entry.encodedBodySize,
           ['http.response.size']: entry.transferSize,
@@ -430,7 +430,7 @@ describe('_addResourceSpans', () => {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.response.body.decoded_size']: entry.decodedBodySize,
           ['http.response.body.size']: entry.encodedBodySize,
           ['http.response.size']: entry.transferSize,
@@ -469,7 +469,7 @@ describe('_addResourceSpans', () => {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.domain': 'example.com',
           'http.request.same_origin': true,
@@ -521,7 +521,7 @@ describe('_addResourceSpans', () => {
       expect.objectContaining({
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.domain': 'example.com',
           'http.request.same_origin': true,

@@ -13,6 +13,7 @@ import {
   URL_PATH,
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 import type { Integration } from '@sentry/core';
@@ -20,7 +21,6 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   filterCollectedUrl,
 } from '@sentry/core';
 import type { AnyRouter } from '@tanstack/solid-router';
@@ -97,7 +97,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
               : initialWindowLocation.pathname,
           attributes: {
             [SENTRY_OP]: PAGELOAD,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.solid.tanstack_router',
+            [SENTRY_ORIGIN]: 'auto.pageload.solid.tanstack_router',
             [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
             ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
             ...routeMatchToParamSpanAttributes(routeMatch),
@@ -156,7 +156,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
               name: routeMatch ? routeMatch.routeId : fallbackName,
               attributes: {
                 [SENTRY_OP]: NAVIGATION,
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.tanstack_router',
+                [SENTRY_ORIGIN]: 'auto.navigation.solid.tanstack_router',
                 [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
                 ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
                 ...routeMatchToParamSpanAttributes(routeMatch),

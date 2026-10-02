@@ -6,11 +6,10 @@ import {
   getClient,
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
-import { GEN_AI_RESPONSE_MODEL } from '@sentry/conventions/attributes';
+import { GEN_AI_RESPONSE_MODEL, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { GenAiOptions } from '../core/utils';
 import { resolveAIRecordingOptions } from '../core/utils';
@@ -145,7 +144,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       attributes: {
         ...this._attributesFor(span),
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getOperation(span.type)?.op,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MASTRA_ORIGIN,
+        [SENTRY_ORIGIN]: MASTRA_ORIGIN,
       },
     });
 

@@ -8,7 +8,6 @@ import {
   getIsolationScope,
   handleCallbackErrors,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   startSpan,
@@ -27,6 +26,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
@@ -138,7 +138,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
                 [SENTRY_DESCRIPTION]: description,
                 [CODE_FUNCTION_NAME]: serverActionName,
                 [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
+                [SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
               },
             },
             async span => {

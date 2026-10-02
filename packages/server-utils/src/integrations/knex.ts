@@ -10,7 +10,6 @@ import {
   getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   truncate,
@@ -28,6 +27,7 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';
@@ -182,7 +182,7 @@ function subscribeQuery(): void {
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_ORIGIN]: ORIGIN,
         'knex.version': data.moduleVersion,
         [DB_SYSTEM_NAME]: dbSystem,
         [ATTR_DB_SQL_TABLE]: table,

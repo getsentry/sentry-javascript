@@ -1,9 +1,9 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import { createRequire } from 'node:module';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { debug, defineIntegration, startInactiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { Env, GetConnInfo, Hono, MiddlewareHandler } from './honoTypes';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -171,7 +171,7 @@ function instrumentInternalRequests(): void {
         name: `${method} ${extractPathname(input)}`,
         attributes: {
           [SENTRY_OP]: HTTP_SERVER,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: INTERNAL_REQUEST_ORIGIN,
+          [SENTRY_ORIGIN]: INTERNAL_REQUEST_ORIGIN,
         },
       });
     },

@@ -3,14 +3,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
-import { DB_OPERATION_NAME, DB_SYSTEM_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { DB_OPERATION_NAME, DB_SYSTEM_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { addBreadcrumb } from '../breadcrumbs';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '../tracing';
 import { hasSpanStreamingEnabled } from '../tracing/spans/hasSpanStreamingEnabled';
 import { startSpanManual } from '../tracing/trace';
@@ -297,7 +296,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
         {
           name,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+            [SENTRY_ORIGIN]: 'auto.db.supabase',
             [SENTRY_OP]: DB,
             [DB_SYSTEM_NAME]: 'postgresql',
             [DB_OPERATION_NAME]: operationName,
@@ -464,7 +463,7 @@ function instrumentPostgRESTFilterBuilder(
           'db.sdk': getHeader(typedThis.headers, 'X-Client-Info'),
           [DB_SYSTEM_NAME]: 'postgresql',
           [DB_OPERATION_NAME]: operation,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+          [SENTRY_ORIGIN]: 'auto.db.supabase',
           [SENTRY_OP]: DB,
         };
 

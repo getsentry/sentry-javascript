@@ -11,12 +11,12 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getMainCarrier,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
   spanToStaticSpanJSON,
@@ -69,7 +69,7 @@ describe('instrumentWorkersAiClient', () => {
      * are on here because the `run` call is the root span in these tests, with no active parent.
      */
     const ALWAYS_RECORDED = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
+      [SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
@@ -187,7 +187,7 @@ describe('instrumentWorkersAiClient', () => {
     const span = spanToStaticSpanJSON(endedSpans[0]!);
     expect(span.description).toBe('evaluate typesafe/jev');
     expect(span.data).toEqual({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
+      [SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.evaluate',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',

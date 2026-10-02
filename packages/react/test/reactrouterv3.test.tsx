@@ -2,14 +2,8 @@
  * @vitest-environment jsdom
  */
 import { BrowserClient } from '@sentry/browser';
-import {
-  createTransport,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCurrentClient,
-} from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { createTransport, getCurrentScope, SEMANTIC_ATTRIBUTE_SENTRY_OP, setCurrentClient } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import { act } from 'react';
@@ -108,7 +102,7 @@ describe('browserTracingReactRouterV3', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
+        [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       },
     });
@@ -145,7 +139,7 @@ describe('browserTracingReactRouterV3', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/about',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
     });
@@ -159,7 +153,7 @@ describe('browserTracingReactRouterV3', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/features',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
     });
@@ -201,7 +195,7 @@ describe('browserTracingReactRouterV3', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/users/:userid',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
     });
@@ -217,7 +211,7 @@ describe('browserTracingReactRouterV3', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/teams/:teamId/details',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
     });

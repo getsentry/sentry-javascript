@@ -1,12 +1,8 @@
 import { expect } from '@playwright/test';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
 sentryTest('creates a pageload root span with navigation.redirect childspan', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -24,7 +20,7 @@ sentryTest('creates a pageload root span with navigation.redirect childspan', as
   expect(pageloadRequest.contexts?.trace?.op).toBe('pageload');
 
   expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
+    [SENTRY_ORIGIN]: 'auto.pageload.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',

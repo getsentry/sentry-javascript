@@ -11,8 +11,8 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_SCHEME,
   URL_TEMPLATE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { Client } from '../client';
 import type { SpanAttributes } from '../types/span';
 import type { TransactionSource } from '../types/transaction';
@@ -210,7 +210,7 @@ export function getHttpSpanDetailsFromUrlObject(
   client?: Client,
 ): [name: string, attributes: SpanAttributes] {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+    [SENTRY_ORIGIN]: spanOrigin,
   };
 
   let nameSource: TransactionSource = 'url';
