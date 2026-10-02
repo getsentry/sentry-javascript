@@ -86,8 +86,15 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
               quantity: 4,
               reason: 'sample_rate',
             },
+            {
+              category: 'span',
+              quantity: expect.any(Number),
+              reason: 'sample_rate',
+            },
           ],
         });
+        // exact number depends on performance observer emissions
+        expect(clientReport.discarded_events[1].quantity).toBeGreaterThanOrEqual(10);
       });
 
       await sentryTest.step('Wait for transactions to be discarded', async () => {

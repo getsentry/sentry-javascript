@@ -58,6 +58,11 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
             quantity: 1,
             reason: 'sample_rate',
           },
+          {
+            category: 'span',
+            quantity: 1,
+            reason: 'sample_rate',
+          },
         ],
       });
     });
@@ -78,6 +83,11 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
         discarded_events: [
           {
             category: 'transaction',
+            quantity: 1,
+            reason: 'sample_rate',
+          },
+          {
+            category: 'span',
             quantity: 1,
             reason: 'sample_rate',
           },
