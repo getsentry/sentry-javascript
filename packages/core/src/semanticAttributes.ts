@@ -133,5 +133,6 @@ export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
  * The conversation ID for linking messages across API calls.
  * For OpenAI Assistants API: thread_id
  * For LangGraph: configurable.thread_id
+ * @deprecated Use `GEN_AI_CONVERSATION_ID` from `@sentry/conventions/attributes` instead.
  */
 export const GEN_AI_CONVERSATION_ID_ATTRIBUTE = 'gen_ai.conversation.id';

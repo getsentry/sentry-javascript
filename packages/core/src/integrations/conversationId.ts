@@ -1,7 +1,7 @@
+import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
 import type { Client } from '../client';
 import { getCurrentScope, getIsolationScope } from '../currentScopes';
 import { defineIntegration } from '../integration';
-import { GEN_AI_CONVERSATION_ID_ATTRIBUTE } from '../semanticAttributes';
 import type { IntegrationFn } from '../types/integration';
 import type { Span } from '../types/span';
 import { spanToStaticSpanJSON } from '../utils/spanUtils';
@@ -29,7 +29,7 @@ const _conversationIdIntegration = (() => {
             return;
           }
 
-          span.setAttribute(GEN_AI_CONVERSATION_ID_ATTRIBUTE, conversationId);
+          span.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
         }
       });
     },
