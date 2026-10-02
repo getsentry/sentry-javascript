@@ -17,6 +17,8 @@ vi.mock('../../src/v3/server/checkInstrumentation', async importOriginal => ({
 vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal<typeof SentryCore>()),
   captureException: (...args: unknown[]) => captureException(...args),
+  // Runs the callback as is, so the spy on `console.error` below sees the call.
+  consoleSandbox: (callback: () => unknown) => callback(),
 }));
 
 const { instrumentRemixV3 } = await import('../../src/v3/server/instrument');
