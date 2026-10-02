@@ -1,4 +1,4 @@
-import { CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CACHE_HIT, CACHE_KEY, CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
   CACHE_OPERATION_NAMES,
@@ -7,8 +7,6 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_CACHE_HIT,
-  SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
@@ -180,7 +178,7 @@ function createMethodWrapper(
           span.setStatus({ code: SPAN_STATUS_OK });
 
           if (CACHE_HIT_METHODS.has(methodName)) {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, resolveCacheHit(methodName, args[0], result));
+            span.setAttribute(CACHE_HIT, resolveCacheHit(methodName, args[0], result));
           }
 
           return result;
@@ -242,7 +240,7 @@ function createSpanStartOptions(
     [SENTRY_OP]: cacheOperation,
     [CACHE_OPERATION]: cacheOperationName,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
-    [SEMANTIC_ATTRIBUTE_CACHE_KEY]: keys.length > 1 ? keys : keys[0],
+    [CACHE_KEY]: keys.length > 1 ? keys : keys[0],
     'db.operation.name': methodName,
     'db.collection.name': mountBase.replace(/:$/, ''),
     'db.system.name': driver.name ?? 'unknown',

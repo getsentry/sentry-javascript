@@ -1,4 +1,7 @@
 import {
+  CACHE_HIT,
+  CACHE_ITEM_SIZE,
+  CACHE_KEY,
   CACHE_OPERATION,
   NETWORK_PEER_ADDRESS,
   NETWORK_PEER_PORT,
@@ -11,9 +14,6 @@ import {
   CACHE_OPERATION_NAMES,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_CACHE_HIT,
-  SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
-  SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   truncate,
@@ -175,7 +175,7 @@ export function getRedisCacheAttributes(
 
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: cacheOperation,
-    [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
+    [CACHE_KEY]: safeKey,
     [CACHE_OPERATION]: CACHE_OPERATION_NAMES[cacheOperation],
   };
 
@@ -216,11 +216,11 @@ export function applyCacheResponseAttributes(span: Span, response: unknown): voi
   const cacheItemSize = calculateCacheItemSize(response);
 
   if (cacheItemSize) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
+    span.setAttribute(CACHE_ITEM_SIZE, cacheItemSize);
   }
 
   if (op === CACHE_GET && cacheItemSize !== undefined) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
+    span.setAttribute(CACHE_HIT, cacheItemSize > 0);
   }
 }
 
