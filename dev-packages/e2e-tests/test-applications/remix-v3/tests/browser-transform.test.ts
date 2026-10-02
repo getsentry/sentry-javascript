@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('the served remix/ui runtime is instrumented', async ({ page, baseURL }) => {
+test('the served remix/component runtime is instrumented', async ({ page, baseURL }) => {
   const served: string[] = [];
   page.on('response', response => {
     if (response.request().resourceType() === 'script') {
@@ -10,7 +10,7 @@ test('the served remix/ui runtime is instrumented', async ({ page, baseURL }) =>
 
   await page.goto('/', { waitUntil: 'load' });
 
-  const runModule = served.find(url => /@remix-run\/ui\/dist\/runtime\/run\.js/.test(decodeURIComponent(url)));
+  const runModule = served.find(url => /@remix-run\/component\/dist\/runtime\/run\.js/.test(decodeURIComponent(url)));
   expect(runModule, 'run.js was not served').toBeDefined();
 
   const code = await (await fetch(runModule as string)).text();

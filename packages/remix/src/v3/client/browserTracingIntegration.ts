@@ -18,7 +18,7 @@ type Options = Parameters<typeof originalBrowserTracingIntegration>[0];
  * Browser tracing for Remix 3.
  *
  * Page loads stay with the upstream integration, because they are ordinary document loads. Navigations
- * do not: `remix/ui` intercepts links and form submissions through the Navigation API and never touches
+ * do not: `remix/component` intercepts links and form submissions through the Navigation API and never touches
  * History, so the upstream handler never fires.
  */
 export function browserTracingIntegration(options: Options = {}): Integration {
@@ -52,7 +52,7 @@ function instrumentNavigationApi(client: Client): void {
     startBrowserTracingNavigationSpan(
       client,
       {
-        // Remix 3 gives the browser no route to name this after: `remix/ui` exposes no matched route
+        // Remix 3 gives the browser no route to name this after: `remix/component` exposes no matched route
         // and never matches client side. Passing the server's pattern down is tracked in (#24872).
         name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathnameOf(url) || '/',
         attributes: {
@@ -70,7 +70,7 @@ function instrumentNavigationApi(client: Client): void {
 /**
  * Whether the runtime will keep this navigation inside the current document.
  *
- * The same three conditions `startNavigationListener` in `@remix-run/ui` checks before intercepting.
+ * The same three conditions `startNavigationListener` in `@remix-run/component` checks before intercepting.
  * What it declines becomes a new document load, which already gets a page load span, so a navigation
  * span here would count the same click twice.
  */

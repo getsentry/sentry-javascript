@@ -19,7 +19,5 @@ export const assets = createAssetServer({
   },
 });
 
-const entry = 'app/actions/public/entry.ts';
-
-export const entryHref = await assets.getHref(entry);
-export const entryPreloads = await assets.getPreloads(entry);
+// Served modules keep their bare imports, so the document must render this entry's import map.
+export const entry = await assets.getScriptEntry('app/actions/public/entry.ts');

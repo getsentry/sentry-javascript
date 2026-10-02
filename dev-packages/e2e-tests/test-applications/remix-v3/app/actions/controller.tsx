@@ -1,7 +1,8 @@
 import { createController } from 'remix/router';
-import type { Handle } from 'remix/ui';
+import type { Handle } from 'remix/component';
+import { ImportMap } from 'remix/component/server';
 
-import { assets, entryHref, entryPreloads } from '../assets.ts';
+import { assets, entry } from '../assets.ts';
 import { routes } from '../routes.ts';
 
 function HomePage(handle: Handle<Record<string, never>>) {
@@ -10,10 +11,11 @@ function HomePage(handle: Handle<Record<string, never>>) {
       <head>
         <meta charSet="utf-8" />
         <title>Sentry Remix 3</title>
-        {entryPreloads.map(href => (
+        <ImportMap value={entry.importMap} />
+        {entry.preloads.map(href => (
           <link key={href} rel="modulepreload" href={href} />
         ))}
-        <script type="module" src={entryHref}></script>
+        <script type="module" src={entry.href}></script>
       </head>
       <body>
         <h1 id="home">Sentry Remix 3</h1>

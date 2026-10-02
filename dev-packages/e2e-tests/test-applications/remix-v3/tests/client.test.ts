@@ -18,7 +18,7 @@ test('sends a pageload span', async ({ page }) => {
 test('sends a navigation span for a link the runtime intercepts', async ({ page }) => {
   await page.goto('/');
 
-  // Selected by origin, not just op. `remix/ui` never touches History, so a span from the upstream
+  // Selected by origin, not just op. `remix/component` never touches History, so a span from the upstream
   // handler would mean this SDK did not produce it.
   const spanPromise = waitForStreamedSpan(
     APP_NAME,
