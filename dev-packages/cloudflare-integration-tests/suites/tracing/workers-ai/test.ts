@@ -16,8 +16,9 @@ import {
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRACE_LIFECYCLE,
+  SENTRY_ENVIRONMENT,
 } from '@sentry/conventions/attributes';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { createRunner } from '../../../runner';
@@ -69,7 +70,7 @@ it('traces a basic Workers AI text generation request', async ({ signal }) => {
             [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
             [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
             [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
+            [SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
           },
         }),
       );
@@ -123,7 +124,7 @@ it('traces a streaming Workers AI text generation request', async ({ signal }) =
             [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
             [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
             [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
+            [SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
           },
         }),
       );
@@ -169,7 +170,7 @@ it('traces a TypeSafe Jev evaluation like the TypeSafe integration', async ({ si
             [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
             [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
             [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
+            [SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
           },
         }),
       );

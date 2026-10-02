@@ -47,9 +47,15 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT = 'sentry.measurement_un
 /** The value of a measurement, which may be stored as a TimedEvent. */
 export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_value';
 
-/** The release version of the application */
+/**
+ * The release version of the application
+ * @deprecated Use `SENTRY_RELEASE` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
-/** The environment name (e.g., "production", "staging", "development") */
+/**
+ * The environment name (e.g., "production", "staging", "development")
+ * @deprecated Use `SENTRY_ENVIRONMENT` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
 /**
  * The segment name (e.g., "GET /users")
@@ -71,7 +77,10 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
  * @deprecated Use `SENTRY_SDK_VERSION` `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
-/** The list of integrations enabled in the Sentry SDK (e.g., ["EventFilters", "BrowserTracing"]) */
+/**
+ * The list of integrations enabled in the Sentry SDK (e.g., ["EventFilters", "BrowserTracing"])
+ * @deprecated Use `SENTRY_SDK_INTEGRATIONS` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
 
 /**

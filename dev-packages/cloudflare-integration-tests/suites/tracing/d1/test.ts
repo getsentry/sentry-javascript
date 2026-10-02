@@ -1,17 +1,13 @@
 import { expect, it } from 'vitest';
 import type { Envelope, SerializedStreamedSpan } from '@sentry/core';
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRACE_LIFECYCLE,
+  SENTRY_ENVIRONMENT,
 } from '@sentry/conventions/attributes';
 import { createRunner } from '../../../runner';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
@@ -38,7 +34,7 @@ function commonAttributes(segmentSpan: SerializedStreamedSpan): SerializedStream
     [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
     [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpan.span_id },
     [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentSpan.name },
-    [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+    [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'db.query' },
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.cloudflare.d1' },
     'db.system.name': { type: 'string', value: 'cloudflare-d1' },
