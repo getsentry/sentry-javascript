@@ -41,7 +41,7 @@ import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
-import { performanceNowInMs, timestampInSeconds } from '../utils/time';
+import { safePerformanceNow, timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
@@ -103,7 +103,7 @@ export class SentrySpan implements Span {
       this._startTime = spanContext.startTimestamp;
     } else {
       this._startTime = timestampInSeconds();
-      this._startPerformanceNow = performanceNowInMs();
+      this._startPerformanceNow = safePerformanceNow();
     }
     this._links = spanContext.links;
 
@@ -365,7 +365,7 @@ export class SentrySpan implements Span {
    * device slept), and it can never be negative.
    */
   private _getEndTimeFromDuration(): number {
-    const performanceNow = this._startPerformanceNow === undefined ? undefined : performanceNowInMs();
+    const performanceNow = this._startPerformanceNow === undefined ? undefined : safePerformanceNow();
     if (performanceNow === undefined || this._startPerformanceNow === undefined) {
       return timestampInSeconds();
     }
