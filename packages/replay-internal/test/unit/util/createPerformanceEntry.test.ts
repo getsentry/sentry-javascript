@@ -210,11 +210,11 @@ describe('Unit | util | createPerformanceEntries', () => {
   });
 
   describe('getInteractionToNextPaint', () => {
-    it('works with an INP metric', async () => {
+    it('places the INP event at the interaction', async () => {
       const metric = {
-        value: 5108.299,
+        value: 120,
         rating: 'good' as const,
-        entries: [],
+        entries: [{ name: 'click', entryType: 'event', startTime: 5108.299, duration: 120 }] as PerformanceEntry[],
       };
 
       const event = getInteractionToNextPaint(metric);
@@ -224,8 +224,26 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'interaction-to-next-paint',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: undefined, attributions: undefined },
+        data: { value: 120, size: 120, rating: 'good', nodeIds: undefined, attributions: undefined },
       });
+    });
+
+    it('uses the time origin from when the interaction happened', () => {
+      const driftPointMs = 200_000;
+      const sleepDurationMs = 3_600_000;
+      vi.mocked(browserPerformanceTimeOrigin).mockImplementation((time = 0) =>
+        time < driftPointMs ? TIME_ORIGIN : TIME_ORIGIN + sleepDurationMs,
+      );
+
+      const event = getInteractionToNextPaint({
+        value: 120,
+        rating: 'good',
+        entries: [
+          { name: 'click', entryType: 'event', startTime: driftPointMs + 1000, duration: 120 },
+        ] as PerformanceEntry[],
+      });
+
+      expect(event.start).toBe((TIME_ORIGIN + sleepDurationMs + driftPointMs + 1000) / 1000);
     });
   });
 });
