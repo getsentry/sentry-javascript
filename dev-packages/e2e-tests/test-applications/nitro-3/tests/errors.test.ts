@@ -1,16 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an error event to Sentry', async ({ request }) => {
-  // The thrown error is reported twice: once via the h3 tracing channel and once via Nitro's `error`
-  // hook (which sees it wrapped in an `HTTPError`). Match on the mechanism so we deterministically
-  // await the event under test instead of whichever arrives first.
   const errorEventPromise = waitForError('nitro-3', event => {
-    return (
-      !event.type &&
-      !!event.exception?.values?.some(
-        v => v.value === 'This is a test error' && v.mechanism?.type === 'auto.http.nitro.onTraceError',
-      )
+    return !!event.exception?.values?.some(
+      v => v.value === 'This is a test error' && v.mechanism?.type === 'auto.function.nitro.captureErrorHook',
     );
   });
 
@@ -20,16 +14,45 @@ test('Sends an error event to Sentry', async ({ request }) => {
 
   const errorEvent = await errorEventPromise;
 
-  expect(errorEvent.exception?.values).toHaveLength(1);
-
-  expect(errorEvent.exception?.values?.[0]?.type).toBe('Error');
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is a test error');
-  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
+  expect(errorEvent.exception?.values).toEqual([
     expect.objectContaining({
-      handled: false,
-      type: 'auto.http.nitro.onTraceError',
+      type: 'Error',
+      value: 'This is a test error',
+      mechanism: expect.objectContaining({
+        handled: false,
+        type: 'auto.function.nitro.captureErrorHook',
+      }),
     }),
-  );
+    expect.objectContaining({
+      type: 'HTTPError',
+      value: 'This is a test error',
+    }),
+  ]);
+});
+
+test('Does not send an explicitly thrown 400 error to Sentry', async ({ request }) => {
+  let errorReceived = false;
+
+  void waitForError('nitro-3', event => {
+    if (event.exception?.values?.some(v => v.value === 'Explicit 400 test error')) {
+      errorReceived = true;
+      return true;
+    }
+    return false;
+  });
+
+  const flushTransactionPromise = waitForTransaction('nitro-3', event => {
+    return event.transaction === 'GET /api/flush';
+  });
+
+  const response = await request.get('/api/test-error-400');
+  expect(response.status()).toBe(400);
+
+  const flushResponse = await request.get('/api/flush');
+  expect(flushResponse.status()).toBe(200);
+  await flushTransactionPromise;
+
+  expect(errorReceived).toBe(false);
 });
 
 test('Does not send 404 errors to Sentry', async ({ request }) => {
