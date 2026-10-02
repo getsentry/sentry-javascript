@@ -350,7 +350,7 @@ describe('SentryCron decorator with @Cron', () => {
   it.each([
     ['a sub-minute schedule', Cron('*/5 * * * * *')],
     ['a one-off date', Cron(new Date())],
-    ['a preset', Cron('@daily')],
+    ['an unknown preset', Cron('@reboot')],
     ['a utc offset', Cron('0 * * * *', { utcOffset: 120 })],
   ])('sends no monitor config for %s', async (_, cronDecorator) => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
@@ -358,6 +358,47 @@ describe('SentryCron decorator with @Cron', () => {
 
     await service.job();
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), undefined);
+  });
+
+  it.each([
+    ['@hourly', '@hourly'],
+    ['@daily', '@daily'],
+    ['@WEEKLY', '@weekly'],
+    ['@monthly', '@monthly'],
+    ['@yearly', '@yearly'],
+    ['@annually', '@annually'],
+    ['@midnight', '0 0 * * *'],
+    ['@weekdays', '0 0 * * 1-5'],
+  ])('sends the preset %s as %s', async (preset, value) => {
+    const withMonitorSpy = vi.spyOn(core, 'withMonitor');
+    const service = decorate(SentryCron('my-job'), Cron(preset));
+
+    await service.job();
+    expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
+      schedule: { type: 'crontab', value },
+      timezone: 'Asia/Tokyo',
+    });
+  });
+
+  it('warns when monitor settings are passed but no schedule can be derived', async () => {
+    const warnSpy = vi.spyOn(core.debug, 'warn').mockImplementation(() => undefined);
+    const withMonitorSpy = vi.spyOn(core, 'withMonitor').mockImplementation((_, callback) => callback());
+    const service = decorate(SentryCron('my-job', { checkinMargin: 2 }), Cron('*/5 * * * * *'));
+
+    await service.job();
+    await service.job();
+    expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), undefined);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('"my-job"'));
+  });
+
+  it('does not warn when no monitor settings are passed', async () => {
+    const warnSpy = vi.spyOn(core.debug, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(core, 'withMonitor').mockImplementation((_, callback) => callback());
+    const service = decorate(SentryCron('my-job'), Cron('*/5 * * * * *'));
+
+    await service.job();
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it('sends no monitor config with fromCronDecorator: false', async () => {
@@ -388,6 +429,13 @@ describe('SentryCron decorator with @Cron', () => {
 
     await service.job();
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), monitorConfig);
+  });
+
+  it('does not accept a schedule or time zone together with fromCronDecorator', () => {
+    // @ts-expect-error - `fromCronDecorator` only applies to settings without a schedule
+    SentryCron('my-job', { schedule: { type: 'crontab', value: '0 * * * *' }, fromCronDecorator: false });
+    // @ts-expect-error - the time zone comes from `@Cron()`
+    SentryCron('my-job', { timezone: 'Europe/Vienna', checkinMargin: 2 });
   });
 });
 
