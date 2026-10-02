@@ -5,6 +5,7 @@ import type { ExecutionContext, ScheduledController } from '@cloudflare/workers-
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
+import type { CloudflareOptions } from '../../../src/client';
 import { CloudflareClient } from '../../../src/client';
 import { withSentry } from '../../../src/withSentry';
 import { resetSdk } from '../../testUtils';
@@ -299,6 +300,112 @@ describe('instrumentScheduled', () => {
 
     test('keeps the descriptive span name when span streaming is disabled', async () => {
       expect(await spanNameFor('static')).toBe('Scheduled Cron 0 0 0 * * *');
+    });
+  });
+
+  describe('cron monitoring', () => {
+    function controllerFor(cron: string): ScheduledController {
+      return { scheduledTime: 123, cron, noRetry: vi.fn() };
+    }
+
+    async function runScheduled(
+      monitorCronTriggers: CloudflareOptions['monitorCronTriggers'],
+      scheduled: ExportedHandler<typeof MOCK_ENV>['scheduled'] = () => {},
+    ): Promise<void> {
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, monitorCronTriggers }), { scheduled });
+      await wrappedHandler.scheduled?.(controllerFor('30 9 * * 1-5'), MOCK_ENV, createMockExecutionContext());
+    }
+
+    test('sends no check-ins by default', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+
+      await runScheduled(undefined);
+
+      expect(captureCheckInSpy).not.toHaveBeenCalled();
+    });
+
+    test('sends check-ins with the cron schedule when enabled', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+
+      await runScheduled(true);
+
+      expect(captureCheckInSpy).toHaveBeenCalledTimes(2);
+      expect(captureCheckInSpy).toHaveBeenNthCalledWith(
+        1,
+        { monitorSlug: 'cron-30-9-x-x-1-5', status: 'in_progress' },
+        { schedule: { type: 'crontab', value: '30 9 * * 1-5' } },
+      );
+      expect(captureCheckInSpy).toHaveBeenNthCalledWith(2, {
+        monitorSlug: 'cron-30-9-x-x-1-5',
+        status: 'ok',
+        checkInId: expect.any(String),
+        duration: expect.any(Number),
+      });
+    });
+
+    test('marks the check-in as failed when the handler throws', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+
+      await expect(
+        runScheduled(true, () => {
+          throw new Error('test');
+        }),
+      ).rejects.toThrow('test');
+
+      expect(captureCheckInSpy).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'error' }));
+    });
+
+    test('uses the slug returned by a function', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+      const getSlug = vi.fn().mockReturnValue('weekday-report');
+
+      await runScheduled(getSlug);
+
+      expect(getSlug).toHaveBeenCalledWith('30 9 * * 1-5');
+      expect(captureCheckInSpy).toHaveBeenNthCalledWith(
+        1,
+        { monitorSlug: 'weekday-report', status: 'in_progress' },
+        { schedule: { type: 'crontab', value: '30 9 * * 1-5' } },
+      );
+    });
+
+    test('sends no check-ins when the function returns undefined', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+
+      await runScheduled(() => undefined);
+
+      expect(captureCheckInSpy).not.toHaveBeenCalled();
+    });
+
+    test('flushes both check-ins before the invocation ends', async () => {
+      const sentItemTypes: string[] = [];
+      const handler = {
+        scheduled() {},
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          cacheClient: false,
+          monitorCronTriggers: true,
+          transport: () => ({
+            send: async envelope => {
+              sentItemTypes.push(...envelope[1].map(([itemHeader]) => itemHeader.type));
+              return {};
+            },
+            flush: async () => true,
+          }),
+        }),
+        handler,
+      );
+
+      const waits: Promise<unknown>[] = [];
+      await wrappedHandler.scheduled?.(controllerFor('30 9 * * 1-5'), MOCK_ENV, {
+        waitUntil: vi.fn(promise => waits.push(promise)),
+        passThroughOnException: vi.fn(),
+      } as unknown as ExecutionContext);
+      await Promise.all(waits);
+
+      expect(sentItemTypes.filter(type => type === 'check_in')).toHaveLength(2);
     });
   });
 

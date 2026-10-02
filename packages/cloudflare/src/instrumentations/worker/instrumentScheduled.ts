@@ -12,7 +12,14 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
-import { captureException, hasSpanStreamingEnabled, startSpan, withIsolationScope } from '@sentry/core';
+import {
+  captureCheckIn,
+  captureException,
+  hasSpanStreamingEnabled,
+  startSpan,
+  timestampInSeconds,
+  withIsolationScope,
+} from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
@@ -22,6 +29,46 @@ import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
+
+const MAX_MONITOR_SLUG_LENGTH = 50;
+
+/**
+ * Derives a monitor slug from a cron expression, e.g. `30 9 * * 1-5` -> `cron-30-9-x-x-1-5`.
+ */
+function cronToMonitorSlug(cron: string): string {
+  const expression = cron
+    .toLowerCase()
+    .replace(/\*/g, 'x')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `cron-${expression}`.slice(0, MAX_MONITOR_SLUG_LENGTH).replace(/-+$/, '');
+}
+
+// Check-ins are captured directly rather than through `withMonitor`, which would fork the
+// isolation scope and lose the invocation state attached to it.
+function startCronCheckIn(
+  cron: string,
+  monitorCronTriggers: CloudflareOptions['monitorCronTriggers'],
+): ((status: 'ok' | 'error') => void) | undefined {
+  if (!monitorCronTriggers) {
+    return undefined;
+  }
+
+  const monitorSlug = typeof monitorCronTriggers === 'function' ? monitorCronTriggers(cron) : cronToMonitorSlug(cron);
+  if (!monitorSlug) {
+    return undefined;
+  }
+
+  const checkInId = captureCheckIn(
+    { monitorSlug, status: 'in_progress' },
+    { schedule: { type: 'crontab', value: cron } },
+  );
+  const startTime = timestampInSeconds();
+
+  return status => {
+    captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - startTime });
+  };
+}
 
 function wrapScheduledHandler(
   controller: ScheduledController,
@@ -58,9 +105,14 @@ function wrapScheduledHandler(
         },
       },
       async () => {
+        let finishCheckIn: ReturnType<typeof startCronCheckIn>;
         try {
-          return await fn();
+          finishCheckIn = startCronCheckIn(controller.cron, options.monitorCronTriggers);
+          const result = await fn();
+          finishCheckIn?.('ok');
+          return result;
         } catch (e) {
+          finishCheckIn?.('error');
           captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.scheduled' } });
           throw e;
         } finally {

@@ -420,6 +420,33 @@ interface BaseCloudflareOptions {
   durableObjectStorageSpanAllowlist?: Array<string | RegExp>;
 
   /**
+   * Send cron check-ins to Sentry for every Cron Trigger run of the `scheduled` handler.
+   *
+   * Each check-in carries the trigger's cron expression as the monitor schedule, so Sentry
+   * creates the monitor on the first run and keeps its schedule in sync. Monitors are billed,
+   * which is why this is off by default.
+   *
+   * With `true`, the monitor slug is `cron-` followed by the cron expression, lowercased, with
+   * `*` written as `x` and any other non-alphanumeric characters as `-`. For example,
+   * `30 9 * * 1-5` becomes `cron-30-9-x-x-1-5`. Workers that report to the same project and
+   * share a cron expression therefore share a monitor. Pass a function to choose the slug per
+   * cron expression instead; returning `undefined` sends no check-ins for that trigger.
+   *
+   * @default false
+   * @example
+   * ```ts
+   * export default Sentry.withSentry(
+   *   (env) => ({
+   *     dsn: env.SENTRY_DSN,
+   *     monitorCronTriggers: (cron) => (cron === '0 0 * * *' ? 'nightly-cleanup' : undefined),
+   *   }),
+   *   handler,
+   * );
+   * ```
+   */
+  monitorCronTriggers?: boolean | ((cron: string) => string | undefined);
+
+  /**
    * Sets an optional server name (device name).
    *
    * This is useful for identifying which server or instance is sending events.
