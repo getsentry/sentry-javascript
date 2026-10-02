@@ -4,9 +4,86 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @Shubham-Padkonde and @tobias-schnabel. Thank you for your contributions!
+## 11.3.0
 
-- **fix(cloudflare)**: Durable Object constructors now run in their own isolation scope. When work that the constructor starts, for example a `blockConcurrencyWhile` callback, calls a method of the instance, that call is no longer treated as an incoming RPC call, so an error the instance catches itself is no longer reported as unhandled. As a result, `Sentry.setTag()`, `setUser()` and `setContext()` in a constructor now apply only to that constructor work. They no longer reach later `fetch`, RPC or `alarm` invocations, because the scope they used to write to is shared by every Durable Object and handler in the isolate. Use `initialScope` for static data, and set per-instance data in each handler.
+### Important Changes
+
+- **Remix 3 support (alpha, may break in minor releases)**
+
+  - feat(remix): Add Remix 3 browser SDK with a bundled client entry ([#24802](https://github.com/getsentry/sentry-javascript/pull/24802))
+  - feat(remix): Add source map upload for Remix 3 ([#24943](https://github.com/getsentry/sentry-javascript/pull/24943))
+  - feat(remix): Capture Remix 3 component render errors ([#24873](https://github.com/getsentry/sentry-javascript/pull/24873))
+  - feat(remix): Complete Remix 3 server error handling ([#24878](https://github.com/getsentry/sentry-javascript/pull/24878))
+  - feat(remix): Inject debug IDs through the Remix 3 asset server ([#24761](https://github.com/getsentry/sentry-javascript/pull/24761))
+  - feat(remix): Run the orchestrion transform on Remix 3 browser modules ([#24894](https://github.com/getsentry/sentry-javascript/pull/24894))
+
+- **feat(nextjs): Add `cache_origin` span links to `use cache` hit spans ([#24821](https://github.com/getsentry/sentry-javascript/pull/24821))**
+
+  A `cache.get` span for a `"use cache"` hit now carries a span link (`sentry.link.type: 'cache_origin'`) to the `cache.put` span of the request that filled the cache entry, connecting the trace that reads a cached value to the trace that produced it.
+
+- **fix(cloudflare): Don't treat DO constructor work as incoming RPC calls ([#24829](https://github.com/getsentry/sentry-javascript/pull/24829))**
+
+  Durable Object constructors now run in their own isolation scope. When work that the constructor starts, for example a `blockConcurrencyWhile` callback, calls a method of the instance, that call is no longer treated as an incoming RPC call, so an error the instance catches itself is no longer reported as unhandled. As a result, `Sentry.setTag()`, `setUser()` and `setContext()` in a constructor now apply only to that constructor work. They no longer reach later `fetch`, RPC or `alarm` invocations, because the scope they used to write to is shared by every Durable Object and handler in the isolate. Use `initialScope` for static data, and set per-instance data in each handler.
+
+- **fix(effect)!: Change peerDependency to v4 and fix currentSpan ([#24940](https://github.com/getsentry/sentry-javascript/pull/24940))**
+
+  `@sentry/effect` now requires a stable Effect v4 release. Effect v4 beta and release candidate versions are no longer supported. `@sentry/effect` is in alpha, so this ships in a minor release.
+
+### Other Changes
+
+- feat(astro): Register astro route provider ([#23792](https://github.com/getsentry/sentry-javascript/pull/23792))
+- feat(cloudflare): Trace TypeSafe Jev calls in Workers AI as evaluate spans ([#24833](https://github.com/getsentry/sentry-javascript/pull/24833))
+- feat(core): Add route provider API for parameterized route resolution ([#23551](https://github.com/getsentry/sentry-javascript/pull/23551))
+- feat(deps): bump devalue from 5.9.2 to 5.9.4 ([#24964](https://github.com/getsentry/sentry-javascript/pull/24964))
+- feat(effect): Add opt-in for external span parents and isolate root spans ([#23900](https://github.com/getsentry/sentry-javascript/pull/23900))
+- feat(nextjs): Register nextjs route provider ([#23552](https://github.com/getsentry/sentry-javascript/pull/23552))
+- feat(nuxt): Register nuxt route provider ([#23794](https://github.com/getsentry/sentry-javascript/pull/23794))
+- feat(remix): Register remix route provider ([#23791](https://github.com/getsentry/sentry-javascript/pull/23791))
+- feat(vue): Register Vue route provider ([#23793](https://github.com/getsentry/sentry-javascript/pull/23793))
+- fix(bundler-plugins): Keep debug IDs on Vite source maps after the preload rewrite ([#24920](https://github.com/getsentry/sentry-javascript/pull/24920))
+- fix(bundler-plugins): Stabilize debug IDs for Rolldown and Vite 8 builds ([#24919](https://github.com/getsentry/sentry-javascript/pull/24919))
+- fix(cloudflare): Skip binding instrumentation work when spans are not sent ([#24655](https://github.com/getsentry/sentry-javascript/pull/24655))
+- fix(core, node, bun, deno): Align server span client address with event IP ([#24767](https://github.com/getsentry/sentry-javascript/pull/24767))
+- fix(hono): Return the existing client on repeated init in Bun and Deno ([#24520](https://github.com/getsentry/sentry-javascript/pull/24520))
+- fix(nitro): Capture errors only through the Nitro error hook ([#24952](https://github.com/getsentry/sentry-javascript/pull/24952))
+- fix(profiling-node): Send profile chunks with `client.sendEnvelope` ([#24896](https://github.com/getsentry/sentry-javascript/pull/24896))
+- fix(react-router): Avoid duplicating Vite config arrays ([#24930](https://github.com/getsentry/sentry-javascript/pull/24930))
+- fix(react-router): Resolve the Cloudflare entry in Workers and skip trace meta tags in prerendered pages ([#24866](https://github.com/getsentry/sentry-javascript/pull/24866))
+- fix(server-utils): Match the Anthropic stream helper header regardless of case ([#24855](https://github.com/getsentry/sentry-javascript/pull/24855))
+- fix(server-utils): Skip Fastify 4xx errors raised before the reply status is set ([#24924](https://github.com/getsentry/sentry-javascript/pull/24924))
+- fix(tanstackstart-react): Avoid duplicating Vite config arrays ([#24929](https://github.com/getsentry/sentry-javascript/pull/24929))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(deps-dev): bump @vercel/nft from 1.5.0 to 1.11.0 ([#24954](https://github.com/getsentry/sentry-javascript/pull/24954))
+- chore(deps): Bump @sentry/conventions to 0.25.0 ([#24958](https://github.com/getsentry/sentry-javascript/pull/24958))
+- chore(deps): dev dependency security fixes ([#24275](https://github.com/getsentry/sentry-javascript/pull/24275))
+- chore(size-limit): weekly auto-bump ([#24969](https://github.com/getsentry/sentry-javascript/pull/24969))
+- ci(deps): bump anthropics/claude-code-action from 1.0.210 to 1.0.236 ([#24950](https://github.com/getsentry/sentry-javascript/pull/24950))
+- ci(deps): bump getsentry/craft from 2.30.1 to 2.31.2 ([#24951](https://github.com/getsentry/sentry-javascript/pull/24951))
+- ci(deps): bump getsentry/github-workflows/validate-pr from 4013fc6e1aeb1be1f9d3b4d232624f0ec1afa613 to 36c729264d2edc29ebae61950c50e1e9f043ad7e ([#24949](https://github.com/getsentry/sentry-javascript/pull/24949))
+- ci(deps): bump pnpm/action-setup from 6.0.10 to 6.1.0 ([#24948](https://github.com/getsentry/sentry-javascript/pull/24948))
+- license: Add cli FSL notice ([#24956](https://github.com/getsentry/sentry-javascript/pull/24956))
+- ref(core): Use cache attribute constants from conventions ([#24973](https://github.com/getsentry/sentry-javascript/pull/24973))
+- ref(core): Use conversation ID constant from conventions ([#24966](https://github.com/getsentry/sentry-javascript/pull/24966))
+- ref(core): Use exclusive time constant from conventions ([#24971](https://github.com/getsentry/sentry-javascript/pull/24971))
+- ref(core): Use HTTP method constant from conventions ([#24977](https://github.com/getsentry/sentry-javascript/pull/24977))
+- ref(core): Use idle span finish reason constant from conventions ([#24970](https://github.com/getsentry/sentry-javascript/pull/24970))
+- ref(core): Use profile ID constant from conventions ([#24976](https://github.com/getsentry/sentry-javascript/pull/24976))
+- ref(core): Use SDK metadata constants from conventions ([#24978](https://github.com/getsentry/sentry-javascript/pull/24978))
+- ref(core): Use status message constant from conventions ([#24967](https://github.com/getsentry/sentry-javascript/pull/24967))
+- ref(core): Use user attribute constants from conventions ([#24974](https://github.com/getsentry/sentry-javascript/pull/24974))
+- ref(server-utils): Clarify API promise helper naming and references ([#24928](https://github.com/getsentry/sentry-javascript/pull/24928))
+- test(cloudflare): Add Flue E2E test that deploys a real Worker and sends to Sentry ([#24816](https://github.com/getsentry/sentry-javascript/pull/24816))
+- test(cloudflare): Match the expected error in the WebSocket e2e tests ([#24923](https://github.com/getsentry/sentry-javascript/pull/24923))
+- test(deno): Port integration tests to span streaming ([#24870](https://github.com/getsentry/sentry-javascript/pull/24870))
+- test(e2e): Add node-anthropic-send-to-sentry test app ([#24856](https://github.com/getsentry/sentry-javascript/pull/24856))
+- test(e2e): Avoid rate limits when polling Sentry in send-to-sentry tests ([#24957](https://github.com/getsentry/sentry-javascript/pull/24957))
+
+</details>
+
+Work in this release was contributed by @Shubham-Padkonde and @tobias-schnabel. Thank you for your contributions!
 
 ## 11.2.0
 
@@ -94,12 +171,6 @@ Work in this release was contributed by @Shubham-Padkonde and @tobias-schnabel. 
 </details>
 
 Work in this release was contributed by @nabi-noor, @LuccaRebelloToledo, @andasan, @breken-ai, @EmileBrunelle, and @diobriggs. Thank you for your contributions!
-
-### Important Changes
-
-- **feat(nextjs): Add `cache_origin` span links to `use cache` hit spans ([#24821](https://github.com/getsentry/sentry-javascript/pull/24821))**
-
-  A `cache.get` span for a `"use cache"` hit now carries a span link (`sentry.link.type: 'cache_origin'`) to the `cache.put` span of the request that filled the cache entry, connecting the trace that reads a cached value to the trace that produced it.
 
 ## 11.1.0
 
