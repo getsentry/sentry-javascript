@@ -2,6 +2,10 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { CACHE_ORIGIN_LINK_ATTRIBUTES, findCacheSpan } from './cacheOriginLinks-utils';
 
+// Webpack builds emit no `code.file.path`: the server-reference manifest lookup comes up empty
+// there. `TEST_BUNDLER` marks the webpack variant's production run (set in `test:assert-webpack`).
+const isWebpackBuild = process.env.TEST_BUNDLER === 'webpack' || process.env.TEST_ENV === 'development-webpack';
+
 // Origin links (`sentry.link.type: 'cache_origin'` on `cache.get` hit spans, pointing at the
 // filling `cache.put`) for `use cache` in nested layout trees under `app/(cached-nesting)/`.
 
@@ -35,6 +39,10 @@ test('links a cached layout hit to the trace that filled the layout entry', asyn
   // The layout is the only cached entry on this route.
   const putSpan = findCacheSpan(missSpans, 'cache.put');
   expect(putSpan).toBeDefined();
+
+  if (!isWebpackBuild) {
+    expect(putSpan!.attributes['code.file.path']?.value).toBe('app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx');
+  }
 
   const hitGetSpan = findCacheSpan(hitSpans, 'cache.get', true);
   expect(hitGetSpan).toBeDefined();
@@ -113,6 +121,16 @@ test('links two cached levels to different origin traces after the layout expire
   // Layout + component entry.
   const fillPutSpans = fillSpans.filter(span => getSpanOp(span) === 'cache.put');
   expect(new Set(fillPutSpans.map(span => JSON.stringify(span.attributes['cache.key']?.value))).size).toBe(2);
+
+  // One fill per file: the layout (multipart key) and the cached component (JSON key).
+  if (!isWebpackBuild) {
+    expect(new Set(fillPutSpans.map(span => span.attributes['code.file.path']?.value))).toEqual(
+      new Set([
+        'app/(cached-nesting)/mixed-lifetimes/[id]/layout.tsx',
+        'app/(cached-nesting)/mixed-lifetimes/[id]/page.tsx',
+      ]),
+    );
+  }
 
   // Sleep past the layout's `expire` (2s); the component entry stays valid for hours.
   await new Promise(resolve => setTimeout(resolve, 3_000));

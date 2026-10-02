@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+// Webpack builds emit no `code.file.path`: the server-reference manifest lookup comes up empty
+// there. `TEST_BUNDLER` marks the webpack variant's production run (set in `test:assert-webpack`).
+const isWebpackBuild = process.env.TEST_BUNDLER === 'webpack' || process.env.TEST_ENV === 'development-webpack';
+
 test('Should create cache spans around `use cache` functions', async ({ request }) => {
   // A fresh id makes the first request a guaranteed cache miss (the id is part of the cache key)
   // even when the test is retried against the same server.
@@ -57,6 +61,9 @@ test('Should create cache spans around `use cache` functions', async ({ request 
     }),
   });
 
+  // Route handler cache functions have no server-reference manifest entry, so no source file.
+  expect(putSpan!.data).not.toHaveProperty('code.file.path');
+
   const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get');
   expect(hitGetSpan).toBeDefined();
   expect(hitGetSpan).toMatchObject({
@@ -97,7 +104,14 @@ test('Should create cache spans for `use cache` inside a rendered page', async (
   await request.get(`/use-cache-page?id=${id}`);
   const hitTx = await hitTxPromise;
 
-  expect(missTx.spans?.some(span => span.op === 'cache.put')).toBe(true);
+  // The source file on a fill span marks which cached function produced the entry.
+  const missPutSpans = missTx.spans?.filter(span => span.op === 'cache.put') ?? [];
+  expect(missPutSpans.length).toBeGreaterThan(0);
+  if (!isWebpackBuild) {
+    for (const putSpan of missPutSpans) {
+      expect(putSpan.data?.['code.file.path']).toBe('app/use-cache-page/page.tsx');
+    }
+  }
 
   // A render can read more than one cache entry, so look at every hit instead of the first `cache.get`.
   const hitGetSpans = hitTx.spans?.filter(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true) ?? [];
