@@ -3,7 +3,15 @@ import type * as SentryCore from '@sentry/core';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as CheckModule from '../../src/v3/server/checkInstrumentation';
+
 const captureException = vi.fn();
+const warnRemixV3 = vi.fn();
+
+vi.mock('../../src/v3/server/checkInstrumentation', async importOriginal => ({
+  ...(await importOriginal<typeof CheckModule>()),
+  warnRemixV3: (...args: unknown[]) => warnRemixV3(...args),
+}));
 
 // Only `captureException` is replaced; the middleware needs the rest for real.
 vi.mock('@sentry/core', async importOriginal => ({
@@ -62,7 +70,7 @@ describe('instrumentRemixV3', () => {
     expect(options.matcher).toBe(appMatcher);
   });
 
-  it('leaves an options object it cannot write to alone, without crashing the app', async () => {
+  it('leaves an options object it cannot write to alone and warns, without crashing the app', async () => {
     // Node rethrows an exception from a channel subscriber as an uncaught exception, so an unguarded
     // write here would take down an app that runs fine without Sentry.
     const uncaught: Error[] = [];
@@ -80,6 +88,9 @@ describe('instrumentRemixV3', () => {
 
     expect(uncaught).toEqual([]);
     expect(options.middleware).toEqual([]);
+    expect(warnRemixV3).toHaveBeenCalledWith(
+      expect.stringContaining('Could not add the Sentry middleware to a Remix 3 router'),
+    );
   });
 });
 

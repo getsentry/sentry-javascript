@@ -3,6 +3,7 @@ import { consoleSandbox } from '@sentry/core';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 import { addDebugIdToSourceMap, findDebugId, getDebugId, injectDebugIdSnippet } from './debugId';
 import { getShimUrl, isOrchestrionLoader, orchestrionLoader, resolveShimPath } from './orchestrionLoader';
+import { describeError, warnRemixV3 } from './server/checkInstrumentation';
 
 // The subset of `@remix-run/assets` types used here. `remix` is an optional peer dependency, so
 // they are restated rather than imported.
@@ -82,8 +83,8 @@ export function instrumentAssetServer(): void {
         const options = context.arguments[0] as AssetServerOptions | undefined;
         context._sentryHideSourceMaps = options?.sourceMaps === undefined;
         context.arguments[0] = withDebugIdOptions(options);
-      } catch {
-        // Ignored on purpose.
+      } catch (error) {
+        warnRemixV3(`Could not configure the Remix 3 asset server for debug IDs (${describeError(error)}).`);
       }
     },
     end(data) {
@@ -92,8 +93,8 @@ export function instrumentAssetServer(): void {
         if (result) {
           stampServedAssets(result as AssetServer, { hideSourceMaps: Boolean(_sentryHideSourceMaps) });
         }
-      } catch {
-        // Ignored on purpose.
+      } catch (error) {
+        warnRemixV3(`Could not wrap the Remix 3 asset server for debug IDs (${describeError(error)}).`);
       }
     },
     asyncStart() {},

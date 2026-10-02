@@ -1,5 +1,6 @@
 import { defineIntegration, type IntegrationFn } from '@sentry/core';
 
+import { checkRemixV3Instrumentation } from './checkInstrumentation';
 import { setShouldHandleError, type ShouldHandleError } from './errorFilter';
 import { instrumentRemixV3 } from './instrument';
 
@@ -23,6 +24,11 @@ const _remixV3Integration = ((options: RemixV3IntegrationOptions = {}) => {
       // `init()`, so `--import @sentry/remix/v3/node` has already subscribed. This covers setups that
       // register the module hook from `init()` instead.
       instrumentRemixV3();
+
+      // Deferred: `init()` can run from an `--import`ed file before the app's own modules load. Once
+      // the timer fires, the import graph has been evaluated and the hook has seen every module.
+      const timer = setTimeout(() => checkRemixV3Instrumentation(), 0);
+      timer.unref?.();
     },
   };
 }) satisfies IntegrationFn;

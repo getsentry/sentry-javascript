@@ -3,6 +3,7 @@ import { createMultiMatcher } from 'remix/route-pattern/match';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 
 import type { MatcherLike, RequestListenerOptionsLike, RouterOptionsLike } from '../types';
+import { describeError, warnRemixV3 } from './checkInstrumentation';
 import { captureRequestError } from './errorFilter';
 import { sentryRemixMiddleware } from './middleware';
 
@@ -47,8 +48,8 @@ function subscribeToCreateRouter(): void {
       // copy that cannot build a matcher all reach here, so the router is left uninstrumented instead.
       try {
         injectRouterMiddleware(ensureOptions(data.arguments));
-      } catch {
-        // Ignored on purpose.
+      } catch (error) {
+        warnRemixV3(`Could not add the Sentry middleware to a Remix 3 router (${describeError(error)}).`);
       }
     },
     end: NOOP,
@@ -70,8 +71,8 @@ function subscribeToCreateRequestListener(): void {
       start(data) {
         try {
           injectOnError(ensureOptions(data.arguments, 1));
-        } catch {
-          // Ignored on purpose.
+        } catch (error) {
+          warnRemixV3(`Could not hook the Remix 3 request listener's error handler (${describeError(error)}).`);
         }
       },
       end: NOOP,
