@@ -1,3 +1,4 @@
+import { isObjectLike } from '@sentry/core';
 import type { FastifyReply, FastifyRequest } from './types';
 
 export const INTEGRATION_NAME = 'Fastify' as const;
@@ -23,7 +24,14 @@ function getReplyStatusCode(error: Error, reply: FastifyReply): number {
     return reply.statusCode;
   }
 
-  const { statusCode, status } = error as { statusCode?: unknown; status?: unknown };
-  const errorStatusCode = Number(statusCode || status);
+  const errorStatusCode = Number(getErrorStatusCode(error));
   return errorStatusCode >= 400 ? errorStatusCode : 500;
+}
+
+function getErrorStatusCode(error: unknown): unknown {
+  if (!isObjectLike(error)) {
+    return undefined;
+  }
+
+  return ('statusCode' in error && error.statusCode) || ('status' in error && error.status);
 }

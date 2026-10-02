@@ -38,6 +38,13 @@ describe('defaultShouldHandleError', () => {
       expect(defaultShouldHandleError(new Error('test error'), request, reply(200))).toBe(true);
     });
 
+    it.each([null, undefined, 'a string', 404])(
+      'captures a thrown non-object (%s), which Fastify sends as a 500',
+      error => {
+        expect(defaultShouldHandleError(error as unknown as Error, request, reply(200))).toBe(true);
+      },
+    );
+
     it('captures errors carrying a status below 400, which Fastify sends as a 500', () => {
       expect(defaultShouldHandleError(errorWith({ statusCode: 302 }), request, reply(200))).toBe(true);
     });
