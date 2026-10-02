@@ -1,4 +1,5 @@
 import {
+  HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
   SERVER_ADDRESS,
   URL_DOMAIN,
@@ -11,7 +12,7 @@ import {
   URL_SCHEME,
   URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { Client } from '../client';
 import type { SpanAttributes } from '../types/span';
 import type { TransactionSource } from '../types/transaction';
@@ -221,7 +222,7 @@ export function getHttpSpanDetailsFromUrlObject(
   }
 
   if (request?.method) {
-    attributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] = request.method.toUpperCase();
+    attributes[HTTP_REQUEST_METHOD] = request.method.toUpperCase();
   }
 
   if (urlObject) {

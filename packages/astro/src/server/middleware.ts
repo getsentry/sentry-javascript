@@ -2,6 +2,7 @@
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   HTTP_ROUTE,
+  HTTP_REQUEST_METHOD,
   SENTRY_OP,
   URL_FRAGMENT,
   URL_FULL,
@@ -19,7 +20,6 @@ import {
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
   objectify,
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
   winterCGRequestToRequestData,
   filterCollectedUrl,
@@ -222,7 +222,7 @@ async function instrumentRequestStartHttpServerSpan(
             [SENTRY_OP]: HTTP_SERVER,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
             [SENTRY_SEGMENT_NAME_SOURCE]: source,
-            [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
+            [HTTP_REQUEST_METHOD]: method,
             // This is here for backwards compatibility, we used to set this here before
             method,
             [URL_FULL]: filterCollectedUrl(ctx.url.href),

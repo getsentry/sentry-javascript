@@ -12,7 +12,6 @@ import {
   HTTP_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   startSpan,
@@ -26,6 +25,7 @@ import type { Server, ServeOptions } from 'bun';
 import {
   CLIENT_ADDRESS,
   CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
   NETWORK_PROTOCOL_NAME,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -356,7 +356,7 @@ function getSpanAttributesFromParsedUrl(
 ): SpanAttributes {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
-    [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
+    [HTTP_REQUEST_METHOD]: request.method || 'GET',
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
   };
 
