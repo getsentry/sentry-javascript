@@ -362,7 +362,7 @@ export class SentrySpan implements Span {
   /**
    * Returns the start time plus the `performance.now()` time since the span started.
    *
-   * This way, the duration is correct even if the time origin was reset while the span was running (e.g. after the
+   * This way, the duration is correct even if the time origin was corrected while the span was running (e.g. after the
    * device slept), and it can never be negative.
    */
   private _getEndTimeFromDuration(): number {
