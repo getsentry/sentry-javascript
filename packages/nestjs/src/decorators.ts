@@ -8,22 +8,22 @@ import type { ReflectWithMetadata } from './integrations/helpers';
 import { copyReflectMetadata } from './integrations/helpers';
 
 /**
- * Monitor settings for `@SentryCron` that take the schedule and time zone from the `@Cron()`
- * decorator of `@nestjs/schedule` on the same method.
+ * Monitor settings for `@SentryCron` whose schedule and time zone come from the `@Cron()` decorator
+ * of `@nestjs/schedule` on the same method. Set `fromCronDecorator: false` to not send them.
  */
-export type SentryCronFromCronDecoratorConfig = Omit<MonitorConfig, 'schedule' | 'timezone'> & {
-  fromCronDecorator: true;
+export type SentryCronMonitorSettings = Omit<MonitorConfig, 'schedule' | 'timezone'> & {
+  fromCronDecorator?: boolean;
 };
 
 /**
  * A decorator wrapping the native nest Cron decorator, sending check-ins to Sentry.
  *
- * Pass `{ fromCronDecorator: true }` instead of a monitor config to send the schedule and time
- * zone of the method's `@Cron()` decorator, so Sentry can create the monitor on the first check-in.
+ * Unless a monitor config with a `schedule` is passed, the schedule and time zone of the method's
+ * `@Cron()` decorator are sent with each check-in, so Sentry can create the monitor on the first run.
  */
 export const SentryCron = (
   monitorSlug: string,
-  monitorConfig?: MonitorConfig | SentryCronFromCronDecoratorConfig,
+  monitorConfig?: MonitorConfig | SentryCronMonitorSettings,
 ): MethodDecorator => {
   return (target: unknown, propertyKey, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
@@ -34,14 +34,12 @@ export const SentryCron = (
     const wrappedMethod = function (this: unknown, ...args: unknown[]): unknown {
       if (!resolved) {
         resolved = true;
-        resolvedMonitorConfig = isFromCronDecoratorConfig(monitorConfig)
-          ? // `@Cron()` sets its metadata on whatever function is `descriptor.value` when it runs, which is
-            // this function if it is applied after `@SentryCron()`, so it is only readable at call time.
-            getMonitorConfigFromNestCron(monitorConfig, [
-              wrappedMethod,
-              (target as Record<PropertyKey, unknown> | undefined)?.[propertyKey],
-            ])
-          : monitorConfig;
+        // `@Cron()` sets its metadata on whatever function is `descriptor.value` when it runs, which is
+        // this function if it is applied after `@SentryCron()`, so it is only readable at call time.
+        resolvedMonitorConfig = resolveMonitorConfig(monitorConfig, [
+          wrappedMethod,
+          (target as Record<PropertyKey, unknown> | undefined)?.[propertyKey],
+        ]);
       }
 
       return Sentry.withMonitor(
@@ -61,10 +59,21 @@ export const SentryCron = (
   };
 };
 
-function isFromCronDecoratorConfig(
-  monitorConfig: MonitorConfig | SentryCronFromCronDecoratorConfig | undefined,
-): monitorConfig is SentryCronFromCronDecoratorConfig {
-  return !!monitorConfig && 'fromCronDecorator' in monitorConfig && monitorConfig.fromCronDecorator === true;
+function resolveMonitorConfig(
+  monitorConfig: MonitorConfig | SentryCronMonitorSettings | undefined,
+  candidates: unknown[],
+): MonitorConfig | undefined {
+  if (monitorConfig && 'schedule' in monitorConfig) {
+    return monitorConfig;
+  }
+
+  const { fromCronDecorator = true, ...monitorSettings } = monitorConfig || {};
+  if (!fromCronDecorator) {
+    return undefined;
+  }
+
+  const cronConfig = getMonitorConfigFromNestCron(candidates);
+  return cronConfig && { ...monitorSettings, ...cronConfig };
 }
 
 const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
@@ -75,10 +84,7 @@ interface NestCronOptions {
   utcOffset?: unknown;
 }
 
-function getMonitorConfigFromNestCron(
-  { fromCronDecorator: _, ...monitorSettings }: SentryCronFromCronDecoratorConfig,
-  candidates: unknown[],
-): MonitorConfig | undefined {
+function getMonitorConfigFromNestCron(candidates: unknown[]): MonitorConfig | undefined {
   const R = Reflect as ReflectWithMetadata;
   if (typeof R.getMetadata !== 'function') {
     return undefined;
@@ -90,8 +96,7 @@ function getMonitorConfigFromNestCron(
     }
     const cronOptions = R.getMetadata(SCHEDULE_CRON_OPTIONS, candidate);
     if (cronOptions && typeof cronOptions === 'object') {
-      const cronConfig = nestCronOptionsToMonitorConfig(cronOptions);
-      return cronConfig && { ...monitorSettings, ...cronConfig };
+      return nestCronOptionsToMonitorConfig(cronOptions);
     }
   }
 
@@ -123,10 +128,21 @@ function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): MonitorCo
     return undefined;
   }
 
+  // Without a `timeZone`, the job runs in the server's local time zone.
+  const timezone = typeof timeZone === 'string' && timeZone ? timeZone : getLocalTimeZone();
+
   return {
     schedule: { type: 'crontab', value: crontab },
-    ...(typeof timeZone === 'string' && timeZone ? { timezone: timeZone } : {}),
+    ...(timezone ? { timezone } : {}),
   };
+}
+
+function getLocalTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
