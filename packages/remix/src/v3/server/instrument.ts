@@ -1,5 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { createMultiMatcher } from 'remix/route-pattern/match';
+import { consoleSandbox } from '@sentry/core';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 
 import type { MatcherLike, RequestListenerOptionsLike, RouterOptionsLike } from '../types';
@@ -97,9 +98,12 @@ function injectOnError(raw: Record<string, unknown> | undefined): void {
       return appOnError(error);
     }
 
-    // Setting `onError` replaced the listener's default handler, which logs the error.
-    // oxlint-disable-next-line no-console
-    console.error(error);
+    // Setting `onError` replaced the listener's default handler, which logs the error. Sandboxed so
+    // the SDK's console instrumentation does not report it a second time.
+    consoleSandbox(() => {
+      // oxlint-disable-next-line no-console
+      console.error(error);
+    });
     return undefined;
   };
 }
