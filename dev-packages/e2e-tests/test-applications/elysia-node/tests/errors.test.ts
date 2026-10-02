@@ -19,6 +19,7 @@ test('Captures an error thrown in a route handler', async ({ baseURL, request })
   });
 
   expect(errorEvent.transaction).toEqual('GET /test-exception/:id');
+  expect(errorEvent.sdk?.name).toBe('sentry.javascript.elysia');
 
   expect(errorEvent.contexts?.trace).toEqual(
     expect.objectContaining({
