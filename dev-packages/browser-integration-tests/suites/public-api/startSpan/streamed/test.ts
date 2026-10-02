@@ -6,7 +6,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
 } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -19,6 +18,7 @@ import {
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
   USER_AGENT_ORIGINAL,
+  SENTRY_STATUS_MESSAGE,
 } from '@sentry/conventions/attributes';
 
 sentryTest(
@@ -195,7 +195,7 @@ sentryTest(
             type: 'string',
             value: 'production',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: {
+          [SENTRY_STATUS_MESSAGE]: {
             type: 'string',
             value: 'Connection Refused',
           },

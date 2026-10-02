@@ -31,6 +31,7 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
  * Streamed (v2) span statuses are reduced to `ok`/`error`, so we preserve the
  * message as an attribute instead of dropping it. This mirrors the attribute
  * Sentry's OTLP ingestion uses for the same purpose.
+ * @deprecated Use `SENTRY_STATUS_MESSAGE` from `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE = 'sentry.status.message';
 

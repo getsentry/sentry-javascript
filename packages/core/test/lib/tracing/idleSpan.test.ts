@@ -8,7 +8,6 @@ import {
   getIsolationScope,
   getTraceData,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
   SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
@@ -23,7 +22,7 @@ import type { Event } from '../../../src/types/event';
 import type { Span } from '../../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { resetGlobals } from '../../testutils';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_STATUS_MESSAGE } from '@sentry/conventions/attributes';
 
 const dsn = 'https://123@sentry.io/42';
 
@@ -677,23 +676,17 @@ describe('startIdleSpan', () => {
       // Start any span to cancel idle timeout
       startInactiveSpan({ name: 'span' });
 
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Wait some time
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Wait for timeout to exceed
       vi.advanceTimersByTime(1000);
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
 
@@ -704,41 +697,31 @@ describe('startIdleSpan', () => {
       // Start any span to cancel idle timeout
       startInactiveSpan({ name: 'span' });
 
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Wait some time
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // New span resets the timeout
       startInactiveSpan({ name: 'span' });
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // New span resets the timeout
       startInactiveSpan({ name: 'span' });
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Wait for timeout to exceed
       vi.advanceTimersByTime(1000);
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
 
@@ -751,9 +734,7 @@ describe('startIdleSpan', () => {
 
       // Wait some time
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // new standalone span should not reset the timeout
@@ -762,9 +743,7 @@ describe('startIdleSpan', () => {
 
       // Wait for timeout to exceed
       vi.advanceTimersByTime(1001);
-      expect(spanToJSON(idleSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).not.toEqual(
-        'deadline_exceeded',
-      );
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
   });
