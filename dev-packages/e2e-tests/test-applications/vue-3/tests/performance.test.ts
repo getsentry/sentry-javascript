@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+// Set by the `assert-command` of the `vue-3 (no Options API)` variant
+const OPTIONS_API_DISABLED = process.env.VUE_OPTIONS_API === 'false';
+
+// Must stay in sync with `ASYNC_CHILD_DELAY_MS` in `src/views/DelayedView.vue`.
+const ASYNC_CHILD_DELAY_S = 0.3;
+
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
@@ -135,7 +141,89 @@ test('sends a pageload transaction with a route name as transaction name if avai
   });
 });
 
+// The root component is always tracked, and the `app.mount()` wrap records the root spans when
+// the Options API is disabled, so both variants expect them. The tracked component spans on
+// `/components` still need the Options API, so the disabled variant expects the root spans only.
+[
+  {
+    route: '/',
+    routeDescription: 'a route with a synchronously mounted component',
+    // `HomeView` is missing from `trackComponents`, so the root spans are the only UI spans.
+    expectedUiSpanNames: ['Application Render', 'Vue <Root>'].sort(),
+  },
+  {
+    route: '/components',
+    routeDescription: 'a route with an async component',
+    expectedUiSpanNames: OPTIONS_API_DISABLED
+      ? ['Application Render', 'Vue <Root>'].sort()
+      : ['Application Render', 'Vue <ComponentMainView>', 'Vue <ComponentOneView>', 'Vue <Root>'].sort(),
+  },
+].forEach(({ route, routeDescription, expectedUiSpanNames }) => {
+  test(`sends an application render span and a root component span on ${routeDescription}`, async ({ page }) => {
+    const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
+      return (
+        transactionEvent.contexts?.trace?.op === 'pageload' &&
+        transactionEvent.contexts?.trace?.data?.['url.path'] === route
+      );
+    });
+
+    await page.goto(route);
+
+    const rootSpan = await transactionPromise;
+    const uiSpans = (rootSpan.spans ?? []).filter(span => span.origin === 'auto.ui.vue');
+
+    expect(uiSpans.map(span => span.description).sort()).toEqual(expectedUiSpanNames);
+
+    const applicationRenderSpan = uiSpans.find(span => span.description === 'Application Render');
+    expect(applicationRenderSpan).toMatchObject({
+      description: 'Application Render',
+      op: 'ui.vue.render',
+      origin: 'auto.ui.vue',
+    });
+
+    const rootComponentSpan = uiSpans.find(span => span.description === 'Vue <Root>');
+    expect(rootComponentSpan).toMatchObject({
+      description: 'Vue <Root>',
+      op: 'ui.vue.mount',
+      origin: 'auto.ui.vue',
+    });
+  });
+});
+
+// True on both variants: the mixin arms one debounce timer per component (`tracing.ts`), so a
+// late child never clears the root's earlier timer and the span ends at the root's mount. The
+// `app.mount()` wrap only observes the root, so it matches.
+test('ends the application render span before a delayed async component mounts', async ({ page }) => {
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.contexts?.trace?.data?.['url.path'] === '/delayed'
+    );
+  });
+
+  await page.goto('/delayed');
+  // Proves the child really mounted after its delay; the duration assertion relies on it.
+  await expect(page.locator('#delayed-child')).toBeVisible();
+
+  const rootSpan = await transactionPromise;
+  const uiSpans = (rootSpan.spans ?? []).filter(span => span.origin === 'auto.ui.vue');
+
+  // Neither `DelayedView` nor its child is in `trackComponents`, so both variants expect the same set.
+  expect(uiSpans.map(span => span.description).sort()).toEqual(['Application Render', 'Vue <Root>']);
+
+  const applicationRenderSpan = uiSpans.find(span => span.description === 'Application Render');
+  expect(applicationRenderSpan?.start_timestamp).toEqual(expect.any(Number));
+  expect(applicationRenderSpan?.timestamp).toEqual(expect.any(Number));
+
+  const duration = (applicationRenderSpan?.timestamp ?? 0) - (applicationRenderSpan?.start_timestamp ?? 0);
+  expect(duration).toBeLessThan(ASYNC_CHILD_DELAY_S);
+});
+
 test('sends a lifecycle span for each tracked components', async ({ page }) => {
+  // The root spans survive through the `app.mount()` wrap, but the tracked component spans asserted
+  // below still come from `app.mixin()`, which is a no-op when the Options API is disabled.
+  test.fail(OPTIONS_API_DISABLED, 'Component tracking (`trackComponents`) needs the Options API');
+
   const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
