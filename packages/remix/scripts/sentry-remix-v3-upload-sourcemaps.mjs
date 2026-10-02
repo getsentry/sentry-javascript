@@ -60,7 +60,8 @@ try {
     const sentry = createSentrySDK({ url: values.url, org: values.org, project: values.project });
     const release = values.release ?? (await sentry.release['propose-version']()).version;
     await sentry.release.create({ orgVersion: release });
-    // Modules keep their served names (`.ts`, `.tsx`), which the upload skips by default.
+    // Modules keep their served names (`.ts`, `.tsx`), which the upload skips by default. Only module
+    // extensions go here: the upload pairs each module with the `.map` sibling `emitAssets` wrote.
     const ext = [...new Set(emitted.map(asset => path.extname(asset.file)))].join(',');
     await sentry.sourcemap.upload({ directory: outDir, release, ext });
     await sentry.release.finalize({ orgVersion: release });
