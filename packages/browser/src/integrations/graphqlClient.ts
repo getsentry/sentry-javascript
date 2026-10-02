@@ -4,7 +4,6 @@ import {
   hasSpanStreamingEnabled,
   isObjectLike,
   isString,
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
@@ -15,6 +14,7 @@ import {
   GRAPHQL_OPERATION_NAME,
   GRAPHQL_OPERATION_TYPE,
   HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
   SENTRY_OP,
   URL_FULL,
 } from '@sentry/conventions/attributes';
@@ -77,7 +77,7 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
 
     const httpUrl = spanAttributes[URL_FULL];
     // oxlint-disable-next-line typescript/no-deprecated
-    const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes[HTTP_METHOD];
+    const httpMethod = spanAttributes[HTTP_REQUEST_METHOD] || spanAttributes[HTTP_METHOD];
 
     if (!isString(httpUrl) || !isString(httpMethod)) {
       return;
