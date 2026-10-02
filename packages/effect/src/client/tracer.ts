@@ -8,4 +8,4 @@ import { makeSentryTracer } from '../tracer';
  * keeps the browser variant substitutable (mocks, bundler interop) exactly as it was when the tracer
  * called it directly.
  */
-export const SentryEffectTracer = makeSentryTracer(options => startInactiveSpan(options));
+export const SentryEffectTracer = makeSentryTracer(options => startInactiveSpan(options), false);

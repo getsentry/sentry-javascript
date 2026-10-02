@@ -275,18 +275,12 @@ class ContinuousProfiler {
       return;
     }
 
-    const transport = this._client.getTransport();
-    if (!transport) {
-      DEBUG_BUILD && debug.log('[Profiling] No transport available to send profile chunk.');
-      return;
-    }
-
     const dsn = this._client.getDsn();
     const metadata = this._client.getSdkMetadata();
     const tunnel = this._client.getOptions().tunnel;
 
     const envelope = makeProfileChunkEnvelope('node', chunk, metadata?.sdk, tunnel, dsn);
-    transport.send(envelope).then(null, reason => {
+    this._client.sendEnvelope(envelope).then(null, reason => {
       DEBUG_BUILD && debug.error('Error while sending profile chunk envelope:', reason);
     });
   }

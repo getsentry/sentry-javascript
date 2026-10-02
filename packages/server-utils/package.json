@@ -51,6 +51,11 @@
       "import": "./build/esm/orchestrion/bundler/webpack-loader.js",
       "require": "./build/cjs/orchestrion/bundler/webpack-loader.js"
     },
+    "./orchestrion/load-hook": {
+      "types": "./build/types/orchestrion/bundler/load-hook.d.ts",
+      "import": "./build/esm/orchestrion/bundler/load-hook.js",
+      "require": "./build/cjs/orchestrion/bundler/load-hook.js"
+    },
     "./orchestrion/esbuild": {
       "types": "./build/types/orchestrion/bundler/esbuild.d.ts",
       "import": "./build/esm/orchestrion/bundler/esbuild.js",
@@ -81,6 +86,9 @@
       ],
       "orchestrion/bun": [
         "build/types/orchestrion/bundler/bun.d.ts"
+      ],
+      "orchestrion/load-hook": [
+        "build/types/orchestrion/bundler/load-hook.d.ts"
       ]
     }
   },
@@ -89,7 +97,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/conventions": "^0.24.0",
+    "@sentry/conventions": "^0.25.0",
     "@sentry/core": "11.2.0"
   },
   "devDependencies": {

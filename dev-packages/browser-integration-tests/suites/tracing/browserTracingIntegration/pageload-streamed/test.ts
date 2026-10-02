@@ -1,11 +1,9 @@
 import { expect } from '@playwright/test';
 import {
   SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/core';
 import {
   BROWSER_NAVIGATION_TYPE,
@@ -18,6 +16,8 @@ import {
   URL_FULL,
   URL_PATH,
   USER_AGENT_ORIGINAL,
+  SENTRY_ENVIRONMENT,
+  SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -156,7 +156,7 @@ sentryTest(
           type: 'string',
           value: SDK_VERSION,
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+        [SENTRY_SDK_INTEGRATIONS]: {
           type: 'array',
           value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
         },
@@ -172,7 +172,7 @@ sentryTest(
           type: 'string',
           value: 'url',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        [SENTRY_ENVIRONMENT]: {
           type: 'string',
           value: 'production',
         },

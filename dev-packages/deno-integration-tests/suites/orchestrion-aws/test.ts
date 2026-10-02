@@ -3,17 +3,16 @@
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { Span } from '@sentry/core';
 import type { DenoClient } from '@sentry/deno';
-import { init, spanToJSON, startSpan } from '@sentry/deno';
+import { flush, init, spanToJSON, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 
 Deno.test('aws-sdk instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
   const client = init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
   }) as DenoClient;
@@ -29,17 +28,16 @@ Deno.test('aws-sdk instrumentation: included in default integrations (Deno 2.8.0
 // the parent span is held open until the `spanEnd` hook reports the child ended.
 Deno.test('aws-sdk instrumentation: orchestrion @smithy/smithy-client:send channel produces a nested rpc span', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   const client = init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   }) as DenoClient;
 
   // The rpc span ends only after the deferred region backfill settles. Wait on the
   // concrete `spanEnd` signal rather than a timer, so the parent stays open until the
-  // child has actually ended and can be captured on the transaction.
+  // child has actually ended before flushing the span buffer.
   const rpcSpanEnded = new Promise<void>(resolve => {
     client.on('spanEnd', (span: Span) => {
       if (spanToJSON(span).attributes[SENTRY_OP] === 'rpc') {
@@ -71,18 +69,24 @@ Deno.test('aws-sdk instrumentation: orchestrion @smithy/smithy-client:send chann
     await rpcSpanEnded;
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const awsSpan = parent.spans?.find(s => s.op === 'rpc');
-  assertExists(awsSpan, `expected an rpc child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(awsSpan!.description, 'CloudWatch.DescribeAlarms');
-  assertEquals(awsSpan!.data?.['rpc.system'], 'aws-api');
-  assertEquals(awsSpan!.data?.['rpc.service'], 'CloudWatch');
-  assertEquals(awsSpan!.data?.['rpc.method'], 'DescribeAlarms');
-  assertEquals(awsSpan!.data?.['cloud.region'], 'us-east-1');
-  assertEquals(awsSpan!.data?.['sentry.origin'], 'auto.aws.aws_sdk');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const awsSpan = children.find(s => getSpanOp(s) === 'rpc');
+  assertExists(awsSpan, `expected an rpc child span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`);
+  assertEquals(awsSpan.name, 'CloudWatch.DescribeAlarms');
+  assertEquals(awsSpan.attributes['rpc.system']?.value, 'aws-api');
+  assertEquals(awsSpan.attributes['rpc.service']?.value, 'CloudWatch');
+  assertEquals(awsSpan.attributes['rpc.method']?.value, 'DescribeAlarms');
+  assertEquals(awsSpan.attributes['cloud.region']?.value, 'us-east-1');
+  assertEquals(awsSpan.attributes['sentry.origin']?.value, 'auto.aws.aws_sdk');
 });

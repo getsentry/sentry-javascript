@@ -1,7 +1,8 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { DurableObjectStorage } from '@cloudflare/workers-types';
 import { TraceFlags } from '@opentelemetry/api';
 import type { SpanLink } from '@sentry/core';
-import { debug, getActiveSpan, SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE, spanIsSampled } from '@sentry/core';
+import { debug, getActiveSpan, spanIsSampled } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 /** Storage key prefix for the span context that links consecutive method invocations */
@@ -74,7 +75,7 @@ export function buildSpanLinks(storedContext: StoredSpanContext): SpanLink[] {
         traceFlags: storedContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
       },
       attributes: {
-        [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+        [SENTRY_LINK_TYPE]: 'previous_trace',
       },
     },
   ];

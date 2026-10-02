@@ -1,13 +1,7 @@
 import { expect } from '@playwright/test';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-} from '@sentry/core';
-import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -16,6 +10,8 @@ import {
   SENTRY_TRACE_LIFECYCLE,
   USER_AGENT_ORIGINAL,
   URL_PATH,
+  SENTRY_ENVIRONMENT,
+  SENTRY_SDK_INTEGRATIONS,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -76,7 +72,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: '/index.html',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]: {
+      [SENTRY_IDLE_SPAN_FINISH_REASON]: {
         type: 'string',
         value: 'idleTimeout',
       },
@@ -96,7 +92,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: SDK_VERSION,
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+      [SENTRY_SDK_INTEGRATIONS]: {
         type: 'array',
         value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
       },
@@ -112,7 +108,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'custom',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+      [SENTRY_ENVIRONMENT]: {
         type: 'string',
         value: 'production',
       },
@@ -165,7 +161,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'Click',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+      [SENTRY_ENVIRONMENT]: {
         type: 'string',
         value: 'production',
       },

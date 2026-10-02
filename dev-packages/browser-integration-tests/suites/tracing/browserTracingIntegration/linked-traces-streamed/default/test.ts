@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
@@ -33,7 +33,7 @@ sentryTest("navigation spans link back to previous trace's root span", async ({ 
       span_id: pageloadSpan.span_id,
       sampled: true,
       attributes: {
-        [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+        [SENTRY_LINK_TYPE]: {
           type: 'string',
           value: 'previous_trace',
         },
@@ -52,7 +52,7 @@ sentryTest("navigation spans link back to previous trace's root span", async ({ 
       span_id: navigation1Span.span_id,
       sampled: true,
       attributes: {
-        [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+        [SENTRY_LINK_TYPE]: {
           type: 'string',
           value: 'previous_trace',
         },

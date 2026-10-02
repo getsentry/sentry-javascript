@@ -14,6 +14,7 @@ import {
   GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
   GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
@@ -57,6 +58,10 @@ describe('workers-ai utils', () => {
 
     it('returns "embeddings" for text inputs', () => {
       expect(getOperationName({ text: 'embed me' })).toBe('embeddings');
+    });
+
+    it('returns "evaluate" for TypeSafe state and questions inputs', () => {
+      expect(getOperationName({ state: 'Help!', questions: {} })).toBe('evaluate');
     });
 
     it('prefers "chat" when both messages and text are present', () => {
@@ -185,6 +190,29 @@ describe('workers-ai utils', () => {
   });
 
   describe('addResponseAttributes', () => {
+    it.each([
+      { name: 'wrapped in { state, result }', wrap: (body: object) => ({ state: 'Completed', result: body }) },
+      { name: 'unwrapped', wrap: (body: object) => body },
+    ])('records evaluate responses $name', ({ wrap }) => {
+      const { span, attributes } = createMockSpan();
+      const answers = { is_urgent: { type: 'noul', noul: 0.95 } };
+
+      addResponseAttributes(
+        span,
+        wrap({ model: 'jev-1.13.0', answers, usage: { input_tokens: 366, output_tokens: 50 } }),
+        true,
+        'evaluate',
+      );
+
+      expect(attributes).toEqual({
+        [GEN_AI_RESPONSE_MODEL]: 'jev-1.13.0',
+        [GEN_AI_USAGE_INPUT_TOKENS]: 366,
+        [GEN_AI_USAGE_OUTPUT_TOKENS]: 50,
+        [GEN_AI_USAGE_TOTAL_TOKENS]: 416,
+        [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([{ type: 'evaluation', answers }]),
+      });
+    });
+
     it('sets token usage and computes the total from input and output tokens', () => {
       const { span, attributes } = createMockSpan();
 

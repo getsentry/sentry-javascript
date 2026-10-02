@@ -20,6 +20,11 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "workerd": {
+        "import": "./build/esm/cloudflare/index.js",
+        "require": "./build/cjs/cloudflare/index.js",
+        "default": "./build/esm/cloudflare/index.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
@@ -52,7 +57,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@sentry/browser": "11.2.0",
-    "@sentry/conventions": "^0.24.0",
+    "@sentry/conventions": "^0.25.0",
     "@sentry/core": "11.2.0",
     "@sentry/node": "11.2.0",
     "@sentry/react": "11.2.0",

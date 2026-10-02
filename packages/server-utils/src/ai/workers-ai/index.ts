@@ -89,7 +89,7 @@ function instrumentRun(
           }
 
           // The model did not actually return a stream — finalize the span eagerly.
-          addResponseAttributes(span, result, options.recordOutputs);
+          addResponseAttributes(span, result, options.recordOutputs, operationName);
           span.end();
           return result;
         }, handleError);
@@ -105,7 +105,7 @@ function instrumentRun(
 
       return originalResult.then(result => {
         if (!returnsRawResponse) {
-          addResponseAttributes(span, result, options.recordOutputs);
+          addResponseAttributes(span, result, options.recordOutputs, operationName);
         }
         return result;
       });

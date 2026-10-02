@@ -1,10 +1,11 @@
+import type { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { SpanAttributeValue, SpanContextData } from './span';
 
 type SpanLinkAttributes = {
   /**
    * Setting the link type to 'previous_trace' helps the Sentry product linking to the previous trace
    */
-  'sentry.link.type'?: string | 'previous_trace';
+  [SENTRY_LINK_TYPE]?: string | 'previous_trace';
 } & Record<string, SpanAttributeValue | undefined>;
 
 export interface SpanLink {

@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE, SENTRY_STATUS_MESSAGE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import {
   convertSpanLinksForEnvelope,
@@ -5,8 +6,6 @@ import {
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
-  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
@@ -498,7 +497,7 @@ describe('spanToStaticSpanJSON', () => {
               trace_id: 'trace1',
               sampled: true,
               attributes: {
-                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+                [SENTRY_LINK_TYPE]: 'previous_trace',
               },
             },
           ],
@@ -510,7 +509,7 @@ describe('spanToStaticSpanJSON', () => {
 
         const json = spanToJSON(span);
         expect(json.status).toBe('error');
-        expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('Connection Refused');
+        expect(json.attributes?.[SENTRY_STATUS_MESSAGE]).toBe('Connection Refused');
       });
 
       it('does not set a status message for ok spans', () => {
@@ -519,7 +518,7 @@ describe('spanToStaticSpanJSON', () => {
 
         const json = spanToJSON(span);
         expect(json.status).toBe('ok');
-        expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBeUndefined();
+        expect(json.attributes?.[SENTRY_STATUS_MESSAGE]).toBeUndefined();
       });
 
       it('does not set a status message for error spans without a message', () => {
@@ -528,7 +527,7 @@ describe('spanToStaticSpanJSON', () => {
 
         const json = spanToJSON(span);
         expect(json.status).toBe('error');
-        expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBeUndefined();
+        expect(json.attributes?.[SENTRY_STATUS_MESSAGE]).toBeUndefined();
       });
 
       it('treats a cancelled status as ok and does not set a status message', () => {
@@ -537,18 +536,18 @@ describe('spanToStaticSpanJSON', () => {
 
         const json = spanToJSON(span);
         expect(json.status).toBe('ok');
-        expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBeUndefined();
+        expect(json.attributes?.[SENTRY_STATUS_MESSAGE]).toBeUndefined();
       });
 
       it('does not overwrite an explicitly set sentry.status.message attribute', () => {
         const span = new SentrySpan({
           name: 'test name',
-          attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: 'explicit message' },
+          attributes: { [SENTRY_STATUS_MESSAGE]: 'explicit message' },
         });
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'Connection Refused' });
 
         const json = spanToJSON(span);
-        expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('explicit message');
+        expect(json.attributes?.[SENTRY_STATUS_MESSAGE]).toBe('explicit message');
       });
     });
     describe('OpenTelemetry Span', () => {
@@ -598,7 +597,7 @@ describe('spanToStaticSpanJSON', () => {
                 traceFlags: TRACE_FLAG_SAMPLED,
               },
               attributes: {
-                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+                [SENTRY_LINK_TYPE]: 'previous_trace',
               },
             },
           ],
@@ -619,7 +618,7 @@ describe('spanToStaticSpanJSON', () => {
             attr2: 2,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
-            [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: 'unknown_error',
+            [SENTRY_STATUS_MESSAGE]: 'unknown_error',
           },
           links: [
             {
@@ -627,7 +626,7 @@ describe('spanToStaticSpanJSON', () => {
               trace_id: 'trace1',
               sampled: true,
               attributes: {
-                [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+                [SENTRY_LINK_TYPE]: 'previous_trace',
               },
             },
           ],
@@ -647,7 +646,7 @@ describe('spanToStaticSpanJSON', () => {
 
         const json = spanToJSON(span);
         expect(json.status).toBe('error');
-        expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('Connection Refused');
+        expect(json.attributes?.[SENTRY_STATUS_MESSAGE]).toBe('Connection Refused');
       });
 
       it('does not set a status message for ok/unset spans', () => {
@@ -663,7 +662,7 @@ describe('spanToStaticSpanJSON', () => {
 
         const json = spanToJSON(span);
         expect(json.status).toBe('ok');
-        expect(json.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBeUndefined();
+        expect(json.attributes?.[SENTRY_STATUS_MESSAGE]).toBeUndefined();
       });
     });
   });
@@ -693,7 +692,7 @@ describe('spanToStaticSpanJSON', () => {
             trace_id: 'trace1',
             sampled: true,
             attributes: {
-              [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+              [SENTRY_LINK_TYPE]: 'previous_trace',
             },
           },
         ],
@@ -722,7 +721,7 @@ describe('spanToStaticSpanJSON', () => {
             trace_id: 'trace1',
             sampled: true,
             attributes: {
-              [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
+              [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
             },
           },
         ],

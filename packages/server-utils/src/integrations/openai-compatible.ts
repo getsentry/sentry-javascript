@@ -9,7 +9,7 @@ import {
 } from '@sentry/core';
 import { GEN_AI_PROVIDER_NAME } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
-import { onApiPromiseResponse } from '../ai/core/apiPromise';
+import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
 import { instrumentStream } from '../ai/openai/streaming';
 import type { OpenAiOptions } from '../ai/openai/types';
@@ -68,7 +68,7 @@ export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProv
             addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
           },
           deferSpanEnd: ({ span, data, end }) =>
-            onApiPromiseResponse(
+            wrapApiPromiseResponse(
               data.result,
               response => {
                 data.result = response;

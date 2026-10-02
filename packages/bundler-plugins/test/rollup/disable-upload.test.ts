@@ -77,10 +77,22 @@ describe('sourcemaps.disable: "disable-upload"', () => {
     expect(chunk).toContain(`//# debugId=${debugId}`);
   });
 
-  it('does not register the generateBundle hook when uploading is enabled', () => {
+  it('does not stamp the emitted files when uploading is enabled', () => {
     const [plugin] = sentryRollupPlugin({ telemetry: false });
+    const code = 'globalThis._sentryDebugIdIdentifier="sentry-dbid-e3ee452d-c255-448c-aa62-da0fd4c49e46";';
+    const bundle = {
+      'entry.js': { type: 'chunk', fileName: 'entry.js', code },
+      'entry.js.map': {
+        type: 'asset',
+        fileName: 'entry.js.map',
+        source: JSON.stringify({ version: 3, sources: [], names: [], mappings: '' }),
+      },
+    };
 
-    expect(plugin).not.toHaveProperty('generateBundle');
+    plugin.generateBundle.handler.call({ meta: {} }, {}, bundle);
+
+    expect(bundle['entry.js'].code).toBe(code);
+    expect(JSON.parse(bundle['entry.js.map'].source)).not.toHaveProperty('debug_id');
   });
 
   it('stamps the chunk when the source map is inlined into the chunk', async () => {
