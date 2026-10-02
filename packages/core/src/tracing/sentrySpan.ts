@@ -391,9 +391,8 @@ export class SentrySpan implements Span {
         return;
       }
 
+      // The `sample_rate` outcome was already recorded when the span was started (see `_startRootSpan`).
       DEBUG_BUILD && debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
-      client.recordDroppedEvent('sample_rate', 'span');
-
       return;
     }
 
