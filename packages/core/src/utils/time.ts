@@ -4,6 +4,17 @@ import { GLOBAL_OBJ } from './worldwide';
 const ONE_SECOND_IN_MS = 1000;
 
 /**
+ * If `performance.timeOrigin + performance.now()` and `Date.now()` differ by more than this, we correct the time origin.
+ */
+const CLOCK_DRIFT_THRESHOLD_MS = 1_000;
+
+/**
+ * Max number of time origins we store. When we hit it, we drop the oldest one, except the page load origin, which
+ * the pageload span uses.
+ */
+const MAX_TIME_ORIGIN_SEGMENTS = 30;
+
+/**
  * A partial definition of the [Performance Web API]{@link https://developer.mozilla.org/en-US/docs/Web/API/Performance}
  * for accessing a high-resolution monotonic clock.
  */
@@ -26,6 +37,25 @@ export function dateTimestampInSeconds(): number {
 }
 
 /**
+ * A time origin and the `performance.now()` value from which it applies.
+ *
+ * When we correct the time origin, we keep the old ones. This way, a `performance.now()` value can be converted with the
+ * origin that was valid when it was measured, not the one that is valid now.
+ */
+interface TimeOriginSegment {
+  /** The `performance.now()` value from which `origin` applies. */
+  from: number;
+  /** Milliseconds since the UNIX epoch that `performance.now() === 0` corresponds to. */
+  origin: number;
+}
+
+/**
+ * All time origins of the page, oldest first. Empty until the first `timestampInSeconds` call, or if the Performance
+ * API is unavailable.
+ */
+let _timeOriginSegments: TimeOriginSegment[] = [];
+
+/**
  * Returns a wrapper around the native Performance API browser implementation, or undefined for browsers that do not
  * support the API.
  *
@@ -36,87 +66,105 @@ function createUnixTimestampInSecondsFunc(): () => number {
   // Some browser and environments don't have a performance or timeOrigin, so we fallback to
   // using Date.now() to compute the starting time.
   if (!performance?.now || !performance.timeOrigin) {
+    if (performance?.now) {
+      // We can still convert `performance.now()` values, just without drift correction.
+      _timeOriginSegments = [{ from: 0, origin: safeDateNow() - withRandomSafeContext(() => performance.now()) }];
+    }
     return dateTimestampInSeconds;
   }
 
-  const timeOrigin = performance.timeOrigin;
-
   // performance.now() is a monotonic clock, which means it starts at 0 when the process begins. To get the current
   // wall clock time (actual UNIX timestamp), we need to add the starting time origin and the current time elapsed.
-  //
-  // TODO: This does not account for the case where the monotonic clock that powers performance.now() drifts from the
-  // wall clock time, which causes the returned timestamp to be inaccurate. We should investigate how to detect and
-  // correct for this.
-  // See: https://github.com/getsentry/sentry-javascript/issues/2590
-  // See: https://github.com/mdn/content/issues/4713
-  // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
+  // Due to device sleeps, the origin might need to be corrected to match the wall clock time over the SDK's lifetime.
+  let correctedTimeOrigin = performance.timeOrigin;
+  _timeOriginSegments = [{ from: 0, origin: correctedTimeOrigin }];
+  let isFirstCall = true;
+  let lastCheckedPerformanceNow = 0;
+
   return () => {
-    return (timeOrigin + withRandomSafeContext(() => performance.now())) / ONE_SECOND_IN_MS;
+    return withRandomSafeContext(() => {
+      const performanceNow = performance.now();
+      const dateNow = Date.now();
+
+      // `performance.now()` stops while the device sleeps, and the wall clock can be changed by NTP or the user. In
+      // both cases `timeOrigin + performance.now()` no longer matches `Date.now()`, so we correct the time origin.
+      // We still use `performance.now()` for elapsed time to keep sub-millisecond precision.
+      // See: https://github.com/getsentry/sentry-javascript/issues/2590
+      // See: https://github.com/mdn/content/issues/4713
+      // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
+      if (Math.abs(correctedTimeOrigin + performanceNow - dateNow) > CLOCK_DRIFT_THRESHOLD_MS) {
+        correctedTimeOrigin = dateNow - performanceNow;
+
+        if (isFirstCall) {
+          // `performance.timeOrigin` was already wrong at startup, so we replace it. If we pushed a second segment
+          // instead, the segment cap below could later drop the corrected one and keep the wrong one.
+          _timeOriginSegments = [{ from: 0, origin: correctedTimeOrigin }];
+        } else {
+          // We keep the old origins, so performance entries recorded before the correction still use their origin.
+          _timeOriginSegments.push({ from: lastCheckedPerformanceNow, origin: correctedTimeOrigin });
+          if (_timeOriginSegments.length > MAX_TIME_ORIGIN_SEGMENTS) {
+            // we keep the oldest entry (the page load origin) and drop the one after it.
+            _timeOriginSegments.splice(1, 1);
+          }
+        }
+      }
+      isFirstCall = false;
+      lastCheckedPerformanceNow = performanceNow;
+
+      return (correctedTimeOrigin + performanceNow) / ONE_SECOND_IN_MS;
+    });
   };
 }
 
-let _cachedTimestampInSeconds: (() => number) | undefined;
+let _cachedTimestampInSecondsFn: (() => number) | undefined;
+
+/**
+ * Converts a `performance.now()` based, relative time in milliseconds (e.g. a `PerformanceEntry`'s `startTime`)
+ * to a UNIX timestamp in seconds, matching {@link timestampInSeconds}.
+ *
+ * Corrects for clock drift via browserPerformanceTimeOrigin().
+ *
+ * Returns `undefined` if the Performance API is unavailable.
+ */
+export function performanceTimeToSeconds(monotonicTimeInMs: number): number | undefined {
+  const origin = browserPerformanceTimeOrigin(monotonicTimeInMs);
+  return origin === undefined ? undefined : (origin + monotonicTimeInMs) / ONE_SECOND_IN_MS;
+}
 
 /**
  * Returns a timestamp in seconds since the UNIX epoch using either the Performance or Date APIs, depending on the
  * availability of the Performance API.
  *
- * BUG: Note that because of how browsers implement the Performance API, the clock might stop when the computer is
- * asleep. This creates a skew between `dateTimestampInSeconds` and `timestampInSeconds`. The
- * skew can grow to arbitrary amounts like days, weeks or months.
+ * If the Performance API time and `Date.now()` differ by more than {@link CLOCK_DRIFT_THRESHOLD_MS} (e.g. after the
+ * device slept), the time origin is corrected based on `Date.now()`.
  * See https://github.com/getsentry/sentry-javascript/issues/2590.
  */
 export function timestampInSeconds(): number {
   // We store this in a closure so that we don't have to create a new function every time this is called.
-  const func = _cachedTimestampInSeconds ?? (_cachedTimestampInSeconds = createUnixTimestampInSecondsFunc());
+  const func = _cachedTimestampInSecondsFn ?? (_cachedTimestampInSecondsFn = createUnixTimestampInSecondsFunc());
   return func();
 }
 
 /**
- * Cached result of getBrowserTimeOrigin.
- */
-let cachedTimeOrigin: number | null | undefined = null;
-
-/**
- * Gets the time origin and the mode used to determine it.
+ * Returns the time origin in milliseconds that was valid at the given `performance.now()` time. Defaults to the page
+ * load origin.
  *
- * Unfortunately browsers may report inaccurate time origin data through performance.timeOrigin,
- * which results in poor results in performance data. We only treat time origin data as reliable
- * if it is within a reasonable threshold of the current time.
+ * Pass the time you want to convert, so entries that are reported late (e.g. INP on pagehide) are not shifted by a
+ * drift that happened after they were recorded. Use the same time for all timings of one entry to keep its duration.
  *
- * TODO: move to `@sentry/browser-utils` package.
+ * Returns `undefined` if the Performance API is unavailable.
  */
-function getBrowserTimeOrigin(): number | undefined {
-  const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
-  if (!performance?.now) {
-    return undefined;
-  }
+export function browserPerformanceTimeOrigin(monotonicTimeInMs = 0): number | undefined {
+  // Makes sure `_timeOriginSegments` is set up.
+  timestampInSeconds();
 
-  const threshold = 300_000; // 5 minutes in milliseconds
-  const performanceNow = withRandomSafeContext(() => performance.now());
-  const dateNow = safeDateNow();
-
-  const timeOrigin = performance.timeOrigin;
-  if (typeof timeOrigin === 'number') {
-    const timeOriginDelta = Math.abs(timeOrigin + performanceNow - dateNow);
-    if (timeOriginDelta < threshold) {
-      return timeOrigin;
+  let segment: TimeOriginSegment | undefined;
+  for (const candidate of _timeOriginSegments) {
+    if (segment && candidate.from > monotonicTimeInMs) {
+      break;
     }
+    segment = candidate;
   }
 
-  // timeOrigin is skewed or unavailable, fallback to subtracting
-  // `performance.now()` from `Date.now()`.
-  return dateNow - performanceNow;
-}
-
-/**
- * The number of milliseconds since the UNIX epoch. This value is only usable in a browser, and only when the
- * performance API is available.
- */
-export function browserPerformanceTimeOrigin(): number | undefined {
-  if (cachedTimeOrigin === null) {
-    cachedTimeOrigin = getBrowserTimeOrigin();
-  }
-
-  return cachedTimeOrigin;
+  return segment?.origin;
 }

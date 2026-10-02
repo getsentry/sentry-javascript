@@ -26,11 +26,9 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
     name: INTEGRATION_NAME,
     setup(client) {
       const performance = getBrowserPerformanceAPI();
-      const timeOrigin = browserPerformanceTimeOrigin();
-      if (!performance?.getEntries || !timeOrigin) {
+      if (!performance?.getEntries) {
         return;
       }
-      const timeOriginInSeconds = msToSec(timeOrigin);
       let performanceCursor = 0;
 
       client.on('beforeIdleSpanEnd', idleSpan => {
@@ -49,6 +47,11 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
             continue;
           }
 
+          const timeOriginInMs = browserPerformanceTimeOrigin(entry.startTime);
+          if (!timeOriginInMs) {
+            continue;
+          }
+          const timeOriginInSeconds = msToSec(timeOriginInMs);
           const startTime = msToSec(entry.startTime);
           const absoluteStartTime = timeOriginInSeconds + startTime;
 

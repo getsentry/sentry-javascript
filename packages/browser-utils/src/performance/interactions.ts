@@ -16,13 +16,13 @@ import {
 import { UI_ACTION_CLICK, UI_INTERACTION_CLICK } from '@sentry/conventions/op';
 import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   debug,
   defineIntegration,
   filterCollectedUrl,
   getActiveSpan,
   getRootSpan,
   hasSpanStreamingEnabled,
+  performanceTimeToSeconds,
   spanToJSON,
   UI_ACTION_CLICK_SPAN_NAME_FALLBACK,
   UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK,
@@ -242,7 +242,10 @@ function trackInteractionsAsSpans(client: Client): void {
     }
     for (const entry of entries) {
       if (entry.name === 'click') {
-        const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+        const startTime = performanceTimeToSeconds(entry.startTime);
+        if (!startTime) {
+          continue;
+        }
         const duration = msToSec(entry.duration);
 
         const selector = htmlTreeAsString(entry.target);

@@ -5,6 +5,7 @@ import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   parseUrl,
+  performanceTimeToSeconds,
   RESOURCE_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
@@ -108,7 +109,10 @@ export function startTrackingLongTasks(): void {
     const { attributes: parentAttributes, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
 
     for (const entry of entries) {
-      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+      const startTime = performanceTimeToSeconds(entry.startTime);
+      if (!startTime) {
+        continue;
+      }
       const duration = msToSec(entry.duration);
 
       if (parentAttributes[SENTRY_OP] === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
@@ -143,11 +147,10 @@ export function startTrackingLongAnimationFrames(): void {
       return;
     }
     for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
-      if (!entry.scripts[0]) {
+      const startTime = performanceTimeToSeconds(entry.startTime);
+      if (!startTime || !entry.scripts[0]) {
         continue;
       }
-
-      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
 
       const {
         start_timestamp: parentStartTimestamp,
@@ -209,21 +212,25 @@ interface AddPerformanceEntriesOptions {
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
-  const origin = browserPerformanceTimeOrigin();
-  if (!performance?.getEntries || !origin) {
+  if (!performance?.getEntries) {
     // Gatekeeper if performance API not available
     return;
   }
 
   const { spanStreamingEnabled, ignoreResourceSpans } = options;
 
-  const timeOrigin = msToSec(origin);
-
   const performanceEntries = performance.getEntries();
 
   const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
   performanceEntries.slice(_performanceCursor).forEach(entry => {
+    // Navigations can happen long after page load, after the time origin was corrected for drift.
+    // We use the origin from the entry's start for all its timings, so its duration stays correct.
+    const timeOriginInMs = browserPerformanceTimeOrigin(entry.startTime);
+    if (!timeOriginInMs) {
+      return;
+    }
+    const timeOrigin = msToSec(timeOriginInMs);
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(
       // Inexplicably, Chrome sometimes emits a negative duration. We need to work around this.
