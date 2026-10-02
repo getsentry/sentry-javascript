@@ -106,6 +106,7 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME = 'sentry.custom_span_na
 
 /**
  * The id of the profile that this span occurred in.
+ * @deprecated Use `SENTRY_PROFILE_ID` from `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'sentry.profile_id';
 
