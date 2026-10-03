@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_EMBEDDINGS_INPUT,
@@ -20,6 +20,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
@@ -47,7 +48,7 @@ describe('Mistral integration', () => {
             expect(chatSpan!.name).toBe('chat mistral-small-latest');
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
-            expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.chat');
+            expect(chatSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.chat');
             expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mistral-small-latest');
@@ -140,7 +141,7 @@ describe('Mistral integration', () => {
             expect(embeddingsSpan!.name).toBe('embeddings mistral-embed');
             expect(embeddingsSpan!.status).toBe('ok');
             expect(embeddingsSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('embeddings');
-            expect(embeddingsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.embeddings');
+            expect(embeddingsSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
             expect(embeddingsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(embeddingsSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(embeddingsSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mistral-embed');
@@ -183,7 +184,7 @@ describe('Mistral integration', () => {
             expect(agentSpan!.name).toBe('invoke_agent');
             expect(agentSpan!.status).toBe('ok');
             expect(agentSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
-            expect(agentSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
+            expect(agentSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
             expect(agentSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(agentSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(agentSpan!.attributes[GEN_AI_AGENT_NAME]?.value).toBe('ag-mock-123');

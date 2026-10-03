@@ -1,8 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
   getMainCarrier,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentrySpan,
   setCurrentClient,
@@ -246,7 +246,7 @@ describe('_addResourceSpans', () => {
         start_timestamp: timeOrigin + startTime,
         end_timestamp: timeOrigin + startTime + duration,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
+          [SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.response.body.decoded_size']: entry.decodedBodySize,
           ['http.response.body.size']: entry.encodedBodySize,
@@ -356,7 +356,7 @@ describe('_addResourceSpans', () => {
       _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465);
 
       expect(spans).toHaveLength(i + 1);
-      expect(spanToJSON(spans[i]!).attributes).toEqual(expect.objectContaining({ [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op }));
+      expect(spanToJSON(spans[i]!).attributes).toEqual(expect.objectContaining({ [SENTRY_OP]: op }));
     }
   });
 
@@ -429,7 +429,7 @@ describe('_addResourceSpans', () => {
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
+          [SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.response.body.decoded_size']: entry.decodedBodySize,
           ['http.response.body.size']: entry.encodedBodySize,
@@ -468,7 +468,7 @@ describe('_addResourceSpans', () => {
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
+          [SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.domain': 'example.com',
@@ -520,7 +520,7 @@ describe('_addResourceSpans', () => {
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
+          [SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.domain': 'example.com',
@@ -820,7 +820,7 @@ describe('_addNavigationSpans', () => {
       // `unloadEventStart`/`End` are 0 in the shared entry, so that span is never created.
       _addNavigationSpans(pageloadSpan, { ...entry, unloadEventStart: 1, unloadEventEnd: 2 }, 999, true);
 
-      const spanJson = spans.map(spanToJSON).find(span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === op);
+      const spanJson = spans.map(spanToJSON).find(span => span.attributes[SENTRY_OP] === op);
 
       expect(spanJson?.name).toBe(expectedName);
       expect(spanJson?.attributes['url.full']).toBe('https://santry.com/test?q=secret#frag');

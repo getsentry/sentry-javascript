@@ -14,11 +14,10 @@
  *   `error.type` (the syscall error code, e.g. `ENOENT`).
  */
 
-import { ERROR_TYPE } from '@sentry/conventions/attributes';
+import { ERROR_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { FILE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   getActiveSpan,
@@ -101,7 +100,7 @@ function getSpanAttributes(
   config: FsInstrumentationConfig,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: SPAN_OP,
+    [SENTRY_OP]: SPAN_OP,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SPAN_ORIGIN,
   };
 

@@ -1,6 +1,6 @@
 import http from 'node:http';
-import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
-import { getActiveSpan, getCurrentScope, getTraceData, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
+import { HTTP_REQUEST_METHOD, SENTRY_OP } from '@sentry/conventions/attributes';
+import { getActiveSpan, getCurrentScope, getTraceData, spanToJSON } from '@sentry/core';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { init } from '../../src';
 
@@ -51,7 +51,7 @@ describe('Bun HTTP Server Integration', () => {
     await close();
 
     expect(span).toBeDefined();
-    expect(span?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+    expect(span?.attributes[SENTRY_OP]).toBe('http.server');
     // No router resolves a route here, so with span streaming the name is the request method.
     expect(span?.name).toBe('GET');
     expect(span?.attributes['url.path']).toBe('/users');
@@ -82,7 +82,7 @@ describe('Bun HTTP Server Integration', () => {
     await close();
 
     expect(span).toBeDefined();
-    expect(span?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+    expect(span?.attributes[SENTRY_OP]).toBe('http.server');
     expect(span?.name).toBe('QUERY');
     expect(span?.attributes['url.path']).toBe('/search');
     expect(span?.attributes[HTTP_REQUEST_METHOD]).toBe('QUERY');

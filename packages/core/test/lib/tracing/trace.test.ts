@@ -6,7 +6,6 @@ import {
   getMainCarrier,
   getTraceData,
   Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setAsyncContextStrategy,
   setCurrentClient,
@@ -33,7 +32,7 @@ import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '.
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SUPPRESS_TRACING_KEY } from '../../../src/tracing/constants';
 import { resetGlobals } from '../../testutils';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 const enum Type {
   Sync = 'sync',
@@ -110,14 +109,14 @@ describe('startSpan', () => {
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+          span.setAttribute(SENTRY_OP, 'http.server');
           return callback();
         });
       } catch {
         //
       }
 
-      expect(spanToJSON(_span!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('http.server');
+      expect(spanToJSON(_span!).attributes[SENTRY_OP]).toEqual('http.server');
     });
 
     it('creates a span with correct description', async () => {
@@ -156,7 +155,7 @@ describe('startSpan', () => {
       try {
         await startSpan({ name: 'GET users/[id]' }, () => {
           return startSpan({ name: 'SELECT * from users' }, childSpan => {
-            childSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
+            childSpan.setAttribute(SENTRY_OP, 'db.query');
             return callback();
           });
         });
@@ -168,7 +167,7 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('db.query');
+      expect(spanToJSON(spans[1]!).attributes[SENTRY_OP]).toEqual('db.query');
     });
 
     it('correctly sets the span origin', async () => {

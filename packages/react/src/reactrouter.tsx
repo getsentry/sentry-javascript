@@ -12,7 +12,6 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
@@ -287,7 +286,7 @@ function getActiveRootSpan(): Span | undefined {
     return undefined;
   }
 
-  const op = spanToJSON(rootSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;

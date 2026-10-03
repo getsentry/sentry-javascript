@@ -1,6 +1,7 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Envelope } from '@sentry/core';
 import { expect, it } from 'vitest';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { createRunner } from '../../../runner';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
@@ -29,7 +30,7 @@ it('instruments sync KV operations on Durable Object storage', async ({ signal }
           expect.objectContaining({
             name: 'durable_object_storage_kv_put',
             attributes: expect.objectContaining({
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: 'db' },
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.cloudflare.durable_object' },
               'db.system.name': { type: 'string', value: 'cloudflare-durable-object-sql' },
               'db.operation.name': { type: 'string', value: 'put' },

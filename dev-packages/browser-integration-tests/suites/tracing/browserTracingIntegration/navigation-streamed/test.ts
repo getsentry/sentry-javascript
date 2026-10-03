@@ -1,10 +1,5 @@
 import { expect } from '@playwright/test';
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_TRACE_LIFECYCLE,
@@ -13,6 +8,7 @@ import {
   USER_AGENT_ORIGINAL,
   SENTRY_ENVIRONMENT,
   SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -124,7 +120,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: 'idleTimeout',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+      [SENTRY_OP]: {
         type: 'string',
         value: 'navigation',
       },
@@ -236,7 +232,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'string',
       value: 'url',
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+    [SENTRY_OP]: {
       type: 'string',
       value: 'navigation',
     },
@@ -265,7 +261,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'string',
       value: 'url',
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+    [SENTRY_OP]: {
       type: 'string',
       value: 'navigation',
     },

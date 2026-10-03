@@ -21,7 +21,6 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   filterCollectedUrl,
 } from '@sentry/core';
@@ -153,7 +152,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         const { attributes, name: spanName } = spanToJSON(rootSpan);
         // With span streaming, a back navigation span is already named `Navigation` (there is no
         // target URL upfront), so only the static lifecycle still has `-1` to replace here.
-        if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'navigation' && spanName === '-1') {
+        if (attributes[SENTRY_OP] === 'navigation' && spanName === '-1') {
           rootSpan.updateName(name);
         }
         rootSpan.setAttributes({ [SENTRY_SEGMENT_NAME_SOURCE]: 'url', ...urlAttributes });
