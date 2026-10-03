@@ -55,6 +55,80 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(result.code).toContain('__SENTRY__.withSentry(');
   });
 
+  it('wraps the entry with `@sentry/nextjs/cloudflare` in a vinext build', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      {
+        parse: (c: string) => parseJS(c),
+        resolve: async (source: string) => (source === '@sentry/nextjs/cloudflare' ? { id: source } : null),
+      },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toContain("import * as __SENTRY__ from '@sentry/nextjs/cloudflare';");
+    expect(result.code).toContain('__SENTRY__.withSentry(');
+  });
+
+  it('wraps the entry with `@sentry/cloudflare` when `@sentry/nextjs/cloudflare` resolves outside a vinext build', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vite:react' }] });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      {
+        parse: (c: string) => parseJS(c),
+        resolve: async (source: string) => (source === '@sentry/nextjs/cloudflare' ? { id: source } : null),
+      },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toContain("import * as __SENTRY__ from '@sentry/cloudflare';");
+  });
+
+  it('wraps the entry with `@sentry/cloudflare` in a vinext build without `@sentry/nextjs`', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve: async () => null },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toContain("import * as __SENTRY__ from '@sentry/cloudflare';");
+  });
+
+  it('wraps the entry with `@sentry/cloudflare` in a vinext build with an `@sentry/nextjs` without the `./cloudflare` entry', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      {
+        parse: (c: string) => parseJS(c),
+        resolve: async () => {
+          throw new Error(
+            '"./cloudflare" is not exported under the conditions ["workerd"] from package @sentry/nextjs',
+          );
+        },
+      },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toContain("import * as __SENTRY__ from '@sentry/cloudflare';");
+  });
+
   it('leaves an already-manually-wrapped entry untouched', async () => {
     const { transform: tx, entryPath } = createPlugin('main = "src/index.ts"');
 
