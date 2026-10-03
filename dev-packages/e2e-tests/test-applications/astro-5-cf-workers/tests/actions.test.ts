@@ -1,43 +1,39 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.describe('Astro actions', () => {
-  test('captures transaction for action call', async ({ page }) => {
-    const transactionEventPromise = waitForTransaction('astro-5-cf-workers', transactionEvent => {
-      return transactionEvent.transaction === 'GET /action-test';
+  test('captures a server span for the action page', async ({ page }) => {
+    const spanPromise = waitForStreamedSpan('astro-5-cf-workers', span => {
+      return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /action-test';
     });
 
     await page.goto('/action-test');
 
-    const transactionEvent = await transactionEventPromise;
+    const span = await spanPromise;
 
-    expect(transactionEvent).toMatchObject({
-      transaction: 'GET /action-test',
-    });
-
-    const traceId = transactionEvent.contexts?.trace?.trace_id;
-    expect(traceId).toMatch(/[a-f0-9]{32}/);
+    expect(span.trace_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(span.span_id).toMatch(/^[a-f0-9]{16}$/);
   });
 
-  test('action submission creates a transaction', async ({ page }) => {
+  test('captures a server span for an action submission', async ({ page }) => {
     await page.goto('/action-test');
 
-    const transactionEventPromise = waitForTransaction('astro-5-cf-workers', transactionEvent => {
+    const spanPromise = waitForStreamedSpan('astro-5-cf-workers', span => {
       return (
-        transactionEvent.transaction?.includes('action-test') && transactionEvent.transaction !== 'GET /action-test'
+        getSpanOp(span) === 'http.server' &&
+        span.is_segment &&
+        span.attributes['http.request.method']?.value === 'POST' &&
+        span.attributes['url.path']?.value === '/_actions/testAction/'
       );
     });
 
     await page.getByText('Submit Action').click();
 
-    // Wait for the result to appear on the page
-    await page.waitForSelector('#result:not(:empty)');
+    await expect(page.locator('#result')).toContainText('success');
 
-    const resultText = await page.locator('#result').textContent();
-    expect(resultText).toContain('success');
-
-    const transactionEvent = await transactionEventPromise;
-    expect(transactionEvent).toBeDefined();
-    expect(transactionEvent.contexts?.trace?.trace_id).toMatch(/[a-f0-9]{32}/);
+    const span = await spanPromise;
+    expect(span.name).toBe('POST /_actions/[...path]');
+    expect(span.trace_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(span.span_id).toMatch(/^[a-f0-9]{16}$/);
   });
 });
