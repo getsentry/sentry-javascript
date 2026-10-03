@@ -5,6 +5,7 @@ const mockApplySdkMetadata = vi.fn();
 const mockInitNode = vi.fn();
 const mockGetBunDefaultIntegrations = vi.fn(() => [] as Integration[]);
 const mockMakeFetchTransport = vi.fn();
+const mockMakeNodeTransport = vi.fn();
 
 vi.mock('@sentry/core', async importActual => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -19,6 +20,7 @@ vi.mock('@sentry/bun', () => ({
   init: mockInitNode,
   getDefaultIntegrations: mockGetBunDefaultIntegrations,
   makeFetchTransport: mockMakeFetchTransport,
+  makeNodeTransport: mockMakeNodeTransport,
   bunServerIntegration: () => ({ name: 'BunServer', setupOnce: vi.fn() }),
 }));
 
@@ -53,14 +55,22 @@ describe('init', () => {
     );
   });
 
-  it('uses makeFetchTransport by default', () => {
+  it('uses makeNodeTransport by default on Node', () => {
     init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
 
     expect(mockInitNode).toHaveBeenCalledWith(
       expect.objectContaining({
-        transport: mockMakeFetchTransport,
+        transport: mockMakeNodeTransport,
       }),
     );
+  });
+
+  it('uses makeFetchTransport by default on Bun', () => {
+    vi.stubGlobal('Bun', { version: '1.2.3' });
+
+    init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
+
+    expect(mockInitNode).toHaveBeenCalledWith(expect.objectContaining({ transport: mockMakeFetchTransport }));
   });
 
   it('allows overriding transport', () => {
