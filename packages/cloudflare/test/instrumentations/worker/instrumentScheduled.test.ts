@@ -379,6 +379,52 @@ describe('instrumentScheduled', () => {
       );
     });
 
+    test('runs the handler without check-ins when the in_progress check-in throws', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn').mockImplementation(() => {
+        throw new Error('check-in error');
+      });
+      onTestFinished(() => captureCheckInSpy.mockRestore());
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const scheduled = vi.fn().mockResolvedValue('result');
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, integrations: [cronTriggersIntegration()] }), {
+        scheduled,
+      } as ExportedHandler<typeof MOCK_ENV>);
+
+      const result = await wrappedHandler.scheduled?.(
+        controllerFor('30 9 * * 1-5'),
+        MOCK_ENV,
+        createMockExecutionContext(),
+      );
+
+      expect(result).toBe('result');
+      expect(scheduled).toHaveBeenCalledTimes(1);
+      expect(captureCheckInSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    test('returns the handler result when the ok check-in throws', async () => {
+      const captureCheckInSpy = vi
+        .spyOn(SentryCore, 'captureCheckIn')
+        .mockReturnValueOnce('check-in-id')
+        .mockImplementationOnce(() => {
+          throw new Error('check-in error');
+        });
+      onTestFinished(() => captureCheckInSpy.mockRestore());
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, integrations: [cronTriggersIntegration()] }), {
+        scheduled: () => Promise.resolve('result'),
+      } as unknown as ExportedHandler<typeof MOCK_ENV>);
+
+      const result = await wrappedHandler.scheduled?.(
+        controllerFor('30 9 * * 1-5'),
+        MOCK_ENV,
+        createMockExecutionContext(),
+      );
+
+      expect(result).toBe('result');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
     test('sends check-ins for the scheduled method of a WorkerEntrypoint', async () => {
       const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
       const TestEntrypoint = class {
