@@ -66,6 +66,80 @@ export function piAiFinishReason(stopReason: unknown): string | undefined {
   return stopReason === 'toolUse' ? 'tool_call' : stopReason;
 }
 
+/** The request fields of a pi-ai `Context` that carry the system prompt and the tools. */
+export interface PiAiContext {
+  systemPrompt?: string;
+  messages?: unknown;
+  tools?: unknown;
+}
+
+/**
+ * The system prompt a pi-ai request sends. pi-durable sends it as positional system messages with
+ * `sections` instead of `systemPrompt`, so the messages are replayed like pi-ai's own
+ * `getCurrentSystemPrompt` does: `content` is appended, `sections` are patched by name.
+ */
+export function piAiSystemInstructions(context: PiAiContext): string | undefined {
+  const content: string[] = [];
+  const sections = new Map<string, string>();
+  for (const message of piAiSystemMessages(context)) {
+    const text = piAiContentText(message.content);
+    if (text) {
+      content.push(text);
+    }
+    if (isObjectLike(message.sections)) {
+      for (const [name, value] of Object.entries(message.sections)) {
+        if (value === null) {
+          sections.delete(name);
+        } else if (typeof value === 'string') {
+          sections.set(name, value);
+        }
+      }
+    }
+  }
+  return [content.join('\n\n'), ...sections.values()].filter(Boolean).join('\n\n') || undefined;
+}
+
+/** The tools a pi-ai request offers, with `toolsAdded` and `toolsRemoved` replayed like pi-ai's `getCurrentTools`. */
+export function piAiToolDefinitions(context: PiAiContext): unknown[] {
+  const tools = new Map<string, unknown>();
+  for (const message of piAiSystemMessages(context)) {
+    for (const tool of Array.isArray(message.toolsRemoved) ? message.toolsRemoved : []) {
+      if (isObjectLike(tool) && typeof tool.name === 'string') {
+        tools.delete(tool.name);
+      }
+    }
+    for (const tool of Array.isArray(message.toolsAdded) ? message.toolsAdded : []) {
+      if (isObjectLike(tool) && typeof tool.name === 'string') {
+        tools.set(tool.name, tool);
+      }
+    }
+  }
+  return [...tools.values()];
+}
+
+/** The system messages pi-ai sends, led by the one it builds from `systemPrompt` and `tools`. */
+function piAiSystemMessages(context: PiAiContext): Record<string, unknown>[] {
+  const hasTools = Array.isArray(context.tools) && context.tools.length > 0;
+  const leading =
+    context.systemPrompt || hasTools
+      ? [{ role: 'system', content: context.systemPrompt ?? '', toolsAdded: context.tools }]
+      : [];
+  const messages = Array.isArray(context.messages) ? context.messages : [];
+  return [...leading, ...messages].filter(
+    (message): message is Record<string, unknown> => isObjectLike(message) && message.role === 'system',
+  );
+}
+
+function piAiContentText(content: unknown): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+  return piAiContentToParts(content)
+    .filter(part => part.type === 'text')
+    .map(part => part.content)
+    .join('\n');
+}
+
 /** Text-only content as its text, joined the way pi-ai joins it; anything else as its mapped parts. */
 export function piAiContentToString(content: unknown): string | undefined {
   const parts = piAiContentToParts(content);

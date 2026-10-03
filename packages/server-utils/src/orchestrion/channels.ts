@@ -27,6 +27,7 @@ import { mysqlChannels } from './config/mysql';
 import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
+import { piDurableChannels } from './config/pi-durable';
 import { postgresJsChannels } from './config/postgres';
 import { prismaChannels } from './config/prisma';
 import { redisChannels } from './config/redis';
@@ -82,6 +83,7 @@ export const CHANNELS = {
   ...nestjsChannels,
   ...openaiChannels,
   ...pgChannels,
+  ...piDurableChannels,
   ...postgresJsChannels,
   ...prismaChannels,
   ...redisChannels,
