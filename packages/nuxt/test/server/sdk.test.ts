@@ -93,6 +93,16 @@ describe('Nuxt Server SDK', () => {
         expect(secondClient).not.toBe(firstClient);
       });
 
+      it('initializes again after the existing client is closed', async () => {
+        const firstClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+        await firstClient?.close();
+        const secondClient = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        expect(nodeInit).toHaveBeenCalledTimes(2);
+        expect(secondClient).toBeDefined();
+        expect(secondClient).not.toBe(firstClient);
+      });
+
       it('marks a successful initialization for the double-init guard', () => {
         init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 

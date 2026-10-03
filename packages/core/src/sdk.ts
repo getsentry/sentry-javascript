@@ -1,4 +1,5 @@
 import type { Client } from './client';
+import { isClientClosed } from './client';
 import { getClient, getCurrentScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { ClientOptions } from './types/options';
@@ -41,13 +42,23 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
 }
 
 /**
+ * Returns the client bound to the current scope, unless it is closed.
+ *
+ * @hidden
+ */
+export function getActiveClient<C extends Client>(): C | undefined {
+  const client = getClient<C>();
+  return client && !isClientClosed(client) ? client : undefined;
+}
+
+/**
  * Warns when `init()` runs while a client is still bound. The new client
  * replaces it, but the old client stays alive, so the two can mix state.
  *
  * @hidden
  */
 export function warnIfClientIsActive(): void {
-  if (getClient()) {
+  if (getActiveClient()) {
     consoleSandbox(() => {
       // TODO(#24883): Point apps that share a page with another app to the
       // isolated client helper, once that PR settles its name.

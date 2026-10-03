@@ -4,9 +4,9 @@
 import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
 import type { EventProcessor } from '@sentry/core';
 import {
+  _INTERNAL_getActiveClient,
   applySdkMetadata,
   debug,
-  getClient,
   getGlobalScope,
   getRootSpan,
   getVercelEnv,
@@ -182,7 +182,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   DEBUG_BUILD && debug.log('Initializing SDK...');
 
-  const existingClient = getClient<NodeClient>();
+  const existingClient = _INTERNAL_getActiveClient<NodeClient>();
   if (existingClient) {
     DEBUG_BUILD && debug.log('SDK already initialized');
     return existingClient;
