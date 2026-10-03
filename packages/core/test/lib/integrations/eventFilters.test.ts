@@ -362,6 +362,19 @@ const CEFSHARP_EVENT: Event = {
   },
 };
 
+// The bridge reports whichever method was called, not only `simulateEvent`.
+const CEFSHARP_EVENT_OTHER_METHOD: Event = {
+  exception: {
+    values: [
+      {
+        type: 'TypeError',
+        value:
+          'Non-Error promise rejection captured with value: Object Not Found Matching Id:2, MethodName:update, ParamCount:4',
+      },
+    ],
+  },
+};
+
 const FB_MOBILE_BROWSER_EVENT: Event = {
   exception: {
     values: [
@@ -512,6 +525,11 @@ describe('EventFilters', () => {
     it('uses default filters (CEFSharp)', () => {
       const eventProcessor = createEventFiltersEventProcessor(integrationFn);
       expect(eventProcessor(CEFSHARP_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (CEFSharp, method name other than simulateEvent)', () => {
+      const eventProcessor = createEventFiltersEventProcessor(integrationFn);
+      expect(eventProcessor(CEFSHARP_EVENT_OTHER_METHOD, {})).toBe(null);
     });
 
     it('uses default filters (FB Mobile Browser)', () => {
