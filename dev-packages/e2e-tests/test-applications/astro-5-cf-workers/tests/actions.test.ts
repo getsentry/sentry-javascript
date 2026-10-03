@@ -23,12 +23,7 @@ test.describe('Astro actions', () => {
     await page.goto('/action-test');
 
     const spanPromise = waitForStreamedSpan('astro-5-cf-workers', span => {
-      return (
-        getSpanOp(span) === 'http.server' &&
-        span.is_segment &&
-        span.attributes['http.request.method']?.value === 'POST' &&
-        span.attributes['url.path']?.value === '/_actions/testAction/'
-      );
+      return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'POST /_actions/[...path]';
     });
 
     await page.getByText('Submit Action').click();
