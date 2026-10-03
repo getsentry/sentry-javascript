@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getRuntime, getSpanOp } from '@sentry-internal/test-utils';
 import { isTurbopackDevMode } from './isDevMode';
 
 // Next.js emits these spans itself. The SDK attaches no op, description or function name to
@@ -9,11 +9,15 @@ const nextjsSpan = { op: undefined, description: undefined, codeFunctionName: un
 test('Sends a span for a request to app router with URL', async ({ page }) => {
   test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
 
+  // On Workers the segment is the request span of `withSentry` from `@sentry/nextjs/cloudflare`, with the attributes
+  // of `@sentry/cloudflare`. On the other runtimes it is the request span of Next.js.
+  const pathAttribute = getRuntime() === 'cloudflare' ? 'url.path' : 'http.target';
+
   const spansPromise = collectStreamedSpansUntilSegment(
     'nextjs-16',
     span =>
       span.name === 'GET /parameterized/[one]/beep/[two]' &&
-      String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
+      String(span.attributes[pathAttribute]?.value).startsWith('/parameterized/1337/beep/42'),
   );
 
   await page.goto('/parameterized/1337/beep/42');
@@ -23,7 +27,7 @@ test('Sends a span for a request to app router with URL', async ({ page }) => {
     span =>
       span.name === 'GET /parameterized/[one]/beep/[two]' &&
       span.is_segment &&
-      String(span.attributes['http.target']?.value).startsWith('/parameterized/1337/beep/42'),
+      String(span.attributes[pathAttribute]?.value).startsWith('/parameterized/1337/beep/42'),
   )!;
 
   expect(segmentSpan.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
@@ -31,20 +35,29 @@ test('Sends a span for a request to app router with URL', async ({ page }) => {
   expect(segmentSpan.status).toBe('ok');
   expect(segmentSpan.attributes).toMatchObject({
     'sentry.op': { value: 'http.server', type: 'string' },
-    'sentry.origin': { value: 'auto', type: 'string' },
     'sentry.sample_rate': { value: 1, type: 'integer' },
     'sentry.segment.name.source': { value: 'route', type: 'string' },
-    'http.method': { value: 'GET', type: 'string' },
     'http.response.status_code': { value: 200, type: 'integer' },
     'http.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
-    'http.status_code': { value: 200, type: 'integer' },
-    'http.target': { value: '/parameterized/1337/beep/42', type: 'string' },
-    'sentry.kind': { value: 'server', type: 'string' },
     'next.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
+    ...(getRuntime() === 'cloudflare'
+      ? {
+          'sentry.origin': { value: 'auto.http.cloudflare', type: 'string' },
+          'http.request.method': { value: 'GET', type: 'string' },
+          'url.path': { value: '/parameterized/1337/beep/42', type: 'string' },
+        }
+      : {
+          'sentry.origin': { value: 'auto', type: 'string' },
+          'http.method': { value: 'GET', type: 'string' },
+          'http.status_code': { value: 200, type: 'integer' },
+          'http.target': { value: '/parameterized/1337/beep/42', type: 'string' },
+          'sentry.kind': { value: 'server', type: 'string' },
+        }),
   });
 
   // No child span should share the segment span's name
   expect(spans.filter(span => !span.is_segment && span.name === segmentSpan.name)).toHaveLength(0);
+  expect(spans.filter(span => getSpanOp(span) === 'http.server')).toEqual([segmentSpan]);
 });
 
 test('Will create spans for every server component and metadata generation functions when visiting a page', async ({
