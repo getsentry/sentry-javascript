@@ -178,6 +178,16 @@ describe('Server init()', () => {
     });
   });
 
+  it('initializes again after the existing client is closed', async () => {
+    const first = init({});
+    await first?.close();
+    const second = init({});
+
+    expect(nodeInit).toHaveBeenCalledTimes(2);
+    expect(second).toBeDefined();
+    expect(second).not.toBe(first);
+  });
+
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
   });

@@ -67,6 +67,19 @@ const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
 // Default interval for flushing logs and metrics (5 seconds)
 const DEFAULT_FLUSH_INTERVAL = 5000;
 
+// Clones of a scope keep their own reference to its client, so unbinding a
+// closed client from one scope does not reach the others.
+const CLOSED_CLIENTS = new WeakSet<Client>();
+
+/**
+ * Whether `close()` was called on the given client.
+ *
+ * @hidden
+ */
+export function isClientClosed(client: Client): boolean {
+  return CLOSED_CLIENTS.has(client);
+}
+
 interface InternalError {
   message: string;
   [INTERNAL_ERROR_SYMBOL]: true;
@@ -488,6 +501,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number): PromiseLike<boolean> {
+    CLOSED_CLIENTS.add(this);
     const result = await this.flush(timeout);
     this.getOptions().enabled = false;
     this.emit('close');

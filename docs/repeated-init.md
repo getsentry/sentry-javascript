@@ -9,8 +9,12 @@ more than once. Use it when you add or change an `init()` in any SDK.
 > `init()` changes nothing, returns the active client, and warns. To
 > reconfigure, call `close()` first.
 
-"Active" means a client is bound to the current scope. `Sentry.close()`
-closes the client and unbinds it, so a later `init()` sets up a new client.
+"Active" means a client is bound to the current scope and is not closed.
+`Sentry.close()` closes the client and unbinds it, so a later `init()` sets
+up a new client. Other scopes can still hold the closed client (for example,
+when `close()` runs inside a request, or when code calls `client.close()`
+directly), so a check for "already initialized" must not use `getClient()`
+alone.
 
 A repeated `init()` is not supported. Until the next major version, most
 SDKs still replace the client (see below). Do not depend on that.
@@ -46,7 +50,9 @@ The shared warning lives in `warnIfClientIsActive()` in
 
 A wrapper that expects a repeated call, such as a server bundle and a
 `--import` preload that both run the config, keeps its own guard and
-returns early. The shared warning then does not show.
+returns early. The shared warning then does not show. Guards use
+`getActiveClient()` (exported as `_INTERNAL_getActiveClient`), which
+returns the bound client only if it is not closed.
 
 ## TODO(v12): Plan for the next major version
 
