@@ -68,8 +68,9 @@ const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
 const DEFAULT_FLUSH_INTERVAL = 5000;
 
 // Clones of a scope keep their own reference to its client, so unbinding a
-// closed client from one scope does not reach the others.
-const CLOSED_CLIENTS = new WeakSet<Client>();
+// closed client from one scope does not reach the others. The mark lives on
+// the client under a `Symbol.for` key, so every copy of the SDK can read it.
+const CLOSED_CLIENT_SYMBOL = Symbol.for('SentryClosedClient');
 
 /**
  * Whether `close()` was called on the given client.
@@ -77,7 +78,7 @@ const CLOSED_CLIENTS = new WeakSet<Client>();
  * @hidden
  */
 export function isClientClosed(client: Client): boolean {
-  return CLOSED_CLIENTS.has(client);
+  return CLOSED_CLIENT_SYMBOL in client;
 }
 
 interface InternalError {
@@ -501,7 +502,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number): PromiseLike<boolean> {
-    CLOSED_CLIENTS.add(this);
+    Object.defineProperty(this, CLOSED_CLIENT_SYMBOL, { value: true });
     const result = await this.flush(timeout);
     this.getOptions().enabled = false;
     this.emit('close');
