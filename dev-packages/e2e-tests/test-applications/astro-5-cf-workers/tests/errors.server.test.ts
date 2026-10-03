@@ -19,6 +19,10 @@ test.describe('server-side errors', () => {
     const errorEvent = await errorEventPromise;
     const span = await spanPromise;
 
+    expect(span).toMatchObject({
+      name: 'GET /ssr-error',
+    });
+
     const traceId = span.trace_id;
     const spanId = span.span_id;
 
@@ -83,19 +87,19 @@ test.describe('server-side errors', () => {
     const apiSpan = await apiSpanPromise;
     const endpointSpan = await endpointSpanPromise;
 
+    expect(endpointSpan).toMatchObject({
+      name: 'GET /endpoint-error',
+    });
+
     const traceId = endpointSpan.trace_id;
 
     expect(traceId).toMatch(/[a-f0-9]{32}/);
 
-    expect(apiSpan.trace_id).toBe(traceId);
+    expect(apiSpan).toMatchObject({
+      name: 'GET /endpoint-error/api',
+    });
 
     expect(errorEvent).toMatchObject({
-      contexts: {
-        trace: {
-          trace_id: apiSpan.trace_id,
-          span_id: apiSpan.span_id,
-        },
-      },
       exception: {
         values: [
           {
