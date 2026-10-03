@@ -1,12 +1,5 @@
 import type { LRUMap, Span } from '@sentry/core';
-import {
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-  stringify,
-  withActiveSpan,
-} from '@sentry/core';
+import { captureException, SPAN_STATUS_ERROR, startInactiveSpan, stringify, withActiveSpan } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_COST_CACHE_CREATION_INPUT_TOKENS,
@@ -37,6 +30,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp } from '../core/utils';
 import { FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
@@ -123,7 +117,7 @@ export function startTurnSpan(observation: FlueObservation, turnSpans: SpanTrack
       name: 'chat',
       op: getGenAiSpanOp('chat'),
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: FLUE_ORIGIN,
+        [SENTRY_ORIGIN]: FLUE_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'chat',
         ...(observation.conversationId ? { [GEN_AI_CONVERSATION_ID]: observation.conversationId } : {}),
         // No conventional attribute for this; it is the only way to tell a compaction turn from a
@@ -237,7 +231,7 @@ export function startToolSpan(observation: FlueObservation, toolSpans: SpanTrack
       name: `execute_tool ${toolName ?? 'unknown'}`,
       op: getGenAiSpanOp('execute_tool'),
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: FLUE_ORIGIN,
+        [SENTRY_ORIGIN]: FLUE_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'execute_tool',
         ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
         ...(observation.conversationId ? { [GEN_AI_CONVERSATION_ID]: observation.conversationId } : {}),

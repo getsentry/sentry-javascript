@@ -1,12 +1,5 @@
 import type { Integration, Span, SpanAttributes } from '@sentry/core';
-import {
-  getClient,
-  getCurrentScope,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
-} from '@sentry/core';
+import { getClient, getCurrentScope, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToJSON } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core/browser';
 import {
   SENTRY_EXCLUSIVE_TIME,
@@ -16,6 +9,7 @@ import {
   SENTRY_SEGMENT_NAME,
   SENTRY_TRANSACTION,
   USER_AGENT_ORIGINAL,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { WINDOW } from '../types';
 import type { MetricNavigationType } from '../instrumentation/performanceObserver';
@@ -91,7 +85,7 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   const segmentName = segmentSpan ? spanToJSON(segmentSpan).name : getCurrentScope().getScopeData().transactionName;
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+    [SENTRY_ORIGIN]: origin,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
     [SENTRY_EXCLUSIVE_TIME]: 0,
     [`browser.web_vital.${metricName}.value`]: value,

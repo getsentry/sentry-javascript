@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
@@ -15,6 +15,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -38,7 +39,7 @@ describe('Together integration', () => {
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
             expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.chat');
-            expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+            expect(chatSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('meta-llama/Llama-3.3-70B-Instruct-Turbo');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE]?.value).toBe(0.7);
@@ -88,7 +89,7 @@ describe('Together integration', () => {
               'embeddings togethercomputer/m2-bert-80M-8k-retrieval',
             ]);
             for (const span of rawSpans) {
-              expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+              expect(span.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
               expect(span.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
               expect(span.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
               expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();

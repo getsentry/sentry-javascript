@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-// Cannot use @sentry/angular here due to build stuff
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 
 // The `angular-19 (streamed)` variant builds the app with `traceLifecycle: 'stream'`, which emits
 // spans instead of transactions. See `streamed-performance.test.ts` for that variant.
@@ -257,7 +256,7 @@ test.describe('TraceDirective', () => {
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
     const traceDirectiveSpans = navigationTxn.spans?.filter(
-      span => span?.data && span?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.ui.angular.trace_directive',
+      span => span?.data && span?.data['sentry.origin'] === 'auto.ui.angular.trace_directive',
     );
 
     expect(traceDirectiveSpans).toHaveLength(2);
@@ -266,7 +265,7 @@ test.describe('TraceDirective', () => {
         expect.objectContaining({
           data: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+            ['sentry.origin']: 'auto.ui.angular.trace_directive',
             'ui.component_name': 'sample-component',
           },
           description: '<sample-component>', // custom component name passed to trace directive
@@ -278,7 +277,7 @@ test.describe('TraceDirective', () => {
         expect.objectContaining({
           data: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+            ['sentry.origin']: 'auto.ui.angular.trace_directive',
             'ui.component_name': 'app-sample-component',
           },
           description: '<app-sample-component>', // fallback selector name
@@ -304,7 +303,7 @@ test.describe('TraceClass Decorator', () => {
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
     const classDecoratorSpan = navigationTxn.spans?.find(
-      span => span?.data && span?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.ui.angular.trace_class_decorator',
+      span => span?.data && span?.data['sentry.origin'] === 'auto.ui.angular.trace_class_decorator',
     );
 
     expect(classDecoratorSpan).toBeDefined();
@@ -312,7 +311,7 @@ test.describe('TraceClass Decorator', () => {
       expect.objectContaining({
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.mount',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+          ['sentry.origin']: 'auto.ui.angular.trace_class_decorator',
           'ui.component_name': 'ComponentTrackingComponent',
         },
         description: '<ComponentTrackingComponent>',
@@ -345,7 +344,7 @@ test.describe('TraceMethod Decorator', () => {
       expect.objectContaining({
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+          ['sentry.origin']: 'auto.ui.angular.trace_method_decorator',
           'code.function.name': 'ngOnInit',
         },
         description: '<ngOnInit>',
@@ -376,7 +375,7 @@ test.describe('TraceMethod Decorator', () => {
       expect.objectContaining({
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+          ['sentry.origin']: 'auto.ui.angular.trace_method_decorator',
           'code.function.name': 'ngAfterViewInit',
         },
         description: '<unnamed>',

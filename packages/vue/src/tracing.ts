@@ -1,4 +1,4 @@
-import { getActiveSpan, getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
+import { getActiveSpan, getClient, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
   debug,
@@ -10,7 +10,7 @@ import {
   UI_UPDATE_SPAN_NAME_FALLBACK,
   uniq,
 } from '@sentry/core';
-import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { UI_MOUNT, UI_RENDER, UI_UNMOUNT, UI_UPDATE } from '@sentry/conventions/op';
 import { DEFAULT_HOOKS, DEFAULT_ROOT_SPAN_TIMEOUT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -145,7 +145,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
               name: hasSpanStreaming ? conventionComponentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
               attributes: {
                 [SENTRY_OP]: UI_RENDER,
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+                [SENTRY_ORIGIN]: 'auto.ui.vue',
                 ...(conventionComponentName && { [UI_COMPONENT_NAME]: conventionComponentName }),
                 ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },
@@ -196,7 +196,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
                 : description,
               attributes: {
                 [SENTRY_OP]: VUE_OPERATION_TO_SPAN_OP[operation],
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+                [SENTRY_ORIGIN]: 'auto.ui.vue',
                 ...(conventionComponentName && { [UI_COMPONENT_NAME]: conventionComponentName }),
                 ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },

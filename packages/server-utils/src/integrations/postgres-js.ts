@@ -7,6 +7,7 @@ import {
   ERROR_TYPE,
   SENTRY_KIND,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
@@ -15,7 +16,6 @@ import {
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -299,7 +299,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
         attributes: {
           [SENTRY_OP]: DB,
           [SENTRY_KIND]: 'client',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
           [DB_QUERY_TEXT]: sanitizedSqlQuery,
           [DB_QUERY_SUMMARY]: querySummary,

@@ -4,10 +4,9 @@ import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { GEN_AI_PROVIDER_NAME } from '@sentry/conventions/attributes';
+import { GEN_AI_PROVIDER_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
@@ -117,7 +116,7 @@ function createGenAiSpan(
   // `extractRequestAttributes` defaults the provider to openai; override it for the concrete provider.
   const attributes = extractRequestAttributes(args, operation, recordInputs);
   attributes[GEN_AI_PROVIDER_NAME] = provider.providerName;
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = provider.origin;
+  attributes[SENTRY_ORIGIN] = provider.origin;
   const model = (params?.model as string) || 'unknown';
   const client = getClient();
 

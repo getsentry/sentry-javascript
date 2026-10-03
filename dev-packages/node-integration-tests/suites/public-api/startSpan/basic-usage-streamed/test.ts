@@ -1,9 +1,4 @@
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
@@ -14,6 +9,7 @@ import {
   SENTRY_ENVIRONMENT,
   SENTRY_RELEASE,
   SENTRY_SDK_INTEGRATIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
@@ -70,7 +66,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
             [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
             [SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
             [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+            [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           },
           name: 'test-child-span',
           is_segment: false,
@@ -94,7 +90,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
             [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
             [SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
             [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+            [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           },
           links: [
             {
@@ -131,7 +127,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
             [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
             [SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
             [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+            [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           },
           name: 'test-manual-span',
           is_segment: false,
@@ -158,7 +154,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
           [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
           [SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
           [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+          [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'custom' },
           'process.runtime.engine.name': { type: 'string', value: 'v8' },
           'process.runtime.engine.version': { type: 'string', value: expect.any(String) },

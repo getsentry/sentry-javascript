@@ -5,6 +5,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
@@ -13,7 +14,6 @@ import {
   flush,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
   SPAN_STATUS_ERROR,
   startSpanManual,
@@ -65,7 +65,7 @@ function wrapHandler(handler: Handler, triggerType: string): Handler {
     const enhancedTriggerType = `firebase.function.${triggerType}`;
 
     const attributes: SpanAttributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: FUNCTIONS_ORIGIN,
+      [SENTRY_ORIGIN]: FUNCTIONS_ORIGIN,
       [FAAS_NAME]: functionName,
       [FAAS_TRIGGER]: triggerType,
       'faas.provider': 'firebase',

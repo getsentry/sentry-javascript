@@ -1,6 +1,7 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/browser';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -45,7 +46,7 @@ sentryTest(
           'browser.script.invoker': 'https://sentry-test-site.example/path/to/script.js',
           'browser.script.invoker_type': 'classic-script',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long_animation_frame',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       }),
     );
@@ -99,7 +100,7 @@ sentryTest(
           'browser.script.invoker_type': 'event-listener',
           'code.file.path': 'https://sentry-test-site.example/path/to/script.js',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long_animation_frame',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       }),
     );

@@ -5,6 +5,7 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HANDLER, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
@@ -19,7 +20,6 @@ import {
   hasSpanStreamingEnabled,
   REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   startInactiveSpan,
   startSpanManual,
@@ -155,7 +155,7 @@ function instrumentLifecyclePhase(
       parentSpan: rootSpan,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
+        [SENTRY_ORIGIN]: ELYSIA_ORIGIN,
         ...routeAttribute,
       },
     });
@@ -170,7 +170,7 @@ function instrumentLifecyclePhase(
           parentSpan: phaseSpan,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
+            [SENTRY_ORIGIN]: ELYSIA_ORIGIN,
             ...routeAttribute,
             // Streamed request handler spans are named after the route, so the
             // handler name has no other place to go. Anonymous handlers have no
@@ -252,7 +252,7 @@ export function withElysia<T extends AnyElysia>(app: T, options: ElysiaHandlerOp
                       : `${request.method} ${new URL(request.url).pathname}`,
                   attributes: {
                     [SENTRY_OP]: HTTP_SERVER,
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ELYSIA_ORIGIN,
+                    [SENTRY_ORIGIN]: ELYSIA_ORIGIN,
                     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                     [URL_FULL]: filterCollectedUrl(request.url),
                     [URL_PATH]: new URL(request.url).pathname,

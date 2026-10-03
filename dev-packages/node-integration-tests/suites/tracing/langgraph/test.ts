@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_AGENT_NAME,
@@ -15,6 +15,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -275,7 +276,7 @@ describe('LangGraph integration', () => {
                 attributes: expect.objectContaining({
                   [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'invoke_agent' }),
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: expect.objectContaining({ value: 'auto.ai.langgraph' }),
+                  [SENTRY_ORIGIN]: expect.objectContaining({ value: 'auto.ai.langgraph' }),
                   [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
                   [GEN_AI_PIPELINE_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
                 }),

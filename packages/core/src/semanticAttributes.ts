@@ -21,6 +21,7 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_OP = 'sentry.op';
 
 /**
  * Use this attribute to represent the origin of a span.
+ * @deprecated Use `SENTRY_ORIGIN` from `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
 

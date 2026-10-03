@@ -1,6 +1,6 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Client } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
@@ -108,7 +108,7 @@ describe('wrapLoadWithSentry', () => {
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
             'code.function.name': 'load',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             'url.path': '/users/123',
             'url.template': '/users/[id]',
@@ -138,7 +138,7 @@ describe('wrapLoadWithSentry', () => {
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
             'code.function.name': 'load',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             'url.path': '/users/123',
           },
@@ -204,7 +204,7 @@ describe('wrapLoadWithSentry', () => {
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
               'code.function.name': 'load',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
               'url.path': '/users/123',
               'url.template': '/users/[id]',
@@ -225,7 +225,7 @@ describe('wrapLoadWithSentry', () => {
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
               'code.function.name': 'load',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               'url.path': '/users/123',
               'sentry.description': '/users/123',

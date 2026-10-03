@@ -7,10 +7,11 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import type { RedisCacheOptions } from './redis-cache';
 import { applyCacheResponseAttributes, getRedisCacheAttributes } from './redis-cache';
@@ -148,7 +149,7 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
         port: data.serverPort,
       });
       const attributes: SpanAttributes = {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB_QUERY,
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
         [DB_OPERATION_NAME]: data.command,
@@ -182,7 +183,7 @@ function setupBatchChannel(
     return startInactiveSpan({
       name: operation,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB_QUERY,
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
         [DB_OPERATION_NAME]: operation,
@@ -201,7 +202,7 @@ function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channel
     return startInactiveSpan({
       name: 'redis-connect',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB,
         [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
         ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),

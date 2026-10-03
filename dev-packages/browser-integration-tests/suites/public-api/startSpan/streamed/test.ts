@@ -1,10 +1,5 @@
 import { expect } from '@playwright/test';
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
@@ -19,6 +14,7 @@ import {
   SENTRY_STATUS_MESSAGE,
   SENTRY_ENVIRONMENT,
   SENTRY_SDK_INTEGRATIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 
 sentryTest(
@@ -81,7 +77,7 @@ sentryTest(
             type: 'string',
             value: 'test-child',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -126,7 +122,7 @@ sentryTest(
       {
         attributes: {
           'sentry.is_localhost': { value: false, type: 'boolean' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -171,7 +167,7 @@ sentryTest(
       {
         attributes: {
           'sentry.is_localhost': { value: false, type: 'boolean' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -244,7 +240,7 @@ sentryTest(
             type: 'string',
             value: 'test',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },

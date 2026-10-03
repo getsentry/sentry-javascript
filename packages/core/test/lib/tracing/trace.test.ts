@@ -7,7 +7,6 @@ import {
   getTraceData,
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
@@ -33,7 +32,7 @@ import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '.
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SUPPRESS_TRACING_KEY } from '../../../src/tracing/constants';
 import { resetGlobals } from '../../testutils';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
 const enum Type {
   Sync = 'sync',
@@ -180,7 +179,7 @@ describe('startSpan', () => {
         await startSpan(
           {
             name: 'GET users/[id]',
-            attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser' },
+            attributes: { [SENTRY_ORIGIN]: 'auto.http.browser' },
           },
           () => {
             return callback();
