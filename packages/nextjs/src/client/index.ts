@@ -22,8 +22,6 @@ export { captureUnderscoreErrorException } from '../common/pages-router-instrume
 export { browserTracingIntegration } from './browserTracingIntegration';
 export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
 
-let clientIsInitialized = false;
-
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesAssetPrefixPath: string;
   _sentryAssetPrefix?: string;
@@ -37,16 +35,6 @@ declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: BrowserOptions): Client | undefined {
-  if (clientIsInitialized) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[@sentry/nextjs] You are calling `Sentry.init()` more than once on the client. This can happen if you have both a `sentry.client.config.ts` and a `instrumentation-client.ts` file with `Sentry.init()` calls. It is recommended to call `Sentry.init()` once in `instrumentation-client.ts`.',
-      );
-    });
-  }
-  clientIsInitialized = true;
-
   if (!DEBUG_BUILD && options.debug) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console

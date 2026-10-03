@@ -1,7 +1,14 @@
 import { ElementRef } from '@angular/core';
 import type { ActivatedRouteSnapshot } from '@angular/router';
-import { getMainCarrier, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SentrySpan, spanToJSON, startSpan } from '@sentry/core';
-import { describe, it } from 'vitest';
+import {
+  getCurrentScope,
+  getMainCarrier,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentrySpan,
+  spanToJSON,
+  startSpan,
+} from '@sentry/core';
+import { beforeEach, describe, it } from 'vitest';
 import { browserTracingIntegration, init, TraceClass, TraceDirective } from '../src/index';
 import { _updateSpanAttributesForParametrizedUrl, getParameterizedRouteFromSnapshot } from '../src/tracing';
 import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
@@ -68,6 +75,10 @@ describe('Angular Tracing', () => {
   });
 
   describe('TraceService', () => {
+    beforeEach(() => {
+      getCurrentScope().setClient(undefined);
+    });
+
     it('change the span name to route name if the the source is `url`', async () => {
       init({ integrations: [browserTracingIntegration()] });
 
