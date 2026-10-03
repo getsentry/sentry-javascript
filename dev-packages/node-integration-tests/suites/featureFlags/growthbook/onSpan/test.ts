@@ -21,11 +21,11 @@ test('GrowthBook flags are added to active span attributes on span end', async (
             'flag.evaluation.feat1': { type: 'boolean', value: true },
             'flag.evaluation.feat2': { type: 'boolean', value: false },
             'flag.evaluation.bool-feat': { type: 'boolean', value: true },
-            // string-feat should NOT be here since it's not boolean
             'sentry.op': { type: 'string', value: 'function' },
             'sentry.origin': { type: 'string', value: 'manual' },
           },
         });
+        // string-feat should NOT be here since it's not boolean
         expect(span?.attributes['flag.evaluation.string-feat']).toBeUndefined();
       },
     })
