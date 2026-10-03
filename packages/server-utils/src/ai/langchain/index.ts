@@ -34,6 +34,7 @@ import {
   extractLlmResponseAttributes,
   extractToolDefinitions,
   getAgentNameFromMetadata,
+  getConversationIdFromMetadata,
   getInvocationParams,
 } from './utils';
 
@@ -117,6 +118,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
               : operationName,
           attributes: {
             ...getAgentNameFromMetadata(metadata),
+            ...getConversationIdFromMetadata(metadata),
             ...attributes,
             [SENTRY_OP]: GEN_AI_CHAT,
           },
@@ -167,6 +169,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
               : operationName,
           attributes: {
             ...getAgentNameFromMetadata(metadata),
+            ...getConversationIdFromMetadata(metadata),
             ...attributes,
             [SENTRY_OP]: GEN_AI_CHAT,
           },
@@ -227,6 +230,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
       const chainName = runName || chain.name;
       const attributes: Record<string, SpanAttributeValue> = {
+        ...getConversationIdFromMetadata(metadata),
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
         [GEN_AI_OPERATION_NAME]: 'invoke_agent',
       };
@@ -307,6 +311,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const toolName = runName || tool.name || 'unknown_tool';
       const attributes: Record<string, SpanAttributeValue> = {
         ...getAgentNameFromMetadata(metadata),
+        ...getConversationIdFromMetadata(metadata),
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'execute_tool',
         [GEN_AI_TOOL_NAME]: toolName,
