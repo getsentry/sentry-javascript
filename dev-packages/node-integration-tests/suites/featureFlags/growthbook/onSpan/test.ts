@@ -26,6 +26,7 @@ test('GrowthBook flags are added to active span attributes on span end', async (
             'sentry.origin': { type: 'string', value: 'manual' },
           },
         });
+        expect(span?.attributes['flag.evaluation.string-feat']).toBeUndefined();
       },
     })
     .start()
