@@ -27,7 +27,7 @@ export interface CronTriggersIntegration {
 const SLUG_TOKENS: Record<string, string> = { ' ': '-', '*': 'x', ',': '_', '-': 'to', '/': 'by' };
 
 /**
- * Derives a monitor slug from a cron expression, e.g. `30 9 * * 1-5` -> `cron-30-9-x-x-1to5`.
+ * Derives a monitor slug from a cron expression, e.g. `30 9 * * MON-FRI` -> `cron-30-9-x-x-montofri`.
  *
  * A hash of the expression is appended when it has any other characters or the slug would be
  * longer than 50 characters, so different expressions don't share a slug.
@@ -151,12 +151,12 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
  * schedule, so Sentry creates the monitor on the first run.
  *
  * Cron Triggers have no names, so map each cron expression to a slug. Without `slug`, the slug is
- * derived from the expression (`30 9 * * 1-5` becomes `cron-30-9-x-x-1to5`) and changes with it.
+ * derived from the expression (`30 9 * * MON-FRI` becomes `cron-30-9-x-x-montofri`) and changes with it.
  *
  * @example
  * ```ts
  * const jobs = {
- *   '30 9 * * 1-5': { slug: 'daily-report', run: dailyReport },
+ *   '30 9 * * MON-FRI': { slug: 'daily-report', run: dailyReport },
  * };
  *
  * export default Sentry.withSentry(

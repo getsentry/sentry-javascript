@@ -50,11 +50,11 @@ describe('cronTriggersIntegration', () => {
   test('uses the slug returned by the slug function', () => {
     const slug = vi.fn().mockReturnValue('weekday-report');
 
-    expect(getInProgressCheckIn('30 9 * * 1-5', { slug })).toEqual([
+    expect(getInProgressCheckIn('30 9 * * MON-FRI', { slug })).toEqual([
       { monitorSlug: 'weekday-report', status: 'in_progress' },
-      { schedule: { type: 'crontab', value: '30 9 * * SUN-THU' } },
+      { schedule: { type: 'crontab', value: '30 9 * * MON-FRI' } },
     ]);
-    expect(slug).toHaveBeenCalledWith('30 9 * * 1-5');
+    expect(slug).toHaveBeenCalledWith('30 9 * * MON-FRI');
   });
 
   test('sends the monitor settings returned by the slug function', () => {
@@ -136,6 +136,7 @@ describe('cronTriggersIntegration', () => {
     ['0 9 * * 1-5', 'cron-0-9-x-x-1to5'],
     ['*/15 * * * *', 'cron-xby15-x-x-x-x'],
     ['0  9 * * MON', 'cron-0-9-x-x-mon'],
+    ['30 9 * * MON-FRI', 'cron-30-9-x-x-montofri'],
   ])('derives the slug for %s as %s', (cron, slug) => {
     expect(getSlug(cron)).toBe(slug);
   });
