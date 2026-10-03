@@ -338,6 +338,55 @@ describe('createFlueInstrumentation', () => {
     expect(json?.data['gen_ai.cost.total_tokens']).toBe(0.001199);
   });
 
+  // pi-ai keeps the cached tokens out of `input`; the conventions count them in.
+  it('counts cached tokens into the input tokens and their cost into the input cost', async () => {
+    const usage = {
+      input: 37,
+      output: 2,
+      cacheRead: 52,
+      cacheWrite: 38,
+      totalTokens: 129,
+      cost: { input: 0.000037, output: 0.00001, cacheRead: 0.0000052, cacheWrite: 0.0000475, total: 0.0000997 },
+    };
+
+    await withAgent(() => {
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
+      instrumentation.observe(turn({ response: { ...turn().response, usage } }), {});
+    });
+
+    const json = findSpan('chat claude-haiku-4.5');
+    expect(json?.data['gen_ai.usage.input_tokens']).toBe(127);
+    expect(json?.data['gen_ai.usage.cache_read.input_tokens']).toBe(52);
+    expect(json?.data['gen_ai.usage.cache_creation.input_tokens']).toBe(38);
+    expect(json?.data['gen_ai.cost.input_tokens']).toBe(0.000037 + 0.0000052 + 0.0000475);
+    expect(json?.data['gen_ai.cost.total_tokens']).toBe(0.0000997);
+  });
+
+  it('reports a tool-calling turn with the finish reason of the conventions', async () => {
+    await withAgent(() => {
+      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
+      instrumentation.observe(
+        turn({
+          response: {
+            ...turn().response,
+            finishReason: 'toolUse',
+            output: {
+              role: 'assistant',
+              content: [{ type: 'toolCall', id: 'c1', name: 'get_weather', arguments: { city: 'Berlin' } }],
+            },
+          },
+        }),
+        {},
+      );
+    });
+
+    const json = findSpan('chat claude-haiku-4.5');
+    expect(json?.data['gen_ai.response.finish_reasons']).toBe('["tool_call"]');
+    expect(json?.data['gen_ai.output.messages']).toBe(
+      '[{"role":"assistant","parts":[{"type":"tool_call","id":"c1","name":"get_weather","arguments":"{\\"city\\":\\"Berlin\\"}"}],"finish_reason":"tool_call"}]',
+    );
+  });
+
   it('records the model-call tuning and provider endpoint', async () => {
     await withAgent(() => {
       instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1', purpose: 'agent' }, {});
@@ -404,7 +453,15 @@ describe('createFlueInstrumentation', () => {
       await instr.interceptor(AGENT_OP, AGENT_CTX, async () => {
         instr.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
         instr.observe(requestContent, {});
-        instr.observe(turn({ response: { ...turn().response, output: { role: 'assistant' } } }), {});
+        instr.observe(
+          turn({
+            response: {
+              ...turn().response,
+              output: { role: 'assistant', content: [{ type: 'text', text: 'It is sunny.' }] },
+            },
+          }),
+          {},
+        );
         instr.observe(
           {
             type: 'tool_start',
@@ -415,8 +472,16 @@ describe('createFlueInstrumentation', () => {
           },
           {},
         );
+        // `result` is the harness-level shape; `effectiveResult` is what the model receives.
         instr.observe(
-          { type: 'tool', toolCallId: 'c1', toolName: 'get_weather', result: 'sunny', operationId: 'op_1' },
+          {
+            type: 'tool',
+            toolCallId: 'c1',
+            toolName: 'get_weather',
+            result: { content: [{ type: 'text', text: '"sunny"' }], details: { output: 'sunny' } },
+            effectiveResult: 'sunny',
+            operationId: 'op_1',
+          },
           {},
         );
       });
@@ -427,13 +492,109 @@ describe('createFlueInstrumentation', () => {
 
       const chat = findSpan('chat claude-haiku-4.5');
       expect(chat?.data['gen_ai.system_instructions']).toBe('You are helpful.');
-      expect(chat?.data['gen_ai.input.messages']).toContain('"role":"user"');
-      expect(chat?.data['gen_ai.output.messages']).toContain('"role":"assistant"');
+      // Mapped from pi-ai's message shape to the conventions, which is what Sentry renders.
+      expect(chat?.data['gen_ai.input.messages']).toBe('[{"role":"user","parts":[{"type":"text","content":"hi"}]}]');
+      expect(chat?.data['gen_ai.output.messages']).toBe(
+        '[{"role":"assistant","parts":[{"type":"text","content":"It is sunny."}],"finish_reason":"stop"}]',
+      );
       expect(chat?.data['gen_ai.tool.definitions']).toContain('get_weather');
 
       const tool = findSpan('execute_tool get_weather');
       expect(tool?.data['gen_ai.tool.call.arguments']).toBe('{"city":"Berlin"}');
       expect(tool?.data['gen_ai.tool.call.result']).toBe('sunny');
+    });
+
+    it('records the content blocks of a tool result that has no effective result', async () => {
+      await withAgent(() => {
+        instrumentation.observe(
+          { type: 'tool_start', toolCallId: 'c1', toolName: 'get_weather', operationId: 'op_1' },
+          {},
+        );
+        instrumentation.observe(
+          {
+            type: 'tool',
+            toolCallId: 'c1',
+            toolName: 'get_weather',
+            result: {
+              content: [
+                { type: 'text', text: 'sunny' },
+                { type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' },
+              ],
+              details: { customTool: 'get_weather' },
+            },
+            operationId: 'op_1',
+          },
+          {},
+        );
+      });
+
+      expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.result']).toBe(
+        '[{"type":"text","content":"sunny"},{"type":"blob","mime_type":"image/png"}]',
+      );
+    });
+
+    it('maps an effective result made of several content blocks', async () => {
+      await withAgent(() => {
+        instrumentation.observe(
+          { type: 'tool_start', toolCallId: 'c1', toolName: 'get_weather', operationId: 'op_1' },
+          {},
+        );
+        instrumentation.observe(
+          {
+            type: 'tool',
+            toolCallId: 'c1',
+            toolName: 'get_weather',
+            effectiveResult: [
+              { type: 'text', text: 'sunny' },
+              { type: 'image', data: '[image data omitted from event]', mimeType: 'image/png' },
+            ],
+            operationId: 'op_1',
+          },
+          {},
+        );
+      });
+
+      expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.result']).toBe(
+        '[{"type":"text","content":"sunny"},{"type":"blob","mime_type":"image/png"}]',
+      );
+    });
+
+    it('maps a tool result in the request and a tool call in the response', async () => {
+      await withAgent(() => {
+        instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
+        instrumentation.observe(
+          {
+            ...requestContent,
+            request: {
+              ...requestContent.request,
+              input: {
+                messages: [
+                  { role: 'user', content: 'Weather in Berlin?' },
+                  {
+                    role: 'assistant',
+                    content: [{ type: 'toolCall', id: 'c1', name: 'get_weather', arguments: { city: 'Berlin' } }],
+                  },
+                  {
+                    role: 'toolResult',
+                    toolCallId: 'c1',
+                    toolName: 'get_weather',
+                    content: [{ type: 'text', text: 'sunny' }],
+                    isError: false,
+                  },
+                ],
+              },
+            },
+          },
+          {},
+        );
+        instrumentation.observe(turn(), {});
+      });
+
+      expect(
+        JSON.parse(String(findSpan('chat claude-haiku-4.5')?.data['gen_ai.input.messages'])).map(
+          (message: { role: string }) => message.role,
+        ),
+      ).toEqual(['user', 'assistant', 'tool']);
     });
 
     it('omits inputs when recordInputs is false but keeps outputs', async () => {
