@@ -166,6 +166,21 @@ describe('cacheClient', () => {
     expect(init({ ...options })).toBe(second);
   });
 
+  test('sets up a new cached client while the cached client is closing', async () => {
+    const options = {
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    } as const;
+
+    const first = init({ ...options });
+    const closing = first!.close();
+    const second = init({ ...options });
+    await closing;
+
+    expect(second).not.toBe(first);
+    expect(second?.getOptions().enabled).not.toBe(false);
+    expect(init({ ...options })).toBe(second);
+  });
+
   test('keeps the cached client when a client that is not cached closes', async () => {
     const cached = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
     const uncached = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', cacheClient: false });

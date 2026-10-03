@@ -17,7 +17,7 @@ export function cacheClient(client: CloudflareClient): void {
   (GLOBAL_OBJ as GlobalWithCloudflareClient)[GLOBAL_CLIENT_KEY] = client;
 }
 
-/** @hidden Clears the isolate's cached Cloudflare client. */
+/** @hidden Only for testing - clears the isolate's cached Cloudflare client. */
 export function _clearGlobalClientCache(): void {
   (GLOBAL_OBJ as GlobalWithCloudflareClient)[GLOBAL_CLIENT_KEY] = undefined;
 }

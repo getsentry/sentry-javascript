@@ -34,14 +34,14 @@ When `init()` replaces a client, nothing closes the old one:
 
 ## Current behavior
 
-| Entry point                                                               | Repeated call                                                                                                                                                      |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `initAndBind` (browser and its wrappers, Deno), Node `_init`, Vercel Edge | Warns, then replaces the client. Returns the new client.                                                                                                           |
-| Next.js server, Remix server, Hono Node                                   | Keeps the first client and returns it. Logs in debug mode only.                                                                                                    |
-| Hono Bun and Deno                                                         | Keeps the first client and returns it. Warns with its own text.                                                                                                    |
-| Nuxt server                                                               | Keeps the first client and returns it. Logs that a `--import` preload is no longer needed.                                                                         |
-| Cloudflare (default)                                                      | Keeps the first client of the isolate and returns it. Closing that client clears the cache. `cacheClient: false` makes a new client on each call, with no warning. |
-| Next.js edge                                                              | Warns, then replaces the client. Returns `void`.                                                                                                                   |
+| Entry point                                                               | Repeated call                                                                                                                                                         |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initAndBind` (browser and its wrappers, Deno), Node `_init`, Vercel Edge | Warns, then replaces the client. Returns the new client.                                                                                                              |
+| Next.js server, Remix server, Hono Node                                   | Keeps the first client and returns it. Logs in debug mode only.                                                                                                       |
+| Hono Bun and Deno                                                         | Keeps the first client and returns it. Warns with its own text.                                                                                                       |
+| Nuxt server                                                               | Keeps the first client and returns it. Logs that a `--import` preload is no longer needed.                                                                            |
+| Cloudflare (default)                                                      | Keeps the first client of the isolate and returns it, unless that client is closed or closing. `cacheClient: false` makes a new client on each call, with no warning. |
+| Next.js edge                                                              | Warns, then replaces the client. Returns `void`.                                                                                                                      |
 
 The shared warning lives in `warnIfClientIsActive()` in
 `packages/core/src/sdk.ts`. Core exports it as

@@ -90,7 +90,7 @@
 
 Work in this release was contributed by @Shubham-Padkonde and @tobias-schnabel. Thank you for your contributions!
 
-- **feat(core)**: `Sentry.init()` now warns when it runs while a client is still active. For now, the new client still replaces the active client, but the active client is not closed, so state from both can mix. Call `Sentry.init()` once, or call `await Sentry.close()` before you call it again. `Sentry.close()` now unbinds the client it closes, so after `close()`, `getClient()` returns `undefined`, `isInitialized()` returns `false`, and a later `init()` sets up a new client. In `@sentry/cloudflare`, closing the client also clears the isolate's client cache, so later requests no longer reuse the closed client. On the server, `@sentry/nextjs` and `@sentry/remix` now return the active client from a repeated `init()` call, not `undefined`.
+- **feat(core)**: `Sentry.init()` now warns when it runs while a client is still active. For now, the new client still replaces the active client, but the active client is not closed, so state from both can mix. Call `Sentry.init()` once, or call `await Sentry.close()` before you call it again. `Sentry.close()` now unbinds the client it closes, so after `close()`, `getClient()` returns `undefined`, `isInitialized()` returns `false`, and a later `init()` sets up a new client. In `@sentry/cloudflare`, later requests no longer reuse the isolate's cached client once it is closed or closing. On the server, `@sentry/nextjs` and `@sentry/remix` now return the active client from a repeated `init()` call, not `undefined`.
 
 ## 11.2.0
 
