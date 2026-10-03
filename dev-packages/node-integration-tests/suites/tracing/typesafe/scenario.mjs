@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/node';
 import { choice, noul, score, TypeSafeClient } from '@typesafe-ai/sdk';
 import express from 'express';
+import { tracingChannel } from 'node:diagnostics_channel';
 
 function startMockServer() {
   const app = express();
@@ -41,7 +42,17 @@ function startMockServer() {
   });
 }
 
+// On Node < 24.13 the ESM build is transformed on the `Module.register` loader thread, which reports the
+// injection back over a `MessagePort`, so the integration may subscribe only after this module starts running.
+async function waitForSubscription() {
+  const channel = tracingChannel('orchestrion:@typesafe-ai/sdk:system-one');
+  while (!channel.start.hasSubscribers) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+}
+
 async function run() {
+  await waitForSubscription();
   const server = await startMockServer();
   const client = new TypeSafeClient({
     apiKey: 'mock-api-key',
