@@ -419,9 +419,7 @@ export function constructWebpackConfigFunction({
       }
     }
 
-    if (userSentryOptions.webpack?.treeshake) {
-      setupTreeshakingFromConfig(userSentryOptions, newConfig, buildContext);
-    }
+    setupTreeshakingFromConfig(userSentryOptions, newConfig, buildContext);
 
     // We inject a map of dependencies that the nextjs app has, as we cannot reliably extract them at runtime, sadly
     newConfig.plugins = newConfig.plugins || [];
@@ -888,37 +886,49 @@ function prependOrchestrionRuntimeExternals(newConfig: WebpackConfigObjectWithMo
 }
 
 /**
- * Sets up the tree-shaking flags based on the user's configuration.
+ * Returns the tree-shaking flags to define, based on the user's configuration.
  * https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/tree-shaking/
+ */
+export function getTreeshakeDefines(userSentryOptions: SentryBuildOptions): Record<string, boolean> {
+  const defines: Record<string, boolean> = {};
+  const bundleSizeOptimizations = userSentryOptions.bundleSizeOptimizations;
+  // eslint-disable-next-line typescript/no-deprecated
+  const treeshake = userSentryOptions.webpack?.treeshake;
+
+  if (bundleSizeOptimizations?.excludeDebugStatements ?? treeshake?.removeDebugLogging) {
+    defines.__SENTRY_DEBUG__ = false;
+  }
+
+  if (bundleSizeOptimizations?.excludeTracing ?? treeshake?.removeTracing) {
+    defines.__SENTRY_TRACING__ = false;
+  }
+
+  if (bundleSizeOptimizations?.excludeReplayIframe ?? treeshake?.excludeReplayIframe) {
+    defines.__RRWEB_EXCLUDE_IFRAME__ = true;
+  }
+
+  if (bundleSizeOptimizations?.excludeReplayShadowDom ?? treeshake?.excludeReplayShadowDOM) {
+    defines.__RRWEB_EXCLUDE_SHADOW_DOM__ = true;
+  }
+
+  if (bundleSizeOptimizations?.excludeReplayWorker ?? treeshake?.excludeReplayCompressionWorker) {
+    defines.__SENTRY_EXCLUDE_REPLAY_WORKER__ = true;
+  }
+
+  return defines;
+}
+
+/**
+ * Sets up the tree-shaking flags based on the user's configuration.
  */
 function setupTreeshakingFromConfig(
   userSentryOptions: SentryBuildOptions,
   newConfig: WebpackConfigObjectWithModuleRules,
   buildContext: BuildContext,
 ): void {
-  const defines: Record<string, boolean> = {};
+  const defines = getTreeshakeDefines(userSentryOptions);
 
   newConfig.plugins = newConfig.plugins || [];
-
-  if (userSentryOptions.webpack?.treeshake?.removeDebugLogging) {
-    defines.__SENTRY_DEBUG__ = false;
-  }
-
-  if (userSentryOptions.webpack?.treeshake?.removeTracing) {
-    defines.__SENTRY_TRACING__ = false;
-  }
-
-  if (userSentryOptions.webpack?.treeshake?.excludeReplayIframe) {
-    defines.__RRWEB_EXCLUDE_IFRAME__ = true;
-  }
-
-  if (userSentryOptions.webpack?.treeshake?.excludeReplayShadowDOM) {
-    defines.__RRWEB_EXCLUDE_SHADOW_DOM__ = true;
-  }
-
-  if (userSentryOptions.webpack?.treeshake?.excludeReplayCompressionWorker) {
-    defines.__SENTRY_EXCLUDE_REPLAY_WORKER__ = true;
-  }
 
   // Only add DefinePlugin if there are actual defines to set
   if (Object.keys(defines).length > 0) {

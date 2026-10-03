@@ -51,7 +51,7 @@ export function init(options: BrowserOptions): Client | undefined {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `bundleSizeOptimizations.excludeDebugStatements: true`). Set that option to `false` to see Sentry debug output.',
       );
     });
   }
