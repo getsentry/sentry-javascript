@@ -4,7 +4,6 @@ const path = require('path');
 const { Worker } = require('worker_threads');
 
 Sentry.init({
-  traceLifecycle: 'static',
   debug: true,
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
