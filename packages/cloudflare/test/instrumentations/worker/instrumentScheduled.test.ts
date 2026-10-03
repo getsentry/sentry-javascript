@@ -2,10 +2,15 @@
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
 import type { ExecutionContext, ScheduledController } from '@cloudflare/workers-types';
-import type { Event } from '@sentry/core';
+import type { Event, Integration } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { CloudflareClient } from '../../../src/client';
+import {
+  instrumentWorkerEntrypoint,
+  type WorkerEntrypointConstructor,
+} from '../../../src/instrumentations/instrumentWorkerEntrypoint';
+import { cronTriggersIntegration } from '../../../src/integrations/cronTriggers';
 import { withSentry } from '../../../src/withSentry';
 import { resetSdk } from '../../testUtils';
 
@@ -299,6 +304,178 @@ describe('instrumentScheduled', () => {
 
     test('keeps the descriptive span name when span streaming is disabled', async () => {
       expect(await spanNameFor('static')).toBe('Scheduled Cron 0 0 0 * * *');
+    });
+  });
+
+  describe('cron monitoring', () => {
+    function controllerFor(cron: string): ScheduledController {
+      return { scheduledTime: 123, cron, noRetry: vi.fn() };
+    }
+
+    async function runScheduled(
+      integrations: Integration[],
+      scheduled: ExportedHandler<typeof MOCK_ENV>['scheduled'] = () => {},
+    ): Promise<void> {
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, integrations }), { scheduled });
+      await wrappedHandler.scheduled?.(controllerFor('30 9 * * 1-5'), MOCK_ENV, createMockExecutionContext());
+    }
+
+    test('sends no check-ins without the integration', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+
+      await runScheduled([]);
+
+      expect(captureCheckInSpy).not.toHaveBeenCalled();
+    });
+
+    test('sends check-ins with the cron schedule with the integration', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+
+      await runScheduled([cronTriggersIntegration()]);
+
+      expect(captureCheckInSpy).toHaveBeenCalledTimes(2);
+      expect(captureCheckInSpy).toHaveBeenNthCalledWith(
+        1,
+        { monitorSlug: 'cron-30-9-x-x-1to5', status: 'in_progress' },
+        { schedule: { type: 'crontab', value: '30 9 * * SUN-THU' } },
+      );
+      expect(captureCheckInSpy).toHaveBeenNthCalledWith(2, {
+        monitorSlug: 'cron-30-9-x-x-1to5',
+        status: 'ok',
+        checkInId: expect.any(String),
+        duration: expect.any(Number),
+      });
+    });
+
+    test('marks the check-in as failed when the handler throws', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const error = new Error('test');
+
+      await expect(
+        runScheduled([cronTriggersIntegration()], () => {
+          throw error;
+        }),
+      ).rejects.toThrow('test');
+
+      expect(captureCheckInSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ status: 'error', duration: expect.any(Number) }),
+      );
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: { handled: false, type: 'auto.faas.cloudflare.scheduled' },
+      });
+    });
+
+    test('marks the check-in as failed when the handler rejects', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+
+      await expect(
+        runScheduled([cronTriggersIntegration()], () => Promise.reject(new Error('rejected'))),
+      ).rejects.toThrow('rejected');
+
+      expect(captureCheckInSpy).toHaveBeenCalledTimes(2);
+      expect(captureCheckInSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ monitorSlug: 'cron-30-9-x-x-1to5', status: 'error' }),
+      );
+    });
+
+    test('runs the handler without check-ins when the in_progress check-in throws', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn').mockImplementation(() => {
+        throw new Error('check-in error');
+      });
+      onTestFinished(() => captureCheckInSpy.mockRestore());
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const scheduled = vi.fn().mockResolvedValue('result');
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, integrations: [cronTriggersIntegration()] }), {
+        scheduled,
+      } as ExportedHandler<typeof MOCK_ENV>);
+
+      const result = await wrappedHandler.scheduled?.(
+        controllerFor('30 9 * * 1-5'),
+        MOCK_ENV,
+        createMockExecutionContext(),
+      );
+
+      expect(result).toBe('result');
+      expect(scheduled).toHaveBeenCalledTimes(1);
+      expect(captureCheckInSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    test('returns the handler result when the ok check-in throws', async () => {
+      const captureCheckInSpy = vi
+        .spyOn(SentryCore, 'captureCheckIn')
+        .mockReturnValueOnce('check-in-id')
+        .mockImplementationOnce(() => {
+          throw new Error('check-in error');
+        });
+      onTestFinished(() => captureCheckInSpy.mockRestore());
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, integrations: [cronTriggersIntegration()] }), {
+        scheduled: () => Promise.resolve('result'),
+      } as unknown as ExportedHandler<typeof MOCK_ENV>);
+
+      const result = await wrappedHandler.scheduled?.(
+        controllerFor('30 9 * * 1-5'),
+        MOCK_ENV,
+        createMockExecutionContext(),
+      );
+
+      expect(result).toBe('result');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    test('sends check-ins for the scheduled method of a WorkerEntrypoint', async () => {
+      const captureCheckInSpy = vi.spyOn(SentryCore, 'captureCheckIn');
+      const TestEntrypoint = class {
+        scheduled() {}
+      };
+      const instrumented = instrumentWorkerEntrypoint(
+        () => ({ dsn: MOCK_ENV.SENTRY_DSN, integrations: [cronTriggersIntegration()] }),
+        TestEntrypoint as unknown as WorkerEntrypointConstructor,
+      );
+      const entrypoint = Reflect.construct(instrumented, [createMockExecutionContext(), MOCK_ENV]);
+
+      await entrypoint.scheduled(controllerFor('30 9 * * 1-5'));
+
+      expect(captureCheckInSpy).toHaveBeenCalledTimes(2);
+      expect(captureCheckInSpy).toHaveBeenNthCalledWith(
+        1,
+        { monitorSlug: 'cron-30-9-x-x-1to5', status: 'in_progress' },
+        { schedule: { type: 'crontab', value: '30 9 * * SUN-THU' } },
+      );
+      expect(captureCheckInSpy).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'ok' }));
+    });
+
+    test('flushes both check-ins before the invocation ends', async () => {
+      const sentItemTypes: string[] = [];
+      const handler = {
+        scheduled() {},
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          cacheClient: false,
+          integrations: [cronTriggersIntegration()],
+          transport: () => ({
+            send: async envelope => {
+              sentItemTypes.push(...envelope[1].map(([itemHeader]) => itemHeader.type));
+              return {};
+            },
+            flush: async () => true,
+          }),
+        }),
+        handler,
+      );
+
+      const waits: Promise<unknown>[] = [];
+      await wrappedHandler.scheduled?.(controllerFor('30 9 * * 1-5'), MOCK_ENV, {
+        waitUntil: vi.fn(promise => waits.push(promise)),
+        passThroughOnException: vi.fn(),
+      } as unknown as ExecutionContext);
+      await Promise.all(waits);
+
+      expect(sentItemTypes.filter(type => type === 'check_in')).toHaveLength(2);
     });
   });
 
