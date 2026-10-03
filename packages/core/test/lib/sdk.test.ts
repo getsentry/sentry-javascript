@@ -188,6 +188,24 @@ describe('getActiveClient', () => {
     expect(getActiveClient()).toBeUndefined();
   });
 
+  test('returns undefined for a client that was closed twice', async () => {
+    const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+    await client.close();
+    await client.close();
+
+    expect(getActiveClient()).toBeUndefined();
+  });
+
+  test('sees a client closed through another copy of the SDK as closed', async () => {
+    const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+    await client.close();
+
+    vi.resetModules();
+    const otherCopy = await import('../../src/client');
+
+    expect(otherCopy.isClientClosed(client)).toBe(true);
+  });
+
   test('returns a client that was created with enabled: false', () => {
     const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enabled: false }));
 
