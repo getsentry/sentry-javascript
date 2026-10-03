@@ -1,3 +1,5 @@
+// Not `wrangler.jsonc`: vinext refuses to build without the Cloudflare plugin when the project root has a wrangler
+// config, and the `nextjs-16 (vinext)` variants build this app for Node.js and Bun.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "nextjs-16",

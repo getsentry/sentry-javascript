@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { getRuntime, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { isVinext } from './isVinext';
 
 test('Should handle server action redirect without capturing errors', async ({ page }) => {
+  test.skip(
+    isVinext && getRuntime() === 'bun',
+    'Server actions of vinext fail on Bun 1.3.14 with `ReadableStream is locked`, also without Sentry',
+  );
+
   // Wait for the initial pageload span
   const pageLoadSpanPromise = waitForStreamedSpan('nextjs-16', span => {
     return span.name === '/redirect/origin' && span.is_segment;
