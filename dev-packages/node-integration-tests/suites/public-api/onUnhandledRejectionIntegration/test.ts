@@ -142,8 +142,7 @@ test rejection`);
       .completed();
   });
 
-  // Bun: the error event can have a different span id.
-  test.skipIf(RUNTIME === 'bun')('handles unhandled rejection in spans', async () => {
+  test('handles unhandled rejection in spans', async () => {
     let segment: SerializedStreamedSpanContainer['items'][number] | undefined;
     let errorEvent: Event | undefined;
 
@@ -170,6 +169,7 @@ test rejection`);
     expect(segment!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
   });
 
+  // Bun: the rejection event's span ID differs from the already-ended span's ID.
   test.skipIf(RUNTIME === 'bun')('handles unhandled rejection in spans that are ended early', async () => {
     let segment: SerializedStreamedSpanContainer['items'][number] | undefined;
     let errorEvent: Event | undefined;
