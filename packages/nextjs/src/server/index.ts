@@ -19,7 +19,7 @@ import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolica
 import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
-import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
+import { isAsyncContextOwnedByCloudflare, isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
@@ -182,7 +182,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   DEBUG_BUILD && debug.log('Initializing SDK...');
 
-  if (sdkAlreadyInitialized()) {
+  // The client of `withSentry` from `@sentry/cloudflare` handles this request, so `init` creates none. The global
+  // parts below still apply.
+  const isOwnedByCloudflare = isAsyncContextOwnedByCloudflare();
+  if (sdkAlreadyInitialized() && !isOwnedByCloudflare) {
     DEBUG_BUILD && debug.log('SDK already initialized');
     return;
   }
@@ -190,7 +193,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // Use appropriate SDK metadata based on the runtime environment
   applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
-  const client = nodeInit(opts);
+  const client = isOwnedByCloudflare ? undefined : nodeInit(opts);
 
   client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
@@ -292,7 +295,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // The statement above can throw because process is not defined on the client
   }
 
-  DEBUG_BUILD && debug.log('SDK successfully initialized');
+  if (isOwnedByCloudflare) {
+    DEBUG_BUILD &&
+      debug.log(
+        'The client of `withSentry` handles this Worker, so `init` creates no client. Set the options in `withSentry`.',
+      );
+  } else {
+    DEBUG_BUILD && debug.log('SDK successfully initialized');
+  }
 
   return client;
 }

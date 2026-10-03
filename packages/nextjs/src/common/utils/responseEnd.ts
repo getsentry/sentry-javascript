@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { debug, fill, flush, GLOBAL_OBJ, setHttpStatus } from '@sentry/core';
+import { debug, fill, flush, getAsyncContextStrategy, getMainCarrier, GLOBAL_OBJ, setHttpStatus } from '@sentry/core';
 import { vercelWaitUntil } from '@sentry/core/server';
 import type { ServerResponse } from 'http';
 import { DEBUG_BUILD } from '../debug-build';
@@ -104,4 +104,21 @@ export function cloudflareWaitUntil(task: Promise<unknown>): void {
  */
 export function isCloudflareWaitUntilAvailable(): boolean {
   return typeof _getOpenNextCloudflareContext()?.waitUntil === 'function';
+}
+
+/**
+ * Whether a request of `withSentry` from `@sentry/cloudflare` runs. A client of `init` would then replace its async
+ * context strategy while the request runs (#24603).
+ */
+export function isAsyncContextOwnedByCloudflare(): boolean {
+  const strategy = getAsyncContextStrategy(getMainCarrier());
+  // The AsyncLocalStorage strategy of `@sentry/cloudflare` has no `withActiveSpan`.
+  const asyncLocalStorage = strategy.getTracingChannelBinding?.()?.asyncLocalStorage as
+    | { getStore(): unknown }
+    | undefined;
+  return (
+    !strategy.withActiveSpan &&
+    asyncLocalStorage?.getStore() !== undefined &&
+    (GLOBAL_OBJ as { navigator?: { userAgent?: string } }).navigator?.userAgent === 'Cloudflare-Workers'
+  );
 }
