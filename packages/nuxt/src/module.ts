@@ -25,7 +25,12 @@ import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middl
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { addStorageInstrumentation } from './vite/storageConfig';
-import { addOTelCommonJSImportAlias, findDefaultSdkInitFile, getNitroMajorVersion } from './vite/utils';
+import {
+  addOTelCommonJSImportAlias,
+  addRuntimeInjectionTraceDep,
+  findDefaultSdkInitFile,
+  getNitroMajorVersion,
+} from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -130,6 +135,7 @@ export default defineNuxtModule<ModuleOptions>({
       addMiddlewareImports();
       addStorageInstrumentation(nuxt, !isNitroV3);
       addDatabaseInstrumentation(nuxt.options.nitro, !isNitroV3, moduleOptions);
+      addRuntimeInjectionTraceDep(nuxt, isNitroV3);
     }
 
     if (clientConfigFile || serverConfigFile) {
