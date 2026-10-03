@@ -1,15 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
-import { Log } from '@sentry/nextjs';
 
+// Only hands over the build release and adds the global Next.js event processors and the turbopack tag: `withSentry`
+// from `@sentry/nextjs/cloudflare` in worker.ts creates the client and holds the options.
 Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
-  tunnel: `http://localhost:3031/`, // proxy server
-  tracesSampleRate: 1.0,
-  // debug: true,
-  integrations: [Sentry.vercelAIIntegration()],
-  // Verify Log type is available
-  beforeSendLog(log: Log) {
-    return log;
-  },
 });

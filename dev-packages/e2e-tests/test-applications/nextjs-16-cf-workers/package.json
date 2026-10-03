@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "cf:build": "opennextjs-cloudflare build",
-    "cf:preview": "opennextjs-cloudflare preview",
+    "cf:preview": "opennextjs-cloudflare preview --var \"E2E_TEST_DSN:$E2E_TEST_DSN\"",
     "build": "next build",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
     "start": "pnpm cf:preview",
@@ -17,6 +17,7 @@
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
     "@opennextjs/cloudflare": "^1.14.9",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",

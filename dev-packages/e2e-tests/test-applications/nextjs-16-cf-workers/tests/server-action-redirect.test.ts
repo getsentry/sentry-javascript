@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test.skip('Should handle server action redirect without capturing errors', async ({ page }) => {
+test('Should handle server action redirect without capturing errors', async ({ page }) => {
   // Wait for the initial pageload span
   const pageLoadSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
     return span.name === '/redirect/origin' && span.is_segment;

@@ -8,7 +8,7 @@ import {
   URL_PATH,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
-import { stripUrlQueryAndFragment } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stripUrlQueryAndFragment } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../common/span-attributes-with-logic-attached';
 import { backfillHttpResponseStatusCode } from '../common/utils/backfillHttpResponseStatusCode';
@@ -34,7 +34,11 @@ export interface MutableRootSpan {
 export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
   const { attributes } = span;
 
-  if (attributes[ATTR_NEXT_SPAN_TYPE] !== 'BaseServer.handleRequest') {
+  // On Cloudflare Workers, the `http.server` span of `withSentry` from `@sentry/cloudflare` is the request root span.
+  if (
+    attributes[ATTR_NEXT_SPAN_TYPE] !== 'BaseServer.handleRequest' &&
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] !== 'auto.http.cloudflare'
+  ) {
     return;
   }
 

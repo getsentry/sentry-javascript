@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-// TODO: Flakey on CI
-test.skip('App router spans should be attached to the pageload request span', async ({ page }) => {
+test('App router spans should be attached to the pageload request span', async ({ page }) => {
   const serverSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
     return span.name === 'GET /pageload-tracing' && span.is_segment;
   });
@@ -19,8 +18,7 @@ test.skip('App router spans should be attached to the pageload request span', as
   expect(serverSpan.trace_id).toBe(pageloadSpan.trace_id);
 });
 
-// TODO: HTTP request headers are not extracted as span attributes on Cloudflare Workers
-test.skip('extracts HTTP request headers as span attributes', async ({ baseURL }) => {
+test('extracts HTTP request headers as span attributes', async ({ baseURL }) => {
   const serverSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
     const requestId = span.attributes['http.request.header.x-request-id'];
     return (
