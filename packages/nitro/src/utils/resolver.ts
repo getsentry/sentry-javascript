@@ -20,6 +20,9 @@ export function createResolver(base: string): Resolver {
   }
 
   return {
-    resolve: (...path) => resolve(resolvedBase, ...path),
+    // Nitro writes plugin paths verbatim into a generated `import "…"` statement, where the
+    // backslashes of a Windows path read as escape sequences (`C:\Users` becomes `C:Users`).
+    // Forward slashes resolve on every platform, so normalize to them.
+    resolve: (...path) => resolve(resolvedBase, ...path).replace(/\\/g, '/'),
   };
 }
