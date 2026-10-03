@@ -2,6 +2,7 @@ import type { Integration, IntegrationFn, MaxRequestBodySize, SpanAttributes } f
 import {
   captureBodyFromWinterCGRequest,
   captureException,
+  classifyResponseStreaming,
   continueTrace,
   defineIntegration,
   getClient,
@@ -14,7 +15,8 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
-  startSpan,
+  SPAN_STATUS_ERROR,
+  startSpanManual,
   winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
@@ -294,7 +296,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
         baggage: request.headers.get('baggage'),
       },
       () =>
-        startSpan(
+        startSpanManual(
           {
             attributes: { ...attributes, [SENTRY_OP]: HTTP_SERVER },
             // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
@@ -303,7 +305,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
                 ? `${request.method} ${routeName}`
                 : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
           },
-          async span => {
+          async (span, endSpan) => {
             try {
               const response = (await target.apply(thisArg, args)) as Response | undefined;
               if (response?.status) {
@@ -319,14 +321,28 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
                   );
                 }
               }
+              if (response?.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
+                const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+                const streamedResponse = new Response(readable, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: response.headers,
+                });
+                // pipeTo settles on completion, source errors, and downstream cancellation.
+                void response.body.pipeTo(writable).then(endSpan, endSpan);
+                return streamedResponse;
+              }
+              endSpan();
               return response;
             } catch (e) {
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
               captureException(e, {
                 mechanism: {
                   type: 'auto.http.bun.serve',
                   handled: false,
                 },
               });
+              endSpan();
               throw e;
             }
           },

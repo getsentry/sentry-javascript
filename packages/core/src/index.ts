@@ -541,3 +541,6 @@ export {
 } from './utils/randomSafeContext';
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';
+
+export { classifyResponseStreaming } from './utils/responseStreaming';
+export type { StreamingGuess } from './utils/responseStreaming';
