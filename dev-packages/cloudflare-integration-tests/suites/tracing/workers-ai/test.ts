@@ -180,6 +180,52 @@ it('traces a TypeSafe Jev evaluation like the TypeSafe integration', async ({ si
   await runner.completed();
 });
 
+it('traces a Clef evaluation like a TypeSafe Jev evaluation', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .ignore('event')
+    .expect(envelope => {
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+
+      const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
+      expect(genAiSpans).toHaveLength(1);
+
+      expect(genAiSpans[0]).toEqual(
+        expect.objectContaining({
+          name: 'evaluate @cf/cloudflare/clef',
+          status: 'ok',
+          is_segment: false,
+          attributes: {
+            'sentry.origin': { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
+            'sentry.op': { value: 'gen_ai.evaluate', type: 'string' },
+            [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
+            [GEN_AI_OPERATION_NAME]: { value: 'evaluate', type: 'string' },
+            [GEN_AI_REQUEST_MODEL]: { value: '@cf/cloudflare/clef', type: 'string' },
+            [GEN_AI_RESPONSE_MODEL]: { value: 'clef', type: 'string' },
+            [GEN_AI_USAGE_INPUT_TOKENS]: { value: 412, type: 'integer' },
+            [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 1, type: 'integer' },
+            [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 413, type: 'integer' },
+            // collect only output messages
+            [GEN_AI_OUTPUT_MESSAGES]: {
+              type: 'string',
+              value: '[{"type":"evaluation","answers":{"urgent":{"type":"noul","noul":0.98}}}]',
+            },
+            'sentry.is_localhost': { value: true, type: 'boolean' },
+            [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+            [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+            [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+            [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+            [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+            [SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
+          },
+        }),
+      );
+    })
+    .start(signal);
+  await runner.makeRequest('get', '/evaluate-clef');
+  await runner.completed();
+});
+
 // The Workers AI integration deliberately does not call `captureException` itself.
 // When a `run` call fails, the error must bubble up out of the fetch handler and be
 // reported by the top-level Cloudflare instrumentation instead — so it shows up in
