@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
   BROWSER_NAVIGATION_TYPE,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -14,6 +14,7 @@ import {
   SENTRY_ENVIRONMENT,
   SENTRY_SDK_INTEGRATIONS,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -136,7 +137,7 @@ sentryTest(
           type: 'string',
           value: 'pageload',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'auto.pageload.browser',
         },

@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { createTransport, getCurrentScope, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, setCurrentClient } from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import {
@@ -172,7 +172,7 @@ describe('React Router Descendant Routes', () => {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/child/:id',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -304,7 +304,7 @@ describe('React Router Descendant Routes', () => {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/:orgId/:id',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -415,7 +415,7 @@ describe('React Router Descendant Routes', () => {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId/:detailId',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -476,7 +476,7 @@ describe('React Router Descendant Routes', () => {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId/:detailId',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -629,7 +629,7 @@ describe('React Router Descendant Routes', () => {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId/:detailId',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });

@@ -14,16 +14,11 @@ import {
   URL_PATH,
   URL_PATH_PARAMETER_KEY_BASE,
   URL_TEMPLATE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { NAVIGATION } from '@sentry/conventions/op';
 import type { Client, Integration, Span } from '@sentry/core';
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  NAVIGATION_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  filterCollectedUrl,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, NAVIGATION_SPAN_NAME_FALLBACK, filterCollectedUrl } from '@sentry/core';
 import type {
   BeforeLeaveEventArgs,
   HashRouter,
@@ -70,7 +65,7 @@ function handleNavigation(location: string): void {
       name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : location,
       attributes: {
         [SENTRY_OP]: NAVIGATION,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.${framework}.solidrouter`,
+        [SENTRY_ORIGIN]: `auto.navigation.${framework}.solidrouter`,
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       },
     },
