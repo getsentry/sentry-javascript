@@ -26,6 +26,7 @@ export {
   captureFeedback,
   captureMessage,
   close,
+  consoleLoggingIntegration,
   continueTrace,
   createTransport,
   dedupeIntegration,
