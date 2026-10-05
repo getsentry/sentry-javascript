@@ -458,16 +458,29 @@ export class SentrySpan implements Span {
     // TODO(standalone): drop the `isStandaloneSpan(descendant)` check once the static trace lifecycle is gone.
     options.onSpanCaptured?.(this);
     const spans: SpanJSON[] = [];
+    let droppedUnfinishedSpanCount = 0;
     for (const descendant of getSpanDescendants(this)) {
       if (descendant === this || isStandaloneSpan(descendant) || options.isSpanAlreadyCaptured?.(descendant)) {
         continue;
       }
       const spanJSON = spanToStaticSpanJSON(descendant);
       if (!isFullFinishedSpan(spanJSON)) {
+        // A strategy tracking captured spans re-emits this child as an orphan transaction once it ends.
+        if (!options.onSpanCaptured) {
+          droppedUnfinishedSpanCount++;
+        }
         continue;
       }
       options.onSpanCaptured?.(descendant);
       spans.push(spanJSON);
+    }
+
+    const client = capturedSpanScope?.getClient() || getClient();
+    if (droppedUnfinishedSpanCount) {
+      client?.recordDroppedEvent('invalid', 'span', droppedUnfinishedSpanCount);
+    }
+    if (spans.length > MAX_SPAN_COUNT) {
+      client?.recordDroppedEvent('buffer_overflow', 'span', spans.length - MAX_SPAN_COUNT);
     }
 
     const source = this._attributes[SENTRY_SEGMENT_NAME_SOURCE];
