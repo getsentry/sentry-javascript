@@ -258,6 +258,7 @@ export function getTransportTypes(transport: MCPTransport): {
     'StreamableHTTPServerTransport',
     'NodeStreamableHTTPServerTransport',
     'WebStandardStreamableHTTPServerTransport',
+    'PerRequestHTTPServerTransport',
     'SSEServerTransport',
   ].includes(transportName);
 
