@@ -308,7 +308,6 @@ describe('tracing mixin span creation', () => {
     ]);
   });
 
-
   it('records UI spans when span streaming is enabled', ({ app, uiSpans, initSentry }) => {
     initSentry({ tracing: { trackComponents: ['ChildComponent'] }, sdk: { traceLifecycle: 'stream' } });
 
