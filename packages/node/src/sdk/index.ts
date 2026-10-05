@@ -41,6 +41,7 @@ import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
+import { setupVercelKeepAlive } from './vercel';
 
 /**
  * Get the base default integrations shared by all Node SDK default-integration sets.
@@ -192,13 +193,8 @@ function _init(
 
   updateScopeFromEnvVariables();
 
-  // Ensure we flush events when vercel functions are ended
-  // See: https://vercel.com/docs/functions/functions-api-reference#sigterm-signal
   if (process.env.VERCEL) {
-    process.on('SIGTERM', async () => {
-      // We have 500ms for processing here, so we try to make sure to have enough time to send the events
-      await client.flush(200);
-    });
+    setupVercelKeepAlive(client);
   }
 
   // Add Node SDK specific OpenTelemetry setup. `setupEventContextTrace` reads the active span from the
