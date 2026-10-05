@@ -29,8 +29,8 @@ export const amqplibConfig = [
     module: { ...module, filePath: 'lib/channel_model.js' },
     functionQuery: { className: 'ConfirmChannel', methodName: 'publish', kind: 'Callback' },
   },
-  // Together record `consumerTag -> { noAck, queue }` so the per-message dispatch hook knows how to
-  // name and when to end the consumer span: `consume` knows the queue, `registerConsumer` the tag.
+  // `consume` knows the queue and `noAck`, and `registerConsumer` knows the tag. Together they tell the
+  // dispatch hook how to name the consumer span and when to end it.
   {
     channelName: 'consume',
     module: { ...module, filePath: 'lib/channel_model.js' },

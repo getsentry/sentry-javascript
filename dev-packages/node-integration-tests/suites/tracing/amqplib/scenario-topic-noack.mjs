@@ -17,7 +17,7 @@ const NO_ACKNOWLEDGEMENT = { noAck: true };
   const { connection, channel } = await connectToRabbitMQ();
 
   await channel.assertExchange(exchangeName, 'topic', { durable: false, autoDelete: true });
-  await channel.assertQueue(queueName, { durable: false, exclusive: false, autoDelete: true });
+  await channel.assertQueue(queueName, { durable: false, exclusive: true });
   await channel.bindQueue(queueName, exchangeName, 'order.created.#');
 
   // Publish before consuming, so the broker sends `BasicConsumeOk` and the delivery back to back.

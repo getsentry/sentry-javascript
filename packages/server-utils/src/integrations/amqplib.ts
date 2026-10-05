@@ -229,12 +229,9 @@ function subscribeConsume(): void {
 }
 
 /**
- * Records `consumerTag -> { noAck, queue }` so the per-message dispatch hook can name the span after
- * the queue and know when to end it.
- *
- * `consume`'s promise is too late for this: amqplib can decode `BasicConsumeOk` and the first delivery
- * from one socket read, before any promise callback runs. It always registers a consumer before it
- * dispatches to it.
+ * Records `consumerTag -> { noAck, queue }` for the dispatch hook. `consume`'s promise resolves too late,
+ * because amqplib can decode `BasicConsumeOk` and the first delivery in one socket read. amqplib always
+ * registers a consumer before it dispatches to it.
  */
 function subscribeRegisterConsumer(): void {
   const channel = diagnosticsChannel.tracingChannel<AmqpChannelContext>(CHANNELS.AMQPLIB_REGISTER_CONSUMER);
@@ -251,12 +248,13 @@ function subscribeRegisterConsumer(): void {
     const pending = consumerChannel[CHANNEL_PENDING_CONSUMERS] ?? [];
     // A failed `consume` leaves its entry behind, so pair by callback, not by position.
     const index = pending.findIndex(entry => entry.callback === callback);
-    if (index === -1) {
+    const entry = pending[index];
+    if (!entry) {
       return;
     }
 
-    const [entry] = pending.splice(index, 1);
-    consumerChannel[CHANNEL_CONSUMER_INFO]?.set(consumerTag, entry!.info);
+    pending.splice(index, 1);
+    consumerChannel[CHANNEL_CONSUMER_INFO]?.set(consumerTag, entry.info);
   });
 }
 
