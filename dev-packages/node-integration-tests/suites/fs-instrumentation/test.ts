@@ -10,10 +10,8 @@ function expectFileSpans(
   segmentName: string,
   expected: FileSpan[],
 ): (container: SerializedStreamedSpanContainer) => void {
-  const spans: SerializedStreamedSpanContainer['items'] = [];
-
   return container => {
-    spans.push(...container.items);
+    const spans = container.items;
     const segment = spans.find(span => span.is_segment && span.name === segmentName);
     expect(segment).toBeDefined();
 
@@ -51,7 +49,6 @@ describe('fs instrumentation', () => {
       (createRunner, test) => {
         test('should create spans for fs operations that take target argument', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /readFile-error', [
                 {
@@ -78,7 +75,6 @@ describe('fs instrumentation', () => {
 
         test('should create spans for fs operations that take one path', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /readFile', [
                 {
@@ -122,7 +118,6 @@ describe('fs instrumentation', () => {
 
         test('should create spans for fs operations that take src and dest arguments', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /copyFile', [
                 {
@@ -172,7 +167,6 @@ describe('fs instrumentation', () => {
 
         test('should create spans for fs operations that take existing path and new path arguments', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /link', [
                 {
@@ -222,7 +216,6 @@ describe('fs instrumentation', () => {
 
         test('should create spans for fs operations that take prefix argument', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /mkdtemp', [
                 {
@@ -263,7 +256,6 @@ describe('fs instrumentation', () => {
 
         test('should create spans for fs symlink operations that take target argument', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /symlink', [
                 {
@@ -319,7 +311,6 @@ describe('fs instrumentation', () => {
 
         test('should create spans for fs.exists callback and promisified versions', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /exists', [
                 {
@@ -364,7 +355,6 @@ describe('fs instrumentation', () => {
       (createRunner, test) => {
         test('records file path but not error messages when only `recordFilePaths` is enabled', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /readFile-error', [
                 {
@@ -401,7 +391,6 @@ describe('fs instrumentation', () => {
       (createRunner, test) => {
         test('records error messages but not file paths when only `recordErrorMessagesAsSpanAttributes` is enabled', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /readFile-error', [
                 {
@@ -425,7 +414,6 @@ describe('fs instrumentation', () => {
 
         test('does not record file paths on successful operations when only `recordErrorMessagesAsSpanAttributes` is enabled', async () => {
           const runner = createRunner()
-            .unordered()
             .expect({
               span: expectFileSpans('GET /readFile', [
                 {
