@@ -86,12 +86,13 @@ function convertWeekdayItem(item: string): string | undefined {
 
 /**
  * Converts a Cloudflare cron expression into a crontab Sentry accepts, which numbers weekdays from
- * 0 = Sunday. Returns `undefined` if the weekday field can't be converted.
+ * 0 = Sunday. Returns `undefined` if the day fields can't be converted.
  */
 function cloudflareCronToCrontab(cron: string): string | undefined {
   const fields = cron.trim().split(/\s+/);
-  // Sentry rejects `W` and `?` in the day of month.
-  if (fields.length !== 5 || /[w?]/i.test(fields[2] as string)) {
+  // Sentry rejects `W` and `?` in the day of month. Cloudflare doesn't document how both day fields
+  // combine when both are set, so one of them has to be `*`.
+  if (fields.length !== 5 || /[w?]/i.test(fields[2] as string) || (fields[2] !== '*' && fields[4] !== '*')) {
     return undefined;
   }
 
@@ -128,7 +129,9 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
       const crontab = cloudflareCronToCrontab(cron);
       if (!crontab) {
         DEBUG_BUILD &&
-          debug.warn(`[Cron Triggers] Can't convert "${cron}" to a Sentry schedule, sending check-ins without one.`);
+          debug.warn(
+            `[Cron Triggers] Can't convert "${cron}" to a Sentry schedule, sending check-ins without a schedule or the other monitor settings.`,
+          );
       }
 
       // Check-ins are captured directly rather than through `withMonitor`, which would fork the

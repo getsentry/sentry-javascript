@@ -125,6 +125,15 @@ describe('cronTriggersIntegration', () => {
     expect(monitorConfig).toBeUndefined();
   });
 
+  test.each([['0 9 1 * MON'], ['0 9 1-7 * 2'], ['0 9 */2 * MON']])(
+    'sends check-ins without a schedule when both day fields are set in %s',
+    cron => {
+      const [, monitorConfig] = getInProgressCheckIn(cron) as unknown[];
+
+      expect(monitorConfig).toBeUndefined();
+    },
+  );
+
   test('sends check-ins without a schedule for an expression without five fields', () => {
     const [, monitorConfig] = getInProgressCheckIn('0 0 9 * * *') as unknown[];
 
