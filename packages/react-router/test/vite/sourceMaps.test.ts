@@ -1,4 +1,7 @@
+// @vitest-environment node
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { UserConfig } from 'vite';
+import { mergeConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getUpdatedSourceMapSettings, makeEnableSourceMapsPlugin } from '../../src/vite/makeEnableSourceMapsPlugin';
 
@@ -31,6 +34,33 @@ describe('makeEnableSourceMapsPlugin()', () => {
     expect(enableSourceMapPlugin?.enforce).toEqual('post');
     expect(enableSourceMapPlugin?.config).toEqual(expect.any(Function));
   });
+
+  it.each([undefined, false, true, 'hidden', 'inline'] as const)(
+    'preserves user config without duplicating arrays when sourcemap is %s',
+    sourcemap => {
+      const plugin = makeEnableSourceMapsPlugin({});
+      const configHook = plugin.config as (config: UserConfig) => UserConfig;
+      const userConfig: UserConfig = {
+        optimizeDeps: { include: ['react'] },
+        build: {
+          sourcemap,
+          outDir: 'custom-dist',
+          rollupOptions: { plugins: [{ name: 'asset-transform' }] },
+        },
+      };
+
+      const merged = mergeConfig(userConfig, configHook(userConfig));
+
+      expect(merged).toEqual({
+        optimizeDeps: { include: ['react'] },
+        build: {
+          sourcemap: sourcemap ?? 'hidden',
+          outDir: 'custom-dist',
+          rollupOptions: { plugins: [{ name: 'asset-transform' }] },
+        },
+      });
+    },
+  );
 });
 
 describe('getUpdatedSourceMapSettings', () => {

@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.76.0
+
+- feat(v10/vue,nuxt): Record default UI spans without Options API (mixins) ([#24885](https://github.com/getsentry/sentry-javascript/pull/24885))
+- fix(v10/aws-serverless): Keep Lambda extension polling past 300s ([#24828](https://github.com/getsentry/sentry-javascript/pull/24828))
+- fix(v10/deno): Flush buffered metrics and logs before process exit ([#24938](https://github.com/getsentry/sentry-javascript/pull/24938))
+- fix(v10/nitro): Capture errors only through the Nitro error hook ([#24963](https://github.com/getsentry/sentry-javascript/pull/24963))
+- fix(v10/node-core): Flush buffered metrics on process exit ([#24937](https://github.com/getsentry/sentry-javascript/pull/24937))
+- fix(v10/react-router): Avoid duplicating Vite config arrays ([#24936](https://github.com/getsentry/sentry-javascript/pull/24936))
+- fix(v10/tanstackstart-react): Avoid duplicating Vite config arrays ([#24935](https://github.com/getsentry/sentry-javascript/pull/24935))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- test(v10/effect): Make effect/http stable ([#24942](https://github.com/getsentry/sentry-javascript/pull/24942))
+
+</details>
+
 ## 10.75.3
 
 - fix(v10/tanstackstart-react): Reject non-POST requests to the managed tunnel route ([#24617](https://github.com/getsentry/sentry-javascript/pull/24617))

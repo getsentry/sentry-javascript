@@ -1,3 +1,4 @@
+import process from 'node:process';
 import type { Envelope, Event, Log } from '@sentry/core';
 import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
@@ -178,7 +179,8 @@ Deno.test('preserves existing log attributes when adding server.address', () => 
   assertEquals(log.attributes?.['server.address'], 'test-server');
 });
 
-Deno.test('close() removes unload listener when enableLogs is true', async () => {
+Deno.test('close() removes log and metric exit listeners', async () => {
+  const originalListeners = process.listeners('beforeExit');
   const removeEventListenerCalls: Array<string> = [];
   const originalRemoveEventListener = globalThis.removeEventListener;
   globalThis.removeEventListener = ((event: string, ...args: unknown[]) => {
@@ -196,9 +198,16 @@ Deno.test('close() removes unload listener when enableLogs is true', async () =>
       transport: makeTestTransport(() => {}),
     });
 
+    const addedListeners = process.listeners('beforeExit').filter(listener => !originalListeners.includes(listener));
+
     await client.close();
 
-    assertEquals(removeEventListenerCalls.includes('unload'), true);
+    assertEquals(addedListeners.length, 2);
+    assertEquals(process.listeners('beforeExit'), originalListeners);
+    assertEquals(
+      removeEventListenerCalls.filter(event => event === 'unload'),
+      ['unload', 'unload'],
+    );
   } finally {
     globalThis.removeEventListener = originalRemoveEventListener;
   }
