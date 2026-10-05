@@ -1,7 +1,7 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { spanToJSON } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { createTransport, getCurrentScope, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, setCurrentClient } from '@sentry/core';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import type { MemoryHistory } from '@solidjs/router';
 import { createMemoryHistory, MemoryRouter, Navigate, Route } from '@solidjs/router';
 import { render, waitFor } from '@solidjs/testing-library';
@@ -69,7 +69,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         attributes: expect.objectContaining({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [SENTRY_OP]: 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
+          [SENTRY_ORIGIN]: 'auto.pageload.browser',
         }),
       }),
     );
@@ -100,7 +100,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         attributes: expect.objectContaining({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [SENTRY_OP]: 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
+          [SENTRY_ORIGIN]: 'auto.pageload.browser',
         }),
       }),
     );
@@ -145,7 +145,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         expect(span.attributes).toMatchObject({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',
+          [SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',
         });
 
         for (const [key, value] of Object.entries(expectedParams as Record<string, string>)) {
@@ -181,7 +181,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         attributes: expect.objectContaining({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',
+          [SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',
         }),
       }),
     );
