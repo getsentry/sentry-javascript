@@ -462,6 +462,23 @@ describe('SentryCron decorator with @Cron', () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('fromCronDecorator is false'));
   });
 
+  it('isolates the trace without a monitor config', async () => {
+    const warnSpy = vi.spyOn(core.debug, 'warn').mockImplementation(() => undefined);
+    const traceIds: string[] = [];
+    const withMonitorSpy = vi.spyOn(core, 'withMonitor').mockImplementation((_, callback) => {
+      traceIds.push(core.getCurrentScope().getPropagationContext().traceId);
+      return callback();
+    });
+    const service = decorate(SentryCron('my-job', { isolateTrace: true }), Cron('*/5 * * * * *'));
+    const parentTraceId = core.getCurrentScope().getPropagationContext().traceId;
+
+    await service.job();
+    expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), undefined);
+    expect(traceIds).toHaveLength(1);
+    expect(traceIds[0]).not.toBe(parentTraceId);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
   it('keeps the other monitor settings', async () => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
     const service = decorate(SentryCron('my-job', { checkinMargin: 2, maxRuntime: 10 }), Cron('0 * * * *'));

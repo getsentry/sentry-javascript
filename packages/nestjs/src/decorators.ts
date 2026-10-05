@@ -32,6 +32,7 @@ export const SentryCron = (
     const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
 
     let resolvedMonitorConfig: MonitorConfig | undefined;
+    let isolateTraceWithoutConfig = false;
     let resolved = false;
 
     const wrappedMethod = function (this: unknown, ...args: unknown[]): unknown {
@@ -43,15 +44,20 @@ export const SentryCron = (
           wrappedMethod,
           (target as Record<PropertyKey, unknown> | undefined)?.[propertyKey],
         ]);
+        isolateTraceWithoutConfig = !resolvedMonitorConfig && !!monitorConfig?.isolateTrace;
       }
 
-      return Sentry.withMonitor(
-        monitorSlug,
-        () => {
-          return originalMethod.apply(this, args);
-        },
-        resolvedMonitorConfig,
-      );
+      const runWithMonitor = (): unknown =>
+        Sentry.withMonitor(
+          monitorSlug,
+          () => {
+            return originalMethod.apply(this, args);
+          },
+          resolvedMonitorConfig,
+        );
+
+      // `withMonitor` reads `isolateTrace` from the monitor config, which is not sent without a schedule.
+      return isolateTraceWithoutConfig ? Sentry.startNewTrace(runWithMonitor) : runWithMonitor();
     };
 
     descriptor.value = wrappedMethod;
@@ -75,7 +81,8 @@ function resolveMonitorConfig(
   const cronConfig = fromCronDecorator ? getMonitorConfigFromNestCron(candidates) : undefined;
 
   if (!cronConfig) {
-    if (DEBUG_BUILD && Object.keys(monitorSettings).length) {
+    const { isolateTrace: _isolateTrace, ...unsentSettings } = monitorSettings;
+    if (DEBUG_BUILD && Object.keys(unsentSettings).length) {
       const reason = fromCronDecorator
         ? 'no schedule could be taken from @Cron()'
         : 'fromCronDecorator is false and no schedule was passed';
