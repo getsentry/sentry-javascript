@@ -2,9 +2,11 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { findCacheSpan } from './cacheOriginLinks-utils';
 
-// Webpack builds emit no `code.file.path`: the server-reference manifest lookup comes up empty
-// there. `TEST_BUNDLER` marks the webpack variant's production run (set in `test:assert-webpack`).
+// Webpack lists route handler `use cache` functions in the server-reference manifest, Turbopack
+// (Next.js 16.3) does not. `TEST_BUNDLER` marks the webpack variant's production run (set in
+// `test:assert-webpack`).
 const isWebpackBuild = process.env.TEST_BUNDLER === 'webpack' || process.env.TEST_ENV === 'development-webpack';
+const expectedRouteHandlerFilePath = isWebpackBuild ? 'app/api/use-cache/route.ts' : undefined;
 
 test('uses low-cardinality names for `use cache` spans', async ({ request }) => {
   // A fresh id makes the request a guaranteed cache miss (the id is part of the cache key), so the
@@ -35,8 +37,7 @@ test('uses low-cardinality names for `use cache` spans', async ({ request }) => 
   expect(putSpan!.name).toBe('cache.put');
   expect(putSpan!.attributes['cache.key']?.value).toEqual(cacheKeyDigest);
 
-  // Route handler cache functions have no server-reference manifest entry, so no source file.
-  expect(putSpan!.attributes['code.file.path']).toBeUndefined();
+  expect(putSpan!.attributes['code.file.path']?.value).toBe(expectedRouteHandlerFilePath);
 });
 
 test('sets the source file of the cached component on `cache.put` spans', async ({ request }) => {
@@ -55,10 +56,8 @@ test('sets the source file of the cached component on `cache.put` spans', async 
   // Both sibling entries come from the same page file.
   const putSpans = spans.filter(span => getSpanOp(span) === 'cache.put');
   expect(putSpans.length).toBeGreaterThanOrEqual(2);
-  if (!isWebpackBuild) {
-    for (const putSpan of putSpans) {
-      expect(putSpan.attributes['code.file.path']?.value).toBe('app/cached-sibling-components/page.tsx');
-    }
+  for (const putSpan of putSpans) {
+    expect(putSpan.attributes['code.file.path']?.value).toBe('app/cached-sibling-components/page.tsx');
   }
 
   // The source file marks the producer of an entry. Reads do not carry it.

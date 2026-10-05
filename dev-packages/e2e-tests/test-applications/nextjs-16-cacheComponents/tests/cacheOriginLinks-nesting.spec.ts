@@ -1,10 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-// Webpack builds emit no `code.file.path`: the server-reference manifest lookup comes up empty
-// there. `TEST_BUNDLER` marks the webpack variant's production run (set in `test:assert-webpack`).
-const isWebpackBuild = process.env.TEST_BUNDLER === 'webpack' || process.env.TEST_ENV === 'development-webpack';
-
 // Origin links (`sentry.link.type: 'cache_origin'` on `cache.get` hit spans, pointing at the
 // filling `cache.put`) for `use cache` in nested layout trees under `app/(cached-nesting)/`.
 
@@ -39,9 +35,7 @@ test('links a cached layout hit to the trace that filled the layout entry', asyn
   const putSpans = (missTx.spans ?? []).filter(span => span.op === 'cache.put');
   expect(new Set(putSpans.map(span => span.description)).size).toBe(1);
 
-  if (!isWebpackBuild) {
-    expect(putSpans[0]!.data?.['code.file.path']).toBe('app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx');
-  }
+  expect(putSpans[0]!.data?.['code.file.path']).toBe('app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx');
 
   const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true);
   expect(hitGetSpan).toBeDefined();
