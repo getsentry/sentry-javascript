@@ -106,8 +106,8 @@ function toProjectRelativePath(filename: string): string {
 
 /**
  * Resolves the source file of the `use cache` function behind a cache key, through the server-reference manifest.
- * On Next.js 16.3 the manifest only covers component-tree functions, so route handlers resolve to `undefined`.
- * 16.4 canary includes route handlers.
+ * With Turbopack on Next.js 16.3 the manifest only covers component-tree functions, so route handlers resolve
+ * to `undefined`. Webpack and 16.4 canary include route handlers.
  * Any unexpected key or manifest shape returns `undefined`, never a wrong file.
  */
 export function getCacheFunctionSourceFile(cacheKey: string): string | undefined {
