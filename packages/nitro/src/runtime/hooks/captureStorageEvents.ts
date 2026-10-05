@@ -1,5 +1,5 @@
 import * as dc from 'node:diagnostics_channel';
-import { CACHE_HIT, CACHE_KEY, CACHE_OPERATION, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CACHE_HIT, CACHE_KEY, CACHE_OPERATION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
   CACHE_OPERATION_NAMES,
@@ -7,7 +7,6 @@ import {
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
@@ -95,7 +94,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
         attributes: {
           [SENTRY_OP]: OPERATION_SPAN_OPS[operation],
           [CACHE_OPERATION]: cacheOperationName,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
           [CACHE_KEY]: cacheKeys.length > 1 ? cacheKeys : cacheKeys[0],
           'db.operation.name': operation,
           'db.collection.name': mountBase(data),

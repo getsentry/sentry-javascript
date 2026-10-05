@@ -1,6 +1,5 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Client, Event } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
@@ -168,7 +167,7 @@ describe('wrapLoadWithSentry calls `startSpan`', () => {
         attributes: {
           [SENTRY_OP]: 'function',
           'code.function.name': 'load',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           'url.path': '/users/123',
           'http.route': '/users/[id]',
@@ -189,7 +188,7 @@ describe('wrapLoadWithSentry calls `startSpan`', () => {
         attributes: {
           [SENTRY_OP]: 'function',
           'code.function.name': 'load',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           'url.path': '/users/123',
         },
@@ -257,7 +256,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
+        [SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         [SENTRY_OP]: 'function',
         'code.function.name': 'load',
@@ -358,7 +357,7 @@ describe('with span streaming enabled', () => {
         attributes: {
           [SENTRY_OP]: 'function',
           'code.function.name': 'load',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           'url.path': '/users/123',
           'http.route': '/users/[id]',
@@ -379,7 +378,7 @@ describe('with span streaming enabled', () => {
         attributes: {
           [SENTRY_OP]: 'function',
           'code.function.name': 'load',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           'url.path': '/users/123',
           'sentry.description': '/users/123',
@@ -399,7 +398,7 @@ describe('with span streaming enabled', () => {
         attributes: {
           [SENTRY_OP]: 'function',
           'code.function.name': 'load',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           'http.request.method': 'GET',
           'url.path': '/users/123',

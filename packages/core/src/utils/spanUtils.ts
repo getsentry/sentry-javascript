@@ -5,8 +5,13 @@ import { serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
 import type { Scope } from '../scope';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_STATUS_MESSAGE, SENTRY_OP } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_STATUS_MESSAGE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { isStatusErrorMessageValid, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
@@ -187,7 +192,7 @@ export function spanToStaticSpanJSON(span: Span): SpanJSON {
       timestamp: spanTimeInputToSeconds(endTime) || undefined,
       status: getStatusMessage(status),
       op: attributes[SENTRY_OP],
-      origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      origin: attributes[SENTRY_ORIGIN] as SpanOrigin | undefined,
       links: convertSpanLinksForEnvelope(links),
     };
   }

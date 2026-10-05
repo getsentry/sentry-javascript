@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { createTransport, getCurrentScope, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, setCurrentClient } from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { render, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { act } from 'react';
@@ -662,7 +662,7 @@ describe('React Router cross usage of wrappers', () => {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/settings',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
 
@@ -781,7 +781,7 @@ describe('React Router cross usage of wrappers', () => {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/user/:id',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
 
@@ -803,7 +803,7 @@ describe('React Router cross usage of wrappers', () => {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/user/:id',
           [SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });

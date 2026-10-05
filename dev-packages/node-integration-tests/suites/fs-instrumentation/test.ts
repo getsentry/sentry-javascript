@@ -1,7 +1,35 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/node';
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../utils/runner';
+
+type FileSpan = Pick<SerializedStreamedSpanContainer['items'][number], 'name' | 'status' | 'attributes'>;
+
+function expectFileSpans(
+  segmentName: string,
+  expected: FileSpan[],
+): (container: SerializedStreamedSpanContainer) => void {
+  return container => {
+    const spans = container.items;
+    const segment = spans.find(span => span.is_segment && span.name === segmentName);
+    expect(segment).toBeDefined();
+
+    const fileSpans = spans.filter(
+      span => span.attributes[SENTRY_OP]?.value === 'file' && span.trace_id === segment!.trace_id,
+    );
+    expect(
+      fileSpans.map(({ name, status, attributes }) => ({
+        name,
+        status,
+        attributes: Object.fromEntries(
+          Object.entries(attributes).filter(
+            ([key]) => key.endsWith('_argument') || key === 'error.type' || key === SENTRY_OP || key === SENTRY_ORIGIN,
+          ),
+        ),
+      })),
+    ).toEqual(expect.arrayContaining(expected));
+  };
+}
 
 describe('fs instrumentation', () => {
   afterAll(() => {
@@ -17,22 +45,21 @@ describe('fs instrumentation', () => {
         test('should create spans for fs operations that take target argument', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /readFile-error',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.readFile',
-                    op: 'file',
-                    status: 'internal_error',
-                    data: {
-                      'error.type': 'ENOENT',
-                      path_argument: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+              span: expectFileSpans('GET /readFile-error', [
+                {
+                  name: 'fs.readFile',
+                  status: 'error',
+                  attributes: {
+                    'error.type': { type: 'string', value: 'ENOENT' },
+                    path_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
                     },
-                  }),
-                ]),
-              },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 
@@ -44,41 +71,38 @@ describe('fs instrumentation', () => {
         test('should create spans for fs operations that take one path', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /readFile',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.readFile',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      path_argument: expect.stringMatching('/fixtures/some-file.txt'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+              span: expectFileSpans('GET /readFile', [
+                {
+                  name: 'fs.readFile',
+                  status: 'ok',
+                  attributes: {
+                    path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.readFile',
+                  status: 'ok',
+                  attributes: {
+                    path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file-promises.txt') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.readFile',
+                  status: 'ok',
+                  attributes: {
+                    path_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promisify.txt'),
                     },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.readFile',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      path_argument: expect.stringMatching('/fixtures/some-file-promises.txt'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.readFile',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                ]),
-              },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 
@@ -90,44 +114,44 @@ describe('fs instrumentation', () => {
         test('should create spans for fs operations that take src and dest arguments', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /copyFile',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.copyFile',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      src_argument: expect.stringMatching('/fixtures/some-file.txt'),
-                      dest_argument: expect.stringMatching('/fixtures/some-file.txt.copy'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+              span: expectFileSpans('GET /copyFile', [
+                {
+                  name: 'fs.copyFile',
+                  status: 'ok',
+                  attributes: {
+                    src_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
+                    dest_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt.copy') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.copyFile',
+                  status: 'ok',
+                  attributes: {
+                    src_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file-promises.txt') },
+                    dest_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promises.txt.copy'),
                     },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.copyFile',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      src_argument: expect.stringMatching('/fixtures/some-file-promises.txt'),
-                      dest_argument: expect.stringMatching('/fixtures/some-file-promises.txt.copy'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.copyFile',
+                  status: 'ok',
+                  attributes: {
+                    src_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file-promisify.txt') },
+                    dest_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promisify.txt.copy'),
                     },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.copyFile',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      src_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
-                      dest_argument: expect.stringMatching('/fixtures/some-file-promisify.txt.copy'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                ]),
-              },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 
@@ -139,44 +163,44 @@ describe('fs instrumentation', () => {
         test('should create spans for fs operations that take existing path and new path arguments', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /link',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.link',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      existing_path_argument: expect.stringMatching('/fixtures/some-file.txt'),
-                      new_path_argument: expect.stringMatching('/fixtures/some-file.txt.link'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+              span: expectFileSpans('GET /link', [
+                {
+                  name: 'fs.link',
+                  status: 'ok',
+                  attributes: {
+                    existing_path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
+                    new_path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt.link') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.link',
+                  status: 'ok',
+                  attributes: {
+                    existing_path_argument: { type: 'string', value: expect.stringMatching('/some-file-promises.txt') },
+                    new_path_argument: { type: 'string', value: expect.stringMatching('/some-file-promises.txt.link') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.link',
+                  status: 'ok',
+                  attributes: {
+                    existing_path_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promisify.txt'),
                     },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.link',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      existing_path_argument: expect.stringMatching('/some-file-promises.txt'),
-                      new_path_argument: expect.stringMatching('/some-file-promises.txt.link'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+                    new_path_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promisify.txt.link'),
                     },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.link',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      existing_path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
-                      new_path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt.link'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                ]),
-              },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 
@@ -188,41 +212,35 @@ describe('fs instrumentation', () => {
         test('should create spans for fs operations that take prefix argument', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /mkdtemp',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.mkdtemp',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      prefix_argument: expect.stringMatching('/foo-'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.mkdtemp',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      prefix_argument: expect.stringMatching('/foo-'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.mkdtemp',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      prefix_argument: expect.stringMatching('/foo-'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                ]),
-              },
+              span: expectFileSpans('GET /mkdtemp', [
+                {
+                  name: 'fs.mkdtemp',
+                  status: 'ok',
+                  attributes: {
+                    prefix_argument: { type: 'string', value: expect.stringMatching('/foo-') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.mkdtemp',
+                  status: 'ok',
+                  attributes: {
+                    prefix_argument: { type: 'string', value: expect.stringMatching('/foo-') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.mkdtemp',
+                  status: 'ok',
+                  attributes: {
+                    prefix_argument: { type: 'string', value: expect.stringMatching('/foo-') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 
@@ -234,44 +252,50 @@ describe('fs instrumentation', () => {
         test('should create spans for fs symlink operations that take target argument', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /symlink',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.symlink',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      target_argument: expect.stringMatching('/some-file-promisify.txt'),
-                      path_argument: expect.stringMatching('/some-file-promisify.txt.symlink'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+              span: expectFileSpans('GET /symlink', [
+                {
+                  name: 'fs.symlink',
+                  status: 'ok',
+                  attributes: {
+                    target_argument: { type: 'string', value: expect.stringMatching('/some-file-promisify.txt') },
+                    path_argument: { type: 'string', value: expect.stringMatching('/some-file-promisify.txt.symlink') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.symlink',
+                  status: 'ok',
+                  attributes: {
+                    target_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promisify.txt'),
                     },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.symlink',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      target_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
-                      path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt.symlink'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+                    path_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promisify.txt.symlink'),
                     },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.symlink',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      target_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
-                      path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt.symlink'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.symlink',
+                  status: 'ok',
+                  attributes: {
+                    target_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promisify.txt'),
                     },
-                  }),
-                ]),
-              },
+                    path_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promisify.txt.symlink'),
+                    },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 
@@ -283,31 +307,29 @@ describe('fs instrumentation', () => {
         test('should create spans for fs.exists callback and promisified versions', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /exists',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.exists',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      path_argument: expect.stringMatching('/fixtures/some-file.txt'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+              span: expectFileSpans('GET /exists', [
+                {
+                  name: 'fs.exists',
+                  status: 'ok',
+                  attributes: {
+                    path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+                {
+                  name: 'fs.exists',
+                  status: 'ok',
+                  attributes: {
+                    path_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-promisify.txt'),
                     },
-                  }),
-                  expect.objectContaining({
-                    description: 'fs.exists',
-                    op: 'file',
-                    status: 'ok',
-                    data: {
-                      path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                ]),
-              },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 
@@ -329,22 +351,21 @@ describe('fs instrumentation', () => {
         test('records file path but not error messages when only `recordFilePaths` is enabled', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /readFile-error',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.readFile',
-                    op: 'file',
-                    status: 'internal_error',
-                    // `path_argument` is recorded, but `error.type` is NOT, since `recordErrorMessagesAsSpanAttributes` is off
-                    data: {
-                      path_argument: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+              span: expectFileSpans('GET /readFile-error', [
+                {
+                  name: 'fs.readFile',
+                  status: 'error',
+                  // `path_argument` is recorded, but `error.type` is NOT, since `recordErrorMessagesAsSpanAttributes` is off
+                  attributes: {
+                    path_argument: {
+                      type: 'string',
+                      value: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
                     },
-                  }),
-                ]),
-              },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 
@@ -366,22 +387,18 @@ describe('fs instrumentation', () => {
         test('records error messages but not file paths when only `recordErrorMessagesAsSpanAttributes` is enabled', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /readFile-error',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.readFile',
-                    op: 'file',
-                    status: 'internal_error',
-                    // `error.type` is recorded, but `path_argument` is NOT, since `recordFilePaths` is off
-                    data: {
-                      'error.type': 'ENOENT',
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                ]),
-              },
+              span: expectFileSpans('GET /readFile-error', [
+                {
+                  name: 'fs.readFile',
+                  status: 'error',
+                  // `error.type` is recorded, but `path_argument` is NOT, since `recordFilePaths` is off
+                  attributes: {
+                    'error.type': { type: 'string', value: 'ENOENT' },
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 
@@ -393,21 +410,17 @@ describe('fs instrumentation', () => {
         test('does not record file paths on successful operations when only `recordErrorMessagesAsSpanAttributes` is enabled', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /readFile',
-                spans: expect.arrayContaining([
-                  expect.objectContaining({
-                    description: 'fs.readFile',
-                    op: 'file',
-                    status: 'ok',
-                    // Neither `path_argument` nor `error.type` are recorded
-                    data: {
-                      [SENTRY_OP]: 'file',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-                    },
-                  }),
-                ]),
-              },
+              span: expectFileSpans('GET /readFile', [
+                {
+                  name: 'fs.readFile',
+                  status: 'ok',
+                  // Neither `path_argument` nor `error.type` are recorded
+                  attributes: {
+                    [SENTRY_OP]: { type: 'string', value: 'file' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                  },
+                },
+              ]),
             })
             .start();
 

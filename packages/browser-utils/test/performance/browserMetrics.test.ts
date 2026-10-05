@@ -1,13 +1,6 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  getClient,
-  getMainCarrier,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SentrySpan,
-  setCurrentClient,
-  spanToJSON,
-} from '@sentry/core';
+import { getClient, getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _addNavigationSpans,
@@ -247,7 +240,7 @@ describe('_addResourceSpans', () => {
         end_timestamp: timeOrigin + startTime + duration,
         attributes: {
           [SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.response.body.decoded_size']: entry.decodedBodySize,
           ['http.response.body.size']: entry.encodedBodySize,
           ['http.response.size']: entry.transferSize,
@@ -430,7 +423,7 @@ describe('_addResourceSpans', () => {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.response.body.decoded_size']: entry.decodedBodySize,
           ['http.response.body.size']: entry.encodedBodySize,
           ['http.response.size']: entry.transferSize,
@@ -469,7 +462,7 @@ describe('_addResourceSpans', () => {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.domain': 'example.com',
           'http.request.same_origin': true,
@@ -521,7 +514,7 @@ describe('_addResourceSpans', () => {
       expect.objectContaining({
         attributes: {
           [SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.domain': 'example.com',
           'http.request.same_origin': true,

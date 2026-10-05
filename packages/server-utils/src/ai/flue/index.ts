@@ -5,11 +5,15 @@ import {
   continueTrace,
   getActiveSpan,
   LRUMap,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
   withActiveSpan,
 } from '@sentry/core';
-import { GEN_AI_AGENT_NAME, GEN_AI_CONVERSATION_ID, GEN_AI_OPERATION_NAME } from '@sentry/conventions/attributes';
+import {
+  GEN_AI_AGENT_NAME,
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_OPERATION_NAME,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../anthropic-ai/constants';
 import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
@@ -104,7 +108,7 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
             name: `invoke_agent ${ctx.agentName ?? 'agent'}`,
             op: getGenAiSpanOp('invoke_agent'),
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: FLUE_ORIGIN,
+              [SENTRY_ORIGIN]: FLUE_ORIGIN,
               [GEN_AI_OPERATION_NAME]: 'invoke_agent',
               ...(ctx.agentName ? { [GEN_AI_AGENT_NAME]: ctx.agentName } : {}),
               ...(ctx.conversationId ? { [GEN_AI_CONVERSATION_ID]: ctx.conversationId } : {}),

@@ -6,8 +6,9 @@ import {
   SENTRY_EXCLUSIVE_TIME,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '../semanticAttributes';
 import type { Client } from '../client';
 import type { TransactionEvent } from '../types/event';
 import type { SpanLink } from '../types/link';
@@ -103,7 +104,7 @@ export class SentrySpan implements Span {
 
     this._attributes = {};
     this.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+      [SENTRY_ORIGIN]: 'manual',
       [SENTRY_OP]: spanContext.op,
       ...spanContext.attributes,
     });
@@ -278,7 +279,7 @@ export class SentrySpan implements Span {
       status: getStatusMessage(this._status),
       timestamp: this._endTime,
       trace_id: this._traceId,
-      origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      origin: this._attributes[SENTRY_ORIGIN] as SpanOrigin | undefined,
       profile_id: this._attributes[SENTRY_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SENTRY_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),

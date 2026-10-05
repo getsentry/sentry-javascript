@@ -10,10 +10,9 @@ import {
   getIsolationScope,
   hasSpanStreamingEnabled,
   ROUTER_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
-import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, HTTP_ROUTE, KOA_TYPE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -213,7 +212,7 @@ function patchLayer(
         attributes: {
           ...metadata.attributes,
           [SENTRY_OP]: layerType === LAYER_TYPE.MIDDLEWARE ? MIDDLEWARE : ROUTER,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
         },
       },
       () => {

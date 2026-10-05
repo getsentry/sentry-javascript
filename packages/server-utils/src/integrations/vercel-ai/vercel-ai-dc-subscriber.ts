@@ -25,6 +25,7 @@ import {
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_EMBEDDINGS,
@@ -39,7 +40,6 @@ import {
   captureException,
   getClient,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   spanToJSON,
   spanToTraceContext,
@@ -418,7 +418,7 @@ export function createSpanFromMessage(
   }
 
   const baseAttributes: Record<string, string | number | boolean> = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_ORIGIN]: ORIGIN,
     ...(provider ? { [GEN_AI_PROVIDER_NAME]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
     ...(modelId ? { [GEN_AI_REQUEST_MODEL]: modelId } : {}),
     ...(maxRetries !== undefined ? { [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries } : {}),
@@ -533,7 +533,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
   const description =
     recordInputs && toolName ? resolveToolDescription(asString(event.callId), toolName, event.tools) : undefined;
   return startGenAiSpan('execute_tool', toolName, {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_ORIGIN]: ORIGIN,
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
     ...(description ? { [GEN_AI_TOOL_DESCRIPTION]: description } : {}),

@@ -8,9 +8,10 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { getClient, hasSpanStreamingEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { sanitizeSqlQueryWithSummary } from '../../utils/sql';
 
@@ -109,7 +110,7 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
       return startInactiveSpan({
         name,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [DB_QUERY_TEXT]: queryText,
@@ -132,7 +133,7 @@ function setupConnectChannel(tracingChannel: MySQL2TracingChannelFactory, channe
       return startInactiveSpan({
         name: spanName,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
           [DB_NAMESPACE]: data.database || undefined,
