@@ -3,6 +3,17 @@ import { buildTransportAttributes } from '../../../../src/integrations/mcp-serve
 import { createMockStdioTransport, createMockTransport } from './testUtils';
 
 describe('MCP network attributes', () => {
+  it('identifies per-request HTTP without request metadata', () => {
+    const transport = createMockTransport();
+    Object.defineProperty(transport, 'constructor', { value: { name: 'PerRequestHTTPServerTransport' } });
+
+    expect(buildTransportAttributes(transport)).toEqual({
+      'mcp.transport': 'PerRequestHTTPServerTransport',
+      'mcp.session.id': 'test-session-123',
+      'network.protocol.name': 'http',
+    });
+  });
+
   it('does not report JSON-RPC as a network protocol for stdio', () => {
     const attributes = buildTransportAttributes(createMockStdioTransport());
 
