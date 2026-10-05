@@ -8,6 +8,8 @@ import { instrumentBunServe } from '../../src/integrations/bunserver';
 describe('Bun Serve Integration', () => {
   const mockSpan = SentryCore.startInactiveSpan({ name: 'test span' });
   const setAttributesSpy = spyOn(mockSpan, 'setAttributes');
+  const setStatusSpy = spyOn(mockSpan, 'setStatus');
+  const captureExceptionSpy = spyOn(SentryCore, 'captureException');
   const continueTraceSpy = spyOn(SentryCore, 'continueTrace');
   const endSpanSpy = spyOn(mockSpan, 'end');
   const startSpanSpy = spyOn(SentryCore, 'startSpanManual').mockImplementation((_opts, cb) => {
@@ -33,6 +35,8 @@ describe('Bun Serve Integration', () => {
     endSpanSpy.mockReset();
     continueTraceSpy.mockClear();
     setAttributesSpy.mockClear();
+    setStatusSpy.mockClear();
+    captureExceptionSpy.mockClear();
     // Header attributes are only collected while a client is active, so every test sets up its own instead of
     // relying on one leaking in from whichever test file `bun test` happened to run first.
     setupClient();
@@ -57,7 +61,7 @@ describe('Bun Serve Integration', () => {
           controller = value;
         },
       });
-      const ended = new Promise<void>(resolve => endSpanSpy.mockImplementation(resolve));
+      const ended = new Promise<void>(resolve => endSpanSpy.mockImplementation(() => resolve()));
       const handler = () =>
         new Response(source, { status: 201, headers: { 'content-type': 'text/event-stream', 'x-stream': 'events' } });
       const server = Bun.serve({
@@ -85,32 +89,74 @@ describe('Bun Serve Integration', () => {
     },
   );
 
-  test('ends the span and cancels the source when a streaming response is cancelled', async () => {
-    let cancelled: unknown;
-    const ended = new Promise<void>(resolve => endSpanSpy.mockImplementation(resolve));
-    const source = new ReadableStream<Uint8Array>({
-      cancel(reason) {
-        cancelled = reason;
+  test.each(['client disconnected', new Error('client disconnected')])(
+    'ends the span without capturing a cancelled stream: %s',
+    async reason => {
+      let cancelled: unknown;
+      const ended = new Promise<void>(resolve => endSpanSpy.mockImplementation(() => resolve()));
+      const source = new ReadableStream<Uint8Array>({
+        cancel(reason) {
+          cancelled = reason;
+        },
+      });
+      const server = Bun.serve({
+        port,
+        fetch: () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+      });
+      try {
+        const response = await server.fetch(new Request(`http://localhost:${port}/events`));
+        const reader = response.body!.getReader();
+        const pendingRead = reader.read();
+        await reader.cancel(reason);
+        expect(await pendingRead).toEqual({ done: true, value: undefined });
+        await ended;
+        expect(cancelled).toBe(reason);
+        expect(endSpanSpy).toHaveBeenCalledTimes(1);
+        expect(captureExceptionSpy).not.toHaveBeenCalled();
+        expect(setStatusSpy).not.toHaveBeenCalledWith({
+          code: SentryCore.SPAN_STATUS_ERROR,
+          message: 'internal_error',
+        });
+      } finally {
+        await server.stop(true);
+      }
+    },
+  );
+
+  test('preserves backpressure instead of reading ahead of the response consumer', async () => {
+    let pulls = 0;
+    const source = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          pulls += 1;
+          controller.enqueue(new TextEncoder().encode(`data: ${pulls}\n\n`));
+        },
       },
-    });
+      { highWaterMark: 0 },
+    );
     const server = Bun.serve({
       port,
       fetch: () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
     });
     try {
       const response = await server.fetch(new Request(`http://localhost:${port}/events`));
-      await response.body!.cancel('client disconnected');
-      await ended;
-      expect(cancelled).toBe('client disconnected');
+      expect(pulls).toBe(0);
+      const reader = response.body!.getReader();
+      expect(new TextDecoder().decode((await reader.read()).value)).toBe('data: 1\n\n');
+      expect(pulls).toBe(1);
+      expect(endSpanSpy).not.toHaveBeenCalled();
+
+      await reader.cancel();
       expect(endSpanSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
     } finally {
       await server.stop(true);
     }
   });
 
-  test('ends the span and preserves the error when its response stream errors', async () => {
+  test('captures a response stream error and marks its span as failed', async () => {
     let controller: ReadableStreamDefaultController<Uint8Array>;
-    const ended = new Promise<void>(resolve => endSpanSpy.mockImplementation(resolve));
+    const ended = new Promise<void>(resolve => endSpanSpy.mockImplementation(() => resolve()));
     const source = new ReadableStream<Uint8Array>({
       start(value) {
         controller = value;
@@ -124,8 +170,13 @@ describe('Bun Serve Integration', () => {
       const response = await server.fetch(new Request(`http://localhost:${port}/events`));
       const error = new Error('stream interrupted');
       controller!.error(error);
-      await expect(response.text()).rejects.toBe(error);
       await ended;
+      await expect(response.text()).rejects.toBe(error);
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: { type: 'auto.http.bun.serve', handled: false },
+      });
+      expect(setStatusSpy).toHaveBeenCalledWith({ code: SentryCore.SPAN_STATUS_ERROR, message: 'internal_error' });
       expect(endSpanSpy).toHaveBeenCalledTimes(1);
     } finally {
       await server.stop(true);

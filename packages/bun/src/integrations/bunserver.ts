@@ -40,6 +40,7 @@ import {
   URL_SCHEME,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
+import { monitorStream } from '../utils/streaming';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
@@ -322,15 +323,15 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
                 }
               }
               if (response?.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
-                const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
-                const streamedResponse = new Response(readable, {
+                const body = monitorStream(response.body, endSpan, error => {
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                  captureException(error, { mechanism: { type: 'auto.http.bun.serve', handled: false } });
+                });
+                return new Response(body, {
                   status: response.status,
                   statusText: response.statusText,
                   headers: response.headers,
                 });
-                // pipeTo settles on completion, source errors, and downstream cancellation.
-                void response.body.pipeTo(writable).then(endSpan, endSpan);
-                return streamedResponse;
               }
               endSpan();
               return response;

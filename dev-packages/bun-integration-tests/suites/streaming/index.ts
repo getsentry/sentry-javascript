@@ -6,7 +6,8 @@ Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 1 });
 const server = Bun.serve({
   port: 0,
   fetch(request) {
-    if (new URL(request.url).pathname === '/error') {
+    const path = new URL(request.url).pathname;
+    if (path === '/error') {
       throw new Error('handler failed');
     }
     const span = Sentry.getActiveSpan();
@@ -14,6 +15,10 @@ const server = Bun.serve({
       async start(controller) {
         controller.enqueue(new TextEncoder().encode('data: first\n\n'));
         await Bun.sleep(50);
+        if (path === '/stream-error') {
+          controller.error(new Error('stream failed'));
+          return;
+        }
         controller.enqueue(new TextEncoder().encode(`data: recording=${span?.isRecording()}\n\n`));
         span?.setAttribute('test.stream.completed', true);
         controller.close();
