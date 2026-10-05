@@ -20,5 +20,6 @@ export default [
     route('server-action', 'routes/performance/server-action.tsx'),
     route('with-middleware', 'routes/performance/with-middleware.tsx'),
     route('redis', 'routes/performance/redis.tsx'),
+    route('db-mysql', 'routes/performance/db-mysql.tsx'),
   ]),
 ] satisfies RouteConfig;
