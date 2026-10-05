@@ -1,4 +1,5 @@
 import { afterAll, expect } from 'vitest';
+import { expectGraphqlTrace } from '../../graphql-test-utils';
 import { conditionalTest } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
@@ -12,22 +13,36 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
 
   const expectedResolveSpan = (path: string, fieldName: string, parentName: string) =>
     expect.objectContaining({
-      description: `graphql.resolve ${path}`,
-      op: 'graphql',
-      origin: 'auto.graphql.diagnostic_channel',
-      data: expect.objectContaining({
-        'graphql.field.name': fieldName,
-        'graphql.field.path': path,
-        'graphql.parent.name': parentName,
+      name: 'GraphQL resolve',
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'graphql', type: 'string' },
+        'sentry.origin': { value: 'auto.graphql.diagnostic_channel', type: 'string' },
+        'graphql.field.name': { value: fieldName, type: 'string' },
+        'graphql.field.path': { value: path, type: 'string' },
+        'graphql.parent.name': { value: parentName, type: 'string' },
       }),
     });
 
-  const EXPECTED_TRANSACTION = {
-    // Root span renamed with the (sorted) operation names. useOperationNameForRootSpan defaults to true.
-    transaction: 'Test Transaction (query, query GetUser)',
-    spans: expect.arrayContaining([
-      expect.objectContaining({ description: 'query', op: 'graphql' }),
-      expect.objectContaining({ description: 'query GetUser', op: 'graphql' }),
+  const EXPECTED_TRACE = {
+    segment: {
+      name: 'Test Transaction',
+      attributes: { 'sentry.graphql.operation': { value: ['query', 'query GetUser'], type: 'array' } },
+    },
+    children: expect.arrayContaining([
+      expect.objectContaining({
+        name: 'GraphQL query',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'graphql', type: 'string' },
+          'graphql.document': { value: '{ hello }', type: 'string' },
+        }),
+      }),
+      expect.objectContaining({
+        name: 'GraphQL query',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'graphql', type: 'string' },
+          'graphql.operation.name': { value: 'GetUser', type: 'string' },
+        }),
+      }),
       expectedResolveSpan('hello', 'hello', 'Query'),
       expectedResolveSpan('user', 'user', 'Query'),
     ]),
@@ -39,19 +54,27 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
     'instrument.mjs',
     (createTestRunner, test) => {
       test('emits resolver spans when ignoreResolveSpans is false', async () => {
-        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        await createTestRunner()
+          .unordered()
+          .expect({
+            span: expectGraphqlTrace('Test Transaction', (segment, children) => {
+              expect({ segment, children }).toMatchObject(EXPECTED_TRACE);
+            }),
+          })
+          .start()
+          .completed();
       });
 
       test('skips the default property resolver (trivial resolve) by default', async () => {
         await createTestRunner()
+          .unordered()
           .expect({
-            transaction: event => {
-              const spans = event.spans || [];
+            span: expectGraphqlTrace('Test Transaction', (_segment, spans) => {
               // `user.name` uses graphql's default property resolver, so no span is emitted for it.
-              expect(spans.find(span => span.description === 'graphql.resolve user.name')).toBeUndefined();
+              expect(spans.find(span => span.attributes['graphql.field.path']?.value === 'user.name')).toBeUndefined();
               // ...but the user-defined resolvers do produce spans.
-              expect(spans.find(span => span.description === 'graphql.resolve user')).toBeDefined();
-            },
+              expect(spans.find(span => span.attributes['graphql.field.path']?.value === 'user')).toBeDefined();
+            }),
           })
           .start()
           .completed();
@@ -69,11 +92,11 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
     (createTestRunner, test) => {
       test('emits a span for the trivial default resolver when ignoreTrivialResolveSpans is false', async () => {
         await createTestRunner()
+          .unordered()
           .expect({
-            transaction: event => {
-              const spans = event.spans || [];
-              expect(spans.find(span => span.description === 'graphql.resolve user.name')).toBeDefined();
-            },
+            span: expectGraphqlTrace('Test Transaction', (_segment, spans) => {
+              expect(spans.find(span => span.attributes['graphql.field.path']?.value === 'user.name')).toBeDefined();
+            }),
           })
           .start()
           .completed();

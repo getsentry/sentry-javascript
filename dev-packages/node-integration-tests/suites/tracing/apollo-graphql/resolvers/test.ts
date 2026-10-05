@@ -1,9 +1,11 @@
 import { afterAll, describe, expect } from 'vitest';
+import { expectGraphqlTrace } from '../../graphql-test-utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
-// Server start transaction (Apollo Server v5 no longer runs introspection query on start)
-const EXPECTED_START_SERVER_TRANSACTION = {
-  transaction: 'Test Server Start',
+// Apollo Server v5 no longer runs an introspection query on start.
+const EXPECTED_START_SERVER_SPAN = {
+  name: 'Test Server Start',
+  is_segment: true,
 };
 
 describe('GraphQL/Apollo Tests > resolve spans', () => {
@@ -13,36 +15,37 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
 
   // With `ignoreResolveSpans: false`, the instrumentation emits a span for the execute step as well as
   // for `parse`, `validate` and each (non-trivial) field resolver.
-  const EXPECTED_TRANSACTION = {
-    // `useOperationNameForRootSpan` defaults to true, so the root span name gets the operation appended.
-    transaction: 'Test Transaction (query)',
-    spans: expect.arrayContaining([
+  const EXPECTED_TRACE = {
+    segment: {
+      name: 'Test Transaction',
+      attributes: { 'sentry.graphql.operation': { value: 'query', type: 'string' } },
+    },
+    children: expect.arrayContaining([
       expect.objectContaining({
-        description: 'query',
-        origin: 'auto.graphql.diagnostic_channel',
-        data: expect.objectContaining({
-          'graphql.operation.type': 'query',
-          'graphql.processing.type': 'execute',
-          'graphql.document': '{hello}',
-          'sentry.origin': 'auto.graphql.diagnostic_channel',
+        name: 'GraphQL query',
+        attributes: expect.objectContaining({
+          'graphql.operation.type': { value: 'query', type: 'string' },
+          'graphql.processing.type': { value: 'execute', type: 'string' },
+          'graphql.document': { value: '{hello}', type: 'string' },
+          'sentry.origin': { value: 'auto.graphql.diagnostic_channel', type: 'string' },
         }),
       }),
       expect.objectContaining({
-        description: 'graphql.parse',
-        data: expect.objectContaining({ 'graphql.processing.type': 'parse' }),
+        name: 'GraphQL parse',
+        attributes: expect.objectContaining({ 'graphql.processing.type': { value: 'parse', type: 'string' } }),
       }),
       expect.objectContaining({
-        description: 'graphql.validate',
-        data: expect.objectContaining({ 'graphql.processing.type': 'validate' }),
+        name: 'GraphQL validate',
+        attributes: expect.objectContaining({ 'graphql.processing.type': { value: 'validate', type: 'string' } }),
       }),
       expect.objectContaining({
-        description: 'graphql.resolve hello',
-        data: expect.objectContaining({
-          'graphql.processing.type': 'resolve',
-          'graphql.field.name': 'hello',
-          'graphql.field.path': 'hello',
-          'graphql.field.type': 'String',
-          'graphql.parent.name': 'Query',
+        name: 'GraphQL resolve',
+        attributes: expect.objectContaining({
+          'graphql.processing.type': { value: 'resolve', type: 'string' },
+          'graphql.field.name': { value: 'hello', type: 'string' },
+          'graphql.field.path': { value: 'hello', type: 'string' },
+          'graphql.field.type': { value: 'String', type: 'string' },
+          'graphql.parent.name': { value: 'Query', type: 'string' },
         }),
       }),
     ]),
@@ -51,8 +54,13 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
   createEsmAndCjsTests(__dirname, 'scenario-query.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('emits parse, validate and resolve spans when ignoreResolveSpans is false', async () => {
       await createTestRunner()
-        .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-        .expect({ transaction: EXPECTED_TRANSACTION })
+        .unordered()
+        .expect({
+          span: expectGraphqlTrace('Test Transaction', (segment, children, allSpans) => {
+            expect(allSpans).toEqual(expect.arrayContaining([expect.objectContaining(EXPECTED_START_SERVER_SPAN)]));
+            expect({ segment, children }).toMatchObject(EXPECTED_TRACE);
+          }),
+        })
         .start()
         .completed();
     });
@@ -61,35 +69,37 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
   // Same behavior on the diagnostics-channel path: passing the channel integration explicitly (see
   // instrument-dc.mjs) must carry `ignoreResolveSpans: false` through — the explicit instance wins over
   // the swapped-in default — and emit resolve spans with the orchestrion origin.
-  const EXPECTED_ORCHESTRION_TRANSACTION = {
-    transaction: 'Test Transaction (query)',
-    spans: expect.arrayContaining([
+  const EXPECTED_ORCHESTRION_TRACE = {
+    segment: {
+      name: 'Test Transaction',
+      attributes: { 'sentry.graphql.operation': { value: 'query', type: 'string' } },
+    },
+    children: expect.arrayContaining([
       expect.objectContaining({
-        description: 'query',
-        origin: 'auto.graphql.diagnostic_channel',
-        data: expect.objectContaining({
-          'graphql.operation.type': 'query',
-          'graphql.processing.type': 'execute',
-          'graphql.document': '{hello}',
-          'sentry.origin': 'auto.graphql.diagnostic_channel',
+        name: 'GraphQL query',
+        attributes: expect.objectContaining({
+          'graphql.operation.type': { value: 'query', type: 'string' },
+          'graphql.processing.type': { value: 'execute', type: 'string' },
+          'graphql.document': { value: '{hello}', type: 'string' },
+          'sentry.origin': { value: 'auto.graphql.diagnostic_channel', type: 'string' },
         }),
       }),
       expect.objectContaining({
-        description: 'graphql.parse',
-        data: expect.objectContaining({ 'graphql.processing.type': 'parse' }),
+        name: 'GraphQL parse',
+        attributes: expect.objectContaining({ 'graphql.processing.type': { value: 'parse', type: 'string' } }),
       }),
       expect.objectContaining({
-        description: 'graphql.validate',
-        data: expect.objectContaining({ 'graphql.processing.type': 'validate' }),
+        name: 'GraphQL validate',
+        attributes: expect.objectContaining({ 'graphql.processing.type': { value: 'validate', type: 'string' } }),
       }),
       expect.objectContaining({
-        description: 'graphql.resolve hello',
-        data: expect.objectContaining({
-          'graphql.processing.type': 'resolve',
-          'graphql.field.name': 'hello',
-          'graphql.field.path': 'hello',
-          'graphql.field.type': 'String',
-          'graphql.parent.name': 'Query',
+        name: 'GraphQL resolve',
+        attributes: expect.objectContaining({
+          'graphql.processing.type': { value: 'resolve', type: 'string' },
+          'graphql.field.name': { value: 'hello', type: 'string' },
+          'graphql.field.path': { value: 'hello', type: 'string' },
+          'graphql.field.type': { value: 'String', type: 'string' },
+          'graphql.parent.name': { value: 'Query', type: 'string' },
         }),
       }),
     ]),
@@ -98,8 +108,13 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
   createEsmAndCjsTests(__dirname, 'scenario-query.mjs', 'instrument-dc.mjs', (createTestRunner, test) => {
     test('emits resolve spans via diagnostics-channel injection when configured explicitly', async () => {
       await createTestRunner()
-        .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-        .expect({ transaction: EXPECTED_ORCHESTRION_TRANSACTION })
+        .unordered()
+        .expect({
+          span: expectGraphqlTrace('Test Transaction', (segment, children, allSpans) => {
+            expect(allSpans).toEqual(expect.arrayContaining([expect.objectContaining(EXPECTED_START_SERVER_SPAN)]));
+            expect({ segment, children }).toMatchObject(EXPECTED_ORCHESTRION_TRACE);
+          }),
+        })
         .start()
         .completed();
     });

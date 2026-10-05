@@ -1,16 +1,6 @@
 import { afterAll, describe, expect, test } from 'vitest';
+import { expectGraphqlTrace } from '../../../tracing/graphql-test-utils';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
-
-const EXPECTED_TRANSCATION = {
-  transaction: 'Test Transaction (query GetHello)',
-  spans: expect.arrayContaining([
-    expect.objectContaining({
-      description: 'query GetHello',
-      origin: 'auto.graphql.diagnostic_channel',
-      status: 'ok',
-    }),
-  ]),
-};
 
 describe('graphqlIntegration', () => {
   afterAll(() => {
@@ -19,9 +9,27 @@ describe('graphqlIntegration', () => {
 
   test('should use GraphQL operation name for root span if useOperationNameForRootSpan is set', async () => {
     await createRunner(__dirname, 'scenario.js')
-      .ignore('event')
-      .expect({ transaction: { transaction: 'Test Server Start' } })
-      .expect({ transaction: EXPECTED_TRANSCATION })
+      .unordered()
+      .expect({
+        span: expectGraphqlTrace('Test Transaction', (segment, children, allSpans) => {
+          expect(allSpans).toEqual(
+            expect.arrayContaining([expect.objectContaining({ name: 'Test Server Start', is_segment: true })]),
+          );
+          expect(segment.attributes['sentry.graphql.operation']?.value).toBe('query GetHello');
+          expect(children).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                name: 'GraphQL query',
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  'graphql.operation.name': { value: 'GetHello', type: 'string' },
+                  'sentry.origin': { value: 'auto.graphql.diagnostic_channel', type: 'string' },
+                }),
+              }),
+            ]),
+          );
+        }),
+      })
       .start()
       .completed();
   });
