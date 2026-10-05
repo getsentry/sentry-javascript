@@ -58,8 +58,13 @@ export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, SENTRY_API_VERSION } from './api';
-export { Client } from './client';
-export { initAndBind, setCurrentClient } from './sdk';
+export { Client, isClientClosed as _INTERNAL_isClientClosed } from './client';
+export {
+  getActiveClient as _INTERNAL_getActiveClient,
+  initAndBind,
+  setCurrentClient,
+  warnIfClientIsActive as _INTERNAL_warnIfClientIsActive,
+} from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';

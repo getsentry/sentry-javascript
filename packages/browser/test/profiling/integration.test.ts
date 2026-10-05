@@ -7,14 +7,19 @@ import {
   getClient,
   spanToStaticSpanJSON,
   getActiveSpan,
+  getCurrentScope,
   browserTracingIntegration,
   browserProfilingIntegration,
 } from '../../src/index';
 import { debug } from '@sentry/core';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserClient } from '../../src/index';
 
 describe('BrowserProfilingIntegration', () => {
+  beforeEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
   it('profiles an already active pageload span in trace lifecycle mode', async () => {
     const stopProfile = vi.fn().mockResolvedValue({
       frames: [{ name: 'pageload_fn', line: 1, column: 1 }],

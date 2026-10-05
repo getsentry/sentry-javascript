@@ -4,9 +4,9 @@
 import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
 import type { EventProcessor } from '@sentry/core';
 import {
+  _INTERNAL_getActiveClient,
   applySdkMetadata,
   debug,
-  getClient,
   getGlobalScope,
   getRootSpan,
   getVercelEnv,
@@ -182,9 +182,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   DEBUG_BUILD && debug.log('Initializing SDK...');
 
-  if (sdkAlreadyInitialized()) {
+  const existingClient = _INTERNAL_getActiveClient<NodeClient>();
+  if (existingClient) {
     DEBUG_BUILD && debug.log('SDK already initialized');
-    return;
+    return existingClient;
   }
 
   // Use appropriate SDK metadata based on the runtime environment
@@ -231,7 +232,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
   client?.on('spanEnd', maybeCompleteCronCheckIn);
   client?.on('spanEnd', maybeCleanupQueueSpan);
 
-  getGlobalScope().addEventProcessor(
+  // On the client, not the global scope, so a later `init()` after
+  // `close()` does not stack another copy.
+  client?.addEventProcessor(
     Object.assign(
       ((event, hint) => {
         if (event.type !== undefined) {
@@ -278,7 +281,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   });
 
   if (process.env.NODE_ENV === 'development') {
-    getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
+    client?.addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   try {
@@ -295,10 +298,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
   DEBUG_BUILD && debug.log('SDK successfully initialized');
 
   return client;
-}
-
-function sdkAlreadyInitialized(): boolean {
-  return !!getClient();
 }
 
 export * from '../common';

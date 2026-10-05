@@ -1,5 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
 import {
+  _INTERNAL_warnIfClientIsActive,
   applySdkMetadata,
   consoleSandbox,
   conversationIdIntegration,
@@ -161,6 +162,8 @@ function _init(
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(optionsWithResolvedTracing);
 
   const clientOptions = getClientOptions({ ...options, defaultIntegrations }, getDefaultIntegrationsImpl);
+
+  _INTERNAL_warnIfClientIsActive();
 
   const scope = getCurrentScope();
   scope.update(clientOptions.initialScope);
