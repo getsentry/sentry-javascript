@@ -2,12 +2,6 @@ import { afterAll, describe, expect } from 'vitest';
 import { expectGraphqlTrace } from '../../graphql-test-utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
-// Apollo Server v5 no longer runs an introspection query on start.
-const EXPECTED_START_SERVER_SPAN = {
-  name: 'Test Server Start',
-  is_segment: true,
-};
-
 describe('GraphQL/Apollo Tests > resolve spans', () => {
   afterAll(() => {
     cleanupChildProcesses();
@@ -15,41 +9,6 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
 
   // With `ignoreResolveSpans: false`, the instrumentation emits a span for the execute step as well as
   // for `parse`, `validate` and each (non-trivial) field resolver.
-  const EXPECTED_TRACE = {
-    segment: {
-      name: 'Test Transaction',
-      attributes: { 'sentry.graphql.operation': { value: 'query', type: 'string' } },
-    },
-    children: expect.arrayContaining([
-      expect.objectContaining({
-        name: 'GraphQL query',
-        attributes: expect.objectContaining({
-          'graphql.operation.type': { value: 'query', type: 'string' },
-          'graphql.processing.type': { value: 'execute', type: 'string' },
-          'graphql.document': { value: '{hello}', type: 'string' },
-          'sentry.origin': { value: 'auto.graphql.diagnostic_channel', type: 'string' },
-        }),
-      }),
-      expect.objectContaining({
-        name: 'GraphQL parse',
-        attributes: expect.objectContaining({ 'graphql.processing.type': { value: 'parse', type: 'string' } }),
-      }),
-      expect.objectContaining({
-        name: 'GraphQL validate',
-        attributes: expect.objectContaining({ 'graphql.processing.type': { value: 'validate', type: 'string' } }),
-      }),
-      expect.objectContaining({
-        name: 'GraphQL resolve',
-        attributes: expect.objectContaining({
-          'graphql.processing.type': { value: 'resolve', type: 'string' },
-          'graphql.field.name': { value: 'hello', type: 'string' },
-          'graphql.field.path': { value: 'hello', type: 'string' },
-          'graphql.field.type': { value: 'String', type: 'string' },
-          'graphql.parent.name': { value: 'Query', type: 'string' },
-        }),
-      }),
-    ]),
-  };
 
   createEsmAndCjsTests(__dirname, 'scenario-query.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('emits parse, validate and resolve spans when ignoreResolveSpans is false', async () => {
@@ -57,8 +16,44 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
         .unordered()
         .expect({
           span: expectGraphqlTrace('Test Transaction', (segment, children, allSpans) => {
-            expect(allSpans).toEqual(expect.arrayContaining([expect.objectContaining(EXPECTED_START_SERVER_SPAN)]));
-            expect({ segment, children }).toMatchObject(EXPECTED_TRACE);
+            expect(allSpans.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
+            expect(segment.name).toBe('Test Transaction');
+            expect(segment.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
+            const executeSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'execute');
+            expect(executeSpan).toBeDefined();
+            expect(executeSpan?.name).toBe('GraphQL query');
+            expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
+            expect(executeSpan?.attributes['graphql.processing.type']).toEqual({ value: 'execute', type: 'string' });
+            expect(executeSpan?.attributes['graphql.document']).toEqual({ value: '{hello}', type: 'string' });
+            expect(executeSpan?.attributes['sentry.origin']).toEqual({
+              value: 'auto.graphql.diagnostic_channel',
+              type: 'string',
+            });
+            const parseSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'parse');
+            expect(parseSpan).toBeDefined();
+            expect(parseSpan?.name).toBe('GraphQL parse');
+            expect(parseSpan?.attributes['graphql.processing.type']).toEqual({ value: 'parse', type: 'string' });
+            const validateSpan = children.find(
+              span => span.attributes['graphql.processing.type']?.value === 'validate',
+            );
+            expect(validateSpan).toBeDefined();
+            expect(validateSpan?.name).toBe('GraphQL validate');
+            expect(validateSpan?.attributes['graphql.processing.type']).toEqual({ value: 'validate', type: 'string' });
+            const helloResolverSpan = children.find(
+              span =>
+                span.attributes['graphql.processing.type']?.value === 'resolve' &&
+                span.attributes['graphql.field.path']?.value === 'hello',
+            );
+            expect(helloResolverSpan).toBeDefined();
+            expect(helloResolverSpan?.name).toBe('GraphQL resolve');
+            expect(helloResolverSpan?.attributes['graphql.processing.type']).toEqual({
+              value: 'resolve',
+              type: 'string',
+            });
+            expect(helloResolverSpan?.attributes['graphql.field.name']).toEqual({ value: 'hello', type: 'string' });
+            expect(helloResolverSpan?.attributes['graphql.field.path']).toEqual({ value: 'hello', type: 'string' });
+            expect(helloResolverSpan?.attributes['graphql.field.type']).toEqual({ value: 'String', type: 'string' });
+            expect(helloResolverSpan?.attributes['graphql.parent.name']).toEqual({ value: 'Query', type: 'string' });
           }),
         })
         .start()
@@ -69,41 +64,6 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
   // Same behavior on the diagnostics-channel path: passing the channel integration explicitly (see
   // instrument-dc.mjs) must carry `ignoreResolveSpans: false` through — the explicit instance wins over
   // the swapped-in default — and emit resolve spans with the orchestrion origin.
-  const EXPECTED_ORCHESTRION_TRACE = {
-    segment: {
-      name: 'Test Transaction',
-      attributes: { 'sentry.graphql.operation': { value: 'query', type: 'string' } },
-    },
-    children: expect.arrayContaining([
-      expect.objectContaining({
-        name: 'GraphQL query',
-        attributes: expect.objectContaining({
-          'graphql.operation.type': { value: 'query', type: 'string' },
-          'graphql.processing.type': { value: 'execute', type: 'string' },
-          'graphql.document': { value: '{hello}', type: 'string' },
-          'sentry.origin': { value: 'auto.graphql.diagnostic_channel', type: 'string' },
-        }),
-      }),
-      expect.objectContaining({
-        name: 'GraphQL parse',
-        attributes: expect.objectContaining({ 'graphql.processing.type': { value: 'parse', type: 'string' } }),
-      }),
-      expect.objectContaining({
-        name: 'GraphQL validate',
-        attributes: expect.objectContaining({ 'graphql.processing.type': { value: 'validate', type: 'string' } }),
-      }),
-      expect.objectContaining({
-        name: 'GraphQL resolve',
-        attributes: expect.objectContaining({
-          'graphql.processing.type': { value: 'resolve', type: 'string' },
-          'graphql.field.name': { value: 'hello', type: 'string' },
-          'graphql.field.path': { value: 'hello', type: 'string' },
-          'graphql.field.type': { value: 'String', type: 'string' },
-          'graphql.parent.name': { value: 'Query', type: 'string' },
-        }),
-      }),
-    ]),
-  };
 
   createEsmAndCjsTests(__dirname, 'scenario-query.mjs', 'instrument-dc.mjs', (createTestRunner, test) => {
     test('emits resolve spans via diagnostics-channel injection when configured explicitly', async () => {
@@ -111,8 +71,44 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
         .unordered()
         .expect({
           span: expectGraphqlTrace('Test Transaction', (segment, children, allSpans) => {
-            expect(allSpans).toEqual(expect.arrayContaining([expect.objectContaining(EXPECTED_START_SERVER_SPAN)]));
-            expect({ segment, children }).toMatchObject(EXPECTED_ORCHESTRION_TRACE);
+            expect(allSpans.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
+            expect(segment.name).toBe('Test Transaction');
+            expect(segment.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
+            const executeSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'execute');
+            expect(executeSpan).toBeDefined();
+            expect(executeSpan?.name).toBe('GraphQL query');
+            expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
+            expect(executeSpan?.attributes['graphql.processing.type']).toEqual({ value: 'execute', type: 'string' });
+            expect(executeSpan?.attributes['graphql.document']).toEqual({ value: '{hello}', type: 'string' });
+            expect(executeSpan?.attributes['sentry.origin']).toEqual({
+              value: 'auto.graphql.diagnostic_channel',
+              type: 'string',
+            });
+            const parseSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'parse');
+            expect(parseSpan).toBeDefined();
+            expect(parseSpan?.name).toBe('GraphQL parse');
+            expect(parseSpan?.attributes['graphql.processing.type']).toEqual({ value: 'parse', type: 'string' });
+            const validateSpan = children.find(
+              span => span.attributes['graphql.processing.type']?.value === 'validate',
+            );
+            expect(validateSpan).toBeDefined();
+            expect(validateSpan?.name).toBe('GraphQL validate');
+            expect(validateSpan?.attributes['graphql.processing.type']).toEqual({ value: 'validate', type: 'string' });
+            const helloResolverSpan = children.find(
+              span =>
+                span.attributes['graphql.processing.type']?.value === 'resolve' &&
+                span.attributes['graphql.field.path']?.value === 'hello',
+            );
+            expect(helloResolverSpan).toBeDefined();
+            expect(helloResolverSpan?.name).toBe('GraphQL resolve');
+            expect(helloResolverSpan?.attributes['graphql.processing.type']).toEqual({
+              value: 'resolve',
+              type: 'string',
+            });
+            expect(helloResolverSpan?.attributes['graphql.field.name']).toEqual({ value: 'hello', type: 'string' });
+            expect(helloResolverSpan?.attributes['graphql.field.path']).toEqual({ value: 'hello', type: 'string' });
+            expect(helloResolverSpan?.attributes['graphql.field.type']).toEqual({ value: 'String', type: 'string' });
+            expect(helloResolverSpan?.attributes['graphql.parent.name']).toEqual({ value: 'Query', type: 'string' });
           }),
         })
         .start()

@@ -1,5 +1,4 @@
 import { afterAll, expect } from 'vitest';
-import { expectGraphqlTrace } from '../../graphql-test-utils';
 import { conditionalTest } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
@@ -16,11 +15,17 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > useOperationNameFor
     (createTestRunner, test) => {
       test('records a single operation without renaming the root span', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('Test Transaction', segment => {
-              expect(segment.attributes['sentry.graphql.operation']?.value).toBe('query GetHello');
-            }),
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('Test Transaction');
+
+              expect(segment?.attributes['sentry.graphql.operation']).toEqual({
+                value: 'query GetHello',
+                type: 'string',
+              });
+            },
           })
           .start()
           .completed();
@@ -36,14 +41,17 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > useOperationNameFor
     (createTestRunner, test) => {
       test('accumulates multiple operations without renaming the root span', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('Test Transaction', segment => {
-              expect(segment.attributes['sentry.graphql.operation']?.value).toEqual([
-                'query GetWorld',
-                'query GetHello',
-              ]);
-            }),
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('Test Transaction');
+
+              expect(segment?.attributes['sentry.graphql.operation']).toEqual({
+                value: ['query GetWorld', 'query GetHello'],
+                type: 'array',
+              });
+            },
           })
           .start()
           .completed();
@@ -59,11 +67,14 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > useOperationNameFor
     (createTestRunner, test) => {
       test('keeps the original root span name when useOperationNameForRootSpan is false', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('Test Transaction', segment => {
-              expect(segment.attributes['sentry.graphql.operation']).toBeUndefined();
-            }),
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('Test Transaction');
+
+              expect(segment?.attributes['sentry.graphql.operation']).toBeUndefined();
+            },
           })
           .start()
           .completed();

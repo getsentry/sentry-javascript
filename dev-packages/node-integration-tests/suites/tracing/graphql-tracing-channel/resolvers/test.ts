@@ -1,5 +1,4 @@
 import { afterAll, expect } from 'vitest';
-import { expectGraphqlTrace } from '../../graphql-test-utils';
 import { conditionalTest } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
@@ -11,43 +10,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
     cleanupChildProcesses();
   });
 
-  const expectedResolveSpan = (path: string, fieldName: string, parentName: string) =>
-    expect.objectContaining({
-      name: 'GraphQL resolve',
-      attributes: expect.objectContaining({
-        'sentry.op': { value: 'graphql', type: 'string' },
-        'sentry.origin': { value: 'auto.graphql.diagnostic_channel', type: 'string' },
-        'graphql.field.name': { value: fieldName, type: 'string' },
-        'graphql.field.path': { value: path, type: 'string' },
-        'graphql.parent.name': { value: parentName, type: 'string' },
-      }),
-    });
-
-  const EXPECTED_TRACE = {
-    segment: {
-      name: 'Test Transaction',
-      attributes: { 'sentry.graphql.operation': { value: ['query', 'query GetUser'], type: 'array' } },
-    },
-    children: expect.arrayContaining([
-      expect.objectContaining({
-        name: 'GraphQL query',
-        attributes: expect.objectContaining({
-          'sentry.op': { value: 'graphql', type: 'string' },
-          'graphql.document': { value: '{ hello }', type: 'string' },
-        }),
-      }),
-      expect.objectContaining({
-        name: 'GraphQL query',
-        attributes: expect.objectContaining({
-          'sentry.op': { value: 'graphql', type: 'string' },
-          'graphql.operation.name': { value: 'GetUser', type: 'string' },
-        }),
-      }),
-      expectedResolveSpan('hello', 'hello', 'Query'),
-      expectedResolveSpan('user', 'user', 'Query'),
-    ]),
-  };
-
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',
@@ -55,11 +17,66 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
     (createTestRunner, test) => {
       test('emits resolver spans when ignoreResolveSpans is false', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('Test Transaction', (segment, children) => {
-              expect({ segment, children }).toMatchObject(EXPECTED_TRACE);
-            }),
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment).toBeDefined();
+              const children = container.items.filter(span => !span.is_segment);
+
+              expect(segment?.name).toBe('Test Transaction');
+              expect(segment?.attributes['sentry.graphql.operation']).toEqual({
+                value: ['query', 'query GetUser'],
+                type: 'array',
+              });
+              const executeSpan = children.find(
+                span =>
+                  span.attributes['graphql.processing.type']?.value === 'execute' &&
+                  span.attributes['graphql.operation.name'] === undefined,
+              );
+              expect(executeSpan).toBeDefined();
+              expect(executeSpan?.name).toBe('GraphQL query');
+              expect(executeSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
+              expect(executeSpan?.attributes['graphql.document']).toEqual({ value: '{ hello }', type: 'string' });
+              const getUserSpan = children.find(
+                span =>
+                  span.attributes['graphql.processing.type']?.value === 'execute' &&
+                  span.attributes['graphql.operation.name']?.value === 'GetUser',
+              );
+              expect(getUserSpan).toBeDefined();
+              expect(getUserSpan?.name).toBe('GraphQL query');
+              expect(getUserSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
+              expect(getUserSpan?.attributes['graphql.operation.name']).toEqual({ value: 'GetUser', type: 'string' });
+              const helloResolverSpan = children.find(
+                span =>
+                  span.attributes['graphql.processing.type']?.value === 'resolve' &&
+                  span.attributes['graphql.field.path']?.value === 'hello',
+              );
+              expect(helloResolverSpan).toBeDefined();
+              expect(helloResolverSpan?.name).toBe('GraphQL resolve');
+              expect(helloResolverSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
+              expect(helloResolverSpan?.attributes['sentry.origin']).toEqual({
+                value: 'auto.graphql.diagnostic_channel',
+                type: 'string',
+              });
+              expect(helloResolverSpan?.attributes['graphql.field.name']).toEqual({ value: 'hello', type: 'string' });
+              expect(helloResolverSpan?.attributes['graphql.field.path']).toEqual({ value: 'hello', type: 'string' });
+              expect(helloResolverSpan?.attributes['graphql.parent.name']).toEqual({ value: 'Query', type: 'string' });
+              const userResolverSpan = children.find(
+                span =>
+                  span.attributes['graphql.processing.type']?.value === 'resolve' &&
+                  span.attributes['graphql.field.path']?.value === 'user',
+              );
+              expect(userResolverSpan).toBeDefined();
+              expect(userResolverSpan?.name).toBe('GraphQL resolve');
+              expect(userResolverSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
+              expect(userResolverSpan?.attributes['sentry.origin']).toEqual({
+                value: 'auto.graphql.diagnostic_channel',
+                type: 'string',
+              });
+              expect(userResolverSpan?.attributes['graphql.field.name']).toEqual({ value: 'user', type: 'string' });
+              expect(userResolverSpan?.attributes['graphql.field.path']).toEqual({ value: 'user', type: 'string' });
+              expect(userResolverSpan?.attributes['graphql.parent.name']).toEqual({ value: 'Query', type: 'string' });
+            },
           })
           .start()
           .completed();
@@ -67,14 +84,18 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
 
       test('skips the default property resolver (trivial resolve) by default', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('Test Transaction', (_segment, spans) => {
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('Test Transaction');
+              const spans = container.items.filter(span => !span.is_segment);
+
               // `user.name` uses graphql's default property resolver, so no span is emitted for it.
               expect(spans.find(span => span.attributes['graphql.field.path']?.value === 'user.name')).toBeUndefined();
               // ...but the user-defined resolvers do produce spans.
               expect(spans.find(span => span.attributes['graphql.field.path']?.value === 'user')).toBeDefined();
-            }),
+            },
           })
           .start()
           .completed();
@@ -92,11 +113,15 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
     (createTestRunner, test) => {
       test('emits a span for the trivial default resolver when ignoreTrivialResolveSpans is false', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('Test Transaction', (_segment, spans) => {
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('Test Transaction');
+              const spans = container.items.filter(span => !span.is_segment);
+
               expect(spans.find(span => span.attributes['graphql.field.path']?.value === 'user.name')).toBeDefined();
-            }),
+            },
           })
           .start()
           .completed();
