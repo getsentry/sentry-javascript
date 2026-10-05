@@ -19,7 +19,7 @@ import type {
   WorkflowStepRollbackOptions,
   WorkflowTimeoutDuration,
 } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategyForWorker } from './utils/asyncContextStrategy';
 import type { CloudflareOptions } from './client';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { markAsInstrumented } from './instrument';
@@ -251,7 +251,7 @@ export function instrumentWorkflowWithSentry<
         get(obj, prop, receiver) {
           if (prop === 'run') {
             return async function (event: WorkflowEvent<P>, step: WorkflowStep): Promise<unknown> {
-              setAsyncLocalStorageAsyncContextStrategy();
+              setAsyncLocalStorageAsyncContextStrategyForWorker();
 
               return withInvocationIsolationScope(async isolationScope => {
                 const waitUntil = getOriginalWaitUntil(context).bind(context);
