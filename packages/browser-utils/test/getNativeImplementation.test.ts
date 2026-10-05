@@ -19,7 +19,7 @@ describe('setTimeout', () => {
     vi.restoreAllMocks();
   });
 
-  it('falls back to window.setTimeout if the sandboxed iframe implementation throws', () => {
+  it('falls back to window.setTimeout if the sandboxed iframe implementation throws', async () => {
     // Simulate a wrapped (non-native) window.setTimeout, e.g. by a browser extension
     const wrappedSetTimeout = vi.fn((...args: Parameters<typeof originalSetTimeout>) => originalSetTimeout(...args));
     WINDOW.setTimeout = wrappedSetTimeout as unknown as typeof WINDOW.setTimeout;
@@ -47,5 +47,7 @@ describe('setTimeout', () => {
     sentrySetTimeout(callback, 0);
     expect(detachedSetTimeout).toHaveBeenCalledTimes(1);
     expect(wrappedSetTimeout).toHaveBeenCalledTimes(2);
+
+    await vi.waitFor(() => expect(callback).toHaveBeenCalledTimes(2));
   });
 });
