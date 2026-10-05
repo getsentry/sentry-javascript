@@ -9,10 +9,22 @@ test('sends a pageload span', async ({ page }) => {
   await page.goto('/');
 
   const span = await spanPromise;
-  // Ordinary document load, so this span comes from the upstream integration and takes the low
-  // cardinality streaming name.
-  expect(span.name).toBe('Pageload');
+  // Started by the upstream integration, then named after the route the server reported.
+  expect(span.name).toBe('/');
   expect(span.attributes?.['sentry.origin']?.value).toBe('auto.pageload.browser');
+  expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
+});
+
+test('parameterizes a page load on a route with params', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan(APP_NAME, span => getSpanOp(span) === 'pageload' && span.is_segment === true);
+
+  await page.goto('/users/12345');
+
+  const span = await spanPromise;
+  expect(span.name).toBe('/users/:id');
+  expect(span.name).not.toContain('12345');
+  expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
+  expect(span.attributes?.['url.template']?.value).toBe('/users/:id');
 });
 
 test('sends a navigation span for a link the runtime intercepts', async ({ page }) => {
