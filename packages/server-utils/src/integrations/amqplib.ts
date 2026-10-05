@@ -68,6 +68,7 @@ const MESSAGE_STORED_SPAN: unique symbol = Symbol('sentry.amqplib.message.stored
 const CHANNEL_SPANS_NOT_ENDED: unique symbol = Symbol('sentry.amqplib.channel.spans-not-ended');
 const CHANNEL_CONSUME_TIMEOUT_TIMER: unique symbol = Symbol('sentry.amqplib.channel.consume-timeout-timer');
 const CHANNEL_CONSUMER_INFO: unique symbol = Symbol('sentry.amqplib.channel.consumer-info');
+const CHANNEL_PENDING_CONSUMERS: unique symbol = Symbol('sentry.amqplib.channel.pending-consumers');
 const CHANNEL_IS_CONFIRM_PUBLISHING: unique symbol = Symbol('sentry.amqplib.channel.is-confirm-publishing');
 const CONNECTION_ATTRIBUTES: unique symbol = Symbol('sentry.amqplib.connection.attributes');
 
@@ -108,12 +109,19 @@ interface ConsumerInfo {
   queue: string;
 }
 
+/** A `consume` call waiting for the broker to assign it a consumer tag. */
+interface PendingConsumer {
+  callback: unknown;
+  info: ConsumerInfo;
+}
+
 interface ChannelLike {
   connection?: ConnectionLike;
   on?: (event: string, listener: (...args: unknown[]) => void) => unknown;
   [CHANNEL_SPANS_NOT_ENDED]?: { msg: ConsumeMessage; timeOfConsume: number }[];
   [CHANNEL_CONSUME_TIMEOUT_TIMER]?: ReturnType<typeof setInterval>;
   [CHANNEL_CONSUMER_INFO]?: Map<string, ConsumerInfo>;
+  [CHANNEL_PENDING_CONSUMERS]?: PendingConsumer[];
   [CHANNEL_IS_CONFIRM_PUBLISHING]?: boolean;
 }
 
@@ -156,6 +164,7 @@ function instrumentAmqplib(): void {
   subscribePublish();
   subscribeConfirmPublish();
   subscribeConsume();
+  subscribeRegisterConsumer();
   subscribeDispatch();
   subscribeSettle();
 }
@@ -199,29 +208,55 @@ function subscribeConfirmPublish(): void {
   });
 }
 
-/**
- * Records `consumerTag -> { noAck, queue }` when a consumer is registered, so the per-message
- * dispatch hook can name the span after the queue and know when to end it.
- */
+/** Stashes the `{ noAck, queue }` each `consume` asks for until the broker assigns it a tag. */
 function subscribeConsume(): void {
   const channel = diagnosticsChannel.tracingChannel<AmqpChannelContext>(CHANNELS.AMQPLIB_CONSUME);
 
-  // A `start` subscriber is required for orchestrion to wrap `consume` at all.
-  channel.start.subscribe(NOOP);
-  channel.asyncEnd.subscribe(message => {
+  channel.start.subscribe(message => {
     const data = message as AmqpChannelContext;
     const consumerChannel = data.self;
-    const result = data.result as { consumerTag?: string } | undefined;
-    const consumerTag = result?.consumerTag;
-    if (!consumerChannel || !consumerTag) {
+    if (!consumerChannel) {
       return;
     }
 
     ensureChannelState(consumerChannel);
     const queueArg = data.arguments[0];
     const queue = typeof queueArg === 'string' ? queueArg : '<unknown>';
+    const callback = data.arguments[1];
     const options = data.arguments[2] as { noAck?: boolean } | undefined;
-    consumerChannel[CHANNEL_CONSUMER_INFO]?.set(consumerTag, { noAck: !!options?.noAck, queue });
+    consumerChannel[CHANNEL_PENDING_CONSUMERS]?.push({ callback, info: { noAck: !!options?.noAck, queue } });
+  });
+}
+
+/**
+ * Records `consumerTag -> { noAck, queue }` so the per-message dispatch hook can name the span after
+ * the queue and know when to end it.
+ *
+ * `consume`'s promise is too late for this: amqplib can decode `BasicConsumeOk` and the first delivery
+ * from one socket read, before any promise callback runs. It always registers a consumer before it
+ * dispatches to it.
+ */
+function subscribeRegisterConsumer(): void {
+  const channel = diagnosticsChannel.tracingChannel<AmqpChannelContext>(CHANNELS.AMQPLIB_REGISTER_CONSUMER);
+
+  channel.start.subscribe(message => {
+    const data = message as AmqpChannelContext;
+    const consumerChannel = data.self;
+    const consumerTag = data.arguments[0];
+    const callback = data.arguments[1];
+    if (!consumerChannel || typeof consumerTag !== 'string') {
+      return;
+    }
+
+    const pending = consumerChannel[CHANNEL_PENDING_CONSUMERS] ?? [];
+    // A failed `consume` leaves its entry behind, so pair by callback, not by position.
+    const index = pending.findIndex(entry => entry.callback === callback);
+    if (index === -1) {
+      return;
+    }
+
+    const [entry] = pending.splice(index, 1);
+    consumerChannel[CHANNEL_CONSUMER_INFO]?.set(consumerTag, entry!.info);
   });
 }
 
@@ -356,6 +391,7 @@ function ensureChannelState(channel: ChannelLike): void {
 
   channel[CHANNEL_SPANS_NOT_ENDED] = [];
   channel[CHANNEL_CONSUMER_INFO] = new Map();
+  channel[CHANNEL_PENDING_CONSUMERS] = [];
 
   const timer = setInterval(() => checkConsumeTimeoutOnChannel(channel), CONSUME_TIMEOUT_MS);
   timer.unref?.();

@@ -29,12 +29,17 @@ export const amqplibConfig = [
     module: { ...module, filePath: 'lib/channel_model.js' },
     functionQuery: { className: 'ConfirmChannel', methodName: 'publish', kind: 'Callback' },
   },
-  // Records `consumerTag -> { noAck, queue }` so the per-message dispatch hook knows how to name and
-  // when to end the consumer span.
+  // Together record `consumerTag -> { noAck, queue }` so the per-message dispatch hook knows how to
+  // name and when to end the consumer span: `consume` knows the queue, `registerConsumer` the tag.
   {
     channelName: 'consume',
     module: { ...module, filePath: 'lib/channel_model.js' },
     functionQuery: { className: 'Channel', methodName: 'consume', kind: 'Async' },
+  },
+  {
+    channelName: 'registerConsumer',
+    module: { ...module, filePath: 'lib/channel.js' },
+    functionQuery: { className: 'BaseChannel', methodName: 'registerConsumer', kind: 'Sync' },
   },
   // Per delivered message: creates the consumer span and runs the user callback under it.
   {
@@ -83,6 +88,7 @@ export const amqplibChannels = {
   AMQPLIB_PUBLISH: 'orchestrion:amqplib:publish',
   AMQPLIB_CONFIRM_PUBLISH: 'orchestrion:amqplib:confirmPublish',
   AMQPLIB_CONSUME: 'orchestrion:amqplib:consume',
+  AMQPLIB_REGISTER_CONSUMER: 'orchestrion:amqplib:registerConsumer',
   AMQPLIB_DISPATCH: 'orchestrion:amqplib:dispatch',
   AMQPLIB_ACK: 'orchestrion:amqplib:ack',
   AMQPLIB_NACK: 'orchestrion:amqplib:nack',

@@ -180,7 +180,70 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
       },
       { additionalDependencies },
     );
+
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-topic-noack.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('names a noAck consumer span after its queue and ends it as ok', { timeout: 60_000 }, async () => {
+          const receivedTransactions: TransactionEvent[] = [];
+
+          await createTestRunner()
+            .expect({
+              transaction: (transaction: TransactionEvent) => {
+                receivedTransactions.push(transaction);
+              },
+            })
+            .expect({
+              transaction: (transaction: TransactionEvent) => {
+                receivedTransactions.push(transaction);
+
+                const consumer = receivedTransactions.find(
+                  t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.amqplib.consumer',
+                );
+
+                expect(consumer).toBeDefined();
+                expect(consumer!.transaction).toBe('orders-worker process');
+                expect(consumer!.contexts?.trace?.status).toBe('ok');
+                expect(consumer!.contexts?.trace?.data?.['messaging.destination.name']).toBe('orders');
+                expect(consumer!.contexts?.trace?.data?.['messaging.rabbitmq.destination.routing_key']).toBe(
+                  'order.created.12345',
+                );
+              },
+            })
+            .start()
+            .completed();
+        });
+      },
+      { additionalDependencies },
+    );
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-topic-noack.mjs',
+    'instrument-span-streaming.mjs',
+    (createTestRunner, test) => {
+      test('ends a streamed noAck consumer span as ok', { timeout: 60_000 }, async () => {
+        await createTestRunner()
+          .ignore('event')
+          .expect({
+            span: container => {
+              const consumerSpan = container.items.find(
+                span => span.attributes['sentry.origin']?.value === 'auto.amqplib.consumer',
+              );
+              expect(consumerSpan).toBeDefined();
+              expect(consumerSpan!.status).toBe('ok');
+              expect(consumerSpan!.name).toBe('process orders');
+              expect(consumerSpan!.attributes['messaging.destination.name']?.value).toBe('orders');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createTestRunner, test) => {
     test('names streamed spans after the messaging conventions', { timeout: 60_000 }, async () => {
