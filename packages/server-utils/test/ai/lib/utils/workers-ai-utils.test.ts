@@ -49,29 +49,33 @@ function createMockSpan(): { span: Span; attributes: Record<string, unknown> } {
 describe('workers-ai utils', () => {
   describe('getOperationName', () => {
     it('returns "chat" for prompt inputs', () => {
-      expect(getOperationName({ prompt: 'Hello' })).toBe('chat');
+      expect(getOperationName(MODEL, { prompt: 'Hello' })).toBe('chat');
     });
 
     it('returns "chat" for messages inputs', () => {
-      expect(getOperationName({ messages: [{ role: 'user', content: 'Hi' }] })).toBe('chat');
+      expect(getOperationName(MODEL, { messages: [{ role: 'user', content: 'Hi' }] })).toBe('chat');
     });
 
     it('returns "embeddings" for text inputs', () => {
-      expect(getOperationName({ text: 'embed me' })).toBe('embeddings');
+      expect(getOperationName(MODEL, { text: 'embed me' })).toBe('embeddings');
     });
 
-    it('returns "evaluate" for TypeSafe state and questions inputs', () => {
-      expect(getOperationName({ state: 'Help!', questions: {} })).toBe('evaluate');
+    it('returns "evaluate" for TypeSafe models', () => {
+      expect(getOperationName('typesafe/jev', { state: 'Help!', questions: {} })).toBe('evaluate');
+    });
+
+    it('does not return "evaluate" for other models with state and questions inputs', () => {
+      expect(getOperationName(MODEL, { state: 'Help!', questions: {} })).toBe('chat');
     });
 
     it('prefers "chat" when both messages and text are present', () => {
-      expect(getOperationName({ messages: [{ role: 'user', content: 'Hi' }], text: 'embed me' })).toBe('chat');
+      expect(getOperationName(MODEL, { messages: [{ role: 'user', content: 'Hi' }], text: 'embed me' })).toBe('chat');
     });
 
     it('falls back to "chat" for null, undefined and empty inputs', () => {
-      expect(getOperationName(null)).toBe('chat');
-      expect(getOperationName(undefined)).toBe('chat');
-      expect(getOperationName({})).toBe('chat');
+      expect(getOperationName(MODEL, null)).toBe('chat');
+      expect(getOperationName(MODEL, undefined)).toBe('chat');
+      expect(getOperationName(MODEL, {})).toBe('chat');
     });
   });
 
