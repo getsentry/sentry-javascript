@@ -8,7 +8,7 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
-import { captureException, debug, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
+import { captureException, debug, getDefaultIsolationScope, getIsolationScope, isObjectLike } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { isExpectedError, isWsOrRpcException } from './helpers';
 
@@ -166,7 +166,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
 
       if (isWsOrRpcException(exception)) {
         const result = (exception as { getError: () => unknown }).getError();
-        const response = typeof result === 'object' && result !== null ? result : { status: 'error', message: result };
+        const response = isObjectLike(result) ? result : { status: 'error', message: result };
         client.emit?.('exception', response);
         return;
       }

@@ -2,6 +2,7 @@ import type { Client, Span } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
+  isObjectLike,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
   filterCollectedUrl,
@@ -250,8 +251,8 @@ export function appRouterInstrumentNavigation(client: Client): void {
       if (globalValue) {
         GLOBAL_OBJ_WITH_NEXT_ROUTER.next = new Proxy(globalValue, {
           set(target, p, newValue) {
-            if (p === 'router' && typeof newValue === 'object' && newValue !== null) {
-              patchRouter(client, newValue, currentRouterPatchingNavigationSpanRef);
+            if (p === 'router' && isObjectLike(newValue)) {
+              patchRouter(client, newValue as unknown as NextRouter, currentRouterPatchingNavigationSpanRef);
             }
 
             // @ts-expect-error we cannot possibly type this

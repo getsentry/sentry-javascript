@@ -1,4 +1,4 @@
-import { captureException } from '@sentry/core';
+import { captureException, isObjectLike } from '@sentry/core';
 
 /** Decides whether a thrown value should become a Sentry issue. */
 export type ShouldHandleError = (error: unknown) => boolean;
@@ -8,11 +8,11 @@ export type ShouldHandleError = (error: unknown) => boolean;
  * outcome, not a fault, and the request still produces a span.
  */
 export function defaultShouldHandleError(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) {
+  if (!isObjectLike(error)) {
     return true;
   }
 
-  const status = (error as { status?: unknown }).status;
+  const status = error.status;
 
   return !(typeof status === 'number' && status >= 300 && status < 500);
 }

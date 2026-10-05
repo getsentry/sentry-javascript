@@ -26,6 +26,7 @@ import {
   getClient,
   getTraceData,
   hasSpanStreamingEnabled,
+  isObjectLike,
   propagationContextFromHeaders,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -183,7 +184,7 @@ export function applyErrorToSpans(spans: Span[], reason: unknown): void {
   let errorType: string = ERROR_TYPE_VALUE_OTHER;
   if (typeof reason === 'string' || reason === undefined) {
     errorMessage = reason;
-  } else if (typeof reason === 'object' && reason !== null && Object.prototype.hasOwnProperty.call(reason, 'message')) {
+  } else if (isObjectLike(reason) && Object.prototype.hasOwnProperty.call(reason, 'message')) {
     errorMessage = (reason as { message?: string }).message;
     errorType = (reason as { constructor: { name: string } }).constructor.name;
   }
