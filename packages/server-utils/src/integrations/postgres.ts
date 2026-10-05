@@ -9,6 +9,7 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
@@ -19,7 +20,6 @@ import {
   getClient,
   getCurrentScope,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
 import { sanitizeSqlQueryWithSummary } from '../utils/sql';
@@ -191,7 +191,7 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
     attributes: {
       [SENTRY_OP]: DB,
       ...getConnectionAttributes(params),
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+      [SENTRY_ORIGIN]: ORIGIN,
       [DB_QUERY_TEXT]: queryText || undefined,
       [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,

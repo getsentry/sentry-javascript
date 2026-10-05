@@ -10,8 +10,8 @@ import {
   URL_PATH,
   URL_QUERY,
   URL_SCHEME,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { channel } from 'node:diagnostics_channel';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UndiciRequest } from '../../src/integrations/node-fetch/types';
@@ -70,7 +70,7 @@ describe('instrumentUndici', () => {
         [URL_QUERY]: 'limit=10',
         [URL_FRAGMENT]: undefined,
         [URL_SCHEME]: 'https',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node_fetch',
+        [SENTRY_ORIGIN]: 'auto.http.node_fetch',
         [SERVER_ADDRESS]: 'api.example.com',
         [SERVER_PORT]: 443,
       },

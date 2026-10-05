@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "11.1.0",
+  "version": "11.4.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -60,10 +60,10 @@
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "~1.63.0",
     "@sentry/rrweb": "2.43.2",
-    "@sentry/browser": "11.1.0",
-    "@sentry/replay": "11.1.0",
-    "@sentry/opentelemetry": "11.1.0",
-    "@sentry/conventions": "0.24.0",
+    "@sentry/browser": "11.4.0",
+    "@sentry/replay": "11.4.0",
+    "@sentry/opentelemetry": "11.4.0",
+    "@sentry/conventions": "0.25.0",
     "@supabase/supabase-js": "2.109.0",
     "axios": "1.20.0",
     "babel-loader": "^10.1.1",

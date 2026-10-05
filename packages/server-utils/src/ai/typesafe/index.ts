@@ -8,16 +8,10 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-  stringify,
-  withActiveSpan,
-} from '@sentry/core';
+import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, stringify, withActiveSpan } from '@sentry/core';
 import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { TYPESAFE_ORIGIN, TYPESAFE_PROVIDER_NAME } from './constants';
@@ -45,21 +39,23 @@ function getRequestAttributes(
   recordInputs: boolean,
 ): SpanAttributes {
   return {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: TYPESAFE_ORIGIN,
+    [SENTRY_ORIGIN]: TYPESAFE_ORIGIN,
     [GEN_AI_OPERATION_NAME]: 'evaluate',
     [GEN_AI_PROVIDER_NAME]: TYPESAFE_PROVIDER_NAME,
     ...(model ? { [GEN_AI_REQUEST_MODEL]: model } : {}),
-    ...(recordInputs
-      ? {
-          [GEN_AI_INPUT_MESSAGES]: stringify([
-            { type: 'evaluation', state: request.state, questions: request.questions },
-          ]),
-        }
-      : {}),
+    ...(recordInputs ? { [GEN_AI_INPUT_MESSAGES]: getEvaluationInputMessages(request) } : {}),
   };
 }
 
-/** Add the response model, token usage and (optionally) the answers of a `systemOne` result. */
+/** Serialize the `state` and `questions` of an evaluation request. Also used for TypeSafe models on Workers AI. */
+export function getEvaluationInputMessages(request: Record<string, unknown>): string | undefined {
+  return stringify([{ type: 'evaluation', state: request.state, questions: request.questions }]);
+}
+
+/**
+ * Add the response model, token usage and (optionally) the answers of a `systemOne` result.
+ * Also used for TypeSafe models on Workers AI.
+ */
 export function addResponseAttributes(span: Span, result: unknown, recordOutputs: boolean): void {
   if (!isObjectLike(result)) {
     return;

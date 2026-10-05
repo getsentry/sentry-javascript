@@ -2,7 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { getCurrentScope, makeSession, setCurrentClient } from '@sentry/core';
+import { getRouteProvider, resolveCurrentRoute, setRouteProvider } from '@sentry/browser-utils';
+import { debug, getCurrentScope, makeSession, setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
@@ -49,6 +50,28 @@ describe('BrowserClient', () => {
 
     expect(flushOutcomesSpy).not.toHaveBeenCalled();
     expect(flushSpy).toHaveBeenCalledTimes(1);
+  });
+
+  describe('routeProvider option', () => {
+    it('registers the provider for the client', () => {
+      const routeProvider = { resolveRoute: () => '/users/:id', resolveCurrentRoute: () => '/users/:id' };
+      client = new BrowserClient(getDefaultBrowserClientOptions({ routeProvider }));
+
+      expect(getRouteProvider(client)).toBe(routeProvider);
+    });
+
+    it('is replaced by a provider registered at runtime', () => {
+      vi.spyOn(debug, 'warn').mockImplementation(() => {});
+      client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          routeProvider: { resolveRoute: () => '/option', resolveCurrentRoute: () => '/option' },
+        }),
+      );
+
+      setRouteProvider({ resolveRoute: () => '/runtime', resolveCurrentRoute: () => '/runtime' }, client);
+
+      expect(resolveCurrentRoute(client)).toBe('/runtime');
+    });
   });
 
   describe('session status on unhandled errors', () => {

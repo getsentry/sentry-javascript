@@ -216,6 +216,110 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(events[2]?.user).toBeUndefined();
   });
 
+  // Work the constructor starts shares one scope, so a handler it calls must not reuse that scope.
+  it('Built-in handlers called from work the constructor started each get their own isolation scope', async () => {
+    const events: Event[] = [];
+    const waits: Promise<unknown>[] = [];
+    const mockContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waits.push(promise);
+      }),
+      blockConcurrencyWhile: (callback: () => Promise<unknown>) => Promise.resolve().then(callback),
+    } as any;
+
+    const testClass = class {
+      initialized: Promise<void>;
+
+      constructor(ctx: { blockConcurrencyWhile(callback: () => Promise<void>): Promise<void> }) {
+        this.initialized = ctx.blockConcurrencyWhile(async () => {
+          await this.webSocketMessage({}, 'seed');
+          await this.webSocketMessage({}, 'probe');
+        });
+      }
+
+      webSocketMessage(_ws: unknown, message: string) {
+        if (message === 'seed') {
+          SentryCore.setTag('seeded_tag', 'from-seeding-message');
+          SentryCore.setUser({ id: 'user-from-seeding-message' });
+        }
+
+        SentryCore.captureMessage(message);
+      }
+    };
+    const obj = Reflect.construct(
+      instrumentDurableObjectWithSentry(
+        () => ({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          beforeSend(event: Event) {
+            events.push(event);
+            return null;
+          },
+        }),
+        testClass as any,
+      ),
+      [mockContext, {} as any],
+    );
+
+    await obj.initialized;
+    await Promise.all(waits);
+
+    expect(events.map(event => event.message)).toEqual(['seed', 'probe']);
+    // Guards the assertions below against passing vacuously.
+    expect(events[0]?.tags?.seeded_tag).toBe('from-seeding-message');
+    expect(events[0]?.user).toEqual({ id: 'user-from-seeding-message' });
+
+    expect(events[1]?.tags?.seeded_tag).toBeUndefined();
+    expect(events[1]?.user).toBeUndefined();
+  });
+
+  // The only scope that all later invocations share is the default isolation scope of the isolate, so
+  // data set in the constructor stays in the constructor's own scope.
+  it('does not apply scope data set in the constructor to later invocations', async () => {
+    const events: Event[] = [];
+    const waits: Promise<unknown>[] = [];
+    const mockContext = {
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        waits.push(promise);
+      }),
+    } as any;
+
+    const testClass = class {
+      constructor() {
+        SentryCore.setTag('constructor_tag', 'from-constructor');
+        SentryCore.setUser({ id: 'user-from-constructor' });
+      }
+
+      alarm() {
+        SentryCore.captureMessage('alarm');
+      }
+
+      rpcMethod() {
+        SentryCore.captureMessage('rpc');
+      }
+    };
+    const obj = Reflect.construct(
+      instrumentDurableObjectWithSentry(
+        () => ({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          beforeSend(event: Event) {
+            events.push(event);
+            return null;
+          },
+        }),
+        testClass as any,
+      ),
+      [mockContext, {} as any],
+    );
+
+    await obj.alarm();
+    obj.rpcMethod();
+    await Promise.all(waits);
+
+    expect(events.map(event => event.message)).toEqual(['alarm', 'rpc']);
+    expect(events.map(event => event.tags?.constructor_tag)).toEqual([undefined, undefined]);
+    expect(events.map(event => event.user)).toEqual([undefined, undefined]);
+  });
+
   it('Built-in durable object methods are always instrumented', () => {
     const testClass = class {
       fetch() {}
@@ -654,6 +758,9 @@ describe('instrumentDurableObjectWithSentry', () => {
       const waitUntil = vi.fn((promise: Promise<unknown>) => {
         waits.push(promise);
       });
+      // Like workerd, runs the callback after the constructor returns, in the async context of the caller.
+      const blockConcurrencyWhile = (callback: () => Promise<unknown>): Promise<unknown> =>
+        Promise.resolve().then(callback);
 
       const instrumented = instrumentDurableObjectWithSentry(
         () => ({
@@ -675,7 +782,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         }),
         testClass as any,
       );
-      const obj = Reflect.construct(instrumented, [{ waitUntil }, {}]) as InstanceType<C>;
+      const obj = Reflect.construct(instrumented, [{ waitUntil, blockConcurrencyWhile }, {}]) as InstanceType<C>;
       const settle = async (): Promise<void> => {
         while (waits.length) {
           await Promise.all(waits.splice(0));
@@ -766,6 +873,42 @@ describe('instrumentDurableObjectWithSentry', () => {
       await settle();
 
       expect(events.map(event => event.message)).toEqual(['from helper']);
+      expect(waitUntil).toHaveBeenCalledOnce();
+    });
+
+    it('does not instrument calls from a blockConcurrencyWhile callback the constructor started', async () => {
+      const { obj, events, waitUntil, settle } = setup(
+        class {
+          failure?: Error;
+          initialized: Promise<void>;
+
+          constructor(ctx: { blockConcurrencyWhile(callback: () => Promise<void>): Promise<void> }) {
+            this.initialized = ctx.blockConcurrencyWhile(async () => {
+              try {
+                this.init();
+              } catch (error) {
+                this.failure = error as Error;
+              }
+            });
+          }
+
+          init(): void {
+            throw new Error('Init failed');
+          }
+
+          async ping(): Promise<string> {
+            const status = this.failure ? 'degraded' : 'ok';
+            SentryCore.captureMessage(`ping: ${status}`);
+            return status;
+          }
+        },
+      );
+
+      await obj.initialized;
+      await expect(obj.ping()).resolves.toBe('degraded');
+      await settle();
+
+      expect(events.map(event => event.message)).toEqual(['ping: degraded']);
       expect(waitUntil).toHaveBeenCalledOnce();
     });
 

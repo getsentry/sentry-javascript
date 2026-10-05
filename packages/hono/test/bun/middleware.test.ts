@@ -171,14 +171,22 @@ describe('Hono Bun Middleware', () => {
   });
 
   describe('double-init guard', () => {
-    it('still calls init even when Sentry is already initialized', () => {
+    it('does not re-initialize when Sentry is already initialized', () => {
       const fakeClient = { getOptions: () => ({}) };
       getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      expect(initBunMock).toHaveBeenCalledTimes(1);
+      expect(initBunMock).not.toHaveBeenCalled();
+    });
+
+    it('returns the existing client when Sentry is already initialized', () => {
+      const fakeClient = { getOptions: () => ({}) };
+      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+
+      expect(init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' })).toBe(fakeClient);
+      expect(initBunMock).not.toHaveBeenCalled();
     });
 
     it('emits a console.warn directing to remove the duplicate init call when Sentry is already initialized', () => {

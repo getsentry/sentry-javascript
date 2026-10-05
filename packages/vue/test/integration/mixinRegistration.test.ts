@@ -160,7 +160,8 @@ describe('tracing mixin registration', () => {
   it('registers the tracing mixin on the constructor passed as `Vue` (Vue 2 setup)', ({ app, initSentry }) => {
     initSentry({ sdk: { app: undefined, Vue: app } });
 
-    expect(getRegisteredMixins(app)).toHaveLength(1);
+    // The tracing mixin, plus the one that picks up the router for the route provider.
+    expect(getRegisteredMixins(app)).toHaveLength(2);
   });
 });
 

@@ -49,6 +49,7 @@ const REQUIRE_OF_ESM_ONLY_DEPENDENCY = [
 // version) and pass on Deno 2.9.0.
 const NOT_TRIAGED = [
   'suites/tracing/anthropic/test.ts',
+  'suites/tracing/anthropic/v0.129/test.ts',
   'suites/tracing/apollo-graphql/**',
   'suites/tracing/fastify/test.ts',
   'suites/tracing/flue/test.ts',

@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
@@ -5,12 +6,11 @@ import {
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
-import { onApiPromiseResponse } from '../ai/core/apiPromise';
+import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { instrumentStream } from '../ai/openai/streaming';
 import type { OpenAiOptions } from '../ai/openai/types';
 import { addResponseAttributes } from '../ai/openai/utils';
@@ -60,7 +60,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
           addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
         },
         deferSpanEnd: ({ span, data, end }) =>
-          onApiPromiseResponse(
+          wrapApiPromiseResponse(
             data.result,
             response => {
               data.result = response;
@@ -93,7 +93,7 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   const { recordInputs } = resolveAIRecordingOptions(options);
 
   const attributes = extractRequestAttributes(args, operation, recordInputs);
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
+  attributes[SENTRY_ORIGIN] = ORIGIN;
   const model = (params?.model as string) || 'unknown';
   const client = getClient();
 

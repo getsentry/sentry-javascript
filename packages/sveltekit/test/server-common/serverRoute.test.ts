@@ -1,13 +1,10 @@
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Client } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import type { NumericRange, RequestEvent } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  wrapServerRouteWithSentry,
-} from '../../src/server';
+import { wrapServerRouteWithSentry } from '../../src/server';
 
 describe('wrapServerRouteWithSentry', () => {
   const originalRouteHandler = vi.fn();
@@ -37,9 +34,9 @@ describe('wrapServerRouteWithSentry', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            [SENTRY_OP]: 'function',
             'code.function.name': 'GET',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
             'http.request.method': 'GET',
             'http.route': '/api/users/:id',
           },
@@ -60,9 +57,9 @@ describe('wrapServerRouteWithSentry', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            [SENTRY_OP]: 'function',
             'code.function.name': 'GET',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
             'http.request.method': 'GET',
           },
           name: 'GET Server Route',
@@ -93,9 +90,9 @@ describe('wrapServerRouteWithSentry', () => {
         expect(startSpanSpy).toHaveBeenCalledWith(
           {
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+              [SENTRY_OP]: 'function',
               'code.function.name': 'GET',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
               'http.request.method': 'GET',
               'http.route': '/api/users/:id',
               'sentry.description': 'GET /api/users/:id',
@@ -115,9 +112,9 @@ describe('wrapServerRouteWithSentry', () => {
         expect(startSpanSpy).toHaveBeenCalledWith(
           {
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+              [SENTRY_OP]: 'function',
               'code.function.name': 'GET',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
               'http.request.method': 'GET',
               'sentry.description': 'GET Server Route',
             },

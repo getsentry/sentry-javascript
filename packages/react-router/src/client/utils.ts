@@ -4,6 +4,7 @@ import {
   getClient,
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
+  isObjectLike,
   NAVIGATION_SPAN_NAME_FALLBACK,
   filterCollectedUrl,
 } from '@sentry/core';
@@ -24,13 +25,13 @@ const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * to avoid "[object Object]" transaction names.
  */
 export function resolveNavigateArg(target: unknown): string {
-  if (typeof target !== 'object' || target === null) {
+  if (!isObjectLike(target)) {
     // string or number
     return String(target);
   }
 
   // Object `to` with pathname
-  const pathname = (target as Record<string, unknown>).pathname;
+  const pathname = target.pathname;
   if (typeof pathname === 'string') {
     return pathname || '/';
   }
@@ -46,12 +47,12 @@ export function resolveNavigateArg(target: unknown): string {
  * destination the user is navigating to, including any query string.
  */
 export function resolveNavigateUrl(target: unknown): string {
-  if (typeof target !== 'object' || target === null) {
+  if (!isObjectLike(target)) {
     // string or number
     return String(target);
   }
 
-  const { pathname, search, hash } = target as Record<string, unknown>;
+  const { pathname, search, hash } = target;
   const path = typeof pathname === 'string' && pathname !== '' ? pathname : WINDOW.location?.pathname || '/';
 
   return `${path}${typeof search === 'string' ? search : ''}${typeof hash === 'string' ? hash : ''}`;

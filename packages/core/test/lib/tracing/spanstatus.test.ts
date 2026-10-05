@@ -1,5 +1,6 @@
+import { SENTRY_STATUS_MESSAGE } from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
-import { SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE, SentrySpan, setHttpStatus, spanToJSON } from '../../../src/index';
+import { SentrySpan, setHttpStatus, spanToJSON } from '../../../src/index';
 
 describe('setHttpStatus', () => {
   it.each([
@@ -24,7 +25,7 @@ describe('setHttpStatus', () => {
     const { status: spanStatus, attributes } = spanToJSON(span);
 
     expect(spanStatus).toBe(status);
-    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe(statusMessage);
+    expect(attributes[SENTRY_STATUS_MESSAGE]).toBe(statusMessage);
     expect(attributes).toMatchObject({ 'http.response.status_code': code });
   });
 
@@ -36,7 +37,7 @@ describe('setHttpStatus', () => {
     const { status: spanStatus, attributes } = spanToJSON(span);
 
     expect(spanStatus).toBe('error');
-    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('internal_error');
+    expect(attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
     expect(attributes).toMatchObject({ 'http.response.status_code': 600 });
   });
 });

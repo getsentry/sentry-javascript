@@ -1,18 +1,17 @@
 // <reference lib="deno.ns" />
 
-import { denoServeIntegration, init } from '@sentry/deno';
+import { denoServeIntegration, flush, init } from '@sentry/deno';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('Deno.serve captures incoming request bodies by default', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
 
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const requestBody = 'captured-by-default';
@@ -25,31 +24,37 @@ Deno.test('Deno.serve captures incoming request bodies by default', async () => 
   });
   await listening;
 
-  const transactionPromise = withTimeout(
-    sink.waitFor(event => event.request?.url?.endsWith('/default') === true),
-    5_000,
-    'transaction for /default',
-  );
-  const response = await fetch(`http://localhost:${server.addr.port}/default`, {
-    method: 'POST',
-    headers: { 'content-type': 'text/plain' },
-    body: requestBody,
-  });
-  assertEquals(await response.text(), 'OK');
+  try {
+    const spanPromise = withTimeout(
+      sink.waitFor(
+        span =>
+          span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/default',
+      ),
+      5_000,
+      'segment span for /default',
+    );
+    const response = await fetch(`http://localhost:${server.addr.port}/default`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: requestBody,
+    });
+    assertEquals(await response.text(), 'OK');
 
-  const transaction = await transactionPromise;
-  assertEquals(transaction.request?.data, requestBody);
-
-  abortController.abort();
-  await server.finished;
+    await flush();
+    const span = await spanPromise;
+    assertEquals(span.name, 'POST');
+    assertEquals(span.attributes['http.request.body.data']?.value, requestBody);
+  } finally {
+    abortController.abort();
+    await server.finished;
+  }
 });
 
 Deno.test('Deno.serve explicit small overrides disabled incoming request body collection', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
 
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     dataCollection: { httpBodies: [] },
@@ -57,7 +62,7 @@ Deno.test('Deno.serve explicit small overrides disabled incoming request body co
       ...integrations.filter(integration => integration.name !== 'DenoServe'),
       denoServeIntegration({ maxRequestBodySize: 'small' }),
     ],
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const requestBody = 'a'.repeat(1_001);
@@ -71,31 +76,39 @@ Deno.test('Deno.serve explicit small overrides disabled incoming request body co
   });
   await listening;
 
-  const transactionPromise = withTimeout(
-    sink.waitFor(event => event.request?.url?.endsWith('/explicit-small') === true),
-    5_000,
-    'transaction for /explicit-small',
-  );
-  const response = await fetch(`http://localhost:${server.addr.port}/explicit-small`, {
-    method: 'POST',
-    headers: { 'content-type': 'text/plain' },
-    body: requestBody,
-  });
-  assertEquals(await response.text(), 'OK');
+  try {
+    const spanPromise = withTimeout(
+      sink.waitFor(
+        span =>
+          span.is_segment &&
+          getSpanOp(span) === 'http.server' &&
+          span.attributes['url.path']?.value === '/explicit-small',
+      ),
+      5_000,
+      'segment span for /explicit-small',
+    );
+    const response = await fetch(`http://localhost:${server.addr.port}/explicit-small`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: requestBody,
+    });
+    assertEquals(await response.text(), 'OK');
 
-  const transaction = await transactionPromise;
-  assertEquals(transaction.request?.data, expectedBody);
-
-  abortController.abort();
-  await server.finished;
+    await flush();
+    const span = await spanPromise;
+    assertEquals(span.name, 'POST');
+    assertEquals(span.attributes['http.request.body.data']?.value, expectedBody);
+  } finally {
+    abortController.abort();
+    await server.finished;
+  }
 });
 
 Deno.test('Deno.serve explicit none overrides enabled incoming request body collection', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
 
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     dataCollection: { httpBodies: ['incomingRequest'] },
@@ -103,7 +116,7 @@ Deno.test('Deno.serve explicit none overrides enabled incoming request body coll
       ...integrations.filter(integration => integration.name !== 'DenoServe'),
       denoServeIntegration({ maxRequestBodySize: 'none' }),
     ],
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const abortController = new AbortController();
@@ -115,21 +128,30 @@ Deno.test('Deno.serve explicit none overrides enabled incoming request body coll
   });
   await listening;
 
-  const transactionPromise = withTimeout(
-    sink.waitFor(event => event.request?.url?.endsWith('/explicit-none') === true),
-    5_000,
-    'transaction for /explicit-none',
-  );
-  const response = await fetch(`http://localhost:${server.addr.port}/explicit-none`, {
-    method: 'POST',
-    headers: { 'content-type': 'text/plain' },
-    body: 'do-not-capture',
-  });
-  assertEquals(await response.text(), 'OK');
+  try {
+    const spanPromise = withTimeout(
+      sink.waitFor(
+        span =>
+          span.is_segment &&
+          getSpanOp(span) === 'http.server' &&
+          span.attributes['url.path']?.value === '/explicit-none',
+      ),
+      5_000,
+      'segment span for /explicit-none',
+    );
+    const response = await fetch(`http://localhost:${server.addr.port}/explicit-none`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: 'do-not-capture',
+    });
+    assertEquals(await response.text(), 'OK');
 
-  const transaction = await transactionPromise;
-  assertEquals(transaction.request?.data, undefined);
-
-  abortController.abort();
-  await server.finished;
+    await flush();
+    const span = await spanPromise;
+    assertEquals(span.name, 'POST');
+    assertEquals(span.attributes['http.request.body.data']?.value, undefined);
+  } finally {
+    abortController.abort();
+    await server.finished;
+  }
 });

@@ -1,9 +1,2 @@
-import * as Sentry from '@sentry/astro';
-
-Sentry.init({
-  traceLifecycle: 'static',
-  dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
-  environment: 'qa',
-  tracesSampleRate: 1.0,
-  tunnel: 'http://localhost:3031/', // proxy server
-});
+// The Worker wrapper initializes Sentry from Wrangler bindings.
+// Keep this file to prevent Astro from injecting its default Node SDK initialization.
