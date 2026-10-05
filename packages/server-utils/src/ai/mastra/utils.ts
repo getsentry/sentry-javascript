@@ -62,9 +62,11 @@ export function getOperation(spanType: MastraSpanType): { op: string; operationN
 export function getSpanName(span: MastraExportedSpan): string {
   const operationName = getOperation(span.type)?.operationName ?? span.type;
   const identifier =
-    MODEL_SPAN_TYPES.has(span.type) || span.type === 'rag_embedding'
-      ? span.attributes?.model
-      : (span.entityName ?? span.entityId);
+    span.type === 'classifier_evaluation'
+      ? span.attributes?.modelId
+      : MODEL_SPAN_TYPES.has(span.type) || span.type === 'rag_embedding'
+        ? span.attributes?.model
+        : (span.entityName ?? span.entityId);
 
   return identifier ? `${operationName} ${identifier}` : operationName;
 }
@@ -157,6 +159,10 @@ export function getSpanAttributes(span: MastraExportedSpan, options: AttributeRe
     addToolAttributes(attributes, span, options);
   }
 
+  if (span.type === 'classifier_evaluation') {
+    addEvaluationAttributes(attributes, span);
+  }
+
   if (span.errorInfo) {
     attributes[ERROR_TYPE] = span.errorInfo.name ?? span.errorInfo.id;
   }
@@ -241,6 +247,15 @@ function addToolAttributes(
   if (options.recordOutputs) {
     attributes[GEN_AI_TOOL_CALL_RESULT] = serialize(span.output);
   }
+}
+
+/** Mastra's `Classifier` sets no input or output on this span, so only the model and usage are known. */
+function addEvaluationAttributes(attributes: SpanAttributes, span: MastraExportedSpan): void {
+  const attrs = span.attributes ?? {};
+
+  attributes[GEN_AI_REQUEST_MODEL] = attrs.modelId;
+  attributes[GEN_AI_PROVIDER_NAME] = attrs.provider;
+  Object.assign(attributes, getUsageAttributes(attrs.usage));
 }
 
 function responseText(output: unknown): string | undefined {

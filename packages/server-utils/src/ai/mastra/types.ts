@@ -15,6 +15,7 @@ export type MastraSpanType =
   | 'provider_tool_call'
   | 'client_tool_call'
   | 'rag_embedding'
+  | 'classifier_evaluation'
   | (string & {});
 
 export type MastraTracingEventType = 'span_started' | 'span_updated' | 'span_ended';
@@ -58,6 +59,8 @@ export interface MastraSpanAttributes {
     stopSequences?: string[];
     seed?: number;
   };
+  // classifier_evaluation
+  modelId?: string;
   // tool_call / mcp_tool_call / provider_tool_call / client_tool_call
   toolDescription?: string;
   // agent_run / workflow_run

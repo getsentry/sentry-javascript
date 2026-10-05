@@ -121,6 +121,28 @@ describe('SentryMastraExporter', () => {
     expect(json.data['gen_ai.response.tool_calls']).toBeUndefined();
   });
 
+  it('maps classifier evaluations to `evaluate {model}` spans', async () => {
+    const attributes = { classifierId: 'sentiment', modelId: 'jev-1', provider: 'typesafe.evaluation' };
+    const span = makeSpan({ id: 'eval-1', type: 'classifier_evaluation', name: "classifier evaluate: 'sentiment'" });
+    await run(
+      started({ ...span, attributes }),
+      ended({ ...span, attributes: { ...attributes, usage: { inputTokens: 30, outputTokens: 2 } } }),
+    );
+
+    const json = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(json.description).toBe('evaluate jev-1');
+    expect(json.data).toMatchObject({
+      'sentry.op': 'gen_ai.evaluate',
+      'sentry.origin': 'auto.ai.mastra',
+      'gen_ai.operation.name': 'evaluate',
+      'gen_ai.request.model': 'jev-1',
+      'gen_ai.provider.name': 'typesafe.evaluation',
+      'gen_ai.usage.input_tokens': 30,
+      'gen_ai.usage.output_tokens': 2,
+      'gen_ai.usage.total_tokens': 32,
+    });
+  });
+
   it('records the agent-level prompt and response as gen_ai messages', async () => {
     const span = makeSpan({
       entityName: 'agent',

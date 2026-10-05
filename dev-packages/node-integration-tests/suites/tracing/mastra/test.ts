@@ -43,6 +43,14 @@ const MASTRA_NESTING_DEPENDENCIES = {
   },
 };
 
+// `Classifier` (the `@mastra/core/classifier` entry) ships in newer `@mastra/core` releases only.
+const MASTRA_CLASSIFIER_DEPENDENCIES = {
+  additionalDependencies: {
+    '@mastra/core': '1.74.0',
+    '@mastra/observability': '1.18.3',
+  },
+};
+
 conditionalTest({ min: 22 })('Mastra integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
@@ -205,6 +213,36 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
       });
     },
     MASTRA_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-classifier.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('maps a classifier evaluation to a gen_ai.evaluate span', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'mastra-test' } })
+          .expect({
+            span: container => {
+              expect(container.items.map(span => span.name)).toEqual(['evaluate jev-latest']);
+
+              const evaluateSpan = container.items[0]!;
+              expect(evaluateSpan.attributes['sentry.op'].value).toBe('gen_ai.evaluate');
+              expect(evaluateSpan.attributes['sentry.origin'].value).toBe('auto.ai.mastra');
+              expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('evaluate');
+              expect(evaluateSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('jev-latest');
+              expect(evaluateSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('typesafe-ai.evaluation');
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(30);
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(2);
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(32);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    MASTRA_CLASSIFIER_DEPENDENCIES,
   );
 
   createEsmAndCjsTests(
