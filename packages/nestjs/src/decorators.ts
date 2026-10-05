@@ -92,15 +92,13 @@ function resolveMonitorConfig(
 const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
 
 // Presets of the `cron` package (which also lowercases them), as sent to Sentry. Sentry accepts
-// `@yearly`/`@annually`/`@monthly`/`@weekly`/`@daily`/`@hourly`; the others are sent as crontabs.
+// `@yearly`/`@monthly`/`@weekly`/`@daily`/`@hourly`; the others are sent as crontabs.
 const CRON_PRESETS: Record<string, string | undefined> = {
   '@yearly': '@yearly',
-  '@annually': '@annually',
   '@monthly': '@monthly',
   '@weekly': '@weekly',
   '@daily': '@daily',
   '@hourly': '@hourly',
-  '@midnight': '0 0 * * *',
   '@minutely': '* * * * *',
   '@weekdays': '0 0 * * 1-5',
   '@weekends': '0 0 * * 0,6',
@@ -159,10 +157,9 @@ function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): MonitorCo
   }
 
   // Without a `timeZone`, the job runs in the server's local time zone.
-  const timezone = typeof timeZone === 'string' && timeZone ? timeZone : getLocalTimeZone();
-
   // Without a time zone Sentry would assume UTC, which may not be when the job runs.
-  if (!timezone || !isSentryTimeZone(timezone)) {
+  const timezone = toSentryTimeZone(typeof timeZone === 'string' && timeZone ? timeZone : getLocalTimeZone());
+  if (!timezone) {
     return undefined;
   }
 
@@ -175,28 +172,39 @@ function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): MonitorCo
 /**
  * Whether Sentry reads the 5 crontab fields the same way `cron` (used by `@nestjs/schedule`) runs them.
  */
-function isSupportedCrontab([, , dayOfMonth, month, dayOfWeek]: string[]): boolean {
-  // `cron` 2.x (`@nestjs/schedule` 3) counts months from 0, so a numeric month is ambiguous.
-  if (/\d/.test(month as string)) {
+function isSupportedCrontab([, , dayOfMonth = '', month = '', dayOfWeek = '']: string[]): boolean {
+  // `cron` 2.x (`@nestjs/schedule` 3) counts months from 0, so a month number is ambiguous. Steps are not.
+  if (/\d/.test(month.replace(/\/\d+/g, ''))) {
     return false;
+  }
+
+  if (dayOfMonth === '*' || dayOfWeek === '*') {
+    return true;
   }
 
   // With both day fields set, `cron` runs on either, but Sentry needs both when one starts with `*` (like `*/2`).
-  return !(dayOfMonth !== '*' && dayOfWeek !== '*' && (dayOfMonth?.startsWith('*') || dayOfWeek?.startsWith('*')));
+  // `cron` also treats a full range like `1-31` as `*`, which Sentry may not.
+  return !(
+    dayOfMonth.startsWith('*') ||
+    dayOfWeek.startsWith('*') ||
+    dayOfMonth === '1-31' ||
+    FULL_DAY_OF_WEEK_RANGES.has(dayOfWeek)
+  );
 }
 
+const FULL_DAY_OF_WEEK_RANGES = new Set(['0-6', '0-7', '1-7']);
+
 /**
- * Whether Sentry accepts the time zone: an IANA name, not a fixed offset like `UTC+3`.
+ * The canonical IANA name of the time zone, or `undefined` if Sentry won't accept it (like `UTC+3`).
  */
-function isSentryTimeZone(timezone: string): boolean {
-  if (timezone === 'Etc/Unknown' || /^(?:utc|gmt)?[+-]/i.test(timezone)) {
-    return false;
+function toSentryTimeZone(timezone: string | undefined): string | undefined {
+  if (!timezone || timezone === 'Etc/Unknown' || /^(?:utc|gmt)?[+-]/i.test(timezone)) {
+    return undefined;
   }
   try {
-    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
-    return true;
+    return new Intl.DateTimeFormat('en-US', { timeZone: timezone }).resolvedOptions().timeZone || undefined;
   } catch {
-    return false;
+    return undefined;
   }
 }
 

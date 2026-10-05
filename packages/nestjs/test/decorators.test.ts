@@ -293,9 +293,13 @@ describe('SentryCron decorator with @Cron', () => {
 
   beforeEach(() => {
     // `@Cron()` without a `timeZone` runs in the server's local time zone.
-    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
-      timeZone: 'Asia/Tokyo',
-    } as Intl.ResolvedDateTimeFormatOptions);
+    const DateTimeFormat = Intl.DateTimeFormat;
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation(function (
+      locales?: string | string[],
+      options?: Intl.DateTimeFormatOptions,
+    ) {
+      return new DateTimeFormat(locales, { timeZone: 'Asia/Tokyo', ...options });
+    } as typeof Intl.DateTimeFormat);
   });
 
   afterEach(() => {
@@ -346,13 +350,32 @@ describe('SentryCron decorator with @Cron', () => {
     });
   });
 
+  it('sends the canonical time zone name', async () => {
+    const withMonitorSpy = vi.spyOn(core, 'withMonitor');
+    const service = decorate(SentryCron('my-job'), Cron('0 * * * *', { timeZone: 'europe/vienna' }));
+
+    await service.job();
+    expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
+      schedule: { type: 'crontab', value: '0 * * * *' },
+      timezone: 'Europe/Vienna',
+    });
+  });
+
   it.each([
     ['a sub-minute schedule', Cron('*/5 * * * * *')],
     ['a one-off date', Cron(new Date())],
     ['an unknown preset', Cron('@reboot')],
     ['a utc offset', Cron('0 * * * *', { utcOffset: 120 })],
     ['a numeric month', Cron('0 9 1 5 *')],
+    ['a numeric month range', Cron('0 9 1 1-6 *')],
+    ['a numeric month list', Cron('0 9 1 1,7 *')],
+    ['a numeric month with a step', Cron('0 9 1 2/3 *')],
+    // `0 0 1 0 *` in `@nestjs/schedule` 3
+    ['CronExpression.EVERY_YEAR', Cron('0 0 1 1 *')],
     ['a day-of-month step with a day of week', Cron('0 9 */2 * MON')],
+    ['a full day-of-month range with a day of week', Cron('0 9 1-31 * MON')],
+    ['a full day-of-week range with a day of month', Cron('0 9 1 * 0-6')],
+    ['a full 1-7 day-of-week range with a day of month', Cron('0 9 15 * 1-7')],
     ['a fixed-offset time zone', Cron('0 * * * *', { timeZone: 'UTC+3' })],
     ['an unknown time zone', Cron('0 * * * *', { timeZone: 'Mars/Olympus' })],
   ])('sends no monitor config for %s', async (_, cronDecorator) => {
@@ -366,6 +389,8 @@ describe('SentryCron decorator with @Cron', () => {
   it.each([
     ['a month name', '0 9 1 MAY *'],
     ['both day fields', '0 9 1-7 * MON'],
+    ['CronExpression.EVERY_QUARTER', '0 0 1 */3 *'],
+    ['CronExpression.EVERY_6_MONTHS', '0 0 1 */6 *'],
   ])('sends a crontab with %s', async (_, crontab) => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
     const service = decorate(SentryCron('my-job'), Cron(crontab));
@@ -378,9 +403,9 @@ describe('SentryCron decorator with @Cron', () => {
   });
 
   it('sends no monitor config when the local time zone is unknown', async () => {
-    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
-      timeZone: 'Etc/Unknown',
-    } as Intl.ResolvedDateTimeFormatOptions);
+    vi.mocked(Intl.DateTimeFormat).mockImplementation(function () {
+      return { resolvedOptions: () => ({ timeZone: 'Etc/Unknown' }) };
+    } as unknown as typeof Intl.DateTimeFormat);
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
     const service = decorate(SentryCron('my-job'), Cron('0 * * * *'));
 
@@ -394,8 +419,6 @@ describe('SentryCron decorator with @Cron', () => {
     ['@WEEKLY', '@weekly'],
     ['@monthly', '@monthly'],
     ['@yearly', '@yearly'],
-    ['@annually', '@annually'],
-    ['@midnight', '0 0 * * *'],
     ['@weekdays', '0 0 * * 1-5'],
   ])('sends the preset %s as %s', async (preset, value) => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
