@@ -1,8 +1,8 @@
 import type { Span } from '@sentry/core';
-import { classifyResponseStreaming } from '@sentry/core';
+import { classifyResponseStreaming } from '@sentry/server-utils';
 
-export { classifyResponseStreaming } from '@sentry/core';
-export type { StreamingGuess } from '@sentry/core';
+export { classifyResponseStreaming } from '@sentry/server-utils';
+export type { StreamingGuess } from '@sentry/server-utils';
 
 /**
  * Tee a stream, and end the provided span when the stream ends.

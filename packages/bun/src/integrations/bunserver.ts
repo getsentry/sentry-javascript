@@ -2,7 +2,6 @@ import type { Integration, IntegrationFn, MaxRequestBodySize, SpanAttributes } f
 import {
   captureBodyFromWinterCGRequest,
   captureException,
-  classifyResponseStreaming,
   continueTrace,
   defineIntegration,
   getClient,
@@ -23,6 +22,7 @@ import {
   filterCollectedUrlQuery,
 } from '@sentry/core';
 import { getClientIPAddress } from '@sentry/core/server';
+import { classifyResponseStreaming } from '@sentry/server-utils';
 import type { Server, ServeOptions } from 'bun';
 import {
   CLIENT_ADDRESS,
