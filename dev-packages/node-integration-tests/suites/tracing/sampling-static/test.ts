@@ -9,7 +9,7 @@ describe('negative sampling (static)', () => {
   createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
     test('records sample_rate outcomes for the transaction and all of its spans', async () => {
       // `/health` and `/ok` go through the same middleware, so the `/ok` transaction tells us how many
-      // spans the dropped `/health` transaction woudl have had. The count differs per runtime (e.g. Bun creates
+      // spans the dropped `/health` transaction would have had. The count differs per runtime (e.g. Bun creates
       // no Express spans), so we derive it instead of hardcoding it.
       let okSpanCount: number | undefined;
       let droppedSpanCount: number | undefined;

@@ -2828,6 +2828,34 @@ describe('ignoreSpans (core path, streaming)', () => {
     expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'span');
   });
 
+  // Unsampled spans are counted when they start, so this also counts spans a sampled
+  // transaction would never contain (here: a child that never ends).
+  it('records sample_rate outcomes for unsampled spans that a sampled transaction would not contain', () => {
+    const runScenario = (tracesSampleRate: number): ReturnType<typeof vi.spyOn> => {
+      client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate }));
+      setCurrentClient(client);
+      client.init();
+      const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+      startSpan({ name: 'GET /foo' }, () => {
+        startInactiveSpan({ name: 'never ended' });
+      });
+
+      return spyOnDroppedEvent;
+    };
+
+    const sampledSpy = vi.spyOn(TestClient.prototype, 'sendEvent');
+    runScenario(1);
+    expect(sampledSpy).toHaveBeenCalledWith(expect.objectContaining({ spans: [] }), expect.anything());
+    sampledSpy.mockRestore();
+
+    const unsampledDroppedEventSpy = runScenario(0);
+    expect(unsampledDroppedEventSpy).toHaveBeenCalledTimes(3);
+    expect(unsampledDroppedEventSpy).toHaveBeenNthCalledWith(1, 'sample_rate', 'transaction');
+    expect(unsampledDroppedEventSpy).toHaveBeenNthCalledWith(2, 'sample_rate', 'span');
+    expect(unsampledDroppedEventSpy).toHaveBeenNthCalledWith(3, 'sample_rate', 'span');
+  });
+
   it('records only one ignored outcome for directly ignored child span', () => {
     const options = getDefaultTestClientOptions({
       tracesSampleRate: 1,
