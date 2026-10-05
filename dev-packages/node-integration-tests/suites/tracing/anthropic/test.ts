@@ -40,11 +40,11 @@ describe('Anthropic integration', () => {
         })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
+            expect(container.items).toHaveLength(6);
             const nonStreamingSpans = container.items.filter(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_withresponse',
             );
-            expect(nonStreamingSpans).toHaveLength(2);
+            expect(nonStreamingSpans).toHaveLength(1);
             for (const span of nonStreamingSpans) {
               expect(span.name).toBe('chat claude-3-haiku-20240307');
               expect(span.status).toBe('ok');
@@ -59,6 +59,21 @@ describe('Anthropic integration', () => {
             expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(streamingSpan!.status).toBe('ok');
             expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+
+            const rawResponseSpans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
+            expect(rawResponseSpans).toHaveLength(4);
+            for (const span of rawResponseSpans) {
+              expect(span.name).toBe(`chat ${span.attributes[GEN_AI_REQUEST_MODEL].value}`);
+              expect(span.status).toBe('ok');
+              expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
+              expect(span.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+            }
+            expect(rawResponseSpans.map(span => span.attributes[GEN_AI_REQUEST_MODEL].value)).toEqual([
+              'claude-3-haiku-20240307',
+              'claude-3-haiku-20240307',
+              'claude-2',
+              'claude-3-haiku-20240307',
+            ]);
           },
         })
         .start()

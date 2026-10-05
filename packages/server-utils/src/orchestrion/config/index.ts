@@ -13,6 +13,7 @@ import { googleGenAiConfig } from './google-genai';
 import { graphqlConfig } from './graphql';
 import { groqConfig } from './groq';
 import { hapiConfig } from './hapi';
+import { honoConfig } from './hono';
 import { ioredisConfig } from './ioredis';
 import { kafkajsConfig } from './kafkajs';
 import { knexConfig } from './knex';
@@ -35,6 +36,7 @@ import { postgresJsConfig } from './postgres';
 import { prismaConfig } from './prisma';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
+import { remixV3Config } from './remix-v3';
 import { tediousConfig } from './tedious';
 import { togetherAiConfig } from './together-ai';
 import { typesafeConfig } from './typesafe';
@@ -67,6 +69,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...graphqlConfig,
   ...groqConfig,
   ...hapiConfig,
+  ...honoConfig,
   ...ioredisConfig,
   ...kafkajsConfig,
   ...knexConfig,
@@ -89,6 +92,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...prismaConfig,
   ...redisConfig,
   ...remixConfig,
+  ...remixV3Config,
   ...tediousConfig,
   ...togetherAiConfig,
   ...typesafeConfig,
@@ -191,3 +195,6 @@ export function withoutInstrumentedExternals(
 export { nestjsChannels } from './nestjs';
 // This is exported so that the remix package can use it to subscribe to the channels.
 export { remixChannels } from './remix';
+// Exported so the remix package can subscribe to the Remix 3 channels, and hand only these configs to
+// the browser transform.
+export { remixV3Channels, remixV3Config } from './remix-v3';

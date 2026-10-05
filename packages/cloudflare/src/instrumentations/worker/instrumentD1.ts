@@ -1,16 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { D1Database, D1DatabaseSession, D1PreparedStatement, D1Response } from '@cloudflare/workers-types';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB_QUERY } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
-import {
-  addBreadcrumb,
-  getClient,
-  hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startSpan,
-} from '@sentry/core';
+import { addBreadcrumb, getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
 import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
 import { ensureInstrumented } from '../../instrument';
 
@@ -148,7 +141,7 @@ function createStartSpanOptions(queryText: string | undefined, type: D1QueryType
       'db.operation.name': type,
       'db.query.text': queryText,
       'db.query.summary': querySummary,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
+      [SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
     },
   };
 }
@@ -187,7 +180,7 @@ function instrumentBatch(
             'db.operation.name': 'batch',
             'db.query.text': queryText || undefined,
             'db.operation.batch.size': statements.length,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
           },
         },
         async () => {

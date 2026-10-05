@@ -176,7 +176,7 @@ function instrumentExecuteWithContext(): void {
 }
 
 function attachExporter(instance: unknown, options: MastraOptions): void {
-  if (typeof instance !== 'object' || instance === null || registered.has(instance)) {
+  if (!isObjectLike(instance) || registered.has(instance)) {
     return;
   }
 

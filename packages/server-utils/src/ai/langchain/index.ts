@@ -1,12 +1,5 @@
 /* eslint-disable max-lines */
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startSpanManual,
-  stringify,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpanManual, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
@@ -17,6 +10,7 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { resolveAIRecordingOptions } from '../core/utils';
@@ -231,7 +225,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const chainName = runName || chain.name;
       const attributes: Record<string, SpanAttributeValue> = {
         ...getConversationIdFromMetadata(metadata),
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
+        [SENTRY_ORIGIN]: 'auto.ai.langchain',
         [GEN_AI_OPERATION_NAME]: 'invoke_agent',
       };
 
@@ -312,7 +306,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const attributes: Record<string, SpanAttributeValue> = {
         ...getAgentNameFromMetadata(metadata),
         ...getConversationIdFromMetadata(metadata),
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
+        [SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'execute_tool',
         [GEN_AI_TOOL_NAME]: toolName,
       };

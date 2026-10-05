@@ -1,5 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
+import { SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_INPUT_MESSAGES,
@@ -9,6 +9,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
@@ -101,7 +102,7 @@ export function instrumentCompiledGraphInvoke(
           attributes: {
             // Set before `spanStart`, so an id from `Sentry.setConversationId()` wins, as on the child spans
             ...getConversationIdFromMetadata(config?.configurable as Record<string, unknown> | undefined),
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
+            [SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
             [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
             [GEN_AI_OPERATION_NAME]: 'invoke_agent',
           },

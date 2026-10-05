@@ -1,31 +1,29 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.describe('Astro actions', () => {
-  test('captures transaction for action call', async ({ page }) => {
-    const transactionEventPromise = waitForTransaction('astro-5-cf-workers', transactionEvent => {
-      return transactionEvent.transaction === 'GET /action-test';
+  test('captures span for action call', async ({ page }) => {
+    const spanPromise = waitForStreamedSpan('astro-5-cf-workers', span => {
+      return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /action-test';
     });
 
     await page.goto('/action-test');
 
-    const transactionEvent = await transactionEventPromise;
+    const span = await spanPromise;
 
-    expect(transactionEvent).toMatchObject({
-      transaction: 'GET /action-test',
+    expect(span).toMatchObject({
+      name: 'GET /action-test',
     });
 
-    const traceId = transactionEvent.contexts?.trace?.trace_id;
+    const traceId = span.trace_id;
     expect(traceId).toMatch(/[a-f0-9]{32}/);
   });
 
-  test('action submission creates a transaction', async ({ page }) => {
+  test('action submission creates a span', async ({ page }) => {
     await page.goto('/action-test');
 
-    const transactionEventPromise = waitForTransaction('astro-5-cf-workers', transactionEvent => {
-      return (
-        transactionEvent.transaction?.includes('action-test') && transactionEvent.transaction !== 'GET /action-test'
-      );
+    const spanPromise = waitForStreamedSpan('astro-5-cf-workers', span => {
+      return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'POST /_actions/[...path]';
     });
 
     await page.getByText('Submit Action').click();
@@ -36,8 +34,8 @@ test.describe('Astro actions', () => {
     const resultText = await page.locator('#result').textContent();
     expect(resultText).toContain('success');
 
-    const transactionEvent = await transactionEventPromise;
-    expect(transactionEvent).toBeDefined();
-    expect(transactionEvent.contexts?.trace?.trace_id).toMatch(/[a-f0-9]{32}/);
+    const span = await spanPromise;
+    expect(span).toBeDefined();
+    expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
   });
 });

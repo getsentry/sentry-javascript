@@ -78,10 +78,12 @@ const NO_OUTGOING_HTTP_INSTRUMENTATION = [
 export const NO_AUTO_INSTRUMENTATION = [
   'suites/express/**',
   'suites/fs-instrumentation/test.ts',
+  'suites/hono/test.ts',
   'suites/hono-sdk/test.ts',
   'suites/pino/test.ts',
   'suites/tracing/amqplib/test.ts',
   'suites/tracing/anthropic/test.ts',
+  'suites/tracing/anthropic/v0.129/test.ts',
   'suites/tracing/apollo-graphql/**',
   'suites/tracing/dataloader/test.ts',
   'suites/tracing/fastify/test.ts',

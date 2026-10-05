@@ -1,10 +1,16 @@
 import { ElementRef } from '@angular/core';
 import type { ActivatedRouteSnapshot } from '@angular/router';
-import { getMainCarrier, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SentrySpan, spanToJSON, startSpan } from '@sentry/core';
+import { getMainCarrier, SentrySpan, spanToJSON, startSpan } from '@sentry/core';
 import { describe, it } from 'vitest';
 import { browserTracingIntegration, init, TraceClass, TraceDirective } from '../src/index';
 import { _updateSpanAttributesForParametrizedUrl, getParameterizedRouteFromSnapshot } from '../src/tracing';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_FULL,
+  URL_PATH,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { expect } from 'vitest';
 
 describe('browserTracingIntegration', () => {
@@ -81,7 +87,7 @@ describe('Angular Tracing', () => {
       expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
           attributes: expect.objectContaining({
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.undefined.angular',
+            [SENTRY_ORIGIN]: 'auto.undefined.angular',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [URL_TEMPLATE]: route,
             // URL_FULL is resolved against jsdom's http://localhost origin
@@ -106,7 +112,7 @@ describe('Angular Tracing', () => {
       expect(spanToJSON(span)).toEqual(
         expect.objectContaining({
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+            [SENTRY_ORIGIN]: 'manual',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'sample-source',
           },
           name: 'initial-span-name',

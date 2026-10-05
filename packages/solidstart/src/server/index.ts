@@ -62,6 +62,8 @@ export {
   isEnabled,
   knexIntegration,
   kafkaIntegration,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   lastEventId,
   linkedErrorsIntegration,
@@ -86,7 +88,9 @@ export {
   rewriteFramesIntegration,
   Scope,
   SDK_VERSION,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setContext,

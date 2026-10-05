@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
@@ -5,11 +6,11 @@ import {
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
+import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { instrumentStream } from '../ai/openai/streaming';
 import type { OpenAiOptions } from '../ai/openai/types';
 import { addResponseAttributes } from '../ai/openai/utils';
@@ -32,8 +33,8 @@ const INSTRUMENTED_CHANNELS = [
 
 /**
  * The context object orchestrion shares across the tracing-channel lifecycle hooks: `arguments` is the
- * live args array passed to `Completions.create(body, options)`, and Node's `tracingChannel` attaches
- * `result` when the returned promise settles.
+ * live args array passed to `Completions.create(body, options)`. `result` holds the returned
+ * `APIPromise` for sync instrumentation.
  */
 interface OpenAiChatChannelContext {
   arguments: unknown[];
@@ -58,8 +59,18 @@ function instrumentOpenai(options: OpenAiOptions): void {
         beforeSpanEnd: (span, data) => {
           addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
         },
-        // Streaming: the result is a `Stream` consumed later, so instrument it and let it end the span.
-        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, options),
+        deferSpanEnd: ({ span, data, end }) =>
+          wrapApiPromiseResponse(
+            data.result,
+            response => {
+              data.result = response;
+              // stream responses should end only after iteration is completed
+              if (!wrapStreamResult(span, data, options)) {
+                end();
+              }
+            },
+            end,
+          ) || wrapStreamResult(span, data, options),
       },
     );
   }
@@ -82,7 +93,7 @@ function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, opti
   const { recordInputs } = resolveAIRecordingOptions(options);
 
   const attributes = extractRequestAttributes(args, operation, recordInputs);
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
+  attributes[SENTRY_ORIGIN] = ORIGIN;
   const model = (params?.model as string) || 'unknown';
   const client = getClient();
 
@@ -109,7 +120,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
 /**
  * For a streaming `create({ stream: true })` the result is a `Stream` the caller consumes later. We can't
  * swap what `create` returns, but the `Stream` in `data.result` is the same instance the caller holds and
- * `asyncEnd` fires before the caller iterates — so we patch its async iterator in place to run through
+ * we observe it before the caller iterates — so we patch its async iterator in place to run through
  * `instrumentStream`, which accumulates the streamed attributes and ends the span when iteration finishes.
  * Only a streaming call resolves to an async-iterable, so that check alone distinguishes it. Returns `true`
  * to hand span-ending ownership to `instrumentStream`; `false` for non-streaming/errored results, which end

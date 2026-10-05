@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_CONVERSATION_ID,
@@ -17,6 +17,8 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
@@ -36,9 +38,11 @@ describe('OpenAI integration', () => {
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(6);
+            expect(container.items).toHaveLength(8);
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
@@ -47,11 +51,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -93,7 +97,9 @@ describe('OpenAI integration', () => {
             });
 
             const responsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(responsesSpan).toBeDefined();
             expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
@@ -102,11 +108,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(responsesSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(responsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -152,11 +158,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -179,11 +185,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -242,11 +248,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(streamingResponsesSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(streamingResponsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -314,13 +320,116 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'openai',
             });
-            expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(streamingErrorSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(streamingErrorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
+            });
+
+            const parsedChatCompletionSpan = container.items.find(
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
+            );
+            expect(parsedChatCompletionSpan).toBeDefined();
+            expect(parsedChatCompletionSpan!.name).toBe('chat gpt-4o');
+            expect(parsedChatCompletionSpan!.status).toBe('ok');
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(parsedChatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(parsedChatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
+              type: 'string',
+              value: 'chatcmpl-mock123',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+              type: 'string',
+              value: '["stop"]',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+              type: 'integer',
+              value: 10,
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
+              type: 'integer',
+              value: 15,
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+              type: 'integer',
+              value: 25,
+            });
+
+            const parsedResponsesSpan = container.items.find(
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
+            );
+            expect(parsedResponsesSpan).toBeDefined();
+            expect(parsedResponsesSpan!.name).toBe('chat gpt-4o');
+            expect(parsedResponsesSpan!.status).toBe('ok');
+            expect(parsedResponsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(parsedResponsesSpan!.attributes[SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(parsedResponsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
+              type: 'string',
+              value: 'resp_mock456',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+              type: 'string',
+              value: '["completed"]',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+              type: 'integer',
+              value: 5,
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
+              type: 'integer',
+              value: 8,
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+              type: 'integer',
+              value: 13,
             });
 
             // GenAI inputs and outputs must never be recorded when `dataCollection.genAI` disables them.
@@ -345,9 +454,11 @@ describe('OpenAI integration', () => {
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(6);
+            expect(container.items).toHaveLength(8);
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
@@ -356,11 +467,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -414,7 +525,9 @@ describe('OpenAI integration', () => {
             });
 
             const responsesSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(responsesSpan).toBeDefined();
             expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
@@ -423,11 +536,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(responsesSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(responsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(responsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -481,11 +594,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(nonStreamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(nonStreamingErrorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -512,11 +625,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(streamingChatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(streamingChatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -587,11 +700,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(streamingResponsesSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(streamingResponsesSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(streamingResponsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -671,13 +784,133 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'openai',
             });
-            expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(streamingErrorSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(streamingErrorSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(streamingErrorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
+            });
+
+            const parsedChatCompletionSpan = container.items.find(
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
+            );
+            expect(parsedChatCompletionSpan).toBeDefined();
+            expect(parsedChatCompletionSpan!.name).toBe('chat gpt-4o');
+            expect(parsedChatCompletionSpan!.status).toBe('ok');
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(parsedChatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(parsedChatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
+              type: 'string',
+              value: '[{"role":"user","content":"What is the capital of France?"}]',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
+              type: 'string',
+              value: 'chatcmpl-mock123',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+              type: 'string',
+              value: '["stop"]',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
+              type: 'string',
+              value: '["Hello from OpenAI mock!"]',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+              type: 'integer',
+              value: 10,
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
+              type: 'integer',
+              value: 15,
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+              type: 'integer',
+              value: 25,
+            });
+
+            const parsedResponsesSpan = container.items.find(
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
+            );
+            expect(parsedResponsesSpan).toBeDefined();
+            expect(parsedResponsesSpan!.name).toBe('chat gpt-4o');
+            expect(parsedResponsesSpan!.status).toBe('ok');
+            expect(parsedResponsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(parsedResponsesSpan!.attributes[SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(parsedResponsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
+              type: 'string',
+              value: 'What is the capital of France?',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
+              type: 'string',
+              value: 'Response to: What is the capital of France?',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+              type: 'string',
+              value: '["completed"]',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
+              type: 'string',
+              value: 'resp_mock456',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+              type: 'integer',
+              value: 5,
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
+              type: 'integer',
+              value: 8,
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+              type: 'integer',
+              value: 13,
             });
           },
         })
@@ -692,9 +925,11 @@ describe('OpenAI integration', () => {
         .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(6);
+            expect(container.items).toHaveLength(8);
             const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
@@ -723,6 +958,38 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: expect.any(String),
             });
+
+            const parsedChatCompletionSpan = container.items.find(
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
+            );
+            expect(parsedChatCompletionSpan).toBeDefined();
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
+              type: 'string',
+              value: expect.any(String),
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toMatchObject({
+              type: 'string',
+              value: expect.any(String),
+            });
+
+            const parsedResponsesSpan = container.items.find(
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
+            );
+            expect(parsedResponsesSpan).toBeDefined();
+            expect(parsedResponsesSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
+            expect(parsedResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
+              type: 'string',
+              value: expect.any(String),
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toMatchObject({
+              type: 'string',
+              value: expect.any(String),
+            });
           },
         })
         .start()
@@ -740,7 +1007,7 @@ describe('OpenAI integration', () => {
         })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
+            expect(container.items).toHaveLength(4);
             const singleEmbeddingSpan = container.items.find(
               span =>
                 span.name === 'embeddings text-embedding-3-small' &&
@@ -753,11 +1020,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'embeddings',
             });
-            expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.embeddings',
             });
-            expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -798,11 +1065,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'embeddings',
             });
-            expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.embeddings',
             });
-            expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -827,11 +1094,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'embeddings',
             });
-            expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.embeddings',
             });
-            expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -865,6 +1132,34 @@ describe('OpenAI integration', () => {
               expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
               expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
             }
+
+            const rawEmbeddingSpan = container.items.find(span => span.name === 'embeddings text-embedding-3-large');
+            expect(rawEmbeddingSpan).toBeDefined();
+            expect(rawEmbeddingSpan!.name).toBe('embeddings text-embedding-3-large');
+            expect(rawEmbeddingSpan!.status).toBe('ok');
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'embeddings',
+            });
+            expect(rawEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.embeddings',
+            });
+            expect(rawEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'text-embedding-3-large',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
           },
         })
         .start()
@@ -882,7 +1177,7 @@ describe('OpenAI integration', () => {
         })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
+            expect(container.items).toHaveLength(4);
             const singleEmbeddingSpan = container.items.find(
               span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
             );
@@ -893,11 +1188,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'embeddings',
             });
-            expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.embeddings',
             });
-            expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -944,11 +1239,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'embeddings',
             });
-            expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.embeddings',
             });
-            expect(errorEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(errorEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -977,11 +1272,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'embeddings',
             });
-            expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.embeddings',
             });
-            expect(multiEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(multiEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -1009,6 +1304,38 @@ describe('OpenAI integration', () => {
               type: 'integer',
               value: 10,
             });
+
+            const rawEmbeddingSpan = container.items.find(span => span.name === 'embeddings text-embedding-3-large');
+            expect(rawEmbeddingSpan).toBeDefined();
+            expect(rawEmbeddingSpan!.name).toBe('embeddings text-embedding-3-large');
+            expect(rawEmbeddingSpan!.status).toBe('ok');
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'embeddings',
+            });
+            expect(rawEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.embeddings',
+            });
+            expect(rawEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'text-embedding-3-large',
+            });
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+            expect(rawEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
+              type: 'string',
+              value: 'Raw embedding test!',
+            });
           },
         })
         .start()
@@ -1034,8 +1361,8 @@ describe('OpenAI integration', () => {
                 trace_id: expect.any(String),
                 data: {
                   [GEN_AI_OPERATION_NAME]: 'chat',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
+                  [SENTRY_OP]: 'gen_ai.chat',
+                  [SENTRY_ORIGIN]: 'auto.ai.openai',
                   [GEN_AI_PROVIDER_NAME]: 'openai',
                   [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
                   [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
@@ -1076,8 +1403,8 @@ describe('OpenAI integration', () => {
                 trace_id: expect.any(String),
                 data: {
                   [GEN_AI_OPERATION_NAME]: 'chat',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
+                  [SENTRY_OP]: 'gen_ai.chat',
+                  [SENTRY_ORIGIN]: 'auto.ai.openai',
                   [GEN_AI_PROVIDER_NAME]: 'openai',
                   [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
                   [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
@@ -1111,7 +1438,7 @@ describe('OpenAI integration', () => {
         })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
+            expect(container.items).toHaveLength(5);
             const conversationCreateSpan = container.items.find(span => span.name === 'chat unknown');
             expect(conversationCreateSpan).toBeDefined();
             expect(conversationCreateSpan!.name).toBe('chat unknown');
@@ -1120,11 +1447,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(conversationCreateSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(conversationCreateSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(conversationCreateSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(conversationCreateSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -1149,11 +1476,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(conversationResponseSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(conversationResponseSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(conversationResponseSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(conversationResponseSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -1172,12 +1499,12 @@ describe('OpenAI integration', () => {
 
             const unlinkedResponseSpan = container.items.find(
               span =>
-                span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat' &&
+                span.attributes[SENTRY_OP]?.value === 'gen_ai.chat' &&
                 span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
             );
             expect(unlinkedResponseSpan).toBeDefined();
             expect(unlinkedResponseSpan!.status).toBe('ok');
-            expect(unlinkedResponseSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(unlinkedResponseSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
@@ -1192,11 +1519,11 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'chat',
             });
-            expect(previousResponseSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(previousResponseSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(previousResponseSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(previousResponseSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -1212,6 +1539,30 @@ describe('OpenAI integration', () => {
               type: 'string',
               value: 'resp_mock_conv_123',
             });
+
+            const rawConversationSpan = container.items.find(
+              span => span.name === 'chat unknown' && span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
+            );
+            expect(rawConversationSpan).toBeDefined();
+            expect(rawConversationSpan!.name).toBe('chat unknown');
+            expect(rawConversationSpan!.status).toBe('ok');
+            expect(rawConversationSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(rawConversationSpan!.attributes[SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(rawConversationSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(rawConversationSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+            expect(rawConversationSpan!.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
           },
         })
         .start()
@@ -1356,17 +1707,24 @@ describe('OpenAI integration', () => {
           span: container => {
             expect(container.items).toHaveLength(2);
 
-            // Both calls should produce spans with the same response ID
             for (const span of container.items) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
               expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
               expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
-              expect(span!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
-                type: 'string',
-                value: 'chatcmpl-withresponse',
-              });
             }
+
+            const parsedSpans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID] !== undefined);
+            expect(parsedSpans).toHaveLength(1);
+            expect(parsedSpans[0]!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
+              type: 'string',
+              value: 'chatcmpl-withresponse',
+            });
+
+            const rawSpans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
+            expect(rawSpans).toHaveLength(1);
+            expect(rawSpans[0]!.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+            expect(rawSpans[0]!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
           },
         })
         .start()
@@ -1376,21 +1734,27 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
     test('creates openai related spans with span streaming enabled', async () => {
+      const spans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const chatCompletionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+            spans.push(...container.items);
+            const chatCompletionSpan = spans.find(
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
             );
             expect(chatCompletionSpan).toBeDefined();
             expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
             expect(chatCompletionSpan!.status).toBe('ok');
             expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+            expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
               type: 'string',
               value: 'gen_ai.chat',
             });
-            expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
+            expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
               type: 'string',
               value: 'auto.ai.openai',
             });
@@ -1403,6 +1767,66 @@ describe('OpenAI integration', () => {
               value: '[{"role":"user","content":"What is the capital of France?"}]',
             });
             expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+
+            const parsedChatCompletionSpan = spans.find(
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
+            );
+            expect(parsedChatCompletionSpan).toBeDefined();
+            expect(parsedChatCompletionSpan!.name).toBe('chat gpt-4o');
+            expect(parsedChatCompletionSpan!.status).toBe('ok');
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+              type: 'string',
+              value: 'chat',
+            });
+            expect(parsedChatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(parsedChatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
+              type: 'string',
+              value: '[{"role":"user","content":"What is the capital of France?"}]',
+            });
+            expect(parsedChatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+              type: 'string',
+              value: 'openai',
+            });
+
+            const parsedResponsesSpan = spans.find(
+              span =>
+                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
+                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
+            );
+            expect(parsedResponsesSpan).toBeDefined();
+            expect(parsedResponsesSpan!.name).toBe('chat gpt-4o');
+            expect(parsedResponsesSpan!.status).toBe('ok');
+            expect(parsedResponsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+            expect(parsedResponsesSpan!.attributes[SENTRY_OP]).toEqual({
+              type: 'string',
+              value: 'gen_ai.chat',
+            });
+            expect(parsedResponsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+              type: 'string',
+              value: 'auto.ai.openai',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+              type: 'string',
+              value: 'gpt-4o',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
+              type: 'string',
+              value: 'What is the capital of France?',
+            });
+            expect(parsedResponsesSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
           },
         })
         .start()

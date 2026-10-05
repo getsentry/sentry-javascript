@@ -1,15 +1,16 @@
-import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
+import { GEN_AI_REQUEST_MODEL, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   defineIntegration,
+  getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
+import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
@@ -54,7 +55,7 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
   for (const { channel, operation, stream } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
-      data => createGenAiSpan(data, operation, options),
+      data => createGenAiSpan(data, operation, options, stream),
       {
         beforeSpanEnd: (span, data) => {
           addResponseAttributes(
@@ -63,7 +64,17 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
             resolveAIRecordingOptions(options).recordOutputs,
           );
         },
-        deferSpanEnd: ({ span, data }) => wrapStreamResult(span, data, stream, options),
+        deferSpanEnd: ({ span, data, end }) =>
+          wrapApiPromiseResponse(
+            data.result,
+            response => {
+              data.result = response;
+              if (!wrapStreamResult(span, data, stream, options)) {
+                end();
+              }
+            },
+            end,
+          ) || wrapStreamResult(span, data, stream, options),
       },
     );
   }
@@ -77,6 +88,7 @@ function createGenAiSpan(
   data: AnthropicChannelContext,
   operation: string,
   options: AnthropicAiOptions,
+  stream: StreamMode,
 ): Span | undefined {
   const args = data.arguments ?? [];
 
@@ -87,10 +99,12 @@ function createGenAiSpan(
   }
 
   // `messages.stream()` internally calls the instrumented `messages.create({ stream: true })` tagged with
-  // an `X-Stainless-Helper-Method: 'stream'` header. The messages-stream channel already covers it, so skip
-  // the nested create to avoid a duplicate span.
-  const requestOptions = args[1] as { headers?: Record<string, unknown> } | undefined;
-  if (requestOptions?.headers?.['X-Stainless-Helper-Method'] === 'stream') {
+  // a `stream` helper-method header. The messages-stream channel already covers it, so skip the nested
+  // create to avoid a duplicate span. Only the non-beta helper is on that channel, though:
+  // `beta.messages.stream()` and the streaming tool runner send the same header with no span covering
+  // them, so the header alone is not enough. Skip only while a stream-helper span of ours is active.
+  const requestOptions = args[1] as { headers?: unknown } | undefined;
+  if (isStreamHelperRequest(requestOptions?.headers) && isInsideStreamHelperSpan()) {
     return undefined;
   }
 
@@ -100,7 +114,7 @@ function createGenAiSpan(
 
   const attributes = extractRequestAttributes(args, operation, recordInputs);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
+  attributes[SENTRY_ORIGIN] = ORIGIN;
   const client = getClient();
 
   const span = startInactiveSpan({
@@ -114,7 +128,46 @@ function createGenAiSpan(
     addPrivateRequestAttributes(span, params);
   }
 
+  if (stream === 'message-stream') {
+    streamHelperSpans.add(span);
+  }
+
   return span;
+}
+
+const STREAM_HELPER_METHOD_HEADER = 'x-stainless-helper-method';
+
+/** The spans opened for the messages-stream channel, i.e. for `messages.stream()` calls. */
+const streamHelperSpans = new WeakSet<Span>();
+
+/**
+ * Whether the active span is one this integration opened for `messages.stream()`. The helper's
+ * internal `create` runs inside that span, so this is what tells it apart from the beta helper and
+ * the tool runner, which send the same header but are not on the messages-stream channel.
+ */
+function isInsideStreamHelperSpan(): boolean {
+  const activeSpan = getActiveSpan();
+  return !!activeSpan && streamHelperSpans.has(activeSpan);
+}
+
+/**
+ * Whether request options carry the header the SDK's `messages.stream()` helper puts on its internal
+ * `create` call. The SDK sent it as `X-Stainless-Helper-Method` up to 0.105 and lowercase since 0.106, and
+ * HTTP header names are case-insensitive either way, so match without regard to case. The headers
+ * arrive as a plain object; a `Headers` instance is handled for completeness.
+ */
+function isStreamHelperRequest(headers: unknown): boolean {
+  if (!headers || typeof headers !== 'object') {
+    return false;
+  }
+
+  if (typeof (headers as Headers).get === 'function') {
+    return (headers as Headers).get(STREAM_HELPER_METHOD_HEADER) === 'stream';
+  }
+
+  return Object.entries(headers as Record<string, unknown>).some(
+    ([name, value]) => name.toLowerCase() === STREAM_HELPER_METHOD_HEADER && value === 'stream',
+  );
 }
 
 type AsyncIterableStream = { [Symbol.asyncIterator]: () => AsyncIterator<unknown> };

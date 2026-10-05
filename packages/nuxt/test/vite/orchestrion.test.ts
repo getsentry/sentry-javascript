@@ -2,6 +2,10 @@ import type { Nuxt } from '@nuxt/schema';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSentryOrchestrionPlugin = vi.fn(() => ({ name: 'sentry-orchestrion-plugin' }));
+const mockCommonJSInteropOptions = {
+  requireReturnsDefault: vi.fn(),
+  ignoreTryCatch: vi.fn(),
+};
 
 function createMockNuxt(options: { _prepare?: boolean; dev?: boolean } = {}) {
   const hooks: Record<string, Array<(...args: any[]) => void | Promise<void>>> = {};
@@ -27,6 +31,8 @@ describe('setupOrchestrion', () => {
     }));
     vi.doMock('@sentry/server-utils/orchestrion/rollup', () => ({
       sentryOrchestrionPlugin: mockSentryOrchestrionPlugin,
+      sentryCommonJSInteropPlugin: () => ({ name: 'sentry-commonjs-interop' }),
+      commonJSInteropOptions: () => mockCommonJSInteropOptions,
     }));
     // The module reaches `@sentry/core` and `@nuxt/kit` through `./utils`. Transforming those
     // charged the first test, which timed out on slower CI runners. The tests never reset the
@@ -56,7 +62,11 @@ describe('setupOrchestrion', () => {
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
     expect(mockSentryOrchestrionPlugin).toHaveBeenCalledOnce();
-    expect(nitroConfig.rollupConfig.plugins).toEqual([existingPlugin, { name: 'sentry-orchestrion-plugin' }]);
+    expect(nitroConfig.rollupConfig.plugins).toEqual([
+      existingPlugin,
+      { name: 'sentry-orchestrion-plugin' },
+      { name: 'sentry-commonjs-interop' },
+    ]);
     expect(nitroConfig.externals.inline).toEqual(['ioredis', 'custom-dependency', 'mysql', 'standard-as-callback']);
   });
 
@@ -103,8 +113,24 @@ describe('setupOrchestrion', () => {
     await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
     expect(nitroConfig).toEqual({
-      rollupConfig: { plugins: [{ name: 'sentry-orchestrion-plugin' }] },
+      rollupConfig: { plugins: [{ name: 'sentry-orchestrion-plugin' }, { name: 'sentry-commonjs-interop' }] },
       externals: { inline: ['mysql', 'ioredis', 'standard-as-callback'] },
+      commonJS: mockCommonJSInteropOptions,
+    });
+  });
+
+  it('preserves user-provided CommonJS options', async () => {
+    const { setupOrchestrion } = await import('../../src/vite/orchestrion');
+    const mockNuxt = createMockNuxt();
+    const userRequireReturnsDefault = vi.fn();
+    const nitroConfig = { commonJS: { requireReturnsDefault: userRequireReturnsDefault } };
+
+    setupOrchestrion(mockNuxt as unknown as Nuxt, true);
+    await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+    expect(nitroConfig.commonJS).toEqual({
+      requireReturnsDefault: userRequireReturnsDefault,
+      ignoreTryCatch: mockCommonJSInteropOptions.ignoreTryCatch,
     });
   });
 

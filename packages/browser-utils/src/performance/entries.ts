@@ -6,7 +6,6 @@ import {
   getActiveSpan,
   parseUrl,
   RESOURCE_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setMeasurement,
   spanToJSON,
   filterCollectedUrl,
@@ -28,6 +27,7 @@ import {
   URL_DOMAIN,
   URL_FULL,
   URL_SCHEME,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import {
   BROWSER_CACHE,
@@ -123,7 +123,7 @@ export function startTrackingLongTasks(): void {
         name: UI_LONG_TASK_SPAN_NAME_FALLBACK,
         op: UI_LONG_TASK,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+          [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       });
     }
@@ -164,7 +164,7 @@ export function startTrackingLongAnimationFrames(): void {
       const duration = msToSec(entry.duration);
 
       const attributes: SpanAttributes = {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       };
 
       const initialScript = entry.scripts[0];
@@ -291,7 +291,7 @@ export function _addPaintSpan(
     name: entry.name,
     attributes: {
       [SENTRY_OP]: BROWSER_PAINT,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+      [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       [BROWSER_PAINT_TYPE]: entry.name,
     },
   });
@@ -370,7 +370,7 @@ function _addPerformanceNavigationTiming(
     name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[op] : entry.name,
     attributes: {
       [SENTRY_OP]: op,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+      [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       [URL_FULL]: filterCollectedUrl(entry.name),
       ...(event === 'redirect' && entry.redirectCount != null ? { 'http.redirect_count': entry.redirectCount } : {}),
     },
@@ -411,7 +411,7 @@ function _addRequest(
       name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_REQUEST] : entry.name,
       attributes: {
         [SENTRY_OP]: BROWSER_REQUEST,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         [URL_FULL]: url,
       },
     });
@@ -420,7 +420,7 @@ function _addRequest(
       name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_RESPONSE] : entry.name,
       attributes: {
         [SENTRY_OP]: BROWSER_RESPONSE,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         [URL_FULL]: url,
       },
     });
@@ -453,7 +453,7 @@ export function _addResourceSpans(
   }
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+    [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
   };
 
   const parsedUrl = parseUrl(resourceUrl);
