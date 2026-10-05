@@ -43,7 +43,7 @@ import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
 import { getPossibleEventMessages, isInternalException } from './utils/eventUtils';
-import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
+import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive } from './utils/is';
 import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
@@ -1556,7 +1556,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           return prepared;
         }
 
-        const result = processBeforeSend(
+        return processBeforeSend(
           options,
           prepared,
           hint,
@@ -1567,18 +1567,20 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
             ignoredSpanCount = count;
           },
         );
-        return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (ignoredSpanCount) {
           this.recordDroppedEvent('ignored', 'span', ignoredSpanCount);
         }
 
-        if (processedEvent === null) {
+        if (processedEvent === null || !isPlainObject(processedEvent as unknown)) {
           this.recordDroppedEvent(beforeSendDropReason, dataCategory);
           if (isTransaction) {
             // the transaction itself counts as one span, plus all the child spans that weren't ignored before
             this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + preparedSpanCount - ignoredSpanCount);
+          }
+          if (processedEvent !== null) {
+            throw _makeInternalError(`${beforeSendLabel} must return \`null\` or a valid event.`);
           }
           const dropMessage =
             beforeSendDropReason === 'ignored'
@@ -1722,32 +1724,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     _level?: SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
-}
-
-/**
- * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
- */
-function _validateBeforeSendResult(
-  beforeSendResult: PromiseLike<Event | null> | Event | null,
-  beforeSendLabel: string,
-): PromiseLike<Event | null> | Event | null {
-  const invalidValueError = `${beforeSendLabel} must return \`null\` or a valid event.`;
-  if (isThenable(beforeSendResult)) {
-    return beforeSendResult.then(
-      event => {
-        if (!isPlainObject(event) && event !== null) {
-          throw _makeInternalError(invalidValueError);
-        }
-        return event;
-      },
-      e => {
-        throw _makeInternalError(`${beforeSendLabel} rejected with ${e}`);
-      },
-    );
-  } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
-    throw _makeInternalError(invalidValueError);
-  }
-  return beforeSendResult;
 }
 
 type BeforeSendDropReason = 'before_send' | 'callback_error' | 'ignored';
