@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { expectGraphqlTrace } from '../../graphql-test-utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
@@ -11,12 +10,17 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
     createEsmAndCjsTests(__dirname, 'scenario-query.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('useOperationNameForRootSpan works with single query operation', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('test span name', (segment, children, allSpans) => {
-              expect(allSpans.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
-              expect(segment.name).toBe('test span name');
-              expect(segment.attributes['sentry.graphql.operation']).toEqual({
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
+              const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('test span name');
+              const children = container.items.filter(
+                span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+              );
+
+              expect(segment?.attributes['sentry.graphql.operation']).toEqual({
                 value: 'query GetHello',
                 type: 'string',
               });
@@ -40,7 +44,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
               });
               expect(getHelloSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(getHelloSpan?.attributes['graphql.processing.type']).toEqual({ value: 'execute', type: 'string' });
-            }),
+            },
           })
           .start()
           .completed();
@@ -52,12 +56,17 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
     createEsmAndCjsTests(__dirname, 'scenario-mutation.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('useOperationNameForRootSpan works with single mutation operation', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('test span name', (segment, children, allSpans) => {
-              expect(allSpans.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
-              expect(segment.name).toBe('test span name');
-              expect(segment.attributes['sentry.graphql.operation']).toEqual({
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
+              const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('test span name');
+              const children = container.items.filter(
+                span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+              );
+
+              expect(segment?.attributes['sentry.graphql.operation']).toEqual({
                 value: 'mutation TestMutation',
                 type: 'string',
               });
@@ -90,7 +99,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                 value: 'execute',
                 type: 'string',
               });
-            }),
+            },
           })
           .start()
           .completed();
@@ -102,12 +111,17 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
     createEsmAndCjsTests(__dirname, 'scenario-no-operation-name.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('useOperationNameForRootSpan works with single query operation without name', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('test span name', (segment, children, allSpans) => {
-              expect(allSpans.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
-              expect(segment.name).toBe('test span name');
-              expect(segment.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
+              const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('test span name');
+              const children = container.items.filter(
+                span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+              );
+
+              expect(segment?.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
               const executeSpan = children.find(
                 span => span.attributes['graphql.processing.type']?.value === 'execute',
               );
@@ -122,7 +136,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
               });
               expect(executeSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(executeSpan?.attributes['graphql.processing.type']).toEqual({ value: 'execute', type: 'string' });
-            }),
+            },
           })
           .start()
           .completed();
@@ -134,12 +148,17 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
     createEsmAndCjsTests(__dirname, 'scenario-multiple-operations.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('useOperationNameForRootSpan works with multiple query operations', async () => {
         await createTestRunner()
-          .unordered()
           .expect({
-            span: expectGraphqlTrace('test span name', (segment, children, allSpans) => {
-              expect(allSpans.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
-              expect(segment.name).toBe('test span name');
-              expect(segment.attributes['sentry.graphql.operation']).toEqual({
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
+              const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('test span name');
+              const children = container.items.filter(
+                span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+              );
+
+              expect(segment?.attributes['sentry.graphql.operation']).toEqual({
                 value: ['query GetWorld', 'query GetHello'],
                 type: 'array',
               });
@@ -183,7 +202,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
               });
               expect(getWorldSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(getWorldSpan?.attributes['graphql.processing.type']).toEqual({ value: 'execute', type: 'string' });
-            }),
+            },
           })
           .start()
           .completed();
@@ -199,12 +218,16 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       (createTestRunner, test) => {
         test('useOperationNameForRootSpan works with more than 5 query operations', async () => {
           await createTestRunner()
-            .unordered()
             .expect({
-              span: expectGraphqlTrace('test span name', (segment, _children, allSpans) => {
-                expect(allSpans.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
-                expect(segment.name).toBe('test span name');
-                expect(segment.attributes['sentry.graphql.operation']).toEqual({
+              span: container => {
+                expect(
+                  container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
+                ).toBeDefined();
+                const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
+                expect(segment).toBeDefined();
+                expect(segment?.name).toBe('test span name');
+
+                expect(segment?.attributes['sentry.graphql.operation']).toEqual({
                   value: [
                     'query GetHello1',
                     'query GetHello2',
@@ -218,7 +241,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                   ],
                   type: 'array',
                 });
-              }),
+              },
             })
             .start()
             .completed();

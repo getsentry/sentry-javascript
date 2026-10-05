@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { expectGraphqlTrace } from '../../graphql-test-utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('GraphQL/Apollo Tests > resolve spans', () => {
@@ -13,12 +12,17 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
   createEsmAndCjsTests(__dirname, 'scenario-query.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('emits parse, validate and resolve spans when ignoreResolveSpans is false', async () => {
       await createTestRunner()
-        .unordered()
         .expect({
-          span: expectGraphqlTrace('Test Transaction', (segment, children, allSpans) => {
-            expect(allSpans.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
-            expect(segment.name).toBe('Test Transaction');
-            expect(segment.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
+          span: container => {
+            expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
+            const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
+            expect(segment).toBeDefined();
+            expect(segment?.name).toBe('Test Transaction');
+            const children = container.items.filter(
+              span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+            );
+
+            expect(segment?.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
             const executeSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'execute');
             expect(executeSpan).toBeDefined();
             expect(executeSpan?.name).toBe('GraphQL query');
@@ -54,7 +58,7 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
             expect(helloResolverSpan?.attributes['graphql.field.path']).toEqual({ value: 'hello', type: 'string' });
             expect(helloResolverSpan?.attributes['graphql.field.type']).toEqual({ value: 'String', type: 'string' });
             expect(helloResolverSpan?.attributes['graphql.parent.name']).toEqual({ value: 'Query', type: 'string' });
-          }),
+          },
         })
         .start()
         .completed();
@@ -68,12 +72,17 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
   createEsmAndCjsTests(__dirname, 'scenario-query.mjs', 'instrument-dc.mjs', (createTestRunner, test) => {
     test('emits resolve spans via diagnostics-channel injection when configured explicitly', async () => {
       await createTestRunner()
-        .unordered()
         .expect({
-          span: expectGraphqlTrace('Test Transaction', (segment, children, allSpans) => {
-            expect(allSpans.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
-            expect(segment.name).toBe('Test Transaction');
-            expect(segment.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
+          span: container => {
+            expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
+            const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
+            expect(segment).toBeDefined();
+            expect(segment?.name).toBe('Test Transaction');
+            const children = container.items.filter(
+              span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+            );
+
+            expect(segment?.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
             const executeSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'execute');
             expect(executeSpan).toBeDefined();
             expect(executeSpan?.name).toBe('GraphQL query');
@@ -109,7 +118,7 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
             expect(helloResolverSpan?.attributes['graphql.field.path']).toEqual({ value: 'hello', type: 'string' });
             expect(helloResolverSpan?.attributes['graphql.field.type']).toEqual({ value: 'String', type: 'string' });
             expect(helloResolverSpan?.attributes['graphql.parent.name']).toEqual({ value: 'Query', type: 'string' });
-          }),
+          },
         })
         .start()
         .completed();
