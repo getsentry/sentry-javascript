@@ -3,7 +3,6 @@ import type { Contexts, Span, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
   debug,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   spanStreamingIntegration,
   startInactiveSpan,
@@ -33,6 +32,7 @@ import {
   SENTRY_RELEASE,
   SENTRY_SDK_INTEGRATIONS,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
@@ -81,7 +81,7 @@ describe('captureSpan', () => {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -177,7 +177,7 @@ describe('captureSpan', () => {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -273,7 +273,7 @@ describe('captureSpan', () => {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -351,7 +351,7 @@ describe('captureSpan', () => {
       attributes: {
         [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
         [SENTRY_OP]: { type: 'string', value: 'http.client' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
         [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
         [SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
