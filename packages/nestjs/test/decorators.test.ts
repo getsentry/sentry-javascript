@@ -1,7 +1,6 @@
 import 'reflect-metadata';
-import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SentryCron, SentryExceptionCaptured, SentryTraced } from '../src/decorators';
 import * as helpers from '../src/helpers';
@@ -41,7 +40,7 @@ describe('SentryTraced decorator', () => {
         op: 'test-operation',
         name: 'testMethod',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
+          [SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
           [SENTRY_OP]: 'test-operation',
           [CODE_FUNCTION_NAME]: 'testMethod',
         },
@@ -75,7 +74,7 @@ describe('SentryTraced decorator', () => {
         op: 'function', // default value
         name: 'testDefaultOp',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
+          [SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
           [SENTRY_OP]: 'function',
           [CODE_FUNCTION_NAME]: 'testDefaultOp',
         },
@@ -109,7 +108,7 @@ describe('SentryTraced decorator', () => {
         op: 'sync-operation',
         name: 'syncMethod',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
+          [SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
           [SENTRY_OP]: 'sync-operation',
           [CODE_FUNCTION_NAME]: 'syncMethod',
         },

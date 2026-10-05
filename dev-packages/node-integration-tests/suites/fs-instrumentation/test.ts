@@ -1,6 +1,5 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/node';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../utils/runner';
 
@@ -24,11 +23,7 @@ function expectFileSpans(
         status,
         attributes: Object.fromEntries(
           Object.entries(attributes).filter(
-            ([key]) =>
-              key.endsWith('_argument') ||
-              key === 'error.type' ||
-              key === SENTRY_OP ||
-              key === SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+            ([key]) => key.endsWith('_argument') || key === 'error.type' || key === SENTRY_OP || key === SENTRY_ORIGIN,
           ),
         ),
       })),
@@ -61,7 +56,7 @@ describe('fs instrumentation', () => {
                       value: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
                     },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
@@ -83,7 +78,7 @@ describe('fs instrumentation', () => {
                   attributes: {
                     path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -92,7 +87,7 @@ describe('fs instrumentation', () => {
                   attributes: {
                     path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file-promises.txt') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -104,7 +99,7 @@ describe('fs instrumentation', () => {
                       value: expect.stringMatching('/fixtures/some-file-promisify.txt'),
                     },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
@@ -127,7 +122,7 @@ describe('fs instrumentation', () => {
                     src_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
                     dest_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt.copy') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -140,7 +135,7 @@ describe('fs instrumentation', () => {
                       value: expect.stringMatching('/fixtures/some-file-promises.txt.copy'),
                     },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -153,7 +148,7 @@ describe('fs instrumentation', () => {
                       value: expect.stringMatching('/fixtures/some-file-promisify.txt.copy'),
                     },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
@@ -176,7 +171,7 @@ describe('fs instrumentation', () => {
                     existing_path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
                     new_path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt.link') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -186,7 +181,7 @@ describe('fs instrumentation', () => {
                     existing_path_argument: { type: 'string', value: expect.stringMatching('/some-file-promises.txt') },
                     new_path_argument: { type: 'string', value: expect.stringMatching('/some-file-promises.txt.link') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -202,7 +197,7 @@ describe('fs instrumentation', () => {
                       value: expect.stringMatching('/fixtures/some-file-promisify.txt.link'),
                     },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
@@ -224,7 +219,7 @@ describe('fs instrumentation', () => {
                   attributes: {
                     prefix_argument: { type: 'string', value: expect.stringMatching('/foo-') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -233,7 +228,7 @@ describe('fs instrumentation', () => {
                   attributes: {
                     prefix_argument: { type: 'string', value: expect.stringMatching('/foo-') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -242,7 +237,7 @@ describe('fs instrumentation', () => {
                   attributes: {
                     prefix_argument: { type: 'string', value: expect.stringMatching('/foo-') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
@@ -265,7 +260,7 @@ describe('fs instrumentation', () => {
                     target_argument: { type: 'string', value: expect.stringMatching('/some-file-promisify.txt') },
                     path_argument: { type: 'string', value: expect.stringMatching('/some-file-promisify.txt.symlink') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -281,7 +276,7 @@ describe('fs instrumentation', () => {
                       value: expect.stringMatching('/fixtures/some-file-promisify.txt.symlink'),
                     },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -297,7 +292,7 @@ describe('fs instrumentation', () => {
                       value: expect.stringMatching('/fixtures/some-file-promisify.txt.symlink'),
                     },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
@@ -319,7 +314,7 @@ describe('fs instrumentation', () => {
                   attributes: {
                     path_argument: { type: 'string', value: expect.stringMatching('/fixtures/some-file.txt') },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
                 {
@@ -331,7 +326,7 @@ describe('fs instrumentation', () => {
                       value: expect.stringMatching('/fixtures/some-file-promisify.txt'),
                     },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
@@ -367,7 +362,7 @@ describe('fs instrumentation', () => {
                       value: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
                     },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
@@ -400,7 +395,7 @@ describe('fs instrumentation', () => {
                   attributes: {
                     'error.type': { type: 'string', value: 'ENOENT' },
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
@@ -422,7 +417,7 @@ describe('fs instrumentation', () => {
                   // Neither `path_argument` nor `error.type` are recorded
                   attributes: {
                     [SENTRY_OP]: { type: 'string', value: 'file' },
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
+                    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.file.fs' },
                   },
                 },
               ]),
