@@ -1,14 +1,13 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import * as SentryCoreServer from '@sentry/core/server';
 import * as SentryNode from '@sentry/node';
-import {
-  createTransport,
-  NodeClient,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCurrentClient,
-  spanToJSON,
-} from '@sentry/node';
+import { createTransport, NodeClient, setCurrentClient, spanToJSON } from '@sentry/node';
 import { redirect } from '@solidjs/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { withServerActionInstrumentation } from '../../src/server';
@@ -103,7 +102,7 @@ describe('withServerActionInstrumentation', () => {
           [SENTRY_OP]: 'function',
           [CODE_FUNCTION_NAME]: 'getPrefecture',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
+          [SENTRY_ORIGIN]: 'auto.function.solidstart',
         }),
       }),
     );

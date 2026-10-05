@@ -1,7 +1,6 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/solidstart';
 
 test('sends a server action transaction on pageload', async ({ page }) => {
   const transactionPromise = waitForTransaction('solidstart-static', transactionEvent => {
@@ -18,7 +17,7 @@ test('sends a server action transaction on pageload', async ({ page }) => {
         description: 'getPrefecture',
         data: {
           [SENTRY_OP]: 'function',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
+          [SENTRY_ORIGIN]: 'auto.function.solidstart',
           'code.function.name': 'getPrefecture',
         },
       }),
@@ -43,7 +42,7 @@ test('sends a server action transaction on client navigation', async ({ page }) 
         description: 'getPrefecture',
         data: {
           [SENTRY_OP]: 'function',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
+          [SENTRY_ORIGIN]: 'auto.function.solidstart',
           'code.function.name': 'getPrefecture',
         },
       }),

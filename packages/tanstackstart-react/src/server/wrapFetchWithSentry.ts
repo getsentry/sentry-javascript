@@ -1,7 +1,13 @@
 import { getClient, getTraceMetaTags, hasSpanStreamingEnabled } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
-import { CODE_FUNCTION_NAME, HTTP_REQUEST_METHOD, SENTRY_DESCRIPTION, SENTRY_OP } from '@sentry/conventions/attributes';
+import { captureException, startSpan } from '@sentry/node';
+import {
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_METHOD,
+  SENTRY_DESCRIPTION,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import { updateSpanWithRouteParametrization } from './routeParametrization';
 
@@ -154,7 +160,7 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
                 // request path carries the generated server function id, which is high cardinality.
                 name: hasSpanStreaming ? 'serverFn' : description,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
+                  [SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
                   [SENTRY_OP]: FUNCTION,
                   [CODE_FUNCTION_NAME]: 'serverFn',
                   // The global function middleware renames this span and needs the method, which it

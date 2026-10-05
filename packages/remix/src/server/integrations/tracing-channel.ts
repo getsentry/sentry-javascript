@@ -9,7 +9,6 @@ import {
   isObjectLike,
   isURLObjectRelative,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   startInactiveSpan,
   waitForTracingChannelBinding,
@@ -28,6 +27,7 @@ import {
   SENTRY_OP,
   HTTP_REQUEST_METHOD,
   HTTP_RESPONSE_STATUS_CODE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 import { remixChannels } from '@sentry/server-utils/orchestrion/config';
@@ -161,7 +161,7 @@ function subscribeRequestHandler(): void {
             : 'remix.request',
         attributes: {
           [SENTRY_KIND]: 'server',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: HTTP_SERVER,
           ...(hasUrlName && { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' }),
           [CODE_FUNCTION_NAME]: 'requestHandler',
@@ -201,7 +201,7 @@ function subscribeCallRouteLoader(): void {
         // stays on `match.route.id`.
         name: client && hasSpanStreamingEnabled(client) ? 'loader' : description,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: FUNCTION,
           [SENTRY_DESCRIPTION]: description,
           [CODE_FUNCTION_NAME]: 'loader',
@@ -240,7 +240,7 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         // stays on `match.route.id`.
         name: client && hasSpanStreamingEnabled(client) ? 'action' : description,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: FUNCTION,
           [SENTRY_DESCRIPTION]: description,
           [CODE_FUNCTION_NAME]: 'action',
