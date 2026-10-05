@@ -308,26 +308,21 @@ describe('tracing mixin span creation', () => {
     ]);
   });
 
-  it('names UI spans after the component and preserves the original description when span streaming is enabled', ({
-    app,
-    uiSpans,
-    initSentry,
-  }) => {
+
+  it('records UI spans when span streaming is enabled', ({ app, uiSpans, initSentry }) => {
     initSentry({ tracing: { trackComponents: ['ChildComponent'] }, sdk: { traceLifecycle: 'stream' } });
 
     mountUnderActiveSpan(app);
 
+    // v10 does not have low-cardinality `ui` span names (only in v11)
     expect(uiSpans).toEqual([
-      { name: 'ChildComponent', op: UI_MOUNT_SPAN_OP },
-      { name: 'Root', op: UI_MOUNT_SPAN_OP },
-      { name: 'Root', op: UI_RENDER_SPAN_OP },
+      { name: 'Vue <ChildComponent>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
     ]);
   });
 
-  it('uses the component mount fallback for anonymous components when span streaming is enabled', ({
-    uiSpans,
-    initSentry,
-  }) => {
+  it('records UI spans for anonymous components when span streaming is enabled', ({ uiSpans, initSentry }) => {
     const anonymousChild = { render: () => h('p', 'child') };
     const app = createApp({ render: () => h('div', [h(anonymousChild)]) });
     initSentry({
@@ -337,10 +332,11 @@ describe('tracing mixin span creation', () => {
 
     mountUnderActiveSpan(app);
 
+    // v10 does not have low-cardinality `ui` span names (only in v11)
     expect(uiSpans).toEqual([
-      { name: 'Component mount', op: UI_MOUNT_SPAN_OP },
-      { name: 'Root', op: UI_MOUNT_SPAN_OP },
-      { name: 'Root', op: UI_RENDER_SPAN_OP },
+      { name: 'Vue <Anonymous>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Vue <Root>', op: UI_MOUNT_SPAN_OP },
+      { name: 'Application Render', op: UI_RENDER_SPAN_OP },
     ]);
   });
 
