@@ -1,14 +1,14 @@
 /**
  * @vitest-environment jsdom
  */
-import { createTransport, getCurrentScope, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, setCurrentClient } from '@sentry/core';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import { render } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
 import * as React from 'react';
 import { act } from 'react';
 import { matchPath, Route, Router, Switch } from 'react-router-4';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { BrowserClient, reactRouterV4BrowserTracingIntegration, withSentryRouting } from '../src';
 import type { RouteConfig } from '../src/reactrouter';
 
@@ -80,7 +80,7 @@ describe('browserTracingReactRouterV4', () => {
       name: 'Pageload',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v4',
+        [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v4',
         [SENTRY_OP]: 'pageload',
       },
     });
@@ -125,7 +125,7 @@ describe('browserTracingReactRouterV4', () => {
       name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
         [SENTRY_OP]: 'navigation',
       },
     });
@@ -138,7 +138,7 @@ describe('browserTracingReactRouterV4', () => {
       name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
         [SENTRY_OP]: 'navigation',
       },
     });
@@ -197,7 +197,7 @@ describe('browserTracingReactRouterV4', () => {
       name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
         [SENTRY_OP]: 'navigation',
       },
     });
@@ -234,7 +234,7 @@ describe('browserTracingReactRouterV4', () => {
       name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
         [SENTRY_OP]: 'navigation',
       },
     });
@@ -279,7 +279,7 @@ describe('browserTracingReactRouterV4', () => {
       name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
         [SENTRY_OP]: 'navigation',
       },
     });
@@ -302,7 +302,7 @@ describe('browserTracingReactRouterV4', () => {
       name: 'Navigation',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
         [SENTRY_OP]: 'navigation',
       },
     });
@@ -351,7 +351,7 @@ describe('browserTracingReactRouterV4', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/organizations/:orgid/v1/:teamid',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
         [SENTRY_OP]: 'navigation',
       },
     });
@@ -365,7 +365,7 @@ describe('browserTracingReactRouterV4', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/organizations/:orgid',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v4',
         [SENTRY_OP]: 'navigation',
       },
     });
