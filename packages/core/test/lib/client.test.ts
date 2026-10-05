@@ -1337,6 +1337,7 @@ describe('Client', () => {
 
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
       const loggerLogSpy = vi.spyOn(debugLoggerModule.debug, 'log');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       const transaction: Event = {
         transaction: 'root span',
@@ -1366,7 +1367,10 @@ describe('Client', () => {
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because the event processor returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerLogSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
+      expect(loggerLogSpy).toBeCalledWith('Transaction matched `ignoreSpans`, will not send event.');
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'transaction');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 3);
     });
 
     test('uses `ignoreSpans` to drop child spans', () => {
@@ -1436,7 +1440,8 @@ describe('Client', () => {
           status: 'ok',
         },
       ]);
-      expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
     });
 
     test('uses complex `ignoreSpans` to drop child spans', () => {
@@ -1512,7 +1517,8 @@ describe('Client', () => {
           status: 'ok',
         },
       ]);
-      expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 2);
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 2);
     });
 
     test('does not modify existing contexts for root span in `beforeSendSpan`', () => {
@@ -2318,11 +2324,11 @@ describe('Client', () => {
       expect(TestClient.instance!.event).toBeUndefined();
       expect(recordLostEventSpy).toHaveBeenCalledTimes(3);
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
-      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
-      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('ignored', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('ignored', 'span', 2);
     });
 
-    test('child spans dropped by `ignoreSpans` are not counted again when `beforeSendTransaction` drops the transaction', () => {
+    test('child spans dropped by `ignoreSpans` are counted as ignored when `beforeSendTransaction` drops the transaction', () => {
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: PUBLIC_DSN,
@@ -2353,12 +2359,13 @@ describe('Client', () => {
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans });
 
       expect(TestClient.instance!.event).toBeUndefined();
-      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(3);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
       expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
-      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 3);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
     });
 
-    test('child spans dropped by `ignoreSpans` and removed by `beforeSendTransaction` are counted once', () => {
+    test('child spans dropped by `ignoreSpans` and removed by `beforeSendTransaction` are counted once with their reason', () => {
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: PUBLIC_DSN,
@@ -2389,8 +2396,9 @@ describe('Client', () => {
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans });
 
       expect(TestClient.instance!.event?.spans).toEqual([]);
-      expect(recordLostEventSpy).toHaveBeenCalledTimes(1);
-      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 1);
     });
 
     describe('span outcomes when all span drop mechanisms apply to the same transaction', () => {
@@ -2459,7 +2467,8 @@ describe('Client', () => {
         const { outcomes, spanOutcomeTotal } = getOutcomes(client);
         expect(outcomes).toEqual([
           { reason: 'event_processor', category: 'span', quantity: 2 },
-          { reason: 'before_send', category: 'span', quantity: 2 },
+          { reason: 'ignored', category: 'span', quantity: 1 },
+          { reason: 'before_send', category: 'span', quantity: 1 },
         ]);
         // every child span is either sent or counted once; the root span is sent as the transaction
         expect(spanOutcomeTotal + sentSpans.length).toBe(childSpanDescriptions.length);
@@ -2473,8 +2482,9 @@ describe('Client', () => {
         const { outcomes, spanOutcomeTotal } = getOutcomes(client);
         expect(outcomes).toEqual([
           { reason: 'event_processor', category: 'span', quantity: 2 },
+          { reason: 'ignored', category: 'span', quantity: 1 },
           { reason: 'before_send', category: 'transaction', quantity: 1 },
-          { reason: 'before_send', category: 'span', quantity: 5 },
+          { reason: 'before_send', category: 'span', quantity: 4 },
         ]);
         // all child spans plus the root span are counted once
         expect(spanOutcomeTotal).toBe(childSpanDescriptions.length + 1);
