@@ -4,6 +4,7 @@ import type { LangChainMessage } from '../../../../src/ai/langchain/types';
 import {
   _INTERNAL_mergeLangChainCallbackHandler,
   getConversationIdFromMetadata,
+  getConversationIdMetadataFromConfig,
   normalizeLangChainMessages,
 } from '../../../../src/ai/langchain/utils';
 
@@ -192,5 +193,19 @@ describe('getConversationIdFromMetadata', () => {
     expect(getConversationIdFromMetadata({ thread_id: '', sessionId: 'session-1' })).toEqual({
       [GEN_AI_CONVERSATION_ID]: 'session-1',
     });
+  });
+});
+
+describe('getConversationIdMetadataFromConfig', () => {
+  it('picks the conversation id keys out of configurable', () => {
+    expect(
+      getConversationIdMetadataFromConfig({
+        configurable: { thread_id: 'thread-1', sessionId: 42, model: 'gpt-4o', session_id: { id: 'x' } },
+      }),
+    ).toEqual({ thread_id: 'thread-1', sessionId: 42 });
+  });
+
+  it('returns nothing without configurable', () => {
+    expect(getConversationIdMetadataFromConfig({})).toEqual({});
   });
 });

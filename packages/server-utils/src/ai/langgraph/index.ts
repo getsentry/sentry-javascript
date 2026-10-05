@@ -25,7 +25,11 @@ import {
   setResponseAttributes,
   wrapToolsWithSpans,
 } from './utils';
-import { _INTERNAL_mergeLangChainCallbackHandler, getConversationIdFromMetadata } from '../langchain/utils';
+import {
+  getConversationIdMetadataFromConfig,
+  _INTERNAL_mergeLangChainCallbackHandler,
+  getConversationIdFromMetadata,
+} from '../langchain/utils';
 
 let _insideCreateReactAgent = false;
 
@@ -128,6 +132,7 @@ export function instrumentCompiledGraphInvoke(
 
               const existingMetadata = (invokeConfig.metadata ?? {}) as Record<string, unknown>;
               invokeConfig.metadata = {
+                ...getConversationIdMetadataFromConfig(invokeConfig),
                 ...existingMetadata,
                 __sentry_langgraph__: true,
                 ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),

@@ -110,6 +110,26 @@ describe('LangGraph conversation id', () => {
     expect(spanToStaticSpanJSON(span).data[GEN_AI_CONVERSATION_ID]).toBe('scope-id');
   });
 
+  it('copies the conversation id from configurable into the metadata the graph runs with', async () => {
+    setupClient();
+    let receivedConfig: Record<string, unknown> | undefined;
+    const invoke = instrumentCompiledGraphInvoke(
+      async (_input: unknown, config: unknown) => {
+        receivedConfig = config as Record<string, unknown>;
+        return { messages: [] };
+      },
+      {} as CompiledGraph,
+      {},
+      {},
+      undefined,
+      {},
+    );
+
+    await invoke({}, { configurable: { sessionId: 'session-1' }, metadata: { user: 'u' } });
+
+    expect(receivedConfig?.metadata).toEqual({ sessionId: 'session-1', user: 'u', __sentry_langgraph__: true });
+  });
+
   it('sets the conversation id on wrapped tool spans from the call metadata', async () => {
     const endedSpans = setupClient();
     const tool = { name: 'add', invoke: async () => '3' };

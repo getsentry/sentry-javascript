@@ -491,6 +491,22 @@ export function getConversationIdFromMetadata(metadata?: Record<string, unknown>
   return {};
 }
 
+/**
+ * Conversation id keys from `config.configurable`, to spread under the run metadata.
+ * `@langchain/core` >= 1.1.40 only copies `configurable` into metadata for LangSmith tracers, not for our handler.
+ */
+export function getConversationIdMetadataFromConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const configurable = config.configurable as Record<string, unknown> | undefined;
+  const metadata: Record<string, unknown> = {};
+  for (const key of CONVERSATION_ID_METADATA_KEYS) {
+    const value = configurable?.[key];
+    if (typeof value === 'string' || typeof value === 'number') {
+      metadata[key] = value;
+    }
+  }
+  return metadata;
+}
+
 export function extractToolDefinitions(extraParams?: Record<string, unknown>): string | undefined {
   const tools =
     (extraParams?.invocation_params as Record<string, unknown>)?.tools ??
