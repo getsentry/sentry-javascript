@@ -182,6 +182,8 @@ describe('getConversationIdFromMetadata', () => {
     expect(getConversationIdFromMetadata({ thread_id: '' })).toEqual({});
     expect(getConversationIdFromMetadata({ thread_id: { id: 'x' } })).toEqual({});
     expect(getConversationIdFromMetadata({ thread_id: null })).toEqual({});
+    expect(getConversationIdFromMetadata({ thread_id: NaN })).toEqual({});
+    expect(getConversationIdFromMetadata({ thread_id: Infinity })).toEqual({});
     expect(getConversationIdFromMetadata({})).toEqual({});
     expect(getConversationIdFromMetadata(undefined)).toEqual({});
   });

@@ -483,7 +483,7 @@ const CONVERSATION_ID_METADATA_KEYS = ['thread_id', 'session_id', 'sessionId'] a
 export function getConversationIdFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
   for (const key of CONVERSATION_ID_METADATA_KEYS) {
     const value = metadata?.[key];
-    if ((typeof value === 'string' && value) || typeof value === 'number') {
+    if ((typeof value === 'string' && value) || (typeof value === 'number' && Number.isFinite(value))) {
       return { [GEN_AI_CONVERSATION_ID]: String(value) };
     }
   }
