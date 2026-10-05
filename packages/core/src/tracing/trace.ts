@@ -308,7 +308,11 @@ export function startNewTrace<T>(callback: () => T): T {
  */
 function startMissingRequiredParentSpan(scope: Scope, client: Client | undefined): SentryNonRecordingSpan {
   client?.recordDroppedEvent('no_parent_span', 'span');
-  const span = new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId });
+  // Spans nested inside the placeholder inherit its drop reason in `_startChildSpan`
+  const span = new SentryNonRecordingSpan({
+    dropReason: 'no_parent_span',
+    traceId: scope.getPropagationContext().traceId,
+  });
   setCapturedScopesOnSpan(span, scope, getIsolationScope());
   return span;
 }
@@ -577,9 +581,8 @@ function _startChildSpan(
 
   if (spanIsNonRecordingSpan(childSpan)) {
     if (spanIsNonRecordingSpan(parentSpan) && parentSpan.dropReason) {
-      // We land here if the parent span was a segment span that was ignored (`ignoreSpans`).
-      // In this case, the child was also ignored (see `sampled` above) but we need to
-      // record a client outcome for the child.
+      // The parent was dropped for a reason other than sampling (e.g. an ignored segment span or
+      // an `onlyIfParent` placeholder), so the child is dropped for the same reason.
       childSpan.dropReason = parentSpan.dropReason;
       client.recordDroppedEvent(parentSpan.dropReason, 'span');
     } else if (!_isTracingSuppressed) {

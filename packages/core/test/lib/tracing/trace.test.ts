@@ -642,6 +642,21 @@ describe('startSpan', () => {
       expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
     });
 
+    it('records no_parent_span client reports for spans nested in a span without parent', () => {
+      const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+      startSpan({ name: 'test span', onlyIfParent: true }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startInactiveSpan({ name: 'grandchild span' }).end();
+        });
+      });
+
+      expect(spyOnDroppedEvent).toHaveBeenCalledTimes(3);
+      expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(1, 'no_parent_span', 'span');
+      expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'no_parent_span', 'span');
+      expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(3, 'no_parent_span', 'span');
+    });
+
     it('creates a span if there is a parent', () => {
       const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
 
