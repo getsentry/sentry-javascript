@@ -1,4 +1,4 @@
-import { afterAll } from 'vitest';
+import { afterAll, expect } from 'vitest';
 import { conditionalTest } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
@@ -13,9 +13,20 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > useOperationNameFor
     'scenario-query.mjs',
     'instrument.mjs',
     (createTestRunner, test) => {
-      test('renames the root span with a single operation', async () => {
+      test('records a single operation without renaming the root span', async () => {
         await createTestRunner()
-          .expect({ transaction: { transaction: 'Test Transaction (query GetHello)' } })
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('Test Transaction');
+
+              expect(segment?.attributes['sentry.graphql.operation']).toEqual({
+                value: 'query GetHello',
+                type: 'string',
+              });
+            },
+          })
           .start()
           .completed();
       });
@@ -28,9 +39,20 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > useOperationNameFor
     'scenario-multiple.mjs',
     'instrument.mjs',
     (createTestRunner, test) => {
-      test('accumulates multiple operations on the root span name (sorted)', async () => {
+      test('accumulates multiple operations without renaming the root span', async () => {
         await createTestRunner()
-          .expect({ transaction: { transaction: 'Test Transaction (query GetHello, query GetWorld)' } })
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('Test Transaction');
+
+              expect(segment?.attributes['sentry.graphql.operation']).toEqual({
+                value: ['query GetWorld', 'query GetHello'],
+                type: 'array',
+              });
+            },
+          })
           .start()
           .completed();
       });
@@ -45,7 +67,15 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > useOperationNameFor
     (createTestRunner, test) => {
       test('keeps the original root span name when useOperationNameForRootSpan is false', async () => {
         await createTestRunner()
-          .expect({ transaction: { transaction: 'Test Transaction' } })
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment).toBeDefined();
+              expect(segment?.name).toBe('Test Transaction');
+
+              expect(segment?.attributes['sentry.graphql.operation']).toBeUndefined();
+            },
+          })
           .start()
           .completed();
       });
