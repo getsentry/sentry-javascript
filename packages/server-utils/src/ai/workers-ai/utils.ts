@@ -44,8 +44,8 @@ export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, strin
  * Workers AI exposes a single `run` method, so we infer the operation from the model ID and the input shape.
  */
 export function getOperationName(model: unknown, inputs: unknown): WorkersAiOperationName {
-  // TypeSafe only serves evaluation models (e.g. `typesafe/jev`).
-  if (typeof model === 'string' && model.startsWith('typesafe/')) {
+  // Jev is an evaluation model. Other TypeSafe models may not be.
+  if (typeof model === 'string' && model.startsWith('typesafe/jev')) {
     return 'evaluate';
   }
   if (inputs && typeof inputs === 'object') {

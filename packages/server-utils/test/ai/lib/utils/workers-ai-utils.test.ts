@@ -60,8 +60,13 @@ describe('workers-ai utils', () => {
       expect(getOperationName(MODEL, { text: 'embed me' })).toBe('embeddings');
     });
 
-    it('returns "evaluate" for TypeSafe models', () => {
+    it('returns "evaluate" for TypeSafe Jev models', () => {
       expect(getOperationName('typesafe/jev', { state: 'Help!', questions: {} })).toBe('evaluate');
+      expect(getOperationName('typesafe/jev-1.13', { state: 'Help!', questions: {} })).toBe('evaluate');
+    });
+
+    it('does not return "evaluate" for other TypeSafe models', () => {
+      expect(getOperationName('typesafe/other', { prompt: 'Hello' })).toBe('chat');
     });
 
     it('does not return "evaluate" for other models with state and questions inputs', () => {
