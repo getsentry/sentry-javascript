@@ -1573,7 +1573,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           this.recordDroppedEvent('ignored', 'span', ignoredSpanCount);
         }
 
-        if (processedEvent === null || !isPlainObject(processedEvent as unknown)) {
+        // An annotated boolean keeps `isPlainObject` from narrowing `processedEvent` to a plain record
+        const isValidEvent: boolean = isPlainObject(processedEvent);
+        if (!isValidEvent || processedEvent === null) {
           this.recordDroppedEvent(beforeSendDropReason, dataCategory);
           if (isTransaction) {
             // the transaction itself counts as one span, plus all the child spans that weren't ignored before
