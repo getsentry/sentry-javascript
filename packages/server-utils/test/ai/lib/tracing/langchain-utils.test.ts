@@ -197,12 +197,18 @@ describe('getConversationIdFromMetadata', () => {
 });
 
 describe('getConversationIdMetadataFromConfig', () => {
-  it('picks the conversation id keys out of configurable', () => {
+  it('picks the first conversation id key out of configurable', () => {
     expect(
       getConversationIdMetadataFromConfig({
-        configurable: { thread_id: 'thread-1', sessionId: 42, model: 'gpt-4o', session_id: { id: 'x' } },
+        configurable: { thread_id: 'thread-1', sessionId: 42, model: 'gpt-4o' },
       }),
-    ).toEqual({ thread_id: 'thread-1', sessionId: 42 });
+    ).toEqual({ thread_id: 'thread-1' });
+  });
+
+  it('skips values that are not a valid id', () => {
+    expect(
+      getConversationIdMetadataFromConfig({ configurable: { thread_id: '', session_id: { id: 'x' }, sessionId: 42 } }),
+    ).toEqual({ sessionId: 42 });
   });
 
   it('returns nothing without configurable', () => {

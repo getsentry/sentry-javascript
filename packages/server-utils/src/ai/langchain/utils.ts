@@ -471,40 +471,32 @@ export function getAgentNameFromMetadata(metadata?: Record<string, unknown>): Re
  */
 const CONVERSATION_ID_METADATA_KEYS = ['thread_id', 'session_id', 'sessionId'] as const;
 
-/**
- * Derive `gen_ai.conversation.id` from run metadata.
- *
- * LangChain copies every primitive `config.configurable` entry into run metadata (`ensureConfig`,
- * `@langchain/core` >= 0.1.20) and child runs inherit their parent's metadata, so an id passed to
- * `invoke()` reaches every chat, chain and tool run of that invocation without any extra plumbing.
- *
- * An id set on the scope via `Sentry.setConversationId()` still wins: `conversationIdIntegration`
- * applies it on `spanStart`, after the attributes passed here.
- */
-export function getConversationIdFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
+function findConversationIdEntry(source?: Record<string, unknown>): [string, string | number] | undefined {
   for (const key of CONVERSATION_ID_METADATA_KEYS) {
-    const value = metadata?.[key];
+    const value = source?.[key];
     if ((typeof value === 'string' && value) || (typeof value === 'number' && Number.isFinite(value))) {
-      return { [GEN_AI_CONVERSATION_ID]: String(value) };
+      return [key, value];
     }
   }
-  return {};
+  return undefined;
 }
 
 /**
- * Conversation id keys from `config.configurable`, to spread under the run metadata.
+ * Derive `gen_ai.conversation.id` from run metadata, which child runs inherit from their parent.
+ * An id from `Sentry.setConversationId()` still wins, since `conversationIdIntegration` applies it on `spanStart`.
+ */
+export function getConversationIdFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
+  const entry = findConversationIdEntry(metadata);
+  return entry ? { [GEN_AI_CONVERSATION_ID]: String(entry[1]) } : {};
+}
+
+/**
+ * The conversation id entry from `config.configurable`, to spread under the run metadata.
  * `@langchain/core` >= 1.1.40 only copies `configurable` into metadata for LangSmith tracers, not for our handler.
  */
 export function getConversationIdMetadataFromConfig(config: Record<string, unknown>): Record<string, unknown> {
-  const configurable = config.configurable as Record<string, unknown> | undefined;
-  const metadata: Record<string, unknown> = {};
-  for (const key of CONVERSATION_ID_METADATA_KEYS) {
-    const value = configurable?.[key];
-    if (typeof value === 'string' || typeof value === 'number') {
-      metadata[key] = value;
-    }
-  }
-  return metadata;
+  const entry = findConversationIdEntry(config.configurable as Record<string, unknown> | undefined);
+  return entry ? { [entry[0]]: entry[1] } : {};
 }
 
 export function extractToolDefinitions(extraParams?: Record<string, unknown>): string | undefined {
