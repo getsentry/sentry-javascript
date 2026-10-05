@@ -1,10 +1,9 @@
-import { SENTRY_LINK_TYPE, SENTRY_STATUS_MESSAGE } from '@sentry/conventions/attributes';
+import { SENTRY_LINK_TYPE, SENTRY_STATUS_MESSAGE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import {
   convertSpanLinksForEnvelope,
   getCurrentScope,
   Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   SentrySpan,
@@ -400,7 +399,7 @@ describe('spanToStaticSpanJSON', () => {
         attributes: {
           attr1: 'value1',
           attr2: 2,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+          [SENTRY_OP]: 'test op',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
         },
         status: { code: SPAN_STATUS_ERROR, message: 'unknown_error' },
@@ -417,7 +416,7 @@ describe('spanToStaticSpanJSON', () => {
         data: {
           attr1: 'value1',
           attr2: 2,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+          [SENTRY_OP]: 'test op',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
         },
         status: 'unknown_error',
@@ -488,7 +487,7 @@ describe('spanToStaticSpanJSON', () => {
             attr2: 2,
             attr3: true,
             attr4: [1, 2, 3],
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+            [SENTRY_OP]: 'test op',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
           },
           links: [
@@ -586,7 +585,7 @@ describe('spanToStaticSpanJSON', () => {
           attributes: {
             attr1: 'value1',
             attr2: 2,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+            [SENTRY_OP]: 'test op',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
           },
           links: [
@@ -616,7 +615,7 @@ describe('spanToStaticSpanJSON', () => {
           attributes: {
             attr1: 'value1',
             attr2: 2,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+            [SENTRY_OP]: 'test op',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
             [SENTRY_STATUS_MESSAGE]: 'unknown_error',
           },
@@ -683,7 +682,7 @@ describe('spanToStaticSpanJSON', () => {
           attr2: 2,
           attr3: true,
           attr4: [1, 2, 3],
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test op',
+          [SENTRY_OP]: 'test op',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
         },
         links: [
@@ -712,7 +711,7 @@ describe('spanToStaticSpanJSON', () => {
           attr2: { type: 'integer', value: 2 },
           attr3: { type: 'boolean', value: true },
           attr4: { type: 'array', value: [1, 2, 3] },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test op' },
+          [SENTRY_OP]: { type: 'string', value: 'test op' },
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto' },
         },
         links: [

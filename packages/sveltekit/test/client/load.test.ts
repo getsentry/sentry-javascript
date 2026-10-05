@@ -1,6 +1,6 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Client } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
@@ -106,7 +106,7 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            [SENTRY_OP]: 'function',
             'code.function.name': 'load',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
@@ -136,7 +136,7 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            [SENTRY_OP]: 'function',
             'code.function.name': 'load',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
@@ -202,7 +202,7 @@ describe('wrapLoadWithSentry', () => {
         expect(mockStartSpan).toHaveBeenCalledWith(
           {
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+              [SENTRY_OP]: 'function',
               'code.function.name': 'load',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
@@ -223,7 +223,7 @@ describe('wrapLoadWithSentry', () => {
         expect(mockStartSpan).toHaveBeenCalledWith(
           {
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+              [SENTRY_OP]: 'function',
               'code.function.name': 'load',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',

@@ -1,7 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
 import * as sentryCoreBrowser from '@sentry/core/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { ServerRuntimeClient } from '@sentry/core/server';
 import { Effect } from 'effect';
 import * as Tracer from 'effect/Tracer';
@@ -202,9 +203,9 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
       const attributes = yield* attributesFor('my-operation');
 
       expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBeUndefined();
-      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBeUndefined();
+      expect(attributes?.[SENTRY_OP]).toBeUndefined();
       expect(attributes).not.toHaveProperty(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN);
-      expect(attributes).not.toHaveProperty(SEMANTIC_ATTRIBUTE_SENTRY_OP);
+      expect(attributes).not.toHaveProperty(SENTRY_OP);
     }),
   );
 
@@ -213,7 +214,7 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
       const attributes = yield* attributesFor('http.server GET /api/users');
 
       expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
-      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+      expect(attributes?.[SENTRY_OP]).toBe('http.server');
     }),
   );
 
@@ -222,7 +223,7 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
       const attributes = yield* attributesFor('http.client GET https://api.example.com');
 
       expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
-      expect(attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.client');
+      expect(attributes?.[SENTRY_OP]).toBe('http.client');
     }),
   );
 

@@ -11,11 +11,11 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getMainCarrier,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
@@ -70,7 +70,7 @@ describe('instrumentWorkersAiClient', () => {
      */
     const ALWAYS_RECORDED = {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+      [SENTRY_OP]: 'gen_ai.chat',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
@@ -188,7 +188,7 @@ describe('instrumentWorkersAiClient', () => {
     expect(span.description).toBe('evaluate typesafe/jev');
     expect(span.data).toEqual({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.evaluate',
+      [SENTRY_OP]: 'gen_ai.evaluate',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',

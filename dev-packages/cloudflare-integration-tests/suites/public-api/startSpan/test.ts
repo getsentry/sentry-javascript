@@ -1,9 +1,4 @@
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SDK_NAME,
@@ -14,6 +9,7 @@ import {
   SENTRY_ENVIRONMENT,
   SENTRY_RELEASE,
   SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
@@ -80,7 +76,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
     attributes: {
       'sentry.is_localhost': { value: true, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+      [SENTRY_OP]: {
         type: 'string',
         value: 'test-child',
       },
@@ -167,7 +163,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
     attributes: {
       'sentry.is_localhost': { value: true, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
+      [SENTRY_OP]: { type: 'string', value: 'test' },
       [SENTRY_SDK_NAME]: { type: 'string', value: CLOUDFLARE_SDK },
       [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
       [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
@@ -200,7 +196,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.cloudflare' },
       [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
       [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentName },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.server' },
+      [SENTRY_OP]: { type: 'string', value: 'http.server' },
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
       [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'route' },
       [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },

@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
@@ -15,6 +15,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -37,7 +38,7 @@ describe('Groq integration', () => {
             expect(chatSpan!.name).toBe('chat llama-3.3-70b-versatile');
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
-            expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.chat');
+            expect(chatSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.chat');
             expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('llama-3.3-70b-versatile');
@@ -70,7 +71,7 @@ describe('Groq integration', () => {
             expect(embeddingsSpan).toBeDefined();
             expect(embeddingsSpan!.name).toBe('embeddings nomic-embed-text-v1_5');
             expect(embeddingsSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('embeddings');
-            expect(embeddingsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.embeddings');
+            expect(embeddingsSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
             expect(embeddingsSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(embeddingsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(8);
             expect(embeddingsSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();

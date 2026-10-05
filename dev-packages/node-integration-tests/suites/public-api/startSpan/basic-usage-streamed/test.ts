@@ -1,9 +1,4 @@
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
@@ -14,6 +9,7 @@ import {
   SENTRY_ENVIRONMENT,
   SENTRY_RELEASE,
   SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
@@ -60,7 +56,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
           attributes: {
             [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
             'sentry.is_localhost': { type: 'boolean', value: false },
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+            [SENTRY_OP]: {
               type: 'string',
               value: 'test-child',
             },
@@ -146,7 +142,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
         const expectedAttributes: Record<string, unknown> = {
           [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           'sentry.is_localhost': { type: 'boolean', value: false },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
+          [SENTRY_OP]: { type: 'string', value: 'test' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
           [SENTRY_SDK_NAME]: { type: 'string', value: EXPECTED_SDK_NAME },
           [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },

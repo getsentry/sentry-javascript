@@ -16,6 +16,7 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE = 'sentry.prev
 
 /**
  * Use this attribute to represent the operation of a span.
+ * @deprecated Use `SENTRY_OP` from `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_OP = 'sentry.op';
 

@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME,
@@ -11,6 +11,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { conditionalTest } from '../../../../utils/index';
@@ -44,7 +45,7 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
               expect(chatCompletionSpan).toBeDefined();
               expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(chatCompletionSpan!.status).toBe('ok');
-              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
@@ -135,7 +136,7 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
                 span => span.name === 'embeddings text-embedding-3-small' && span.status === 'ok',
               );
               expect(singleEmbeddingSpan).toBeDefined();
-              expect(singleEmbeddingSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.embeddings',
               });
@@ -184,7 +185,7 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
               expect(chatCompletionSpan).toBeDefined();
               expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(chatCompletionSpan!.status).toBe('ok');
-              expect(chatCompletionSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
+              expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.chat',
               });
