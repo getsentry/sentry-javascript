@@ -148,7 +148,10 @@ describe('MCP Server Transport Instrumentation', () => {
         attributes: {
           'mcp.method.name': 'tools/call',
           'mcp.tool.name': 'get-weather',
+          'gen_ai.tool.name': 'get-weather',
+          'gen_ai.operation.name': 'execute_tool',
           'mcp.request.id': 'queued-request',
+          'jsonrpc.request.id': 'queued-request',
           'mcp.transport': 'InMemoryTransport',
           'network.transport': 'unknown',
           'network.protocol.version': '2.0',
@@ -434,12 +437,16 @@ describe('MCP Server Transport Instrumentation', () => {
         attributes: {
           'mcp.method.name': 'tools/call',
           'mcp.tool.name': 'process-file',
+          'gen_ai.tool.name': 'process-file',
+          'gen_ai.operation.name': 'execute_tool',
           'mcp.request.id': 'req-stdio-1',
+          'jsonrpc.request.id': 'req-stdio-1',
           'mcp.session.id': 'stdio-session-456',
           'mcp.transport': 'StdioServerTransport',
           'network.transport': 'pipe', // Should be pipe, not tcp
           'network.protocol.version': '2.0',
           'mcp.request.argument.path': '"/tmp/data.txt"',
+          'gen_ai.tool.call.arguments': '{"path":"/tmp/data.txt"}',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
           'sentry.segment.name.source': 'route',

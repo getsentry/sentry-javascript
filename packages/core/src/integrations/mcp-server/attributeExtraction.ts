@@ -3,6 +3,7 @@
  */
 
 import {
+  JSONRPC_REQUEST_ID,
   MCP_CANCELLED_REASON,
   MCP_CANCELLED_REQUEST_ID,
   MCP_LIFECYCLE_PHASE,
@@ -130,6 +131,7 @@ export function buildTypeSpecificAttributes(
     return {
       // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy request ID attribute for existing consumers.
       ...(request.id !== undefined && { [MCP_REQUEST_ID]: String(request.id) }),
+      ...(request.id != null && { [JSONRPC_REQUEST_ID]: String(request.id) }),
       ...targetInfo.attributes,
       ...(recordInputs ? getRequestArguments(request.method, params || {}) : {}),
     };

@@ -5,11 +5,13 @@
  */
 
 import {
+  GEN_AI_TOOL_CALL_RESULT,
   MCP_PROMPT_RESULT_DESCRIPTION,
   MCP_PROMPT_RESULT_MESSAGE_COUNT,
   MCP_TOOL_RESULT_CONTENT_COUNT,
   MCP_TOOL_RESULT_IS_ERROR,
 } from '@sentry/conventions/attributes';
+import { serializeMcpContent } from './serialization';
 import { MCP_TOOL_RESULT_PREFIX, MCP_PROMPT_RESULT_PREFIX } from './attributes';
 import { isValidContentItem } from './validation';
 
@@ -69,6 +71,25 @@ function buildAllContentItemAttributes(
 }
 
 /**
+ * Omit protocol metadata without stripping similarly named fields from user data.
+ * @param item - A tool result content block
+ * @returns Content with protocol metadata removed from the block and embedded resource
+ */
+function removeContentMetadata(item: unknown): unknown {
+  if (!isValidContentItem(item)) {
+    return item;
+  }
+  const content = { ...item };
+  delete content._meta;
+  if (content.type === 'resource' && isValidContentItem(content.resource)) {
+    const resource = { ...content.resource };
+    delete resource._meta;
+    content.resource = resource;
+  }
+  return content;
+}
+
+/**
  * Extract tool result attributes for span instrumentation
  * @param result - Tool execution result
  * @param recordOutputs - Whether to include actual content or just metadata (counts, error status)
@@ -87,6 +108,25 @@ export function extractToolResultAttributes(
   if (typeof result.isError === 'boolean') {
     // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy tool result attribute for existing consumers.
     attributes[MCP_TOOL_RESULT_IS_ERROR] = result.isError;
+  }
+
+  if (recordOutputs && result.isError !== true) {
+    try {
+      if (result.resultType !== undefined && result.resultType !== 'complete') {
+        return attributes;
+      }
+      // Select tool output only: response _meta and opaque continuation state are not content.
+      const output = {
+        ...(Array.isArray(result.content) && { content: result.content.map(removeContentMetadata) }),
+        ...(result.structuredContent !== undefined && { structuredContent: result.structuredContent }),
+      };
+      const serialized = Object.keys(output).length > 0 ? serializeMcpContent(output) : undefined;
+      if (serialized !== undefined) {
+        attributes[GEN_AI_TOOL_CALL_RESULT] = serialized;
+      }
+    } catch {
+      // Optional content extraction must not interfere with the tool response.
+    }
   }
 
   return attributes;
