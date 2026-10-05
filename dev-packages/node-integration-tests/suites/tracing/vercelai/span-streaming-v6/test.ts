@@ -312,7 +312,7 @@ describe('Vercel AI integration (streaming, v6)', () => {
         'vercel.ai.telemetry.metadata.requestId': attr(requestId),
         'vercel.ai.telemetry.metadata.tenantId': attr('acme'),
         ...extra,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: attr(op),
+        [SENTRY_OP]: attr(op),
       }),
     });
   }
