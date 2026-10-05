@@ -4,7 +4,6 @@ import {
   continueTrace,
   debug,
   getActiveSpan,
-  httpRequestToRequestData,
   isString,
   isURLObjectRelative,
   objectify,
@@ -17,6 +16,7 @@ import {
 } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
+import { pagesRouterRequestToRequestData } from '../utils/pagesRouterRequestToRequestData';
 import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 import { dropNextjsRootContext, escapeNextjsTracing } from '../utils/tracingUtils';
 import { HTTP_ROUTE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
@@ -77,7 +77,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
             },
             () => {
               const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
-              const normalizedRequest = httpRequestToRequestData(req);
+              const normalizedRequest = pagesRouterRequestToRequestData(req);
 
               isolationScope.setSDKProcessingMetadata({ normalizedRequest });
               isolationScope.setTransactionName(`${reqMethod}${parameterizedRoute}`);
