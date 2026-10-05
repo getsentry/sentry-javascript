@@ -152,8 +152,14 @@ function getOpenAiConversationId(providerOptions: unknown): string | undefined {
   if (!isObjectLike(providerOptions)) {
     return undefined;
   }
-  const openaiOptions = providerOptions.openai ?? providerOptions.azure;
-  return isObjectLike(openaiOptions) ? asString(openaiOptions.conversation) : undefined;
+  for (const key of ['openai', 'azure']) {
+    const options = providerOptions[key];
+    const conversation = isObjectLike(options) ? asString(options.conversation) : undefined;
+    if (conversation) {
+      return conversation;
+    }
+  }
+  return undefined;
 }
 
 /** The `gen_ai.conversation.id` already on the active span, which for a child event is its operation span. */
@@ -438,8 +444,11 @@ export function createSpanFromMessage(
   }
 
   // Only an operation's start event carries `providerOptions`; its model-call and tool events start
-  // while the operation span is active, so they inherit the id from it.
-  const conversationId = getOpenAiConversationId(event.providerOptions) ?? getActiveSpanConversationId();
+  // while the operation span is active, so they inherit the id from it. A root operation never
+  // inherits, so a nested call (e.g. inside a tool's `execute`) is not folded into the outer conversation.
+  const conversationId =
+    getOpenAiConversationId(event.providerOptions) ??
+    (ROOT_OPERATION_TYPES.has(type) ? undefined : getActiveSpanConversationId());
 
   const baseAttributes: Record<string, string | number | boolean> = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,

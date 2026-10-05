@@ -68,6 +68,17 @@ describe('Vercel AI SDK conversation id', () => {
     expect(data[GEN_AI_CONVERSATION_ID]).toBe('conv_azure');
   });
 
+  it('reads the `azure` id when the `openai` options have no conversation', () => {
+    const data = run({
+      type: 'generateText',
+      event: {
+        callId: 'call-1',
+        providerOptions: { openai: { reasoningEffort: 'low' }, azure: { conversation: 'conv_azure' } },
+      },
+    });
+    expect(data[GEN_AI_CONVERSATION_ID]).toBe('conv_azure');
+  });
+
   it('passes the operation id on to the model-call and tool spans that start under it', () => {
     const operationMessage: Message = {
       type: 'generateText',
@@ -87,6 +98,27 @@ describe('Vercel AI SDK conversation id', () => {
     expect(spanToStaticSpanJSON(operationSpan).data?.[GEN_AI_CONVERSATION_ID]).toBe('conv_abc');
     expect(modelCall![GEN_AI_CONVERSATION_ID]).toBe('conv_abc');
     expect(toolCall![GEN_AI_CONVERSATION_ID]).toBe('conv_abc');
+  });
+
+  it('does not pass an outer conversation id to a nested operation', () => {
+    const outer = createSpanFromMessage(
+      {
+        type: 'generateText',
+        event: { callId: 'call-outer', providerOptions: { openai: { conversation: 'conv_abc' } } },
+      },
+      channelOptions,
+    )!;
+    // e.g. a sub-agent `generateText` called from inside a tool's `execute`
+    const inner = withActiveSpan(outer, () =>
+      run({
+        type: 'generateText',
+        event: { callId: 'call-1', providerOptions: { openai: { previousResponseId: 'resp_1' } } },
+      }),
+    );
+    outer.end();
+    clearOperationCallId('call-outer');
+
+    expect(inner[GEN_AI_CONVERSATION_ID]).toBeUndefined();
   });
 
   it('sets nothing for `previousResponseId` chaining, which names a response rather than a thread', () => {

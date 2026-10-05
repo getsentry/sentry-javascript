@@ -781,9 +781,9 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               )!;
               expect(generateContent).toBeDefined();
 
-              // Cache/reasoning token breakdown is derived from the model's `providerMetadata` — by the
-              // OTel processor on v6 and by the channel subscriber on v7, both via the shared
-              // `getProviderMetadataAttributes` helper, so the shape is identical.
+              // Cache/reasoning token breakdown is derived from the model's `providerMetadata` by the
+              // channel subscriber, which v6 reaches through the orchestrion adapter, so the shape is the
+              // same on both versions.
               expect(generateContent.attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]?.value).toBe(5);
               expect(generateContent.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value).toBe(7);
               // The per-response `responseId` is not a conversation id and must not be recorded as one.
