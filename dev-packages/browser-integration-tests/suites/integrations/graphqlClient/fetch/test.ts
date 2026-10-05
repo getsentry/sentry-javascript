@@ -83,8 +83,11 @@ sentryTest('should update breadcrumbs for GraphQL fetch requests', async ({ getL
   const rootSpanPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
   await page.goto(url);
   await rootSpanPromise;
-  const eventPromise = waitForErrorRequest(page, event => event.message === 'GraphQL request completed');
-  await page.evaluate(() => (window as any).Sentry.captureMessage('GraphQL request completed'));
+  const eventPromise = waitForErrorRequest(
+    page,
+    event => event.exception?.values?.[0]?.value === 'GraphQL breadcrumb test error',
+  );
+  await page.evaluate(() => (window as any).Sentry.captureException(new Error('GraphQL breadcrumb test error')));
   const eventData = envelopeRequestParser(await eventPromise);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
