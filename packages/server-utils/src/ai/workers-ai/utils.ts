@@ -31,10 +31,6 @@ export { setOutputMessagesAttribute };
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
 
-/**
- * Determine the gen_ai operation name from the inputs passed to `AI.run`.
- * Workers AI exposes a single `run` method, so we infer the operation from the input shape.
- */
 export type WorkersAiOperationName = 'chat' | 'embeddings' | 'evaluate';
 
 export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, string> = {
@@ -43,12 +39,15 @@ export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, strin
   evaluate: getGenAiSpanOp('evaluate'),
 };
 
-export function getOperationName(inputs: unknown): WorkersAiOperationName {
+/**
+ * Determine the gen_ai operation name from the model and inputs passed to `AI.run`.
+ * Workers AI exposes a single `run` method, so we infer the operation from the model ID and the input shape.
+ */
+export function getOperationName(model: unknown, inputs: unknown): WorkersAiOperationName {
+  if (typeof model === 'string' && model.startsWith('typesafe/jev')) {
+    return 'evaluate';
+  }
   if (inputs && typeof inputs === 'object') {
-    // TypeSafe evaluation models (e.g. `typesafe/jev`)
-    if ('state' in inputs && 'questions' in inputs) {
-      return 'evaluate';
-    }
     if ('messages' in inputs || 'prompt' in inputs) {
       return 'chat';
     }
