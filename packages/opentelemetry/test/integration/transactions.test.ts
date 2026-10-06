@@ -1,16 +1,9 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { SpanContext } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { TraceState } from '../../src/utils/TraceState';
 import type { Event, TransactionEvent } from '@sentry/core';
-import {
-  addBreadcrumb,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setTag,
-  startInactiveSpan,
-  startSpan,
-  withIsolationScope,
-} from '@sentry/core';
+import { addBreadcrumb, setTag, startInactiveSpan, startSpan, withIsolationScope } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
 import { makeTraceState } from '../../src/utils/makeTraceState';
@@ -44,7 +37,7 @@ describe('Integration | Transactions', () => {
         name: 'test name',
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+          [SENTRY_ORIGIN]: 'auto.test',
         },
       },
       span => {
@@ -168,7 +161,7 @@ describe('Integration | Transactions', () => {
           op: 'test op',
           name: 'test name',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+            [SENTRY_ORIGIN]: 'auto.test',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
           },
         },
@@ -324,7 +317,7 @@ describe('Integration | Transactions', () => {
           op: 'test op',
           name: 'test name',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+            [SENTRY_ORIGIN]: 'auto.test',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
           },
         },
@@ -438,7 +431,7 @@ describe('Integration | Transactions', () => {
           op: 'test op',
           name: 'test name',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+            [SENTRY_ORIGIN]: 'auto.test',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
           },
         },

@@ -4,9 +4,8 @@
 
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentSvelteKitTracing } from '../../src/client/svelte5BrowserTracing';
 
@@ -83,7 +82,7 @@ describe('svelte5 browser tracing', () => {
         name: '/',
         attributes: {
           'sentry.op': 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
         },
       });
@@ -124,7 +123,7 @@ describe('svelte5 browser tracing', () => {
           name: '/users/[id]',
           attributes: expect.objectContaining({
             'sentry.op': 'navigation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
             [URL_TEMPLATE]: '/users/[id]',
           }),

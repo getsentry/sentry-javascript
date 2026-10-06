@@ -5,7 +5,6 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
@@ -26,6 +25,7 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 
@@ -96,7 +96,7 @@ function subscribeQueryChannel(channelName: ChannelName): void {
         name,
         attributes: {
           [SENTRY_KIND]: 'client',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: DB,
           [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
           [DB_QUERY_TEXT]: queryText || undefined,

@@ -14,6 +14,7 @@ describe('Bun Serve Integration', () => {
   });
 
   const setupClient = (options?: BunOptions): void => {
+    SentryCore.getCurrentScope().setClient(undefined);
     init({
       dsn: 'https://username@domain/123',
       defaultIntegrations: false,

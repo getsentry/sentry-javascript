@@ -1,4 +1,4 @@
-import { handleCallbackErrors, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR } from '@sentry/core';
+import { handleCallbackErrors, SPAN_STATUS_ERROR } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import { captureException, getActiveSpan, spanToJSON, startSpan } from '@sentry/node';
 import { isRedirect } from './utils';
@@ -9,6 +9,7 @@ import {
   HTTP_TARGET,
   SENTRY_OP,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
@@ -48,7 +49,7 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
         attributes: {
           [SENTRY_OP]: FUNCTION,
           [CODE_FUNCTION_NAME]: serverActionName,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
+          [SENTRY_ORIGIN]: 'auto.function.solidstart',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
         },
       },

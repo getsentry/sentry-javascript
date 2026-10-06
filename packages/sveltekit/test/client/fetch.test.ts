@@ -3,10 +3,12 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { init } from '../../src/client/index';
+import { getCurrentScope, init } from '../../src/client/index';
 
 describe('instruments fetch', () => {
   beforeEach(() => {
+    getCurrentScope().setClient(undefined);
+
     // For the happy path, we can assume that both fetch and the fetch proxy are set
     // We test the edge cases in the other tests below
 
