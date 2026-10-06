@@ -275,4 +275,32 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
         .completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-callback-api.mjs',
+    'instrument-span-streaming.mjs',
+    (createTestRunner, test) => {
+      test('instruments publish and ack on the callback API', { timeout: 60_000 }, async () => {
+        await createTestRunner()
+          .ignore('event')
+          .expect({
+            span: container => {
+              const producerSpan = container.items.find(
+                span => span.attributes['sentry.origin']?.value === 'auto.amqplib.publisher',
+              );
+              expect(producerSpan?.name).toBe('send callback-queue');
+
+              const consumerSpan = container.items.find(
+                span => span.attributes['sentry.origin']?.value === 'auto.amqplib.consumer',
+              );
+              expect(consumerSpan?.name).toBe('process callback-queue');
+              expect(consumerSpan?.status).toBe('ok');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

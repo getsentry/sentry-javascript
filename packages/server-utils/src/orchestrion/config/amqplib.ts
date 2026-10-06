@@ -2,9 +2,11 @@ import type { InstrumentationConfig } from '../apmTypes';
 
 import { getModuleNames } from './module-names';
 
-// `amqplib` splits its API across three files:
-// - `lib/channel_model.js` holds `class Channel` (publish/consume/ack/nack/reject/…) and
-//   `class ConfirmChannel extends Channel` (a `publish` that takes a broker-confirm callback).
+// `amqplib` splits its API across these files:
+// - `lib/channel_model.js` (promise API) and `lib/callback_model.js` (callback API) each hold a
+//   `class Channel` (publish/consume/ack/nack/reject/…) and a `class ConfirmChannel extends Channel`
+//   (a `publish` that takes a broker-confirm callback). The method signatures match, so both files
+//   publish to the same channels.
 // - `lib/channel.js` holds `class BaseChannel` whose `dispatchMessage` invokes the registered
 //   consumer callback once per delivered message — the natural per-message hook for consumer spans
 //   (`Channel.consume` itself only registers the callback, it isn't called per message).
@@ -15,27 +17,54 @@ import { getModuleNames } from './module-names';
 const module = { name: 'amqplib', versionRange: '>=0.5.5 <3' } as const;
 
 export const amqplibConfig = [
-  // Producer span + trace-header injection. `sendToQueue` delegates to `publish`, so it's covered.
-  {
-    channelName: 'publish',
-    module: { ...module, filePath: 'lib/channel_model.js' },
-    functionQuery: { className: 'Channel', methodName: 'publish', kind: 'Sync' },
-  },
-  // Confirm-channel producer span; the trailing broker-confirm callback ends the span when the
-  // broker acks/nacks. It internally calls `super.publish`, so the subscriber guards against the
-  // base `publish` channel double-instrumenting.
-  {
-    channelName: 'confirmPublish',
-    module: { ...module, filePath: 'lib/channel_model.js' },
-    functionQuery: { className: 'ConfirmChannel', methodName: 'publish', kind: 'Callback' },
-  },
-  // `consume` knows the queue and `noAck`, and `registerConsumer` knows the tag. Together they tell the
-  // dispatch hook how to name the consumer span and when to end it.
-  {
-    channelName: 'consume',
-    module: { ...module, filePath: 'lib/channel_model.js' },
-    functionQuery: { className: 'Channel', methodName: 'consume', kind: 'Async' },
-  },
+  ...['lib/channel_model.js', 'lib/callback_model.js'].flatMap((filePath): InstrumentationConfig[] => [
+    // Producer span + trace-header injection. `sendToQueue` delegates to `publish`, so it's covered.
+    {
+      channelName: 'publish',
+      module: { ...module, filePath },
+      functionQuery: { className: 'Channel', methodName: 'publish', kind: 'Sync' },
+    },
+    // Confirm-channel producer span; the trailing broker-confirm callback ends the span when the
+    // broker acks/nacks. It internally calls the base `publish`, so the subscriber skips that nested call.
+    {
+      channelName: 'confirmPublish',
+      module: { ...module, filePath },
+      functionQuery: { className: 'ConfirmChannel', methodName: 'publish', kind: 'Callback' },
+    },
+    // `consume` knows the queue and `noAck`, and `registerConsumer` knows the tag. Together they tell the
+    // dispatch hook how to name the consumer span and when to end it.
+    {
+      channelName: 'consume',
+      module: { ...module, filePath },
+      functionQuery: { className: 'Channel', methodName: 'consume', kind: 'Async' },
+    },
+    // End the consumer span when the user settles the message.
+    {
+      channelName: 'ack',
+      module: { ...module, filePath },
+      functionQuery: { className: 'Channel', methodName: 'ack', kind: 'Sync' },
+    },
+    {
+      channelName: 'nack',
+      module: { ...module, filePath },
+      functionQuery: { className: 'Channel', methodName: 'nack', kind: 'Sync' },
+    },
+    {
+      channelName: 'reject',
+      module: { ...module, filePath },
+      functionQuery: { className: 'Channel', methodName: 'reject', kind: 'Sync' },
+    },
+    {
+      channelName: 'ackAll',
+      module: { ...module, filePath },
+      functionQuery: { className: 'Channel', methodName: 'ackAll', kind: 'Sync' },
+    },
+    {
+      channelName: 'nackAll',
+      module: { ...module, filePath },
+      functionQuery: { className: 'Channel', methodName: 'nackAll', kind: 'Sync' },
+    },
+  ]),
   {
     channelName: 'registerConsumer',
     module: { ...module, filePath: 'lib/channel.js' },
@@ -46,32 +75,6 @@ export const amqplibConfig = [
     channelName: 'dispatch',
     module: { ...module, filePath: 'lib/channel.js' },
     functionQuery: { className: 'BaseChannel', methodName: 'dispatchMessage', kind: 'Sync' },
-  },
-  // End the consumer span when the user settles the message.
-  {
-    channelName: 'ack',
-    module: { ...module, filePath: 'lib/channel_model.js' },
-    functionQuery: { className: 'Channel', methodName: 'ack', kind: 'Sync' },
-  },
-  {
-    channelName: 'nack',
-    module: { ...module, filePath: 'lib/channel_model.js' },
-    functionQuery: { className: 'Channel', methodName: 'nack', kind: 'Sync' },
-  },
-  {
-    channelName: 'reject',
-    module: { ...module, filePath: 'lib/channel_model.js' },
-    functionQuery: { className: 'Channel', methodName: 'reject', kind: 'Sync' },
-  },
-  {
-    channelName: 'ackAll',
-    module: { ...module, filePath: 'lib/channel_model.js' },
-    functionQuery: { className: 'Channel', methodName: 'ackAll', kind: 'Sync' },
-  },
-  {
-    channelName: 'nackAll',
-    module: { ...module, filePath: 'lib/channel_model.js' },
-    functionQuery: { className: 'Channel', methodName: 'nackAll', kind: 'Sync' },
   },
   // Stashes connection attributes (url/host/port/protocol/server product) on the connection object
   // for span-time reads via `channel.connection`.
