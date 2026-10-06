@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -11,7 +12,7 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
   // Converse (non-streaming)
   const converseSpan = container.items.find(span => span.name === `chat ${MODEL_ID}`);
   expect(converseSpan!.status).toBe('ok');
-  expect(converseSpan!.attributes['sentry.origin'].value).toBe('auto.aws.aws_sdk');
+  expect(converseSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.aws.aws_sdk');
   expect(converseSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
   expect(converseSpan!.attributes['gen_ai.provider.name'].value).toBe('aws.bedrock');
   expect(converseSpan!.attributes['gen_ai.operation.name'].value).toBe('chat');
@@ -26,7 +27,7 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
   // InvokeModel (non-streaming, anthropic.claude request/response body)
   const invokeModelSpan = container.items.find(span => span.name === `generate_content ${MODEL_ID}`);
   expect(invokeModelSpan!.status).toBe('ok');
-  expect(invokeModelSpan!.attributes['sentry.origin'].value).toBe('auto.aws.aws_sdk');
+  expect(invokeModelSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.aws.aws_sdk');
   expect(invokeModelSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
   expect(invokeModelSpan!.attributes['gen_ai.provider.name'].value).toBe('aws.bedrock');
   expect(invokeModelSpan!.attributes['gen_ai.operation.name'].value).toBe('generate_content');
