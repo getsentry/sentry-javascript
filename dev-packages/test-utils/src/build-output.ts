@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import type { SourcemapEntry } from './sourcemap-upload-utils';
 
 export interface OutputScanOptions {
   /** Directory holding the emitted bundles, e.g. `<app>/.output/public`. */
@@ -155,4 +156,52 @@ export function findInjectedDebugIds({ outputDir, extensions = JS_EXTENSIONS }: 
   }
 
   return [...debugIds];
+}
+
+/**
+ * Returns `<file> → <debug IDs>` for each file with more than one debug ID.
+ * The uploader reads the first ID, but the SDK can report any of them.
+ */
+export function findFilesWithMultipleDebugIds({
+  outputDir,
+  buildDir = process.cwd(),
+  extensions = JS_EXTENSIONS,
+}: OutputScanOptions): string[] {
+  const offenders: string[] = [];
+
+  for (const file of walkFiles(outputDir, extensions)) {
+    const contents = fs.readFileSync(file, 'utf8');
+    const debugIds = new Set(
+      [...contents.matchAll(INJECTED_DEBUG_ID_PATTERN)].map(match => (match[1] as string).toLowerCase()),
+    );
+
+    if (debugIds.size > 1) {
+      offenders.push(`${path.relative(buildDir, file)} → ${[...debugIds].join(', ')}`);
+    }
+  }
+
+  return offenders;
+}
+
+/**
+ * Returns `<file> → <map files>` for each file where no map uploaded under its first debug ID names it in `file`.
+ * Skips files without a debug ID or without an uploaded map.
+ */
+export function findFilesWithForeignSourcemaps(
+  { outputDir, buildDir = process.cwd(), extensions = JS_EXTENSIONS }: OutputScanOptions,
+  uploadedSourcemaps: SourcemapEntry[],
+): string[] {
+  const offenders: string[] = [];
+
+  for (const file of walkFiles(outputDir, extensions)) {
+    const [firstMatch] = fs.readFileSync(file, 'utf8').matchAll(INJECTED_DEBUG_ID_PATTERN);
+    const debugId = firstMatch?.[1]?.toLowerCase();
+    const mapFiles = uploadedSourcemaps.filter(entry => entry.debugId === debugId).map(entry => entry.sourcemap.file);
+
+    if (debugId && mapFiles.length > 0 && !mapFiles.includes(path.basename(file))) {
+      offenders.push(`${path.relative(buildDir, file)} → ${mapFiles.join(', ')}`);
+    }
+  }
+
+  return offenders;
 }

@@ -68,6 +68,8 @@ export interface ParsedSourcemap {
 export interface SourcemapEntry {
   url: string;
   bundleDir: string;
+  /** Lowercased `debug-id` manifest header. */
+  debugId?: string;
   sourcemap: ParsedSourcemap;
 }
 
@@ -169,6 +171,28 @@ export function getDebugIdPairs(bundles: ArtifactBundleData[]): DebugIdPair[] {
 }
 
 /**
+ * Returns `<debug ID> → <map files>` for each debug ID uploaded with maps that differ in `sources` or `mappings`.
+ * Byte-identical chunks share a debug ID, so the `file` field is not compared.
+ */
+export function findDebugIdsWithConflictingSourcemaps(sourcemaps: SourcemapEntry[]): string[] {
+  const mapsByDebugId = new Map<string, Map<string, string>>();
+
+  for (const { url, debugId, sourcemap } of sourcemaps) {
+    if (!debugId) continue;
+
+    const mappingKey = JSON.stringify([getSourcemapSources(sourcemap), sourcemap.mappings]);
+
+    const maps = mapsByDebugId.get(debugId) ?? new Map<string, string>();
+    maps.set(mappingKey, typeof sourcemap.file === 'string' ? sourcemap.file : url);
+    mapsByDebugId.set(debugId, maps);
+  }
+
+  return [...mapsByDebugId]
+    .filter(([, maps]) => maps.size > 1)
+    .map(([debugId, maps]) => `${debugId} → ${[...maps.values()].join(', ')}`);
+}
+
+/**
  * Read and parse all sourcemap files from artifact bundles.
  */
 export function getSourcemaps(bundles: ArtifactBundleData[]): SourcemapEntry[] {
@@ -195,7 +219,8 @@ export function getSourcemaps(bundles: ArtifactBundleData[]): SourcemapEntry[] {
         continue;
       }
 
-      sourcemaps.push({ url: entry.url, bundleDir, sourcemap });
+      const debugId = getManifestHeader(entry.headers, 'debug-id')?.toLowerCase();
+      sourcemaps.push({ url: entry.url, bundleDir, debugId, sourcemap });
     }
   }
 
