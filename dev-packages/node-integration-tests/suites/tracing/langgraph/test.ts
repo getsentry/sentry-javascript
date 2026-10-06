@@ -329,6 +329,38 @@ describe('LangGraph integration', () => {
     });
   });
 
+  createEsmAndCjsTests(__dirname, 'agent-stream-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test('parents the streaming agent chat span under its agent span', { timeout: 30000 }, async () => {
+      await createRunner()
+        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            const agentSpans = container.items.filter(
+              span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.invoke_agent',
+            );
+            const chatSpans = container.items.filter(
+              span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat',
+            );
+            expect(agentSpans).toHaveLength(1);
+            expect(chatSpans).toHaveLength(1);
+
+            const agentSpan = agentSpans[0]!;
+            const chatSpan = chatSpans[0]!;
+            expect(agentSpan.name).toBe('invoke_agent helpful_assistant');
+            expect(agentSpan.status).toBe('ok');
+            expect(agentSpan.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+            expect(agentSpan.span_id).toMatch(/^[\da-f]{16}$/);
+            expect(chatSpan.parent_span_id).toBe(agentSpan.span_id);
+            expect(chatSpan.trace_id).toBe(agentSpan.trace_id);
+            expect(chatSpan.status).toBe('ok');
+            expect(chatSpan.attributes[GEN_AI_AGENT_NAME]?.value).toBe('helpful_assistant');
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   // createReactAgent with tools - verifies tool execution spans (asserted order-independently, see above).
   createEsmAndCjsTests(__dirname, 'agent-tools-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('should create tool execution spans for createReactAgent with tools', { timeout: 30000 }, async () => {

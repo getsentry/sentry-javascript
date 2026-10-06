@@ -158,6 +158,8 @@ function instrumentCompiledGraphOperation(
         streaming &&
         getCurrentScope().getScopeData().sdkProcessingMetadata[LANGGRAPH_INVOKE_ACTIVE] === graphInstrumentationId
       ) {
+        // Only the first stream() is invoke's implementation detail; recursive calls need their own spans.
+        getCurrentScope().setSDKProcessingMetadata({ [LANGGRAPH_INVOKE_ACTIVE]: undefined });
         return Reflect.apply(target, thisArg, args);
       }
 

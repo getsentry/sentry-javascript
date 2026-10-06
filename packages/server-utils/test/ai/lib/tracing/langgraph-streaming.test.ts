@@ -1,0 +1,127 @@
+import { describe, expect, it, vi } from 'vitest';
+import type { Span } from '@sentry/core';
+import { AIMessageChunk } from '@langchain/core/messages';
+import { GEN_AI_RESPONSE_TEXT, GEN_AI_USAGE_OUTPUT_TOKENS } from '@sentry/conventions/attributes';
+import { instrumentStreamResult } from '../../../../src/ai/langgraph/streaming';
+
+function createSpan() {
+  return {
+    end: vi.fn(),
+    setAttribute: vi.fn(),
+    setStatus: vi.fn(),
+    spanContext: () => ({ traceId: 'a'.repeat(32), spanId: 'b'.repeat(16), traceFlags: 1 }),
+  };
+}
+
+describe('LangGraph stream response recording', () => {
+  it.each([
+    { updates: false, nativeConcat: false },
+    { updates: false, nativeConcat: true },
+    { updates: true, nativeConcat: false },
+    { updates: true, nativeConcat: true },
+  ])('combines chunks with the same id without duplicating updates: %o', async ({ updates, nativeConcat }) => {
+    const span = createSpan();
+    const firstMessage = {
+      id: 'seoul-weather',
+      type: 'ai',
+      content: 'Sunny ',
+    };
+    const lastMessage = {
+      id: firstMessage.id,
+      type: 'ai',
+      content: 'in Seoul',
+      usage_metadata: { input_tokens: 5, output_tokens: 4, total_tokens: 9 },
+    };
+    const first = nativeConcat ? new AIMessageChunk(firstMessage) : firstMessage;
+    const last = nativeConcat ? new AIMessageChunk(lastMessage) : lastMessage;
+    const stream = instrumentStreamResult(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield ['messages', [first, { langgraph_node: 'agent' }]];
+          yield ['messages', [last, { langgraph_node: 'agent' }]];
+          if (updates) {
+            yield ['updates', { agent: { messages: [{ ...lastMessage, content: 'Sunny in Seoul' }] } }];
+          }
+        },
+      },
+      span as unknown as Span,
+      null,
+      true,
+    );
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+    expect(chunks).toHaveLength(updates ? 3 : 2);
+    expect(span.setAttribute).toHaveBeenCalledWith(
+      GEN_AI_RESPONSE_TEXT,
+      JSON.stringify([{ role: 'assistant', content: 'Sunny in Seoul' }]),
+    );
+    expect(span.setAttribute).toHaveBeenCalledWith(GEN_AI_USAGE_OUTPUT_TOKENS, 4);
+  });
+
+  it.each([false, true])('records messages tuples with multi-mode wrapping %s', async multiMode => {
+    const span = createSpan();
+    const message = { type: 'ai', content: 'Sunny in Seoul', usage_metadata: { output_tokens: 4 } };
+    const tuple = [message, { langgraph_node: 'agent' }];
+    const chunk = multiMode ? ['messages', tuple] : tuple;
+    const stream = instrumentStreamResult(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield chunk;
+        },
+      },
+      span as unknown as Span,
+      [{ type: 'human', content: 'Weather in Seoul?' }],
+      true,
+    );
+    const chunks = [];
+    for await (const value of stream) {
+      chunks.push(value);
+    }
+    expect(chunks).toEqual([chunk]);
+    expect(span.setAttribute).toHaveBeenCalledWith(
+      GEN_AI_RESPONSE_TEXT,
+      JSON.stringify([{ role: 'assistant', content: 'Sunny in Seoul' }]),
+    );
+    expect(span.setAttribute).toHaveBeenCalledWith(GEN_AI_USAGE_OUTPUT_TOKENS, 4);
+    expect(span.end).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('LangGraph pipeTo preconditions', () => {
+  it.each(['source', 'destination'])('keeps consumption active after piping with a locked %s', async lockedTarget => {
+    const span = createSpan();
+    const stream = instrumentStreamResult(
+      new ReadableStream<string>({
+        start(controller) {
+          controller.enqueue('Sunny in Seoul');
+          controller.enqueue('Clear skies tomorrow');
+          controller.close();
+        },
+      }),
+      span as unknown as Span,
+      null,
+      false,
+    );
+    const destination = new WritableStream<string>();
+    const reader = lockedTarget === 'source' ? stream.getReader() : undefined;
+    const writer = lockedTarget === 'destination' ? destination.getWriter() : undefined;
+    if (reader) {
+      expect(await reader.read()).toEqual({ done: false, value: 'Sunny in Seoul' });
+    }
+    await expect(stream.pipeTo(destination)).rejects.toThrow(TypeError);
+    expect(span.end).not.toHaveBeenCalled();
+    expect(span.setStatus).not.toHaveBeenCalled();
+    writer?.releaseLock();
+    if (reader) {
+      expect(await reader.read()).toEqual({ done: false, value: 'Clear skies tomorrow' });
+      expect(await reader.read()).toEqual({ done: true, value: undefined });
+      reader.releaseLock();
+    } else {
+      await stream.pipeTo(destination);
+    }
+    expect(span.end).toHaveBeenCalledTimes(1);
+    expect(span.setStatus).not.toHaveBeenCalled();
+  });
+});

@@ -276,13 +276,13 @@ describe('instrumentStateGraphCompile stream instrumentation', () => {
 
     const transformed = (await graph.stream()).pipeThrough(new TransformStream());
     await transformed.pipeTo(new WritableStream());
-    await Promise.resolve();
-
-    expect(spanSetAttribute).toHaveBeenCalledWith(
-      GEN_AI_RESPONSE_TEXT,
-      '[{"role":"assistant","content":"Clear skies"}]',
-    );
-    expect(spanEnd).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(spanSetAttribute).toHaveBeenCalledWith(
+        GEN_AI_RESPONSE_TEXT,
+        '[{"role":"assistant","content":"Clear skies"}]',
+      );
+      expect(spanEnd).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('throws when pipeThrough is called with a locked source', async () => {

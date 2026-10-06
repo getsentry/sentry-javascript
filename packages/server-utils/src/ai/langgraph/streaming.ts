@@ -28,7 +28,7 @@ export function instrumentStreamResult<T extends AsyncIterable<unknown>>(
   inputMessages: LangChainMessage[] | null,
   recordOutputs: boolean | undefined,
 ): T {
-  const responseState: StreamResponseState = { updateMessages: [] };
+  const responseState: StreamResponseState = { updateMessages: [], messageChunks: [] };
   const lifecycle = createStreamLifecycle(
     span,
     recordOutputs ? chunk => accumulateStreamResponse(responseState, chunk) : undefined,
@@ -57,6 +57,7 @@ interface StreamLifecycle {
 interface StreamResponseState {
   finalState?: { messages: LangChainMessage[] };
   updateMessages: LangChainMessage[];
+  messageChunks: LangChainMessage[];
 }
 
 interface ReadableStreamReaderLike {
@@ -110,6 +111,26 @@ function createStreamLifecycle(
 function accumulateStreamResponse(state: StreamResponseState, chunk: unknown): void {
   const payload =
     Array.isArray(chunk) && chunk.length === 2 && typeof chunk[0] === 'string' ? (chunk[1] as unknown) : chunk;
+  if (
+    Array.isArray(payload) &&
+    payload.length === 2 &&
+    payload[0] &&
+    typeof payload[0] === 'object' &&
+    'content' in payload[0]
+  ) {
+    const message = payload[0] as LangChainMessage;
+    const previousIndex =
+      typeof message.id === 'string' ? state.messageChunks.findIndex(previous => previous.id === message.id) : -1;
+    const previous = state.messageChunks[previousIndex];
+    if (previous && typeof previous.concat === 'function') {
+      state.messageChunks[previousIndex] = previous.concat(message) as LangChainMessage;
+    } else if (previous && typeof previous.content === 'string' && typeof message.content === 'string') {
+      state.messageChunks[previousIndex] = { ...previous, ...message, content: previous.content + message.content };
+    } else {
+      state.messageChunks.push(message);
+    }
+    return;
+  }
   const directState = getMessageState(payload);
   if (directState) {
     state.finalState = directState;
@@ -144,11 +165,13 @@ function getStreamResponseResult(
     return state.finalState;
   }
 
-  if (state.updateMessages.length === 0) {
+  // Updates contain complete messages, including the same responses emitted as token chunks.
+  const messages = state.updateMessages.length > 0 ? state.updateMessages : state.messageChunks;
+  if (messages.length === 0) {
     return undefined;
   }
 
-  return { messages: [...(inputMessages ?? []), ...state.updateMessages] };
+  return { messages: [...(inputMessages ?? []), ...messages] };
 }
 
 function isReadableStream(stream: AsyncIterable<unknown>): stream is InstrumentableReadableStream {
@@ -174,6 +197,10 @@ function instrumentReadableStream(stream: InstrumentableReadableStream, span: Sp
   if (stream.pipeTo) {
     const originalPipeTo = stream.pipeTo.bind(stream);
     const instrumentedPipeTo = (destination: WritableStream<unknown>, options?: StreamPipeOptions): Promise<void> => {
+      if (stream.locked || destination.locked) {
+        return Promise.reject(new TypeError('Cannot pipe to or from a locked stream.'));
+      }
+
       let destinationWriter: WritableStreamDefaultWriter<unknown>;
       try {
         destinationWriter = destination.getWriter();
