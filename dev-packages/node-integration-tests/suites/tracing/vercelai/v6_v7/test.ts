@@ -1239,7 +1239,7 @@ describe('Vercel AI integration experimental_evaluate', () => {
               )!;
               expect(evaluateSpan.name).toBe('evaluate typesafe-ai/jev');
               expect(evaluateSpan.status).toBe('ok');
-              expect(evaluateSpan.attributes['sentry.origin']?.value).toBe('auto.vercelai.channel');
+              expect(evaluateSpan.attributes[SENTRY_ORIGIN]?.value).toBe('auto.vercelai.channel');
               expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('evaluate');
               expect(evaluateSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('gateway');
               expect(evaluateSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('typesafe-ai/jev');
