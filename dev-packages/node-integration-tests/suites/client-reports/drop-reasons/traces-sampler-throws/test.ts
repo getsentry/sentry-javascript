@@ -25,7 +25,6 @@ test('records a client report and no error event when tracesSampler throws', asy
 
 test('sends the span when tracesSampler throws but tracesSampleRate is 1', async () => {
   await createRunner(__dirname, 'scenario-fallback.ts')
-    .unordered()
     .expect({
       span: container => {
         const segment = container.items.find(span => span.is_segment);

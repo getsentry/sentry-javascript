@@ -7,7 +7,6 @@ afterAll(() => {
 
 test('GrowthBook flags are added to active span attributes on span end', async () => {
   await createRunner(__dirname, 'scenario.ts')
-    .unordered()
     .expect({
       span: container => {
         expect(container.items).toHaveLength(1);

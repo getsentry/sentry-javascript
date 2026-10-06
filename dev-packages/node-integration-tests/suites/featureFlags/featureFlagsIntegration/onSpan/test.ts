@@ -1,4 +1,4 @@
-import { _INTERNAL_MAX_FLAGS_PER_SPAN as MAX_FLAGS_PER_SPAN, type SerializedStreamedSpanContainer } from '@sentry/core';
+import { _INTERNAL_MAX_FLAGS_PER_SPAN as MAX_FLAGS_PER_SPAN } from '@sentry/core';
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
@@ -12,14 +12,11 @@ test('Flags captured on span attributes with max limit', async () => {
   for (let i = 1; i <= MAX_FLAGS_PER_SPAN; i++) {
     expectedFlags[`flag.evaluation.feat${i}`] = { type: 'boolean', value: i === 3 };
   }
-  const spans: SerializedStreamedSpanContainer['items'] = [];
 
   await createRunner(__dirname, 'scenario.ts')
-    .unordered()
     .expect({
       span: container => {
-        spans.push(...container.items);
-        const children = spans.filter(span => !span.is_segment);
+        const children = container.items.filter(span => !span.is_segment);
         expect(children).toHaveLength(2);
         expect(children).toEqual(
           expect.arrayContaining([
