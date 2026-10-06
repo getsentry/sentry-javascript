@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { classifyResponseStreaming } from '../../src/utils/responseStreaming';
+import { classifyResponseStreaming } from '../../../src/utils/responseStreaming';
 
 describe('classifyResponseStreaming', () => {
   test.each([

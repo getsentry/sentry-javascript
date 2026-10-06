@@ -1,6 +1,4 @@
 // Shared exports not using diagnostics channels
-export { classifyResponseStreaming } from './utils/responseStreaming';
-export type { StreamingGuess } from './utils/responseStreaming';
 export { setHttpServerSpanRouteAttribute } from './utils/setHttpServerSpanRouteAttribute';
 export { setAsyncLocalStorageAsyncContextStrategy } from './async-context';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from './opentelemetry';

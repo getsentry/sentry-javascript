@@ -21,8 +21,7 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import { getClientIPAddress } from '@sentry/core/server';
-import { classifyResponseStreaming } from '@sentry/server-utils';
+import { classifyResponseStreaming, getClientIPAddress } from '@sentry/core/server';
 import type { Server, ServeOptions } from 'bun';
 import {
   CLIENT_ADDRESS,
