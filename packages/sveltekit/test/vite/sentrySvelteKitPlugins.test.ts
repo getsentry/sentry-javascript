@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import type { Plugin } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
 import * as autoInstrument from '../../src/vite/autoInstrument';
@@ -42,9 +45,10 @@ describe('sentrySvelteKit()', () => {
     const plugins = await getSentrySvelteKitPlugins();
 
     expect(plugins).toBeInstanceOf(Array);
-    // 1 kit config resolver + 1 browser-tracing variant resolver + 1 auto instrument plugin
-    // + 1 global values injection plugin + 1 modified main plugin + 3 custom plugins
-    expect(plugins).toHaveLength(8);
+    // 1 kit config resolver + 1 browser-tracing variant resolver + 1 OpenTelemetry API resolver
+    // + 1 auto instrument plugin + 1 global values injection plugin + 1 modified main plugin
+    // + 3 custom plugins
+    expect(plugins).toHaveLength(9);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
@@ -55,6 +59,8 @@ describe('sentrySvelteKit()', () => {
       'sentry-sveltekit-kit-config-resolver',
       // browser-tracing variant resolver:
       'sentry-sveltekit-browser-tracing-variant',
+      // OpenTelemetry API resolver:
+      'sentry-sveltekit-opentelemetry-api',
       // auto instrument plugin:
       'sentry-auto-instrumentation',
       // global values injection plugin:
@@ -70,7 +76,7 @@ describe('sentrySvelteKit()', () => {
 
   it("doesn't return the sentry source maps plugins if autoUploadSourcemaps is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    expect(plugins).toHaveLength(3); // kit config resolver + browser-tracing variant resolver + auto instrument
+    expect(plugins).toHaveLength(4); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + auto instrument
   });
 
   it("doesn't return the sentry source maps plugins if `NODE_ENV` is development", async () => {
@@ -78,9 +84,9 @@ describe('sentrySvelteKit()', () => {
 
     process.env.NODE_ENV = 'development';
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: true, autoInstrument: true });
-    const instrumentPlugin = plugins[2];
+    const instrumentPlugin = plugins[3];
 
-    expect(plugins).toHaveLength(4); // kit config resolver + browser-tracing variant resolver + auto instrument + global values injection
+    expect(plugins).toHaveLength(5); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + auto instrument + global values injection
     expect(instrumentPlugin?.name).toEqual('sentry-auto-instrumentation');
 
     process.env.NODE_ENV = previousEnv;
@@ -89,7 +95,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(7); // kit config resolver + browser-tracing variant resolver + global values injection + 1 modified main plugin + 3 custom plugins
+    expect(plugins).toHaveLength(8); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + global values injection + 1 modified main plugin + 3 custom plugins
     expect(pluginNames).not.toContain('sentry-auto-instrumentation');
   });
 
@@ -191,7 +197,7 @@ describe('sentrySvelteKit()', () => {
       // just to ignore the source maps plugin:
       autoUploadSourceMaps: false,
     });
-    const plugin = plugins[2]!;
+    const plugin = plugins[3]!;
 
     expect(plugin.name).toEqual('sentry-auto-instrumentation');
     expect(makePluginSpy).toHaveBeenCalledWith({
@@ -200,6 +206,55 @@ describe('sentrySvelteKit()', () => {
       serverLoad: false,
       getKitConfig: expect.any(Function),
     });
+  });
+});
+
+describe('OpenTelemetry API resolver plugin', () => {
+  async function getResolver(kitVersion: string) {
+    const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
+    const plugin = plugins.find(p => p.name === 'sentry-sveltekit-opentelemetry-api')!;
+
+    const kitPackageJson = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-kit-')), 'package.json');
+    fs.writeFileSync(kitPackageJson, JSON.stringify({ version: kitVersion }));
+    const context = { resolve: vi.fn().mockResolvedValue({ id: kitPackageJson }) };
+
+    const resolveId = (id: string, importer: string | undefined, ssr = true) =>
+      // @ts-expect-error - minimal plugin context
+      plugin.resolveId.call(context, id, importer, { ssr });
+
+    return { plugin, resolveId };
+  }
+
+  it('only applies to builds', async () => {
+    const { plugin } = await getResolver('3.0.0');
+    expect(plugin.apply).toBe('build');
+  });
+
+  it('redirects `@opentelemetry/api` to the external re-export on SvelteKit 3', async () => {
+    const { resolveId } = await getResolver('3.0.0-next.28');
+
+    await expect(resolveId('@opentelemetry/api', '/app/node_modules/@sveltejs/kit/src/instance.js')).resolves.toEqual({
+      id: '@sentry/sveltekit/opentelemetry-api',
+      external: true,
+    });
+  });
+
+  it('leaves `@opentelemetry/api` alone on SvelteKit 2', async () => {
+    const { resolveId } = await getResolver('2.70.2');
+
+    await expect(resolveId('@opentelemetry/api', '/app/src/instrumentation.server.js')).resolves.toBeNull();
+  });
+
+  it('leaves client builds, other ids and the re-export itself alone', async () => {
+    const { resolveId } = await getResolver('3.0.0');
+
+    await expect(resolveId('@opentelemetry/api', '/app/src/hooks.client.js', false)).resolves.toBeNull();
+    await expect(
+      resolveId('@opentelemetry/api/experimental', '/app/src/instrumentation.server.js'),
+    ).resolves.toBeNull();
+    await expect(
+      resolveId('@opentelemetry/api', '/app/node_modules/@sentry/sveltekit/build/esm/opentelemetryApi.js'),
+    ).resolves.toBeNull();
   });
 });
 
