@@ -25,7 +25,8 @@ import type {
   PiTaskRuntime,
   PiTool,
 } from './types';
-import { bound, withCleanScopes } from './utils';
+import { withCleanScopes } from '../../utils/withCleanScopes';
+import { bound } from './utils';
 
 export type PiDurableOptions = GenAiOptions;
 

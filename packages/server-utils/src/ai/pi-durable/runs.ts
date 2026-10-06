@@ -12,7 +12,8 @@ import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
 import { MAX_TRACKED_PI_RUNS, PI_DURABLE_ORIGIN, PI_LIVE_DOC_KIND } from './constants';
 import type { PiCommitChange, PiDocToken, PiLiveState, PiSettlement, PiTaskRuntime } from './types';
-import { bound, withCleanScopes } from './utils';
+import { withCleanScopes } from '../../utils/withCleanScopes';
+import { bound } from './utils';
 
 // Unanswered reasons that mean the run was stopped, not that it failed.
 const CANCELLED_REASONS = new Set(['aborted', 'reset']);
