@@ -8,8 +8,8 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
-import { captureException, debug, getDefaultIsolationScope, getIsolationScope, isObjectLike } from '@sentry/core';
-import type { Observable } from 'rxjs';
+import { captureException, debug, getDefaultIsolationScope, getIsolationScope, isObjectLike, withIsolationScope } from '@sentry/core';
+import { Observable } from 'rxjs';
 import { isExpectedError, isWsOrRpcException } from './helpers';
 
 // Partial extract of FastifyRequest interface
@@ -48,6 +48,25 @@ class SentryTracingInterceptor implements NestInterceptor {
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
   public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    if (context.getType() === 'ws') {
+      const wsHost = context.switchToWs();
+      const client = wsHost.getClient<{ nsp?: { name?: string } }>();
+      const pattern = wsHost.getPattern?.();
+
+      if (!pattern) {
+        return next.handle();
+      }
+
+      return new Observable(subscriber =>
+        withIsolationScope(isolationScope => {
+          const namespace = client?.nsp?.name;
+          isolationScope.setTransactionName(namespace ? `WS ${namespace} ${pattern}` : `WS ${pattern}`);
+
+          return next.handle().subscribe(subscriber);
+        }),
+      );
+    }
+
     if (getIsolationScope() === getDefaultIsolationScope()) {
       debug.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
       return next.handle();
