@@ -20,9 +20,12 @@ import {
   spanToJSON,
 } from '@sentry/core';
 
-import { ROUTE_TIMING_NAME } from '../routeTiming';
+import { parseRouteTiming, ROUTE_TIMING_NAME } from '../routeTiming';
 
 type Options = Parameters<typeof originalBrowserTracingIntegration>[0];
+
+// The request header the runtime sets on its fetch of a navigation's destination.
+const FRAME_REQUEST_HEADER = 'x-remix-frame';
 
 /**
  * Browser tracing for Remix 3.
@@ -79,11 +82,15 @@ function instrumentNavigationApi(client: Client): void {
     return;
   }
 
-  // Navigation spans still waiting for their route, which arrives with the response to the runtime's
-  // fetch of the destination. Keyed by pathname: a second navigation before the first response must
-  // not lose either span. Bounded, because a fetch that fails never reports back for its entry.
-  const pending = new Map<string, { span: Span; url: string }>();
-  const MAX_PENDING = 20;
+  // The navigation span still waiting for its route, which arrives with the response to the runtime's
+  // fetch of the destination. There is at most one: starting a navigation ends the previous span.
+  let pending: { span: Span; url: string; pathname: string } | undefined;
+
+  client.on('spanEnd', span => {
+    if (pending?.span === span) {
+      pending = undefined;
+    }
+  });
 
   navigation.addEventListener('navigate', event => {
     const url = event.destination?.url;
@@ -109,37 +116,31 @@ function instrumentNavigationApi(client: Client): void {
       { url },
     );
 
-    if (span && !route) {
-      // A repeat of the same path replaces its entry; the Navigation API aborted the earlier intercept.
-      pending.delete(pathname);
-      pending.set(pathname, { span, url });
-      while (pending.size > MAX_PENDING) {
-        pending.delete(pending.keys().next().value as string);
-      }
-    }
+    pending = span && !route ? { span, url, pathname } : undefined;
   });
 
-  addFetchInstrumentationHandler(({ fetchData, response }) => {
-    if (pending.size === 0 || !response) {
-      // A failed fetch does not settle the entry: the Navigation API aborts the previous intercept when
-      // a new navigation starts, and that rejection lands after the new one re-queued the same path.
+  addFetchInstrumentationHandler(({ fetchData, headers, response }) => {
+    if (!pending || !response) {
       return;
     }
-    // The runtime fetches the destination itself. Any other fetch during the navigation is the app's.
-    const pathname = pathnameOf(fetchData.url, WINDOW.location?.href);
-    const waiting = pathname && pending.get(pathname);
-    if (!pathname || !waiting) {
+    // Only the runtime's own fetch of the destination carries the route. The app's fetches, even to
+    // the same path, do not.
+    if (headers?.get(FRAME_REQUEST_HEADER) !== 'true') {
       return;
     }
-    pending.delete(pathname);
+    if (pathnameOf(fetchData.url, WINDOW.location?.href) !== pending.pathname) {
+      return;
+    }
+    const { span, url, pathname } = pending;
+    pending = undefined;
 
     // The route belongs to the URL that answered. After a redirect that is not the one requested, and
     // recording it under the requested path would misname every later visit there.
     const servedPathname = pathnameOf(response.url, WINDOW.location?.href) || pathname;
     recordRoute(client, servedPathname, parseRouteTiming(response.headers.get('server-timing')));
-    const route = resolveRoute(response.url || waiting.url, client);
+    const route = resolveRoute(response.url || url, client);
     if (route) {
-      applyRoute(waiting.span, route);
+      applyRoute(span, route);
     }
   });
 }
@@ -154,8 +155,7 @@ function recordRoute(client: Client, pathname: string | undefined, route: string
 
 /**
  * Renames a span that started under the fallback. The scope's transaction name follows, so errors
- * group by route too, but only while this is still the current navigation: a late response for an
- * earlier one must not overwrite the route the user is on now.
+ * group by route too, but only while this is still the current span.
  */
 function applyRoute(span: Span, route: string): void {
   span.updateName(route);
@@ -172,12 +172,6 @@ function getDocumentRoute(): string | undefined {
     | { serverTiming?: Array<{ name: string; description: string }> }
     | undefined;
   return entry?.serverTiming?.find(timing => timing.name === ROUTE_TIMING_NAME)?.description;
-}
-
-/** The route from a raw `Server-Timing` header, as the fetch response exposes it. */
-function parseRouteTiming(header: string | null): string | undefined {
-  const quoted = header?.match(new RegExp(`(?:^|,)\\s*${ROUTE_TIMING_NAME};desc="((?:[^"\\\\]|\\\\.)*)"`))?.[1];
-  return quoted?.replace(/\\(.)/g, '$1');
 }
 
 /**

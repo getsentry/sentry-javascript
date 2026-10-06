@@ -14,6 +14,7 @@ let activeSpan: FakeSpan | undefined;
 let fetchHandler:
   | ((data: {
       fetchData: { url: string };
+      headers?: Headers;
       endTimestamp?: number;
       response?: { url: string; headers: Headers };
     }) => void)
@@ -66,6 +67,7 @@ const { browserTracingIntegration } = await import('../../src/v3/client/browserT
 function frameResponse(url: string, serverTiming?: string, servedUrl = url) {
   return {
     fetchData: { url },
+    headers: new Headers({ 'x-remix-frame': 'true' }),
     endTimestamp: 1,
     response: {
       url: new URL(servedUrl, 'https://app.test').href,
@@ -76,7 +78,7 @@ function frameResponse(url: string, serverTiming?: string, servedUrl = url) {
 
 /** A frame fetch that failed: settled, but with no response. */
 function failedFrameFetch(url: string) {
-  return { fetchData: { url }, endTimestamp: 1 };
+  return { fetchData: { url }, headers: new Headers({ 'x-remix-frame': 'true' }), endTimestamp: 1 };
 }
 
 interface FakeNavigateEvent {
@@ -85,7 +87,15 @@ interface FakeNavigateEvent {
   destination?: { url: string };
 }
 
-const client = { getOptions: () => ({ traceLifecycle: 'stream' }) } as unknown as Client;
+let spanEnd: ((span: unknown) => void) | undefined;
+const client = {
+  getOptions: () => ({ traceLifecycle: 'stream' }),
+  on: (hook: string, callback: (span: unknown) => void) => {
+    if (hook === 'spanEnd') {
+      spanEnd = callback;
+    }
+  },
+} as unknown as Client;
 
 /** Sets up the integration over a fake Navigation API and returns a way to fire `navigate` events. */
 function setup(options = {}, pathname = '/'): (event: FakeNavigateEvent) => void {
@@ -210,7 +220,7 @@ describe('browserTracingIntegration', () => {
     expect(scope.setTransactionName).toHaveBeenCalledWith('/users/:id');
   });
 
-  it('names each of two overlapping navigations from its own response', () => {
+  it('drops the response for a navigation whose span already ended', () => {
     const first = fakeSpan('navigation');
     const second = fakeSpan('navigation');
     const navigate = setup();
@@ -219,13 +229,14 @@ describe('browserTracingIntegration', () => {
     navigationSpan = second;
     navigate({ canIntercept: true, destination: { url: 'https://app.test/items/2' } });
     activeSpan = second;
+    // Starting the second navigation ended the first span.
+    spanEnd?.(first);
 
     fetchHandler?.(frameResponse('/items/2', 'sentry-route;desc="/items/:id"'));
     fetchHandler?.(frameResponse('/users/1', 'sentry-route;desc="/users/:id"'));
 
     expect(second.updateName).toHaveBeenCalledWith('/items/:id');
-    expect(first.updateName).toHaveBeenCalledWith('/users/:id');
-    // The late response for the earlier navigation must not take over the scope.
+    expect(first.updateName).not.toHaveBeenCalled();
     expect(scope.setTransactionName).toHaveBeenCalledTimes(1);
     expect(scope.setTransactionName).toHaveBeenCalledWith('/items/:id');
   });
@@ -269,30 +280,27 @@ describe('browserTracingIntegration', () => {
     expect(first.updateName).not.toHaveBeenCalled();
   });
 
-  it('keeps the pending set bounded when navigations never get a response', () => {
+  it('forgets the pending span when it ends', () => {
     const navigate = setup();
-    for (let i = 0; i < 30; i++) {
-      navigationSpan = fakeSpan('navigation');
-      navigate({ canIntercept: true, destination: { url: `https://app.test/never/${i}` } });
-    }
-    const last = navigationSpan;
-    activeSpan = last;
+    navigate({ canIntercept: true, destination: { url: 'https://app.test/users/1' } });
+    spanEnd?.(navigationSpan);
 
-    // The oldest entries were dropped; the newest still resolves.
-    fetchHandler?.(frameResponse('/never/0', 'sentry-route;desc="/never/:n"'));
-    fetchHandler?.(frameResponse('/never/29', 'sentry-route;desc="/never/:n"'));
+    fetchHandler?.(frameResponse('/users/1', 'sentry-route;desc="/users/:id"'));
 
-    expect(last?.updateName).toHaveBeenCalledWith('/never/:n');
-    expect(recorded.has('/never/0')).toBe(false);
+    expect(navigationSpan?.updateName).not.toHaveBeenCalled();
   });
 
   it("ignores the app's own fetches during a navigation", () => {
     const navigate = setup();
     navigate({ canIntercept: true, destination: { url: 'https://app.test/users/12345' } });
 
-    fetchHandler?.(frameResponse('https://app.test/api/items/1', 'sentry-route;desc="/api/items/:itemId"'));
-
+    // Same path as the navigation, but without the runtime's frame header: the app's own fetch.
+    fetchHandler?.({ ...frameResponse('/users/12345', 'sentry-route;desc="/users/:id"'), headers: new Headers() });
     expect(navigationSpan?.updateName).not.toHaveBeenCalled();
+
+    // The navigation is still waiting for its own response.
+    fetchHandler?.(frameResponse('/users/12345', 'sentry-route;desc="/users/:id"'));
+    expect(navigationSpan?.updateName).toHaveBeenCalledWith('/users/:id');
   });
 
   it('renames a navigation span once, from its own response only', () => {
@@ -349,7 +357,7 @@ describe('browserTracingIntegration', () => {
   });
 
   it('names the span after the path when span streaming is off', () => {
-    const staticClient = { getOptions: () => ({ traceLifecycle: 'static' }) } as unknown as Client;
+    const staticClient = { getOptions: () => ({ traceLifecycle: 'static' }), on: () => {} } as unknown as Client;
     let listener: ((event: FakeNavigateEvent) => void) | undefined;
     Object.assign(globalThis, {
       location: { origin: 'https://app.test', pathname: '/' },
