@@ -58,6 +58,7 @@ export interface ArtifactBundleData {
 export interface ParsedSourcemap {
   [key: string]: unknown;
   version?: number;
+  file?: string;
   sources?: string[];
   /** Absent when the generator drops all sources (Rollup's `sourcemapExcludeSources`), null per dropped entry. */
   sourcesContent?: (string | null)[];
@@ -183,7 +184,7 @@ export function findDebugIdsWithConflictingSourcemaps(sourcemaps: SourcemapEntry
     const mappingKey = JSON.stringify([getSourcemapSources(sourcemap), sourcemap.mappings]);
 
     const maps = mapsByDebugId.get(debugId) ?? new Map<string, string>();
-    maps.set(mappingKey, typeof sourcemap.file === 'string' ? sourcemap.file : url);
+    maps.set(mappingKey, sourcemap.file ?? url);
     mapsByDebugId.set(debugId, maps);
   }
 

@@ -12,6 +12,7 @@ import {
   getAssembleRequests,
   getChunkUploadPosts,
   getDebugIdPairs,
+  getSourcemapSources,
   getSourcemaps,
   loadMockServerResults,
 } from '@sentry-internal/test-utils';
@@ -195,6 +196,18 @@ for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER
 // If both builds upload a map under a borrowed debug ID, Sentry can resolve with the wrong one.
 const conflictingDebugIds = findDebugIdsWithConflictingSourcemaps(sourcemaps);
 assert.deepEqual(conflictingDebugIds, [], 'Expected every uploaded debug ID to resolve to exactly one source map');
+
+if (!isStaticBuild) {
+  // Nitro bundles Vite's SSR output, so server frames reach `.vue` files only through the maps of that build.
+  const serverDebugIds = new Set(findInjectedDebugIds({ outputDir: SERVER_OUTPUT }));
+  const serverSources = sourcemaps
+    .filter(map => map.debugId && serverDebugIds.has(map.debugId))
+    .flatMap(map => getSourcemapSources(map.sourcemap));
+  assert.ok(
+    serverSources.some(source => source.endsWith('app/pages/index.vue')),
+    `Expected the server source maps to resolve to app/pages/index.vue, got: ${serverSources.join(', ')}`,
+  );
+}
 console.log('');
 
 // --- What the build leaves behind in the client output ---

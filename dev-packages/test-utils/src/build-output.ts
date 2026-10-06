@@ -19,6 +19,12 @@ const SOURCE_MAPPING_URL_PATTERN = /[#@]\s*sourceMappingURL\s*=\s*(?!data:)(\S+)
 /** The `sentry-dbid-<uuid>` identifier the bundler plugin injects alongside `_sentryDebugIds`. */
 const INJECTED_DEBUG_ID_PATTERN = /sentry-dbid-([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})/gi;
 
+/** Distinct lowercased debug IDs in `file`, in order of appearance. */
+function readDebugIds(file: string): string[] {
+  const matches = fs.readFileSync(file, 'utf8').matchAll(INJECTED_DEBUG_ID_PATTERN);
+  return [...new Set([...matches].map(match => (match[1] as string).toLowerCase()))];
+}
+
 function* walkFiles(outputDir: string, extensions?: string[]): Generator<string> {
   if (!fs.existsSync(outputDir)) {
     throw new Error(`[build-output] Output directory does not exist: ${outputDir}`);
@@ -148,11 +154,7 @@ export function findInjectedDebugIds({ outputDir, extensions = JS_EXTENSIONS }: 
   const debugIds = new Set<string>();
 
   for (const file of walkFiles(outputDir, extensions)) {
-    const contents = fs.readFileSync(file, 'utf8');
-
-    for (const match of contents.matchAll(INJECTED_DEBUG_ID_PATTERN)) {
-      debugIds.add((match[1] as string).toLowerCase());
-    }
+    readDebugIds(file).forEach(debugId => debugIds.add(debugId));
   }
 
   return [...debugIds];
@@ -170,13 +172,10 @@ export function findFilesWithMultipleDebugIds({
   const offenders: string[] = [];
 
   for (const file of walkFiles(outputDir, extensions)) {
-    const contents = fs.readFileSync(file, 'utf8');
-    const debugIds = new Set(
-      [...contents.matchAll(INJECTED_DEBUG_ID_PATTERN)].map(match => (match[1] as string).toLowerCase()),
-    );
+    const debugIds = readDebugIds(file);
 
-    if (debugIds.size > 1) {
-      offenders.push(`${path.relative(buildDir, file)} → ${[...debugIds].join(', ')}`);
+    if (debugIds.length > 1) {
+      offenders.push(`${path.relative(buildDir, file)} → ${debugIds.join(', ')}`);
     }
   }
 
@@ -185,7 +184,7 @@ export function findFilesWithMultipleDebugIds({
 
 /**
  * Returns `<file> → <map files>` for each file where no map uploaded under its first debug ID names it in `file`.
- * Skips files without a debug ID or without an uploaded map.
+ * Skips files without a debug ID or without an uploaded map that has `file`.
  */
 export function findFilesWithForeignSourcemaps(
   { outputDir, buildDir = process.cwd(), extensions = JS_EXTENSIONS }: OutputScanOptions,
@@ -194,11 +193,17 @@ export function findFilesWithForeignSourcemaps(
   const offenders: string[] = [];
 
   for (const file of walkFiles(outputDir, extensions)) {
-    const [firstMatch] = fs.readFileSync(file, 'utf8').matchAll(INJECTED_DEBUG_ID_PATTERN);
-    const debugId = firstMatch?.[1]?.toLowerCase();
-    const mapFiles = uploadedSourcemaps.filter(entry => entry.debugId === debugId).map(entry => entry.sourcemap.file);
+    const [debugId] = readDebugIds(file);
+    if (!debugId) {
+      continue;
+    }
 
-    if (debugId && mapFiles.length > 0 && !mapFiles.includes(path.basename(file))) {
+    const mapFiles = uploadedSourcemaps
+      .filter(entry => entry.debugId === debugId)
+      .map(entry => entry.sourcemap.file)
+      .filter(mapFile => mapFile !== undefined);
+
+    if (mapFiles.length > 0 && !mapFiles.includes(path.basename(file))) {
       offenders.push(`${path.relative(buildDir, file)} → ${mapFiles.join(', ')}`);
     }
   }
