@@ -122,8 +122,16 @@ type MarkedAsyncContextStrategy = AsyncContextStrategy & { _sentryNextjsCloudfla
  * strategy in the global carrier, because the Worker entry and the server build of Next.js each bundle their own copy
  * of `@sentry/nextjs`.
  */
-export function markAsyncContextOwnedByCloudflare(): void {
+export function markAsyncContextOwnedByNextjsCloudflare(): void {
   (getAsyncContextStrategy(getMainCarrier()) as MarkedAsyncContextStrategy)._sentryNextjsCloudflare = true;
+}
+
+/**
+ * Whether `withSentry` of `@sentry/nextjs/cloudflare` set up the async context of this Worker, also outside a request.
+ */
+export function isAsyncContextOwnedByNextjsCloudflare(): boolean {
+  const strategy: MarkedAsyncContextStrategy = getAsyncContextStrategy(getMainCarrier());
+  return !!strategy._sentryNextjsCloudflare;
 }
 
 /**
@@ -132,13 +140,13 @@ export function markAsyncContextOwnedByCloudflare(): void {
  * a request runs (#24603).
  */
 export function isAsyncContextOwnedByCloudflare(): boolean {
-  const strategy: MarkedAsyncContextStrategy = getAsyncContextStrategy(getMainCarrier());
+  const strategy = getAsyncContextStrategy(getMainCarrier());
   // The AsyncLocalStorage strategy of `@sentry/cloudflare` has no `withActiveSpan`.
   const asyncLocalStorage = strategy.getTracingChannelBinding?.()?.asyncLocalStorage as
     | { getStore(): unknown }
     | undefined;
   return (
-    !!strategy._sentryNextjsCloudflare ||
+    isAsyncContextOwnedByNextjsCloudflare() ||
     (!strategy.withActiveSpan &&
       asyncLocalStorage?.getStore() !== undefined &&
       GLOBAL_OBJ.navigator?.userAgent === 'Cloudflare-Workers')

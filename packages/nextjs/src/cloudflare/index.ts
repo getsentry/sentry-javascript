@@ -13,7 +13,7 @@ import {
 import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { isTunnelRouteSpan } from '../common/utils/dropMiddlewareTunnelRequests';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
-import { markAsyncContextOwnedByCloudflare } from '../common/utils/responseEnd';
+import { markAsyncContextOwnedByNextjsCloudflare } from '../common/utils/responseEnd';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from '../server/serverSpanHooks';
 import { nextjsUseCacheIntegration } from '../server/useCacheInstrumentation';
 
@@ -64,7 +64,7 @@ const nextjsIntegration = (): Integration => ({
  */
 export const withSentry: typeof withSentryCloudflare = (optionsCallback, handler) => {
   setOpenTelemetryContextAsyncContextStrategy();
-  markAsyncContextOwnedByCloudflare();
+  markAsyncContextOwnedByNextjsCloudflare();
 
   return withSentryCloudflare(env => {
     const options: CloudflareOptions = { enableOpenTelemetrySetup: true, ...optionsCallback(env) };

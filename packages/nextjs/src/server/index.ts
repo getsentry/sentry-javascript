@@ -6,7 +6,6 @@ import {
   _INTERNAL_getActiveClient,
   applySdkMetadata,
   debug,
-  getClient,
   getGlobalScope,
   getVercelEnv,
   GLOBAL_OBJ,
@@ -19,6 +18,7 @@ import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropRe
 import { isBuild } from '../common/utils/isBuild';
 import {
   isAsyncContextOwnedByCloudflare,
+  isAsyncContextOwnedByNextjsCloudflare,
   isCloudflareWaitUntilAvailable,
   setCloudflareWorkerRelease,
 } from '../common/utils/responseEnd';
@@ -194,8 +194,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
       .eventProcessors.some(processor => processor.id === 'DropReactControlFlowErrors');
     eventProcessorTarget = isAdded ? undefined : globalScope;
   }
-  // The client of `withSentry` from `@sentry/nextjs/cloudflare` adds the processor itself.
-  if (!getClient()?.getIntegrationByName('Nextjs')) {
+  // Each client of `withSentry` from `@sentry/nextjs/cloudflare` gets the processor from its `Nextjs` integration.
+  if (!isAsyncContextOwnedByNextjsCloudflare()) {
     eventProcessorTarget?.addEventProcessor(dropReactControlFlowErrorsEventProcessor);
   }
 

@@ -500,6 +500,18 @@ describe('withSentry', () => {
     ).toHaveLength(0);
   });
 
+  it('leaves the control flow error processor to its clients when `Sentry.init` of the server build runs outside a request', () => {
+    withSentry(() => ({ dsn: DSN }), { fetch: () => new Response('ok') });
+
+    initServer({});
+
+    expect(
+      getGlobalScope()
+        .getScopeData()
+        .eventProcessors.filter(processor => processor.id === 'DropReactControlFlowErrors'),
+    ).toHaveLength(0);
+  });
+
   // https://github.com/getsentry/sentry-javascript/issues/24603
   it('keeps its async context strategy when `Sentry.init` of the edge build runs during a request', async () => {
     const handler = withSentry(() => ({ dsn: DSN, tracesSampleRate: 1 }), {
