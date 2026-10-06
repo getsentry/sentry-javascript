@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(server-utils)**: The new `piDurableIntegration` traces runs of pi-durable and is on by default where the Sentry runtime hook or a Sentry bundler plugin injects its channel, for example in Node and in Workers built with `@sentry/cloudflare/vite`. From the first pi-durable model request on, the `openai`, `@anthropic-ai/sdk`, `@google/genai` and Workers AI integrations stop reporting requests in the whole process, because pi-ai sends its requests through these clients. Requests that your app sends to these providers directly are then no longer traced either. The Flue integration now also stops the Workers AI integration. To keep these integrations, remove the pi-durable one: `integrations: integrations => integrations.filter(integration => integration.name !== 'PiDurable')`.
+- **feat(server-utils)**: The new `piDurableIntegration` traces agents built with [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable): each run, with its model requests and tool calls.
 
 Work in this release was contributed by @zkasuran. Thank you for your contribution!
 
