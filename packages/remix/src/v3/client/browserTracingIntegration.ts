@@ -18,11 +18,9 @@ import {
   spanToJSON,
 } from '@sentry/core';
 
-type Options = Parameters<typeof originalBrowserTracingIntegration>[0];
+import { ROUTE_TIMING_NAME } from '../routeTiming';
 
-// The `Server-Timing` entry the server middleware adds to HTML responses, carrying the matched route
-// pattern. It feeds the route provider, which is where span names come from.
-const ROUTE_TIMING_NAME = 'sentry-route';
+type Options = Parameters<typeof originalBrowserTracingIntegration>[0];
 
 /**
  * Browser tracing for Remix 3.
