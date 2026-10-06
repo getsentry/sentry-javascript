@@ -1,2 +1,2 @@
-export { classifyResponseStreaming } from '@sentry/core';
-export type { StreamingGuess } from '@sentry/core';
+export { classifyResponseStreaming } from '@sentry/server-utils';
+export type { StreamingGuess } from '@sentry/server-utils';
