@@ -44,6 +44,56 @@ describe('LangChain token usage', () => {
     expect(extractLlmResponseAttributes(result, false)).toEqual(expectedUsage);
   });
 
+  it('preserves normalized totals when tokenUsage contains only the final stream chunk', () => {
+    const result = {
+      generations: [[{ message: { usage_metadata: normalizedUsage } }]],
+      llmOutput: { tokenUsage: { promptTokens: 0, completionTokens: 120, totalTokens: 120 } },
+    };
+
+    expect(extractLlmResponseAttributes(result, false)).toEqual(expectedUsage);
+  });
+
+  it('prefers normalized message usage when both raw and generic usage are present', () => {
+    const result = {
+      generations: [[{ message: { usage_metadata: normalizedUsage } }]],
+      llmOutput: {
+        usage: rawUsage,
+        tokenUsage: { promptTokens: 40, completionTokens: 120, totalTokens: 160 },
+      },
+    };
+
+    expect(extractLlmResponseAttributes(result, false)).toEqual(expectedUsage);
+  });
+
+  it('normalizes raw Anthropic usage instead of using exclusive generic totals', () => {
+    const result = {
+      generations: [],
+      llmOutput: {
+        usage: rawUsage,
+        tokenUsage: { promptTokens: 40, completionTokens: 120, totalTokens: 160 },
+      },
+    };
+
+    expect(extractLlmResponseAttributes(result, false)).toEqual(expectedUsage);
+  });
+
+  it('prefers raw Anthropic usage over legacy message counters', () => {
+    const result = {
+      generations: [
+        [
+          {
+            message: {
+              response_metadata: { tokenUsage: { promptTokens: 40, completionTokens: 120, totalTokens: 160 } },
+            },
+          },
+        ],
+      ],
+      llmOutput: { usage: rawUsage },
+    };
+
+    expect(extractLlmResponseAttributes(result, false)).toEqual(expectedUsage);
+  });
+
   it('preserves raw cache details when normalized usage reports only inclusive totals', () => {
     const result = {
       generations: [[{ message: { usage_metadata: { input_tokens: 2600, output_tokens: 120, total_tokens: 2720 } } }]],
@@ -70,11 +120,10 @@ describe('LangChain token usage', () => {
     });
   });
 
-  it('preserves aggregate provider totals without counting shared candidate input twice', () => {
+  it('counts shared usage totals once for multiple candidates', () => {
+    const aggregateUsage = { ...normalizedUsage, output_tokens: 240, total_tokens: 2840 };
     const result = {
-      generations: [
-        [{ message: { usage_metadata: normalizedUsage } }, { message: { usage_metadata: normalizedUsage } }],
-      ],
+      generations: [[{ message: { usage_metadata: aggregateUsage } }, { message: { usage_metadata: aggregateUsage } }]],
       llmOutput: { tokenUsage: { promptTokens: 2600, completionTokens: 240, totalTokens: 2840 } },
     };
 

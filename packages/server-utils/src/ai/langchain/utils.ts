@@ -352,16 +352,18 @@ export function extractMessageTokenUsageAttributes(message: LangChainMessage): R
 
 function addTokenUsageAttributes(llmResult: LangChainLLMResult, attrs: Record<string, SpanAttributeValue>): void {
   const normalizedUsage: Record<string, number> = {};
+  const legacyMessageUsage: Record<string, number> = {};
   for (const generations of llmResult.generations ?? []) {
-    // Multiple candidates for one prompt share the input usage.
+    // Candidate messages share the usage totals for their prompt.
     const message = generations[0]?.message;
     if (message) {
+      const usage = isObjectLike(message.usage_metadata) ? normalizedUsage : legacyMessageUsage;
       for (const [key, value] of Object.entries(extractMessageTokenUsageAttributes(message))) {
-        normalizedUsage[key] = (normalizedUsage[key] ?? 0) + value;
+        usage[key] = (usage[key] ?? 0) + value;
       }
     }
   }
-  Object.assign(attrs, normalizedUsage);
+  Object.assign(attrs, Object.keys(normalizedUsage).length > 0 ? normalizedUsage : legacyMessageUsage);
 
   const llmOutput = llmResult.llmOutput;
   if (!llmOutput) return;
@@ -376,18 +378,8 @@ function addTokenUsageAttributes(llmResult: LangChainLLMResult, attrs: Record<st
       }
     | undefined;
 
-  if (tokenUsage) {
-    Object.assign(
-      attrs,
-      getTokenUsageAttributes(
-        tokenUsage.promptTokens,
-        tokenUsage.completionTokens,
-        undefined,
-        undefined,
-        tokenUsage.totalTokens,
-      ),
-    );
-  } else if (anthropicUsage && Object.keys(normalizedUsage).length === 0) {
+  // llmOutput.tokenUsage can contain only the final stream chunk's counters.
+  if (anthropicUsage && Object.keys(normalizedUsage).length === 0) {
     const { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens } = anthropicUsage;
     const hasInput =
       input_tokens !== undefined || cache_creation_input_tokens !== undefined || cache_read_input_tokens !== undefined;
@@ -400,6 +392,17 @@ function addTokenUsageAttributes(llmResult: LangChainLLMResult, attrs: Record<st
         output_tokens,
         cache_creation_input_tokens,
         cache_read_input_tokens,
+      ),
+    );
+  } else if (tokenUsage && Object.keys(normalizedUsage).length === 0) {
+    Object.assign(
+      attrs,
+      getTokenUsageAttributes(
+        tokenUsage.promptTokens,
+        tokenUsage.completionTokens,
+        undefined,
+        undefined,
+        tokenUsage.totalTokens,
       ),
     );
   }
