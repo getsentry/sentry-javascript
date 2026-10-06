@@ -2,6 +2,7 @@ import type { Span } from '@sentry/core';
 import {
   getCurrentScope,
   getIsolationScope,
+  isThenable,
   isURLObjectRelative,
   parseStringToURLObject,
   SPAN_STATUS_ERROR,
@@ -139,8 +140,18 @@ function traceModelRequest(
 
       // pi-ai never rejects a request: a provider failure or an abort settles as a message with
       // `stopReason` `error` or `aborted`. The rejection handler only covers a broken provider.
-      const settled = streaming ? (result as PiEventStream).result() : (result as Promise<PiAssistantMessage>);
-      settled.then(
+      let settled: unknown;
+      try {
+        settled = streaming ? (result as PiEventStream).result() : result;
+      } catch {
+        settled = undefined;
+      }
+      // A result of another shape must reach the caller unchanged, so its span ends without a response.
+      if (!isThenable(settled)) {
+        span.end();
+        return result;
+      }
+      (settled as Promise<PiAssistantMessage>).then(
         message => endChatSpan(span, message, recordOutputs),
         () => {
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });

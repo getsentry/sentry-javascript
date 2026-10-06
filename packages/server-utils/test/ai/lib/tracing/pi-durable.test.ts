@@ -318,6 +318,20 @@ describe('instrumentPiDurableHarnessOptions', () => {
     ]);
   });
 
+  it('returns a result of another shape unchanged and ends its span', () => {
+    const stream = { events: [] };
+    const models: PiModels = {
+      stream: () => stream as unknown as PiEventStream,
+      completeSimple: (() => 'parked') as unknown as PiModels['completeSimple'],
+    };
+    const instrumented = instrumentPiDurableHarnessOptions({ models });
+
+    expect(instrumented.models!.stream!(MODEL, { messages: [] })).toBe(stream);
+    expect(instrumented.models!.completeSimple!(MODEL, { messages: [] })).toBe('parked');
+
+    expect(endedSpans.map(span => spanToJSON(span).name)).toEqual(['chat faux-model', 'chat faux-model']);
+  });
+
   it('reads the system prompt and the tools from the positional system messages', async () => {
     const models: PiModels = {
       streamSimple: () => ({ result: async () => ({ role: 'assistant', content: [], stopReason: 'stop' }) }),
