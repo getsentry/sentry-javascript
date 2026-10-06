@@ -64,6 +64,8 @@ describe('Anthropic integration (0.129)', () => {
           .expect({
             span: container => {
               allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
+              expect(segment).toBeDefined();
               for (const id of ['msg_beta_stream', 'msg_tool_runner_eager']) {
                 const spans = allSpans.filter(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === id);
                 expect(spans, id).toHaveLength(1);
