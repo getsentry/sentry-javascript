@@ -368,7 +368,7 @@ describe('Anthropic integration', () => {
         .expect({
           span: container => {
             allSpans.push(...container.items);
-            const segment = allSpans.find(span => span.is_segment);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
             const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(1);
@@ -401,7 +401,7 @@ describe('Anthropic integration', () => {
         .expect({
           span: container => {
             allSpans.push(...container.items);
-            const segment = allSpans.find(span => span.is_segment);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
             const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(2);
@@ -545,8 +545,6 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-response-error.mjs', 'instrument.mjs', (createRunner, test) => {
     test('captures error-shaped responses returned as data', async () => {
-      const allSpans: SerializedStreamedSpanContainer['items'] = [];
-
       await createRunner()
         // The API returns the error as data on a 200 response, never as a thrown error to the caller,
         // so the instrumentation intentionally captures it as an event.
@@ -565,8 +563,7 @@ describe('Anthropic integration', () => {
         })
         .expect({
           span: container => {
-            allSpans.push(...container.items);
-            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
+            const segment = container.items.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
           },
         })
