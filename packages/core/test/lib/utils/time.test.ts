@@ -282,6 +282,30 @@ describe('performanceTimeToSeconds', () => {
     expect(afterCorrection - beforeCorrection).toBeCloseTo((driftMs + 2) / 1000, 6);
   });
 
+  it('converts times before and after a backwards wall clock jump with their own time origin', async () => {
+    let monotonicNowMs = timeSincePageloadMs;
+    const timeOrigin = currentTimeMs - timeSincePageloadMs;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(currentTimeMs));
+    vi.stubGlobal('performance', { timeOrigin, now: () => monotonicNowMs });
+
+    const { performanceTimeToSeconds, timestampInSeconds } = await getFreshTimeModule();
+
+    timestampInSeconds();
+    const entryBeforeJump = monotonicNowMs - 100;
+
+    // 1s later, the wall clock was set back (e.g. by NTP or the user).
+    const clockSetBackMs = RELIABLE_THRESHOLD_MS + 5_000;
+    monotonicNowMs += 1_000;
+    vi.setSystemTime(new Date(currentTimeMs + 1_000 - clockSetBackMs));
+    timestampInSeconds();
+    const entryAfterJump = monotonicNowMs + 100;
+
+    expect(performanceTimeToSeconds(entryBeforeJump)).toBe((timeOrigin + entryBeforeJump) / 1000);
+    expect(performanceTimeToSeconds(entryAfterJump)).toBe((timeOrigin - clockSetBackMs + entryAfterJump) / 1000);
+  });
+
   it('converts the first interaction after a sleep with the new time origin', async () => {
     let monotonicNowMs = timeSincePageloadMs;
 
