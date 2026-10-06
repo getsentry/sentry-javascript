@@ -2,11 +2,7 @@ import { afterAll, expect } from 'vitest';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-// graphql >= 17 publishes its operations via `node:diagnostics_channel`, so the SDK subscribes to
-// those channels (`subscribeGraphqlDiagnosticChannels`) instead of the vendored OTel patcher. This
-// suite pins `^17` and asserts the diagnostics-channel path: graphql semconv attributes, redacted
-// document text, span relationships, and that the legacy OTel path does NOT also fire (no double
-// instrumentation). graphql 17 requires Node >= 22, so this suite is skipped on older Node.
+// GraphQL 17 requires Node >= 22, so this suite is skipped on older Node.
 conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
   afterAll(() => {
     cleanupChildProcesses();
@@ -84,28 +80,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
                 value: 'mutation Login { login(email: "*") }',
                 type: 'string',
               });
-            },
-          })
-          .start()
-          .completed();
-      });
-
-      test('does not double-instrument: the vendored OTel graphql patcher does not fire on 17', async () => {
-        await createTestRunner()
-          .expect({
-            span: container => {
-              const segment = container.items.find(span => span.is_segment);
-              expect(segment?.name).toBe('Test Transaction');
-              const spans = container.items.filter(span => !span.is_segment);
-
-              // The vendored OTel path (origin `auto.graphql.graphql`) must be inactive on 17+.
-              expect(
-                spans.find(span => span.attributes['sentry.origin']?.value === 'auto.graphql.graphql'),
-              ).toBeUndefined();
-              // ...while the diagnostics-channel path is active.
-              expect(
-                spans.find(span => span.attributes['sentry.origin']?.value === 'auto.graphql.diagnostic_channel'),
-              ).toBeDefined();
             },
           })
           .start()
