@@ -114,6 +114,13 @@ below:
   Provides the integration for Session Replay.
 - [`@sentry/core`](https://github.com/getsentry/sentry-javascript/tree/master/packages/core): The base for all
   JavaScript SDKs with interfaces, type definitions and base classes.
+- [`@sentry/bundler-plugins`](https://github.com/getsentry/sentry-javascript/tree/master/packages/bundler-plugins):
+  Uploads source maps and injects release and Debug ID information at build time. Also available as standalone
+  plugins:
+  [`@sentry/webpack-plugin`](https://github.com/getsentry/sentry-javascript/tree/master/packages/legacy/webpack-plugin),
+  [`@sentry/vite-plugin`](https://github.com/getsentry/sentry-javascript/tree/master/packages/legacy/vite-plugin),
+  [`@sentry/rollup-plugin`](https://github.com/getsentry/sentry-javascript/tree/master/packages/legacy/rollup-plugin)
+  and [`@sentry/esbuild-plugin`](https://github.com/getsentry/sentry-javascript/tree/master/packages/legacy/esbuild-plugin).
 
 ## Bug Bounty Program
 
