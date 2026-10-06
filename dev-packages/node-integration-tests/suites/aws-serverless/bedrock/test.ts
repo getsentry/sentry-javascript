@@ -5,6 +5,9 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 const MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0';
 
 function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
+  const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
+  expect(segment).toBeDefined();
+
   // Converse (non-streaming)
   const converseSpan = container.items.find(span => span.name === `chat ${MODEL_ID}`);
   expect(converseSpan).toBeDefined();
@@ -49,12 +52,7 @@ describe('awsIntegration - Bedrock', () => {
     'instrument.mjs',
     (createTestRunner, test) => {
       test('auto-instruments Bedrock Converse and InvokeModel', { timeout: 90_000 }, async () => {
-        await createTestRunner()
-          .ignore('event')
-          .expect({ transaction: transaction => expect(transaction.transaction).toBe('Test Transaction') })
-          .expect({ span: assertBedrockSpans })
-          .start()
-          .completed();
+        await createTestRunner().ignore('event').expect({ span: assertBedrockSpans }).start().completed();
       });
     },
     { additionalDependencies: { '@aws-sdk/client-bedrock-runtime': '^3.1046.0' } },
