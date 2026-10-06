@@ -20,8 +20,6 @@ describe('GraphQL/Apollo Tests', () => {
                   container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
                 ).toBeDefined();
                 const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
-                expect(segment).toBeDefined();
-                expect(segment?.name).toBe('Test Transaction');
                 const children = container.items.filter(
                   span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
                 );
@@ -30,7 +28,6 @@ describe('GraphQL/Apollo Tests', () => {
                 const executeSpan = children.find(
                   span => span.attributes['graphql.processing.type']?.value === 'execute',
                 );
-                expect(executeSpan).toBeDefined();
                 expect(executeSpan?.name).toBe('GraphQL query');
                 expect(executeSpan?.status).toBe('ok');
                 expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
@@ -63,8 +60,6 @@ describe('GraphQL/Apollo Tests', () => {
                   container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
                 ).toBeDefined();
                 const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
-                expect(segment).toBeDefined();
-                expect(segment?.name).toBe('Test Transaction');
                 const children = container.items.filter(
                   span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
                 );
@@ -78,7 +73,6 @@ describe('GraphQL/Apollo Tests', () => {
                     span.attributes['graphql.processing.type']?.value === 'execute' &&
                     span.attributes['graphql.operation.name']?.value === 'Mutation',
                 );
-                expect(mutationSpan).toBeDefined();
                 expect(mutationSpan?.name).toBe('GraphQL mutation');
                 expect(mutationSpan?.status).toBe('ok');
                 expect(mutationSpan?.attributes['graphql.operation.type']).toEqual({
@@ -121,8 +115,6 @@ describe('GraphQL/Apollo Tests', () => {
                   container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
                 ).toBeDefined();
                 const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
-                expect(segment).toBeDefined();
-                expect(segment?.name).toBe('Test Transaction');
                 const children = container.items.filter(
                   span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
                 );
@@ -131,7 +123,6 @@ describe('GraphQL/Apollo Tests', () => {
                 const executeSpan = children.find(
                   span => span.attributes['graphql.processing.type']?.value === 'execute',
                 );
-                expect(executeSpan).toBeDefined();
                 expect(executeSpan?.name).toBe('GraphQL mutation');
                 expect(executeSpan?.status).toBe('ok');
                 expect(executeSpan?.attributes['graphql.operation.type']).toEqual({
@@ -170,8 +161,6 @@ describe('GraphQL/Apollo Tests', () => {
                   container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
                 ).toBeDefined();
                 const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
-                expect(segment).toBeDefined();
-                expect(segment?.name).toBe('Test Transaction');
                 const children = container.items.filter(
                   span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
                 );
@@ -185,7 +174,6 @@ describe('GraphQL/Apollo Tests', () => {
                     span.attributes['graphql.processing.type']?.value === 'execute' &&
                     span.attributes['graphql.operation.name']?.value === 'Mutation',
                 );
-                expect(mutationSpan).toBeDefined();
                 expect(mutationSpan?.name).toBe('GraphQL mutation');
                 expect(mutationSpan?.status).toBe('error');
                 expect(mutationSpan?.attributes['sentry.status.message']).toEqual({

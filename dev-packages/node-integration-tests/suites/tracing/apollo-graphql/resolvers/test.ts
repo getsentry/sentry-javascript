@@ -16,15 +16,12 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
             const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
-            expect(segment).toBeDefined();
-            expect(segment?.name).toBe('Test Transaction');
             const children = container.items.filter(
               span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
             );
 
             expect(segment?.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
             const executeSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'execute');
-            expect(executeSpan).toBeDefined();
             expect(executeSpan?.name).toBe('GraphQL query');
             expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
             expect(executeSpan?.attributes['graphql.processing.type']).toEqual({ value: 'execute', type: 'string' });
@@ -34,13 +31,11 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
               type: 'string',
             });
             const parseSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'parse');
-            expect(parseSpan).toBeDefined();
             expect(parseSpan?.name).toBe('GraphQL parse');
             expect(parseSpan?.attributes['graphql.processing.type']).toEqual({ value: 'parse', type: 'string' });
             const validateSpan = children.find(
               span => span.attributes['graphql.processing.type']?.value === 'validate',
             );
-            expect(validateSpan).toBeDefined();
             expect(validateSpan?.name).toBe('GraphQL validate');
             expect(validateSpan?.attributes['graphql.processing.type']).toEqual({ value: 'validate', type: 'string' });
             const helloResolverSpan = children.find(
@@ -48,7 +43,6 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
                 span.attributes['graphql.processing.type']?.value === 'resolve' &&
                 span.attributes['graphql.field.path']?.value === 'hello',
             );
-            expect(helloResolverSpan).toBeDefined();
             expect(helloResolverSpan?.name).toBe('GraphQL resolve');
             expect(helloResolverSpan?.attributes['graphql.processing.type']).toEqual({
               value: 'resolve',
@@ -76,15 +70,12 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
             const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
-            expect(segment).toBeDefined();
-            expect(segment?.name).toBe('Test Transaction');
             const children = container.items.filter(
               span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
             );
 
             expect(segment?.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
             const executeSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'execute');
-            expect(executeSpan).toBeDefined();
             expect(executeSpan?.name).toBe('GraphQL query');
             expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
             expect(executeSpan?.attributes['graphql.processing.type']).toEqual({ value: 'execute', type: 'string' });
@@ -94,13 +85,11 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
               type: 'string',
             });
             const parseSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'parse');
-            expect(parseSpan).toBeDefined();
             expect(parseSpan?.name).toBe('GraphQL parse');
             expect(parseSpan?.attributes['graphql.processing.type']).toEqual({ value: 'parse', type: 'string' });
             const validateSpan = children.find(
               span => span.attributes['graphql.processing.type']?.value === 'validate',
             );
-            expect(validateSpan).toBeDefined();
             expect(validateSpan?.name).toBe('GraphQL validate');
             expect(validateSpan?.attributes['graphql.processing.type']).toEqual({ value: 'validate', type: 'string' });
             const helloResolverSpan = children.find(
@@ -108,7 +97,6 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
                 span.attributes['graphql.processing.type']?.value === 'resolve' &&
                 span.attributes['graphql.field.path']?.value === 'hello',
             );
-            expect(helloResolverSpan).toBeDefined();
             expect(helloResolverSpan?.name).toBe('GraphQL resolve');
             expect(helloResolverSpan?.attributes['graphql.processing.type']).toEqual({
               value: 'resolve',

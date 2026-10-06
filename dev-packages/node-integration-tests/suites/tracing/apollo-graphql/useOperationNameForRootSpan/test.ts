@@ -14,8 +14,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
               const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
-              expect(segment).toBeDefined();
-              expect(segment?.name).toBe('test span name');
               const children = container.items.filter(
                 span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
               );
@@ -29,7 +27,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name']?.value === 'GetHello',
               );
-              expect(getHelloSpan).toBeDefined();
               expect(getHelloSpan?.name).toBe('GraphQL query');
               expect(getHelloSpan?.status).toBe('ok');
               expect(getHelloSpan?.attributes['graphql.operation.name']).toEqual({ value: 'GetHello', type: 'string' });
@@ -60,8 +57,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
               const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
-              expect(segment).toBeDefined();
-              expect(segment?.name).toBe('test span name');
               const children = container.items.filter(
                 span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
               );
@@ -75,7 +70,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name']?.value === 'TestMutation',
               );
-              expect(testMutationSpan).toBeDefined();
               expect(testMutationSpan?.name).toBe('GraphQL mutation');
               expect(testMutationSpan?.status).toBe('ok');
               expect(testMutationSpan?.attributes['graphql.operation.name']).toEqual({
@@ -115,8 +109,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
               const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
-              expect(segment).toBeDefined();
-              expect(segment?.name).toBe('test span name');
               const children = container.items.filter(
                 span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
               );
@@ -125,7 +117,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
               const executeSpan = children.find(
                 span => span.attributes['graphql.processing.type']?.value === 'execute',
               );
-              expect(executeSpan).toBeDefined();
               expect(executeSpan?.name).toBe('GraphQL query');
               expect(executeSpan?.status).toBe('ok');
               expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
@@ -152,8 +143,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'Test Server Start')).toBeDefined();
               const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
-              expect(segment).toBeDefined();
-              expect(segment?.name).toBe('test span name');
               const children = container.items.filter(
                 span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
               );
@@ -167,7 +156,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name']?.value === 'GetHello',
               );
-              expect(getHelloSpan).toBeDefined();
               expect(getHelloSpan?.name).toBe('GraphQL query');
               expect(getHelloSpan?.status).toBe('ok');
               expect(getHelloSpan?.attributes['graphql.operation.name']).toEqual({ value: 'GetHello', type: 'string' });
@@ -187,7 +175,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name']?.value === 'GetWorld',
               );
-              expect(getWorldSpan).toBeDefined();
               expect(getWorldSpan?.name).toBe('GraphQL query');
               expect(getWorldSpan?.status).toBe('ok');
               expect(getWorldSpan?.attributes['graphql.operation.name']).toEqual({ value: 'GetWorld', type: 'string' });
@@ -224,8 +211,6 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                   container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
                 ).toBeDefined();
                 const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
-                expect(segment).toBeDefined();
-                expect(segment?.name).toBe('test span name');
 
                 expect(segment?.attributes['sentry.graphql.operation']).toEqual({
                   value: [
