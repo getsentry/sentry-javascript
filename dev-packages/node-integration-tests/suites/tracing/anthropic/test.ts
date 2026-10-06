@@ -18,6 +18,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
@@ -148,7 +149,7 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
             expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
             expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
-            expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(completionSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
             expect(completionSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.anthropic');
 
             const errorSpan = spans.find(
@@ -196,13 +197,13 @@ describe('Anthropic integration', () => {
             const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
             expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(completionSpan!.status).toBe('ok');
-            expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(completionSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
             expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(completionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
 
             const errorSpan = spans.find(span => span.name === 'chat error-model');
             expect(errorSpan!.status).toBe('error');
-            expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(errorSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
 
             const streamingSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123');
             expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
@@ -341,7 +342,7 @@ describe('Anthropic integration', () => {
             expect(segment).toBeDefined();
             const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             const nestedSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_nested');
-            expect(nestedSpan.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(nestedSpan.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
 
             // The helper's own internal `create` delegation must be deduped: exactly one span
             // for the streamed response, not a duplicate child span.
@@ -377,7 +378,7 @@ describe('Anthropic integration', () => {
             // [0] messages.create with tools — available tools + tool calls recorded with PII
             expect(firstSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(firstSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
             expect(firstSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(EXPECTED_TOOLS_JSON);
             expect(firstSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value).toBe(EXPECTED_TOOL_CALLS_JSON);
           },
@@ -408,7 +409,7 @@ describe('Anthropic integration', () => {
             for (const span of spans) {
               expect(span.name).toBe('chat claude-3-haiku-20240307');
               expect(span.status).toBe('ok');
-              expect(span.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(span.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(span.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
               expect(span.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["tool_use"]');
               expect(span.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(EXPECTED_TOOLS_JSON);
@@ -501,7 +502,7 @@ describe('Anthropic integration', () => {
             const invalidFormatSpan = spans.find(span => span.name === 'chat invalid-format');
             expect(invalidFormatSpan!.status).toBe('error');
             expect(invalidFormatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('invalid-format');
-            expect(invalidFormatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(invalidFormatSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
 
             const toolSuccessSpan = spans.find(span => span.name === 'chat claude-3-haiku-20240307');
             expect(toolSuccessSpan!.status).toBe('ok');
