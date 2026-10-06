@@ -78,6 +78,15 @@ describe('convert pi-ai messages to gen_ai messages', () => {
     ).toStrictEqual([]);
   });
 
+  it('leaves out messages with a role the conventions do not have', () => {
+    expect(
+      piAiMessagesToGenAiMessages([
+        { role: 'custom', content: 'Summary of the earlier turns.' },
+        { role: 'user', content: 'Weather in Berlin?' },
+      ]),
+    ).toStrictEqual([{ role: 'user', parts: [{ type: 'text', content: 'Weather in Berlin?' }] }]);
+  });
+
   it('drops empty text blocks, which would hide the tool calls next to them', () => {
     expect(
       piAiMessagesToGenAiMessages([

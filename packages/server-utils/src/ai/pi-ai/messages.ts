@@ -1,19 +1,12 @@
 import { isObjectLike, stringify } from '@sentry/core';
-
-/** A message in the gen_ai conventions shape, see https://develop.sentry.dev/sdk/telemetry/traces/modules/ai-agents/. */
-export interface GenAiMessage {
-  role: string;
-  parts: GenAiMessagePart[];
-  finish_reason?: string;
-}
-
-export type GenAiMessagePart = Record<string, unknown> & { type: string };
+import type { GenAiMessage, GenAiMessagePart } from '../types';
 
 /**
  * Map pi-ai messages (`@earendil-works/pi-ai`, which Flue and pi-durable send) to the gen_ai
  * conventions. Sentry renders neither pi-ai's `toolResult` role nor its `toolCall` parts.
  *
- * System messages are left out: their prompt belongs in `gen_ai.system_instructions`.
+ * System messages are left out: their prompt belongs in `gen_ai.system_instructions`. Messages with
+ * a role the conventions do not have are left out too.
  */
 export function piAiMessagesToGenAiMessages(messages: unknown): GenAiMessage[] {
   if (!Array.isArray(messages)) {
@@ -22,7 +15,10 @@ export function piAiMessagesToGenAiMessages(messages: unknown): GenAiMessage[] {
 
   const mapped: GenAiMessage[] = [];
   for (const message of messages) {
-    if (!isObjectLike(message) || typeof message.role !== 'string' || message.role === 'system') {
+    if (
+      !isObjectLike(message) ||
+      (message.role !== 'user' && message.role !== 'assistant' && message.role !== 'toolResult')
+    ) {
       continue;
     }
 

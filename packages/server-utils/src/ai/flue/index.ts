@@ -37,12 +37,15 @@ export type FlueOptions = GenAiOptions;
  * which fall back to the current client's `dataCollection.genAI` settings and are read per event.
  */
 export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstrumentation {
-  // Flue drives the providers through `@earendil-works/pi-ai`. The provider integrations are skipped
-  // on first use rather than here, for two reasons. Constructing the object proves nothing: if
-  // `instrument()` rejects it, suppressing the provider integrations would leave the app with no
-  // `gen_ai.chat` spans at all. And the registry is reset per client (`_setupIntegrations` clears it,
-  // and Cloudflare calls `init()` per request), so a one-shot call at module scope is wiped by the
-  // next `init()` and every later request double-reports.
+  // Flue drives the providers through `@earendil-works/pi-ai`, which sends its requests through the
+  // provider SDKs that Sentry instruments too (see `skipPiAiProviderIntegrations`). Left alone, their
+  // integrations report the same request a second time, as a second `gen_ai.chat` beside the turn's.
+  //
+  // The provider integrations are skipped on first use rather than here, for two reasons.
+  // Constructing the object proves nothing: if `instrument()` rejects it, suppressing the provider
+  // integrations would leave the app with no `gen_ai.chat` spans at all. And the registry is reset per
+  // client (`_setupIntegrations` clears it, and Cloudflare calls `init()` per request), so a one-shot
+  // call at module scope is wiped by the next `init()` and every later request double-reports.
   const skipProviders = skipPiAiProviderIntegrations;
 
   // Keyed by the agent operation's own id, which is what the observations carry. That keeps
