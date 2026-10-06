@@ -121,7 +121,6 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/mysql2-tracing-channel/test.ts',
   'suites/tracing/mysql2/test.ts',
   'suites/tracing/openai/test.ts',
-  'suites/tracing/openai/static/test.ts',
   'suites/tracing/openai/v6/test.ts',
   'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
