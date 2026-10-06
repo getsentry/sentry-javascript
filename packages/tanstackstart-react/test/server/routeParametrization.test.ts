@@ -109,5 +109,29 @@ describe('matchUrlToRoutePattern', () => {
     it('does not match paths no route covers', () => {
       expect(matchUrlToRoutePattern('/nope/nope/nope', routeTreePatterns)).toBeUndefined();
     });
+
+    it.each([
+      ['/', '/'],
+      ['/about', '/about'],
+      ['/pricing', '/pricing'],
+      ['/en', '/{-$locale}/$slug'],
+      ['/hello', '/{-$locale}/$slug'],
+      ['/en/hello', '/{-$locale}/$slug'],
+      ['/posts', '/posts/'],
+      ['/posts/new', '/posts/new'],
+      ['/posts/1', '/posts/$postId'],
+    ])('prefers static over param over optional segments when matching %s', (pathname, expected) => {
+      const patterns = [
+        '/',
+        '/about',
+        '/pricing',
+        '/posts/$postId',
+        '/posts/new',
+        '/{-$locale}/$slug',
+        '/posts/',
+        '/{-$locale}/',
+      ];
+      expect(matchUrlToRoutePattern(pathname, patterns)).toBe(expected);
+    });
   });
 });

@@ -1,120 +1,175 @@
 import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import {
-  escapeStringForRegex,
-  getActiveSpan,
-  getCurrentScope,
-  getRootSpan,
-  spanToJSON,
-  updateSpanName,
-} from '@sentry/core';
+import { getActiveSpan, getCurrentScope, getRootSpan, spanToJSON, updateSpanName } from '@sentry/core';
 
-const STATIC = 0;
-const AFFIXED_PARAM = 1;
-const PARAM = 2;
-const OPTIONAL_PARAM = 3;
-const SPLAT = 4;
+type RouteSegment =
+  | { kind: 'static'; value: string }
+  | { kind: 'param' | 'optional' | 'splat'; prefix: string; suffix: string };
+
+interface ParsedRoutePattern {
+  segments: RouteSegment[];
+  isIndex: boolean;
+  affixLength: number;
+}
+
+interface MatchScore {
+  statics: number;
+  dynamics: number;
+  optionals: number;
+}
 
 // e.g. `@{$groupSlug}`, `sitemap-{$page}.xml`, `{-$locale}`, `{$}`
-const BRACED_SEGMENT_REGEX = /^(.*)\{(-?)\$([^}]*)\}(.*)$/;
+const BRACED_SEGMENT_REGEX = /^(.*?)\{(-?)\$([^}]*)\}(.*)$/;
 
-interface CompiledRoutePattern {
-  regex: RegExp;
-  // One rank per segment (an index route's trailing slash counts as an empty static segment),
-  // used to pick the most specific of several matching patterns.
-  ranks: number[];
-}
+const parsedRoutePatterns = new Map<string, ParsedRoutePattern>();
 
-const compiledRoutePatterns = new Map<string, CompiledRoutePattern>();
-
-function compileSegment(segment: string): { source: string; rank: number } {
-  if (segment === '') {
-    return { source: '', rank: STATIC };
-  }
-
-  if (segment === '$') {
-    return { source: '(?:/.*)?', rank: SPLAT };
-  }
-
-  if (segment.startsWith('$')) {
-    return { source: '/[^/]+', rank: PARAM };
-  }
-
-  const braced = segment.match(BRACED_SEGMENT_REGEX);
-  if (!braced) {
-    return { source: `/${escapeStringForRegex(segment)}`, rank: STATIC };
-  }
-
-  const [, prefix = '', optional, name, suffix = ''] = braced;
-  const hasAffix = !!prefix || !!suffix;
-  const escapedPrefix = escapeStringForRegex(prefix);
-  const escapedSuffix = escapeStringForRegex(suffix);
-
-  if (!name) {
-    return hasAffix
-      ? { source: `/${escapedPrefix}.*${escapedSuffix}`, rank: SPLAT }
-      : { source: '(?:/.*)?', rank: SPLAT };
-  }
-
-  if (optional) {
-    return { source: `(?:/${escapedPrefix}[^/]+${escapedSuffix})?`, rank: OPTIONAL_PARAM };
-  }
-
-  return hasAffix
-    ? { source: `/${escapedPrefix}[^/]*${escapedSuffix}`, rank: AFFIXED_PARAM }
-    : { source: '/[^/]+', rank: PARAM };
-}
-
-function compileRoutePattern(pattern: string): CompiledRoutePattern {
-  const cached = compiledRoutePatterns.get(pattern);
+function parseRoutePattern(pattern: string): ParsedRoutePattern {
+  const cached = parsedRoutePatterns.get(pattern);
   if (cached) {
     return cached;
   }
 
-  let source = '';
-  const ranks: number[] = [];
-  for (const segment of pattern.split('/').slice(1)) {
-    const compiled = compileSegment(segment);
-    source += compiled.source;
-    ranks.push(compiled.rank);
-  }
-
-  // TanStack Router matches case-insensitively by default.
-  const compiledPattern = { regex: new RegExp(`^${source}$`, 'i'), ranks };
-  compiledRoutePatterns.set(pattern, compiledPattern);
-  return compiledPattern;
-}
-
-function isMoreSpecific(a: number[], b: number[]): boolean {
-  // Mirrors TanStack Router: the longer pattern wins (an index route over its layout, an optional
-  // segment over the same path without it), then the earliest more specific segment.
-  if (a.length !== b.length) {
-    return a.length > b.length;
-  }
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) {
-      return (a[i] as number) < (b[i] as number);
+  const parts = pattern.split('/').filter(Boolean);
+  const segments: RouteSegment[] = [];
+  let affixLength = 0;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i] as string;
+    const braced = part.match(BRACED_SEGMENT_REGEX);
+    if (part === '$' || (braced && !braced[3] && !braced[2])) {
+      // A splat consumes the rest of the path, so anything after it in the pattern is part of its suffix.
+      const rest = parts.slice(i + 1).join('/');
+      const prefix = braced?.[1] ?? '';
+      const suffix = (braced?.[4] ?? '') + (rest ? `/${rest}` : '');
+      segments.push({ kind: 'splat', prefix: prefix.toLowerCase(), suffix: suffix.toLowerCase() });
+      affixLength += prefix.length + suffix.length;
+      break;
+    }
+    if (part.startsWith('$')) {
+      segments.push({ kind: 'param', prefix: '', suffix: '' });
+    } else if (braced?.[3]) {
+      const [, prefix = '', optional, , suffix = ''] = braced;
+      segments.push({
+        kind: optional ? 'optional' : 'param',
+        prefix: prefix.toLowerCase(),
+        suffix: suffix.toLowerCase(),
+      });
+      affixLength += prefix.length + suffix.length;
+    } else {
+      segments.push({ kind: 'static', value: part.toLowerCase() });
     }
   }
-  return false;
+
+  const parsed = { segments, isIndex: pattern.endsWith('/'), affixLength };
+  parsedRoutePatterns.set(pattern, parsed);
+  return parsed;
+}
+
+function hasAffixes(value: string, prefix: string, suffix: string): boolean {
+  return value.startsWith(prefix) && value.endsWith(suffix) && value.length >= prefix.length + suffix.length;
+}
+
+function isBetterScore(a: MatchScore, b: MatchScore): boolean {
+  if (a.statics !== b.statics) {
+    return a.statics > b.statics;
+  }
+  if (a.dynamics !== b.dynamics) {
+    return a.dynamics > b.dynamics;
+  }
+  return a.optionals > b.optionals;
+}
+
+/**
+ * Returns the best score with which `segments` match the remaining path `parts`, or `undefined` if they don't match.
+ * Like TanStack Router, a path part matched by a static, param or optional segment adds to the respective score,
+ * weighted so that earlier parts outweigh all later ones.
+ */
+function scoreMatch(
+  segments: RouteSegment[],
+  parts: string[],
+  si: number,
+  pi: number,
+  score: MatchScore,
+): MatchScore | undefined {
+  const segment = segments[si];
+  if (!segment) {
+    return pi === parts.length ? score : undefined;
+  }
+
+  const part = parts[pi];
+  const weight = 2 ** (parts.length - pi - 1);
+
+  switch (segment.kind) {
+    case 'static':
+      return part === segment.value
+        ? scoreMatch(segments, parts, si + 1, pi + 1, { ...score, statics: score.statics + weight })
+        : undefined;
+    case 'param':
+      return part !== undefined && hasAffixes(part, segment.prefix, segment.suffix)
+        ? scoreMatch(segments, parts, si + 1, pi + 1, { ...score, dynamics: score.dynamics + weight })
+        : undefined;
+    case 'optional': {
+      const skipped = scoreMatch(segments, parts, si + 1, pi, score);
+      const consumed =
+        part !== undefined && hasAffixes(part, segment.prefix, segment.suffix)
+          ? scoreMatch(segments, parts, si + 1, pi + 1, { ...score, optionals: score.optionals + weight })
+          : undefined;
+      if (!skipped || !consumed) {
+        return skipped || consumed;
+      }
+      return isBetterScore(consumed, skipped) ? consumed : skipped;
+    }
+    case 'splat': {
+      if (!segment.prefix && !segment.suffix) {
+        return score;
+      }
+      return part !== undefined && hasAffixes(parts.slice(pi).join('/'), segment.prefix, segment.suffix)
+        ? score
+        : undefined;
+    }
+  }
+}
+
+function isMoreSpecific(
+  a: { score: MatchScore; route: ParsedRoutePattern },
+  b: { score: MatchScore; route: ParsedRoutePattern },
+): boolean {
+  if (
+    a.score.statics !== b.score.statics ||
+    a.score.dynamics !== b.score.dynamics ||
+    a.score.optionals !== b.score.optionals
+  ) {
+    return isBetterScore(a.score, b.score);
+  }
+  if (a.route.isIndex !== b.route.isIndex) {
+    return a.route.isIndex;
+  }
+  if (a.route.segments.length !== b.route.segments.length) {
+    return a.route.segments.length > b.route.segments.length;
+  }
+  return a.route.affixLength > b.route.affixLength;
 }
 
 /**
  * Matches a URL pathname against a list of TanStack Start route patterns (the `fullPaths` of the generated route tree).
  * Supports `$param`, `prefix{$param}suffix`, optional `{-$param}` and splat (`$`, `{$}`) segments, as well as
- * index routes (trailing slash). If several patterns match, the most specific one is returned.
+ * index routes (trailing slash). If several patterns match, the most specific one is picked the way TanStack Router
+ * picks it.
  */
 export function matchUrlToRoutePattern(pathname: string, patterns: string[]): string | undefined {
-  const normalizedPathname = pathname.replace(/\/$/, '');
-  let bestPattern: string | undefined;
-  let bestRanks: number[] | undefined;
+  if (pathname === '/' && patterns.includes('/')) {
+    return '/';
+  }
+
+  // TanStack Router matches case-insensitively by default.
+  const parts = pathname.toLowerCase().split('/').filter(Boolean);
+  let best: { pattern: string; score: MatchScore; route: ParsedRoutePattern } | undefined;
   for (const pattern of patterns) {
-    const { regex, ranks } = compileRoutePattern(pattern);
-    if (regex.test(normalizedPathname) && (!bestRanks || isMoreSpecific(ranks, bestRanks))) {
-      bestPattern = pattern;
-      bestRanks = ranks;
+    const route = parseRoutePattern(pattern);
+    const score = scoreMatch(route.segments, parts, 0, 0, { statics: 0, dynamics: 0, optionals: 0 });
+    if (score && (!best || isMoreSpecific({ score, route }, best))) {
+      best = { pattern, score, route };
     }
   }
-  return bestPattern;
+  return best?.pattern;
 }
 
 /**
