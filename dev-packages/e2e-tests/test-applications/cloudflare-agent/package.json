@@ -14,7 +14,7 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@cloudflare/ai-chat": "^0.10.0",
+    "@cloudflare/ai-chat": "latest",
     "@sentry/cloudflare": "^10.68.0",
     "@sentry/core": "^10.68.0",
     "agents": "latest",
