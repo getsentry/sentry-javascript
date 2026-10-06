@@ -29,6 +29,7 @@ import {
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_EMBEDDINGS,
+  GEN_AI_EVALUATE,
   GEN_AI_EXECUTE_TOOL,
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
@@ -64,9 +65,6 @@ import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum
 const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
 
 const ORIGIN = 'auto.vercelai.channel';
-
-// Not yet in `@sentry/conventions`.
-const GEN_AI_EVALUATE = 'gen_ai.evaluate';
 
 // `gen_ai.operation.name` values, keyed to the span op they map to.
 const GEN_AI_OPERATION_SPAN_OPS = {
