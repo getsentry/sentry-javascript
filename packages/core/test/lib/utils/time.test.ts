@@ -227,6 +227,30 @@ describe('performanceTimeToSeconds', () => {
     expect(performanceTimeToSeconds(timeSincePageloadMs)).toBe((currentTimeMs + sleepDurationMs) / 1000);
   });
 
+  it('checks for drift only once per task', async () => {
+    let monotonicNowMs = timeSincePageloadMs;
+    const timeOrigin = currentTimeMs - timeSincePageloadMs;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(currentTimeMs));
+    vi.stubGlobal('performance', { timeOrigin, now: () => monotonicNowMs });
+
+    const { performanceTimeToSeconds } = await getFreshTimeModule();
+
+    performanceTimeToSeconds(0);
+
+    // The device sleeps.
+    vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
+    monotonicNowMs += 10;
+
+    // Still in the same task, so the drift is not noticed yet.
+    expect(performanceTimeToSeconds(monotonicNowMs)).toBe((timeOrigin + monotonicNowMs) / 1000);
+
+    await Promise.resolve();
+
+    expect(performanceTimeToSeconds(monotonicNowMs)).toBe((currentTimeMs + sleepDurationMs) / 1000);
+  });
+
   it('converts a time with the time origin of `entryStartTimeInMs`', async () => {
     let monotonicNowMs = timeSincePageloadMs;
     const timeOrigin = currentTimeMs - timeSincePageloadMs;

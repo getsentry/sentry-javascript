@@ -117,6 +117,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
 }
 
 let _cachedTimestampInSecondsFn: (() => number) | undefined;
+let _checkedForDriftInThisTask = false;
 
 /**
  * Converts a `performance.now()` based, relative time in milliseconds (e.g. a `PerformanceEntry`'s `startTime`)
@@ -161,8 +162,17 @@ export function timestampInSeconds(): number {
  * Returns `undefined` if the Performance API is unavailable.
  */
 export function browserPerformanceTimeOrigin(monotonicTimeInMs = 0): number | undefined {
-  // Makes sure `_timeOriginSegments` is set up.
-  timestampInSeconds();
+  // Checks for drift (and sets up `_timeOriginSegments`), so entries recorded after a sleep get the corrected origin.
+  // To avoid the expensive clock drift check on every call, we only do it once per task. Helps mitigating performance
+  // overhead in loops over many entries (e.g. browser profiling `convertToContinuousProfile`).
+  if (!_checkedForDriftInThisTask) {
+    _checkedForDriftInThisTask = true;
+    // We use a promise instead of `queueMicrotask`, because React Native < 0.66 doesn't have it.
+    void Promise.resolve().then(() => {
+      _checkedForDriftInThisTask = false;
+    });
+    timestampInSeconds();
+  }
 
   let segment: TimeOriginSegment | undefined;
   for (const candidate of _timeOriginSegments) {
