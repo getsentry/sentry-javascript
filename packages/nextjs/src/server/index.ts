@@ -2,7 +2,7 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
-import type { EventProcessor } from '@sentry/core';
+import type { EventProcessor, Scope } from '@sentry/core';
 import {
   _INTERNAL_getActiveClient,
   applySdkMetadata,
@@ -237,9 +237,16 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   // On the client, not the global scope, so a later `init()` after
   // `close()` does not stack another copy. In a request of `withSentry` on
-  // Workers, `init` runs once per isolate and creates no client, so the global
-  // scope gets them and reaches every client of `withSentry`.
-  const eventProcessorTarget = isOwnedByCloudflare ? getGlobalScope() : client;
+  // Workers, `init` creates no client, so the global scope gets them, which
+  // reaches every client of `withSentry`, unless an earlier `init` added them.
+  let eventProcessorTarget: NodeClient | Scope | undefined = client;
+  if (isOwnedByCloudflare) {
+    const globalScope = getGlobalScope();
+    const isAdded = globalScope
+      .getScopeData()
+      .eventProcessors.some(processor => processor.id === 'DropReactControlFlowErrors');
+    eventProcessorTarget = isAdded ? undefined : globalScope;
+  }
   eventProcessorTarget?.addEventProcessor(
     Object.assign(
       ((event, hint) => {

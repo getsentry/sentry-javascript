@@ -94,28 +94,39 @@ describe('Server init()', () => {
     expect(second).toBe(first);
   });
 
-  it('skips init and sets the `turbopack` tag on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+  it('skips init on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({}));
+
+    expect(nodeInit).not.toHaveBeenCalled();
+  });
+
+  it('sets the `turbopack` tag on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
     vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
     setAsyncLocalStorageAsyncContextStrategy();
     (process as { turbopack?: boolean }).turbopack = true;
 
     withIsolationScope(() => init({}));
 
-    expect(nodeInit).not.toHaveBeenCalled();
     expect(getGlobalScope().getScopeData().tags.turbopack).toBe(true);
   });
 
-  it('adds its event processors to the global scope on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+  it('adds its event processors to the global scope once on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
     vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
     setAsyncLocalStorageAsyncContextStrategy();
 
-    withIsolationScope(() => init({}));
+    withIsolationScope(() => {
+      init({});
+      init({});
+    });
 
     expect(
       getGlobalScope()
         .getScopeData()
-        .eventProcessors.map(processor => processor.id),
-    ).toContain('DropReactControlFlowErrors');
+        .eventProcessors.filter(processor => processor.id === 'DropReactControlFlowErrors'),
+    ).toHaveLength(1);
   });
 
   it('inits on Cloudflare Workers outside of a request of `withSentry` from `@sentry/cloudflare`', () => {
