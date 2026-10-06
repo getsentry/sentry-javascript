@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.76.1
+
+- chore(v10/deps): Bump rrweb to 2.44.1 ([#25101](https://github.com/getsentry/sentry-javascript/pull/25101))
+- fix(v10/browser-utils): Handle NS_ERROR_NOT_INITIALIZED from setTimeout in Firefox ([#25051](https://github.com/getsentry/sentry-javascript/pull/25051))
+- fix(v10/feedback): Correct overlapping screenshot annotations and drag dimming ([#25046](https://github.com/getsentry/sentry-javascript/pull/25046))
+- fix(v10/nextjs): Include basePath in request url of Pages Router errors ([#25064](https://github.com/getsentry/sentry-javascript/pull/25064))
+- fix(v10/nuxt): Do not inject debug IDs into the SSR build ([#25094](https://github.com/getsentry/sentry-javascript/pull/25094))
+- fix(v10/sveltekit): Export consoleLoggingIntegration from worker entry ([#25063](https://github.com/getsentry/sentry-javascript/pull/25063))
+- fix(v10/sveltekit): Resolve `@opentelemetry/api` via the SDK on SvelteKit 3 ([#25105](https://github.com/getsentry/sentry-javascript/pull/25105))
+- fix(v10/vue): Share one root render span debounce timer across components ([#24887](https://github.com/getsentry/sentry-javascript/pull/24887))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- test(v10/e2e): Backport CI fixes for cloudflare and sveltekit-3 e2e tests ([#25102](https://github.com/getsentry/sentry-javascript/pull/25102))
+- test(v10/nuxt): Wait for hydration instead of networkidle in dev-mode ([#25103](https://github.com/getsentry/sentry-javascript/pull/25103))
+
+</details>
+
 ## 10.76.0
 
 - feat(v10/vue,nuxt): Record default UI spans without Options API (mixins) ([#24885](https://github.com/getsentry/sentry-javascript/pull/24885))
