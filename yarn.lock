@@ -7990,7 +7990,7 @@
 
 "@sentry/conventions@0.26.0", "@sentry/conventions@^0.26.0":
   version "0.26.0"
-  resolved "https://registry.yarnpkg.com/@sentry/conventions/-/conventions-0.26.0.tgz#3da6c91e1c4e570914b998f8b4f97ab7e5144a23"
+  resolved "https://sfw.security.sentry.io/npm/@sentry/conventions/-/conventions-0.26.0.tgz#3da6c91e1c4e570914b998f8b4f97ab7e5144a23"
   integrity sha512-ttSRcoLf2kIENDIFzH12aJaVMdxnidMYLvVNwEX/JjXfXaQot8u5M47QmgAFOOhVJ4nQ2uU8wTCh+fwSPrrCfg==
 
 "@sentry/node-cpu-profiler@^2.4.4":
