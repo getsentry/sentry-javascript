@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import type { Envelope, SerializedStreamedSpan } from '@sentry/core';
-import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
 import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
@@ -9,6 +9,7 @@ import {
   SENTRY_TRACE_LIFECYCLE,
   SENTRY_ENVIRONMENT,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { createRunner } from '../../../runner';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
@@ -37,7 +38,7 @@ function commonAttributes(segmentSpan: SerializedStreamedSpan): SerializedStream
     [SENTRY_SEGMENT_NAME]: { type: 'string', value: segmentSpan.name },
     [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
     [SENTRY_OP]: { type: 'string', value: 'db.query' },
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.cloudflare.d1' },
+    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.cloudflare.d1' },
     'db.system.name': { type: 'string', value: 'cloudflare-d1' },
   };
 }

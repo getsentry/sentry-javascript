@@ -1,3 +1,5 @@
+import { isObjectLike } from '@sentry/core';
+
 /**
  * Default implementation of the `shouldHandleError` callback.
  *
@@ -9,11 +11,11 @@
  * Hono's `HTTPException`, third-party middleware errors, and custom error subclasses.
  */
 export function defaultShouldHandleError(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) {
+  if (!isObjectLike(error)) {
     return true;
   }
 
-  const status = (error as { status?: unknown }).status;
+  const status = error.status;
 
   return !(typeof status === 'number' && status >= 300 && status < 500);
 }

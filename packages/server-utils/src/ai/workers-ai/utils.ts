@@ -14,17 +14,13 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
-import { isObjectLike, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
+import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS, GEN_AI_EVALUATE } from '@sentry/conventions/op';
+import { isObjectLike, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import {
-  extractSystemInstructions,
-  getGenAiSpanOp,
-  setOutputMessagesAttribute,
-  setTokenUsageAttributes,
-} from '../core/utils';
+import { extractSystemInstructions, setOutputMessagesAttribute, setTokenUsageAttributes } from '../core/utils';
 import { addResponseAttributes as addEvaluateResponseAttributes, getEvaluationInputMessages } from '../typesafe';
 // Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
 export { setOutputMessagesAttribute };
@@ -36,7 +32,7 @@ export type WorkersAiOperationName = 'chat' | 'embeddings' | 'evaluate';
 export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, string> = {
   chat: GEN_AI_CHAT,
   embeddings: GEN_AI_EMBEDDINGS,
-  evaluate: getGenAiSpanOp('evaluate'),
+  evaluate: GEN_AI_EVALUATE,
 };
 
 /**
@@ -69,7 +65,7 @@ export function extractRequestAttributes(
   const attributes: Record<string, SpanAttributeValue> = {
     [GEN_AI_PROVIDER_NAME]: WORKERS_AI_PROVIDER_NAME,
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
+    [SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
     [GEN_AI_REQUEST_MODEL]: typeof model === 'string' ? model : 'unknown',
   };
 

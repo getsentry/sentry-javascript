@@ -7,7 +7,6 @@ import {
   getClient,
   getTraceData,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   timestampInSeconds,
@@ -26,6 +25,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   URL_FULL,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import { amqplibModuleNames } from '../orchestrion/config/amqplib';
@@ -515,7 +515,7 @@ function startPublishSpan(data: AmqpChannelContext): Span {
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_SEND,
       [MESSAGING_MESSAGE_ID]: options?.messageId as string | undefined,
       [ATTR_MESSAGING_CONVERSATION_ID]: options?.correlationId as string | undefined,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PUBLISHER_ORIGIN,
+      [SENTRY_ORIGIN]: PUBLISHER_ORIGIN,
     },
   });
 
@@ -561,7 +561,7 @@ function startConsumeSpan(queue: string | undefined, msg: ConsumeMessage, channe
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_PROCESS,
       [MESSAGING_MESSAGE_ID]: msg.properties?.messageId as string | undefined,
       [ATTR_MESSAGING_CONVERSATION_ID]: msg.properties?.correlationId as string | undefined,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: CONSUMER_ORIGIN,
+      [SENTRY_ORIGIN]: CONSUMER_ORIGIN,
     },
   });
 }

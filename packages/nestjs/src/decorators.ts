@@ -1,6 +1,6 @@
 import type { MonitorConfig } from '@sentry/core';
-import { CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
-import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { captureException } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
 import { isExpectedError } from './helpers';
@@ -42,7 +42,7 @@ export function SentryTraced(op: string = 'function') {
           op: op,
           name: propertyKey,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
+            [SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
             [SENTRY_OP]: op,
             [CODE_FUNCTION_NAME]: propertyKey,
           },

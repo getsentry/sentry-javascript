@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as sentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectSyncKvStorage } from '../src/instrumentations/instrumentDurableObjectSyncKvStorage';
@@ -21,7 +21,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
           name: 'durable_object_storage_kv_get',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'get',
           },
@@ -64,7 +64,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
           name: 'durable_object_storage_kv_put',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'put',
           },
@@ -96,7 +96,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
           name: 'durable_object_storage_kv_delete',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'delete',
           },
@@ -129,7 +129,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
           name: 'durable_object_storage_kv_list',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'list',
           },

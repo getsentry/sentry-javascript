@@ -22,6 +22,7 @@ function currentTraceId(): string | undefined {
 
 describe('Bun HTTP Server Integration', () => {
   beforeAll(() => {
+    getCurrentScope().setClient(undefined);
     init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       tracesSampleRate: 1.0,

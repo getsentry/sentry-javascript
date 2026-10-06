@@ -1,6 +1,5 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Envelope } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
 import { getSpansFromEnvelope } from '../../../spanUtils';
@@ -24,7 +23,7 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
       expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/exec' });
 
       const sqlSpans = spans.filter(
-        span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value === 'auto.db.cloudflare.durable_object.sql',
+        span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.cloudflare.durable_object.sql',
       );
 
       expect(sqlSpans).toHaveLength(3);
@@ -34,7 +33,7 @@ it('instruments SQL exec operations on Durable Object storage', async ({ signal 
             name: 'CREATE TABLE users',
             attributes: expect.objectContaining({
               [SENTRY_OP]: { type: 'string', value: 'db.query' },
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.cloudflare.durable_object.sql' },
+              [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.cloudflare.durable_object.sql' },
               'db.system.name': { type: 'string', value: 'cloudflare-durable-object-sql' },
               'db.operation.name': { type: 'string', value: 'exec' },
               'db.query.text': {

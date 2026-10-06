@@ -4,6 +4,7 @@ import { applySdkMetadata, type Client, type Integration } from '@sentry/core';
 
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { instrumentClientRuntime } from './errors';
+import { createRemixV3RouteProvider } from './routeProvider';
 
 /**
  * Default integrations for the Remix 3 client SDK.
@@ -19,6 +20,8 @@ export function getDefaultIntegrations(options: BrowserOptions): Integration[] {
 /** Initialize the Sentry Remix 3 SDK in the browser. */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
+    // Set at `init` so the page load span can be named from it. An app with its own provider keeps it.
+    routeProvider: createRemixV3RouteProvider(),
     ...options,
     defaultIntegrations: options.defaultIntegrations ?? getDefaultIntegrations(options),
   };

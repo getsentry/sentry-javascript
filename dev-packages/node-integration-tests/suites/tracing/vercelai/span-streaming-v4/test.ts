@@ -1,4 +1,3 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
@@ -15,6 +14,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
@@ -52,7 +52,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(30),
           [GEN_AI_OPERATION_NAME]: attr('invoke_agent'),
           [SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Second span - generate_content for simple generateText
@@ -67,7 +67,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(30),
           [GEN_AI_OPERATION_NAME]: attr('generate_content'),
           [SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Third span - invoke_agent for explicit telemetry generateText
@@ -81,7 +81,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(30),
           [GEN_AI_OPERATION_NAME]: attr('invoke_agent'),
           [SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Fourth span - tool call invoke_agent
@@ -95,7 +95,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(40),
           [GEN_AI_OPERATION_NAME]: attr('invoke_agent'),
           [SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Fifth span - tool call generate_content
@@ -109,7 +109,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(40),
           [GEN_AI_OPERATION_NAME]: attr('generate_content'),
           [SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Sixth span - execute_tool
@@ -122,7 +122,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_TOOL_NAME]: attr('getWeather'),
           [GEN_AI_OPERATION_NAME]: attr('execute_tool'),
           [SENTRY_OP]: attr('gen_ai.execute_tool'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
     ]),
@@ -146,7 +146,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(30),
           [GEN_AI_OPERATION_NAME]: attr('invoke_agent'),
           [SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Second span - generate_content with input/output messages
@@ -165,7 +165,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(30),
           [GEN_AI_OPERATION_NAME]: attr('generate_content'),
           [SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Third span - explicit telemetry invoke_agent with messages
@@ -183,7 +183,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(30),
           [GEN_AI_OPERATION_NAME]: attr('invoke_agent'),
           [SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Fourth span - tool call invoke_agent with messages
@@ -201,7 +201,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(40),
           [GEN_AI_OPERATION_NAME]: attr('invoke_agent'),
           [SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Fifth span - tool call generate_content with tool definitions
@@ -218,7 +218,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(40),
           [GEN_AI_OPERATION_NAME]: attr('generate_content'),
           [SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       // Sixth span - execute_tool with description and input/output
@@ -233,7 +233,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_TOOL_CALL_RESULT]: expect.objectContaining({ value: expect.any(String) }),
           [GEN_AI_OPERATION_NAME]: attr('execute_tool'),
           [SENTRY_OP]: attr('gen_ai.execute_tool'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
     ]),
@@ -247,7 +247,7 @@ describe('Vercel AI integration (streaming v4)', () => {
         attributes: expect.objectContaining({
           [GEN_AI_OPERATION_NAME]: attr('invoke_agent'),
           [SENTRY_OP]: attr('gen_ai.invoke_agent'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       expect.objectContaining({
@@ -260,7 +260,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_USAGE_TOTAL_TOKENS]: attr(40),
           [GEN_AI_OPERATION_NAME]: attr('generate_content'),
           [SENTRY_OP]: attr('gen_ai.generate_content'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
       expect.objectContaining({
@@ -271,7 +271,7 @@ describe('Vercel AI integration (streaming v4)', () => {
           [GEN_AI_TOOL_NAME]: attr('getWeather'),
           [GEN_AI_OPERATION_NAME]: attr('execute_tool'),
           [SENTRY_OP]: attr('gen_ai.execute_tool'),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: attr(expectedOrigin),
+          [SENTRY_ORIGIN]: attr(expectedOrigin),
         }),
       }),
     ]),
