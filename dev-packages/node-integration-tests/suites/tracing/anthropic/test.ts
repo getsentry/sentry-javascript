@@ -54,7 +54,6 @@ describe('Anthropic integration', () => {
             const streamingSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream_withresponse',
             );
-            expect(streamingSpan).toBeDefined();
             expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(streamingSpan!.status).toBe('ok');
             expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
@@ -92,16 +91,13 @@ describe('Anthropic integration', () => {
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(3);
             const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
-            expect(completionSpan).toBeDefined();
             expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(completionSpan!.status).toBe('ok');
 
             const errorSpan = spans.find(span => span.name === 'chat error-model');
-            expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
 
             const streamingSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123');
-            expect(streamingSpan).toBeDefined();
             expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(streamingSpan!.status).toBe('ok');
             expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
@@ -125,7 +121,6 @@ describe('Anthropic integration', () => {
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(3);
             const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
-            expect(completionSpan).toBeDefined();
             expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(completionSpan!.status).toBe('ok');
             expect(completionSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
@@ -148,7 +143,6 @@ describe('Anthropic integration', () => {
             const errorSpan = spans.find(
               span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === '[{"role":"user","content":"This will fail"}]',
             );
-            expect(errorSpan).toBeDefined();
             expect(errorSpan!.name).toBe('chat error-model');
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
@@ -156,7 +150,6 @@ describe('Anthropic integration', () => {
             // TODO: messages.stream() should produce its own distinct gen_ai span, but it
             // currently does not (pre-existing bug). Once fixed, add an additional indexed span assertion.
             const streamingSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123');
-            expect(streamingSpan).toBeDefined();
             expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(streamingSpan!.status).toBe('ok');
             expect(streamingSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
@@ -187,7 +180,6 @@ describe('Anthropic integration', () => {
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(3);
             const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
-            expect(completionSpan).toBeDefined();
             expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(completionSpan!.status).toBe('ok');
             expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
@@ -195,12 +187,10 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
 
             const errorSpan = spans.find(span => span.name === 'chat error-model');
-            expect(errorSpan).toBeDefined();
             expect(errorSpan!.status).toBe('error');
             expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
 
             const streamingSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123');
-            expect(streamingSpan).toBeDefined();
             expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(streamingSpan!.status).toBe('ok');
             expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
@@ -236,7 +226,6 @@ describe('Anthropic integration', () => {
             const detailedStreamSpan = requestStreamSpans.find(
               span => span.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value === '["end_turn"]',
             );
-            expect(detailedStreamSpan).toBeDefined();
             expect(detailedStreamSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(detailedStreamSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(detailedStreamSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
@@ -248,7 +237,6 @@ describe('Anthropic integration', () => {
             const messagesStreamSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
-            expect(messagesStreamSpan).toBeDefined();
             expect(messagesStreamSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(messagesStreamSpan!.status).toBe('ok');
             expect(messagesStreamSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
@@ -291,7 +279,6 @@ describe('Anthropic integration', () => {
             const messagesStreamSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
-            expect(messagesStreamSpan).toBeDefined();
             expect(messagesStreamSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(messagesStreamSpan!.status).toBe('ok');
             expect(messagesStreamSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
@@ -328,7 +315,6 @@ describe('Anthropic integration', () => {
             expect(segment).toBeDefined();
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             const nestedSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_nested');
-            expect(nestedSpan).toBeDefined();
             expect(nestedSpan.attributes['sentry.op'].value).toBe('gen_ai.chat');
 
             // The helper's own internal `create` delegation must be deduped: exactly one span
@@ -430,7 +416,6 @@ describe('Anthropic integration', () => {
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-init' &&
                 span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
-            expect(createInitErrorSpan).toBeDefined();
             expect(createInitErrorSpan!.name).toBe('chat error-stream-init');
             expect(createInitErrorSpan!.status).toBe('error');
 
@@ -439,14 +424,12 @@ describe('Anthropic integration', () => {
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-init' &&
                 span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
-            expect(streamInitErrorSpan).toBeDefined();
             expect(streamInitErrorSpan!.name).toBe('chat error-stream-init');
             expect(streamInitErrorSpan!.status).toBe('error');
 
             const createMidwayErrorSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'ok',
             );
-            expect(createMidwayErrorSpan).toBeDefined();
             expect(createMidwayErrorSpan!.name).toBe('chat error-stream-midway');
             expect(createMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE].value).toBe(true);
             expect(createMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
@@ -455,7 +438,6 @@ describe('Anthropic integration', () => {
             const streamMidwayErrorSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'error',
             );
-            expect(streamMidwayErrorSpan).toBeDefined();
             expect(streamMidwayErrorSpan!.name).toBe('chat error-stream-midway');
             expect(streamMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
           },
@@ -475,13 +457,11 @@ describe('Anthropic integration', () => {
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(2);
             const invalidFormatSpan = spans.find(span => span.name === 'chat invalid-format');
-            expect(invalidFormatSpan).toBeDefined();
             expect(invalidFormatSpan!.status).toBe('error');
             expect(invalidFormatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('invalid-format');
             expect(invalidFormatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
 
             const toolSuccessSpan = spans.find(span => span.name === 'chat claude-3-haiku-20240307');
-            expect(toolSuccessSpan).toBeDefined();
             expect(toolSuccessSpan!.status).toBe('ok');
             expect(toolSuccessSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value).toContain('tool_ok_1');
           },
