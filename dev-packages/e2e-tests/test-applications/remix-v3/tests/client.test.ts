@@ -43,7 +43,51 @@ test('sends a navigation span for a link the runtime intercepts', async ({ page 
 
   const span = await spanPromise;
   expect(span.is_segment).toBe(true);
-  expect(span.name).toBe('Navigation');
+  // The pattern, not the path: an id in the name would make every navigation its own transaction.
+  expect(span.name).toBe('/users/:id');
+  expect(span.name).not.toContain('12345');
+  expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
+});
+
+test('names a navigation to a route it loaded before right at the start', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#to-user').click();
+  await expect(page.locator('#user')).toBeVisible();
+  await page.goBack();
+  await expect(page.locator('#to-user')).toBeVisible();
+
+  // Named through the route provider before any response, so the span never carried the fallback name.
+  // Matched on the destination path: the back navigation is a Remix navigation span too, and it can
+  // be sent when this click starts.
+  const spanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span =>
+      getSpanOp(span) === 'navigation' &&
+      span.attributes?.['sentry.origin']?.value === 'auto.navigation.remix_v3' &&
+      span.attributes?.['url.path']?.value === '/users/12345',
+  );
+
+  await page.locator('#to-user').click();
+  await expect(page.locator('#user')).toBeVisible();
+
+  const span = await spanPromise;
+  expect(span.name).toBe('/users/:id');
+  expect(span.attributes?.['url.template']?.value).toBe('/users/:id');
+});
+
+test('groups an error after a first visit navigation by the route, not the path', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#to-user').click();
+  await expect(page.locator('#user')).toBeVisible();
+
+  const errorPromise = waitForError(APP_NAME, event => event.exception?.values?.[0]?.value === 'Remix 3 client error');
+
+  await page.locator('#throw-on-user').click();
+
+  const error = await errorPromise;
+  // The span started under the fallback name and was renamed later; the scope's transaction name
+  // has to follow, otherwise the error would carry `/users/12345`.
+  expect(error.transaction).toBe('/users/:id');
 });
 
 test('captures a component render error the runtime never rethrows', async ({ page }) => {

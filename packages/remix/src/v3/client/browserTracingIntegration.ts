@@ -5,11 +5,13 @@ import {
   getRootSpan,
   getRouteProvider,
   resolveCurrentRoute,
+  resolveRoute,
   startBrowserTracingNavigationSpan,
   WINDOW,
 } from '@sentry/browser';
 import { SENTRY_OP, SENTRY_ORIGIN, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import {
+  addFetchInstrumentationHandler,
   type Client,
   hasSpanStreamingEnabled,
   type Integration,
@@ -18,9 +20,12 @@ import {
   spanToJSON,
 } from '@sentry/core';
 
-import { ROUTE_TIMING_NAME } from '../routeTiming';
+import { parseRouteTiming, ROUTE_TIMING_NAME } from '../routeTiming';
 
 type Options = Parameters<typeof originalBrowserTracingIntegration>[0];
+
+// The request header the runtime sets on its fetch of a navigation's destination.
+const FRAME_REQUEST_HEADER = 'x-remix-frame';
 
 /**
  * Browser tracing for Remix 3.
@@ -29,8 +34,9 @@ type Options = Parameters<typeof originalBrowserTracingIntegration>[0];
  * do not: `remix/component` intercepts links and form submissions through the Navigation API and never touches
  * History, so the upstream handler never fires.
  *
- * Page load spans are named through the route provider, which learns the route from the document's
- * response.
+ * Spans are named through the route provider. Routes reach it from the server, with each HTML
+ * response, so a span starts under a low cardinality name when its route is not known yet and is
+ * renamed once the response arrives.
  */
 export function browserTracingIntegration(options: Options = {}): Integration {
   const integration = originalBrowserTracingIntegration({ ...options, instrumentNavigation: false });
@@ -76,19 +82,32 @@ function instrumentNavigationApi(client: Client): void {
     return;
   }
 
+  // The navigation span still waiting for its route, which arrives with the response to the runtime's
+  // fetch of the destination. There is at most one: starting a navigation ends the previous span.
+  let pending: { span: Span; url: string; pathname: string } | undefined;
+
+  client.on('spanEnd', span => {
+    if (pending?.span === span) {
+      pending = undefined;
+    }
+  });
+
   navigation.addEventListener('navigate', event => {
     const url = event.destination?.url;
     if (!url || !isRuntimeNavigation(event, url)) {
       return;
     }
 
-    startBrowserTracingNavigationSpan(
+    const pathname = pathnameOf(url) || '/';
+    // Known when the app loaded this route before.
+    const route = resolveRoute(url, client);
+    const span = startBrowserTracingNavigationSpan(
       client,
       {
-        // Low cardinality: the route arrives with the server's response, which navigations do not read yet.
-        name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathnameOf(url) || '/',
+        name: route ?? (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname),
         attributes: {
-          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: route ? 'route' : 'url',
+          ...(route && { [URL_TEMPLATE]: route }),
           [SENTRY_ORIGIN]: 'auto.navigation.remix_v3',
         },
       },
@@ -96,6 +115,33 @@ function instrumentNavigationApi(client: Client): void {
       // navigation finishes.
       { url },
     );
+
+    pending = span && !route ? { span, url, pathname } : undefined;
+  });
+
+  addFetchInstrumentationHandler(({ fetchData, headers, response }) => {
+    if (!pending || !response) {
+      return;
+    }
+    // Only the runtime's own fetch of the destination carries the route. The app's fetches, even to
+    // the same path, do not.
+    if (headers?.get(FRAME_REQUEST_HEADER) !== 'true') {
+      return;
+    }
+    if (pathnameOf(fetchData.url, WINDOW.location?.href) !== pending.pathname) {
+      return;
+    }
+    const { span, url, pathname } = pending;
+    pending = undefined;
+
+    // The route belongs to the URL that answered. After a redirect that is not the one requested, and
+    // recording it under the requested path would misname every later visit there.
+    const servedPathname = pathnameOf(response.url, WINDOW.location?.href) || pathname;
+    recordRoute(client, servedPathname, parseRouteTiming(response.headers.get('server-timing')));
+    const route = resolveRoute(response.url || url, client);
+    if (route) {
+      applyRoute(span, route);
+    }
   });
 }
 
@@ -148,9 +194,9 @@ function isSameOrigin(url: string): boolean {
   }
 }
 
-function pathnameOf(url: string): string | undefined {
+function pathnameOf(url: string, base?: string): string | undefined {
   try {
-    return new URL(url).pathname;
+    return new URL(url, base).pathname;
   } catch {
     return undefined;
   }

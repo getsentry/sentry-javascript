@@ -47,6 +47,9 @@ function UserPage(handle: Handle<{ id?: string }>) {
       <Head title="User" />
       <body>
         <h1 id="user">User {handle.props.id}</h1>
+        <button id="throw-on-user" type="button">
+          Throw error
+        </button>
       </body>
     </html>
   );
