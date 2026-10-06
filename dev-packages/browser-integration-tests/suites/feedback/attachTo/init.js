@@ -10,7 +10,6 @@ window.Sentry = Sentry;
 window.feedback = feedback;
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [feedback],
 });
