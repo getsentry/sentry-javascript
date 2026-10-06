@@ -49,18 +49,15 @@ async function connectToRabbitMQ() {
 
 async function consumeMessageFromQueue(queueName, channel) {
   return new Promise((resolve, reject) => {
-    channel
-      .consume(
-        queueName,
-        message => {
-          if (message) {
-            resolve();
-          } else {
-            reject(new Error('No message received'));
-          }
-        },
-        NO_ACKNOWLEDGEMENT,
-      )
-      .catch(reject);
+    const onMessage = message => (message ? resolve() : reject(new Error('No message received')));
+
+    // Invalid `arguments` throw before the RPC, so the channel stays open for the next `consume`.
+    try {
+      channel.consume('orders-archive', onMessage, { arguments: 'invalid' });
+    } catch {
+      // Expected.
+    }
+
+    channel.consume(queueName, onMessage, NO_ACKNOWLEDGEMENT).catch(reject);
   });
 }

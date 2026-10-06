@@ -143,6 +143,11 @@ interface AmqpDispatchContext extends AmqpChannelContext {
   _sentryNoAck?: boolean;
 }
 
+interface AmqpConsumeContext extends AmqpChannelContext {
+  // The entry this call queued, so the error hook can drop it.
+  _sentryPendingConsumer?: PendingConsumer;
+}
+
 interface AmqpConnectContext {
   arguments?: unknown[];
   result?: unknown;
@@ -210,10 +215,10 @@ function subscribeConfirmPublish(): void {
 
 /** Stashes the `{ noAck, queue }` each `consume` asks for until the broker assigns it a tag. */
 function subscribeConsume(): void {
-  const channel = diagnosticsChannel.tracingChannel<AmqpChannelContext>(CHANNELS.AMQPLIB_CONSUME);
+  const channel = diagnosticsChannel.tracingChannel<AmqpConsumeContext>(CHANNELS.AMQPLIB_CONSUME);
 
   channel.start.subscribe(message => {
-    const data = message as AmqpChannelContext;
+    const data = message as AmqpConsumeContext;
     const consumerChannel = data.self;
     if (!consumerChannel) {
       return;
@@ -224,7 +229,18 @@ function subscribeConsume(): void {
     const queue = typeof queueArg === 'string' ? queueArg : '<unknown>';
     const callback = data.arguments[1];
     const options = data.arguments[2] as { noAck?: boolean } | undefined;
-    consumerChannel[CHANNEL_PENDING_CONSUMERS]?.push({ callback, info: { noAck: !!options?.noAck, queue } });
+    const entry = { callback, info: { noAck: !!options?.noAck, queue } };
+    consumerChannel[CHANNEL_PENDING_CONSUMERS]?.push(entry);
+    data._sentryPendingConsumer = entry;
+  });
+
+  // Some failures, such as invalid `arguments`, leave the channel open. A stale entry would label the
+  // next consumer that shares this callback.
+  channel.error.subscribe(message => {
+    const data = message as AmqpConsumeContext;
+    if (data.self && data._sentryPendingConsumer) {
+      removePendingConsumer(data.self, data._sentryPendingConsumer);
+    }
   });
 }
 
@@ -245,17 +261,18 @@ function subscribeRegisterConsumer(): void {
       return;
     }
 
-    const pending = consumerChannel[CHANNEL_PENDING_CONSUMERS] ?? [];
-    // A failed `consume` leaves its entry behind, so pair by callback, not by position.
-    const index = pending.findIndex(entry => entry.callback === callback);
-    const entry = pending[index];
+    const entry = consumerChannel[CHANNEL_PENDING_CONSUMERS]?.find(pending => pending.callback === callback);
     if (!entry) {
       return;
     }
 
-    pending.splice(index, 1);
+    removePendingConsumer(consumerChannel, entry);
     consumerChannel[CHANNEL_CONSUMER_INFO]?.set(consumerTag, entry.info);
   });
+}
+
+function removePendingConsumer(channel: ChannelLike, entry: PendingConsumer): void {
+  channel[CHANNEL_PENDING_CONSUMERS] = channel[CHANNEL_PENDING_CONSUMERS]?.filter(pending => pending !== entry);
 }
 
 /**
