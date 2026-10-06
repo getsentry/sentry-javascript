@@ -29,6 +29,7 @@ import {
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_EMBEDDINGS,
+  GEN_AI_EVALUATE,
   GEN_AI_EXECUTE_TOOL,
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
@@ -65,9 +66,6 @@ const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
 
 const ORIGIN = 'auto.vercelai.channel';
 
-// Not yet in `@sentry/conventions`.
-const GEN_AI_EVALUATE = 'gen_ai.evaluate';
-
 // `gen_ai.operation.name` values, keyed to the span op they map to.
 const GEN_AI_OPERATION_SPAN_OPS = {
   embeddings: GEN_AI_EMBEDDINGS,
@@ -86,6 +84,7 @@ type GenAiOperation = keyof typeof GEN_AI_OPERATION_SPAN_OPS;
 const VERCEL_AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
 const VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE = 'vercel.ai.model.provider';
 const VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'vercel.ai.settings.maxRetries';
+const VERCEL_AI_TELEMETRY_METADATA_ATTRIBUTE_PREFIX = 'vercel.ai.telemetry.metadata.';
 
 // Tracks the top-level operationId (and whether it streams) per `callId` so a model-call span can
 // name its `doGenerate`/`doStream` operation the same way the OTel integration does. `isStream` is
@@ -216,7 +215,8 @@ export type ChannelEventType =
   | 'embed'
   | 'embedMany'
   | 'rerank'
-  | 'experimental_evaluate';
+  | 'experimental_evaluate'
+  | 'experimental_decide';
 
 /**
  * The context object the AI SDK passes through one tracing-channel call. It is the same object
@@ -417,8 +417,9 @@ export function createSpanFromMessage(
     recordToolDescriptions(callId, event.tools);
   }
 
-  const baseAttributes: Record<string, string | number | boolean> = {
+  const baseAttributes: SpanAttributes = {
     [SENTRY_ORIGIN]: ORIGIN,
+    ...telemetryMetadataAttributes(event.telemetryMetadata),
     ...(provider ? { [GEN_AI_PROVIDER_NAME]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
     ...(modelId ? { [GEN_AI_REQUEST_MODEL]: modelId } : {}),
     ...(maxRetries !== undefined ? { [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries } : {}),
@@ -449,7 +450,9 @@ export function createSpanFromMessage(
     }
     case 'rerank':
       return startGenAiSpan('rerank', modelId, baseAttributes);
+    // `ai` 7.0.128 renamed `experimental_evaluate` to `experimental_decide`; older 7.x still publishes the old name.
     case 'experimental_evaluate':
+    case 'experimental_decide':
       return startGenAiSpan('evaluate', modelId, {
         ...baseAttributes,
         ...(recordInputs
@@ -464,6 +467,22 @@ export function createSpanFromMessage(
       // Unknown event type: opt out rather than open a span we can't shape correctly.
       return undefined;
   }
+}
+
+/**
+ * `experimental_telemetry.metadata` (`ai` <= 6) as `vercel.ai.telemetry.metadata.<key>`, the names the OTel
+ * integration produced from the SDK's `ai.telemetry.metadata.*`. Only the orchestrion adapter sets
+ * `event.telemetryMetadata`; `ai` 7 has no `telemetry.metadata`.
+ */
+function telemetryMetadataAttributes(metadata: unknown): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  if (isObjectLike(metadata)) {
+    for (const [key, value] of Object.entries(metadata)) {
+      if (value === null || value === undefined) continue;
+      attributes[`${VERCEL_AI_TELEMETRY_METADATA_ATTRIBUTE_PREFIX}${key}`] = String(value);
+    }
+  }
+  return attributes;
 }
 
 /** Start a `gen_ai.<operation>` span named `<operation> <suffix>` (or just `<operation>` when no suffix). */
@@ -636,7 +655,7 @@ function getOutputMessages(
   result: Record<string, unknown>,
   finishReason: string | undefined,
 ): string | undefined {
-  if (type === 'experimental_evaluate') {
+  if (type === 'experimental_evaluate' || type === 'experimental_decide') {
     return stringify([{ type: 'evaluation', answers: withProviderConfidence(result) }]);
   }
   // `languageModelCall` exposes the response as a `content` parts array; top-level results expose

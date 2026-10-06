@@ -5,18 +5,25 @@ import { ImportMap } from 'remix/component/server';
 import { assets, entry } from '../assets.ts';
 import { routes } from '../routes.ts';
 
+// Every document loads the browser entry, so the SDK runs on a direct load of any route.
+function Head(handle: Handle<{ title: string }>) {
+  return () => (
+    <head>
+      <meta charSet="utf-8" />
+      <title>{handle.props.title}</title>
+      <ImportMap value={entry.importMap} />
+      {entry.preloads.map(href => (
+        <link key={href} rel="modulepreload" href={href} />
+      ))}
+      <script type="module" src={entry.href}></script>
+    </head>
+  );
+}
+
 function HomePage(handle: Handle<Record<string, never>>) {
   return () => (
     <html lang="en">
-      <head>
-        <meta charSet="utf-8" />
-        <title>Sentry Remix 3</title>
-        <ImportMap value={entry.importMap} />
-        {entry.preloads.map(href => (
-          <link key={href} rel="modulepreload" href={href} />
-        ))}
-        <script type="module" src={entry.href}></script>
-      </head>
+      <Head title="Sentry Remix 3" />
       <body>
         <h1 id="home">Sentry Remix 3</h1>
         {/* No `data-rmx-document`, so the runtime intercepts this through the Navigation API. */}
@@ -37,12 +44,12 @@ function HomePage(handle: Handle<Record<string, never>>) {
 function UserPage(handle: Handle<{ id?: string }>) {
   return () => (
     <html lang="en">
-      <head>
-        <meta charSet="utf-8" />
-        <title>User</title>
-      </head>
+      <Head title="User" />
       <body>
         <h1 id="user">User {handle.props.id}</h1>
+        <button id="throw-on-user" type="button">
+          Throw error
+        </button>
       </body>
     </html>
   );
