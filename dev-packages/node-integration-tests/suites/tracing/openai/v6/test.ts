@@ -51,7 +51,6 @@ describe('OpenAI integration (V6)', () => {
               const chatCompletionSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
               );
-              expect(chatCompletionSpan).toBeDefined();
               expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(chatCompletionSpan!.status).toBe('ok');
               expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -104,7 +103,6 @@ describe('OpenAI integration (V6)', () => {
               });
 
               const responsesSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456');
-              expect(responsesSpan).toBeDefined();
               expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(responsesSpan!.status).toBe('ok');
               expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -153,8 +151,6 @@ describe('OpenAI integration (V6)', () => {
                 span =>
                   span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
               );
-              expect(nonStreamingErrorSpan).toBeDefined();
-              expect(nonStreamingErrorSpan!.name).toBe('chat error-model');
               expect(nonStreamingErrorSpan!.status).toBe('error');
               expect(nonStreamingErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
               expect(nonStreamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -181,7 +177,6 @@ describe('OpenAI integration (V6)', () => {
               const streamingChatCompletionSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
               );
-              expect(streamingChatCompletionSpan).toBeDefined();
               expect(streamingChatCompletionSpan!.name).toBe('chat gpt-4');
               expect(streamingChatCompletionSpan!.status).toBe('ok');
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -244,7 +239,6 @@ describe('OpenAI integration (V6)', () => {
               const streamingResponsesSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_456',
               );
-              expect(streamingResponsesSpan).toBeDefined();
               expect(streamingResponsesSpan!.name).toBe('chat gpt-4');
               expect(streamingResponsesSpan!.status).toBe('ok');
               expect(streamingResponsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -304,8 +298,6 @@ describe('OpenAI integration (V6)', () => {
                 span =>
                   span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
               );
-              expect(streamingErrorSpan).toBeDefined();
-              expect(streamingErrorSpan!.name).toBe('chat error-model');
               expect(streamingErrorSpan!.status).toBe('error');
               expect(streamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
                 type: 'string',
@@ -364,7 +356,6 @@ describe('OpenAI integration (V6)', () => {
               const chatCompletionSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
               );
-              expect(chatCompletionSpan).toBeDefined();
               expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(chatCompletionSpan!.status).toBe('ok');
               expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -429,7 +420,6 @@ describe('OpenAI integration (V6)', () => {
               });
 
               const responsesSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456');
-              expect(responsesSpan).toBeDefined();
               expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(responsesSpan!.status).toBe('ok');
               expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -486,8 +476,6 @@ describe('OpenAI integration (V6)', () => {
                 span =>
                   span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
               );
-              expect(nonStreamingErrorSpan).toBeDefined();
-              expect(nonStreamingErrorSpan!.name).toBe('chat error-model');
               expect(nonStreamingErrorSpan!.status).toBe('error');
               expect(nonStreamingErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
               expect(nonStreamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -518,7 +506,6 @@ describe('OpenAI integration (V6)', () => {
               const streamingChatCompletionSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
               );
-              expect(streamingChatCompletionSpan).toBeDefined();
               expect(streamingChatCompletionSpan!.name).toBe('chat gpt-4');
               expect(streamingChatCompletionSpan!.status).toBe('ok');
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -593,7 +580,6 @@ describe('OpenAI integration (V6)', () => {
               const streamingResponsesSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_456',
               );
-              expect(streamingResponsesSpan).toBeDefined();
               expect(streamingResponsesSpan!.name).toBe('chat gpt-4');
               expect(streamingResponsesSpan!.status).toBe('ok');
               expect(streamingResponsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -661,8 +647,6 @@ describe('OpenAI integration (V6)', () => {
                 span =>
                   span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
               );
-              expect(streamingErrorSpan).toBeDefined();
-              expect(streamingErrorSpan!.name).toBe('chat error-model');
               expect(streamingErrorSpan!.status).toBe('error');
               expect(streamingErrorSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
                 type: 'string',
@@ -725,7 +709,6 @@ describe('OpenAI integration (V6)', () => {
               const chatCompletionSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
               );
-              expect(chatCompletionSpan).toBeDefined();
               expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
               expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toMatchObject({
                 type: 'string',
@@ -743,7 +726,6 @@ describe('OpenAI integration (V6)', () => {
               const streamingChatCompletionSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
               );
-              expect(streamingChatCompletionSpan).toBeDefined();
               expect(streamingChatCompletionSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toEqual({
                 type: 'boolean',
                 value: true,
@@ -791,8 +773,6 @@ describe('OpenAI integration (V6)', () => {
                   span.name === 'embeddings text-embedding-3-small' &&
                   span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] !== undefined,
               );
-              expect(singleEmbeddingSpan).toBeDefined();
-              expect(singleEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
               expect(singleEmbeddingSpan!.status).toBe('ok');
               expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
                 type: 'string',
@@ -836,8 +816,6 @@ describe('OpenAI integration (V6)', () => {
               });
 
               const errorEmbeddingSpan = spans.find(span => span.name === 'embeddings error-model');
-              expect(errorEmbeddingSpan).toBeDefined();
-              expect(errorEmbeddingSpan!.name).toBe('embeddings error-model');
               expect(errorEmbeddingSpan!.status).toBe('error');
               expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
                 type: 'string',
@@ -865,8 +843,6 @@ describe('OpenAI integration (V6)', () => {
                   span.name === 'embeddings text-embedding-3-small' &&
                   span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] === undefined,
               );
-              expect(multiEmbeddingSpan).toBeDefined();
-              expect(multiEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
               expect(multiEmbeddingSpan!.status).toBe('ok');
               expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
                 type: 'string',
@@ -929,7 +905,6 @@ describe('OpenAI integration (V6)', () => {
               const singleEmbeddingSpan = spans.find(
                 span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
               );
-              expect(singleEmbeddingSpan).toBeDefined();
               expect(singleEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
               expect(singleEmbeddingSpan!.status).toBe('ok');
               expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -980,7 +955,6 @@ describe('OpenAI integration (V6)', () => {
               const errorEmbeddingSpan = spans.find(
                 span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Error embedding test!',
               );
-              expect(errorEmbeddingSpan).toBeDefined();
               expect(errorEmbeddingSpan!.name).toBe('embeddings error-model');
               expect(errorEmbeddingSpan!.status).toBe('error');
               expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -1013,7 +987,6 @@ describe('OpenAI integration (V6)', () => {
                   span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value ===
                   '["First input text","Second input text","Third input text"]',
               );
-              expect(multiEmbeddingSpan).toBeDefined();
               expect(multiEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
               expect(multiEmbeddingSpan!.status).toBe('ok');
               expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({

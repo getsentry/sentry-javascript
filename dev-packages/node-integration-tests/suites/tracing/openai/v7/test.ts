@@ -49,7 +49,6 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
               const chatCompletionSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
               );
-              expect(chatCompletionSpan).toBeDefined();
               expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(chatCompletionSpan!.status).toBe('ok');
               expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
@@ -78,7 +77,6 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
 
               // The responses API is a separate instrumented resource file from chat completions.
               const responsesSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456');
-              expect(responsesSpan).toBeDefined();
               expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
               expect(responsesSpan!.status).toBe('ok');
               expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
@@ -92,7 +90,6 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
               const streamingSpan = spans.find(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
               );
-              expect(streamingSpan).toBeDefined();
               expect(streamingSpan!.name).toBe('chat gpt-4');
               expect(streamingSpan!.status).toBe('ok');
               expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({ type: 'boolean', value: true });
@@ -101,7 +98,6 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
               expect(streamingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ type: 'integer', value: 30 });
 
               const errorSpan = spans.find(span => span.name === 'chat error-model' && span.status !== 'ok');
-              expect(errorSpan).toBeDefined();
               expect(errorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
                 type: 'string',
                 value: 'auto.ai.openai',
@@ -142,7 +138,6 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
               const singleEmbeddingSpan = embeddingSpans.find(
                 span => span.name === 'embeddings text-embedding-3-small' && span.status === 'ok',
               );
-              expect(singleEmbeddingSpan).toBeDefined();
               expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
                 type: 'string',
                 value: 'gen_ai.embeddings',

@@ -88,7 +88,6 @@ describe('OpenAI Tool Calls integration', () => {
             const chatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-tools-123',
             );
-            expect(chatToolsSpan).toBeDefined();
             expect(chatToolsSpan!.name).toBe('chat gpt-4');
             expect(chatToolsSpan!.status).toBe('ok');
             expect(chatToolsSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -138,7 +137,6 @@ describe('OpenAI Tool Calls integration', () => {
             const streamingChatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-tools-123',
             );
-            expect(streamingChatToolsSpan).toBeDefined();
             expect(streamingChatToolsSpan!.name).toBe('chat gpt-4');
             expect(streamingChatToolsSpan!.status).toBe('ok');
             expect(streamingChatToolsSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -198,7 +196,6 @@ describe('OpenAI Tool Calls integration', () => {
             const responsesToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_tools_789',
             );
-            expect(responsesToolsSpan).toBeDefined();
             expect(responsesToolsSpan!.name).toBe('chat gpt-4');
             expect(responsesToolsSpan!.status).toBe('ok');
             expect(responsesToolsSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -251,7 +248,6 @@ describe('OpenAI Tool Calls integration', () => {
             const streamingResponsesToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_tools_789',
             );
-            expect(streamingResponsesToolsSpan).toBeDefined();
             expect(streamingResponsesToolsSpan!.name).toBe('chat gpt-4');
             expect(streamingResponsesToolsSpan!.status).toBe('ok');
             expect(streamingResponsesToolsSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -326,7 +322,6 @@ describe('OpenAI Tool Calls integration', () => {
             const chatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-tools-123',
             );
-            expect(chatToolsSpan).toBeDefined();
             expect(chatToolsSpan!.name).toBe('chat gpt-4');
             expect(chatToolsSpan!.status).toBe('ok');
             expect(chatToolsSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -390,7 +385,6 @@ describe('OpenAI Tool Calls integration', () => {
             const streamingChatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-tools-123',
             );
-            expect(streamingChatToolsSpan).toBeDefined();
             expect(streamingChatToolsSpan!.name).toBe('chat gpt-4');
             expect(streamingChatToolsSpan!.status).toBe('ok');
             expect(streamingChatToolsSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -461,7 +455,6 @@ describe('OpenAI Tool Calls integration', () => {
             const responsesToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_tools_789',
             );
-            expect(responsesToolsSpan).toBeDefined();
             expect(responsesToolsSpan!.name).toBe('chat gpt-4');
             expect(responsesToolsSpan!.status).toBe('ok');
             expect(responsesToolsSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -525,7 +518,6 @@ describe('OpenAI Tool Calls integration', () => {
             const streamingResponsesToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_tools_789',
             );
-            expect(streamingResponsesToolsSpan).toBeDefined();
             expect(streamingResponsesToolsSpan!.name).toBe('chat gpt-4');
             expect(streamingResponsesToolsSpan!.status).toBe('ok');
             expect(streamingResponsesToolsSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
