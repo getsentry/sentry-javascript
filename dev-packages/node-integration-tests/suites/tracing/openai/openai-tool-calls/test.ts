@@ -79,11 +79,13 @@ describe('OpenAI Tool Calls integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates openai tool calls related spans with genAI recording disabled', async () => {
       await createRunner()
-        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
-            const chatToolsSpan = container.items.find(
+            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            expect(segment).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(4);
+            const chatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-tools-123',
             );
             expect(chatToolsSpan).toBeDefined();
@@ -133,7 +135,7 @@ describe('OpenAI Tool Calls integration', () => {
               value: 40,
             });
 
-            const streamingChatToolsSpan = container.items.find(
+            const streamingChatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-tools-123',
             );
             expect(streamingChatToolsSpan).toBeDefined();
@@ -193,7 +195,7 @@ describe('OpenAI Tool Calls integration', () => {
               value: 40,
             });
 
-            const responsesToolsSpan = container.items.find(
+            const responsesToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_tools_789',
             );
             expect(responsesToolsSpan).toBeDefined();
@@ -246,7 +248,7 @@ describe('OpenAI Tool Calls integration', () => {
               value: 20,
             });
 
-            const streamingResponsesToolsSpan = container.items.find(
+            const streamingResponsesToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_tools_789',
             );
             expect(streamingResponsesToolsSpan).toBeDefined();
@@ -315,11 +317,13 @@ describe('OpenAI Tool Calls integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates openai tool calls related spans with genAI recording enabled', async () => {
       await createRunner()
-        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
-            const chatToolsSpan = container.items.find(
+            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            expect(segment).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(4);
+            const chatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-tools-123',
             );
             expect(chatToolsSpan).toBeDefined();
@@ -383,7 +387,7 @@ describe('OpenAI Tool Calls integration', () => {
               value: 40,
             });
 
-            const streamingChatToolsSpan = container.items.find(
+            const streamingChatToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-tools-123',
             );
             expect(streamingChatToolsSpan).toBeDefined();
@@ -454,7 +458,7 @@ describe('OpenAI Tool Calls integration', () => {
               value: 40,
             });
 
-            const responsesToolsSpan = container.items.find(
+            const responsesToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_tools_789',
             );
             expect(responsesToolsSpan).toBeDefined();
@@ -518,7 +522,7 @@ describe('OpenAI Tool Calls integration', () => {
               value: 20,
             });
 
-            const streamingResponsesToolsSpan = container.items.find(
+            const streamingResponsesToolsSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_tools_789',
             );
             expect(streamingResponsesToolsSpan).toBeDefined();

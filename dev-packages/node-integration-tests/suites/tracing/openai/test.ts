@@ -34,12 +34,18 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates openai related spans with genAI recording disabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
-        .expect({ transaction: { transaction: 'main' } })
+        .unordered()
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(8);
-            const chatCompletionSpan = container.items.find(
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
+            expect(segment).toBeDefined();
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(8);
+            const chatCompletionSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
@@ -96,7 +102,7 @@ describe('OpenAI integration', () => {
               value: 25,
             });
 
-            const responsesSpan = container.items.find(
+            const responsesSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
@@ -146,7 +152,7 @@ describe('OpenAI integration', () => {
               value: 13,
             });
 
-            const nonStreamingErrorSpan = container.items.find(
+            const nonStreamingErrorSpan = spans.find(
               span =>
                 span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
@@ -175,7 +181,7 @@ describe('OpenAI integration', () => {
               value: 'error-model',
             });
 
-            const streamingChatCompletionSpan = container.items.find(
+            const streamingChatCompletionSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
             );
             expect(streamingChatCompletionSpan).toBeDefined();
@@ -238,7 +244,7 @@ describe('OpenAI integration', () => {
               value: true,
             });
 
-            const streamingResponsesSpan = container.items.find(
+            const streamingResponsesSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_456',
             );
             expect(streamingResponsesSpan).toBeDefined();
@@ -297,7 +303,7 @@ describe('OpenAI integration', () => {
               value: true,
             });
 
-            const streamingErrorSpan = container.items.find(
+            const streamingErrorSpan = spans.find(
               span =>
                 span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
@@ -329,7 +335,7 @@ describe('OpenAI integration', () => {
               value: 'auto.ai.openai',
             });
 
-            const parsedChatCompletionSpan = container.items.find(
+            const parsedChatCompletionSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
@@ -382,7 +388,7 @@ describe('OpenAI integration', () => {
               value: 25,
             });
 
-            const parsedResponsesSpan = container.items.find(
+            const parsedResponsesSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
@@ -433,9 +439,9 @@ describe('OpenAI integration', () => {
             });
 
             // GenAI inputs and outputs must never be recorded when `dataCollection.genAI` disables them.
-            // Asserting over every span in the envelope catches attributes leaking onto
+            // Asserting over every GenAI span catches attributes leaking onto
             // spans which are not individually inspected above.
-            for (const span of container.items) {
+            for (const span of spans) {
               expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
               expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
               expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
@@ -450,12 +456,18 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates openai related spans with genAI recording enabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
-        .expect({ transaction: { transaction: 'main' } })
+        .unordered()
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(8);
-            const chatCompletionSpan = container.items.find(
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
+            expect(segment).toBeDefined();
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(8);
+            const chatCompletionSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
@@ -524,7 +536,7 @@ describe('OpenAI integration', () => {
               value: 25,
             });
 
-            const responsesSpan = container.items.find(
+            const responsesSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
@@ -582,7 +594,7 @@ describe('OpenAI integration', () => {
               value: 13,
             });
 
-            const nonStreamingErrorSpan = container.items.find(
+            const nonStreamingErrorSpan = spans.find(
               span =>
                 span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
@@ -615,7 +627,7 @@ describe('OpenAI integration', () => {
               value: '[{"role":"user","content":"This will fail"}]',
             });
 
-            const streamingChatCompletionSpan = container.items.find(
+            const streamingChatCompletionSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
             );
             expect(streamingChatCompletionSpan).toBeDefined();
@@ -690,7 +702,7 @@ describe('OpenAI integration', () => {
               value: true,
             });
 
-            const streamingResponsesSpan = container.items.find(
+            const streamingResponsesSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_stream_456',
             );
             expect(streamingResponsesSpan).toBeDefined();
@@ -757,7 +769,7 @@ describe('OpenAI integration', () => {
               value: true,
             });
 
-            const streamingErrorSpan = container.items.find(
+            const streamingErrorSpan = spans.find(
               span =>
                 span.name === 'chat error-model' && span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
@@ -793,7 +805,7 @@ describe('OpenAI integration', () => {
               value: 'auto.ai.openai',
             });
 
-            const parsedChatCompletionSpan = container.items.find(
+            const parsedChatCompletionSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
@@ -855,7 +867,7 @@ describe('OpenAI integration', () => {
               value: 25,
             });
 
-            const parsedResponsesSpan = container.items.find(
+            const parsedResponsesSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
@@ -921,12 +933,18 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates openai related spans with custom options', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
-        .expect({ transaction: { transaction: 'main' } })
+        .unordered()
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(8);
-            const chatCompletionSpan = container.items.find(
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
+            expect(segment).toBeDefined();
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(8);
+            const chatCompletionSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
@@ -942,7 +960,7 @@ describe('OpenAI integration', () => {
               value: expect.any(String),
             });
 
-            const streamingChatCompletionSpan = container.items.find(
+            const streamingChatCompletionSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
             );
             expect(streamingChatCompletionSpan).toBeDefined();
@@ -959,7 +977,7 @@ describe('OpenAI integration', () => {
               value: expect.any(String),
             });
 
-            const parsedChatCompletionSpan = container.items.find(
+            const parsedChatCompletionSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
@@ -975,7 +993,7 @@ describe('OpenAI integration', () => {
               value: expect.any(String),
             });
 
-            const parsedResponsesSpan = container.items.find(
+            const parsedResponsesSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
@@ -1001,14 +1019,12 @@ describe('OpenAI integration', () => {
     test('creates openai related spans with genAI recording disabled', async () => {
       await createRunner()
         .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
-            const singleEmbeddingSpan = container.items.find(
+            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            expect(segment).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(4);
+            const singleEmbeddingSpan = spans.find(
               span =>
                 span.name === 'embeddings text-embedding-3-small' &&
                 span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] !== undefined,
@@ -1057,7 +1073,7 @@ describe('OpenAI integration', () => {
               value: 10,
             });
 
-            const errorEmbeddingSpan = container.items.find(span => span.name === 'embeddings error-model');
+            const errorEmbeddingSpan = spans.find(span => span.name === 'embeddings error-model');
             expect(errorEmbeddingSpan).toBeDefined();
             expect(errorEmbeddingSpan!.name).toBe('embeddings error-model');
             expect(errorEmbeddingSpan!.status).toBe('error');
@@ -1082,7 +1098,7 @@ describe('OpenAI integration', () => {
               value: 'error-model',
             });
 
-            const multiEmbeddingSpan = container.items.find(
+            const multiEmbeddingSpan = spans.find(
               span =>
                 span.name === 'embeddings text-embedding-3-small' &&
                 span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] === undefined,
@@ -1126,14 +1142,14 @@ describe('OpenAI integration', () => {
             // GenAI inputs and outputs must never be recorded when `dataCollection.genAI` disables them.
             // Asserting over every span in the envelope catches attributes leaking onto
             // spans which are not individually inspected above.
-            for (const span of container.items) {
+            for (const span of spans) {
               expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
               expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
               expect(span.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
               expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();
             }
 
-            const rawEmbeddingSpan = container.items.find(span => span.name === 'embeddings text-embedding-3-large');
+            const rawEmbeddingSpan = spans.find(span => span.name === 'embeddings text-embedding-3-large');
             expect(rawEmbeddingSpan).toBeDefined();
             expect(rawEmbeddingSpan!.name).toBe('embeddings text-embedding-3-large');
             expect(rawEmbeddingSpan!.status).toBe('ok');
@@ -1171,14 +1187,12 @@ describe('OpenAI integration', () => {
     test('creates openai related spans with genAI recording enabled', async () => {
       await createRunner()
         .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
-            const singleEmbeddingSpan = container.items.find(
+            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            expect(segment).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(4);
+            const singleEmbeddingSpan = spans.find(
               span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
             );
             expect(singleEmbeddingSpan).toBeDefined();
@@ -1229,7 +1243,7 @@ describe('OpenAI integration', () => {
               value: 10,
             });
 
-            const errorEmbeddingSpan = container.items.find(
+            const errorEmbeddingSpan = spans.find(
               span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Error embedding test!',
             );
             expect(errorEmbeddingSpan).toBeDefined();
@@ -1260,7 +1274,7 @@ describe('OpenAI integration', () => {
               value: 'Error embedding test!',
             });
 
-            const multiEmbeddingSpan = container.items.find(
+            const multiEmbeddingSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value ===
                 '["First input text","Second input text","Third input text"]',
@@ -1305,7 +1319,7 @@ describe('OpenAI integration', () => {
               value: 10,
             });
 
-            const rawEmbeddingSpan = container.items.find(span => span.name === 'embeddings text-embedding-3-large');
+            const rawEmbeddingSpan = spans.find(span => span.name === 'embeddings text-embedding-3-large');
             expect(rawEmbeddingSpan).toBeDefined();
             expect(rawEmbeddingSpan!.name).toBe('embeddings text-embedding-3-large');
             expect(rawEmbeddingSpan!.status).toBe('ok');
@@ -1343,41 +1357,31 @@ describe('OpenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-root-span.mjs', 'instrument-root-span.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-root-span.mjs', 'instrument.mjs', (createRunner, test) => {
     test('it works without a wrapping span', async () => {
       await createRunner()
-        // First the span that our mock express server is emitting, unrelated to this test
         .expect({
-          transaction: {
-            transaction: 'POST /openai/chat/completions',
-          },
-        })
-        .expect({
-          transaction: {
-            transaction: 'chat gpt-3.5-turbo',
-            contexts: {
-              trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
-                data: {
-                  [GEN_AI_OPERATION_NAME]: 'chat',
-                  [SENTRY_OP]: 'gen_ai.chat',
-                  [SENTRY_ORIGIN]: 'auto.ai.openai',
-                  [GEN_AI_PROVIDER_NAME]: 'openai',
-                  [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
-                  [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
-                  [GEN_AI_RESPONSE_MODEL]: 'gpt-3.5-turbo',
-                  [GEN_AI_RESPONSE_ID]: 'chatcmpl-mock123',
-                  [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]',
-                  [GEN_AI_USAGE_INPUT_TOKENS]: 10,
-                  [GEN_AI_USAGE_OUTPUT_TOKENS]: 15,
-                  [GEN_AI_USAGE_TOTAL_TOKENS]: 25,
-                },
-                op: 'gen_ai.chat',
-                origin: 'auto.ai.openai',
-                status: 'ok',
-              },
-            },
+          span: container => {
+            const serverSegment = container.items.find(
+              span => span.is_segment && span.name === 'POST /openai/chat/completions',
+            );
+            expect(serverSegment).toBeDefined();
+            const segment = container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+            expect(segment?.span_id).toEqual(expect.any(String));
+            expect(segment?.trace_id).toEqual(expect.any(String));
+            expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
+            expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
+            expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
+            expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
+            expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+            expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
+            expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+            expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
+            expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({ value: '["stop"]', type: 'string' });
+            expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
+            expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
+            expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
+            expect(segment?.status).toEqual('ok');
           },
         })
         .start()
@@ -1388,38 +1392,28 @@ describe('OpenAI integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-azure-openai.mjs', 'instrument.mjs', (createRunner, test) => {
     test('it works with Azure OpenAI', async () => {
       await createRunner()
-        // First the span that our mock express server is emitting, unrelated to this test
         .expect({
-          transaction: {
-            transaction: 'POST /azureopenai/deployments/:model/chat/completions',
-          },
-        })
-        .expect({
-          transaction: {
-            transaction: 'chat gpt-3.5-turbo',
-            contexts: {
-              trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
-                data: {
-                  [GEN_AI_OPERATION_NAME]: 'chat',
-                  [SENTRY_OP]: 'gen_ai.chat',
-                  [SENTRY_ORIGIN]: 'auto.ai.openai',
-                  [GEN_AI_PROVIDER_NAME]: 'openai',
-                  [GEN_AI_REQUEST_MODEL]: 'gpt-3.5-turbo',
-                  [GEN_AI_REQUEST_TEMPERATURE]: 0.7,
-                  [GEN_AI_RESPONSE_MODEL]: 'gpt-3.5-turbo',
-                  [GEN_AI_RESPONSE_ID]: 'chatcmpl-mock123',
-                  [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]',
-                  [GEN_AI_USAGE_INPUT_TOKENS]: 10,
-                  [GEN_AI_USAGE_OUTPUT_TOKENS]: 15,
-                  [GEN_AI_USAGE_TOTAL_TOKENS]: 25,
-                },
-                op: 'gen_ai.chat',
-                origin: 'auto.ai.openai',
-                status: 'ok',
-              },
-            },
+          span: container => {
+            const serverSegment = container.items.find(
+              span => span.is_segment && span.name === 'POST /azureopenai/deployments/:model/chat/completions',
+            );
+            expect(serverSegment).toBeDefined();
+            const segment = container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+            expect(segment?.span_id).toEqual(expect.any(String));
+            expect(segment?.trace_id).toEqual(expect.any(String));
+            expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
+            expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
+            expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
+            expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
+            expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+            expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
+            expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+            expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
+            expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({ value: '["stop"]', type: 'string' });
+            expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
+            expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
+            expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
+            expect(segment?.status).toEqual('ok');
           },
         })
         .start()
@@ -1432,16 +1426,14 @@ describe('OpenAI integration', () => {
     test('captures conversation ID from Conversations API and previous_response_id', async () => {
       await createRunner()
         .expect({
-          transaction: {
-            transaction: 'conversation-test',
-          },
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(5);
-            const conversationCreateSpan = container.items.find(span => span.name === 'chat unknown');
+            const segment = container.items.find(span => span.is_segment && span.name === 'conversation-test');
+            expect(segment).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(5);
+            const conversationCreateSpan = spans.find(span => span.name === 'chat');
             expect(conversationCreateSpan).toBeDefined();
-            expect(conversationCreateSpan!.name).toBe('chat unknown');
+            expect(conversationCreateSpan!.name).toBe('chat');
             expect(conversationCreateSpan!.status).toBe('ok');
             expect(conversationCreateSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
@@ -1464,7 +1456,7 @@ describe('OpenAI integration', () => {
               value: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
             });
 
-            const conversationResponseSpan = container.items.find(
+            const conversationResponseSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_CONVERSATION_ID]?.value ===
                   'conv_689667905b048191b4740501625afd940c7533ace33a2dab' &&
@@ -1497,7 +1489,7 @@ describe('OpenAI integration', () => {
               value: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
             });
 
-            const unlinkedResponseSpan = container.items.find(
+            const unlinkedResponseSpan = spans.find(
               span =>
                 span.attributes[SENTRY_OP]?.value === 'gen_ai.chat' &&
                 span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
@@ -1510,7 +1502,7 @@ describe('OpenAI integration', () => {
             });
             expect(unlinkedResponseSpan!.attributes[GEN_AI_CONVERSATION_ID]).toBeUndefined();
 
-            const previousResponseSpan = container.items.find(
+            const previousResponseSpan = spans.find(
               span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'resp_mock_conv_123',
             );
             expect(previousResponseSpan).toBeDefined();
@@ -1540,11 +1532,11 @@ describe('OpenAI integration', () => {
               value: 'resp_mock_conv_123',
             });
 
-            const rawConversationSpan = container.items.find(
-              span => span.name === 'chat unknown' && span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
+            const rawConversationSpan = spans.find(
+              span => span.name === 'chat' && span.attributes[GEN_AI_CONVERSATION_ID] === undefined,
             );
             expect(rawConversationSpan).toBeDefined();
-            expect(rawConversationSpan!.name).toBe('chat unknown');
+            expect(rawConversationSpan!.name).toBe('chat');
             expect(rawConversationSpan!.status).toBe('ok');
             expect(rawConversationSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
               type: 'string',
@@ -1575,16 +1567,16 @@ describe('OpenAI integration', () => {
     test('attaches manual conversation ID set via setConversationId() to all chat spans', async () => {
       await createRunner()
         .expect({
-          transaction: {
-            transaction: 'chat-with-manual-conversation-id',
-          },
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
+            const segment = container.items.find(
+              span => span.is_segment && span.name === 'chat-with-manual-conversation-id',
+            );
+            expect(segment).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(3);
 
             // All three chat completion spans should have the same manually-set conversation ID
-            for (const span of container.items) {
+            for (const span of spans) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
               expect(span!.attributes['gen_ai.conversation.id']).toEqual({
@@ -1607,16 +1599,14 @@ describe('OpenAI integration', () => {
     test('isolates conversation IDs across separate scopes - conversation 1', async () => {
       await createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /chat/conversation-1',
-          },
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(2);
+            const segment = container.items.find(span => span.is_segment && span.name === 'GET /chat/conversation-1');
+            expect(segment).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(2);
 
             // Both chat completion spans should have the expected conversation ID
-            for (const span of container.items) {
+            for (const span of spans) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
               expect(span!.attributes['gen_ai.conversation.id']).toEqual({
@@ -1638,16 +1628,14 @@ describe('OpenAI integration', () => {
     test('isolates conversation IDs across separate scopes - conversation 2', async () => {
       await createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /chat/conversation-2',
-          },
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(2);
+            const segment = container.items.find(span => span.is_segment && span.name === 'GET /chat/conversation-2');
+            expect(segment).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(2);
 
             // Both chat completion spans should have the expected conversation ID
-            for (const span of container.items) {
+            for (const span of spans) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
               expect(span!.attributes['gen_ai.conversation.id']).toEqual({
@@ -1673,14 +1661,12 @@ describe('OpenAI integration', () => {
       test('extracts system instructions from messages', async () => {
         await createRunner()
           .expect({
-            transaction: {
-              transaction: 'main',
-            },
-          })
-          .expect({
             span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
+              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              expect(segment).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+              expect(spans).toHaveLength(1);
+              const [firstSpan] = spans;
 
               // [0] chat completion with system instructions extracted from messages
               expect(firstSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toEqual({
@@ -1699,134 +1685,30 @@ describe('OpenAI integration', () => {
     test('preserves .withResponse() method and works correctly', async () => {
       await createRunner()
         .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(2);
+            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            expect(segment).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            expect(spans).toHaveLength(2);
 
-            for (const span of container.items) {
+            for (const span of spans) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
               expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
               expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
             }
 
-            const parsedSpans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID] !== undefined);
+            const parsedSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] !== undefined);
             expect(parsedSpans).toHaveLength(1);
             expect(parsedSpans[0]!.attributes[GEN_AI_RESPONSE_ID]).toEqual({
               type: 'string',
               value: 'chatcmpl-withresponse',
             });
 
-            const rawSpans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
+            const rawSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
             expect(rawSpans).toHaveLength(1);
             expect(rawSpans[0]!.attributes[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
             expect(rawSpans[0]!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
-  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
-    test('creates openai related spans with span streaming enabled', async () => {
-      const spans: SerializedStreamedSpanContainer['items'] = [];
-
-      await createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            spans.push(...container.items);
-            const chatCompletionSpan = spans.find(
-              span =>
-                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
-                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-3.5-turbo',
-            );
-            expect(chatCompletionSpan).toBeDefined();
-            expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
-            expect(chatCompletionSpan!.status).toBe('ok');
-            expect(chatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-            expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
-              type: 'string',
-              value: 'gen_ai.chat',
-            });
-            expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-              type: 'string',
-              value: 'auto.ai.openai',
-            });
-            expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-              type: 'string',
-              value: 'gpt-3.5-turbo',
-            });
-            expect(chatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
-              type: 'string',
-              value: '[{"role":"user","content":"What is the capital of France?"}]',
-            });
-            expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
-
-            const parsedChatCompletionSpan = spans.find(
-              span =>
-                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123' &&
-                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
-            );
-            expect(parsedChatCompletionSpan).toBeDefined();
-            expect(parsedChatCompletionSpan!.name).toBe('chat gpt-4o');
-            expect(parsedChatCompletionSpan!.status).toBe('ok');
-            expect(parsedChatCompletionSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-              type: 'string',
-              value: 'chat',
-            });
-            expect(parsedChatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
-              type: 'string',
-              value: 'gen_ai.chat',
-            });
-            expect(parsedChatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-              type: 'string',
-              value: 'auto.ai.openai',
-            });
-            expect(parsedChatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-              type: 'string',
-              value: 'gpt-4o',
-            });
-            expect(parsedChatCompletionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
-              type: 'string',
-              value: '[{"role":"user","content":"What is the capital of France?"}]',
-            });
-            expect(parsedChatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-              type: 'string',
-              value: 'openai',
-            });
-
-            const parsedResponsesSpan = spans.find(
-              span =>
-                span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456' &&
-                span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'gpt-4o',
-            );
-            expect(parsedResponsesSpan).toBeDefined();
-            expect(parsedResponsesSpan!.name).toBe('chat gpt-4o');
-            expect(parsedResponsesSpan!.status).toBe('ok');
-            expect(parsedResponsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-            expect(parsedResponsesSpan!.attributes[SENTRY_OP]).toEqual({
-              type: 'string',
-              value: 'gen_ai.chat',
-            });
-            expect(parsedResponsesSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-              type: 'string',
-              value: 'auto.ai.openai',
-            });
-            expect(parsedResponsesSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-              type: 'string',
-              value: 'gpt-4o',
-            });
-            expect(parsedResponsesSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
-              type: 'string',
-              value: 'What is the capital of France?',
-            });
-            expect(parsedResponsesSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
           },
         })
         .start()
