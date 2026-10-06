@@ -7988,10 +7988,10 @@
     "@angular-devkit/schematics" "14.2.13"
     jsonc-parser "3.1.0"
 
-"@sentry/conventions@0.25.0", "@sentry/conventions@^0.25.0":
-  version "0.25.0"
-  resolved "https://sfw.security.sentry.io/npm/@sentry/conventions/-/conventions-0.25.0.tgz#62c276fe8c608e533a42f0dba2ebc58c62b97b14"
-  integrity sha512-7SouCAX3qx+AzLsxb6gbl3dKVWNhp2wFjdYQ/T90sGwqPPQUoZVA9YwsWwvx07hqcCiSqFW9mUAzyUftASnuhQ==
+"@sentry/conventions@0.26.0", "@sentry/conventions@^0.26.0":
+  version "0.26.0"
+  resolved "https://registry.yarnpkg.com/@sentry/conventions/-/conventions-0.26.0.tgz#3da6c91e1c4e570914b998f8b4f97ab7e5144a23"
+  integrity sha512-ttSRcoLf2kIENDIFzH12aJaVMdxnidMYLvVNwEX/JjXfXaQot8u5M47QmgAFOOhVJ4nQ2uU8wTCh+fwSPrrCfg==
 
 "@sentry/node-cpu-profiler@^2.4.4":
   version "2.4.4"
