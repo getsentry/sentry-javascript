@@ -188,24 +188,24 @@ function instrumentReadableStream(stream: InstrumentableReadableStream, span: Sp
   if (stream.cancel) {
     const originalCancel = stream.cancel.bind(stream);
     stream.cancel = (reason?: unknown): Promise<void> =>
-      completeWithLifecycle(
-        withActiveSpan(span, () => originalCancel(reason)),
-        lifecycle,
-      );
+      stream.locked
+        ? originalCancel(reason)
+        : completeWithLifecycle(
+            withActiveSpan(span, () => originalCancel(reason)),
+            lifecycle,
+          );
   }
 
   if (stream.pipeTo) {
     const originalPipeTo = stream.pipeTo.bind(stream);
     const instrumentedPipeTo = (destination: WritableStream<unknown>, options?: StreamPipeOptions): Promise<void> => {
-      if (stream.locked || destination.locked) {
-        return Promise.reject(new TypeError('Cannot pipe to or from a locked stream.'));
-      }
-
       let destinationWriter: WritableStreamDefaultWriter<unknown>;
       try {
+        if (stream.locked || destination.locked) {
+          return Promise.reject(new TypeError('Cannot pipe to or from a locked stream.'));
+        }
         destinationWriter = destination.getWriter();
       } catch (error) {
-        lifecycle.fail();
         return Promise.reject(error);
       }
 

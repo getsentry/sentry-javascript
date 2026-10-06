@@ -125,3 +125,67 @@ describe('LangGraph pipeTo preconditions', () => {
     expect(span.setStatus).not.toHaveBeenCalled();
   });
 });
+
+describe('LangGraph stream caller errors', () => {
+  it.each([undefined, null, {}])(
+    'keeps the stream usable after an invalid pipeTo destination: %s',
+    async destination => {
+      const span = createSpan();
+      const stream = instrumentStreamResult(
+        new ReadableStream<string>({
+          start(controller) {
+            controller.enqueue('Sunny in Seoul');
+            controller.close();
+          },
+        }),
+        span as unknown as Span,
+        null,
+        false,
+      );
+
+      await expect(stream.pipeTo(destination as WritableStream<string>)).rejects.toThrow(TypeError);
+
+      expect(span.end).not.toHaveBeenCalled();
+      expect(span.setStatus).not.toHaveBeenCalled();
+      const chunks: string[] = [];
+      await stream.pipeTo(
+        new WritableStream({
+          write: chunk => {
+            chunks.push(chunk);
+          },
+        }),
+      );
+      expect(chunks).toEqual(['Sunny in Seoul']);
+      expect(span.end).toHaveBeenCalledTimes(1);
+      expect(span.setStatus).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps reader consumption active when cancel is called on a locked stream', async () => {
+    const span = createSpan();
+    const stream = instrumentStreamResult(
+      new ReadableStream<string>({
+        start(controller) {
+          controller.enqueue('Sunny in Seoul');
+          controller.enqueue('Clear skies tomorrow');
+          controller.close();
+        },
+      }),
+      span as unknown as Span,
+      null,
+      false,
+    );
+    const reader = stream.getReader();
+    expect(await reader.read()).toEqual({ done: false, value: 'Sunny in Seoul' });
+
+    await expect(stream.cancel()).rejects.toThrow(TypeError);
+
+    expect(span.end).not.toHaveBeenCalled();
+    expect(span.setStatus).not.toHaveBeenCalled();
+    expect(await reader.read()).toEqual({ done: false, value: 'Clear skies tomorrow' });
+    expect(await reader.read()).toEqual({ done: true, value: undefined });
+    reader.releaseLock();
+    expect(span.end).toHaveBeenCalledTimes(1);
+    expect(span.setStatus).not.toHaveBeenCalled();
+  });
+});
