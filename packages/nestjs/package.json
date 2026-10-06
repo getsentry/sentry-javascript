@@ -44,7 +44,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.25.0",
+    "@sentry/conventions": "^0.26.0",
     "@sentry/core": "11.4.0",
     "@sentry/node": "11.4.0",
     "@sentry/server-utils": "11.4.0"
