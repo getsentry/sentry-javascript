@@ -61,14 +61,19 @@ export function getOperation(spanType: MastraSpanType): { op: string; operationN
  */
 export function getSpanName(span: MastraExportedSpan): string {
   const operationName = getOperation(span.type)?.operationName ?? span.type;
-  const identifier =
-    span.type === 'classifier_evaluation'
-      ? span.attributes?.modelId
-      : MODEL_SPAN_TYPES.has(span.type) || span.type === 'rag_embedding'
-        ? span.attributes?.model
-        : (span.entityName ?? span.entityId);
+  const identifier = getSpanIdentifier(span);
 
   return identifier ? `${operationName} ${identifier}` : operationName;
+}
+
+function getSpanIdentifier(span: MastraExportedSpan): string | undefined {
+  if (span.type === 'classifier_evaluation') {
+    return span.attributes?.modelId;
+  }
+  if (MODEL_SPAN_TYPES.has(span.type) || span.type === 'rag_embedding') {
+    return span.attributes?.model;
+  }
+  return span.entityName ?? span.entityId;
 }
 
 function serialize(value: unknown): string | undefined {
