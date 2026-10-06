@@ -46,7 +46,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       return (
         spans.some(span => span.is_segment && span.attributes['url.path']?.value === `${apiPrefix}/nitro-fetch`) &&
         spans.some(
-          span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes('example.com'),
+          span => getSpanOp(span) === 'http.client' && span.attributes['url.full']?.value === 'https://example.com/',
         )
       );
     });
@@ -60,7 +60,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       span => span.is_segment && span.attributes['url.path']?.value === `${apiPrefix}/nitro-fetch`,
     );
     const httpClientSpan = spans.find(
-      span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes('example.com'),
+      span => getSpanOp(span) === 'http.client' && span.attributes['url.full']?.value === 'https://example.com/',
     );
 
     expect(serverSegmentSpan).toBeDefined();
