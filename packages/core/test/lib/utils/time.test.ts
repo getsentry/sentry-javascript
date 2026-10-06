@@ -318,7 +318,7 @@ describe('performanceTimeToSeconds', () => {
     const { browserPerformanceTimeOrigin, timestampInSeconds } = await getFreshTimeModule();
 
     timestampInSeconds();
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 110; i++) {
       monotonicNowMs += 1_000;
       wallNowMs += 1_000 + sleepDurationMs;
       vi.setSystemTime(new Date(wallNowMs));
@@ -373,7 +373,7 @@ describe('performanceTimeToSeconds', () => {
     const { performanceTimeToSeconds, timestampInSeconds } = await getFreshTimeModule();
 
     timestampInSeconds();
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 110; i++) {
       monotonicNowMs += 1_000;
       wallNowMs += 1_000 + sleepDurationMs;
       vi.setSystemTime(new Date(wallNowMs));

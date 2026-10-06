@@ -12,7 +12,7 @@ const CLOCK_DRIFT_THRESHOLD_MS = 1_000;
  * Max number of time origins we store. When we hit it, we drop the oldest one, except the page load origin, which
  * the pageload span uses.
  */
-const MAX_TIME_ORIGIN_SEGMENTS = 30;
+const MAX_TIME_ORIGIN_SEGMENTS = 100;
 
 /**
  * A partial definition of the [Performance Web API]{@link https://developer.mozilla.org/en-US/docs/Web/API/Performance}
