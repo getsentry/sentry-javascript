@@ -21,8 +21,11 @@ interface StreamingState {
   promptTokens?: number;
   /** Number of completion/output tokens used. */
   completionTokens?: number;
+  candidateTokens?: number;
+  reasoningOutputTokens?: number;
   /** Number of total tokens used. */
   totalTokens?: number;
+  cacheReadInputTokens?: number;
   /** Accumulated tool calls (finalized) */
   toolCalls: Array<Record<string, unknown>>;
   /** Accumulated output message parts (for output recording). */
@@ -60,8 +63,13 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
   const usage = chunk.usageMetadata;
   if (usage) {
     if (typeof usage.promptTokenCount === 'number') state.promptTokens = usage.promptTokenCount;
-    if (typeof usage.candidatesTokenCount === 'number') state.completionTokens = usage.candidatesTokenCount;
+    if (typeof usage.candidatesTokenCount === 'number') state.candidateTokens = usage.candidatesTokenCount;
+    if (typeof usage.thoughtsTokenCount === 'number') state.reasoningOutputTokens = usage.thoughtsTokenCount;
+    if (state.candidateTokens !== undefined || state.reasoningOutputTokens !== undefined) {
+      state.completionTokens = (state.candidateTokens ?? 0) + (state.reasoningOutputTokens ?? 0);
+    }
     if (typeof usage.totalTokenCount === 'number') state.totalTokens = usage.totalTokenCount;
+    if (typeof usage.cachedContentTokenCount === 'number') state.cacheReadInputTokens = usage.cachedContentTokenCount;
   }
 }
 

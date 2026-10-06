@@ -127,7 +127,9 @@ function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void 
     if ('usage' in response && response.usage) {
       setTokenUsageAttributes(
         span,
-        response.usage.input_tokens,
+        response.usage.input_tokens +
+          (response.usage.cache_creation_input_tokens ?? 0) +
+          (response.usage.cache_read_input_tokens ?? 0),
         response.usage.output_tokens,
         response.usage.cache_creation_input_tokens,
         response.usage.cache_read_input_tokens,

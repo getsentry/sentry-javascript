@@ -1,5 +1,61 @@
 import { describe, expect, it } from 'vitest';
-import { extractAgentNameFromParams, extractLLMFromParams } from '../../../../src/ai/langgraph/utils';
+import type { Span } from '@sentry/core';
+import {
+  extractAgentNameFromParams,
+  extractLLMFromParams,
+  setResponseAttributes,
+} from '../../../../src/ai/langgraph/utils';
+
+describe('LangGraph cache usage', () => {
+  it.each([
+    { name: 'positive counts', cacheRead: 2048, cacheWrite: 512 },
+    { name: 'zero counts', cacheRead: 0, cacheWrite: 0 },
+    { name: 'absent counts', cacheRead: undefined, cacheWrite: undefined },
+  ])('aggregates $name across new messages without adding caches to input totals', ({ cacheRead, cacheWrite }) => {
+    const attributes: Record<string, unknown> = {};
+    const span = {
+      setAttribute: (key: string, value: unknown) => {
+        attributes[key] = value;
+      },
+    } as unknown as Span;
+    const inputMessages = [
+      {
+        role: 'assistant',
+        content: 'Previous answer',
+        usage_metadata: {
+          input_tokens: 10000,
+          output_tokens: 100,
+          total_tokens: 10100,
+          input_token_details: { cache_read: 9000, cache_creation: 1000 },
+        },
+      },
+    ];
+    const usage = {
+      input_tokens: 2600,
+      output_tokens: 120,
+      total_tokens: 2720,
+      input_token_details: { cache_read: cacheRead, cache_creation: cacheWrite },
+    };
+
+    setResponseAttributes(span, inputMessages, {
+      messages: [
+        ...inputMessages,
+        { role: 'assistant', content: 'First answer', usage_metadata: usage },
+        { role: 'assistant', content: 'Second answer', usage_metadata: usage },
+      ],
+    });
+
+    expect(attributes).toEqual({
+      'gen_ai.response.text':
+        '[{"role":"assistant","content":"First answer"},{"role":"assistant","content":"Second answer"}]',
+      'gen_ai.usage.input_tokens': 5200,
+      'gen_ai.usage.output_tokens': 240,
+      'gen_ai.usage.total_tokens': 5440,
+      ...(cacheRead === undefined ? {} : { 'gen_ai.usage.cache_read.input_tokens': cacheRead * 2 }),
+      ...(cacheWrite === undefined ? {} : { 'gen_ai.usage.cache_creation.input_tokens': cacheWrite * 2 }),
+    });
+  });
+});
 
 describe('extractLLMFromParams', () => {
   it('returns null for empty or invalid args', () => {

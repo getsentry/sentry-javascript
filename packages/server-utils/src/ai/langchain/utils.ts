@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 /* eslint-disable typescript-eslint/no-deprecated */
-import { stringify } from '@sentry/core';
+import { isObjectLike, stringify } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -21,13 +21,10 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
-  GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { extractSystemInstructions } from '../core/utils';
+import { extractSystemInstructions, getTokenUsageAttributes } from '../core/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -329,16 +326,44 @@ function addToolCallsAttributes(generations: LangChainMessage[][], attrs: Record
   }
 }
 
-/**
- * Adds token usage attributes, supporting both OpenAI (`tokenUsage`) and Anthropic (`usage`) formats.
- * - Preserve zero values (0 tokens) by avoiding truthy checks.
- * - Compute a total for Anthropic when not explicitly provided.
- * - Include cache token metrics when present.
- */
-function addTokenUsageAttributes(
-  llmOutput: LangChainLLMResult['llmOutput'],
-  attrs: Record<string, SpanAttributeValue>,
-): void {
+export function extractMessageTokenUsageAttributes(message: LangChainMessage): Record<string, number> {
+  const usage = message.usage_metadata;
+  if (isObjectLike(usage)) {
+    const details = isObjectLike(usage.input_token_details) ? usage.input_token_details : undefined;
+    return getTokenUsageAttributes(
+      usage.input_tokens,
+      usage.output_tokens,
+      details?.cache_creation,
+      details?.cache_read,
+      usage.total_tokens,
+    );
+  }
+
+  const metadata = message.response_metadata;
+  const tokenUsage = isObjectLike(metadata) && isObjectLike(metadata.tokenUsage) ? metadata.tokenUsage : undefined;
+  return getTokenUsageAttributes(
+    tokenUsage?.promptTokens,
+    tokenUsage?.completionTokens,
+    undefined,
+    undefined,
+    tokenUsage?.totalTokens,
+  );
+}
+
+function addTokenUsageAttributes(llmResult: LangChainLLMResult, attrs: Record<string, SpanAttributeValue>): void {
+  const normalizedUsage: Record<string, number> = {};
+  for (const generations of llmResult.generations ?? []) {
+    // Multiple candidates for one prompt share the input usage.
+    const message = generations[0]?.message;
+    if (message) {
+      for (const [key, value] of Object.entries(extractMessageTokenUsageAttributes(message))) {
+        normalizedUsage[key] = (normalizedUsage[key] ?? 0) + value;
+      }
+    }
+  }
+  Object.assign(attrs, normalizedUsage);
+
+  const llmOutput = llmResult.llmOutput;
   if (!llmOutput) return;
 
   const tokenUsage = llmOutput.tokenUsage;
@@ -352,24 +377,45 @@ function addTokenUsageAttributes(
     | undefined;
 
   if (tokenUsage) {
-    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS, tokenUsage.promptTokens);
-    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS, tokenUsage.completionTokens);
-    setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS, tokenUsage.totalTokens);
-  } else if (anthropicUsage) {
-    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS, anthropicUsage.input_tokens);
-    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS, anthropicUsage.output_tokens);
-
-    // Compute total when not provided by the provider.
-    const input = Number(anthropicUsage.input_tokens);
-    const output = Number(anthropicUsage.output_tokens);
-    const total = (Number.isNaN(input) ? 0 : input) + (Number.isNaN(output) ? 0 : output);
-    if (total > 0) setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS, total);
-
-    // Extra Anthropic cache metrics (present only when caching is enabled)
-    if (anthropicUsage.cache_creation_input_tokens !== undefined)
-      setNumberIfDefined(attrs, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, anthropicUsage.cache_creation_input_tokens);
-    if (anthropicUsage.cache_read_input_tokens !== undefined)
-      setNumberIfDefined(attrs, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, anthropicUsage.cache_read_input_tokens);
+    Object.assign(
+      attrs,
+      getTokenUsageAttributes(
+        tokenUsage.promptTokens,
+        tokenUsage.completionTokens,
+        undefined,
+        undefined,
+        tokenUsage.totalTokens,
+      ),
+    );
+  } else if (anthropicUsage && Object.keys(normalizedUsage).length === 0) {
+    const { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens } = anthropicUsage;
+    const hasInput =
+      input_tokens !== undefined || cache_creation_input_tokens !== undefined || cache_read_input_tokens !== undefined;
+    Object.assign(
+      attrs,
+      getTokenUsageAttributes(
+        hasInput
+          ? (input_tokens ?? 0) + (cache_creation_input_tokens ?? 0) + (cache_read_input_tokens ?? 0)
+          : undefined,
+        output_tokens,
+        cache_creation_input_tokens,
+        cache_read_input_tokens,
+      ),
+    );
+  }
+  if (anthropicUsage) {
+    if (
+      typeof anthropicUsage.cache_creation_input_tokens === 'number' &&
+      !(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS in attrs)
+    ) {
+      attrs[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS] = anthropicUsage.cache_creation_input_tokens;
+    }
+    if (
+      typeof anthropicUsage.cache_read_input_tokens === 'number' &&
+      !(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS in attrs)
+    ) {
+      attrs[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS] = anthropicUsage.cache_read_input_tokens;
+    }
   }
 }
 
@@ -425,7 +471,7 @@ export function extractLlmResponseAttributes(
     }
   }
 
-  addTokenUsageAttributes(llmResult.llmOutput, attrs);
+  addTokenUsageAttributes(llmResult, attrs);
 
   const llmOutput = llmResult.llmOutput;
 
