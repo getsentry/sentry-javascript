@@ -761,12 +761,16 @@ describe('OpenAI integration (V6)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('creates openai related spans with genAI recording disabled (v6)', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
               expect(spans).toHaveLength(3);
               const singleEmbeddingSpan = spans.find(
                 span =>
@@ -895,12 +899,16 @@ describe('OpenAI integration (V6)', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('creates openai related spans with genAI recording enabled (v6)', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
               expect(spans).toHaveLength(3);
               const singleEmbeddingSpan = spans.find(
                 span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
@@ -1044,14 +1052,18 @@ describe('OpenAI integration (V6)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('it works without a wrapping span (v6)', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
-              const serverSegment = container.items.find(
+              allSpans.push(...container.items);
+              const serverSegment = allSpans.find(
                 span => span.is_segment && span.name === 'POST /openai/chat/completions',
               );
               expect(serverSegment).toBeDefined();
-              const segment = container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+              const segment = allSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
               expect(segment?.span_id).toEqual(expect.any(String));
               expect(segment?.trace_id).toEqual(expect.any(String));
               expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
@@ -1090,14 +1102,18 @@ describe('OpenAI integration (V6)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('it works with Azure OpenAI (v6)', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
-              const serverSegment = container.items.find(
+              allSpans.push(...container.items);
+              const serverSegment = allSpans.find(
                 span => span.is_segment && span.name === 'POST /azureopenai/deployments/:model/chat/completions',
               );
               expect(serverSegment).toBeDefined();
-              const segment = container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+              const segment = allSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
               expect(segment?.span_id).toEqual(expect.any(String));
               expect(segment?.trace_id).toEqual(expect.any(String));
               expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });

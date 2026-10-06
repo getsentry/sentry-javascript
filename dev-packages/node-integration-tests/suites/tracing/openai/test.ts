@@ -993,12 +993,16 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates openai related spans with genAI recording disabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
             expect(spans).toHaveLength(4);
             const singleEmbeddingSpan = spans.find(
               span =>
@@ -1153,12 +1157,16 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates openai related spans with genAI recording enabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
             expect(spans).toHaveLength(4);
             const singleEmbeddingSpan = spans.find(
               span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
@@ -1322,14 +1330,18 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-root-span.mjs', 'instrument.mjs', (createRunner, test) => {
     test('it works without a wrapping span', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const serverSegment = container.items.find(
+            allSpans.push(...container.items);
+            const serverSegment = allSpans.find(
               span => span.is_segment && span.name === 'POST /openai/chat/completions',
             );
             expect(serverSegment).toBeDefined();
-            const segment = container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+            const segment = allSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
             expect(segment?.span_id).toEqual(expect.any(String));
             expect(segment?.trace_id).toEqual(expect.any(String));
             expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
@@ -1354,14 +1366,18 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-azure-openai.mjs', 'instrument.mjs', (createRunner, test) => {
     test('it works with Azure OpenAI', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const serverSegment = container.items.find(
+            allSpans.push(...container.items);
+            const serverSegment = allSpans.find(
               span => span.is_segment && span.name === 'POST /azureopenai/deployments/:model/chat/completions',
             );
             expect(serverSegment).toBeDefined();
-            const segment = container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+            const segment = allSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
             expect(segment?.span_id).toEqual(expect.any(String));
             expect(segment?.trace_id).toEqual(expect.any(String));
             expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
@@ -1387,12 +1403,16 @@ describe('OpenAI integration', () => {
   // Test for conversation ID support (Conversations API and previous_response_id)
   createEsmAndCjsTests(__dirname, 'scenario-conversation.mjs', 'instrument.mjs', (createRunner, test) => {
     test('captures conversation ID from Conversations API and previous_response_id', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'conversation-test');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'conversation-test');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
             expect(spans).toHaveLength(5);
             const conversationCreateSpan = spans.find(span => span.name === 'chat');
             expect(conversationCreateSpan!.status).toBe('ok');
@@ -1521,14 +1541,16 @@ describe('OpenAI integration', () => {
   // Test for manual conversation ID setting using setConversationId()
   createEsmAndCjsTests(__dirname, 'scenario-manual-conversation-id.mjs', 'instrument.mjs', (createRunner, test) => {
     test('attaches manual conversation ID set via setConversationId() to all chat spans', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(
-              span => span.is_segment && span.name === 'chat-with-manual-conversation-id',
-            );
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'chat-with-manual-conversation-id');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
             expect(spans).toHaveLength(3);
 
             // All three chat completion spans should have the same manually-set conversation ID
@@ -1553,12 +1575,16 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-separate-scope-1.mjs', 'instrument.mjs', (createRunner, test) => {
     test('isolates conversation IDs across separate scopes - conversation 1', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'GET /chat/conversation-1');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'GET /chat/conversation-1');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
             expect(spans).toHaveLength(2);
 
             // Both chat completion spans should have the expected conversation ID
@@ -1582,12 +1608,16 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-separate-scope-2.mjs', 'instrument.mjs', (createRunner, test) => {
     test('isolates conversation IDs across separate scopes - conversation 2', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'GET /chat/conversation-2');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'GET /chat/conversation-2');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
             expect(spans).toHaveLength(2);
 
             // Both chat completion spans should have the expected conversation ID
@@ -1615,12 +1645,16 @@ describe('OpenAI integration', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('extracts system instructions from messages', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
               expect(spans).toHaveLength(1);
               const [firstSpan] = spans;
 
@@ -1639,12 +1673,16 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-with-response.mjs', 'instrument.mjs', (createRunner, test) => {
     test('preserves .withResponse() method and works correctly', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
             expect(spans).toHaveLength(2);
 
             for (const span of spans) {

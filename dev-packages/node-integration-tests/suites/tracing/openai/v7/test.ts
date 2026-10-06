@@ -123,13 +123,17 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('instruments the embeddings API on openai v7', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .ignore('event')
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
               const embeddingSpans = spans.filter(
                 span => span.attributes[GEN_AI_OPERATION_NAME]?.value === 'embeddings',
               );
