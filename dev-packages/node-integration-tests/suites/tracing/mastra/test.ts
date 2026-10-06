@@ -17,8 +17,9 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
-  SENTRY_ORIGIN,
   SENTRY_OP,
+  SENTRY_ORIGIN,
+  URL_FULL,
 } from '@sentry/conventions/attributes';
 import { afterAll, expect } from 'vitest';
 import { conditionalTest } from '../../../utils';
@@ -68,7 +69,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
 
               const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
               expect(agentSpan.status).toBe('ok');
-              expect(agentSpan.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(agentSpan.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
               expect(agentSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(agentSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
               expect(agentSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_agent');
@@ -80,7 +81,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
 
               const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
               expect(chatSpan.status).toBe('ok');
-              expect(chatSpan.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(chatSpan.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(chatSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(chatSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(chatSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gpt-4o-mini');
@@ -176,7 +177,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
 
               const toolSpan = spans.find(span => span.name === 'execute_tool get_weather')!;
               expect(toolSpan.status).toBe('ok');
-              expect(toolSpan.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+              expect(toolSpan.attributes[SENTRY_OP].value).toBe('gen_ai.execute_tool');
               expect(toolSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(toolSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('execute_tool');
               expect(toolSpan.attributes[GEN_AI_TOOL_NAME].value).toBe('get_weather');
@@ -215,7 +216,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               expect(spans.map(span => span.name)).toEqual(['invoke_agent math_workflow']);
 
               const workflowSpan = spans[0]!;
-              expect(workflowSpan.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(workflowSpan.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
               expect(workflowSpan.attributes[GEN_AI_PIPELINE_NAME].value).toBe('math_workflow');
             },
           })
@@ -332,7 +333,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               const modelFetches = allSpans.filter(
                 span =>
                   span.attributes[SENTRY_OP]?.value === 'http.client' &&
-                  String(span.attributes['url.full']?.value ?? '').includes('/v1/chat/completions'),
+                  String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
               );
               expect(modelFetches.length).toBeGreaterThan(0);
               modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
@@ -346,12 +347,12 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               );
               expect(loadSpans.length).toBeGreaterThan(0);
               cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
-              const chat = allSpans.find(span => span.attributes['sentry.op']?.value === 'gen_ai.chat')!;
+              const chat = allSpans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')!;
               expect(chat).toBeDefined();
               chatSpanId = chat.span_id;
 
               const executeTool = allSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items')!;
-              expect(executeTool.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
+              expect(executeTool.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
               executeToolSpanId = executeTool.span_id;
             },
           })
@@ -394,7 +395,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               const modelFetches = allSpans.filter(
                 span =>
                   span.attributes[SENTRY_OP]?.value === 'http.client' &&
-                  String(span.attributes['url.full']?.value ?? '').includes('/v1/chat/completions'),
+                  String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
               );
               expect(modelFetches.length).toBeGreaterThan(0);
               modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
@@ -406,12 +407,12 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               );
               expect(loadSpans.length).toBeGreaterThan(0);
               cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
-              const chat = allSpans.find(span => span.attributes['sentry.op']?.value === 'gen_ai.chat')!;
+              const chat = allSpans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')!;
               expect(chat).toBeDefined();
               chatSpanId = chat.span_id;
 
               const executeTool = allSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items')!;
-              expect(executeTool.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
+              expect(executeTool.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
               executeToolSpanId = executeTool.span_id;
             },
           })
