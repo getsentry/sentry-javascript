@@ -1,139 +1,145 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
+import { IMPORT_SURFACES } from './importSurfaces';
 
-async function collectRequestSpans() {
-  const spans = await collectStreamedSpansUntilSegment(
-    'nuxt-4',
-    span => span.attributes['url.path']?.value === '/api/middleware-test',
-  );
-  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test');
+// Nitro runs every file in `server/middleware/` on every request, so each surface tells its spans apart by
+// middleware name. `nuxt/server` has no object syntax (`onRequest`, `onBeforeResponse`) and no `eventHandler`
+// alias, so only the simple middleware has a copy.
+const MIDDLEWARE = {
+  '#imports': {
+    names: ['01.first', '02.second', '03.auth', '04.hooks', '05.array-hooks'],
+    simpleNames: ['01.first', '02.second', '03.auth'],
+    // 3 simple + 3 hooks (onRequest+handler+onBeforeResponse) + 5 array hooks (2 onRequest + 1 handler + 2 onBeforeResponse)
+    spanCount: 11,
+    authName: '03.auth',
+    authErrorQuery: 'throwError=true',
+    authErrorMessage: 'Auth middleware error',
+  },
+  'nuxt/server': {
+    names: ['06.nuxt-server-first', '07.nuxt-server-auth'],
+    simpleNames: ['06.nuxt-server-first', '07.nuxt-server-auth'],
+    spanCount: 2,
+    authName: '07.nuxt-server-auth',
+    authErrorQuery: 'throwNuxtServerError=true',
+    authErrorMessage: 'nuxt/server auth middleware error',
+  },
+} as const;
+
+async function collectRequestSpans(path = '/api/middleware-test') {
+  const spans = await collectStreamedSpansUntilSegment('nuxt-4', span => span.attributes['url.path']?.value === path);
+  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === path);
 
   return spans.filter(span => span.trace_id === rootSpan?.trace_id);
 }
 
-test.describe('Server Middleware Instrumentation', () => {
-  test('should create separate spans for each server middleware', async ({ request }) => {
-    const spansPromise = collectRequestSpans();
+IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
+  const middleware = MIDDLEWARE[name];
+  const path = `${apiPrefix}/middleware-test`;
+  const isSurfaceMiddlewareSpan = (span: { attributes: Record<string, { value?: unknown } | undefined> }) =>
+    (middleware.names as readonly unknown[]).includes(span.attributes['nuxt.middleware.name']?.value);
 
-    // Make request to the API endpoint that will trigger all server middleware
-    const response = await request.get('/api/middleware-test');
-    expect(response.status()).toBe(200);
+  test.describe(`Server Middleware Instrumentation (${name})`, () => {
+    test('should create separate spans for each server middleware', async ({ request }) => {
+      const spansPromise = collectRequestSpans(path);
 
-    const responseData = await response.json();
-    expect(responseData.message).toBe('Server middleware test endpoint');
+      const response = await request.get(path);
+      expect(response.status()).toBe(200);
 
-    const spans = await spansPromise;
+      const responseData = await response.json();
+      expect(responseData.message).toBe('Server middleware test endpoint');
 
-    // Verify that we have spans for each middleware
-    const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware');
+      const spans = await spansPromise;
 
-    // 3 simple + 3 hooks (onRequest+handler+onBeforeResponse) + 5 array hooks (2 onRequest + 1 handler + 2 onBeforeResponse)
-    expect(middlewareSpans).toHaveLength(11);
+      const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware' && isSurfaceMiddlewareSpan(span));
 
-    // Check for specific middleware spans
-    const findSpanByName = (name: string) =>
-      middlewareSpans.find(span => span.attributes['nuxt.middleware.name']?.value === name);
+      expect(middlewareSpans).toHaveLength(middleware.spanCount);
 
-    const firstMiddlewareSpan = findSpanByName('01.first');
-    const secondMiddlewareSpan = findSpanByName('02.second');
-    const authMiddlewareSpan = findSpanByName('03.auth');
-    const hooksOnRequestSpan = findSpanByName('04.hooks');
-    const arrayHooksHandlerSpan = findSpanByName('05.array-hooks');
+      const findSpanByName = (middlewareName: string) =>
+        middlewareSpans.find(span => span.attributes['nuxt.middleware.name']?.value === middlewareName);
 
-    expect(firstMiddlewareSpan).toBeDefined();
-    expect(secondMiddlewareSpan).toBeDefined();
-    expect(authMiddlewareSpan).toBeDefined();
-    expect(hooksOnRequestSpan).toBeDefined();
-    expect(arrayHooksHandlerSpan).toBeDefined();
+      middleware.names.forEach(middlewareName => {
+        expect(findSpanByName(middlewareName)).toBeDefined();
+      });
 
-    // Verify each span has the correct attributes
-    [firstMiddlewareSpan, secondMiddlewareSpan, authMiddlewareSpan].forEach(span => {
-      expect(span).toEqual(
-        expect.objectContaining({
-          is_segment: false,
-          attributes: expect.objectContaining({
-            'sentry.op': { type: 'string', value: 'middleware' },
-            'sentry.origin': { type: 'string', value: 'auto.middleware.nuxt' },
-            'http.request.method': { type: 'string', value: 'GET' },
-            'http.route': { type: 'string', value: '/api/middleware-test' },
+      middleware.simpleNames.forEach(middlewareName => {
+        expect(findSpanByName(middlewareName)).toEqual(
+          expect.objectContaining({
+            is_segment: false,
+            attributes: expect.objectContaining({
+              'sentry.op': { type: 'string', value: 'middleware' },
+              'sentry.origin': { type: 'string', value: 'auto.middleware.nuxt' },
+              'http.request.method': { type: 'string', value: 'GET' },
+              'http.route': { type: 'string', value: path },
+            }),
+            parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           }),
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        );
+      });
+
+      // Verify spans have different span IDs (each middleware gets its own span)
+      const uniqueSpanIds = new Set(middlewareSpans.map(span => span.span_id));
+      expect(uniqueSpanIds.size).toBe(middleware.spanCount);
+
+      const uniqueTraceIds = new Set(middlewareSpans.map(span => span.trace_id));
+      expect(uniqueTraceIds.size).toBe(1);
+    });
+
+    test('middleware spans should have proper parent-child relationship', async ({ request }) => {
+      const spansPromise = collectRequestSpans(path);
+
+      await request.get(path);
+      const spans = await spansPromise;
+
+      const segmentSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === path);
+      const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware' && isSurfaceMiddlewareSpan(span));
+
+      expect(middlewareSpans).toHaveLength(middleware.spanCount);
+      middlewareSpans.forEach(span => {
+        expect(span.parent_span_id).toBe(segmentSpan?.span_id);
+      });
+    });
+
+    test('should capture errors thrown in middleware and associate them with the span', async ({ request }) => {
+      const spansPromise = collectRequestSpans(path);
+
+      const errorEventPromise = waitForError('nuxt-4', errorEvent => {
+        return errorEvent?.exception?.values?.[0]?.value === middleware.authErrorMessage;
+      });
+
+      const response = await request.get(`${path}?${middleware.authErrorQuery}`);
+
+      expect(response.status()).toBe(500);
+
+      const [spans, errorEvent] = await Promise.all([spansPromise, errorEventPromise]);
+
+      const authMiddlewareSpan = spans.find(
+        span =>
+          getSpanOp(span) === 'middleware' && span.attributes['nuxt.middleware.name']?.value === middleware.authName,
+      );
+
+      expect(authMiddlewareSpan).toBeDefined();
+      expect(authMiddlewareSpan?.status).toBe('error');
+
+      expect(errorEvent.transaction).toContain(`GET ${path}`);
+
+      expect(errorEvent.exception?.values?.[0]).toEqual(
+        expect.objectContaining({
+          value: middleware.authErrorMessage,
+          type: 'Error',
+          mechanism: expect.objectContaining({
+            handled: false,
+            type: 'auto.middleware.nuxt',
+          }),
         }),
       );
     });
-
-    // Verify spans have different span IDs (each middleware gets its own span)
-    const spanIds = middlewareSpans.map(span => span.span_id);
-    const uniqueSpanIds = new Set(spanIds);
-    // 3 simple + 3 hooks (onRequest+handler+onBeforeResponse) + 5 array hooks (2 onRequest + 1 handler + 2 onBeforeResponse)
-    expect(uniqueSpanIds.size).toBe(11);
-
-    // Verify spans share the same trace ID
-    const traceIds = middlewareSpans.map(span => span.trace_id);
-    const uniqueTraceIds = new Set(traceIds);
-    expect(uniqueTraceIds.size).toBe(1);
   });
+});
 
-  test('middleware spans should have proper parent-child relationship', async ({ request }) => {
-    const spansPromise = collectRequestSpans();
-
-    await request.get('/api/middleware-test');
-    const spans = await spansPromise;
-
-    const segmentSpan = spans.find(
-      span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test',
-    );
-    const middlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware');
-
-    // All middleware spans should be children of the request's segment span
-    middlewareSpans.forEach(span => {
-      expect(span.parent_span_id).toBe(segmentSpan?.span_id);
-    });
-  });
-
-  test('should capture errors thrown in middleware and associate them with the span', async ({ request }) => {
-    const spansPromise = collectRequestSpans();
-
-    const errorEventPromise = waitForError('nuxt-4', errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'Auth middleware error';
-    });
-
-    // Make request with query param to trigger error in auth middleware
-    const response = await request.get('/api/middleware-test?throwError=true');
-
-    // The request should fail due to the middleware error
-    expect(response.status()).toBe(500);
-
-    const [spans, errorEvent] = await Promise.all([spansPromise, errorEventPromise]);
-
-    // Find the auth middleware span
-    const authMiddlewareSpan = spans.find(
-      span => getSpanOp(span) === 'middleware' && span.attributes['nuxt.middleware.name']?.value === '03.auth',
-    );
-
-    expect(authMiddlewareSpan).toBeDefined();
-
-    // Verify the span has error status
-    expect(authMiddlewareSpan?.status).toBe('error');
-
-    // Verify the error event is associated with the correct request
-    expect(errorEvent.transaction).toContain('GET /api/middleware-test');
-
-    // Verify the error has the correct mechanism
-    expect(errorEvent.exception?.values?.[0]).toEqual(
-      expect.objectContaining({
-        value: 'Auth middleware error',
-        type: 'Error',
-        mechanism: expect.objectContaining({
-          handled: false,
-          type: 'auto.middleware.nuxt',
-        }),
-      }),
-    );
-  });
-
+// `nuxt/server` has no object syntax for middleware hooks, so these only run on the classic surface.
+test.describe('Server Middleware Instrumentation (#imports hooks)', () => {
   test('should create spans for onRequest and onBeforeResponse hooks', async ({ request }) => {
     const spansPromise = collectRequestSpans();
 
