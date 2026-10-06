@@ -191,6 +191,42 @@ describe('LangChain token usage', () => {
     });
   });
 
+  it('preserves legacy message totals over final stream chunk counters', () => {
+    const result = {
+      generations: [
+        [
+          {
+            message: {
+              response_metadata: { tokenUsage: { promptTokens: 2600, completionTokens: 120, totalTokens: 2720 } },
+            },
+          },
+        ],
+      ],
+      llmOutput: { tokenUsage: { promptTokens: 0, completionTokens: 120, totalTokens: 120 } },
+    };
+
+    expect(extractLlmResponseAttributes(result, false)).toEqual({
+      'gen_ai.usage.input_tokens': 2600,
+      'gen_ai.usage.output_tokens': 120,
+      'gen_ai.usage.total_tokens': 2720,
+    });
+  });
+
+  it('preserves zero legacy message usage over generic counters', () => {
+    const result = {
+      generations: [
+        [{ message: { response_metadata: { tokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 } } } }],
+      ],
+      llmOutput: { tokenUsage: { promptTokens: 2600, completionTokens: 120, totalTokens: 2720 } },
+    };
+
+    expect(extractLlmResponseAttributes(result, false)).toEqual({
+      'gen_ai.usage.input_tokens': 0,
+      'gen_ai.usage.output_tokens': 0,
+      'gen_ai.usage.total_tokens': 0,
+    });
+  });
+
   it('omits null cache counts in raw Anthropic usage', () => {
     const result = {
       generations: [],

@@ -394,7 +394,7 @@ function addTokenUsageAttributes(llmResult: LangChainLLMResult, attrs: Record<st
         cache_read_input_tokens,
       ),
     );
-  } else if (tokenUsage && Object.keys(normalizedUsage).length === 0) {
+  } else if (tokenUsage && Object.keys(normalizedUsage).length === 0 && Object.keys(legacyMessageUsage).length === 0) {
     Object.assign(
       attrs,
       getTokenUsageAttributes(
