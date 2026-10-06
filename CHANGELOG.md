@@ -4,12 +4,6 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-### Important Changes
-
-- **feat(bundler-plugins): Publish `@sentry/webpack-plugin`, `@sentry/vite-plugin`, `@sentry/rollup-plugin` and `@sentry/esbuild-plugin` from this repository**
-
-  The standalone bundler plugins moved here from `getsentry/sentry-javascript-bundler-plugins` and now release in lockstep with the SDK. Their version jumps from 5.x to the SDK version. Each package re-exports the matching `@sentry/bundler-plugins` subpath, so the plugin options are unchanged. The minimum Node.js version is now the same as the SDK's. `@sentry/webpack-plugin/webpack5` still works and points to the same plugin as `@sentry/webpack-plugin`.
-
 ## 11.4.0
 
 - feat(sveltekit): Support stable SvelteKit 3 ([#25009](https://github.com/getsentry/sentry-javascript/pull/25009))

@@ -6,14 +6,14 @@
 
 # Sentry Bundler Plugins
 
-Sentry plugins for Webpack, Vite, Rollup and esbuild. Each plugin is a subpath export of this package, for example `@sentry/bundler-plugins/vite`.
+Core package containing the bundler-agnostic functionality used by the [bundler plugins](https://github.com/getsentry/sentry-javascript-bundler-plugins).
 
-The plugins are also published as standalone packages:
+Check out the individual packages for more information and examples:
 
-- [`@sentry/rollup-plugin`](https://github.com/getsentry/sentry-javascript/tree/develop/packages/legacy/rollup-plugin)
-- [`@sentry/vite-plugin`](https://github.com/getsentry/sentry-javascript/tree/develop/packages/legacy/vite-plugin)
-- [`@sentry/esbuild-plugin`](https://github.com/getsentry/sentry-javascript/tree/develop/packages/legacy/esbuild-plugin)
-- [`@sentry/webpack-plugin`](https://github.com/getsentry/sentry-javascript/tree/develop/packages/legacy/webpack-plugin)
+- [Rollup](https://www.npmjs.com/package/@sentry/rollup-plugin)
+- [Vite](https://www.npmjs.com/package/@sentry/vite-plugin)
+- [esbuild](https://www.npmjs.com/package/@sentry/esbuild-plugin)
+- [Webpack](https://www.npmjs.com/package/@sentry/webpack-plugin)
 
 ## Documentation
 
