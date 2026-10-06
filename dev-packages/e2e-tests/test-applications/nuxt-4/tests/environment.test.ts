@@ -1,6 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
+
+// Clicks before hydration are no-ops. Do not wait for `networkidle` instead: the Nuxt dev error
+// overlay (Nuxt 4.6+) keeps an EventSource open, so the network never becomes idle.
+async function waitForHydration(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const { useNuxtApp } = window as { useNuxtApp?: () => { isHydrating: boolean } };
+    return useNuxtApp?.().isHydrating === false;
+  });
+}
 
 test.describe('environment detection', async () => {
   test('sets correct environment for client-side errors', async ({ page }) => {
@@ -8,8 +17,8 @@ test.describe('environment detection', async () => {
       return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from Nuxt-4 E2E test app';
     });
 
-    // We have to wait for networkidle in dev mode because clicking the button is a no-op otherwise (network requests are blocked during page load)
-    await page.goto(`/client-error`, isDevMode ? { waitUntil: 'networkidle' } : {});
+    await page.goto(`/client-error`);
+    await waitForHydration(page);
     await page.locator('#errorBtn').click();
 
     const error = await errorPromise;
@@ -42,7 +51,8 @@ test.describe('environment detection', async () => {
       return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error';
     });
 
-    await page.goto(`/fetch-server-routes`, isDevMode ? { waitUntil: 'networkidle' } : {});
+    await page.goto(`/fetch-server-routes`);
+    await waitForHydration(page);
     await page.getByText('Fetch Server API Error', { exact: true }).click();
 
     const error = await errorPromise;
@@ -61,7 +71,8 @@ test.describe('environment detection', async () => {
       return transactionEvent.transaction === 'GET /api/nitro-fetch';
     });
 
-    await page.goto(`/fetch-server-routes`, isDevMode ? { waitUntil: 'networkidle' } : {});
+    await page.goto(`/fetch-server-routes`);
+    await waitForHydration(page);
     await page.getByText('Fetch Nitro $fetch', { exact: true }).click();
 
     const transaction = await transactionPromise;
