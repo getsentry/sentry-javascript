@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_AGENT_NAME,
@@ -232,13 +233,17 @@ describe('LangGraph integration', () => {
   // emits finish order (the `http.client` that the chat span wraps finishes before the chat span itself).
   createEsmAndCjsTests(__dirname, 'agent-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('should instrument createReactAgent with agent and chat spans', { timeout: 30000 }, async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            expect(container.items.find(span => span.attributes[SENTRY_OP]?.value === 'http.client')).toBeDefined();
-            const spans = container.items;
+            expect(allSpans.find(span => span.attributes[SENTRY_OP]?.value === 'http.client')).toBeDefined();
+            const spans = allSpans;
             expect(spans).toContainEqual(
               expect.objectContaining({
                 name: 'invoke_agent helpful_assistant',
@@ -270,13 +275,17 @@ describe('LangGraph integration', () => {
   // createReactAgent with tools - verifies tool execution spans (asserted order-independently, see above).
   createEsmAndCjsTests(__dirname, 'agent-tools-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('should create tool execution spans for createReactAgent with tools', { timeout: 30000 }, async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === 'http.client')).toHaveLength(3);
-            const spans = container.items;
+            expect(allSpans.filter(span => span.attributes[SENTRY_OP]?.value === 'http.client')).toHaveLength(3);
+            const spans = allSpans;
             expect(spans).toContainEqual(
               expect.objectContaining({
                 status: 'ok',
@@ -319,12 +328,16 @@ describe('LangGraph integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-stategraph-chat.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('auto-injects langchain handler for plain StateGraph and emits chat spans', { timeout: 30000 }, async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const chatSpans = container.items.filter(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.chat');
+            const chatSpans = allSpans.filter(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.chat');
             expect(chatSpans).toHaveLength(1);
             expect(chatSpans[0]?.attributes[GEN_AI_AGENT_NAME]?.value).toBe('plain_assistant');
           },
