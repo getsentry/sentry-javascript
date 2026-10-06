@@ -149,7 +149,7 @@ describe('Anthropic integration', () => {
             expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
             expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
             expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
+            expect(completionSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.anthropic');
 
             const errorSpan = spans.find(
               span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === '[{"role":"user","content":"This will fail"}]',
