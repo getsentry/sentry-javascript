@@ -61,9 +61,16 @@ describe.each(['openai chat', 'openai responses', 'google'] as const)('cache usa
           provider === 'openai chat'
             ? { ...openAiResponse, object: 'chat.completion.chunk' }
             : { type: 'response.completed', response: openAiResponse };
+        const responseWithoutCacheDetails = {
+          ...openAiResponse,
+          usage: { ...openAiResponse.usage, prompt_tokens_details: undefined, input_tokens_details: undefined },
+        };
         const stream = (async function* () {
           yield event;
           yield event;
+          yield provider === 'openai chat'
+            ? { ...responseWithoutCacheDetails, object: 'chat.completion.chunk' }
+            : { type: 'response.completed', response: responseWithoutCacheDetails };
         })();
         for await (const _ of instrumentOpenAiStream(stream, span, false)) {
           void _;
