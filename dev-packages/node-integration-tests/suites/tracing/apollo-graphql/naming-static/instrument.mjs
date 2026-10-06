@@ -6,6 +6,6 @@ Sentry.init({
   traceLifecycle: 'static',
   release: '1.0',
   tracesSampleRate: 1.0,
-  integrations: [Sentry.graphqlIntegration({ useOperationNameForRootSpan: true, ignoreResolveSpans: false })],
+  integrations: [Sentry.graphqlIntegration({ ignoreResolveSpans: false })],
   transport: loggingTransport,
 });

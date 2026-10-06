@@ -6,9 +6,6 @@ describe('GraphQL/Apollo Tests > resolve spans', () => {
     cleanupChildProcesses();
   });
 
-  // With `ignoreResolveSpans: false`, the instrumentation emits a span for the execute step as well as
-  // for `parse`, `validate` and each (non-trivial) field resolver.
-
   createEsmAndCjsTests(__dirname, 'scenario-query.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test('emits parse, validate and resolve spans when ignoreResolveSpans is false', async () => {
       await createTestRunner()
