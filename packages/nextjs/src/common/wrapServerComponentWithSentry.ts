@@ -3,12 +3,14 @@ import {
   captureException,
   getActiveSpan,
   getIsolationScope,
+  getSpanStatusFromHttpCode,
   handleCallbackErrors,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   winterCGHeadersToDict,
 } from '@sentry/core';
 import {
+  getAuthInterruptStatusCode,
   isNotFoundNavigationError,
   isPrerenderControlFlowError,
   isRedirectNavigationError,
@@ -51,6 +53,12 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           if (isNotFoundNavigationError(error)) {
             // We don't want to report "not-found"s
             span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+            return;
+          }
+
+          const authInterruptStatusCode = getAuthInterruptStatusCode(error);
+          if (authInterruptStatusCode) {
+            span?.setStatus(getSpanStatusFromHttpCode(authInterruptStatusCode));
             return;
           }
 
