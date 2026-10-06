@@ -1,3 +1,4 @@
+import { HTTP_REQUEST_RESPONSE_END, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { getClient, getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
@@ -73,8 +74,8 @@ describe('addPerformanceEntries', () => {
         start_timestamp: (pageloadOriginMs + sleepDurationMs + resourceStartTime) / 1000,
         end_timestamp: (pageloadOriginMs + sleepDurationMs + resourceStartTime + 100) / 1000,
         attributes: expect.objectContaining({
-          'sentry.op': 'resource.script',
-          'http.request.response_end': (pageloadOriginMs + sleepDurationMs + resourceStartTime + 100) / 1000,
+          [SENTRY_OP]: 'resource.script',
+          [HTTP_REQUEST_RESPONSE_END]: (pageloadOriginMs + sleepDurationMs + resourceStartTime + 100) / 1000,
         }),
       }),
     ]);
