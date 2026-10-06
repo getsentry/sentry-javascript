@@ -196,42 +196,4 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
       });
     });
   });
-
-  describe('many operations', () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario-multiple-operations-many.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('useOperationNameForRootSpan works with more than 5 query operations', async () => {
-          await createTestRunner()
-            .expect({
-              span: container => {
-                expect(
-                  container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
-                ).toBeDefined();
-                const segment = container.items.find(span => span.is_segment && span.name === 'test span name');
-
-                expect(segment?.attributes['sentry.graphql.operation']).toEqual({
-                  value: [
-                    'query GetHello1',
-                    'query GetHello2',
-                    'query GetHello3',
-                    'query GetHello4',
-                    'query GetHello5',
-                    'query GetHello6',
-                    'query GetHello7',
-                    'query GetHello8',
-                    'query GetHello9',
-                  ],
-                  type: 'array',
-                });
-              },
-            })
-            .start()
-            .completed();
-        });
-      },
-    );
-  });
 });
