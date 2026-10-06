@@ -18,6 +18,7 @@ import {
   startSpanManual,
   winterCGHeadersToDict,
 } from '@sentry/core';
+import { classifyResponseStreaming } from '@sentry/core/server';
 import { captureIncomingRequestBody } from './integrations/httpServer';
 import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
 import type { CloudflareClient, CloudflareOptions } from './client';
@@ -26,7 +27,6 @@ import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
-import { classifyResponseStreaming } from './utils/streaming';
 
 function getRequestErrorMechanismType(context: ExecutionContextCompat | undefined): string {
   // Durable Object fetch handlers use DO state as context (see instrumentDurableObjectWithSentry)
