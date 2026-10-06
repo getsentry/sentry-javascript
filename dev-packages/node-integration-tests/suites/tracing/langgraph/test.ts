@@ -45,7 +45,7 @@ describe('LangGraph integration', () => {
             for (const span of invokeAgentSpans) {
               expect(span.status).toBe('ok');
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(span.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
+              expect(span.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langgraph');
               expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
               expect(span.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_assistant');
               expect(span.attributes[GEN_AI_PIPELINE_NAME].value).toBe('weather_assistant');
@@ -75,7 +75,7 @@ describe('LangGraph integration', () => {
             expect(weatherTodaySpan!.name).toBe('invoke_agent weather_assistant');
             expect(weatherTodaySpan!.status).toBe('ok');
             expect(weatherTodaySpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(weatherTodaySpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
+            expect(weatherTodaySpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langgraph');
 
             const weatherDetailsSpan = spans.find(span =>
               getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(
@@ -217,7 +217,7 @@ describe('LangGraph integration', () => {
             expect(invokeAgentSpan!.name).toBe('invoke_agent resume_agent');
             expect(invokeAgentSpan!.status).toBe('ok');
             expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(invokeAgentSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langgraph');
+            expect(invokeAgentSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langgraph');
             expect(invokeAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('resume_agent');
             expect(invokeAgentSpan!.attributes[GEN_AI_PIPELINE_NAME].value).toBe('resume_agent');
           },
