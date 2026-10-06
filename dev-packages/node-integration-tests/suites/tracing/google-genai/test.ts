@@ -55,7 +55,7 @@ describe('Google GenAI integration', () => {
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-            expect(chatSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
+            expect(chatSpan!.attributes[SENTRY_ORIGIN].value).toBe(EXPECTED_ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
             // Given once to `chats.create()` and reused for every message the chat sends.
@@ -530,7 +530,7 @@ describe('Google GenAI integration', () => {
             for (const span of successfulSpans) {
               expect(span.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
               expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
-              expect(span.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
+              expect(span.attributes[SENTRY_ORIGIN].value).toBe(EXPECTED_ORIGIN);
               expect(span.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
               expect(span.attributes[GEN_AI_REQUEST_MODEL].value).toBe('text-embedding-004');
               expect(span.attributes[GEN_AI_EMBEDDINGS_INPUT]).toBeUndefined();

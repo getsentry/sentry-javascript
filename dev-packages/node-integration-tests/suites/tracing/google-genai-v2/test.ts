@@ -54,7 +54,7 @@ describe('Google GenAI integration (v2)', () => {
               expect(chatSpan!.status).toBe('ok');
               expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-              expect(chatSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
+              expect(chatSpan!.attributes[SENTRY_ORIGIN].value).toBe(EXPECTED_ORIGIN);
               expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
               expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-pro');
               expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(8);
@@ -65,7 +65,7 @@ describe('Google GenAI integration (v2)', () => {
               expect(generateContentSpan!.status).toBe('ok');
               expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
               expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
-              expect(generateContentSpan!.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
+              expect(generateContentSpan!.attributes[SENTRY_ORIGIN].value).toBe(EXPECTED_ORIGIN);
               expect(generateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
               expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gemini-1.5-flash');
               expect(generateContentSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
@@ -122,7 +122,7 @@ describe('Google GenAI integration (v2)', () => {
               for (const span of successfulSpans) {
                 expect(span.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
                 expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
-                expect(span.attributes['sentry.origin'].value).toBe(EXPECTED_ORIGIN);
+                expect(span.attributes[SENTRY_ORIGIN].value).toBe(EXPECTED_ORIGIN);
                 expect(span.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
                 expect(span.attributes[GEN_AI_REQUEST_MODEL].value).toBe('text-embedding-004');
               }
